@@ -1,0 +1,33 @@
+package table
+
+import (
+	"github.com/brunocalza/go-bustub/types"
+)
+
+type Column struct {
+	columnName     string
+	columnType     types.TypeID
+	fixedLength    uint32 // For a non-inlined column, this is the size of a pointer. Otherwise, the size of the fixed length column
+	variableLength uint32 // For an inlined column, 0. Otherwise, the length of the variable length column
+	columnOffset   uint32 // Column offset in the tuple
+}
+
+func NewColumn(name string, columnType types.TypeID) *Column {
+	return &Column{name, columnType, 4, 0, 0}
+}
+
+func (c *Column) IsInlined() bool {
+	return c.columnType != types.Varchar
+}
+
+func (c *Column) GetType() types.TypeID {
+	return c.columnType
+}
+
+func (c *Column) GetOffset() uint32 {
+	return c.columnOffset
+}
+
+func (c *Column) GetColumnName() string {
+	return c.columnName
+}
