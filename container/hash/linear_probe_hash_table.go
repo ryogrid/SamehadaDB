@@ -5,7 +5,7 @@ import (
 	"errors"
 	"unsafe"
 
-	"github.com/brunocalza/go-bustub/buffer"
+	"github.com/brunocalza/go-bustub/storage/buffer"
 	"github.com/brunocalza/go-bustub/storage/page"
 	"github.com/spaolacci/murmur3"
 )

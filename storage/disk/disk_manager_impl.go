@@ -2,8 +2,8 @@ package disk
 
 import (
 	"errors"
+	"fmt"
 	"io"
-	"io/ioutil"
 	"log"
 	"os"
 
@@ -77,6 +77,7 @@ func (d *DiskManagerImpl) ReadPage(pageID page.PageID, pageData []byte) error {
 	if err != nil {
 		return errors.New("I/O error while reading")
 	}
+	fmt.Println(bytesRead, err)
 
 	if bytesRead < page.PageSize {
 		for i := 0; i < page.PageSize; i++ {
@@ -103,31 +104,4 @@ func (d *DiskManagerImpl) DeallocatePage(pageID page.PageID) {
 // GetNumWrites returns the number of disk writes
 func (d *DiskManagerImpl) GetNumWrites() uint64 {
 	return d.numWrites
-}
-
-//DiskManagerTest is the disk implementation of DiskManager for testing purposes
-type DiskManagerTest struct {
-	path string
-	DiskManager
-}
-
-// NewDiskManagerTest returns a DiskManager instance for testing purposes
-func NewDiskManagerTest() DiskManager {
-	// Retrieve a temporary path.
-	f, err := ioutil.TempFile("", "")
-	if err != nil {
-		panic(err)
-	}
-	path := f.Name()
-	f.Close()
-	os.Remove(path)
-
-	diskManager := NewDiskManagerImpl(path)
-	return &DiskManagerTest{path, diskManager}
-}
-
-// ShutDown closes of the database file
-func (d *DiskManagerTest) ShutDown() {
-	defer os.Remove(d.path)
-	d.DiskManager.ShutDown()
 }
