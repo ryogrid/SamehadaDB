@@ -4,8 +4,8 @@ import (
 	"fmt"
 	"testing"
 
-	"github.com/brunocalza/go-bustub/buffer"
 	"github.com/brunocalza/go-bustub/execution/plans"
+	"github.com/brunocalza/go-bustub/storage/buffer"
 	"github.com/brunocalza/go-bustub/storage/disk"
 	"github.com/brunocalza/go-bustub/storage/table"
 	"github.com/brunocalza/go-bustub/types"

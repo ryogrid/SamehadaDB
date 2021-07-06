@@ -3,7 +3,7 @@ package table
 import (
 	"unsafe"
 
-	"github.com/brunocalza/go-bustub/buffer"
+	"github.com/brunocalza/go-bustub/storage/buffer"
 	"github.com/brunocalza/go-bustub/storage/page"
 )
 

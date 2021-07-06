@@ -1,7 +1,7 @@
 package table
 
 import (
-	"github.com/brunocalza/go-bustub/buffer"
+	"github.com/brunocalza/go-bustub/storage/buffer"
 )
 
 // Catalog is a non-persistent catalog that is designed for the executor to use.

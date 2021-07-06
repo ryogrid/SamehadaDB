@@ -1,7 +1,7 @@
 package executors
 
 import (
-	"github.com/brunocalza/go-bustub/buffer"
+	"github.com/brunocalza/go-bustub/storage/buffer"
 	"github.com/brunocalza/go-bustub/storage/table"
 )
 
