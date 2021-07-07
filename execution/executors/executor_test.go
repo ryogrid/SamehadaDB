@@ -13,7 +13,7 @@ import (
 
 func TestInsertExecutor(t *testing.T) {
 	diskManager := disk.NewDiskManagerTest()
-	bpm := buffer.NewBufferPoolManager(diskManager, buffer.NewClockReplacer(10))
+	bpm := buffer.NewBufferPoolManager(uint32(32), diskManager)
 
 	c := table.NewCatalog(bpm)
 	executorContext := NewExecutorContext(c, bpm)
