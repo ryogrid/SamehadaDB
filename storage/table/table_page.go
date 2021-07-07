@@ -30,7 +30,7 @@ const offsetTupleSize = uint32(28)
 //  ----------------------------------------------------------------
 type TablePage struct {
 	id       page.PageID
-	pinCount int
+	pinCount uint32
 	isDirty  bool
 	data     *[page.PageSize]byte
 }
@@ -91,8 +91,8 @@ func (t *TablePage) GetData() *[page.PageSize]byte {
 }
 
 func (t *TablePage) SetPageId(pageId page.PageID) {
-	size := int(unsafe.Sizeof(pageId))
-	for i := 0; i < size; i++ {
+	size := int32(unsafe.Sizeof(pageId))
+	for i := int32(0); i < size; i++ {
 		position := (*byte)(unsafe.Pointer(uintptr(unsafe.Pointer(&t.data[0])) + uintptr(i)))
 		byt := *(*byte)(unsafe.Pointer(uintptr(unsafe.Pointer(&pageId)) + uintptr(i)))
 		*position = byt

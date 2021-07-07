@@ -9,8 +9,9 @@ import (
 )
 
 func TestHashTable(t *testing.T) {
-	diskManager := disk.NewDiskManagerImpl("test.db")
-	bpm := buffer.NewBufferPoolManager(diskManager, buffer.NewClockReplacer(10))
+	diskManager := disk.NewDiskManagerTest()
+	defer diskManager.ShutDown()
+	bpm := buffer.NewBufferPoolManager(10, diskManager)
 
 	ht := NewHashTable(bpm, 1000)
 

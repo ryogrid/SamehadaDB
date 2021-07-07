@@ -1,22 +1,22 @@
 package executors
 
 import (
-	"fmt"
 	"testing"
 
 	"github.com/brunocalza/go-bustub/execution/plans"
 	"github.com/brunocalza/go-bustub/storage/buffer"
 	"github.com/brunocalza/go-bustub/storage/disk"
 	"github.com/brunocalza/go-bustub/storage/table"
+	"github.com/brunocalza/go-bustub/testingutils"
 	"github.com/brunocalza/go-bustub/types"
 )
 
 func TestInsertExecutor(t *testing.T) {
 	diskManager := disk.NewDiskManagerTest()
+	defer diskManager.ShutDown()
 	bpm := buffer.NewBufferPoolManager(uint32(32), diskManager)
 
 	c := table.NewCatalog(bpm)
-	executorContext := NewExecutorContext(c, bpm)
 
 	columnA := table.NewColumn("a", types.Integer)
 	columnB := table.NewColumn("b", types.Integer)
@@ -24,24 +24,25 @@ func TestInsertExecutor(t *testing.T) {
 
 	tableMetadata := c.CreateTable("test_1", schema)
 
-	values1 := make([]types.Value, 0)
-	values1 = append(values1, types.NewIntegerType(20))
-	values1 = append(values1, types.NewIntegerType(22))
+	row1 := make([]types.Value, 0)
+	row1 = append(row1, types.NewIntegerType(20))
+	row1 = append(row1, types.NewIntegerType(22))
 
-	values2 := make([]types.Value, 0)
-	values2 = append(values2, types.NewIntegerType(99))
-	values2 = append(values2, types.NewIntegerType(55))
+	row2 := make([]types.Value, 0)
+	row2 = append(row2, types.NewIntegerType(99))
+	row2 = append(row2, types.NewIntegerType(55))
 
-	rawValues := make([][]types.Value, 0)
-	rawValues = append(rawValues, values1)
-	rawValues = append(rawValues, values2)
+	rows := make([][]types.Value, 0)
+	rows = append(rows, row1)
+	rows = append(rows, row2)
 
-	insertPlanNode := plans.NewInsertPlanNode(rawValues, tableMetadata.OID())
+	insertPlanNode := plans.NewInsertPlanNode(rows, tableMetadata.OID())
 
 	executionEngine := &ExecutionEngine{}
+	executorContext := NewExecutorContext(c, bpm)
 	executionEngine.Execute(insertPlanNode, executorContext)
 
-	//bpm.FlushAllpages()
+	bpm.FlushAllpages()
 
 	outColumnB := table.NewColumn("b", types.Integer)
 	outSchema := table.NewSchema([]*table.Column{outColumnB})
@@ -50,9 +51,6 @@ func TestInsertExecutor(t *testing.T) {
 
 	results := executionEngine.Execute(seqPlan, executorContext)
 
-	fmt.Println(results[0].GetValue(outSchema, 0))
-
-	fmt.Println(results[1].GetValue(outSchema, 0))
-
-	diskManager.ShutDown()
+	testingutils.Equals(t, types.NewIntegerType(22), results[0].GetValue(outSchema, 0))
+	testingutils.Equals(t, types.NewIntegerType(55), results[1].GetValue(outSchema, 0))
 }

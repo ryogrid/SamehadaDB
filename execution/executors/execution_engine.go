@@ -13,11 +13,14 @@ func (e *ExecutionEngine) Execute(plan plans.Plan, context *ExecutorContext) []*
 
 	executor.Init()
 
-	tuples := make([]*table.Tuple, 0)
-	tuple, _ := executor.Next()
-	for tuple != nil {
+	tuples := []*table.Tuple{}
+	for {
+		tuple, done, err := executor.Next()
+		if err != nil || done {
+			break
+		}
+
 		tuples = append(tuples, tuple)
-		tuple, _ = executor.Next()
 	}
 
 	return tuples
