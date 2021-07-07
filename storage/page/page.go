@@ -1,7 +1,5 @@
 package page
 
-import "fmt"
-
 // PageID is the type of the page identifier
 type PageID int32
 
@@ -60,6 +58,5 @@ func New(id PageID, pinCount uint32, isDirty bool, data *[PageSize]byte) *Page {
 }
 
 func NewEmpty(id PageID) *Page {
-	fmt.Println(id)
 	return &Page{id, uint32(1), false, &[PageSize]byte{}}
 }
