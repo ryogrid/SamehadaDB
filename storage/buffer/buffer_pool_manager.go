@@ -7,13 +7,10 @@ import (
 	"github.com/brunocalza/go-bustub/storage/page"
 )
 
-//MaxPoolSize is the size of the pool
-const MaxPoolSize = 1000
-
 //BufferPoolManager represents the buffer pool manager
 type BufferPoolManager struct {
 	diskManager disk.DiskManager
-	pages       [MaxPoolSize]*page.Page
+	pages       []*page.Page
 	replacer    *ClockReplacer
 	freeList    []FrameID
 	pageTable   map[page.PageID]FrameID
@@ -104,7 +101,7 @@ func (b *BufferPoolManager) FlushPage(pageID page.PageID) bool {
 func (b *BufferPoolManager) NewPage() *page.Page {
 	frameID, isFromFreeList := b.getFrameID()
 	if frameID == nil {
-		return nil
+		return nil // the buffer is full, it can't find a frame
 	}
 
 	if !isFromFreeList {
@@ -172,12 +169,14 @@ func (b *BufferPoolManager) getFrameID() (*FrameID, bool) {
 }
 
 //NewBufferPoolManager returns a empty buffer pool manager
-func NewBufferPoolManager(DiskManager disk.DiskManager, clockReplacer *ClockReplacer) *BufferPoolManager {
-	freeList := make([]FrameID, 0)
-	pages := [MaxPoolSize]*page.Page{}
-	for i := 0; i < MaxPoolSize; i++ {
-		freeList = append(freeList, FrameID(i))
-		pages[FrameID(i)] = nil
+func NewBufferPoolManager(poolSize uint32, DiskManager disk.DiskManager) *BufferPoolManager {
+	freeList := make([]FrameID, poolSize)
+	pages := make([]*page.Page, poolSize)
+	for i := uint32(0); i < poolSize; i++ {
+		freeList[i] = FrameID(i)
+		pages[i] = nil
 	}
-	return &BufferPoolManager{DiskManager, pages, clockReplacer, freeList, make(map[page.PageID]FrameID)}
+
+	replacer := NewClockReplacer(poolSize)
+	return &BufferPoolManager{DiskManager, pages, replacer, freeList, make(map[page.PageID]FrameID)}
 }

@@ -1,7 +1,7 @@
 package buffer
 
 //FrameID is the type for frame id
-type FrameID int
+type FrameID uint32
 
 //ClockReplacer represents the clock replacer algorithm
 type ClockReplacer struct {
@@ -58,12 +58,12 @@ func (c *ClockReplacer) Pin(id FrameID) {
 }
 
 //Size returns the size of the clock
-func (c *ClockReplacer) Size() int {
+func (c *ClockReplacer) Size() uint32 {
 	return c.cList.size
 }
 
 //NewClockReplacer instantiates a new clock replacer
-func NewClockReplacer(poolSize int) *ClockReplacer {
+func NewClockReplacer(poolSize uint32) *ClockReplacer {
 	cList := newCircularList(poolSize)
 	return &ClockReplacer{cList, &cList.head}
 }

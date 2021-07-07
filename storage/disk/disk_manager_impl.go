@@ -2,7 +2,6 @@ package disk
 
 import (
 	"errors"
-	"fmt"
 	"io"
 	"log"
 	"os"
@@ -77,7 +76,6 @@ func (d *DiskManagerImpl) ReadPage(pageID page.PageID, pageData []byte) error {
 	if err != nil {
 		return errors.New("I/O error while reading")
 	}
-	fmt.Println(bytesRead, err)
 
 	if bytesRead < page.PageSize {
 		for i := 0; i < page.PageSize; i++ {

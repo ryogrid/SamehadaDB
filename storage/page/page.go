@@ -1,5 +1,7 @@
 package page
 
+import "fmt"
+
 // PageID is the type of the page identifier
 type PageID int32
 
@@ -8,7 +10,7 @@ const PageSize = 4096
 // Page represents a page on disk
 type Page struct {
 	id       PageID
-	pinCount int
+	pinCount uint32
 	isDirty  bool
 	data     *[PageSize]byte
 }
@@ -26,7 +28,7 @@ func (p *Page) DecPinCount() {
 }
 
 // PinCount retunds the pin count
-func (p *Page) PinCount() int {
+func (p *Page) PinCount() uint32 {
 	return p.pinCount
 }
 
@@ -47,10 +49,17 @@ func (p *Page) IsDirty() bool {
 	return p.isDirty
 }
 
-func New(id PageID, pinCount int, isDirty bool, data *[PageSize]byte) *Page {
+func (p *Page) CopyToData(data []byte) {
+	for i := 0; i < len(data); i++ {
+		p.data[i] = data[i]
+	}
+}
+
+func New(id PageID, pinCount uint32, isDirty bool, data *[PageSize]byte) *Page {
 	return &Page{id, pinCount, isDirty, data}
 }
 
 func NewEmpty(id PageID) *Page {
-	return &Page{id, 1, false, &[PageSize]byte{}}
+	fmt.Println(id)
+	return &Page{id, uint32(1), false, &[PageSize]byte{}}
 }

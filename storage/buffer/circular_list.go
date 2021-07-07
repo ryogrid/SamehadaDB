@@ -15,13 +15,13 @@ type node struct {
 type circularList struct {
 	head     *node
 	tail     *node
-	size     int
-	capacity int
+	size     uint32
+	capacity uint32
 }
 
 func (c *circularList) find(key interface{}) *node {
 	ptr := c.head
-	for i := 0; i < c.size; i++ {
+	for i := uint32(0); i < c.size; i++ {
 		if ptr.key == key {
 			return ptr
 		}
@@ -109,12 +109,12 @@ func (c *circularList) print() {
 		fmt.Println(nil)
 	}
 	ptr := c.head
-	for i := 0; i < c.size; i++ {
+	for i := uint32(0); i < c.size; i++ {
 		fmt.Println(ptr.key, ptr.value, ptr.prev.key, ptr.next.key)
 		ptr = ptr.next
 	}
 }
 
-func newCircularList(maxSize int) *circularList {
+func newCircularList(maxSize uint32) *circularList {
 	return &circularList{nil, nil, 0, maxSize}
 }

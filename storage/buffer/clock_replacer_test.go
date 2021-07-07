@@ -17,7 +17,7 @@ func TestClockReplacer(t *testing.T) {
 	clockReplacer.Unpin(5)
 	clockReplacer.Unpin(6)
 	clockReplacer.Unpin(1)
-	testingutils.Equals(t, 6, clockReplacer.Size())
+	testingutils.Equals(t, uint32(6), clockReplacer.Size())
 
 	// Scenario: get three victims from the clock.
 	var value *FrameID
@@ -32,7 +32,7 @@ func TestClockReplacer(t *testing.T) {
 	// Note that 3 has already been victimized, so pinning 3 should have no effect.
 	clockReplacer.Pin(3)
 	clockReplacer.Pin(4)
-	testingutils.Equals(t, 2, clockReplacer.Size())
+	testingutils.Equals(t, uint32(2), clockReplacer.Size())
 
 	// Scenario: unpin 4. We expect that the reference bit of 4 will be set to 1.
 	clockReplacer.Unpin(4)
