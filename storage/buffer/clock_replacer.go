@@ -18,7 +18,6 @@ func (c *ClockReplacer) Victim() *FrameID {
 	var victimFrameID *FrameID
 	currentNode := (*c.clockHand)
 	for {
-
 		if currentNode.value.(bool) {
 			currentNode.value = false
 			c.clockHand = &currentNode.next
