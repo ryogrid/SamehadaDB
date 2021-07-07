@@ -18,14 +18,20 @@ func NewCatalog(bpm *buffer.BufferPoolManager) *Catalog {
 }
 
 func (c *Catalog) GetTableByName(table string) *TableMetadata {
-	oid := c.names[table]
-	return c.tables[oid]
+	if oid, ok := c.names[table]; !ok {
+		return c.tables[oid]
+	}
+	return nil
 }
 
 func (c *Catalog) GetTableByOID(oid uint32) *TableMetadata {
-	return c.tables[oid]
+	if table, ok := c.tables[oid]; ok {
+		return table
+	}
+	return nil
 }
 
+// CreateTable creates a new table and return its metadata
 func (c *Catalog) CreateTable(name string, schema *Schema) *TableMetadata {
 	oid := c.nextTableId
 	c.nextTableId++
