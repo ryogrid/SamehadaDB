@@ -52,7 +52,7 @@ func (b *BufferPoolManager) FetchPage(pageID page.PageID) *page.Page {
 	}
 	var pageData [page.PageSize]byte
 	copy(pageData[:], data)
-	pg := page.New(pageID, 1, false, &pageData)
+	pg := page.New(pageID, false, &pageData)
 	b.pageTable[pageID] = *frameID
 	b.pages[*frameID] = pg
 
