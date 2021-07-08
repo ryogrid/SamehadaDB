@@ -35,15 +35,15 @@ func NewComparisonExpression(left Expression, right Expression, comparisonType C
 func (c *ComparisonExpression) Evaluate(tuple *table.Tuple, schema *table.Schema) types.Value {
 	lhs := c.children[0].Evaluate(tuple, schema)
 	rhs := c.children[1].Evaluate(tuple, schema)
-	return types.NewBooleanType(c.performComparison(lhs, rhs))
+	return types.NewBoolean(c.performComparison(lhs, rhs))
 }
 
 func (c *ComparisonExpression) performComparison(lhs types.Value, rhs types.Value) bool {
 	switch c.comparisonType {
 	case Equal:
-		return lhs.(types.IntegerType).CompareEquals(rhs.(types.IntegerType))
+		return lhs.CompareEquals(rhs)
 	case NotEqual:
-		return lhs.(types.IntegerType).CompareNotEquals(rhs.(types.IntegerType))
+		return lhs.CompareNotEquals(rhs)
 	}
 	return false
 }

@@ -8,41 +8,29 @@ import (
 )
 
 type Tuple struct {
-	isAllocated bool
-	rid         *page.RID
-	size        uint32
-	data        *[]byte
+	rid  *page.RID
+	size uint32
+	data *[]byte
 }
 
+// NewTupleFromSchema creates a new tuple based on input value
 func NewTupleFromSchema(values []types.Value, schema *Schema) *Tuple {
 	// calculate tuple size
 	tupleSize := schema.Length()
-	// TODO increase size of unlinedcolumns
 	tuple := &Tuple{}
 	tuple.size = tupleSize
 
 	// allocate memory
 	data := make([]byte, tupleSize)
 	tuple.data = &data
-	tuple.isAllocated = true
 
 	// serialize each attribute base on the input value
 	columnCount := schema.GetColumnCount()
-	//offset := schema.Length()
 
-	var i uint32
-	for i = 0; i < columnCount; i++ {
+	for i := uint32(0); i < columnCount; i++ {
 		column := schema.GetColumn(i)
-		value := values[i].(types.IntegerType)
-		// TODO; handle varchar
-
-		// Serialize
-		size := int(unsafe.Sizeof(value))
-		for i := 0; i < size; i++ {
-			position := (*byte)(unsafe.Pointer(uintptr(unsafe.Pointer(&(*tuple.data)[0])) + uintptr(column.columnOffset) + uintptr(i)))
-			byt := *(*byte)(unsafe.Pointer(uintptr(unsafe.Pointer(&value)) + uintptr(i)))
-			*position = byt
-		}
+		address := uintptr(unsafe.Pointer(&(*tuple.data)[0])) + uintptr(column.GetOffset())
+		values[i].SerializeTo(address)
 	}
 
 	return tuple
@@ -50,27 +38,12 @@ func NewTupleFromSchema(values []types.Value, schema *Schema) *Tuple {
 
 func (t *Tuple) GetValue(schema *Schema, colIndex uint32) types.Value {
 	column := schema.GetColumn(colIndex)
-	//columnData := t.GetDataPtr(schema, colIndex)
-
-	switch column.GetType() {
-	case types.Integer:
-		value := (*int32)(unsafe.Pointer(uintptr(unsafe.Pointer(&(*t.data)[0])) + uintptr(column.GetOffset())))
-		return types.NewIntegerType(*value)
-	default:
-		return nil
+	address := uintptr(unsafe.Pointer(&(*t.data)[0])) + uintptr(column.GetOffset())
+	value := types.DeserializeFrom(address, column.GetType())
+	if value == nil {
+		panic(value)
 	}
-}
-
-func (t *Tuple) GetDataPtr(schema *Schema, colIndex uint32) unsafe.Pointer {
-	column := schema.GetColumn(colIndex)
-	if (*column).IsInlined() {
-		data := (*t.data)[0:1]
-		return unsafe.Pointer(&data)
-	}
-
-	//TODO: handle varchar
-	data := (*t.data)[0:1]
-	return unsafe.Pointer(&data)
+	return *value
 }
 
 func (t *Tuple) Size() uint32 {

@@ -16,33 +16,33 @@ func NewTableIterator(tableHeap *TableHeap, rid *page.RID) *TableIterator {
 	return &TableIterator{tableHeap, tuple}
 }
 
-func (i *TableIterator) Current() *Tuple {
-	return i.tuple
+func (it *TableIterator) Current() *Tuple {
+	return it.tuple
 }
 
-func (i *TableIterator) Next() *Tuple {
-	bpm := i.tableHeap.bpm
-	currentPage := (*TablePage)(unsafe.Pointer(bpm.FetchPage(i.tuple.rid.GetPageId())))
+func (it *TableIterator) Next() *Tuple {
+	bpm := it.tableHeap.bpm
+	currentPage := (*TablePage)(unsafe.Pointer(bpm.FetchPage(it.tuple.rid.GetPageId())))
 
-	nextTupleRID := currentPage.GetNextTupleRID(i.tuple.rid)
+	nextTupleRID := currentPage.getNextTupleRID(it.tuple.rid)
 	if nextTupleRID == nil {
-		for currentPage.GetNextPageId() != -1 {
-			nextPage := (*TablePage)(unsafe.Pointer(bpm.FetchPage(currentPage.GetNextPageId())))
-			bpm.UnpinPage(currentPage.GetTablePageId(), false)
+		for currentPage.getNextPageId().IsValid() {
+			nextPage := (*TablePage)(unsafe.Pointer(bpm.FetchPage(currentPage.getNextPageId())))
+			bpm.UnpinPage(currentPage.getTablePageId(), false)
 			currentPage = nextPage
-			nextTupleRID = currentPage.GetNextTupleRID(i.tuple.rid)
+			nextTupleRID = currentPage.getNextTupleRID(it.tuple.rid)
 			if nextTupleRID != nil {
 				break
 			}
 		}
 	}
 
-	if nextTupleRID != nil && nextTupleRID.GetPageId() != -1 {
-		i.tuple = i.tableHeap.GetTuple(nextTupleRID)
+	if nextTupleRID != nil && nextTupleRID.GetPageId().IsValid() {
+		it.tuple = it.tableHeap.GetTuple(nextTupleRID)
 	} else {
-		i.tuple = nil
+		it.tuple = nil
 	}
 
-	bpm.UnpinPage(currentPage.GetTablePageId(), false)
-	return i.tuple
+	bpm.UnpinPage(currentPage.getTablePageId(), false)
+	return it.tuple
 }

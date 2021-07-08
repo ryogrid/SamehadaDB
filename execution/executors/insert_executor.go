@@ -1,10 +1,7 @@
 package executors
 
 import (
-	"errors"
-
 	"github.com/brunocalza/go-bustub/execution/plans"
-	"github.com/brunocalza/go-bustub/storage/page"
 	"github.com/brunocalza/go-bustub/storage/table"
 )
 
@@ -31,11 +28,10 @@ func (e *InsertExecutor) Next() (*table.Tuple, bool, error) {
 	// let's assume it is raw insert
 
 	for _, values := range e.plan.GetRawValues() {
-		rid := &page.RID{}
 		tuple := table.NewTupleFromSchema(values, e.tableMetadata.Schema())
-		ok := e.tableMetadata.Table().InsertTuple(tuple, rid)
-		if !ok {
-			return nil, true, errors.New("insert failed")
+		_, err := e.tableMetadata.Table().InsertTuple(tuple)
+		if err != nil {
+			return nil, true, err
 		}
 	}
 

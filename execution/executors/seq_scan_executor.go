@@ -27,7 +27,7 @@ func (e *SeqScanExecutor) Init() {
 func (e *SeqScanExecutor) Next() (*table.Tuple, bool, error) {
 	currentTuple := e.iterator.Current()
 	for currentTuple != nil {
-		if e.predicate == nil || (*e.predicate).Evaluate(currentTuple, e.tableMeatadata.Schema()).(types.BooleanType).IsTrue() {
+		if e.predicate == nil { // || (*e.predicate).Evaluate(currentTuple, e.tableMeatadata.Schema()).(types.BooleanType).IsTrue()
 			outputSchema := e.plan.OutputSchema()
 			columns := outputSchema.GetColumns()
 			values := make([]types.Value, outputSchema.GetColumnCount())

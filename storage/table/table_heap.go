@@ -7,59 +7,73 @@ import (
 	"github.com/brunocalza/go-bustub/storage/page"
 )
 
+// TableHeap represents a physical table on disk.
+// It contains the id of the first table page. The table page is a doubly-linked to other table pages.
 type TableHeap struct {
 	bpm         *buffer.BufferPoolManager
 	firstPageId page.PageID
 }
 
+// NewTableHeap creates a table heap without a transaction. (open table)
 func NewTableHeap(bpm *buffer.BufferPoolManager) *TableHeap {
 	p := bpm.NewPage()
 	firstPage := (*TablePage)(unsafe.Pointer(p))
-	firstPage.Init(p.ID(), -1)
+	firstPage.init(p.ID(), -1)
 	bpm.UnpinPage(p.ID(), true)
 	return &TableHeap{bpm, p.ID()}
 }
 
-func (t *TableHeap) InsertTuple(tuple *Tuple, rid *page.RID) bool {
+// InsertTuple inserts a tuple into the table
+//
+// It fetches the first page and tries to insert the tuple there.
+// If the tuple is too large (>= page_size):
+// 1. It tries to insert in the next page
+// 2. If there is no next page, it creates a new page and insert in it
+func (t *TableHeap) InsertTuple(tuple *Tuple) (rid *page.RID, err error) {
 	currentPage := (*TablePage)(unsafe.Pointer(t.bpm.FetchPage(t.firstPageId)))
 
-	for !currentPage.InsertTuple(tuple, rid) {
-		nextPageId := currentPage.GetNextPageId()
+	for {
+		rid, err = currentPage.InsertTuple(tuple)
+		if err == nil || err == ErrEmptyTuple {
+			break
+		}
 
+		nextPageId := currentPage.getNextPageId()
 		if nextPageId != -1 {
-			t.bpm.UnpinPage(currentPage.GetTablePageId(), false)
+			t.bpm.UnpinPage(currentPage.getTablePageId(), false)
 			currentPage = (*TablePage)(unsafe.Pointer(t.bpm.FetchPage(nextPageId)))
 		} else {
 			p := t.bpm.NewPage()
 			newPage := (*TablePage)(unsafe.Pointer(p))
-			currentPage.SetNextPageId(p.ID())
-			newPage.Init(p.ID(), currentPage.GetTablePageId())
-			t.bpm.UnpinPage(currentPage.GetTablePageId(), true)
+			currentPage.setNextPageId(p.ID())
+			newPage.init(p.ID(), currentPage.getTablePageId())
+			t.bpm.UnpinPage(currentPage.getTablePageId(), true)
 			currentPage = newPage
 		}
 	}
 
-	t.bpm.UnpinPage(currentPage.GetTablePageId(), true)
-	return true
+	t.bpm.UnpinPage(currentPage.getTablePageId(), true)
+	return rid, nil
 }
 
+// GetTuple reads a tuple from the table
 func (t *TableHeap) GetTuple(rid *page.RID) *Tuple {
 	page := (*TablePage)(unsafe.Pointer(t.bpm.FetchPage(rid.GetPageId())))
-	//t.bpm.UnpinPage(page.I)
-	return page.GetTuple(rid)
+	defer t.bpm.UnpinPage(page.ID(), false)
+	return page.getTuple(rid)
 }
 
 func (t *TableHeap) Begin() *TableIterator {
 	var rid *page.RID
 	pageId := t.firstPageId
-	for pageId != -1 {
+	for pageId.IsValid() {
 		page := (*TablePage)(unsafe.Pointer(t.bpm.FetchPage(pageId)))
-		rid = page.GetTupleFirstRID()
+		rid = page.getTupleFirstRID()
 		t.bpm.UnpinPage(pageId, false)
 		if rid != nil {
 			break
 		}
-		pageId = page.GetNextPageId()
+		pageId = page.getNextPageId()
 	}
 	return NewTableIterator(t, rid)
 }

@@ -3,6 +3,14 @@ package page
 // PageID is the type of the page identifier
 type PageID int32
 
+// InvalidID represents an invalid page ID
+const InvalidID = PageID(-1)
+
+// IsValid checks if id is valid
+func (id PageID) IsValid() bool {
+	return id != InvalidID || id >= 0
+}
+
 // PageSize is the size of a page in disk (4KB)
 const PageSize = 4096
 
