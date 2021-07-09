@@ -1,4 +1,4 @@
-package execution
+package expression
 
 import (
 	"github.com/brunocalza/go-bustub/storage/table"

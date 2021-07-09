@@ -4,7 +4,8 @@
 
 ### V1
 
-- [ ] Predicates on Seq Scan
+- [x] Predicates on Seq Scan
+- [ ] Add <, >, <=, >=
 - [ ] Null
 - [ ] Other inline types (boolean, bigint, smallint, decimal, timestamp)
 - [ ] Deletion

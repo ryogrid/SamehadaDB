@@ -50,6 +50,14 @@ func (v Value) SerializeTo(address uintptr) {
 	}
 }
 
+func (v Value) ToBoolean() bool {
+	return *v.boolean
+}
+
+func (v Value) ToInteger() int32 {
+	return *v.integer
+}
+
 func DeserializeFrom(address uintptr, valueType TypeID) *Value {
 	switch valueType {
 	case Integer:

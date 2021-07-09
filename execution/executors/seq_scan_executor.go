@@ -1,7 +1,6 @@
 package executors
 
 import (
-	"github.com/brunocalza/go-bustub/execution"
 	"github.com/brunocalza/go-bustub/execution/plans"
 	"github.com/brunocalza/go-bustub/storage/table"
 	"github.com/brunocalza/go-bustub/types"
@@ -11,13 +10,12 @@ type SeqScanExecutor struct {
 	context        *ExecutorContext
 	plan           *plans.SeqScanPlanNode
 	tableMeatadata *table.TableMetadata
-	predicate      *execution.Expression
 	iterator       *table.TableIterator
 }
 
 func NewSeqScanExecutor(context *ExecutorContext, plan *plans.SeqScanPlanNode) *SeqScanExecutor {
 	tableMetadata := context.GetCatalog().GetTableByOID(plan.GetTableOID())
-	return &SeqScanExecutor{context, plan, tableMetadata, plan.GetPredicate(), nil}
+	return &SeqScanExecutor{context, plan, tableMetadata, nil}
 }
 
 func (e *SeqScanExecutor) Init() {
@@ -27,7 +25,8 @@ func (e *SeqScanExecutor) Init() {
 func (e *SeqScanExecutor) Next() (*table.Tuple, bool, error) {
 	currentTuple := e.iterator.Current()
 	for currentTuple != nil {
-		if e.predicate == nil { // || (*e.predicate).Evaluate(currentTuple, e.tableMeatadata.Schema()).(types.BooleanType).IsTrue()
+		predicate := e.plan.GetPredicate()
+		if predicate == nil || (*predicate).Evaluate(currentTuple, e.tableMeatadata.Schema()).ToBoolean() {
 			outputSchema := e.plan.OutputSchema()
 			columns := outputSchema.GetColumns()
 			values := make([]types.Value, outputSchema.GetColumnCount())
