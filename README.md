@@ -10,7 +10,7 @@
 - [ ] Other inline types (boolean, bigint, smallint, decimal, timestamp)
 - [ ] Deletion
 - [ ] Update
-- [ ] Limit
+- [x] LIMIT / OFFSET
 - [ ] Varchar
 - [ ] Persistent Catalog
 - [ ] Add LRU replacer

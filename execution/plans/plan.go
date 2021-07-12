@@ -7,6 +7,7 @@ type PlanType int
 const (
 	SeqScan PlanType = iota
 	Insert
+	Limit
 )
 
 type Plan interface {
@@ -14,4 +15,21 @@ type Plan interface {
 	GetChildAt(childIndex uint32) Plan
 	GetChildren() []Plan
 	GetType() PlanType
+}
+
+type AbstractPlanNode struct {
+	outputSchema *table.Schema
+	children     []Plan
+}
+
+func (p *AbstractPlanNode) GetChildAt(childIndex uint32) Plan {
+	return p.children[childIndex]
+}
+
+func (p *AbstractPlanNode) GetChildren() []Plan {
+	return p.children
+}
+
+func (p *AbstractPlanNode) OutputSchema() *table.Schema {
+	return p.outputSchema
 }

@@ -12,7 +12,7 @@ type InsertExecutor struct {
 	tableMetadata *table.TableMetadata
 }
 
-func NewInsertExecutor(context *ExecutorContext, plan *plans.InsertPlanNode) *InsertExecutor {
+func NewInsertExecutor(context *ExecutorContext, plan *plans.InsertPlanNode) Executor {
 	tableMetadata := context.GetCatalog().GetTableByOID(plan.GetTableOID())
 	return &InsertExecutor{context, plan, tableMetadata}
 }

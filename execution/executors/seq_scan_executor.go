@@ -13,7 +13,7 @@ type SeqScanExecutor struct {
 	iterator       *table.TableIterator
 }
 
-func NewSeqScanExecutor(context *ExecutorContext, plan *plans.SeqScanPlanNode) *SeqScanExecutor {
+func NewSeqScanExecutor(context *ExecutorContext, plan *plans.SeqScanPlanNode) Executor {
 	tableMetadata := context.GetCatalog().GetTableByOID(plan.GetTableOID())
 	return &SeqScanExecutor{context, plan, tableMetadata, nil}
 }

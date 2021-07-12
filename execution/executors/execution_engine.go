@@ -20,7 +20,9 @@ func (e *ExecutionEngine) Execute(plan plans.Plan, context *ExecutorContext) []*
 			break
 		}
 
-		tuples = append(tuples, tuple)
+		if tuple != nil {
+			tuples = append(tuples, tuple)
+		}
 	}
 
 	return tuples
@@ -32,6 +34,8 @@ func (e *ExecutionEngine) createExecutor(plan plans.Plan, context *ExecutorConte
 		return NewInsertExecutor(context, p)
 	case *plans.SeqScanPlanNode:
 		return NewSeqScanExecutor(context, p)
+	case *plans.LimitPlanNode:
+		return NewLimitExecutor(context, p, e.createExecutor(plan.GetChildAt(0), context))
 	}
 	return nil
 }
