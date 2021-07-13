@@ -5,7 +5,7 @@ import (
 
 	"github.com/brunocalza/go-bustub/storage/buffer"
 	"github.com/brunocalza/go-bustub/storage/disk"
-	"github.com/brunocalza/go-bustub/testingutils"
+	testingpkg "github.com/brunocalza/go-bustub/testing"
 )
 
 func TestHashTable(t *testing.T) {
@@ -21,7 +21,7 @@ func TestHashTable(t *testing.T) {
 		if len(res) == 0 {
 			t.Errorf("result should not be nil")
 		} else {
-			testingutils.Equals(t, i, res[0])
+			testingpkg.Equals(t, i, res[0])
 		}
 	}
 
@@ -30,36 +30,36 @@ func TestHashTable(t *testing.T) {
 		if len(res) == 0 {
 			t.Errorf("result should not be nil")
 		} else {
-			testingutils.Equals(t, i, res[0])
+			testingpkg.Equals(t, i, res[0])
 		}
 	}
 
 	// test for duplicate values
 	for i := 0; i < 5; i++ {
 		if i == 0 {
-			testingutils.Nok(t, ht.Insert(i, 2*i))
+			testingpkg.Nok(t, ht.Insert(i, 2*i))
 		} else {
-			testingutils.Ok(t, ht.Insert(i, 2*i))
+			testingpkg.Ok(t, ht.Insert(i, 2*i))
 		}
 		ht.Insert(i, 2*i)
 		res := ht.GetValue(i)
 		if i == 0 {
-			testingutils.Equals(t, 1, len(res))
-			testingutils.Equals(t, i, res[0])
+			testingpkg.Equals(t, 1, len(res))
+			testingpkg.Equals(t, i, res[0])
 		} else {
-			testingutils.Equals(t, 2, len(res))
+			testingpkg.Equals(t, 2, len(res))
 			if res[0] == i {
-				testingutils.Equals(t, 2*i, res[1])
+				testingpkg.Equals(t, 2*i, res[1])
 			} else {
-				testingutils.Equals(t, 2*i, res[0])
-				testingutils.Equals(t, i, res[1])
+				testingpkg.Equals(t, 2*i, res[0])
+				testingpkg.Equals(t, i, res[1])
 			}
 		}
 	}
 
 	// look for a key that does not exist
 	res := ht.GetValue(20)
-	testingutils.Equals(t, 0, len(res))
+	testingpkg.Equals(t, 0, len(res))
 
 	// delete some values
 	for i := 0; i < 5; i++ {
@@ -67,10 +67,10 @@ func TestHashTable(t *testing.T) {
 		res := ht.GetValue(i)
 
 		if i == 0 {
-			testingutils.Equals(t, 0, len(res))
+			testingpkg.Equals(t, 0, len(res))
 		} else {
-			testingutils.Equals(t, 1, len(res))
-			testingutils.Equals(t, 2*i, res[0])
+			testingpkg.Equals(t, 1, len(res))
+			testingpkg.Equals(t, 2*i, res[0])
 		}
 	}
 

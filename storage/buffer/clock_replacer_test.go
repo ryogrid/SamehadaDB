@@ -3,7 +3,7 @@ package buffer
 import (
 	"testing"
 
-	"github.com/brunocalza/go-bustub/testingutils"
+	testingpkg "github.com/brunocalza/go-bustub/testing"
 )
 
 func TestClockReplacer(t *testing.T) {
@@ -17,31 +17,31 @@ func TestClockReplacer(t *testing.T) {
 	clockReplacer.Unpin(5)
 	clockReplacer.Unpin(6)
 	clockReplacer.Unpin(1)
-	testingutils.Equals(t, uint32(6), clockReplacer.Size())
+	testingpkg.Equals(t, uint32(6), clockReplacer.Size())
 
 	// Scenario: get three victims from the clock.
 	var value *FrameID
 	value = clockReplacer.Victim()
-	testingutils.Equals(t, FrameID(1), *value)
+	testingpkg.Equals(t, FrameID(1), *value)
 	value = clockReplacer.Victim()
-	testingutils.Equals(t, FrameID(2), *value)
+	testingpkg.Equals(t, FrameID(2), *value)
 	value = clockReplacer.Victim()
-	testingutils.Equals(t, FrameID(3), *value)
+	testingpkg.Equals(t, FrameID(3), *value)
 
 	// Scenario: pin elements in the replacer.
 	// Note that 3 has already been victimized, so pinning 3 should have no effect.
 	clockReplacer.Pin(3)
 	clockReplacer.Pin(4)
-	testingutils.Equals(t, uint32(2), clockReplacer.Size())
+	testingpkg.Equals(t, uint32(2), clockReplacer.Size())
 
 	// Scenario: unpin 4. We expect that the reference bit of 4 will be set to 1.
 	clockReplacer.Unpin(4)
 
 	// Scenario: continue looking for victims. We expect these victims.
 	value = clockReplacer.Victim()
-	testingutils.Equals(t, FrameID(5), *value)
+	testingpkg.Equals(t, FrameID(5), *value)
 	value = clockReplacer.Victim()
-	testingutils.Equals(t, FrameID(6), *value)
+	testingpkg.Equals(t, FrameID(6), *value)
 	value = clockReplacer.Victim()
-	testingutils.Equals(t, FrameID(4), *value)
+	testingpkg.Equals(t, FrameID(4), *value)
 }
