@@ -24,7 +24,7 @@ func (e *InsertExecutor) Init() {
 // Next inserts the tuples into the tables
 // Note that Insert does not return any tuple
 // We return an error if the insert failed for any reason, and return nil if all inserts succeeded.
-func (e *InsertExecutor) Next() (*table.Tuple, bool, error) {
+func (e *InsertExecutor) Next() (*table.Tuple, Done, error) {
 	// let's assume it is raw insert
 
 	for _, values := range e.plan.GetRawValues() {

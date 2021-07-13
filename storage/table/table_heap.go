@@ -18,7 +18,7 @@ type TableHeap struct {
 func NewTableHeap(bpm *buffer.BufferPoolManager) *TableHeap {
 	p := bpm.NewPage()
 	firstPage := (*TablePage)(unsafe.Pointer(p))
-	firstPage.init(p.ID(), -1)
+	firstPage.init(p.ID(), page.InvalidID)
 	bpm.UnpinPage(p.ID(), true)
 	return &TableHeap{bpm, p.ID()}
 }
@@ -39,7 +39,7 @@ func (t *TableHeap) InsertTuple(tuple *Tuple) (rid *page.RID, err error) {
 		}
 
 		nextPageId := currentPage.getNextPageId()
-		if nextPageId != -1 {
+		if nextPageId.IsValid() {
 			t.bpm.UnpinPage(currentPage.getTablePageId(), false)
 			currentPage = (*TablePage)(unsafe.Pointer(t.bpm.FetchPage(nextPageId)))
 		} else {
@@ -63,7 +63,8 @@ func (t *TableHeap) GetTuple(rid *page.RID) *Tuple {
 	return page.getTuple(rid)
 }
 
-func (t *TableHeap) Begin() *TableIterator {
+// GetFirstTuple reads the first tuple from the table
+func (t *TableHeap) GetFirstTuple() *Tuple {
 	var rid *page.RID
 	pageId := t.firstPageId
 	for pageId.IsValid() {
@@ -75,11 +76,10 @@ func (t *TableHeap) Begin() *TableIterator {
 		}
 		pageId = page.getNextPageId()
 	}
-	return NewTableIterator(t, rid)
+	return t.GetTuple(rid)
 }
 
-func (t *TableHeap) End() *TableIterator {
-	rid := &page.RID{}
-	rid.Set(-1, 0)
-	return NewTableIterator(t, rid)
+// Iterator returns a iterator for this table heap
+func (t *TableHeap) Iterator() *TableHeapIterator {
+	return NewTableHeapIterator(t)
 }

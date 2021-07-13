@@ -1,46 +1,66 @@
 package executors
 
 import (
+	"github.com/brunocalza/go-bustub/execution/expression"
 	"github.com/brunocalza/go-bustub/execution/plans"
 	"github.com/brunocalza/go-bustub/storage/table"
 	"github.com/brunocalza/go-bustub/types"
 )
 
+// SeqScanExecutor executes a sequential scan
 type SeqScanExecutor struct {
-	context        *ExecutorContext
-	plan           *plans.SeqScanPlanNode
-	tableMeatadata *table.TableMetadata
-	iterator       *table.TableIterator
+	context       *ExecutorContext
+	plan          *plans.SeqScanPlanNode
+	tableMetadata *table.TableMetadata
+	it            *table.TableHeapIterator
 }
 
+// NewSeqScanExecutor creates a new sequential executor
 func NewSeqScanExecutor(context *ExecutorContext, plan *plans.SeqScanPlanNode) Executor {
 	tableMetadata := context.GetCatalog().GetTableByOID(plan.GetTableOID())
 	return &SeqScanExecutor{context, plan, tableMetadata, nil}
 }
 
 func (e *SeqScanExecutor) Init() {
-	e.iterator = e.tableMeatadata.Table().Begin()
+	e.it = e.tableMetadata.Table().Iterator()
 }
 
-func (e *SeqScanExecutor) Next() (*table.Tuple, bool, error) {
-	currentTuple := e.iterator.Current()
-	for currentTuple != nil {
-		predicate := e.plan.GetPredicate()
-		if predicate == nil || (*predicate).Evaluate(currentTuple, e.tableMeatadata.Schema()).ToBoolean() {
-			outputSchema := e.plan.OutputSchema()
-			columns := outputSchema.GetColumns()
-			values := make([]types.Value, outputSchema.GetColumnCount())
+// Next implements the next method for the sequential scan operator
+// It uses the table heap iterator to iterate through the table heap
+// tyring to find a tuple. It performs selection and projection on-the-fly
+func (e *SeqScanExecutor) Next() (*table.Tuple, Done, error) {
 
-			for i := uint32(0); i < uint32(len(values)); i++ {
-				values[i] = currentTuple.GetValue(e.tableMeatadata.Schema(), uint32(e.tableMeatadata.Schema().GetColIndex(columns[i].GetColumnName())))
-			}
-
-			tuple := table.NewTupleFromSchema(values, outputSchema)
-			e.iterator.Next()
-			return tuple, false, nil
-		} else {
-			currentTuple = e.iterator.Next()
+	// iterates through the table heap trying to select a tuple that matches the predicate
+	for t := e.it.Current(); !e.it.End(); t = e.it.Next() {
+		if e.selects(t, e.plan.GetPredicate()) {
+			break
 		}
 	}
+
+	// if the iterator is not in the end, projects the current tuple into the output schema
+	if !e.it.End() {
+		defer e.it.Next() // advances the iterator after projection
+		return e.projects(e.it.Current()), false, nil
+	}
+
 	return nil, true, nil
+}
+
+// select evaluates an expression on the tuple
+func (e *SeqScanExecutor) selects(tuple *table.Tuple, predicate *expression.Expression) bool {
+	return predicate == nil || (*predicate).Evaluate(tuple, e.tableMetadata.Schema()).ToBoolean()
+}
+
+// project applies the projection operator defined by the output schema
+// It transform the tuple into a new tuple that corresponds to the output schema
+func (e *SeqScanExecutor) projects(tuple *table.Tuple) *table.Tuple {
+	outputSchema := e.plan.OutputSchema()
+
+	values := []types.Value{}
+	for i := uint32(0); i < outputSchema.GetColumnCount(); i++ {
+		colIndex := e.tableMetadata.Schema().GetColIndex(outputSchema.GetColumns()[i].GetColumnName())
+		values = append(values, tuple.GetValue(e.tableMetadata.Schema(), colIndex))
+	}
+
+	return table.NewTupleFromSchema(values, outputSchema)
 }

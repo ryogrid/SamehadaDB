@@ -127,7 +127,7 @@ func TestSimpleInsertAndSeqScanWithPredicateEqualsComparison(t *testing.T) {
 
 		testingutils.Equals(t, 1, len(results))
 		testingutils.Assert(t, types.NewInteger(20).CompareEquals(results[0].GetValue(outSchema, 0)), "value should be 20 but was %d", results[0].GetValue(outSchema, 0).ToInteger())
-		testingutils.Assert(t, types.NewInteger(22).CompareEquals(results[0].GetValue(outSchema, 1)), "value should be 22 but was %d", results[0].GetValue(outSchema, 0).ToInteger())
+		testingutils.Assert(t, types.NewInteger(22).CompareEquals(results[0].GetValue(outSchema, 1)), "value should be 22 but was %d", results[0].GetValue(outSchema, 1).ToInteger())
 	}()
 
 	// TEST 4: select a, b ... WHERE a = 99
@@ -142,7 +142,7 @@ func TestSimpleInsertAndSeqScanWithPredicateEqualsComparison(t *testing.T) {
 
 		testingutils.Equals(t, 1, len(results))
 		testingutils.Assert(t, types.NewInteger(99).CompareEquals(results[0].GetValue(outSchema, 0)), "value should be 99 but was %d", results[0].GetValue(outSchema, 0).ToInteger())
-		testingutils.Assert(t, types.NewInteger(55).CompareEquals(results[0].GetValue(outSchema, 1)), "value should be 55 but was %d", results[0].GetValue(outSchema, 0).ToInteger())
+		testingutils.Assert(t, types.NewInteger(55).CompareEquals(results[0].GetValue(outSchema, 1)), "value should be 55 but was %d", results[0].GetValue(outSchema, 1).ToInteger())
 	}()
 
 	// TEST 5: select a, b ... WHERE a = 100
@@ -196,13 +196,14 @@ func TestSimpleInsertAndSeqScanWithPredicateNotEqualsComparison(t *testing.T) {
 		a := table.NewColumn("a", types.Integer)
 		b := table.NewColumn("b", types.Integer)
 		outSchema := table.NewSchema([]*table.Column{a, b})
-		seqPlan := plans.NewSeqScanPlanNode(outSchema, nil, tableMetadata.OID())
+		expression := expression.NewComparison(expression.NewColumnValue(0, 1), expression.NewConstantValue(types.NewInteger(55)), expression.NotEqual)
+		seqPlan := plans.NewSeqScanPlanNode(outSchema, &expression, tableMetadata.OID())
 
 		results := executionEngine.Execute(seqPlan, executorContext)
 
 		testingutils.Equals(t, 1, len(results))
 		testingutils.Assert(t, types.NewInteger(20).CompareEquals(results[0].GetValue(outSchema, 0)), "value should be 20 but was %d", results[0].GetValue(outSchema, 0).ToInteger())
-		testingutils.Assert(t, types.NewInteger(22).CompareEquals(results[0].GetValue(outSchema, 1)), "value should be 22 but was %d", results[0].GetValue(outSchema, 0).ToInteger())
+		testingutils.Assert(t, types.NewInteger(22).CompareEquals(results[0].GetValue(outSchema, 1)), "value should be 22 but was %d", results[0].GetValue(outSchema, 1).ToInteger())
 	}()
 }
 

@@ -42,14 +42,14 @@ func (s *Schema) Length() uint32 {
 	return s.length
 }
 
-func (s *Schema) GetColIndex(columnName string) int {
-	for i := 0; i < len(s.columns); i++ {
+func (s *Schema) GetColIndex(columnName string) uint32 {
+	for i := uint32(0); i < s.GetColumnCount(); i++ {
 		if s.columns[i].columnName == columnName {
 			return i
 		}
 	}
 
-	return -1
+	panic("unreachable code") // this is not a good way to handle the issue
 }
 
 func (s *Schema) GetColumns() []*Column {

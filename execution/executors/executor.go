@@ -4,13 +4,15 @@ import (
 	"github.com/brunocalza/go-bustub/storage/table"
 )
 
-// Executor executes a plan
+type Done bool
+
+// Executor represents a relational algebra operator in the ite
 //
 // Init initializes this executor.
 // This function must be called before Next() is called!
 //
-// Next produces the next tuple from this executor
+// Next produces the next tuple
 type Executor interface {
 	Init()
-	Next() (*table.Tuple, bool, error)
+	Next() (*table.Tuple, Done, error)
 }

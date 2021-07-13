@@ -5,12 +5,17 @@ import (
 	"github.com/brunocalza/go-bustub/storage/table"
 )
 
+// ExecutionEngine is the query execution engine.
+//
+// It is an implementation of the Iterator Model (also called Pipeline model or Volcano)
+// It receives a Plan, create a Executor for that plan and execute it
+// All executors follow the same pattern implementing the Executor interface
+// Executors are the operators in relation algebra
 type ExecutionEngine struct {
 }
 
 func (e *ExecutionEngine) Execute(plan plans.Plan, context *ExecutorContext) []*table.Tuple {
 	executor := e.createExecutor(plan, context)
-
 	executor.Init()
 
 	tuples := []*table.Tuple{}
