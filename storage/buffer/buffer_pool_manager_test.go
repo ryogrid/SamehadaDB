@@ -12,9 +12,9 @@ import (
 func TestBinaryData(t *testing.T) {
 	poolSize := uint32(10)
 
-	diskManager := disk.NewDiskManagerTest()
-	defer diskManager.ShutDown()
-	bpm := NewBufferPoolManager(poolSize, diskManager)
+	dm := disk.NewDiskManagerTest()
+	defer dm.ShutDown()
+	bpm := NewBufferPoolManager(poolSize, dm)
 
 	page0 := bpm.NewPage()
 
@@ -67,9 +67,9 @@ func TestBinaryData(t *testing.T) {
 func TestSample(t *testing.T) {
 	poolSize := uint32(10)
 
-	diskManager := disk.NewDiskManagerTest()
-	defer diskManager.ShutDown()
-	bpm := NewBufferPoolManager(poolSize, diskManager)
+	dm := disk.NewDiskManagerTest()
+	defer dm.ShutDown()
+	bpm := NewBufferPoolManager(poolSize, dm)
 
 	page0 := bpm.NewPage()
 

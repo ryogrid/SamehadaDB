@@ -27,6 +27,11 @@ func TestReadWritePage(t *testing.T) {
 	dm.WritePage(5, data)
 	dm.ReadPage(5, buffer)
 	testingpkg.Equals(t, data, buffer)
+
+	// the size of disk is 24576 bytes because we have 6 pages
+	size, err := dm.Size()
+	testingpkg.Ok(t, err)
+	testingpkg.Equals(t, int64(24576), size)
 }
 
 func memset(buffer []byte, value int) {

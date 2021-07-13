@@ -103,3 +103,13 @@ func (d *DiskManagerImpl) DeallocatePage(pageID page.PageID) {
 func (d *DiskManagerImpl) GetNumWrites() uint64 {
 	return d.numWrites
 }
+
+// Size returns the size of the file in disk
+func (d *DiskManagerImpl) Size() (int64, error) {
+	fileInfo, err := d.db.Stat()
+	if err != nil {
+		return 0, errors.New("file info error")
+	}
+
+	return fileInfo.Size(), nil
+}
