@@ -1,6 +1,8 @@
 package table
 
 import (
+	"unsafe"
+
 	"github.com/brunocalza/go-bustub/errors"
 	"github.com/brunocalza/go-bustub/storage/page"
 	"github.com/brunocalza/go-bustub/types"
@@ -34,6 +36,14 @@ const ErrNoFreeSlot = errors.Error("could not find a free slot")
 //  ----------------------------------------------------------------
 type TablePage struct {
 	page.Page
+}
+
+// CastPageAsTablePage casts the abstract Page struct into TablePage
+func CastPageAsTablePage(page *page.Page) *TablePage {
+	if page == nil {
+		return nil
+	}
+	return (*TablePage)(unsafe.Pointer(page))
 }
 
 // Inserts a tuple into the table

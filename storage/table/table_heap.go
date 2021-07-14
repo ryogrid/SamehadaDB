@@ -1,8 +1,6 @@
 package table
 
 import (
-	"unsafe"
-
 	"github.com/brunocalza/go-bustub/storage/buffer"
 	"github.com/brunocalza/go-bustub/storage/page"
 	"github.com/brunocalza/go-bustub/types"
@@ -18,7 +16,7 @@ type TableHeap struct {
 // NewTableHeap creates a table heap without a transaction. (open table)
 func NewTableHeap(bpm *buffer.BufferPoolManager) *TableHeap {
 	p := bpm.NewPage()
-	firstPage := (*TablePage)(unsafe.Pointer(p))
+	firstPage := CastPageAsTablePage(p)
 	firstPage.init(p.ID(), types.InvalidPageID)
 	bpm.UnpinPage(p.ID(), true)
 	return &TableHeap{bpm, p.ID()}
@@ -31,7 +29,7 @@ func NewTableHeap(bpm *buffer.BufferPoolManager) *TableHeap {
 // 1. It tries to insert in the next page
 // 2. If there is no next page, it creates a new page and insert in it
 func (t *TableHeap) InsertTuple(tuple *Tuple) (rid *page.RID, err error) {
-	currentPage := (*TablePage)(unsafe.Pointer(t.bpm.FetchPage(t.firstPageId)))
+	currentPage := CastPageAsTablePage(t.bpm.FetchPage(t.firstPageId))
 
 	for {
 		rid, err = currentPage.InsertTuple(tuple)
@@ -42,10 +40,10 @@ func (t *TableHeap) InsertTuple(tuple *Tuple) (rid *page.RID, err error) {
 		nextPageId := currentPage.getNextPageId()
 		if nextPageId.IsValid() {
 			t.bpm.UnpinPage(currentPage.getTablePageId(), false)
-			currentPage = (*TablePage)(unsafe.Pointer(t.bpm.FetchPage(nextPageId)))
+			currentPage = CastPageAsTablePage(t.bpm.FetchPage(nextPageId))
 		} else {
 			p := t.bpm.NewPage()
-			newPage := (*TablePage)(unsafe.Pointer(p))
+			newPage := CastPageAsTablePage(p)
 			currentPage.setNextPageId(p.ID())
 			newPage.init(p.ID(), currentPage.getTablePageId())
 			t.bpm.UnpinPage(currentPage.getTablePageId(), true)
@@ -59,7 +57,7 @@ func (t *TableHeap) InsertTuple(tuple *Tuple) (rid *page.RID, err error) {
 
 // GetTuple reads a tuple from the table
 func (t *TableHeap) GetTuple(rid *page.RID) *Tuple {
-	page := (*TablePage)(unsafe.Pointer(t.bpm.FetchPage(rid.GetPageId())))
+	page := CastPageAsTablePage(t.bpm.FetchPage(rid.GetPageId()))
 	defer t.bpm.UnpinPage(page.ID(), false)
 	return page.getTuple(rid)
 }
@@ -69,7 +67,7 @@ func (t *TableHeap) GetFirstTuple() *Tuple {
 	var rid *page.RID
 	pageId := t.firstPageId
 	for pageId.IsValid() {
-		page := (*TablePage)(unsafe.Pointer(t.bpm.FetchPage(pageId)))
+		page := CastPageAsTablePage(t.bpm.FetchPage(pageId))
 		rid = page.getTupleFirstRID()
 		t.bpm.UnpinPage(pageId, false)
 		if rid != nil {

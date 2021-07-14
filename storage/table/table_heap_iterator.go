@@ -1,9 +1,5 @@
 package table
 
-import (
-	"unsafe"
-)
-
 // TableHeapIterator is the access method for table heaps
 //
 // It iterates through a table heap when Next is called
@@ -34,12 +30,12 @@ func (it *TableHeapIterator) End() bool {
 // or it can be in the next page
 func (it *TableHeapIterator) Next() *Tuple {
 	bpm := it.tableHeap.bpm
-	currentPage := (*TablePage)(unsafe.Pointer(bpm.FetchPage(it.tuple.rid.GetPageId())))
+	currentPage := CastPageAsTablePage(bpm.FetchPage(it.tuple.rid.GetPageId()))
 
 	nextTupleRID := currentPage.getNextTupleRID(it.tuple.rid)
 	if nextTupleRID == nil {
 		for currentPage.getNextPageId().IsValid() {
-			nextPage := (*TablePage)(unsafe.Pointer(bpm.FetchPage(currentPage.getNextPageId())))
+			nextPage := CastPageAsTablePage(bpm.FetchPage(currentPage.getNextPageId()))
 			bpm.UnpinPage(currentPage.getTablePageId(), false)
 			currentPage = nextPage
 			nextTupleRID = currentPage.getNextTupleRID(it.tuple.rid)
