@@ -2,8 +2,6 @@
 
 ## Roadmap
 
-### V1
-
 - [x] Predicates on Seq Scan
 - [ ] Add <, >, <=, >=
 - [ ] Null
@@ -18,9 +16,6 @@
 - [ ] Add Transactions
 - [ ] Add logging
 - [ ] Add recovery
-
-### V2
-
 - [ ] Create Hash Index
 - [ ] Create BTree Index
 - [ ] Join
