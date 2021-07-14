@@ -7,13 +7,14 @@ import (
 	"os"
 
 	"github.com/brunocalza/go-bustub/storage/page"
+	"github.com/brunocalza/go-bustub/types"
 )
 
 //DiskManagerImpl is the disk implementation of DiskManager
 type DiskManagerImpl struct {
 	db         *os.File
 	fileName   string
-	nextPageID page.PageID
+	nextPageID types.PageID
 	numWrites  uint64
 }
 
@@ -40,7 +41,7 @@ func (d *DiskManagerImpl) ShutDown() {
 }
 
 // Write a page to the database file
-func (d *DiskManagerImpl) WritePage(pageId page.PageID, pageData []byte) error {
+func (d *DiskManagerImpl) WritePage(pageId types.PageID, pageData []byte) error {
 	offset := int64(pageId * page.PageSize)
 	d.numWrites++
 	d.db.Seek(offset, io.SeekStart)
@@ -58,7 +59,7 @@ func (d *DiskManagerImpl) WritePage(pageId page.PageID, pageData []byte) error {
 }
 
 // Read a page from the database file
-func (d *DiskManagerImpl) ReadPage(pageID page.PageID, pageData []byte) error {
+func (d *DiskManagerImpl) ReadPage(pageID types.PageID, pageData []byte) error {
 	offset := int64(pageID * page.PageSize)
 
 	fileInfo, err := d.db.Stat()
@@ -87,7 +88,7 @@ func (d *DiskManagerImpl) ReadPage(pageID page.PageID, pageData []byte) error {
 
 //  AllocatePage allocates a new page
 //  For now just keep an increasing counter
-func (d *DiskManagerImpl) AllocatePage() page.PageID {
+func (d *DiskManagerImpl) AllocatePage() types.PageID {
 	ret := d.nextPageID
 	d.nextPageID++
 	return ret
@@ -96,7 +97,7 @@ func (d *DiskManagerImpl) AllocatePage() page.PageID {
 // DeallocatePage deallocates page
 // Need bitmap in header page for tracking pages
 // This does not actually need to do anything for now.
-func (d *DiskManagerImpl) DeallocatePage(pageID page.PageID) {
+func (d *DiskManagerImpl) DeallocatePage(pageID types.PageID) {
 }
 
 // GetNumWrites returns the number of disk writes

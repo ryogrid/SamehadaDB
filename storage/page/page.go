@@ -1,22 +1,13 @@
 package page
 
-// PageID is the type of the page identifier
-type PageID int32
-
-// InvalidID represents an invalid page ID
-const InvalidID = PageID(-1)
-
-// IsValid checks if id is valid
-func (id PageID) IsValid() bool {
-	return id != InvalidID || id >= 0
-}
+import "github.com/brunocalza/go-bustub/types"
 
 // PageSize is the size of a page in disk (4KB)
 const PageSize = 4096
 
 // Page represents an abstract page on disk
 type Page struct {
-	id       PageID          // idenfies the page. It is used to find the offset of the page on disk
+	id       types.PageID    // idenfies the page. It is used to find the offset of the page on disk
 	pinCount uint32          // counts how many goroutines are acessing it
 	isDirty  bool            // the page was modified but not flushed
 	data     *[PageSize]byte // bytes stored in disk
@@ -40,7 +31,7 @@ func (p *Page) PinCount() uint32 {
 }
 
 // ID retunds the page id
-func (p *Page) ID() PageID {
+func (p *Page) ID() types.PageID {
 	return p.id
 }
 
@@ -59,19 +50,17 @@ func (p *Page) IsDirty() bool {
 	return p.isDirty
 }
 
-// CopyToData copy data to the page's data. It is mainly used for testing
-func (p *Page) CopyToData(data []byte) {
-	for i := 0; i < len(data); i++ {
-		p.data[i] = data[i]
-	}
+// Copy copies data to the page's data. It is mainly used for testing
+func (p *Page) Copy(offset uint32, data []byte) {
+	copy(p.data[offset:], data)
 }
 
 // New creates a new page
-func New(id PageID, isDirty bool, data *[PageSize]byte) *Page {
+func New(id types.PageID, isDirty bool, data *[PageSize]byte) *Page {
 	return &Page{id, uint32(1), isDirty, data}
 }
 
 // New creates a new empty page
-func NewEmpty(id PageID) *Page {
+func NewEmpty(id types.PageID) *Page {
 	return &Page{id, uint32(1), false, &[PageSize]byte{}}
 }

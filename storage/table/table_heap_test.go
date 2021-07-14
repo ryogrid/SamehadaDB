@@ -42,7 +42,7 @@ func TestTableHeap(t *testing.T) {
 
 	for i := 0; i < 1000; i++ {
 		rid := &page.RID{}
-		rid.Set(page.PageID(i/254), uint32(i%254))
+		rid.Set(types.PageID(i/254), uint32(i%254))
 		tuple := th.GetTuple(rid)
 		testingpkg.Equals(t, int32(i*2), tuple.GetValue(schema, 0).ToInteger())
 		testingpkg.Equals(t, int32((i+1)*2), tuple.GetValue(schema, 1).ToInteger())

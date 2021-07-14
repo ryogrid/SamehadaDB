@@ -5,6 +5,7 @@ import (
 
 	"github.com/brunocalza/go-bustub/storage/buffer"
 	"github.com/brunocalza/go-bustub/storage/page"
+	"github.com/brunocalza/go-bustub/types"
 )
 
 type hashTableIterator struct {
@@ -12,7 +13,7 @@ type hashTableIterator struct {
 	headerPage *page.HashTableHeaderPage
 	bucket     int
 	offset     int
-	blockId    page.PageID
+	blockId    types.PageID
 	blockPage  *page.HashTableBlockPage
 }
 

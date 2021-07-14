@@ -1,15 +1,15 @@
 package disk
 
 import (
-	"github.com/brunocalza/go-bustub/storage/page"
+	"github.com/brunocalza/go-bustub/types"
 )
 
 // DiskManager is responsible for interacting with disk
 type DiskManager interface {
-	ReadPage(page.PageID, []byte) error
-	WritePage(page.PageID, []byte) error
-	AllocatePage() page.PageID
-	DeallocatePage(page.PageID)
+	ReadPage(types.PageID, []byte) error
+	WritePage(types.PageID, []byte) error
+	AllocatePage() types.PageID
+	DeallocatePage(types.PageID)
 	GetNumWrites() uint64
 	ShutDown()
 	Size() (int64, error)

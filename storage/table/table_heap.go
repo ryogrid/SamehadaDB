@@ -5,20 +5,21 @@ import (
 
 	"github.com/brunocalza/go-bustub/storage/buffer"
 	"github.com/brunocalza/go-bustub/storage/page"
+	"github.com/brunocalza/go-bustub/types"
 )
 
 // TableHeap represents a physical table on disk.
 // It contains the id of the first table page. The table page is a doubly-linked to other table pages.
 type TableHeap struct {
 	bpm         *buffer.BufferPoolManager
-	firstPageId page.PageID
+	firstPageId types.PageID
 }
 
 // NewTableHeap creates a table heap without a transaction. (open table)
 func NewTableHeap(bpm *buffer.BufferPoolManager) *TableHeap {
 	p := bpm.NewPage()
 	firstPage := (*TablePage)(unsafe.Pointer(p))
-	firstPage.init(p.ID(), page.InvalidID)
+	firstPage.init(p.ID(), types.InvalidPageID)
 	bpm.UnpinPage(p.ID(), true)
 	return &TableHeap{bpm, p.ID()}
 }

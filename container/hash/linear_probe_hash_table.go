@@ -7,11 +7,12 @@ import (
 
 	"github.com/brunocalza/go-bustub/storage/buffer"
 	"github.com/brunocalza/go-bustub/storage/page"
+	"github.com/brunocalza/go-bustub/types"
 	"github.com/spaolacci/murmur3"
 )
 
 type LinearProbeHashTable struct {
-	headerPageId page.PageID
+	headerPageId types.PageID
 	bpm          *buffer.BufferPoolManager
 }
 

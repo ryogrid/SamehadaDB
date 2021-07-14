@@ -1,10 +1,9 @@
 package table
 
 import (
-	"unsafe"
-
 	"github.com/brunocalza/go-bustub/errors"
 	"github.com/brunocalza/go-bustub/storage/page"
+	"github.com/brunocalza/go-bustub/types"
 )
 
 const sizeTablePageHeader = uint32(24)
@@ -73,20 +72,59 @@ func (tp *TablePage) InsertTuple(tuple *Tuple) (*page.RID, error) {
 }
 
 // init initializes the table header
-func (tp *TablePage) init(pageId page.PageID, prevPageId page.PageID) {
+func (tp *TablePage) init(pageId types.PageID, prevPageId types.PageID) {
 	tp.setPageId(pageId)
 	tp.setPrevPageId(prevPageId)
-	tp.setNextPageId(page.InvalidID)
+	tp.setNextPageId(types.InvalidPageID)
 	tp.setTupleCount(0)
 	tp.setFreeSpacePointer(page.PageSize) // point to the end of the page
 }
 
+func (tp *TablePage) setPageId(pageId types.PageID) {
+	tp.Copy(0, pageId.Serialize())
+}
+
+func (tp *TablePage) setPrevPageId(pageId types.PageID) {
+	tp.Copy(offsetPrevPageId, pageId.Serialize())
+}
+
+func (tp *TablePage) setNextPageId(pageId types.PageID) {
+	tp.Copy(offsetNextPageId, pageId.Serialize())
+}
+
+func (tp *TablePage) setFreeSpacePointer(freeSpacePointer uint32) {
+	tp.Copy(offsetFreeSpace, types.UInt32(freeSpacePointer).Serialize())
+}
+
+func (tp *TablePage) setTupleCount(tupleCount uint32) {
+	tp.Copy(offsetTupleCount, types.UInt32(tupleCount).Serialize())
+}
+
+func (tp *TablePage) setTuple(slot uint32, tuple *Tuple) {
+	fsp := tp.getFreeSpacePointer()
+	tp.Copy(fsp, tuple.data)                                                        // copy tuple to data starting at free space pointer
+	tp.Copy(offsetTupleOffset+sizeTuple*slot, types.UInt32(fsp).Serialize())        // set tuple offset at slot
+	tp.Copy(offsetTupleSize+sizeTuple*slot, types.UInt32(tuple.Size()).Serialize()) // set tuple size at slot
+}
+
+func (tp *TablePage) getTablePageId() types.PageID {
+	return types.NewPageIDFromBytes(tp.Data()[:])
+}
+
+func (tp *TablePage) getNextPageId() types.PageID {
+	return types.NewPageIDFromBytes(tp.Data()[offsetNextPageId:])
+}
+
+func (tp *TablePage) getTupleCount() uint32 {
+	return uint32(types.NewUInt32FromBytes(tp.Data()[offsetTupleCount:]))
+}
+
 func (tp *TablePage) getTupleOffsetAtSlot(slot uint32) uint32 {
-	return *(*uint32)(unsafe.Pointer(uintptr(unsafe.Pointer(&tp.Data()[0])) + uintptr(offsetTupleOffset+sizeTuple*slot)))
+	return uint32(types.NewUInt32FromBytes(tp.Data()[offsetTupleOffset+sizeTuple*slot:]))
 }
 
 func (tp *TablePage) getTupleSize(slot uint32) uint32 {
-	return *(*uint32)(unsafe.Pointer(uintptr(unsafe.Pointer(&tp.Data()[0])) + uintptr(offsetTupleSize+sizeTuple*slot)))
+	return uint32(types.NewUInt32FromBytes(tp.Data()[offsetTupleSize+sizeTuple*slot:]))
 }
 
 func (tp *TablePage) getFreeSpaceRemaining() uint32 {
@@ -94,88 +132,7 @@ func (tp *TablePage) getFreeSpaceRemaining() uint32 {
 }
 
 func (tp *TablePage) getFreeSpacePointer() uint32 {
-	return *(*uint32)(unsafe.Pointer(uintptr(unsafe.Pointer(&tp.Data()[0])) + uintptr(offsetFreeSpace)))
-}
-
-func (tp *TablePage) setPageId(pageId page.PageID) {
-	size := int32(unsafe.Sizeof(pageId))
-	for i := int32(0); i < size; i++ {
-		position := (*byte)(unsafe.Pointer(uintptr(unsafe.Pointer(&tp.Data()[0])) + uintptr(i)))
-		byt := *(*byte)(unsafe.Pointer(uintptr(unsafe.Pointer(&pageId)) + uintptr(i)))
-		*position = byt
-	}
-}
-
-func (tp *TablePage) setPrevPageId(pageId page.PageID) {
-	size := uint32(unsafe.Sizeof(pageId))
-	for i := uint32(0); i < size; i++ {
-		position := (*byte)(unsafe.Pointer(uintptr(unsafe.Pointer(&tp.Data()[0])) + uintptr(offsetPrevPageId) + uintptr(i)))
-		byt := *(*byte)(unsafe.Pointer(uintptr(unsafe.Pointer(&pageId)) + uintptr(i)))
-		*position = byt
-	}
-}
-
-func (tp *TablePage) setNextPageId(pageId page.PageID) {
-	size := uint32(unsafe.Sizeof(pageId))
-	for i := uint32(0); i < size; i++ {
-		position := (*byte)(unsafe.Pointer(uintptr(unsafe.Pointer(&tp.Data()[0])) + uintptr(offsetNextPageId) + uintptr(i)))
-		byt := *(*byte)(unsafe.Pointer(uintptr(unsafe.Pointer(&pageId)) + uintptr(i)))
-		*position = byt
-	}
-}
-
-func (tp *TablePage) setFreeSpacePointer(freeSpacePointer uint32) {
-	size := uint32(unsafe.Sizeof(freeSpacePointer))
-	for i := uint32(0); i < size; i++ {
-		position := (*byte)(unsafe.Pointer(uintptr(unsafe.Pointer(&tp.Data()[0])) + uintptr(offsetFreeSpace+i)))
-		byt := *(*byte)(unsafe.Pointer(uintptr(unsafe.Pointer(&freeSpacePointer)) + uintptr(i)))
-		*position = byt
-	}
-}
-
-func (tp *TablePage) setTupleCount(tupleCount uint32) {
-	size := uint32(unsafe.Sizeof(tupleCount))
-	for i := uint32(0); i < size; i++ {
-		position := (*byte)(unsafe.Pointer(uintptr(unsafe.Pointer(&tp.Data()[0])) + uintptr(offsetTupleCount) + uintptr(i)))
-		byt := *(*byte)(unsafe.Pointer(uintptr(unsafe.Pointer(&tupleCount)) + uintptr(i)))
-		*position = byt
-	}
-}
-
-func (tp *TablePage) setTuple(slot uint32, tuple *Tuple) {
-	// copy tuple to data starting at free space pointer
-	for i := uint32(0); i < tuple.Size(); i++ {
-		position := (*byte)(unsafe.Pointer(uintptr(unsafe.Pointer(&tp.Data()[0])) + uintptr(tp.getFreeSpacePointer()+i)))
-		*position = (*tuple.Data())[i]
-	}
-
-	// set tuple offset at slot
-	tuplePosition := tp.getFreeSpacePointer()
-	for i := uint32(0); i < uint32(unsafe.Sizeof(tuplePosition)); i++ {
-		position := (*byte)(unsafe.Pointer(uintptr(unsafe.Pointer(&tp.Data()[0])) + uintptr(offsetTupleOffset+sizeTuple*slot+i)))
-		byt := *(*byte)(unsafe.Pointer(uintptr(unsafe.Pointer(&tuplePosition)) + uintptr(i)))
-		*position = byt
-	}
-
-	// set tuple size at slot
-	tupleSize := tuple.Size()
-	for i := uint32(0); i < uint32(unsafe.Sizeof(tupleSize)); i++ {
-		position := (*byte)(unsafe.Pointer(uintptr(unsafe.Pointer(&tp.Data()[0])) + uintptr(offsetTupleSize+sizeTuple*slot+i)))
-		byt := *(*byte)(unsafe.Pointer(uintptr(unsafe.Pointer(&tupleSize)) + uintptr(i)))
-		*position = byt
-	}
-}
-
-func (tp *TablePage) getTablePageId() page.PageID {
-	return *(*page.PageID)(unsafe.Pointer(tp.Data()))
-}
-
-func (tp *TablePage) getNextPageId() page.PageID {
-	return *(*page.PageID)(unsafe.Pointer(uintptr(unsafe.Pointer(&tp.Data()[0])) + uintptr(offsetNextPageId)))
-}
-
-func (tp *TablePage) getTupleCount() uint32 {
-	return *(*uint32)(unsafe.Pointer(uintptr(unsafe.Pointer(&tp.Data()[0])) + uintptr(offsetTupleCount)))
+	return uint32(types.NewUInt32FromBytes(tp.Data()[offsetFreeSpace:]))
 }
 
 func (tp *TablePage) getTuple(rid *page.RID) *Tuple {
@@ -184,17 +141,9 @@ func (tp *TablePage) getTuple(rid *page.RID) *Tuple {
 	tupleSize := tp.getTupleSize(slot)
 
 	tupleData := make([]byte, tupleSize)
+	copy(tupleData, tp.Data()[tupleOffset:])
 
-	for i := uint32(0); i < tupleSize; i++ {
-		position := (*byte)(unsafe.Pointer(uintptr(unsafe.Pointer(&tp.Data()[0])) + uintptr(tupleOffset+i)))
-		tupleData[i] = *position
-	}
-
-	tuple := &Tuple{}
-	tuple.size = tupleSize
-	tuple.data = &tupleData
-	tuple.rid = rid
-	return tuple
+	return &Tuple{rid, tupleSize, tupleData}
 }
 
 func (tp *TablePage) getTupleFirstRID() *page.RID {

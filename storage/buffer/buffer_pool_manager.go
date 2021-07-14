@@ -5,6 +5,7 @@ import (
 
 	"github.com/brunocalza/go-bustub/storage/disk"
 	"github.com/brunocalza/go-bustub/storage/page"
+	"github.com/brunocalza/go-bustub/types"
 )
 
 //BufferPoolManager represents the buffer pool manager
@@ -13,11 +14,11 @@ type BufferPoolManager struct {
 	pages       []*page.Page
 	replacer    *ClockReplacer
 	freeList    []FrameID
-	pageTable   map[page.PageID]FrameID
+	pageTable   map[types.PageID]FrameID
 }
 
 // FetchPage fetches the requested page from the buffer pool.
-func (b *BufferPoolManager) FetchPage(pageID page.PageID) *page.Page {
+func (b *BufferPoolManager) FetchPage(pageID types.PageID) *page.Page {
 	// if it is on buffer pool return it
 	if frameID, ok := b.pageTable[pageID]; ok {
 		pg := b.pages[frameID]
@@ -60,7 +61,7 @@ func (b *BufferPoolManager) FetchPage(pageID page.PageID) *page.Page {
 }
 
 // UnpinPage unpins the target page from the buffer pool.
-func (b *BufferPoolManager) UnpinPage(pageID page.PageID, isDirty bool) error {
+func (b *BufferPoolManager) UnpinPage(pageID types.PageID, isDirty bool) error {
 	if frameID, ok := b.pageTable[pageID]; ok {
 		pg := b.pages[frameID]
 		pg.DecPinCount()
@@ -82,7 +83,7 @@ func (b *BufferPoolManager) UnpinPage(pageID page.PageID, isDirty bool) error {
 }
 
 // FlushPage Flushes the target page to disk.
-func (b *BufferPoolManager) FlushPage(pageID page.PageID) bool {
+func (b *BufferPoolManager) FlushPage(pageID types.PageID) bool {
 	if frameID, ok := b.pageTable[pageID]; ok {
 		pg := b.pages[frameID]
 		pg.DecPinCount()
@@ -128,7 +129,7 @@ func (b *BufferPoolManager) NewPage() *page.Page {
 }
 
 // DeletePage deletes a page from the buffer pool.
-func (b *BufferPoolManager) DeletePage(pageID page.PageID) error {
+func (b *BufferPoolManager) DeletePage(pageID types.PageID) error {
 	var frameID FrameID
 	var ok bool
 	if frameID, ok = b.pageTable[pageID]; !ok {
@@ -178,5 +179,5 @@ func NewBufferPoolManager(poolSize uint32, DiskManager disk.DiskManager) *Buffer
 	}
 
 	replacer := NewClockReplacer(poolSize)
-	return &BufferPoolManager{DiskManager, pages, replacer, freeList, make(map[page.PageID]FrameID)}
+	return &BufferPoolManager{DiskManager, pages, replacer, freeList, make(map[types.PageID]FrameID)}
 }

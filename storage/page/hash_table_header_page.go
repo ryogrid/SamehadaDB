@@ -1,5 +1,7 @@
 package page
 
+import "github.com/brunocalza/go-bustub/types"
+
 /**
  *
  * Header format (size in byte, 16 bytes in total):
@@ -8,22 +10,22 @@ package page
  * -------------------------------------------------------------
  */
 type HashTableHeaderPage struct {
-	pageId       PageID
+	pageId       types.PageID
 	lsn          int // log sequence number
 	nextIndex    int // the next index to add a new entry to blockPageIds
 	size         int // the number of key/value pairs the hash table can hold
-	blockPageIds [1020]PageID
+	blockPageIds [1020]types.PageID
 }
 
-func (page *HashTableHeaderPage) GetBlockPageId(index int) PageID {
+func (page *HashTableHeaderPage) GetBlockPageId(index int) types.PageID {
 	return page.blockPageIds[index]
 }
 
-func (page *HashTableHeaderPage) GetPageId() PageID {
+func (page *HashTableHeaderPage) GetPageId() types.PageID {
 	return page.pageId
 }
 
-func (page *HashTableHeaderPage) SetPageId(pageId PageID) {
+func (page *HashTableHeaderPage) SetPageId(pageId types.PageID) {
 	page.pageId = pageId
 }
 
@@ -35,7 +37,7 @@ func (page *HashTableHeaderPage) SetLSN(lsn int) {
 	page.lsn = lsn
 }
 
-func (page *HashTableHeaderPage) AddBlockPageId(pageId PageID) {
+func (page *HashTableHeaderPage) AddBlockPageId(pageId types.PageID) {
 	page.blockPageIds[page.nextIndex] = pageId
 	page.nextIndex++
 }

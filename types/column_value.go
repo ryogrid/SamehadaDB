@@ -1,7 +1,8 @@
 package types
 
 import (
-	"unsafe"
+	"bytes"
+	"encoding/binary"
 )
 
 type Value struct {
@@ -34,20 +35,25 @@ func (v Value) CompareNotEquals(right Value) bool {
 	return false
 }
 
-func (v Value) SerializeTo(address uintptr) {
-	var size uint32
-	var valueAddress uintptr
+func (v Value) Serialize() []byte {
 	switch v.valueType {
 	case Integer:
-		size = uint32(unsafe.Sizeof(*v.integer))
-		valueAddress = uintptr(unsafe.Pointer(v.integer))
+		buf := new(bytes.Buffer)
+		binary.Write(buf, binary.LittleEndian, v.ToInteger())
+		return buf.Bytes()
 	}
+	return []byte{}
+}
 
-	for j := uint32(0); j < size; j++ {
-		position := (*byte)(unsafe.Pointer(address + uintptr(j)))
-		byt := *(*byte)(unsafe.Pointer(valueAddress + uintptr(j)))
-		*position = byt
+func NewValueFromBytes(data []byte, valueType TypeID) (ret *Value) {
+	switch valueType {
+	case Integer:
+		v := new(int32)
+		binary.Read(bytes.NewBuffer(data), binary.LittleEndian, v)
+		vInteger := NewInteger(*v)
+		ret = &vInteger
 	}
+	return ret
 }
 
 func (v Value) ToBoolean() bool {
@@ -56,12 +62,4 @@ func (v Value) ToBoolean() bool {
 
 func (v Value) ToInteger() int32 {
 	return *v.integer
-}
-
-func DeserializeFrom(address uintptr, valueType TypeID) *Value {
-	switch valueType {
-	case Integer:
-		return &Value{(*int32)(unsafe.Pointer(address)), nil, Integer}
-	}
-	return nil
 }
