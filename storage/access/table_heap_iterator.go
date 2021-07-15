@@ -1,4 +1,8 @@
-package table
+package access
+
+import (
+	"github.com/brunocalza/go-bustub/storage/table"
+)
 
 // TableHeapIterator is the access method for table heaps
 //
@@ -6,7 +10,7 @@ package table
 // The tuple that it is being pointed to can be accessed with the method Current
 type TableHeapIterator struct {
 	tableHeap *TableHeap
-	tuple     *Tuple
+	tuple     *table.Tuple
 }
 
 // NewTableHeapIterator creates a new table heap operator for the given table heap
@@ -16,7 +20,7 @@ func NewTableHeapIterator(tableHeap *TableHeap) *TableHeapIterator {
 }
 
 // Current points to the current tuple
-func (it *TableHeapIterator) Current() *Tuple {
+func (it *TableHeapIterator) Current() *table.Tuple {
 	return it.tuple
 }
 
@@ -28,17 +32,17 @@ func (it *TableHeapIterator) End() bool {
 // Next advances the iterator trying to find the next tuple
 // The next tuple can be inside the same page of the current tuple
 // or it can be in the next page
-func (it *TableHeapIterator) Next() *Tuple {
+func (it *TableHeapIterator) Next() *table.Tuple {
 	bpm := it.tableHeap.bpm
-	currentPage := CastPageAsTablePage(bpm.FetchPage(it.tuple.rid.GetPageId()))
+	currentPage := table.CastPageAsTablePage(bpm.FetchPage(it.tuple.GetRID().GetPageId()))
 
-	nextTupleRID := currentPage.getNextTupleRID(it.tuple.rid)
+	nextTupleRID := currentPage.GetNextTupleRID(it.tuple.GetRID())
 	if nextTupleRID == nil {
-		for currentPage.getNextPageId().IsValid() {
-			nextPage := CastPageAsTablePage(bpm.FetchPage(currentPage.getNextPageId()))
-			bpm.UnpinPage(currentPage.getTablePageId(), false)
+		for currentPage.GetNextPageId().IsValid() {
+			nextPage := table.CastPageAsTablePage(bpm.FetchPage(currentPage.GetNextPageId()))
+			bpm.UnpinPage(currentPage.GetTablePageId(), false)
 			currentPage = nextPage
-			nextTupleRID = currentPage.getNextTupleRID(it.tuple.rid)
+			nextTupleRID = currentPage.GetNextTupleRID(it.tuple.GetRID())
 			if nextTupleRID != nil {
 				break
 			}
@@ -51,6 +55,6 @@ func (it *TableHeapIterator) Next() *Tuple {
 		it.tuple = nil
 	}
 
-	bpm.UnpinPage(currentPage.getTablePageId(), false)
+	bpm.UnpinPage(currentPage.GetTablePageId(), false)
 	return it.tuple
 }

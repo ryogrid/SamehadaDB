@@ -1,8 +1,10 @@
 package executors
 
 import (
+	"github.com/brunocalza/go-bustub/catalog"
 	"github.com/brunocalza/go-bustub/execution/expression"
 	"github.com/brunocalza/go-bustub/execution/plans"
+	"github.com/brunocalza/go-bustub/storage/access"
 	"github.com/brunocalza/go-bustub/storage/table"
 	"github.com/brunocalza/go-bustub/types"
 )
@@ -11,8 +13,8 @@ import (
 type SeqScanExecutor struct {
 	context       *ExecutorContext
 	plan          *plans.SeqScanPlanNode
-	tableMetadata *table.TableMetadata
-	it            *table.TableHeapIterator
+	tableMetadata *catalog.TableMetadata
+	it            *access.TableHeapIterator
 }
 
 // NewSeqScanExecutor creates a new sequential executor

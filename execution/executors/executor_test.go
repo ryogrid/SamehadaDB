@@ -3,6 +3,7 @@ package executors
 import (
 	"testing"
 
+	"github.com/brunocalza/go-bustub/catalog"
 	"github.com/brunocalza/go-bustub/execution/expression"
 	"github.com/brunocalza/go-bustub/execution/plans"
 	"github.com/brunocalza/go-bustub/storage/buffer"
@@ -17,7 +18,7 @@ func TestSimpleInsertAndSeqScan(t *testing.T) {
 	defer diskManager.ShutDown()
 	bpm := buffer.NewBufferPoolManager(uint32(32), diskManager)
 
-	c := table.NewCatalog(bpm)
+	c := catalog.NewCatalog(bpm)
 
 	columnA := table.NewColumn("a", types.Integer)
 	columnB := table.NewColumn("b", types.Integer)
@@ -61,7 +62,7 @@ func TestSimpleInsertAndSeqScanWithPredicateComparison(t *testing.T) {
 	defer diskManager.ShutDown()
 	bpm := buffer.NewBufferPoolManager(uint32(32), diskManager)
 
-	c := table.NewCatalog(bpm)
+	c := catalog.NewCatalog(bpm)
 
 	columnA := table.NewColumn("a", types.Integer)
 	columnB := table.NewColumn("b", types.Integer)
@@ -157,7 +158,7 @@ func TestSimpleInsertAndLimitExecution(t *testing.T) {
 	defer diskManager.ShutDown()
 	bpm := buffer.NewBufferPoolManager(uint32(32), diskManager)
 
-	c := table.NewCatalog(bpm)
+	c := catalog.NewCatalog(bpm)
 
 	columnA := table.NewColumn("a", types.Integer)
 	columnB := table.NewColumn("b", types.Integer)

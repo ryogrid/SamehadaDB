@@ -12,5 +12,5 @@ type DiskManager interface {
 	DeallocatePage(types.PageID)
 	GetNumWrites() uint64
 	ShutDown()
-	Size() (int64, error)
+	Size() int64
 }

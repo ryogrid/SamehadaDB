@@ -1,7 +1,9 @@
-package table
+package catalog
 
 import (
+	"github.com/brunocalza/go-bustub/storage/access"
 	"github.com/brunocalza/go-bustub/storage/buffer"
+	"github.com/brunocalza/go-bustub/storage/table"
 )
 
 // Catalog is a non-persistent catalog that is designed for the executor to use.
@@ -32,14 +34,16 @@ func (c *Catalog) GetTableByOID(oid uint32) *TableMetadata {
 }
 
 // CreateTable creates a new table and return its metadata
-func (c *Catalog) CreateTable(name string, schema *Schema) *TableMetadata {
+func (c *Catalog) CreateTable(name string, schema *table.Schema) *TableMetadata {
 	oid := c.nextTableId
 	c.nextTableId++
 	c.names[name] = oid
 
-	tableHeap := NewTableHeap(c.bpm)
+	tableHeap := access.NewTableHeap(c.bpm)
 	tableMetadata := &TableMetadata{schema, name, tableHeap, oid}
 	c.tables[oid] = tableMetadata
+
+	//c.InsertTable()
 
 	return tableMetadata
 }

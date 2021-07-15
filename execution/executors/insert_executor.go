@@ -1,6 +1,7 @@
 package executors
 
 import (
+	"github.com/brunocalza/go-bustub/catalog"
 	"github.com/brunocalza/go-bustub/execution/plans"
 	"github.com/brunocalza/go-bustub/storage/table"
 )
@@ -9,7 +10,7 @@ import (
 type InsertExecutor struct {
 	context       *ExecutorContext
 	plan          *plans.InsertPlanNode
-	tableMetadata *table.TableMetadata
+	tableMetadata *catalog.TableMetadata
 }
 
 func NewInsertExecutor(context *ExecutorContext, plan *plans.InsertPlanNode) Executor {

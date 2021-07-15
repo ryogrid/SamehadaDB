@@ -10,10 +10,10 @@ import (
 
 const sizeTablePageHeader = uint32(24)
 const sizeTuple = uint32(8)
-const offsetPrevPageId = uint32(8)
-const offsetNextPageId = uint32(12)
+const offSetPrevPageId = uint32(8)
+const offSetNextPageId = uint32(12)
 const offsetFreeSpace = uint32(16)
-const offsetTupleCount = uint32(20)
+const offSetTupleCount = uint32(20)
 const offsetTupleOffset = uint32(24)
 const offsetTupleSize = uint32(28)
 
@@ -59,96 +59,96 @@ func (tp *TablePage) InsertTuple(tuple *Tuple) (*page.RID, error) {
 	var slot uint32
 
 	// try to find a free slot
-	for slot = uint32(0); slot < tp.getTupleCount(); slot++ {
-		if tp.getTupleSize(slot) == 0 {
+	for slot = uint32(0); slot < tp.GetTupleCount(); slot++ {
+		if tp.GetTupleSize(slot) == 0 {
 			break
 		}
 	}
 
-	if tp.getTupleCount() == slot && tuple.Size()+sizeTuple > tp.getFreeSpaceRemaining() {
+	if tp.GetTupleCount() == slot && tuple.Size()+sizeTuple > tp.getFreeSpaceRemaining() {
 		return nil, ErrNoFreeSlot
 	}
 
-	tp.setFreeSpacePointer(tp.getFreeSpacePointer() - tuple.Size())
+	tp.SetFreeSpacePointer(tp.GetFreeSpacePointer() - tuple.Size())
 	tp.setTuple(slot, tuple)
 
 	rid := &page.RID{}
-	rid.Set(tp.getTablePageId(), slot)
-	if slot == tp.getTupleCount() {
-		tp.setTupleCount(tp.getTupleCount() + 1)
+	rid.Set(tp.GetTablePageId(), slot)
+	if slot == tp.GetTupleCount() {
+		tp.SetTupleCount(tp.GetTupleCount() + 1)
 	}
 
 	return rid, nil
 }
 
-// init initializes the table header
-func (tp *TablePage) init(pageId types.PageID, prevPageId types.PageID) {
-	tp.setPageId(pageId)
-	tp.setPrevPageId(prevPageId)
-	tp.setNextPageId(types.InvalidPageID)
-	tp.setTupleCount(0)
-	tp.setFreeSpacePointer(page.PageSize) // point to the end of the page
+// Init initializes the table header
+func (tp *TablePage) Init(pageId types.PageID, prevPageId types.PageID) {
+	tp.SetPageId(pageId)
+	tp.SetPrevPageId(prevPageId)
+	tp.SetNextPageId(types.InvalidPageID)
+	tp.SetTupleCount(0)
+	tp.SetFreeSpacePointer(page.PageSize) // point to the end of the page
 }
 
-func (tp *TablePage) setPageId(pageId types.PageID) {
+func (tp *TablePage) SetPageId(pageId types.PageID) {
 	tp.Copy(0, pageId.Serialize())
 }
 
-func (tp *TablePage) setPrevPageId(pageId types.PageID) {
-	tp.Copy(offsetPrevPageId, pageId.Serialize())
+func (tp *TablePage) SetPrevPageId(pageId types.PageID) {
+	tp.Copy(offSetPrevPageId, pageId.Serialize())
 }
 
-func (tp *TablePage) setNextPageId(pageId types.PageID) {
-	tp.Copy(offsetNextPageId, pageId.Serialize())
+func (tp *TablePage) SetNextPageId(pageId types.PageID) {
+	tp.Copy(offSetNextPageId, pageId.Serialize())
 }
 
-func (tp *TablePage) setFreeSpacePointer(freeSpacePointer uint32) {
+func (tp *TablePage) SetFreeSpacePointer(freeSpacePointer uint32) {
 	tp.Copy(offsetFreeSpace, types.UInt32(freeSpacePointer).Serialize())
 }
 
-func (tp *TablePage) setTupleCount(tupleCount uint32) {
-	tp.Copy(offsetTupleCount, types.UInt32(tupleCount).Serialize())
+func (tp *TablePage) SetTupleCount(tupleCount uint32) {
+	tp.Copy(offSetTupleCount, types.UInt32(tupleCount).Serialize())
 }
 
 func (tp *TablePage) setTuple(slot uint32, tuple *Tuple) {
-	fsp := tp.getFreeSpacePointer()
+	fsp := tp.GetFreeSpacePointer()
 	tp.Copy(fsp, tuple.data)                                                        // copy tuple to data starting at free space pointer
 	tp.Copy(offsetTupleOffset+sizeTuple*slot, types.UInt32(fsp).Serialize())        // set tuple offset at slot
 	tp.Copy(offsetTupleSize+sizeTuple*slot, types.UInt32(tuple.Size()).Serialize()) // set tuple size at slot
 }
 
-func (tp *TablePage) getTablePageId() types.PageID {
+func (tp *TablePage) GetTablePageId() types.PageID {
 	return types.NewPageIDFromBytes(tp.Data()[:])
 }
 
-func (tp *TablePage) getNextPageId() types.PageID {
-	return types.NewPageIDFromBytes(tp.Data()[offsetNextPageId:])
+func (tp *TablePage) GetNextPageId() types.PageID {
+	return types.NewPageIDFromBytes(tp.Data()[offSetNextPageId:])
 }
 
-func (tp *TablePage) getTupleCount() uint32 {
-	return uint32(types.NewUInt32FromBytes(tp.Data()[offsetTupleCount:]))
+func (tp *TablePage) GetTupleCount() uint32 {
+	return uint32(types.NewUInt32FromBytes(tp.Data()[offSetTupleCount:]))
 }
 
-func (tp *TablePage) getTupleOffsetAtSlot(slot uint32) uint32 {
+func (tp *TablePage) GetTupleOffsetAtSlot(slot uint32) uint32 {
 	return uint32(types.NewUInt32FromBytes(tp.Data()[offsetTupleOffset+sizeTuple*slot:]))
 }
 
-func (tp *TablePage) getTupleSize(slot uint32) uint32 {
+func (tp *TablePage) GetTupleSize(slot uint32) uint32 {
 	return uint32(types.NewUInt32FromBytes(tp.Data()[offsetTupleSize+sizeTuple*slot:]))
 }
 
 func (tp *TablePage) getFreeSpaceRemaining() uint32 {
-	return tp.getFreeSpacePointer() - sizeTablePageHeader - sizeTuple*tp.getTupleCount()
+	return tp.GetFreeSpacePointer() - sizeTablePageHeader - sizeTuple*tp.GetTupleCount()
 }
 
-func (tp *TablePage) getFreeSpacePointer() uint32 {
+func (tp *TablePage) GetFreeSpacePointer() uint32 {
 	return uint32(types.NewUInt32FromBytes(tp.Data()[offsetFreeSpace:]))
 }
 
-func (tp *TablePage) getTuple(rid *page.RID) *Tuple {
+func (tp *TablePage) GetTuple(rid *page.RID) *Tuple {
 	slot := rid.GetSlot()
-	tupleOffset := tp.getTupleOffsetAtSlot(slot)
-	tupleSize := tp.getTupleSize(slot)
+	tupleOffset := tp.GetTupleOffsetAtSlot(slot)
+	tupleSize := tp.GetTupleSize(slot)
 
 	tupleData := make([]byte, tupleSize)
 	copy(tupleData, tp.Data()[tupleOffset:])
@@ -156,25 +156,25 @@ func (tp *TablePage) getTuple(rid *page.RID) *Tuple {
 	return &Tuple{rid, tupleSize, tupleData}
 }
 
-func (tp *TablePage) getTupleFirstRID() *page.RID {
+func (tp *TablePage) GetTupleFirstRID() *page.RID {
 	firstRID := &page.RID{}
 
-	tupleCount := tp.getTupleCount()
+	tupleCount := tp.GetTupleCount()
 	for i := uint32(0); i < tupleCount; i++ {
 		// if is deleted
-		firstRID.Set(tp.getTablePageId(), i)
+		firstRID.Set(tp.GetTablePageId(), i)
 		return firstRID
 	}
 	return nil
 }
 
-func (tp *TablePage) getNextTupleRID(rid *page.RID) *page.RID {
+func (tp *TablePage) GetNextTupleRID(rid *page.RID) *page.RID {
 	firstRID := &page.RID{}
 
-	tupleCount := tp.getTupleCount()
+	tupleCount := tp.GetTupleCount()
 	for i := rid.GetSlot() + 1; i < tupleCount; i++ {
 		// if is deleted
-		firstRID.Set(tp.getTablePageId(), i)
+		firstRID.Set(tp.GetTablePageId(), i)
 		return firstRID
 	}
 	return nil

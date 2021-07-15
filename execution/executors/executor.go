@@ -1,8 +1,6 @@
 package executors
 
-import (
-	"github.com/brunocalza/go-bustub/storage/table"
-)
+import "github.com/brunocalza/go-bustub/storage/table"
 
 type Done bool
 

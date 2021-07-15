@@ -1,21 +1,21 @@
 package executors
 
 import (
+	"github.com/brunocalza/go-bustub/catalog"
 	"github.com/brunocalza/go-bustub/storage/buffer"
-	"github.com/brunocalza/go-bustub/storage/table"
 )
 
 // ExecutorContext stores all the context necessary to run an executor
 type ExecutorContext struct {
-	catalog *table.Catalog
+	catalog *catalog.Catalog
 	bpm     *buffer.BufferPoolManager
 }
 
-func NewExecutorContext(catalog *table.Catalog, bpm *buffer.BufferPoolManager) *ExecutorContext {
+func NewExecutorContext(catalog *catalog.Catalog, bpm *buffer.BufferPoolManager) *ExecutorContext {
 	return &ExecutorContext{catalog, bpm}
 }
 
-func (e *ExecutorContext) GetCatalog() *table.Catalog {
+func (e *ExecutorContext) GetCatalog() *catalog.Catalog {
 	return e.catalog
 }
 

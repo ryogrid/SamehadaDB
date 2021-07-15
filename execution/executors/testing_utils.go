@@ -3,6 +3,7 @@ package executors
 import (
 	"testing"
 
+	"github.com/brunocalza/go-bustub/catalog"
 	"github.com/brunocalza/go-bustub/execution/expression"
 	"github.com/brunocalza/go-bustub/execution/plans"
 	"github.com/brunocalza/go-bustub/storage/table"
@@ -31,7 +32,7 @@ type SeqScanTestCase struct {
 	Description     string
 	ExecutionEngine *ExecutionEngine
 	ExecutorContext *ExecutorContext
-	TableMetadata   *table.TableMetadata
+	TableMetadata   *catalog.TableMetadata
 	Columns         []Column
 	Predicate       Predicate
 	Asserts         []Assertion

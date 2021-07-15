@@ -16,23 +16,32 @@ type DiskManagerImpl struct {
 	fileName   string
 	nextPageID types.PageID
 	numWrites  uint64
+	size       int64
 }
 
 // NewDiskManagerImpl returns a DiskManager instance
 func NewDiskManagerImpl(dbFilename string) DiskManager {
-	d := &DiskManagerImpl{
-		fileName:   dbFilename,
-		nextPageID: 0,
-		numWrites:  0,
-	}
-
-	var err error
-	d.db, err = os.OpenFile(dbFilename, os.O_RDWR|os.O_CREATE, 0666)
+	file, err := os.OpenFile(dbFilename, os.O_RDWR|os.O_CREATE, 0666)
 	if err != nil {
 		log.Fatalln("can't open db file")
+		return nil
 	}
 
-	return d
+	fileInfo, err := file.Stat()
+	if err != nil {
+		log.Fatalln("file info error")
+		return nil
+	}
+
+	fileSize := fileInfo.Size()
+	nPages := fileSize / page.PageSize
+
+	nextPageID := types.PageID(0)
+	if nPages > 0 {
+		nextPageID = types.PageID(int32(nPages + 1))
+	}
+
+	return &DiskManagerImpl{file, dbFilename, nextPageID, 0, fileSize}
 }
 
 // ShutDown closes of the database file
@@ -43,7 +52,6 @@ func (d *DiskManagerImpl) ShutDown() {
 // Write a page to the database file
 func (d *DiskManagerImpl) WritePage(pageId types.PageID, pageData []byte) error {
 	offset := int64(pageId * page.PageSize)
-	d.numWrites++
 	d.db.Seek(offset, io.SeekStart)
 	bytesWritten, err := d.db.Write(pageData)
 	if err != nil {
@@ -52,6 +60,10 @@ func (d *DiskManagerImpl) WritePage(pageId types.PageID, pageData []byte) error 
 
 	if bytesWritten != page.PageSize {
 		return errors.New("bytes written not equals page size")
+	}
+
+	if offset >= d.size {
+		d.size = offset + int64(bytesWritten)
 	}
 
 	d.db.Sync()
@@ -106,11 +118,6 @@ func (d *DiskManagerImpl) GetNumWrites() uint64 {
 }
 
 // Size returns the size of the file in disk
-func (d *DiskManagerImpl) Size() (int64, error) {
-	fileInfo, err := d.db.Stat()
-	if err != nil {
-		return 0, errors.New("file info error")
-	}
-
-	return fileInfo.Size(), nil
+func (d *DiskManagerImpl) Size() int64 {
+	return d.size
 }
