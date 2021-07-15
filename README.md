@@ -10,7 +10,7 @@
 - [ ] Update
 - [x] LIMIT / OFFSET
 - [x] Varchar
-- [ ] Persistent Catalog
+- [x] Persistent Catalog
 - [ ] Add LRU replacer
 - [ ] Add Latches
 - [ ] Add Transactions

@@ -2,7 +2,7 @@ package table
 
 type Schema struct {
 	length           uint32    // Fixed-length column size, i.e. the number of bytes used by one tuple
-	columns          []*Column //  All the columns in the schema, inlined and uninlined.
+	columns          []*Column // All the columns in the schema, inlined and uninlined.
 	tupleIsInlined   bool      // True if all the columns are inlined, false otherwise
 	uninlinedColumns []uint32  // Indices of all uninlined columns
 }

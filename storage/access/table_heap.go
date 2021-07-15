@@ -23,6 +23,16 @@ func NewTableHeap(bpm *buffer.BufferPoolManager) *TableHeap {
 	return &TableHeap{bpm, p.ID()}
 }
 
+// InitTableHeap ...
+func InitTableHeap(bpm *buffer.BufferPoolManager, pageId types.PageID) *TableHeap {
+	return &TableHeap{bpm, pageId}
+}
+
+// GetFirstPageId returns firstPageId
+func (t *TableHeap) GetFirstPageId() types.PageID {
+	return t.firstPageId
+}
+
 // InsertTuple inserts a tuple into the table
 //
 // It fetches the first page and tries to insert the tuple there.

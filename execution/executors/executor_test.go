@@ -18,7 +18,7 @@ func TestSimpleInsertAndSeqScan(t *testing.T) {
 	defer diskManager.ShutDown()
 	bpm := buffer.NewBufferPoolManager(uint32(32), diskManager)
 
-	c := catalog.NewCatalog(bpm)
+	c := catalog.BootstrapCatalog(bpm)
 
 	columnA := table.NewColumn("a", types.Integer)
 	columnB := table.NewColumn("b", types.Integer)
@@ -62,7 +62,7 @@ func TestSimpleInsertAndSeqScanWithPredicateComparison(t *testing.T) {
 	defer diskManager.ShutDown()
 	bpm := buffer.NewBufferPoolManager(uint32(32), diskManager)
 
-	c := catalog.NewCatalog(bpm)
+	c := catalog.BootstrapCatalog(bpm)
 
 	columnA := table.NewColumn("a", types.Integer)
 	columnB := table.NewColumn("b", types.Integer)
@@ -179,7 +179,7 @@ func TestSimpleInsertAndLimitExecution(t *testing.T) {
 	defer diskManager.ShutDown()
 	bpm := buffer.NewBufferPoolManager(uint32(32), diskManager)
 
-	c := catalog.NewCatalog(bpm)
+	c := catalog.BootstrapCatalog(bpm)
 
 	columnA := table.NewColumn("a", types.Integer)
 	columnB := table.NewColumn("b", types.Integer)

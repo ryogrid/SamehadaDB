@@ -32,6 +32,14 @@ func (c *Column) GetOffset() uint32 {
 	return c.columnOffset
 }
 
+func (c *Column) FixedLength() uint32 {
+	return c.fixedLength
+}
+
+func (c *Column) VariableLength() uint32 {
+	return c.variableLength
+}
+
 func (c *Column) GetColumnName() string {
 	return c.columnName
 }
