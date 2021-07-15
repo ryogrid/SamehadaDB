@@ -20,12 +20,12 @@ type Column struct {
 type Predicate struct {
 	LeftColumn  string
 	Operator    expression.ComparisonType
-	RightColumn types.TypeID
+	RightColumn interface{}
 }
 
 type Assertion struct {
 	Column string
-	Exp    types.TypeID
+	Exp    interface{}
 }
 
 type SeqScanTestCase struct {
@@ -46,7 +46,7 @@ func ExecuteSeqScanTestCase(t *testing.T, testCase SeqScanTestCase) {
 	}
 	outSchema := table.NewSchema(columns)
 
-	expression := expression.NewComparison(expression.NewColumnValue(0, testCase.TableMetadata.Schema().GetColIndex(testCase.Predicate.LeftColumn)), expression.NewConstantValue(types.NewInteger(int32(testCase.Predicate.RightColumn))), testCase.Predicate.Operator)
+	expression := expression.NewComparison(expression.NewColumnValue(0, testCase.TableMetadata.Schema().GetColIndex(testCase.Predicate.LeftColumn)), expression.NewConstantValue(getValue(testCase.Predicate.RightColumn)), testCase.Predicate.Operator)
 	seqPlan := plans.NewSeqScanPlanNode(outSchema, &expression, testCase.TableMetadata.OID())
 
 	results := testCase.ExecutionEngine.Execute(seqPlan, testCase.ExecutorContext)
@@ -54,6 +54,16 @@ func ExecuteSeqScanTestCase(t *testing.T, testCase SeqScanTestCase) {
 	testingpkg.Equals(t, testCase.TotalHits, uint32(len(results)))
 	for _, assert := range testCase.Asserts {
 		colIndex := outSchema.GetColIndex(assert.Column)
-		testingpkg.Assert(t, types.NewInteger(int32(assert.Exp)).CompareEquals(results[0].GetValue(outSchema, colIndex)), "value should be %d but was %d", int32(assert.Exp), results[0].GetValue(outSchema, colIndex).ToInteger())
+		testingpkg.Assert(t, getValue(assert.Exp).CompareEquals(results[0].GetValue(outSchema, colIndex)), "value should be %v but was %v", assert.Exp, results[0].GetValue(outSchema, colIndex))
 	}
+}
+
+func getValue(data interface{}) (value types.Value) {
+	switch v := data.(type) {
+	case int:
+		value = types.NewInteger(int32(v))
+	case string:
+		value = types.NewVarchar(v)
+	}
+	return
 }

@@ -46,6 +46,8 @@ func (v Value) CompareEquals(right Value) bool {
 	switch v.valueType {
 	case Integer:
 		return *v.integer == *right.integer
+	case Varchar:
+		return *v.varchar == *right.varchar
 	}
 	return false
 }
@@ -54,6 +56,8 @@ func (v Value) CompareNotEquals(right Value) bool {
 	switch v.valueType {
 	case Integer:
 		return *v.integer != *right.integer
+	case Varchar:
+		return *v.varchar != *right.varchar
 	}
 	return false
 }

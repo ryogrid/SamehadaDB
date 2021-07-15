@@ -66,17 +66,20 @@ func TestSimpleInsertAndSeqScanWithPredicateComparison(t *testing.T) {
 
 	columnA := table.NewColumn("a", types.Integer)
 	columnB := table.NewColumn("b", types.Integer)
-	schema := table.NewSchema([]*table.Column{columnA, columnB})
+	columnC := table.NewColumn("c", types.Varchar)
+	schema := table.NewSchema([]*table.Column{columnA, columnB, columnC})
 
 	tableMetadata := c.CreateTable("test_1", schema)
 
 	row1 := make([]types.Value, 0)
 	row1 = append(row1, types.NewInteger(20))
 	row1 = append(row1, types.NewInteger(22))
+	row1 = append(row1, types.NewVarchar("foo"))
 
 	row2 := make([]types.Value, 0)
 	row2 = append(row2, types.NewInteger(99))
 	row2 = append(row2, types.NewInteger(55))
+	row2 = append(row2, types.NewVarchar("bar"))
 
 	rows := make([][]types.Value, 0)
 	rows = append(rows, row1)
@@ -143,6 +146,24 @@ func TestSimpleInsertAndSeqScanWithPredicateComparison(t *testing.T) {
 		[]Column{{"a", types.Integer}, {"b", types.Integer}},
 		Predicate{"b", expression.NotEqual, 55},
 		[]Assertion{{"a", 20}, {"b", 22}},
+		1,
+	}, {
+		"select a, b, c ... WHERE c = 'foo'",
+		executionEngine,
+		executorContext,
+		tableMetadata,
+		[]Column{{"a", types.Integer}, {"b", types.Integer}, {"c", types.Varchar}},
+		Predicate{"c", expression.Equal, "foo"},
+		[]Assertion{{"a", 20}, {"b", 22}, {"c", "foo"}},
+		1,
+	}, {
+		"select a, b, c ... WHERE c != 'foo'",
+		executionEngine,
+		executorContext,
+		tableMetadata,
+		[]Column{{"a", types.Integer}, {"b", types.Integer}, {"c", types.Varchar}},
+		Predicate{"c", expression.NotEqual, "foo"},
+		[]Assertion{{"a", 99}, {"b", 55}, {"c", "bar"}},
 		1,
 	}}
 
