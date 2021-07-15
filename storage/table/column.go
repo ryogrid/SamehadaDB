@@ -13,7 +13,11 @@ type Column struct {
 }
 
 func NewColumn(name string, columnType types.TypeID) *Column {
-	return &Column{name, columnType, 4, 0, 0}
+	if columnType != types.Varchar {
+		return &Column{name, columnType, columnType.Size(), 0, 0}
+	}
+
+	return &Column{name, types.Varchar, 4, 255, 0}
 }
 
 func (c *Column) IsInlined() bool {

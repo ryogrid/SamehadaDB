@@ -4,7 +4,7 @@ type Schema struct {
 	length           uint32    // Fixed-length column size, i.e. the number of bytes used by one tuple
 	columns          []*Column //  All the columns in the schema, inlined and uninlined.
 	tupleIsInlined   bool      // True if all the columns are inlined, false otherwise
-	uninlinedColumns []int     // Indices of all uninlined columns
+	uninlinedColumns []uint32  // Indices of all uninlined columns
 }
 
 func NewSchema(columns []*Column) *Schema {
@@ -13,7 +13,7 @@ func NewSchema(columns []*Column) *Schema {
 
 	var currentOffset uint32
 	currentOffset = 0
-	for i := 0; i < len(columns); i++ {
+	for i := uint32(0); i < uint32(len(columns)); i++ {
 		column := columns[i]
 
 		if !column.IsInlined() {
@@ -32,6 +32,10 @@ func NewSchema(columns []*Column) *Schema {
 
 func (s *Schema) GetColumn(colIndex uint32) *Column {
 	return s.columns[colIndex]
+}
+
+func (s *Schema) GetUnlinedColumns() []uint32 {
+	return s.uninlinedColumns
 }
 
 func (s *Schema) GetColumnCount() uint32 {

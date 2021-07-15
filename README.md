@@ -9,7 +9,7 @@
 - [ ] Deletion
 - [ ] Update
 - [x] LIMIT / OFFSET
-- [ ] Varchar
+- [x] Varchar
 - [ ] Persistent Catalog
 - [ ] Add LRU replacer
 - [ ] Add Latches

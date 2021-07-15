@@ -13,8 +13,11 @@ type Tuple struct {
 
 // NewTupleFromSchema creates a new tuple based on input value
 func NewTupleFromSchema(values []types.Value, schema *Schema) *Tuple {
-	// calculate tuple size
+	// calculate tuple size considering varchar columns
 	tupleSize := schema.Length()
+	for _, colIndex := range schema.GetUnlinedColumns() {
+		tupleSize += values[colIndex].Size()
+	}
 	tuple := &Tuple{}
 	tuple.size = tupleSize
 
@@ -22,16 +25,27 @@ func NewTupleFromSchema(values []types.Value, schema *Schema) *Tuple {
 	tuple.data = make([]byte, tupleSize)
 
 	// serialize each attribute base on the input value
+	tupleEndOffset := schema.Length()
 	for i := uint32(0); i < schema.GetColumnCount(); i++ {
-		tuple.Copy(schema.GetColumn(i).GetOffset(), values[i].Serialize())
+		if schema.GetColumn(i).IsInlined() {
+			tuple.Copy(schema.GetColumn(i).GetOffset(), values[i].Serialize())
+		} else {
+			tuple.Copy(schema.GetColumn(i).GetOffset(), types.UInt32(tupleEndOffset).Serialize())
+			tuple.Copy(tupleEndOffset, values[i].Serialize())
+			tupleEndOffset += values[i].Size()
+		}
 	}
-
 	return tuple
 }
 
 func (t *Tuple) GetValue(schema *Schema, colIndex uint32) types.Value {
 	column := schema.GetColumn(colIndex)
-	value := types.NewValueFromBytes(t.data[column.GetOffset():], column.GetType())
+	offset := column.GetOffset()
+	if !column.IsInlined() {
+		offset = uint32(types.NewUInt32FromBytes(t.data[offset : offset+column.fixedLength]))
+	}
+
+	value := types.NewValueFromBytes(t.data[offset:], column.GetType())
 	if value == nil {
 		panic(value)
 	}
