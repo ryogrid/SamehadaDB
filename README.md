@@ -1,5 +1,7 @@
 # GoBustub
 
+A relational database, started as a port of [BusTub](https://github.com/cmu-db/bustub), built for educational purposes
+
 ## Roadmap
 
 - [x] Predicates on Seq Scan
