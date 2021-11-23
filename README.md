@@ -13,13 +13,13 @@ forked codes of go-bustub are [here](https://github.com/brunocalza/go-bustub).
 - [x] LIMIT / OFFSET
 - [x] Varchar
 - [x] Persistent Catalog
-- [ ] Add LRU replacer
-- [ ] Add Latches
-- [ ] Add Transactions
-- [ ] Add logging
-- [ ] Add recovery
-- [ ] Create Hash Index
-- [ ] Create BTree Index
+- [ ] LRU replacer
+- [ ] Latches
+- [ ] Transactions
+- [ ] logging
+- [ ] recovery
+- [ ] Hash Index
+- [ ] BTree Index
 - [ ] Join
 - [ ] Aggregations
 - [ ] Sort
