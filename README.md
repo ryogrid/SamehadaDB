@@ -1,6 +1,6 @@
-# GoBustub
-
-A relational database, started as a port of [BusTub](https://github.com/cmu-db/bustub), built for educational purposes
+# Overview
+This code tree based on Golang ported BusTub RDBMS codes: go-bustub.  
+forked codes of go-bustub are [here](https://github.com/brunocalza/go-bustub).
 
 ## Roadmap
 
@@ -24,3 +24,8 @@ A relational database, started as a port of [BusTub](https://github.com/cmu-db/b
 - [ ] Aggregations
 - [ ] Sort
 - [ ] Index Scan
+- [ ] Query Optimazation
+- [ ] Execution Planning
+
+## Past work
+[Distributed Key-Value Store which has REST Interfaces inplemented in Rust](https://github.com/ryogrid/rust_dkvs)
