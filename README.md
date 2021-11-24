@@ -1,6 +1,6 @@
 # Overview
 This code tree based on Golang ported BusTub RDBMS codes: go-bustub.  
-forked codes of go-bustub are [here](https://github.com/brunocalza/go-bustub).
+original codes of go-bustub are [here](https://github.com/brunocalza/go-bustub).
 
 ## Roadmap
 
