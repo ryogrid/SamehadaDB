@@ -1,8 +1,8 @@
 package plans
 
 import (
-	"github.com/brunocalza/go-bustub/execution/expression"
-	"github.com/brunocalza/go-bustub/storage/table"
+	"github.com/ryogrid/SaitomDB/execution/expression"
+	"github.com/ryogrid/SaitomDB/storage/table"
 )
 
 type SeqScanPlanNode struct {

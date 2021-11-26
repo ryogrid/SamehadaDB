@@ -1,8 +1,8 @@
 package executors
 
 import (
-	"github.com/brunocalza/go-bustub/catalog"
-	"github.com/brunocalza/go-bustub/storage/buffer"
+	"github.com/ryogrid/SaitomDB/catalog"
+	"github.com/ryogrid/SaitomDB/storage/buffer"
 )
 
 // ExecutorContext stores all the context necessary to run an executor

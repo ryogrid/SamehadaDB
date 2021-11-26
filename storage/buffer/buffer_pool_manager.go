@@ -3,9 +3,9 @@ package buffer
 import (
 	"errors"
 
-	"github.com/brunocalza/go-bustub/storage/disk"
-	"github.com/brunocalza/go-bustub/storage/page"
-	"github.com/brunocalza/go-bustub/types"
+	"github.com/ryogrid/SaitomDB/storage/disk"
+	"github.com/ryogrid/SaitomDB/storage/page"
+	"github.com/ryogrid/SaitomDB/types"
 )
 
 //BufferPoolManager represents the buffer pool manager

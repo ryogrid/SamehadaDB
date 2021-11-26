@@ -1,7 +1,7 @@
 package access
 
 import (
-	"github.com/brunocalza/go-bustub/storage/table"
+	"github.com/ryogrid/SaitomDB/storage/table"
 )
 
 // TableHeapIterator is the access method for table heaps

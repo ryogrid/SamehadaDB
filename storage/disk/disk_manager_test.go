@@ -3,8 +3,8 @@ package disk
 import (
 	"testing"
 
-	"github.com/brunocalza/go-bustub/storage/page"
-	testingpkg "github.com/brunocalza/go-bustub/testing"
+	"github.com/ryogrid/SaitomDB/storage/page"
+	testingpkg "github.com/ryogrid/SaitomDB/testing"
 )
 
 func TestReadWritePage(t *testing.T) {

@@ -3,12 +3,12 @@ package access
 import (
 	"testing"
 
-	"github.com/brunocalza/go-bustub/storage/buffer"
-	"github.com/brunocalza/go-bustub/storage/disk"
-	"github.com/brunocalza/go-bustub/storage/page"
-	"github.com/brunocalza/go-bustub/storage/table"
-	testingpkg "github.com/brunocalza/go-bustub/testing"
-	"github.com/brunocalza/go-bustub/types"
+	"github.com/ryogrid/SaitomDB/storage/buffer"
+	"github.com/ryogrid/SaitomDB/storage/disk"
+	"github.com/ryogrid/SaitomDB/storage/page"
+	"github.com/ryogrid/SaitomDB/storage/table"
+	testingpkg "github.com/ryogrid/SaitomDB/testing"
+	"github.com/ryogrid/SaitomDB/types"
 )
 
 func TestTableHeap(t *testing.T) {

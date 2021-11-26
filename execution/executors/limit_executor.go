@@ -1,8 +1,8 @@
 package executors
 
 import (
-	"github.com/brunocalza/go-bustub/execution/plans"
-	"github.com/brunocalza/go-bustub/storage/table"
+	"github.com/ryogrid/SaitomDB/execution/plans"
+	"github.com/ryogrid/SaitomDB/storage/table"
 )
 
 // LimitExecutor implements the limit/offset operation

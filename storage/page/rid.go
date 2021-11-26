@@ -1,6 +1,6 @@
 package page
 
-import "github.com/brunocalza/go-bustub/types"
+import "github.com/ryogrid/SaitomDB/types"
 
 // RID is the record identifier for the given page identifier and slot number
 type RID struct {

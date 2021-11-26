@@ -1,7 +1,7 @@
 package table
 
 import (
-	"github.com/brunocalza/go-bustub/types"
+	"github.com/ryogrid/SaitomDB/types"
 )
 
 type Column struct {

@@ -5,9 +5,9 @@ import (
 	"errors"
 	"unsafe"
 
-	"github.com/brunocalza/go-bustub/storage/buffer"
-	"github.com/brunocalza/go-bustub/storage/page"
-	"github.com/brunocalza/go-bustub/types"
+	"github.com/ryogrid/SaitomDB/storage/buffer"
+	"github.com/ryogrid/SaitomDB/storage/page"
+	"github.com/ryogrid/SaitomDB/types"
 	"github.com/spaolacci/murmur3"
 )
 

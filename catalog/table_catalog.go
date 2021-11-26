@@ -1,10 +1,10 @@
 package catalog
 
 import (
-	"github.com/brunocalza/go-bustub/storage/access"
-	"github.com/brunocalza/go-bustub/storage/buffer"
-	"github.com/brunocalza/go-bustub/storage/table"
-	"github.com/brunocalza/go-bustub/types"
+	"github.com/ryogrid/SaitomDB/storage/access"
+	"github.com/ryogrid/SaitomDB/storage/buffer"
+	"github.com/ryogrid/SaitomDB/storage/table"
+	"github.com/ryogrid/SaitomDB/types"
 )
 
 // TableCatalogPageId indicates the page where the table catalog can be found

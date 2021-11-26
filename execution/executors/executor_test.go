@@ -3,14 +3,14 @@ package executors
 import (
 	"testing"
 
-	"github.com/brunocalza/go-bustub/catalog"
-	"github.com/brunocalza/go-bustub/execution/expression"
-	"github.com/brunocalza/go-bustub/execution/plans"
-	"github.com/brunocalza/go-bustub/storage/buffer"
-	"github.com/brunocalza/go-bustub/storage/disk"
-	"github.com/brunocalza/go-bustub/storage/table"
-	testingpkg "github.com/brunocalza/go-bustub/testing"
-	"github.com/brunocalza/go-bustub/types"
+	"github.com/ryogrid/SaitomDB/catalog"
+	"github.com/ryogrid/SaitomDB/execution/expression"
+	"github.com/ryogrid/SaitomDB/execution/plans"
+	"github.com/ryogrid/SaitomDB/storage/buffer"
+	"github.com/ryogrid/SaitomDB/storage/disk"
+	"github.com/ryogrid/SaitomDB/storage/table"
+	testingpkg "github.com/ryogrid/SaitomDB/testing"
+	"github.com/ryogrid/SaitomDB/types"
 )
 
 func TestSimpleInsertAndSeqScan(t *testing.T) {

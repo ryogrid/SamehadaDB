@@ -6,8 +6,8 @@ import (
 	"log"
 	"os"
 
-	"github.com/brunocalza/go-bustub/storage/page"
-	"github.com/brunocalza/go-bustub/types"
+	"github.com/ryogrid/SaitomDB/storage/page"
+	"github.com/ryogrid/SaitomDB/types"
 )
 
 //DiskManagerImpl is the disk implementation of DiskManager

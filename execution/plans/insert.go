@@ -1,7 +1,7 @@
 package plans
 
 import (
-	"github.com/brunocalza/go-bustub/types"
+	"github.com/ryogrid/SaitomDB/types"
 )
 
 // InsertPlanNode identifies a table that should be inserted into

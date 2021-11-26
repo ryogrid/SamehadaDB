@@ -1,12 +1,12 @@
 package executors
 
 import (
-	"github.com/brunocalza/go-bustub/catalog"
-	"github.com/brunocalza/go-bustub/execution/expression"
-	"github.com/brunocalza/go-bustub/execution/plans"
-	"github.com/brunocalza/go-bustub/storage/access"
-	"github.com/brunocalza/go-bustub/storage/table"
-	"github.com/brunocalza/go-bustub/types"
+	"github.com/ryogrid/SaitomDB/catalog"
+	"github.com/ryogrid/SaitomDB/execution/expression"
+	"github.com/ryogrid/SaitomDB/execution/plans"
+	"github.com/ryogrid/SaitomDB/storage/access"
+	"github.com/ryogrid/SaitomDB/storage/table"
+	"github.com/ryogrid/SaitomDB/types"
 )
 
 // SeqScanExecutor executes a sequential scan

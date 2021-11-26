@@ -3,8 +3,8 @@ package page
 import (
 	"testing"
 
-	testingpkg "github.com/brunocalza/go-bustub/testing"
-	"github.com/brunocalza/go-bustub/types"
+	testingpkg "github.com/ryogrid/SaitomDB/testing"
+	"github.com/ryogrid/SaitomDB/types"
 )
 
 func TestRID(t *testing.T) {

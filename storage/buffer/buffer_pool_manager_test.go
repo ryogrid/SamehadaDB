@@ -4,10 +4,10 @@ import (
 	"crypto/rand"
 	"testing"
 
-	"github.com/brunocalza/go-bustub/storage/disk"
-	"github.com/brunocalza/go-bustub/storage/page"
-	testingpkg "github.com/brunocalza/go-bustub/testing"
-	"github.com/brunocalza/go-bustub/types"
+	"github.com/ryogrid/SaitomDB/storage/disk"
+	"github.com/ryogrid/SaitomDB/storage/page"
+	testingpkg "github.com/ryogrid/SaitomDB/testing"
+	"github.com/ryogrid/SaitomDB/types"
 )
 
 func TestBinaryData(t *testing.T) {

@@ -3,7 +3,7 @@ package buffer
 import (
 	"testing"
 
-	testingpkg "github.com/brunocalza/go-bustub/testing"
+	testingpkg "github.com/ryogrid/SaitomDB/testing"
 )
 
 func TestClockReplacer(t *testing.T) {

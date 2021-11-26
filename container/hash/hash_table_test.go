@@ -3,9 +3,9 @@ package hash
 import (
 	"testing"
 
-	"github.com/brunocalza/go-bustub/storage/buffer"
-	"github.com/brunocalza/go-bustub/storage/disk"
-	testingpkg "github.com/brunocalza/go-bustub/testing"
+	"github.com/ryogrid/SaitomDB/storage/buffer"
+	"github.com/ryogrid/SaitomDB/storage/disk"
+	testingpkg "github.com/ryogrid/SaitomDB/testing"
 )
 
 func TestHashTable(t *testing.T) {

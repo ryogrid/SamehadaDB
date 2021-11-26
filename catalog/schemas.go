@@ -1,8 +1,8 @@
 package catalog
 
 import (
-	"github.com/brunocalza/go-bustub/storage/table"
-	"github.com/brunocalza/go-bustub/types"
+	"github.com/ryogrid/SaitomDB/storage/table"
+	"github.com/ryogrid/SaitomDB/types"
 )
 
 func TableCatalogSchema() *table.Schema {

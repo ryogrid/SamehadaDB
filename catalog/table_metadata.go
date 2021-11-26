@@ -1,8 +1,8 @@
 package catalog
 
 import (
-	"github.com/brunocalza/go-bustub/storage/access"
-	"github.com/brunocalza/go-bustub/storage/table"
+	"github.com/ryogrid/SaitomDB/storage/access"
+	"github.com/ryogrid/SaitomDB/storage/table"
 )
 
 type TableMetadata struct {

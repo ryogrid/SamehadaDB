@@ -1,6 +1,6 @@
 package plans
 
-import "github.com/brunocalza/go-bustub/storage/table"
+import "github.com/ryogrid/SaitomDB/storage/table"
 
 type PlanType int
 

@@ -1,6 +1,6 @@
 package page
 
-import "github.com/brunocalza/go-bustub/types"
+import "github.com/ryogrid/SaitomDB/types"
 
 // PageSize is the size of a page in disk (4KB)
 const PageSize = 4096

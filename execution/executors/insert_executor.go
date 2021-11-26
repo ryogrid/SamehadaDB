@@ -1,9 +1,9 @@
 package executors
 
 import (
-	"github.com/brunocalza/go-bustub/catalog"
-	"github.com/brunocalza/go-bustub/execution/plans"
-	"github.com/brunocalza/go-bustub/storage/table"
+	"github.com/ryogrid/SaitomDB/catalog"
+	"github.com/ryogrid/SaitomDB/execution/plans"
+	"github.com/ryogrid/SaitomDB/storage/table"
 )
 
 // InsertExecutor executes an insert into a table

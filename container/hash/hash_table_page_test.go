@@ -9,9 +9,9 @@ package hash
 // 	"testing"
 // 	"unsafe"
 
-// 	"github.com/brunocalza/go-bustub/storage/buffer"
-// 	"github.com/brunocalza/go-bustub/storage/disk"
-// 	"github.com/brunocalza/go-bustub/storage/page"
+// 	"github.com/ryogrid/SaitomDB/storage/buffer"
+// 	"github.com/ryogrid/SaitomDB/storage/disk"
+// 	"github.com/ryogrid/SaitomDB/storage/page"
 // )
 
 // func TestHashTableHeaderPage(t *testing.T) {
