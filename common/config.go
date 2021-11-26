@@ -27,9 +27,9 @@ const (
 	BucketSize = 50
 )
 
-type FrameID int32      // frame id type
-type PageID int32       // page id type
-type TxnID int32        // transaction id type
-type LSN int32          // log sequence number
+//type FrameID int32 // frame id type
+//type PageID int32       // page id type
+type TxnID int32 // transaction id type
+//type LSN int32          // log sequence number
 type SlotOffset uintptr // slot offset type
-type OID uint16
+//type OID uint16
