@@ -1,6 +1,6 @@
 # Overview
 This code tree based on Golang ported BusTub RDBMS codes: go-bustub.  
-forked codes of go-bustub are [here](https://github.com/brunocalza/go-bustub).
+original codes of go-bustub are [here](https://github.com/brunocalza/go-bustub).
 
 ## Roadmap
 
@@ -16,8 +16,8 @@ forked codes of go-bustub are [here](https://github.com/brunocalza/go-bustub).
 - [ ] LRU replacer
 - [ ] Latches
 - [ ] Transactions
-- [ ] logging
-- [ ] recovery
+- [ ] Logging
+- [ ] Recovery from Logs
 - [ ] Hash Index
 - [ ] BTree Index
 - [ ] Join
