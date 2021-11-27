@@ -1,5 +1,5 @@
 # Overview
-This code tree based on Golang ported BusTub RDBMS codes: go-bustub.  
+This code tree is based on Golang ported BusTub RDBMS codes: go-bustub.  
 original codes of go-bustub are [here](https://github.com/brunocalza/go-bustub).
 
 ## Roadmap
