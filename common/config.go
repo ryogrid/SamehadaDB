@@ -1,3 +1,6 @@
+// TODO: this code is from https://github.com/pzhzqt/goostub
+//       so, license and copylight notice is needed at somewhere on this repo
+
 package common
 
 import (
