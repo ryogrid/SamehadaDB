@@ -5,7 +5,7 @@ original codes of go-bustub are [here](https://github.com/brunocalza/go-bustub).
 ## Roadmap
 
 - [x] Predicates on Seq Scan
-- [ ] Add <, >, <=, >=
+- [ ] Predicates: <, >, <=, >=
 - [ ] Null
 - [ ] Other inline types (boolean, bigint, smallint, decimal, timestamp)
 - [ ] Deletion
