@@ -21,7 +21,7 @@ original codes of go-bustub are [here](https://github.com/brunocalza/go-bustub).
 - [ ] Hash Index
 - [ ] BTree Index
 - [ ] Join
-- [ ] Aggregations (count, max, min ... on SELECT clause)
+- [ ] Aggregations (COUNT, MAX, MIN ... on SELECT clause)
 - [ ] Sort (ORDER BY clause) 
 - [ ] Index Scan
 - [ ] Query Optimazation
