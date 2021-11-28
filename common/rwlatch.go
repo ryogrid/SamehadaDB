@@ -1,5 +1,5 @@
 // this code is from https://github.com/pzhzqt/goostub
-// there is license and copyright notice in license/goostub dir
+// there is license and copyright notice in licenses/goostub dir
 
 package common
 
