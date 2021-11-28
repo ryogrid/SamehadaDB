@@ -1,5 +1,5 @@
-// TODO: this code is from https://github.com/pzhzqt/goostub
-//       so, license and copylight notice is needed at somewhere on this repo
+// this code is from https://github.com/pzhzqt/goostub
+// there is license and copyright notice in license/goostub dir
 
 package common
 
