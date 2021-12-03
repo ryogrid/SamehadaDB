@@ -1,4 +1,4 @@
-module github.com/ryogrid/SaitomDB
+module github.com/ryogrid/SamehadaDB
 
 go 1.14
 
