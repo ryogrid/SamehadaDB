@@ -28,4 +28,4 @@ original codes of go-bustub are [here](https://github.com/brunocalza/go-bustub).
 - [ ] Execution Planning
 
 ## Past work
-[Distributed Key-Value Store which has REST Interfaces inplemented in Rust](https://github.com/ryogrid/rust_dkvs)
+[Rust implementation of autonomous distributed key-value store which has REST interfaces](https://github.com/ryogrid/rust_dkvs)
