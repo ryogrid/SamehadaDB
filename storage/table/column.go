@@ -4,7 +4,7 @@
 package table
 
 import (
-	"github.com/ryogrid/SaitomDB/types"
+	"github.com/ryogrid/SamehadaDB/types"
 )
 
 type Column struct {

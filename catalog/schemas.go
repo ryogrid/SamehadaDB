@@ -4,8 +4,8 @@
 package catalog
 
 import (
-	"github.com/ryogrid/SaitomDB/storage/table"
-	"github.com/ryogrid/SaitomDB/types"
+	"github.com/ryogrid/SamehadaDB/storage/table"
+	"github.com/ryogrid/SamehadaDB/types"
 )
 
 func TableCatalogSchema() *table.Schema {

@@ -3,7 +3,7 @@
 
 package page
 
-import "github.com/ryogrid/SaitomDB/types"
+import "github.com/ryogrid/SamehadaDB/types"
 
 // RID is the record identifier for the given page identifier and slot number
 type RID struct {

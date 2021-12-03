@@ -6,8 +6,8 @@ package table
 import (
 	"testing"
 
-	testingpkg "github.com/ryogrid/SaitomDB/testing"
-	"github.com/ryogrid/SaitomDB/types"
+	testingpkg "github.com/ryogrid/SamehadaDB/testing"
+	"github.com/ryogrid/SamehadaDB/types"
 )
 
 func TestTuple(t *testing.T) {

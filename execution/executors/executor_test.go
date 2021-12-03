@@ -6,14 +6,14 @@ package executors
 import (
 	"testing"
 
-	"github.com/ryogrid/SaitomDB/catalog"
-	"github.com/ryogrid/SaitomDB/execution/expression"
-	"github.com/ryogrid/SaitomDB/execution/plans"
-	"github.com/ryogrid/SaitomDB/storage/buffer"
-	"github.com/ryogrid/SaitomDB/storage/disk"
-	"github.com/ryogrid/SaitomDB/storage/table"
-	testingpkg "github.com/ryogrid/SaitomDB/testing"
-	"github.com/ryogrid/SaitomDB/types"
+	"github.com/ryogrid/SamehadaDB/catalog"
+	"github.com/ryogrid/SamehadaDB/execution/expression"
+	"github.com/ryogrid/SamehadaDB/execution/plans"
+	"github.com/ryogrid/SamehadaDB/storage/buffer"
+	"github.com/ryogrid/SamehadaDB/storage/disk"
+	"github.com/ryogrid/SamehadaDB/storage/table"
+	testingpkg "github.com/ryogrid/SamehadaDB/testing"
+	"github.com/ryogrid/SamehadaDB/types"
 )
 
 func TestSimpleInsertAndSeqScan(t *testing.T) {

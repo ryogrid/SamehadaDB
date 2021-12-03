@@ -4,8 +4,8 @@
 package catalog
 
 import (
-	"github.com/ryogrid/SaitomDB/storage/access"
-	"github.com/ryogrid/SaitomDB/storage/table"
+	"github.com/ryogrid/SamehadaDB/storage/access"
+	"github.com/ryogrid/SamehadaDB/storage/table"
 )
 
 type TableMetadata struct {

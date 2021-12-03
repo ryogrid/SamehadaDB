@@ -6,9 +6,9 @@ package hash
 import (
 	"testing"
 
-	"github.com/ryogrid/SaitomDB/storage/buffer"
-	"github.com/ryogrid/SaitomDB/storage/disk"
-	testingpkg "github.com/ryogrid/SaitomDB/testing"
+	"github.com/ryogrid/SamehadaDB/storage/buffer"
+	"github.com/ryogrid/SamehadaDB/storage/disk"
+	testingpkg "github.com/ryogrid/SamehadaDB/testing"
 )
 
 func TestHashTable(t *testing.T) {

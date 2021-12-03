@@ -4,8 +4,8 @@
 package executors
 
 import (
-	"github.com/ryogrid/SaitomDB/catalog"
-	"github.com/ryogrid/SaitomDB/storage/buffer"
+	"github.com/ryogrid/SamehadaDB/catalog"
+	"github.com/ryogrid/SamehadaDB/storage/buffer"
 )
 
 // ExecutorContext stores all the context necessary to run an executor

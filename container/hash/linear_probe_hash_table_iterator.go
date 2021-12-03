@@ -6,9 +6,9 @@ package hash
 import (
 	"unsafe"
 
-	"github.com/ryogrid/SaitomDB/storage/buffer"
-	"github.com/ryogrid/SaitomDB/storage/page"
-	"github.com/ryogrid/SaitomDB/types"
+	"github.com/ryogrid/SamehadaDB/storage/buffer"
+	"github.com/ryogrid/SamehadaDB/storage/page"
+	"github.com/ryogrid/SamehadaDB/types"
 )
 
 type hashTableIterator struct {

@@ -4,7 +4,7 @@
 package plans
 
 import (
-	"github.com/ryogrid/SaitomDB/types"
+	"github.com/ryogrid/SamehadaDB/types"
 )
 
 // InsertPlanNode identifies a table that should be inserted into

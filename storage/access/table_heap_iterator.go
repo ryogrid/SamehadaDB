@@ -4,7 +4,7 @@
 package access
 
 import (
-	"github.com/ryogrid/SaitomDB/storage/table"
+	"github.com/ryogrid/SamehadaDB/storage/table"
 )
 
 // TableHeapIterator is the access method for table heaps

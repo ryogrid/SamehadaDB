@@ -4,9 +4,9 @@
 package executors
 
 import (
-	"github.com/ryogrid/SaitomDB/catalog"
-	"github.com/ryogrid/SaitomDB/execution/plans"
-	"github.com/ryogrid/SaitomDB/storage/table"
+	"github.com/ryogrid/SamehadaDB/catalog"
+	"github.com/ryogrid/SamehadaDB/execution/plans"
+	"github.com/ryogrid/SamehadaDB/storage/table"
 )
 
 // InsertExecutor executes an insert into a table

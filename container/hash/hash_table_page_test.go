@@ -12,9 +12,9 @@ package hash
 // 	"testing"
 // 	"unsafe"
 
-// 	"github.com/ryogrid/SaitomDB/storage/buffer"
-// 	"github.com/ryogrid/SaitomDB/storage/disk"
-// 	"github.com/ryogrid/SaitomDB/storage/page"
+// 	"github.com/ryogrid/SamehadaDB/storage/buffer"
+// 	"github.com/ryogrid/SamehadaDB/storage/disk"
+// 	"github.com/ryogrid/SamehadaDB/storage/page"
 // )
 
 // func TestHashTableHeaderPage(t *testing.T) {

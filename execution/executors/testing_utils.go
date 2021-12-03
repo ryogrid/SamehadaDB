@@ -6,13 +6,13 @@ package executors
 import (
 	"testing"
 
-	"github.com/ryogrid/SaitomDB/catalog"
-	"github.com/ryogrid/SaitomDB/execution/expression"
-	"github.com/ryogrid/SaitomDB/execution/plans"
-	"github.com/ryogrid/SaitomDB/storage/table"
-	"github.com/ryogrid/SaitomDB/types"
+	"github.com/ryogrid/SamehadaDB/catalog"
+	"github.com/ryogrid/SamehadaDB/execution/expression"
+	"github.com/ryogrid/SamehadaDB/execution/plans"
+	"github.com/ryogrid/SamehadaDB/storage/table"
+	"github.com/ryogrid/SamehadaDB/types"
 
-	testingpkg "github.com/ryogrid/SaitomDB/testing"
+	testingpkg "github.com/ryogrid/SamehadaDB/testing"
 )
 
 type Column struct {

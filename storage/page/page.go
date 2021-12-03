@@ -3,7 +3,7 @@
 
 package page
 
-import "github.com/ryogrid/SaitomDB/types"
+import "github.com/ryogrid/SamehadaDB/types"
 
 // PageSize is the size of a page in disk (4KB)
 const PageSize = 4096

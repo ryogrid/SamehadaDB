@@ -6,7 +6,7 @@ package buffer
 import (
 	"testing"
 
-	testingpkg "github.com/ryogrid/SaitomDB/testing"
+	testingpkg "github.com/ryogrid/SamehadaDB/testing"
 )
 
 func TestClockReplacer(t *testing.T) {

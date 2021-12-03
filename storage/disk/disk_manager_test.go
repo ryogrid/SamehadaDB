@@ -6,8 +6,8 @@ package disk
 import (
 	"testing"
 
-	"github.com/ryogrid/SaitomDB/storage/page"
-	testingpkg "github.com/ryogrid/SaitomDB/testing"
+	"github.com/ryogrid/SamehadaDB/storage/page"
+	testingpkg "github.com/ryogrid/SamehadaDB/testing"
 )
 
 func TestReadWritePage(t *testing.T) {

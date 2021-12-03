@@ -4,8 +4,8 @@
 package plans
 
 import (
-	"github.com/ryogrid/SaitomDB/execution/expression"
-	"github.com/ryogrid/SaitomDB/storage/table"
+	"github.com/ryogrid/SamehadaDB/execution/expression"
+	"github.com/ryogrid/SamehadaDB/storage/table"
 )
 
 type SeqScanPlanNode struct {

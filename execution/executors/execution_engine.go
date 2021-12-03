@@ -4,8 +4,8 @@
 package executors
 
 import (
-	"github.com/ryogrid/SaitomDB/execution/plans"
-	"github.com/ryogrid/SaitomDB/storage/table"
+	"github.com/ryogrid/SamehadaDB/execution/plans"
+	"github.com/ryogrid/SamehadaDB/storage/table"
 )
 
 // ExecutionEngine is the query execution engine.

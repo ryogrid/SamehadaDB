@@ -6,9 +6,9 @@ package buffer
 import (
 	"errors"
 
-	"github.com/ryogrid/SaitomDB/storage/disk"
-	"github.com/ryogrid/SaitomDB/storage/page"
-	"github.com/ryogrid/SaitomDB/types"
+	"github.com/ryogrid/SamehadaDB/storage/disk"
+	"github.com/ryogrid/SamehadaDB/storage/page"
+	"github.com/ryogrid/SamehadaDB/types"
 )
 
 //BufferPoolManager represents the buffer pool manager

@@ -6,9 +6,9 @@ package table
 import (
 	"unsafe"
 
-	"github.com/ryogrid/SaitomDB/errors"
-	"github.com/ryogrid/SaitomDB/storage/page"
-	"github.com/ryogrid/SaitomDB/types"
+	"github.com/ryogrid/SamehadaDB/errors"
+	"github.com/ryogrid/SamehadaDB/storage/page"
+	"github.com/ryogrid/SamehadaDB/types"
 )
 
 const sizeTablePageHeader = uint32(24)

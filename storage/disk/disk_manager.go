@@ -4,7 +4,7 @@
 package disk
 
 import (
-	"github.com/ryogrid/SaitomDB/types"
+	"github.com/ryogrid/SamehadaDB/types"
 )
 
 // DiskManager is responsible for interacting with disk

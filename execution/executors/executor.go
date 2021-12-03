@@ -3,7 +3,7 @@
 
 package executors
 
-import "github.com/ryogrid/SaitomDB/storage/table"
+import "github.com/ryogrid/SamehadaDB/storage/table"
 
 type Done bool
 

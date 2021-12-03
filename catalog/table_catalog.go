@@ -4,10 +4,10 @@
 package catalog
 
 import (
-	"github.com/ryogrid/SaitomDB/storage/access"
-	"github.com/ryogrid/SaitomDB/storage/buffer"
-	"github.com/ryogrid/SaitomDB/storage/table"
-	"github.com/ryogrid/SaitomDB/types"
+	"github.com/ryogrid/SamehadaDB/storage/access"
+	"github.com/ryogrid/SamehadaDB/storage/buffer"
+	"github.com/ryogrid/SamehadaDB/storage/table"
+	"github.com/ryogrid/SamehadaDB/types"
 )
 
 // TableCatalogPageId indicates the page where the table catalog can be found

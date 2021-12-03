@@ -6,12 +6,12 @@ package access
 import (
 	"testing"
 
-	"github.com/ryogrid/SaitomDB/storage/buffer"
-	"github.com/ryogrid/SaitomDB/storage/disk"
-	"github.com/ryogrid/SaitomDB/storage/page"
-	"github.com/ryogrid/SaitomDB/storage/table"
-	testingpkg "github.com/ryogrid/SaitomDB/testing"
-	"github.com/ryogrid/SaitomDB/types"
+	"github.com/ryogrid/SamehadaDB/storage/buffer"
+	"github.com/ryogrid/SamehadaDB/storage/disk"
+	"github.com/ryogrid/SamehadaDB/storage/page"
+	"github.com/ryogrid/SamehadaDB/storage/table"
+	testingpkg "github.com/ryogrid/SamehadaDB/testing"
+	"github.com/ryogrid/SamehadaDB/types"
 )
 
 func TestTableHeap(t *testing.T) {

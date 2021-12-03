@@ -7,10 +7,10 @@ import (
 	"crypto/rand"
 	"testing"
 
-	"github.com/ryogrid/SaitomDB/storage/disk"
-	"github.com/ryogrid/SaitomDB/storage/page"
-	testingpkg "github.com/ryogrid/SaitomDB/testing"
-	"github.com/ryogrid/SaitomDB/types"
+	"github.com/ryogrid/SamehadaDB/storage/disk"
+	"github.com/ryogrid/SamehadaDB/storage/page"
+	testingpkg "github.com/ryogrid/SamehadaDB/testing"
+	"github.com/ryogrid/SamehadaDB/types"
 )
 
 func TestBinaryData(t *testing.T) {

@@ -9,8 +9,8 @@ import (
 	"log"
 	"os"
 
-	"github.com/ryogrid/SaitomDB/storage/page"
-	"github.com/ryogrid/SaitomDB/types"
+	"github.com/ryogrid/SamehadaDB/storage/page"
+	"github.com/ryogrid/SamehadaDB/types"
 )
 
 //DiskManagerImpl is the disk implementation of DiskManager
