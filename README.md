@@ -26,6 +26,8 @@ original codes of go-bustub are [here](https://github.com/brunocalza/go-bustub).
 - [ ] Index Scan
 - [ ] Query Optimazation
 - [ ] Execution Planning
+- [ ] Concurrent execution of transactions
+- [ ] Nested query 
 
 ## Past work
 [FunnelKVS: Rust implementation of autonomous distributed key-value store which has REST interfaces](https://github.com/ryogrid/rust_dkvs)
