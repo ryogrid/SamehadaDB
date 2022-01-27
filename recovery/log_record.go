@@ -1,5 +1,7 @@
 package recovery
 
+const HEADER_SIZE uint32 = 20
+
 /** The type of the log record. */
 enum class LogRecordType {
 	INVALID = 0,
@@ -42,11 +44,11 @@ enum class LogRecordType {
 
 type LogRecord struct {
 	// the length of log record(for serialization, in bytes)
-	size{0} uint32
+	size uint32 //0
 	// must have fields
-	lsn{INVALID_LSN} LSN
-	txn_id{INVALID_TXN_ID} TxnID
-	prev_lsn{INVALID_LSN} LSN
+	lsn LSN //INVALID_LSN
+	txn_id TxnID //INVALID_TXN_ID
+	prev_lsn LSN //INVALID_LSN
 	log_record_type{LogRecordType::INVALID} LogRecordType
 
 	// case1: for delete opeartion, delete_tuple_ for UNDO opeartion
@@ -63,8 +65,7 @@ type LogRecord struct {
 	new_tuple Tuple
 
 	// case4: for new page opeartion
-	prev_page_id_{INVALID_PAGE_ID} PageID;
-	static const int HEADER_SIZE = 20;	
+	prev_page_id PageID //INVALID_PAGE_ID
 }
 	// friend class LogManager;
 	// friend class LogRecovery;
@@ -73,14 +74,14 @@ type LogRecord struct {
 
 	// constructor for Transaction type(BEGIN/COMMIT/ABORT)
 	New(txn_id_t txn_id, lsn_t prev_lsn, LogRecordType log_record_type) *LogRecord {
-		size(HEADER_SIZE)
-		txn_id(txn_id)
+		size := HEADER_SIZE
+		txn_id := txn_id
 		prev_lsn(prev_lsn)
 		log_record_type(log_record_type)
 	}
 
 	// constructor for INSERT/DELETE type
-	New(txn_id_t txn_id, lsn_t prev_lsn, LogRecordType log_record_type, const RID &rid, const Tuple &tuple) *LogRecord {
+	New(txn_id TxnID, prev_lsn LSN, log_record_type LogRecordType, const &rid RID, const Tuple &tuple) *LogRecord {
 	  txn_id(txn_id)
 	  prev_lsn(prev_lsn)
 	  log_record_type(log_record_type)
@@ -94,7 +95,7 @@ type LogRecord struct {
 		delete_tuple = tuple;
 	  }
 	  // calculate log record size
-	  size_ = HEADER_SIZE + sizeof(RID) + sizeof(int32_t) + tuple.GetLength()
+	  size = HEADER_SIZE + sizeof(RID) + sizeof(int32_t) + tuple.GetLength()
 	}
 
 	// constructor for UPDATE type

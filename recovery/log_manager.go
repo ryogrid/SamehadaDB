@@ -23,10 +23,10 @@ type LogManager struct {
 func New(disk_manager *DiskManager) *LogManager {
 	next_lsn_(0)
 	persistent_lsn_(INVALID_LSN)
-	disk_manager_(disk_manager)
-	log_buffer_ = new char[LOG_BUFFER_SIZE]
+	disk_manager(disk_manager)
+	log_buffer = new char[LOG_BUFFER_SIZE]
 	flush_buffer = new char[LOG_BUFFER_SIZE]
-	offset_ = 0
+	offset = 0
 }
 
 func (log_manager *LogManager) GetNextLSN() LSN { return log_manager.next_lsn }
@@ -35,7 +35,7 @@ func (log_manager *LogManager) SetPersistentLSN(lsn LSN) { log_manager.persisten
 func (log_manager *LogManager) GetLogBuffer() *char { return log_manager.log_buffer }
 
 func (log_manager *LogManager) Flush() {
-	unique_lock lock(latch_)
+	unique_lock lock(log_manager.latch)
 	lsn = log_manager.log_buffer_lsn.load()
 	offset = log_manager.offset.load()
 	offset = 0
@@ -83,15 +83,15 @@ func (log_manager *LogManager) StopFlushThread() { enable_logging = false }
 func (log_manager *LogManager) AppendLogRecord(log_record *LogRecord) LSN {
 	// First, serialize the must have fields(20 bytes in total)
 	// std::unique_lock lock(latch_);
-	if (LOG_BUFFER_SIZE - offset < LogRecord::HEADER_SIZE) {
-		Flush()
+	if (LOG_BUFFER_SIZE - log_manager.offset < HEADER_SIZE) {
+		log_manager.Flush()
 	}
-	log_record.lsn_ = next_lsn++
-	memcpy(log_manager.log_buffer + offset, log_record, LogRecord::HEADER_SIZE)
+	log_record.lsn = next_lsn++
+	memcpy(log_manager.log_buffer + offset, log_record, HEADER_SIZE)
 	if ((int32_t)(LOG_BUFFER_SIZE - offset) < log_record.size) {
 		log_manager.Flush()
 		// do it again in new buffer
-		memcpy(log_manager.log_buffer + offset, log_record, LogRecord::HEADER_SIZE)
+		memcpy(log_manager.log_buffer + offset, log_record, HEADER_SIZE)
 	}
 	log_manager.log_buffer_lsn = log_record.lsn
 	pos  := offset + LogRecord::HEADER_SIZE
