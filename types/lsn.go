@@ -1,0 +1,25 @@
+// this code is from https://github.com/brunocalza/go-bustub
+// there is license and copyright notice in licenses/go-bustub dir
+
+package types
+
+import (
+	"bytes"
+	"encoding/binary"
+)
+
+// LSN is the type of the log identifier
+type LSN int32
+
+// Serialize casts it to []byte
+func (lsn LSN) Serialize() []byte {
+	buf := new(bytes.Buffer)
+	binary.Write(buf, binary.LittleEndian, lsn)
+	return buf.Bytes()
+}
+
+// NewPageIDFromBytes creates a LSN from []byte
+func NewLSNFromBytes(data []byte) (ret TxnID) {
+	binary.Read(bytes.NewBuffer(data), binary.LittleEndian, &ret)
+	return ret
+}

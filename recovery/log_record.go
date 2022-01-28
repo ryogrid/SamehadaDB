@@ -1,11 +1,19 @@
 package recovery
 
+import (
+	"unsafe"
+
+	"github.com/ryogrid/SamehadaDB/storage/page"
+	"github.com/ryogrid/SamehadaDB/storage/table"
+	"github.com/ryogrid/SamehadaDB/types"
+)
+
 const HEADER_SIZE uint32 = 20
 
 type LogRecordType int
 
 /** The type of the log record. */
-const {
+const (
 	INVALID LogRecordType = iota
 	INSERT
 	MARKDELETE
@@ -17,123 +25,130 @@ const {
 	ABORT
 	/** Creating a new page in the table heap. */
 	NEWPAGE
-}
+)
 
-  /**
-   * For every write operation on the table page, you should write ahead a corresponding log record.
-   *
-   * For EACH log record, HEADER is like (5 fields in common, 20 bytes in total).
-   *---------------------------------------------
-   * | size | LSN | transID | prevLSN | LogType |
-   *---------------------------------------------
-   * For insert type log record
-   *---------------------------------------------------------------
-   * | HEADER | tuple_rid | tuple_size | tuple_data(char[] array) |
-   *---------------------------------------------------------------
-   * For delete type (including markdelete, rollbackdelete, applydelete)
-   *----------------------------------------------------------------
-   * | HEADER | tuple_rid | tuple_size | tuple_data(char[] array) |
-   *---------------------------------------------------------------
-   * For update type log record
-   *-----------------------------------------------------------------------------------
-   * | HEADER | tuple_rid | tuple_size | old_tuple_data | tuple_size | new_tuple_data |
-   *-----------------------------------------------------------------------------------
-   * For new page type log record
-   *--------------------------
-   * | HEADER | prev_page_id |
-   *--------------------------
-   */
+/**
+ * For every write operation on the table page, you should write ahead a corresponding log record.
+ *
+ * For EACH log record, HEADER is like (5 fields in common, 20 bytes in total).
+ *---------------------------------------------
+ * | size | LSN | transID | prevLSN | LogType |
+ *---------------------------------------------
+ * For insert type log record
+ *---------------------------------------------------------------
+ * | HEADER | tuple_rid | tuple_size | tuple_data(char[] array) |
+ *---------------------------------------------------------------
+ * For delete type (including markdelete, rollbackdelete, applydelete)
+ *----------------------------------------------------------------
+ * | HEADER | tuple_rid | tuple_size | tuple_data(char[] array) |
+ *---------------------------------------------------------------
+ * For update type log record
+ *-----------------------------------------------------------------------------------
+ * | HEADER | tuple_rid | tuple_size | old_tuple_data | tuple_size | new_tuple_data |
+ *-----------------------------------------------------------------------------------
+ * For new page type log record
+ *--------------------------
+ * | HEADER | prev_page_id |
+ *--------------------------
+ */
 
 type LogRecord struct {
 	// the length of log record(for serialization, in bytes)
 	size uint32 //0
 	// must have fields
-	lsn LSN //INVALID_LSN
-	txn_id TxnID //INVALID_TXN_ID
-	prev_lsn LSN //INVALID_LSN
+	lsn             types.LSN     //INVALID_LSN
+	txn_id          types.TxnID   //INVALID_TXN_ID
+	prev_lsn        types.LSN     //INVALID_LSN
 	log_record_type LogRecordType // {LogRecordType::INVALID}
 
 	// case1: for delete opeartion, delete_tuple_ for UNDO opeartion
-	delete_rid RID
-	delete_tuple Tuple
+	delete_rid   *page.RID
+	delete_tuple *table.Tuple
 
 	// case2: for insert opeartion
-	insert_rid RID
-	insert_tuple Tuple
+	insert_rid   *page.RID
+	insert_tuple *table.Tuple
 
 	// case3: for update opeartion
-	update_rid RID
-	pold_tuple Tuple
-	new_tuple Tuple
+	update_rid *page.RID
+	old_tuple  *table.Tuple
+	new_tuple  *table.Tuple
 
 	// case4: for new page opeartion
-	prev_page_id PageID //INVALID_PAGE_ID
+	prev_page_id types.PageID //INVALID_PAGE_ID
 }
-	// friend class LogManager;
-	// friend class LogRecovery;
 
-func NewLogRecord() *LogRecord {}
+// friend class LogManager;
+// friend class LogRecovery;
+
+//func NewLogRecord() *LogRecord {}
 
 // constructor for Transaction type(BEGIN/COMMIT/ABORT)
-func NewLogRecord(txn_id_t txn_id, lsn_t prev_lsn, LogRecordType log_record_type) *LogRecord {
-	size := HEADER_SIZE
-	txn_id := txn_id
-	prev_lsn(prev_lsn)
-	log_record_type(log_record_type)
+func NewLogRecordTxn(txn_id types.TxnID, prev_lsn types.LSN, log_record_type LogRecordType) *LogRecord {
+	ret := new(LogRecord)
+	ret.size = HEADER_SIZE
+	ret.txn_id = txn_id
+	ret.prev_lsn = prev_lsn
+	ret.log_record_type = log_record_type
+	return ret
 }
 
 // constructor for INSERT/DELETE type
-func NewLogRecord(txn_id TxnID, prev_lsn LSN, log_record_type LogRecordType, const rid *RID, const tuple *Tuple) *LogRecord {
-	txn_id(txn_id)
-	prev_lsn(prev_lsn)
-	log_record_type(log_record_type)
-	if (log_record_type == LogRecordType::INSERT) {
-		insert_rid = rid
-		insert_tuple = tuple
+func NewLogRecordInsertDelete(txn_id types.TxnID, prev_lsn types.LSN, log_record_type LogRecordType, rid *page.RID, tuple *table.Tuple) *LogRecord {
+	ret := new(LogRecord)
+	ret.txn_id = txn_id
+	ret.prev_lsn = prev_lsn
+	ret.log_record_type = log_record_type
+	if log_record_type == INSERT {
+		ret.insert_rid = rid
+		ret.insert_tuple = tuple
 	} else {
-		assert(log_record_type == LogRecordType::APPLYDELETE || log_record_type == LogRecordType::MARKDELETE ||
-				log_record_type == LogRecordType::ROLLBACKDELETE)
-		delete_rid = rid
-		delete_tuple = tuple;
+		// assert(log_record_type == LogRecordType::APPLYDELETE || log_record_type == LogRecordType::MARKDELETE ||
+		// 		log_record_type == LogRecordType::ROLLBACKDELETE)
+		ret.delete_rid = rid
+		ret.delete_tuple = tuple
 	}
 	// calculate log record size
-	size = HEADER_SIZE + sizeof(RID) + sizeof(int32_t) + tuple.GetLength()
+	ret.size = HEADER_SIZE + uint32(unsafe.Sizeof(rid)) + uint32(unsafe.Sizeof(int32(0))) + tuple.Size()
+	return ret
 }
 
 // constructor for UPDATE type
-func NewLogRecord(txn_id_t TxnID, prev_lsn LSN, log_record_type LogRecordType, const update_rid *RID,
-			const old_tuple *Tuple, const new_tuple *Tuple) *LogRecord
-{
-	txn_id(txn_id)
-	prev_lsn(prev_lsn)
-	log_record_type(log_record_type)
-	update_rid(update_rid)
-	old_tuple(old_tuple)
-	new_tuple(new_tuple)
+func NewLogRecordUpdate(txn_id types.TxnID, prev_lsn types.LSN, log_record_type LogRecordType, update_rid *page.RID,
+	old_tuple *table.Tuple, new_tuple *table.Tuple) *LogRecord {
+	ret := new(LogRecord)
+	ret.txn_id = txn_id
+	ret.prev_lsn = prev_lsn
+	ret.log_record_type = log_record_type
+	ret.update_rid = update_rid
+	ret.old_tuple = old_tuple
+	ret.new_tuple = new_tuple
 	// calculate log record size
-	size = HEADER_SIZE + sizeof(RID) + old_tuple.GetLength() + new_tuple.GetLength() + 2 * sizeof(int32_t)
+	ret.size = HEADER_SIZE + uint32(unsafe.Sizeof(update_rid)) + old_tuple.Size() + new_tuple.Size() + 2*uint32(unsafe.Sizeof(int32(0)))
+	return ret
 }
 
 // constructor for NEWPAGE type
-func NewLogRecord(txn_id_t txn_id, lsn_t prev_lsn, LogRecordType log_record_type, page_id_t page_id) *LogRecord
-{
-	size_(HEADER_SIZE),
-	txn_id_(txn_id),
-	prev_lsn_(prev_lsn),
-	log_record_type_(log_record_type),
-	prev_page_id_(page_id)
+func NewLogRecordNewPage(txn_id types.TxnID, prev_lsn types.LSN, log_record_type LogRecordType, page_id types.PageID) *LogRecord {
+	ret := new(LogRecord)
+	ret.size = HEADER_SIZE
+	ret.txn_id = txn_id
+	ret.prev_lsn = prev_lsn
+	ret.log_record_type = log_record_type
+	ret.prev_page_id = page_id
 	// calculate log record size
-	size = HEADER_SIZE + sizeof(page_id_t);
+	ret.size = HEADER_SIZE + uint32(unsafe.Sizeof(page_id))
+	return ret
 }
 
-func (log_record *LogRecord) GetDeleteRID() RID { return log_record.delete_rid }
-func (log_record *LogRecord) GetInserteTuple() Tuple { return log_record.insert_tuple }
-func (log_record *LogRecord) GetInsertRID() RID { return log_record.insert_rid }
-func (log_record *LogRecord) GetNewPageRecord() PageID { return log_record.prev_page_id }
-func (log_record *LogRecord) GetSize() uint32 { return log_record.size }
-func (log_record *LogRecord) GetLSN() LSN { return log_record.lsn }
-func (log_record *LogRecord) GetTxnId() TxnID { return log_record.txn_id }
-func (log_record *LogRecord) GetPrevLSN() LSN { return log_record.prev_lsn }
+func (log_record *LogRecord) GetDeleteRID() *page.RID         { return log_record.delete_rid }
+func (log_record *LogRecord) GetInserteTuple() *table.Tuple   { return log_record.insert_tuple }
+func (log_record *LogRecord) GetInsertRID() *page.RID         { return log_record.insert_rid }
+func (log_record *LogRecord) GetNewPageRecord() types.PageID  { return log_record.prev_page_id }
+func (log_record *LogRecord) GetSize() uint32                 { return log_record.size }
+func (log_record *LogRecord) GetLSN() types.LSN               { return log_record.lsn }
+func (log_record *LogRecord) GetTxnId() types.TxnID           { return log_record.txn_id }
+func (log_record *LogRecord) GetPrevLSN() types.LSN           { return log_record.prev_lsn }
 func (log_record *LogRecord) GetLogRecordType() LogRecordType { return log_record.log_record_type }
 
 // // For debug purpose
