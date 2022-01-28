@@ -1,32 +1,45 @@
 package recovery
 
+import (
+	"github.com/ryogrid/SamehadaDB/common"
+	"github.com/ryogrid/SamehadaDB/storage/disk"
+	"github.com/ryogrid/SamehadaDB/types"
+)
+
 /**
  * LogManager maintains a separate thread that is awakened whenever the log buffer is full or whenever a timeout
  * happens. When the thread is awakened, the log buffer's content is written into the disk log file.
  */
 type LogManager struct {
 	 // TODO(students): you may add your own member variables
-	offset atomic<uint32>
-	log_buffer_lsn atomic<LSN>
+	
+	// TODO: (SDB) need ensure atomicity
+	offset uint32
+	// TODO: (SDB) need ensure atomicity
+	log_buffer_lsn types.LSN
 	/** The atomic counter which records the next log sequence number. */
-	next_lsn atomic<LSN>
+	// TODO: (SDB) need ensure atomicity
+	next_lsn types.LSN
 	/** The log records before and including the persistent lsn have been written to disk. */
-	persistent_lsn atomic<LSN>
-	log_buffer *char
-	flush_buffer *char
+	// TODO: (SDB) need ensure atomicity	
+	persistent_lsn types.LSN
+	log_buffer []byte
+	flush_buffer []byte
 	latch mutex
 	flush_thread *thread //__attribute__((__unused__));
 	cv condition_variable
-	disk_manager *DiskManager //__attribute__((__unused__));
+	disk_manager *disk.DiskManager //__attribute__((__unused__));
 };
 
-func New(disk_manager *DiskManager) *LogManager {
-	next_lsn_(0)
-	persistent_lsn_(INVALID_LSN)
-	disk_manager(disk_manager)
-	log_buffer = new char[LOG_BUFFER_SIZE]
-	flush_buffer = new char[LOG_BUFFER_SIZE]
-	offset = 0
+func NewLogManager(disk_manager *disk.DiskManager) *LogManager {
+	ret := new(LogManager)
+	ret.next_lsn = 0
+	ret.persistent_lsn = common.InvalidLSN
+	ret.disk_manager = disk_manager
+	ret.log_buffer = make([]byte, common.LogBufferSize)
+	ret.flush_buffer = make([]byte, common.LogBufferSize)
+	ret.offset = 0
+	return ret
 }
 
 func (log_manager *LogManager) GetNextLSN() LSN { return log_manager.next_lsn }
@@ -83,6 +96,9 @@ func (log_manager *LogManager) StopFlushThread() { enable_logging = false }
 func (log_manager *LogManager) AppendLogRecord(log_record *LogRecord) LSN {
 	// First, serialize the must have fields(20 bytes in total)
 	// std::unique_lock lock(latch_);
+
+	//TODO: (SDB) not ported yet
+/*
 	if (LOG_BUFFER_SIZE - log_manager.offset < HEADER_SIZE) {
 		log_manager.Flush()
 	}
@@ -120,6 +136,6 @@ func (log_manager *LogManager) AppendLogRecord(log_record *LogRecord) LSN {
 	} else if (log_record.log_record_type == LogRecordType::NEWPAGE) {
 		memcpy(log_manager.log_buffer + pos, &log_record.prev_page_id, sizeof(PageID))
 	}
-
+*/
 	return log_record.lsn
 }

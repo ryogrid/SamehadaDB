@@ -1,37 +1,29 @@
 package recovery
 
-// /**
-//  * CheckpointManager creates consistent checkpoints by blocking all other transactions temporarily.
-//  */
-//  class CheckpointManager {
-// 	public:
-// 	 CheckpointManager(TransactionManager *transaction_manager, LogManager *log_manager,
-// 					   BufferPoolManager *buffer_pool_manager)
-// 		 : transaction_manager_(transaction_manager),
-// 		   log_manager_(log_manager),
-// 		   buffer_pool_manager_(buffer_pool_manager) {}
+import (
+	"github.com/ryogrid/SamehadaDB/concurrency"
+	"github.com/ryogrid/SamehadaDB/storage/buffer"
+)
 
-// 	 ~CheckpointManager() = default;
+/**
+ * CheckpointManager creates consistent checkpoints by blocking all other transactions temporarily.
+ */
+type CheckpointManager struct {
+	transaction_manager *concurrency.TransactinManager //__attribute__((__unused__));
+	log_manager         *LogManager                    //__attribute__((__unused__));
+	buffer_pool_manager *buffer.BufferPoolManager      //__attribute__((__unused__));
+}
 
-// 	 void BeginCheckpoint();
-// 	 void EndCheckpoint();
+func (checkpoint_manager *CheckpointManager) BeginCheckpoint() {
+	// Block all the transactions and ensure that both the WAL and all dirty buffer pool pages are persisted to disk,
+	// creating a consistent checkpoint. Do NOT allow transactions to resume at the end of this method, resume them
+	// in CheckpointManager::EndCheckpoint() instead. This is for grading purposes.
+	checkpoint_manager.transaction_manager.BlockAllTransactions()
+	checkpoint_manager.buffer_pool_manager.FlushAllPages()
+	checkpoint_manager.log_manager.Flush()
+}
 
-// 	private:
-// 	 TransactionManager *transaction_manager_ __attribute__((__unused__));
-// 	 LogManager *log_manager_ __attribute__((__unused__));
-// 	 BufferPoolManager *buffer_pool_manager_ __attribute__((__unused__));
-// };
-
-// void CheckpointManager::BeginCheckpoint() {
-// 	// Block all the transactions and ensure that both the WAL and all dirty buffer pool pages are persisted to disk,
-// 	// creating a consistent checkpoint. Do NOT allow transactions to resume at the end of this method, resume them
-// 	// in CheckpointManager::EndCheckpoint() instead. This is for grading purposes.
-// 	transaction_manager_->BlockAllTransactions();
-// 	buffer_pool_manager_->FlushAllPages();
-// 	log_manager_->Flush();
-// }
-
-// void CheckpointManager::EndCheckpoint() {
-// // Allow transactions to resume, completing the checkpoint.
-// transaction_manager_->ResumeTransactions();
-// }
+func (checkpoint_manager *CheckpointManager) EndCheckpoint() {
+	// Allow transactions to resume, completing the checkpoint.
+	checkpoint_manager.transaction_manager.ResumeTransactions()
+}
