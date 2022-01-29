@@ -42,7 +42,7 @@ const (
  * WriteRecord tracks information related to a write.
  */
 type WriteRecord struct {
-	rid   RID
+	rid   page.RID
 	wtype WType
 	/** The tuple is only used for the update operation. */
 	tuple *table.Tuple

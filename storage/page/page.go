@@ -3,7 +3,10 @@
 
 package page
 
-import "github.com/ryogrid/SamehadaDB/types"
+import (
+	"github.com/ryogrid/SamehadaDB/common"
+	"github.com/ryogrid/SamehadaDB/types"
+)
 
 // PageSize is the size of a page in disk (4KB)
 const PageSize = 4096
@@ -59,7 +62,7 @@ func (p *Page) Copy(offset uint32, data []byte) {
 }
 
 // New creates a new page
-func New(id types.PageID, isDirty bool, data *[PageSize]byte) *Page {
+func New(id types.PageID, isDirty bool, data *[common.PageSize]byte) *Page {
 	return &Page{id, uint32(1), isDirty, data}
 }
 
