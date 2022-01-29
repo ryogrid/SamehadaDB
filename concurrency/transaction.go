@@ -24,7 +24,7 @@ type Transaction struct {
 	// exclusive_lock_set unordered_set<RID>
 }
 
-func New(txn_id TxnID) *Transaction {
+func NewTransaction(txn_id TxnID) *Transaction {
 	return &Transaction{
 		TransactionState::GROWING,
 		// std::this_thread::get_id(),
