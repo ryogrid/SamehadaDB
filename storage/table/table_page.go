@@ -6,6 +6,7 @@ package table
 import (
 	"unsafe"
 
+	"github.com/ryogrid/SamehadaDB/common"
 	"github.com/ryogrid/SamehadaDB/errors"
 	"github.com/ryogrid/SamehadaDB/storage/page"
 	"github.com/ryogrid/SamehadaDB/types"
@@ -90,7 +91,7 @@ func (tp *TablePage) Init(pageId types.PageID, prevPageId types.PageID) {
 	tp.SetPrevPageId(prevPageId)
 	tp.SetNextPageId(types.InvalidPageID)
 	tp.SetTupleCount(0)
-	tp.SetFreeSpacePointer(page.PageSize) // point to the end of the page
+	tp.SetFreeSpacePointer(common.PageSize) // point to the end of the page
 }
 
 func (tp *TablePage) SetPageId(pageId types.PageID) {

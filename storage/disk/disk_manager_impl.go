@@ -9,7 +9,7 @@ import (
 	"log"
 	"os"
 
-	"github.com/ryogrid/SamehadaDB/storage/page"
+	"github.com/ryogrid/SamehadaDB/common"
 	"github.com/ryogrid/SamehadaDB/types"
 )
 
@@ -37,7 +37,7 @@ func NewDiskManagerImpl(dbFilename string) DiskManager {
 	}
 
 	fileSize := fileInfo.Size()
-	nPages := fileSize / page.PageSize
+	nPages := fileSize / common.PageSize
 
 	nextPageID := types.PageID(0)
 	if nPages > 0 {
@@ -54,14 +54,14 @@ func (d *DiskManagerImpl) ShutDown() {
 
 // Write a page to the database file
 func (d *DiskManagerImpl) WritePage(pageId types.PageID, pageData []byte) error {
-	offset := int64(pageId * page.PageSize)
+	offset := int64(pageId * common.PageSize)
 	d.db.Seek(offset, io.SeekStart)
 	bytesWritten, err := d.db.Write(pageData)
 	if err != nil {
 		return err
 	}
 
-	if bytesWritten != page.PageSize {
+	if bytesWritten != common.PageSize {
 		return errors.New("bytes written not equals page size")
 	}
 
@@ -75,7 +75,7 @@ func (d *DiskManagerImpl) WritePage(pageId types.PageID, pageData []byte) error 
 
 // Read a page from the database file
 func (d *DiskManagerImpl) ReadPage(pageID types.PageID, pageData []byte) error {
-	offset := int64(pageID * page.PageSize)
+	offset := int64(pageID * common.PageSize)
 
 	fileInfo, err := d.db.Stat()
 	if err != nil {
@@ -93,8 +93,8 @@ func (d *DiskManagerImpl) ReadPage(pageID types.PageID, pageData []byte) error {
 		return errors.New("I/O error while reading")
 	}
 
-	if bytesRead < page.PageSize {
-		for i := 0; i < page.PageSize; i++ {
+	if bytesRead < common.PageSize {
+		for i := 0; i < common.PageSize; i++ {
 			pageData[i] = 0
 		}
 	}

@@ -8,15 +8,15 @@ import (
 	"github.com/ryogrid/SamehadaDB/types"
 )
 
-// PageSize is the size of a page in disk (4KB)
-const PageSize = 4096
+// // PageSize is the size of a page in disk (4KB)
+// const PageSize = 4096
 
 // Page represents an abstract page on disk
 type Page struct {
-	id       types.PageID    // idenfies the page. It is used to find the offset of the page on disk
-	pinCount uint32          // counts how many goroutines are acessing it
-	isDirty  bool            // the page was modified but not flushed
-	data     *[PageSize]byte // bytes stored in disk
+	id       types.PageID           // idenfies the page. It is used to find the offset of the page on disk
+	pinCount uint32                 // counts how many goroutines are acessing it
+	isDirty  bool                   // the page was modified but not flushed
+	data     *[common.PageSize]byte // bytes stored in disk
 }
 
 // IncPinCount decrements pin count
@@ -42,7 +42,7 @@ func (p *Page) ID() types.PageID {
 }
 
 // Data returns the data of the page
-func (p *Page) Data() *[PageSize]byte {
+func (p *Page) Data() *[common.PageSize]byte {
 	return p.data
 }
 
@@ -68,5 +68,5 @@ func New(id types.PageID, isDirty bool, data *[common.PageSize]byte) *Page {
 
 // New creates a new empty page
 func NewEmpty(id types.PageID) *Page {
-	return &Page{id, uint32(1), false, &[PageSize]byte{}}
+	return &Page{id, uint32(1), false, &[common.PageSize]byte{}}
 }

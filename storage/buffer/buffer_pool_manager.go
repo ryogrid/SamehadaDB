@@ -6,6 +6,7 @@ package buffer
 import (
 	"errors"
 
+	"github.com/ryogrid/SamehadaDB/common"
 	"github.com/ryogrid/SamehadaDB/storage/disk"
 	"github.com/ryogrid/SamehadaDB/storage/page"
 	"github.com/ryogrid/SamehadaDB/types"
@@ -49,12 +50,12 @@ func (b *BufferPoolManager) FetchPage(pageID types.PageID) *page.Page {
 		}
 	}
 
-	data := make([]byte, page.PageSize)
+	data := make([]byte, common.PageSize)
 	err := b.diskManager.ReadPage(pageID, data)
 	if err != nil {
 		return nil
 	}
-	var pageData [page.PageSize]byte
+	var pageData [common.PageSize]byte
 	copy(pageData[:], data)
 	pg := page.New(pageID, false, &pageData)
 	b.pageTable[pageID] = *frameID
