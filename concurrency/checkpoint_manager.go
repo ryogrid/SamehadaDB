@@ -1,7 +1,7 @@
-package recovery
+package concurrency
 
 import (
-	"github.com/ryogrid/SamehadaDB/concurrency"
+	"github.com/ryogrid/SamehadaDB/recovery"
 	"github.com/ryogrid/SamehadaDB/storage/buffer"
 )
 
@@ -9,9 +9,9 @@ import (
  * CheckpointManager creates consistent checkpoints by blocking all other transactions temporarily.
  */
 type CheckpointManager struct {
-	transaction_manager *concurrency.TransactinManager //__attribute__((__unused__));
-	log_manager         *LogManager                    //__attribute__((__unused__));
-	buffer_pool_manager *buffer.BufferPoolManager      //__attribute__((__unused__));
+	transaction_manager *TransactinManager        //__attribute__((__unused__));
+	log_manager         *recovery.LogManager      //__attribute__((__unused__));
+	buffer_pool_manager *buffer.BufferPoolManager //__attribute__((__unused__));
 }
 
 func (checkpoint_manager *CheckpointManager) BeginCheckpoint() {

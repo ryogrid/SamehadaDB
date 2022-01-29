@@ -1,17 +1,18 @@
 package concurrency
 
 import (
+	"github.com/ryogrid/SamehadaDB/common"
 	"github.com/ryogrid/SamehadaDB/recovery"
 	"github.com/ryogrid/SamehadaDB/types"
 )
 
-type TransactinManager struct {
+type TransactionManager struct {
 	// TODO: (SDB) must ensure atomicity
 	next_txn_id types.TxnID
 	// lock_manager *LockManager //__attribute__((__unused__))
 	log_manager *recovery.LogManager // __attribute__((__unused__))
 	// /** The global transaction latch is used for checkpointing. */
-	global_txn_latch ReaderWriterLatch
+	global_txn_latch common.ReaderWriterLatch
 }
 
 var txn_map map[types.TxnID]*Transaction = make(map[types.TxnID]*Transaction)
@@ -20,12 +21,12 @@ func (transaction_manager *TransactionManager) Begin(txn *Transaction) *Transact
 	//   // Acquire the global transaction latch in shared mode.
 	//   transaction_manager.global_txn_latch.RLock()
 
-	if txn == null {
+	if txn == nil {
 		transaction_manager.next_txn_id += 1
 		txn := NewTransaction(transaction_manager.next_txn_id)
 	}
 
-	if config.EnableLogging {
+	if common.EnableLogging {
 		// TODO(student): Add logging here.
 		log_record & LogRecord(txn.GetTransactionId(), txn.GetPrevLSN(), concurrency.BEGIN)
 		lsn := transaction_manager.log_manager.AppendLogRecord(&log_record)
@@ -37,7 +38,7 @@ func (transaction_manager *TransactionManager) Begin(txn *Transaction) *Transact
 }
 
 func (transaction_manager *TransactionManager) Commit(txn *Transaction) {
-	txn.SetState(concurrency.COMMITTED)
+	txn.SetState(COMMITTED)
 
 	// TODO: (SDB) need implement
 	/*
@@ -55,7 +56,7 @@ func (transaction_manager *TransactionManager) Commit(txn *Transaction) {
 	   write_set.clear()
 	*/
 
-	if enable_logging {
+	if common.EnableLogging {
 		// TODO(student): add logging here
 		log_record := &LogRecord(txn.GetTransactionId(), txn.GetPrevLSN(), recovery.COMMIT)
 		lsn := transaction_manager.log_manager.AppendLogRecord(&log_record)
@@ -70,7 +71,7 @@ func (transaction_manager *TransactionManager) Commit(txn *Transaction) {
 }
 
 func (transaction_manager *TransactionManager) Abort(txn *Transaction) {
-	txn.SetState(concurrency.ABORTED)
+	txn.SetState(ABORTED)
 
 	// TODO: (SDB) need implement
 	/*
@@ -92,7 +93,7 @@ func (transaction_manager *TransactionManager) Abort(txn *Transaction) {
 	   write_set.clear()
 	*/
 
-	if enable_logging {
+	if common.EnableLogging {
 		// TODO(student): add logging here
 		log_record := &LogRecord(txn.GetTransactionId(), txn.GetPrevLSN(), ABORT)
 		lsn := log_manager.AppendLogRecord(&log_record)
