@@ -8,7 +8,7 @@ import (
 )
 
 var CycleDetectionInterval time.Duration
-var EnableLogging bool
+var EnableLogging bool = false
 var LogTimeout time.Duration
 
 const (
