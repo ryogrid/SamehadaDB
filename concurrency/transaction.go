@@ -62,13 +62,16 @@ func NewWriteRecord(rid page.RID, wtype WType, tuple *table.Tuple, table *access
 type Transaction struct {
 	/** The current transaction state. */
 	state TransactionState
+
 	// /** The thread ID, used in single-threaded transactions. */
 	// thread_id ThreadID
+
 	/** The ID of this transaction. */
 	txn_id types.TxnID
 
 	// /** The undo set of the transaction. */
 	// write_set deque<WriteRecord>
+
 	/** The LSN of the last record written by the transaction. */
 	prev_lsn types.LSN
 
@@ -97,11 +100,11 @@ func NewTransaction(txn_id types.TxnID) *Transaction {
 	}
 }
 
-// /** @return the id of the thread running the transaction */
-// func (txn *Transaction) GetThreadId() ThreadID { return txn.thread_id }
-
 /** @return the id of this transaction */
 func (txn *Transaction) GetTransactionId() types.TxnID { return txn.txn_id }
+
+// /** @return the id of the thread running the transaction */
+// func (txn *Transaction) GetThreadId() ThreadID { return txn.thread_id }
 
 // /** @return the list of of write records of this transaction */
 // func (txn *Transaction) GetWriteSet() deque<WriteRecord> { return txn.write_set }

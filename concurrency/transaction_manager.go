@@ -18,23 +18,23 @@ type TransactionManager struct {
 var txn_map map[types.TxnID]*Transaction = make(map[types.TxnID]*Transaction)
 
 func (transaction_manager *TransactionManager) Begin(txn *Transaction) *Transaction {
-	//   // Acquire the global transaction latch in shared mode.
-	//   transaction_manager.global_txn_latch.RLock()
+	// Acquire the global transaction latch in shared mode.
+	transaction_manager.global_txn_latch.RLock()
+	var txn_ret *Transaction = txn
 
-	if txn == nil {
+	if txn_ret == nil {
 		transaction_manager.next_txn_id += 1
-		txn := NewTransaction(transaction_manager.next_txn_id)
+		txn_ret = NewTransaction(transaction_manager.next_txn_id)
 	}
 
 	if common.EnableLogging {
-		// TODO(student): Add logging here.
-		log_record & LogRecord(txn.GetTransactionId(), txn.GetPrevLSN(), concurrency.BEGIN)
-		lsn := transaction_manager.log_manager.AppendLogRecord(&log_record)
-		txn.SetPrevLSN(lsn)
+		log_record := recovery.NewLogRecordTxn(txn_ret.GetTransactionId(), txn_ret.GetPrevLSN(), recovery.BEGIN)
+		lsn := transaction_manager.log_manager.AppendLogRecord(log_record)
+		txn_ret.SetPrevLSN(lsn)
 	}
 
-	txn_map[txn.GetTransactionId()] = txn
-	return txn
+	txn_map[txn_ret.GetTransactionId()] = txn_ret
+	return txn_ret
 }
 
 func (transaction_manager *TransactionManager) Commit(txn *Transaction) {
@@ -57,17 +57,16 @@ func (transaction_manager *TransactionManager) Commit(txn *Transaction) {
 	*/
 
 	if common.EnableLogging {
-		// TODO(student): add logging here
-		log_record := &LogRecord(txn.GetTransactionId(), txn.GetPrevLSN(), recovery.COMMIT)
-		lsn := transaction_manager.log_manager.AppendLogRecord(&log_record)
+		log_record := recovery.NewLogRecordTxn(txn.GetTransactionId(), txn.GetPrevLSN(), recovery.COMMIT)
+		lsn := transaction_manager.log_manager.AppendLogRecord(log_record)
 		txn.SetPrevLSN(lsn)
 		transaction_manager.log_manager.Flush()
 	}
 
-	//   // Release all the locks.
-	//   transaction_manager.releaseLocks(txn)
-	//   // Release the global transaction latch.
-	//   transaction_manager.global_txn_latch.RUnlock()
+	// Release all the locks.
+	transaction_manager.releaseLocks(txn)
+	// Release the global transaction latch.
+	transaction_manager.global_txn_latch.RUnlock()
 }
 
 func (transaction_manager *TransactionManager) Abort(txn *Transaction) {
@@ -94,31 +93,37 @@ func (transaction_manager *TransactionManager) Abort(txn *Transaction) {
 	*/
 
 	if common.EnableLogging {
-		// TODO(student): add logging here
-		log_record := &LogRecord(txn.GetTransactionId(), txn.GetPrevLSN(), ABORT)
-		lsn := log_manager.AppendLogRecord(&log_record)
+		log_record := recovery.NewLogRecordTxn(txn.GetTransactionId(), txn.GetPrevLSN(), recovery.ABORT)
+		lsn := transaction_manager.log_manager.AppendLogRecord(log_record)
 		txn.SetPrevLSN(lsn)
 	}
 
-	//   // Release all the locks.
-	//   transaction_manager.releaseLocks(txn)
-	//   // Release the global transaction latch.
-	//   transaction_manager.global_txn_latch.RUnlock()
+	// Release all the locks.
+	transaction_manager.releaseLocks(txn)
+	// Release the global transaction latch.
+	transaction_manager.global_txn_latch.RUnlock()
 }
 
-// func (transaction_manager *TransactionManager) BlockAllTransactions() { transaction_manager.global_txn_latch.WLock() }
+func (transaction_manager *TransactionManager) BlockAllTransactions() {
+	transaction_manager.global_txn_latch.WLock()
+}
 
-// func (transaction_manager *TransactionManager) ResumeTransactions() { transaction_manager.global_txn_latch.WUnlock() }
+func (transaction_manager *TransactionManager) ResumeTransactions() {
+	transaction_manager.global_txn_latch.WUnlock()
+}
 
-// func (transaction_manager *TransactionManager) void releaseLocks(txn *Transaction) {
-//     var lock_set : unordered_set<RID>
-//     for (item : *txn.GetExclusiveLockSet()) {
-//       lock_set.emplace(item)
-//     }
-//     for (item : *txn.GetSharedLockSet()) {
-//       lock_set.emplace(item)
-//     }
-//     for (locked_rid : lock_set) {
-//       lock_manager.Unlock(txn, locked_rid)
-//     }
-// }
+func (transaction_manager *TransactionManager) releaseLocks(txn *Transaction) {
+	// TODO: (SDB) not ported yet
+	/*
+	   	var lock_set : unordered_set<RID>
+	       for (item : *txn.GetExclusiveLockSet()) {
+	         lock_set.emplace(item)
+	       }
+	       for (item : *txn.GetSharedLockSet()) {
+	         lock_set.emplace(item)
+	       }
+	       for (locked_rid : lock_set) {
+	         lock_manager.Unlock(txn, locked_rid)
+	       }
+	*/
+}
