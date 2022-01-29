@@ -19,6 +19,7 @@ type BufferPoolManager struct {
 	replacer    *ClockReplacer
 	freeList    []FrameID
 	pageTable   map[types.PageID]FrameID
+	// TODO: (SDB) need to use latch at BufferPoolManager
 }
 
 // FetchPage fetches the requested page from the buffer pool.

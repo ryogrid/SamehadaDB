@@ -10,6 +10,7 @@ type FrameID uint32
 type ClockReplacer struct {
 	cList     *circularList
 	clockHand **node
+	// TODO: (SDB) need to use latch at ClockReplacer
 }
 
 // Victim removes the victim frame as defined by the replacement policy

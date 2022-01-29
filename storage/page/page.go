@@ -17,6 +17,7 @@ type Page struct {
 	pinCount uint32                 // counts how many goroutines are acessing it
 	isDirty  bool                   // the page was modified but not flushed
 	data     *[common.PageSize]byte // bytes stored in disk
+	// TODO: (SDB) need to use latch at Page
 }
 
 // IncPinCount decrements pin count
@@ -70,3 +71,16 @@ func New(id types.PageID, isDirty bool, data *[common.PageSize]byte) *Page {
 func NewEmpty(id types.PageID) *Page {
 	return &Page{id, uint32(1), false, &[common.PageSize]byte{}}
 }
+
+// TODO: (SDB) lockking and unlockking latch of Page is not implemented yet
+//   /** Acquire the page write latch. */
+//   inline void WLatch() { rwlatch_.WLock(); }
+
+//   /** Release the page write latch. */
+//   inline void WUnlatch() { rwlatch_.WUnlock(); }
+
+//   /** Acquire the page read latch. */
+//   inline void RLatch() { rwlatch_.RLock(); }
+
+//   /** Release the page read latch. */
+//   inline void RUnlatch() { rwlatch_.RUnlock(); }
