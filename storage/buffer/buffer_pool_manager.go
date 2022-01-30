@@ -7,6 +7,8 @@ import (
 	"errors"
 
 	"github.com/ryogrid/SamehadaDB/common"
+	"github.com/ryogrid/SamehadaDB/concurrency"
+	"github.com/ryogrid/SamehadaDB/recovery"
 	"github.com/ryogrid/SamehadaDB/storage/disk"
 	"github.com/ryogrid/SamehadaDB/storage/page"
 	"github.com/ryogrid/SamehadaDB/types"
@@ -14,11 +16,13 @@ import (
 
 //BufferPoolManager represents the buffer pool manager
 type BufferPoolManager struct {
-	diskManager disk.DiskManager
-	pages       []*page.Page
-	replacer    *ClockReplacer
-	freeList    []FrameID
-	pageTable   map[types.PageID]FrameID
+	diskManager  disk.DiskManager
+	pages        []*page.Page
+	replacer     *ClockReplacer
+	freeList     []FrameID
+	pageTable    map[types.PageID]FrameID
+	Log_manager  *recovery.LogManager
+	Lock_manager *concurrency.LockManager
 	// TODO: (SDB) need to use latch at BufferPoolManager
 }
 
@@ -175,7 +179,7 @@ func (b *BufferPoolManager) getFrameID() (*FrameID, bool) {
 }
 
 //NewBufferPoolManager returns a empty buffer pool manager
-func NewBufferPoolManager(poolSize uint32, DiskManager disk.DiskManager) *BufferPoolManager {
+func NewBufferPoolManager(poolSize uint32, DiskManager disk.DiskManager, log_manager *recovery.LogManager, lock_manager *concurrency.LockManager) *BufferPoolManager {
 	freeList := make([]FrameID, poolSize)
 	pages := make([]*page.Page, poolSize)
 	for i := uint32(0); i < poolSize; i++ {
@@ -184,5 +188,5 @@ func NewBufferPoolManager(poolSize uint32, DiskManager disk.DiskManager) *Buffer
 	}
 
 	replacer := NewClockReplacer(poolSize)
-	return &BufferPoolManager{DiskManager, pages, replacer, freeList, make(map[types.PageID]FrameID)}
+	return &BufferPoolManager{DiskManager, pages, replacer, freeList, make(map[types.PageID]FrameID), log_manager, lock_manager}
 }

@@ -7,6 +7,7 @@ import (
 	"unsafe"
 
 	"github.com/ryogrid/SamehadaDB/common"
+	"github.com/ryogrid/SamehadaDB/concurrency"
 	"github.com/ryogrid/SamehadaDB/errors"
 	"github.com/ryogrid/SamehadaDB/recovery"
 	"github.com/ryogrid/SamehadaDB/storage/page"
@@ -55,7 +56,7 @@ func CastPageAsTablePage(page *page.Page) *TablePage {
 }
 
 // Inserts a tuple into the table
-func (tp *TablePage) InsertTuple(tuple *Tuple) (*page.RID, error) {
+func (tp *TablePage) InsertTuple(tuple *Tuple, log_manager *recovery.LogManager, lock_manager *concurrency.LockManager) (*page.RID, error) {
 	if tuple.Size() == 0 {
 		return nil, ErrEmptyTuple
 	}
@@ -95,20 +96,20 @@ func (tp *TablePage) InsertTuple(tuple *Tuple) (*page.RID, error) {
 		//BUSTUB_ASSERT(locked, "Locking a new tuple should always work.");
 		log_record := recovery.NewLogRecordInsertDelete(txn.GetTransactionId(), txn.GetPrevLSN(), INSERT, rid, tuple)
 		lsn := log_manager.AppendLogRecord(log_record)
-		SetLSN(lsn);
-		txn->SetPrevLSN(lsn);
+		tp.Page.SetLSN(lsn)
+		txn.SetPrevLSN(lsn)
 	}
 	return rid, nil
 }
 
 // Init initializes the table header
-func (tp *TablePage) Init(pageId types.PageID, prevPageId types.PageID) {
-  	// Log that we are creating a new page.
-	if (enable_logging) {
-		LogRecord log_record = LogRecord(txn->GetTransactionId(), txn->GetPrevLSN(), LogRecordType::NEWPAGE, prev_page_id);
-		lsn_t lsn = log_manager->AppendLogRecord(&log_record);
-		SetLSN(lsn);
-		txn->SetPrevLSN(lsn);
+func (tp *TablePage) Init(pageId types.PageID, prevPageId types.PageID, log_manager *recovery.LogManager, lock_manager *concurrency.LockManager) {
+	// Log that we are creating a new page.
+	if common.EnableLogging {
+		log_record := recovery.NewLogRecordInsertDelete(txn.GetTransactionId(), txn.GetPrevLSN(), recovery.NEWPAGE, prev_page_id)
+		lsn := log_manager.AppendLogRecord(log_record)
+		tp.Page.SetLSN(lsn)
+		txn.SetPrevLSN(lsn)
 	}
 	tp.SetPageId(pageId)
 	tp.SetPrevPageId(prevPageId)
@@ -172,13 +173,14 @@ func (tp *TablePage) GetFreeSpacePointer() uint32 {
 	return uint32(types.NewUInt32FromBytes(tp.Data()[offsetFreeSpace:]))
 }
 
-func (tp *TablePage) GetTuple(rid *page.RID) *Tuple {
+func (tp *TablePage) GetTuple(rid *page.RID, log_manager *recovery.LogManager, lock_manager *concurrency.LockManager) *Tuple {
 	// If somehow we have more slots than tuples, abort the transaction.
-	if (rid.GetSlotNum() >= GetTupleCount()) {
-		if (enable_logging) {
-		txn->SetState(TransactionState::ABORTED);
+	if rid.GetSlotNum() >= tp.GetTupleCount() {
+		if common.EnableLogging {
+			txn.SetState(concurrency.ABORTED)
 		}
-		return false;
+		// TODO: (SDB) need care of Aborting at GetTuple of TablePage
+		return nil
 	}
 
 	slot := rid.GetSlot()
@@ -191,12 +193,12 @@ func (tp *TablePage) GetTuple(rid *page.RID) *Tuple {
 	// 	txn->SetState(TransactionState::ABORTED);
 	// 	}
 	// 	return false;
-	// }	
+	// }
 
 	// Otherwise we have a valid tuple, try to acquire at least a shared lock.
-	if (enable_logging) {
-		if (!txn->IsSharedLocked(rid) && !txn->IsExclusiveLocked(rid) && !lock_manager->LockShared(txn, rid)) {
-			return false;
+	if common.EnableLogging {
+		if !txn.IsSharedLocked(rid) && !txn.IsExclusiveLocked(rid) && !lock_manager.LockShared(txn, rid) {
+			return false
 		}
 	}
 

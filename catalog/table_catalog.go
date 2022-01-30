@@ -104,11 +104,13 @@ func (c *Catalog) CreateTable(name string, schema *table.Schema) *TableMetadata 
 
 	c.tableIds[oid] = tableMetadata
 	c.tableNames[name] = tableMetadata
-	c.InsertTable(tableMetadata)
+	// TODO: (SDB) comment-outed because it seems to be not needed by ryogrid
+	//c.InsertTable(tableMetadata)
 
 	return tableMetadata
 }
 
+/*
 func (c *Catalog) InsertTable(tableMetadata *TableMetadata) {
 	row := make([]types.Value, 0)
 
@@ -131,3 +133,4 @@ func (c *Catalog) InsertTable(tableMetadata *TableMetadata) {
 		c.tableIds[ColumnsCatalogOID].Table().InsertTuple(tuple)
 	}
 }
+*/

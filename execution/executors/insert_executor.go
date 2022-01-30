@@ -33,7 +33,8 @@ func (e *InsertExecutor) Next() (*table.Tuple, Done, error) {
 
 	for _, values := range e.plan.GetRawValues() {
 		tuple := table.NewTupleFromSchema(values, e.tableMetadata.Schema())
-		_, err := e.tableMetadata.Table().InsertTuple(tuple)
+		tableHeap := e.tableMetadata.Table()
+		_, err := tableHeap.InsertTuple(tuple)
 		if err != nil {
 			return nil, true, err
 		}

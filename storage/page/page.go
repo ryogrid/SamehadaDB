@@ -84,3 +84,11 @@ func NewEmpty(id types.PageID) *Page {
 
 //   /** Release the page read latch. */
 //   inline void RUnlatch() { rwlatch_.RUnlock(); }
+
+// TODO: (SDB) need to port GetLSN and SetLSN at Page class
+
+/** @return the page LSN. */
+func (p *Page) GetLSN() types.LSN { return -1 /**reinterpret_cast<lsn_t *>(GetData() + OFFSET_LSN)*/ }
+
+/** Sets the page LSN. */
+func (p *Page) SetLSN(lsn types.LSN) { /*memcpy(GetData() + OFFSET_LSN, &lsn, sizeof(lsn_t))*/ }

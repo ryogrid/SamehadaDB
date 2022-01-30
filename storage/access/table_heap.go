@@ -4,6 +4,8 @@
 package access
 
 import (
+	"github.com/ryogrid/SamehadaDB/concurrency"
+	"github.com/ryogrid/SamehadaDB/recovery"
 	"github.com/ryogrid/SamehadaDB/storage/buffer"
 	"github.com/ryogrid/SamehadaDB/storage/page"
 	"github.com/ryogrid/SamehadaDB/storage/table"
@@ -13,22 +15,24 @@ import (
 // TableHeap represents a physical table on disk.
 // It contains the id of the first table table. The table page is a doubly-linked to other table pages.
 type TableHeap struct {
-	bpm         *buffer.BufferPoolManager
-	firstPageId types.PageID
+	bpm          *buffer.BufferPoolManager
+	firstPageId  types.PageID
+	log_manager  *recovery.LogManager
+	lock_manager *concurrency.LockManager
 }
 
 // NewTableHeap creates a table heap without a transaction. (open table)
 func NewTableHeap(bpm *buffer.BufferPoolManager) *TableHeap {
 	p := bpm.NewPage()
 	firstPage := table.CastPageAsTablePage(p)
-	firstPage.Init(p.ID(), types.InvalidPageID)
+	firstPage.Init(p.ID(), types.InvalidPageID, bpm.Log_manager, bpm.Lock_manager)
 	bpm.UnpinPage(p.ID(), true)
-	return &TableHeap{bpm, p.ID()}
+	return &TableHeap{bpm, p.ID(), bpm.Log_manager, bpm.Lock_manager}
 }
 
 // InitTableHeap ...
 func InitTableHeap(bpm *buffer.BufferPoolManager, pageId types.PageID) *TableHeap {
-	return &TableHeap{bpm, pageId}
+	return &TableHeap{bpm, pageId, bpm.Log_manager, bpm.Lock_manager}
 }
 
 // GetFirstPageId returns firstPageId
@@ -46,7 +50,7 @@ func (t *TableHeap) InsertTuple(tuple *table.Tuple) (rid *page.RID, err error) {
 	currentPage := table.CastPageAsTablePage(t.bpm.FetchPage(t.firstPageId))
 
 	for {
-		rid, err = currentPage.InsertTuple(tuple)
+		rid, err = currentPage.InsertTuple(tuple, t.log_manager, t.lock_manager)
 		if err == nil || err == table.ErrEmptyTuple {
 			break
 		}
@@ -59,7 +63,7 @@ func (t *TableHeap) InsertTuple(tuple *table.Tuple) (rid *page.RID, err error) {
 			p := t.bpm.NewPage()
 			newPage := table.CastPageAsTablePage(p)
 			currentPage.SetNextPageId(p.ID())
-			newPage.Init(p.ID(), currentPage.GetTablePageId())
+			newPage.Init(p.ID(), currentPage.GetTablePageId(), t.log_manager, t.lock_manager)
 			t.bpm.UnpinPage(currentPage.GetTablePageId(), true)
 			currentPage = newPage
 		}
@@ -73,7 +77,7 @@ func (t *TableHeap) InsertTuple(tuple *table.Tuple) (rid *page.RID, err error) {
 func (t *TableHeap) GetTuple(rid *page.RID) *table.Tuple {
 	page := table.CastPageAsTablePage(t.bpm.FetchPage(rid.GetPageId()))
 	defer t.bpm.UnpinPage(page.ID(), false)
-	return page.GetTuple(rid)
+	return page.GetTuple(rid, t.log_manager, t.lock_manager)
 }
 
 // GetFirstTuple reads the first tuple from the table
