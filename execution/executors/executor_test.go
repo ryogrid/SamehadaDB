@@ -7,8 +7,10 @@ import (
 	"testing"
 
 	"github.com/ryogrid/SamehadaDB/catalog"
+	"github.com/ryogrid/SamehadaDB/concurrency"
 	"github.com/ryogrid/SamehadaDB/execution/expression"
 	"github.com/ryogrid/SamehadaDB/execution/plans"
+	"github.com/ryogrid/SamehadaDB/recovery"
 	"github.com/ryogrid/SamehadaDB/storage/buffer"
 	"github.com/ryogrid/SamehadaDB/storage/disk"
 	"github.com/ryogrid/SamehadaDB/storage/table"
@@ -22,7 +24,7 @@ func TestSimpleInsertAndSeqScan(t *testing.T) {
 	bpm := buffer.NewBufferPoolManager(uint32(32), diskManager) //, recovery.NewLogManager(diskManager), concurrency.NewLockManager(concurrency.REGULAR, concurrency.PREVENTION))
 
 	//c := catalog.BootstrapCatalog(bpm)
-	c := catalog.GetCatalog(bpm)
+	c := catalog.GetCatalog(bpm, recovery.NewLogManager(&diskManager), concurrency.NewLockManager(concurrency.REGULAR, concurrency.PREVENTION))
 	c.CreateTable("columns_catalog", catalog.ColumnsCatalogSchema())
 
 	columnA := table.NewColumn("a", types.Integer)
@@ -68,7 +70,7 @@ func TestSimpleInsertAndSeqScanWithPredicateComparison(t *testing.T) {
 	bpm := buffer.NewBufferPoolManager(uint32(32), diskManager) //, recovery.NewLogManager(diskManager), concurrency.NewLockManager(concurrency.REGULAR, concurrency.PREVENTION))
 
 	//c := catalog.BootstrapCatalog(bpm)
-	c := catalog.GetCatalog(bpm)
+	c := catalog.GetCatalog(bpm, recovery.NewLogManager(&diskManager), concurrency.NewLockManager(concurrency.REGULAR, concurrency.PREVENTION))
 	c.CreateTable("columns_catalog", catalog.ColumnsCatalogSchema())
 
 	columnA := table.NewColumn("a", types.Integer)
@@ -187,7 +189,7 @@ func TestSimpleInsertAndLimitExecution(t *testing.T) {
 	bpm := buffer.NewBufferPoolManager(uint32(32), diskManager) //, recovery.NewLogManager(diskManager), concurrency.NewLockManager(concurrency.REGULAR, concurrency.PREVENTION))
 
 	//c := catalog.BootstrapCatalog(bpm)
-	c := catalog.GetCatalog(bpm)
+	c := catalog.GetCatalog(bpm, recovery.NewLogManager(&diskManager), concurrency.NewLockManager(concurrency.REGULAR, concurrency.PREVENTION))
 	c.CreateTable("columns_catalog", catalog.ColumnsCatalogSchema())
 
 	columnA := table.NewColumn("a", types.Integer)
