@@ -8,6 +8,7 @@ import (
 
 	"github.com/ryogrid/SamehadaDB/common"
 	"github.com/ryogrid/SamehadaDB/errors"
+	"github.com/ryogrid/SamehadaDB/recovery"
 	"github.com/ryogrid/SamehadaDB/storage/page"
 	"github.com/ryogrid/SamehadaDB/types"
 )
@@ -41,6 +42,9 @@ const ErrNoFreeSlot = errors.Error("could not find a free slot")
 type TablePage struct {
 	page.Page
 }
+
+// TODO: (SDB) not ported methods exist at TablePage.
+//             And additional loggings are needed when implement the methods
 
 // CastPageAsTablePage casts the abstract Page struct into TablePage
 func CastPageAsTablePage(page *page.Page) *TablePage {
@@ -82,11 +86,30 @@ func (tp *TablePage) InsertTuple(tuple *Tuple) (*page.RID, error) {
 		tp.SetTupleCount(tp.GetTupleCount() + 1)
 	}
 
+	// Write the log record.
+	if common.EnableLogging {
+		// BUSTUB_ASSERT(!txn->IsSharedLocked(*rid) && !txn->IsExclusiveLocked(*rid), "A new tuple should not be locked.");
+		// Acquire an exclusive lock on the new tuple.
+		// bool locked = lock_manager->Exclusive(txn, *rid);
+		locked := lock_manager.LockExclusive(txn, rid)
+		//BUSTUB_ASSERT(locked, "Locking a new tuple should always work.");
+		log_record := recovery.NewLogRecordInsertDelete(txn.GetTransactionId(), txn.GetPrevLSN(), INSERT, rid, tuple)
+		lsn := log_manager.AppendLogRecord(log_record)
+		SetLSN(lsn);
+		txn->SetPrevLSN(lsn);
+	}
 	return rid, nil
 }
 
 // Init initializes the table header
 func (tp *TablePage) Init(pageId types.PageID, prevPageId types.PageID) {
+  	// Log that we are creating a new page.
+	if (enable_logging) {
+		LogRecord log_record = LogRecord(txn->GetTransactionId(), txn->GetPrevLSN(), LogRecordType::NEWPAGE, prev_page_id);
+		lsn_t lsn = log_manager->AppendLogRecord(&log_record);
+		SetLSN(lsn);
+		txn->SetPrevLSN(lsn);
+	}
 	tp.SetPageId(pageId)
 	tp.SetPrevPageId(prevPageId)
 	tp.SetNextPageId(types.InvalidPageID)
@@ -150,9 +173,32 @@ func (tp *TablePage) GetFreeSpacePointer() uint32 {
 }
 
 func (tp *TablePage) GetTuple(rid *page.RID) *Tuple {
+	// If somehow we have more slots than tuples, abort the transaction.
+	if (rid.GetSlotNum() >= GetTupleCount()) {
+		if (enable_logging) {
+		txn->SetState(TransactionState::ABORTED);
+		}
+		return false;
+	}
+
 	slot := rid.GetSlot()
 	tupleOffset := tp.GetTupleOffsetAtSlot(slot)
 	tupleSize := tp.GetTupleSize(slot)
+
+	// // If the tuple is deleted, abort the transaction.
+	// if (IsDeleted(tuple_size)) {
+	// 	if (enable_logging) {
+	// 	txn->SetState(TransactionState::ABORTED);
+	// 	}
+	// 	return false;
+	// }	
+
+	// Otherwise we have a valid tuple, try to acquire at least a shared lock.
+	if (enable_logging) {
+		if (!txn->IsSharedLocked(rid) && !txn->IsExclusiveLocked(rid) && !lock_manager->LockShared(txn, rid)) {
+			return false;
+		}
+	}
 
 	tupleData := make([]byte, tupleSize)
 	copy(tupleData, tp.Data()[tupleOffset:])

@@ -13,15 +13,15 @@ import (
 type LogManager struct {
 	// TODO(students): you may add your own member variables
 
-	// TODO: (SDB) need ensure atomicity
+	// TODO: (SDB) must ensure atomicity
 	offset uint32
-	// TODO: (SDB) need ensure atomicity
+	// TODO: (SDB) must ensure atomicity
 	log_buffer_lsn types.LSN
 	/** The atomic counter which records the next log sequence number. */
-	// TODO: (SDB) need ensure atomicity
+	// TODO: (SDB) must ensure atomicity
 	next_lsn types.LSN
 	/** The log records before and including the persistent lsn have been written to disk. */
-	// TODO: (SDB) need ensure atomicity
+	// TODO: (SDB) must ensure atomicity
 	persistent_lsn types.LSN
 	log_buffer     []byte
 	flush_buffer   []byte
@@ -48,7 +48,7 @@ func (log_manager *LogManager) SetPersistentLSN(lsn types.LSN) { log_manager.per
 func (log_manager *LogManager) GetLogBuffer() []byte           { return log_manager.log_buffer }
 
 func (log_manager *LogManager) Flush() {
-	//TODO: (SDB) not imported yet
+	//TODO: (SDB) not ported yet
 	/*
 		//unique_lock lock(log_manager.latch)
 		log_manager.latch.WLock()
