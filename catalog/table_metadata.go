@@ -4,14 +4,14 @@
 package catalog
 
 import (
-	"github.com/ryogrid/SamehadaDB/interfaces"
+	"github.com/ryogrid/SamehadaDB/storage/access"
 	"github.com/ryogrid/SamehadaDB/storage/table"
 )
 
 type TableMetadata struct {
 	schema *table.Schema
 	name   string
-	table  *interfaces.ITableHeap
+	table  *access.TableHeap
 	oid    uint32
 }
 
@@ -23,6 +23,6 @@ func (t *TableMetadata) OID() uint32 {
 	return t.oid
 }
 
-func (t *TableMetadata) Table() *interfaces.ITableHeap {
+func (t *TableMetadata) Table() *access.TableHeap {
 	return t.table
 }

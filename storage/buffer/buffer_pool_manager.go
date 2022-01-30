@@ -19,8 +19,6 @@ type BufferPoolManager struct {
 	replacer    *ClockReplacer
 	freeList    []FrameID
 	pageTable   map[types.PageID]FrameID
-	// Log_manager  *recovery.LogManager
-	// Lock_manager *concurrency.LockManager
 	//TODO: (SDB) need to use latch at BufferPoolManager
 }
 

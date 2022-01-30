@@ -71,8 +71,8 @@ type LogRecord struct {
 
 	// case3: for update opeartion
 	update_rid *page.RID
-	old_tuple  *interfaces.ITuple
-	new_tuple  *interfaces.ITuple
+	old_tuple  interfaces.ITuple
+	new_tuple  interfaces.ITuple
 
 	// case4: for new page opeartion
 	prev_page_id types.PageID //INVALID_PAGE_ID
@@ -115,7 +115,7 @@ func NewLogRecordInsertDelete(txn_id types.TxnID, prev_lsn types.LSN, log_record
 
 // constructor for UPDATE type
 func NewLogRecordUpdate(txn_id types.TxnID, prev_lsn types.LSN, log_record_type LogRecordType, update_rid *page.RID,
-	old_tuple *interfaces.ITuple, new_tuple *interfaces.ITuple) *LogRecord {
+	old_tuple interfaces.ITuple, new_tuple interfaces.ITuple) *LogRecord {
 	ret := new(LogRecord)
 	ret.txn_id = txn_id
 	ret.prev_lsn = prev_lsn

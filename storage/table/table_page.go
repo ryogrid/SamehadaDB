@@ -56,7 +56,7 @@ func CastPageAsTablePage(page *page.Page) *TablePage {
 }
 
 // Inserts a tuple into the table
-func (tp *TablePage) InsertTuple(tuple *Tuple) { //, log_manager *recovery.LogManager, lock_manager *concurrency.LockManager) (*page.RID, error) {
+func (tp *TablePage) InsertTuple(tuple *Tuple, log_manager *recovery.LogManager, lock_manager *concurrency.LockManager) (*page.RID, error) {
 	if tuple.Size() == 0 {
 		return nil, ErrEmptyTuple
 	}

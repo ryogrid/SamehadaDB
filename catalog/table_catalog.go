@@ -4,7 +4,8 @@
 package catalog
 
 import (
-	"github.com/ryogrid/SamehadaDB/interfaces"
+	"github.com/ryogrid/SamehadaDB/concurrency"
+	"github.com/ryogrid/SamehadaDB/recovery"
 	"github.com/ryogrid/SamehadaDB/storage/access"
 	"github.com/ryogrid/SamehadaDB/storage/buffer"
 	"github.com/ryogrid/SamehadaDB/storage/table"
@@ -24,11 +25,13 @@ const ColumnsCatalogOID = 0
 // Catalog is a non-persistent catalog that is designed for the executor to use.
 // It handles table creation and table lookup
 type Catalog struct {
-	bpm         *buffer.BufferPoolManager
-	tableIds    map[uint32]*TableMetadata
-	tableNames  map[string]*TableMetadata
-	nextTableId uint32
-	*interfaces.ITableHeap
+	bpm          *buffer.BufferPoolManager
+	tableIds     map[uint32]*TableMetadata
+	tableNames   map[string]*TableMetadata
+	nextTableId  uint32
+	tableHeap    *access.TableHeap
+	Log_manager  *recovery.LogManager
+	Lock_manager *concurrency.LockManager
 }
 
 // // BootstrapCatalog bootstrap the systems' catalogs on the first database initialization
@@ -40,7 +43,7 @@ type Catalog struct {
 // }
 
 // GetCatalog get all information about tables and columns from disk and put it on memory
-func GetCatalog(bpm *buffer.BufferPoolManager) *Catalog {
+func GetCatalog(bpm *buffer.BufferPoolManager, log_manager *recovery.LogManager, lock_manager *concurrency.LockManager) *Catalog {
 	tableCatalogHeapIt := access.InitTableHeap(bpm, TableCatalogPageId).Iterator()
 
 	tableIds := make(map[uint32]*TableMetadata)
@@ -77,7 +80,7 @@ func GetCatalog(bpm *buffer.BufferPoolManager) *Catalog {
 		tableNames[name] = tableMetadata
 	}
 
-	return &Catalog{bpm, tableIds, tableNames, 1, access.InitTableHeap(bpm, 0)}
+	return &Catalog{bpm, tableIds, tableNames, 1, access.InitTableHeap(bpm, 0), log_manager, lock_manager}
 
 }
 
