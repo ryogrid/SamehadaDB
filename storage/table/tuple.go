@@ -4,6 +4,8 @@
 package table
 
 import (
+	"unsafe"
+
 	"github.com/ryogrid/SamehadaDB/interfaces"
 	"github.com/ryogrid/SamehadaDB/storage/page"
 	"github.com/ryogrid/SamehadaDB/types"
@@ -31,10 +33,10 @@ func NewTupleFromSchema(values []types.Value, schema *Schema) *Tuple {
 	// serialize each attribute base on the input value
 	tupleEndOffset := schema.Length()
 	for i := uint32(0); i < schema.GetColumnCount(); i++ {
-		if schema.GetColumn(i).IsInlined() {
-			tuple.Copy(schema.GetColumn(i).GetOffset(), values[i].Serialize())
+		if (*(schema.GetColumn(i))).IsInlined() {
+			tuple.Copy((*(schema.GetColumn(i))).GetOffset(), values[i].Serialize())
 		} else {
-			tuple.Copy(schema.GetColumn(i).GetOffset(), types.UInt32(tupleEndOffset).Serialize())
+			tuple.Copy((*(schema.GetColumn(i))).GetOffset(), types.UInt32(tupleEndOffset).Serialize())
 			tuple.Copy(tupleEndOffset, values[i].Serialize())
 			tupleEndOffset += values[i].Size()
 		}
@@ -42,11 +44,12 @@ func NewTupleFromSchema(values []types.Value, schema *Schema) *Tuple {
 	return tuple
 }
 
-func (t *Tuple) GetValue(schema *interfaces.ISchema, colIndex uint32) types.Value {
-	column := schema.GetColumn(colIndex)
+func (t *Tuple) GetValue(schema interfaces.ISchema, colIndex uint32) types.Value {
+	column := *(schema.GetColumn(colIndex))
 	offset := column.GetOffset()
+	castedColumn := (*Column)(unsafe.Pointer(&column))
 	if !column.IsInlined() {
-		offset = uint32(types.NewUInt32FromBytes(t.data[offset : offset+column.fixedLength]))
+		offset = uint32(types.NewUInt32FromBytes(t.data[offset : offset+castedColumn.fixedLength]))
 	}
 
 	value := types.NewValueFromBytes(t.data[offset:], column.GetType())

@@ -1,7 +1,7 @@
 package interfaces
 
 type ISchema interface {
-	NewSchema(columns []*IColumn) *ISchema
+	GetColumn(colIndex uint32) *IColumn
 	GetUnlinedColumns() []uint32
 	GetColumnCount() uint32
 	Length() uint32
