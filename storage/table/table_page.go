@@ -56,7 +56,7 @@ func CastPageAsTablePage(page *page.Page) *TablePage {
 }
 
 // Inserts a tuple into the table
-func (tp *TablePage) InsertTuple(tuple *Tuple, log_manager *recovery.LogManager, lock_manager *concurrency.LockManager) (*page.RID, error) {
+func (tp *TablePage) InsertTuple(tuple *Tuple) { //, log_manager *recovery.LogManager, lock_manager *concurrency.LockManager) (*page.RID, error) {
 	if tuple.Size() == 0 {
 		return nil, ErrEmptyTuple
 	}
@@ -187,6 +187,7 @@ func (tp *TablePage) GetTuple(rid *page.RID, log_manager *recovery.LogManager, l
 	tupleOffset := tp.GetTupleOffsetAtSlot(slot)
 	tupleSize := tp.GetTupleSize(slot)
 
+	// TODO: (SDB) need implement
 	// // If the tuple is deleted, abort the transaction.
 	// if (IsDeleted(tuple_size)) {
 	// 	if (enable_logging) {

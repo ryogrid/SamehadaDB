@@ -4,8 +4,6 @@
 package access
 
 import (
-	"github.com/ryogrid/SamehadaDB/concurrency"
-	"github.com/ryogrid/SamehadaDB/recovery"
 	"github.com/ryogrid/SamehadaDB/storage/buffer"
 	"github.com/ryogrid/SamehadaDB/storage/page"
 	"github.com/ryogrid/SamehadaDB/storage/table"
@@ -15,19 +13,19 @@ import (
 // TableHeap represents a physical table on disk.
 // It contains the id of the first table table. The table page is a doubly-linked to other table pages.
 type TableHeap struct {
-	bpm          *buffer.BufferPoolManager
-	firstPageId  types.PageID
-	log_manager  *recovery.LogManager
-	lock_manager *concurrency.LockManager
+	bpm         *buffer.BufferPoolManager
+	firstPageId types.PageID
+	// log_manager  *recovery.LogManager
+	// lock_manager *concurrency.LockManager
 }
 
 // NewTableHeap creates a table heap without a transaction. (open table)
 func NewTableHeap(bpm *buffer.BufferPoolManager) *TableHeap {
 	p := bpm.NewPage()
 	firstPage := table.CastPageAsTablePage(p)
-	firstPage.Init(p.ID(), types.InvalidPageID, bpm.Log_manager, bpm.Lock_manager)
+	firstPage.Init(p.ID(), types.InvalidPageID) //, bpm.Log_manager, bpm.Lock_manager)
 	bpm.UnpinPage(p.ID(), true)
-	return &TableHeap{bpm, p.ID(), bpm.Log_manager, bpm.Lock_manager}
+	return &TableHeap{bpm, p.ID())//, bpm.Log_manager, bpm.Lock_manager}
 }
 
 // InitTableHeap ...
