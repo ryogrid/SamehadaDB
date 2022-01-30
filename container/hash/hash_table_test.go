@@ -6,8 +6,6 @@ package hash
 import (
 	"testing"
 
-	"github.com/ryogrid/SamehadaDB/concurrency"
-	"github.com/ryogrid/SamehadaDB/recovery"
 	"github.com/ryogrid/SamehadaDB/storage/buffer"
 	"github.com/ryogrid/SamehadaDB/storage/disk"
 	testingpkg "github.com/ryogrid/SamehadaDB/testing"
@@ -16,7 +14,7 @@ import (
 func TestHashTable(t *testing.T) {
 	diskManager := disk.NewDiskManagerTest()
 	defer diskManager.ShutDown()
-	bpm := buffer.NewBufferPoolManager(10, diskManager, recovery.NewLogManager(&diskManager), concurrency.NewLockManager(concurrency.REGULAR, concurrency.PREVENTION))
+	bpm := buffer.NewBufferPoolManager(uint32(10), diskManager)
 
 	ht := NewHashTable(bpm, 1000)
 

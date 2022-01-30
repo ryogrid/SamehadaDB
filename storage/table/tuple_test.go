@@ -29,11 +29,11 @@ func TestTuple(t *testing.T) {
 	row = append(row, types.NewVarchar(expE))
 	tuple := NewTupleFromSchema(row, schema)
 
-	testingpkg.Equals(t, expA, tuple.GetValue(schema, 0).ToInteger())
-	testingpkg.Equals(t, expB, tuple.GetValue(schema, 1).ToVarchar())
-	testingpkg.Equals(t, expC, tuple.GetValue(schema, 2).ToInteger())
-	testingpkg.Equals(t, expD, tuple.GetValue(schema, 3).ToVarchar())
-	testingpkg.Equals(t, expE, tuple.GetValue(schema, 4).ToVarchar())
+	testingpkg.Equals(t, expA, tuple.GetValue(*schema, 0).ToInteger())
+	testingpkg.Equals(t, expB, tuple.GetValue(*schema, 1).ToVarchar())
+	testingpkg.Equals(t, expC, tuple.GetValue(*schema, 2).ToInteger())
+	testingpkg.Equals(t, expD, tuple.GetValue(*schema, 3).ToVarchar())
+	testingpkg.Equals(t, expE, tuple.GetValue(*schema, 4).ToVarchar())
 
 	testingpkg.Equals(t, uint32(96), tuple.Size())
 }

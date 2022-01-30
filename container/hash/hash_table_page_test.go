@@ -8,8 +8,6 @@ import (
 	"testing"
 	"unsafe"
 
-	"github.com/ryogrid/SamehadaDB/concurrency"
-	"github.com/ryogrid/SamehadaDB/recovery"
 	"github.com/ryogrid/SamehadaDB/storage/buffer"
 	"github.com/ryogrid/SamehadaDB/storage/disk"
 	"github.com/ryogrid/SamehadaDB/storage/page"
@@ -19,7 +17,7 @@ import (
 func TestHashTableHeaderPage(t *testing.T) {
 	diskManager := disk.NewDiskManagerImpl("test.db")
 	//bpm := buffer.NewBufferPoolManager(diskManager, buffer.NewClockReplacer(5))
-	bpm := buffer.NewBufferPoolManager(10, diskManager, recovery.NewLogManager(&diskManager), concurrency.NewLockManager(concurrency.REGULAR, concurrency.PREVENTION))
+	bpm := buffer.NewBufferPoolManager(uint32(10), diskManager)
 
 	newPage := bpm.NewPage()
 	newPageData := newPage.Data()
