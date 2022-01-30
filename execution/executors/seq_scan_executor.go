@@ -7,7 +7,7 @@ import (
 	"github.com/ryogrid/SamehadaDB/catalog"
 	"github.com/ryogrid/SamehadaDB/execution/expression"
 	"github.com/ryogrid/SamehadaDB/execution/plans"
-	"github.com/ryogrid/SamehadaDB/storage/access"
+	"github.com/ryogrid/SamehadaDB/interfaces"
 	"github.com/ryogrid/SamehadaDB/storage/table"
 	"github.com/ryogrid/SamehadaDB/types"
 )
@@ -17,7 +17,7 @@ type SeqScanExecutor struct {
 	context       *ExecutorContext
 	plan          *plans.SeqScanPlanNode
 	tableMetadata *catalog.TableMetadata
-	it            *access.TableHeapIterator
+	it            *interfaces.ITableHeapIterator
 }
 
 // NewSeqScanExecutor creates a new sequential executor

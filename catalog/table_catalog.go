@@ -4,6 +4,7 @@
 package catalog
 
 import (
+	"github.com/ryogrid/SamehadaDB/interfaces"
 	"github.com/ryogrid/SamehadaDB/storage/access"
 	"github.com/ryogrid/SamehadaDB/storage/buffer"
 	"github.com/ryogrid/SamehadaDB/storage/table"
@@ -27,16 +28,16 @@ type Catalog struct {
 	tableIds    map[uint32]*TableMetadata
 	tableNames  map[string]*TableMetadata
 	nextTableId uint32
-	*access.TableHeap
+	*interfaces.ITableHeap
 }
 
-// BootstrapCatalog bootstrap the systems' catalogs on the first database initialization
-func BootstrapCatalog(bpm *buffer.BufferPoolManager) *Catalog {
-	tableCatalogHeap := access.NewTableHeap(bpm)
-	tableCatalog := &Catalog{bpm, make(map[uint32]*TableMetadata), make(map[string]*TableMetadata), 0, tableCatalogHeap}
-	tableCatalog.CreateTable("columns_catalog", ColumnsCatalogSchema())
-	return tableCatalog
-}
+// // BootstrapCatalog bootstrap the systems' catalogs on the first database initialization
+// func BootstrapCatalog(bpm *buffer.BufferPoolManager) *Catalog {
+// 	tableCatalogHeap := access.NewTableHeap(bpm)
+// 	tableCatalog := &Catalog{bpm, make(map[uint32]*TableMetadata), make(map[string]*TableMetadata), 0, tableCatalogHeap}
+// 	tableCatalog.CreateTable("columns_catalog", ColumnsCatalogSchema())
+// 	return tableCatalog
+// }
 
 // GetCatalog get all information about tables and columns from disk and put it on memory
 func GetCatalog(bpm *buffer.BufferPoolManager) *Catalog {
