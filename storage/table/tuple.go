@@ -4,6 +4,7 @@
 package table
 
 import (
+	"github.com/ryogrid/SamehadaDB/interfaces"
 	"github.com/ryogrid/SamehadaDB/storage/page"
 	"github.com/ryogrid/SamehadaDB/types"
 )
@@ -41,7 +42,7 @@ func NewTupleFromSchema(values []types.Value, schema *Schema) *Tuple {
 	return tuple
 }
 
-func (t *Tuple) GetValue(schema *Schema, colIndex uint32) types.Value {
+func (t *Tuple) GetValue(schema *interfaces.ISchema, colIndex uint32) types.Value {
 	column := schema.GetColumn(colIndex)
 	offset := column.GetOffset()
 	if !column.IsInlined() {
