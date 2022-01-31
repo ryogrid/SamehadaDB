@@ -23,6 +23,8 @@ type SeqScanExecutor struct {
 // NewSeqScanExecutor creates a new sequential executor
 func NewSeqScanExecutor(context *ExecutorContext, plan *plans.SeqScanPlanNode) Executor {
 	tableMetadata := context.GetCatalog().GetTableByOID(plan.GetTableOID())
+	// TODO: (SDB) set LockManager and LogManager to Executor and TableHeap.
+	//             reference can be get from Catalog class.
 	return &SeqScanExecutor{context, plan, tableMetadata, nil}
 }
 

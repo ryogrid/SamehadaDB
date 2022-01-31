@@ -5,6 +5,8 @@ import (
 	"github.com/ryogrid/SamehadaDB/storage/buffer"
 )
 
+// TODO: (SDB) use CheckpointManager class ....
+//             (c++ implementation does not use also...)
 /**
  * CheckpointManager creates consistent checkpoints by blocking all other transactions temporarily.
  */
