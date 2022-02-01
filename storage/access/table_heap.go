@@ -22,17 +22,17 @@ type TableHeap struct {
 }
 
 // NewTableHeap creates a table heap without a transaction. (open table)
-func NewTableHeap(bpm *buffer.BufferPoolManager) *TableHeap {
+func NewTableHeap(bpm *buffer.BufferPoolManager, log_manager *recovery.LogManager, lock_manager *concurrency.LockManager) *TableHeap {
 	p := bpm.NewPage()
 	firstPage := table.CastPageAsTablePage(p)
-	firstPage.Init(p.ID(), types.InvalidPageID, bpm.Log_manager, bpm.Lock_manager)
+	firstPage.Init(p.ID(), types.InvalidPageID, log_manager, lock_manager)
 	bpm.UnpinPage(p.ID(), true)
-	return &TableHeap{bpm, p.ID(), bpm.Log_manager, bpm.Lock_manager}
+	return &TableHeap{bpm, p.ID(), log_manager, lock_manager}
 }
 
 // InitTableHeap ...
-func InitTableHeap(bpm *buffer.BufferPoolManager, pageId types.PageID) *TableHeap {
-	return &TableHeap{bpm, pageId, bpm.Log_manager, bpm.Lock_manager}
+func InitTableHeap(bpm *buffer.BufferPoolManager, pageId types.PageID, log_manager *recovery.LogManager, lock_manager *concurrency.LockManager) *TableHeap {
+	return &TableHeap{bpm, pageId, log_manager, lock_manager}
 }
 
 // GetFirstPageId returns firstPageId

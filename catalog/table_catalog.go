@@ -44,7 +44,7 @@ type Catalog struct {
 
 // GetCatalog get all information about tables and columns from disk and put it on memory
 func GetCatalog(bpm *buffer.BufferPoolManager, log_manager *recovery.LogManager, lock_manager *concurrency.LockManager) *Catalog {
-	tableCatalogHeapIt := access.InitTableHeap(bpm, TableCatalogPageId).Iterator()
+	tableCatalogHeapIt := access.InitTableHeap(bpm, TableCatalogPageId, log_manager, lock_manager).Iterator()
 
 	tableIds := make(map[uint32]*TableMetadata)
 	tableNames := make(map[string]*TableMetadata)
@@ -55,7 +55,7 @@ func GetCatalog(bpm *buffer.BufferPoolManager, log_manager *recovery.LogManager,
 		firstPage := tuple.GetValue(TableCatalogSchema(), TableCatalogSchema().GetColIndex("first_page")).ToInteger()
 
 		columns := []*table.Column{}
-		columnsCatalogHeapIt := access.InitTableHeap(bpm, ColumnsCatalogPageId).Iterator()
+		columnsCatalogHeapIt := access.InitTableHeap(bpm, ColumnsCatalogPageId, log_manager, lock_manager).Iterator()
 		for tuple := columnsCatalogHeapIt.Current(); !columnsCatalogHeapIt.End(); tuple = columnsCatalogHeapIt.Next() {
 			tableOid := tuple.GetValue(ColumnsCatalogSchema(), ColumnsCatalogSchema().GetColIndex("table_oid")).ToInteger()
 			if tableOid != oid {
@@ -73,14 +73,14 @@ func GetCatalog(bpm *buffer.BufferPoolManager, log_manager *recovery.LogManager,
 		tableMetadata := &TableMetadata{
 			table.NewSchema(columns),
 			name,
-			access.InitTableHeap(bpm, types.PageID(firstPage)),
+			access.InitTableHeap(bpm, types.PageID(firstPage), log_manager, lock_manager),
 			uint32(oid)}
 
 		tableIds[uint32(oid)] = tableMetadata
 		tableNames[name] = tableMetadata
 	}
 
-	return &Catalog{bpm, tableIds, tableNames, 1, access.InitTableHeap(bpm, 0), log_manager, lock_manager}
+	return &Catalog{bpm, tableIds, tableNames, 1, access.InitTableHeap(bpm, 0, log_manager, lock_manager), log_manager, lock_manager}
 
 }
 
@@ -103,7 +103,7 @@ func (c *Catalog) CreateTable(name string, schema *table.Schema) *TableMetadata 
 	oid := c.nextTableId
 	c.nextTableId++
 
-	tableHeap := access.NewTableHeap(c.bpm)
+	tableHeap := access.NewTableHeap(c.bpm, c.Log_manager, c.Lock_manager)
 	tableMetadata := &TableMetadata{schema, name, tableHeap, oid}
 
 	c.tableIds[oid] = tableMetadata
