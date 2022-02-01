@@ -7,7 +7,8 @@ import (
 
 type ITuple interface {
 	// NewTupleFromSchema creates a new tuple based on input value
-	GetValue(schema ISchema, colIndex uint32) types.Value
+	//GetValue(schema ISchema, colIndex uint32) types.Value
+	GetValue(schema interface{}, colIndex uint32) types.Value
 	Size() uint32
 	Data() []byte
 	GetRID() *page.RID

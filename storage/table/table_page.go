@@ -92,9 +92,9 @@ func (tp *TablePage) InsertTuple(tuple *Tuple, log_manager *recovery.LogManager,
 		// BUSTUB_ASSERT(!txn->IsSharedLocked(*rid) && !txn->IsExclusiveLocked(*rid), "A new tuple should not be locked.");
 		// Acquire an exclusive lock on the new tuple.
 		// bool locked = lock_manager->Exclusive(txn, *rid);
-		locked := lock_manager.LockExclusive(txn, rid)
+		locked := concurrency.LockExclusive(txn, rid)
 		//BUSTUB_ASSERT(locked, "Locking a new tuple should always work.");
-		log_record := recovery.NewLogRecordInsertDelete(txn.GetTransactionId(), txn.GetPrevLSN(), INSERT, rid, tuple)
+		log_record := recovery.NewLogRecordInsertDelete(txn.GetTransactionId(), txn.GetPrevLSN(), recovery.INSERT, rid, tuple)
 		lsn := log_manager.AppendLogRecord(log_record)
 		tp.Page.SetLSN(lsn)
 		txn.SetPrevLSN(lsn)
@@ -106,7 +106,7 @@ func (tp *TablePage) InsertTuple(tuple *Tuple, log_manager *recovery.LogManager,
 func (tp *TablePage) Init(pageId types.PageID, prevPageId types.PageID, log_manager *recovery.LogManager, lock_manager *concurrency.LockManager) {
 	// Log that we are creating a new page.
 	if common.EnableLogging {
-		log_record := recovery.NewLogRecordInsertDelete(txn.GetTransactionId(), txn.GetPrevLSN(), recovery.NEWPAGE, prev_page_id)
+		log_record := recovery.NewLogRecordNewPage(txn.GetTransactionId(), txn.GetPrevLSN(), recovery.NEWPAGE, prevPageId)
 		lsn := log_manager.AppendLogRecord(log_record)
 		tp.Page.SetLSN(lsn)
 		txn.SetPrevLSN(lsn)
@@ -175,7 +175,7 @@ func (tp *TablePage) GetFreeSpacePointer() uint32 {
 
 func (tp *TablePage) GetTuple(rid *page.RID, log_manager *recovery.LogManager, lock_manager *concurrency.LockManager) *Tuple {
 	// If somehow we have more slots than tuples, abort the transaction.
-	if rid.GetSlotNum() >= tp.GetTupleCount() {
+	if rid.GetSlot() >= tp.GetTupleCount() {
 		if common.EnableLogging {
 			txn.SetState(concurrency.ABORTED)
 		}
@@ -198,8 +198,10 @@ func (tp *TablePage) GetTuple(rid *page.RID, log_manager *recovery.LogManager, l
 
 	// Otherwise we have a valid tuple, try to acquire at least a shared lock.
 	if common.EnableLogging {
-		if !txn.IsSharedLocked(rid) && !txn.IsExclusiveLocked(rid) && !lock_manager.LockShared(txn, rid) {
-			return false
+		if !txn.IsSharedLocked(rid) && !txn.IsExclusiveLocked(rid) && !concurrency.LockShared(txn, rid) {
+			//return false
+			// TODO: (SDB) need care of being returned nil
+			return nil
 		}
 	}
 
