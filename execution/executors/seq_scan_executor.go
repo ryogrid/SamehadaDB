@@ -5,10 +5,8 @@ package executors
 
 import (
 	"github.com/ryogrid/SamehadaDB/catalog"
-	"github.com/ryogrid/SamehadaDB/concurrency"
 	"github.com/ryogrid/SamehadaDB/execution/expression"
 	"github.com/ryogrid/SamehadaDB/execution/plans"
-	"github.com/ryogrid/SamehadaDB/recovery"
 	"github.com/ryogrid/SamehadaDB/storage/access"
 	"github.com/ryogrid/SamehadaDB/storage/table"
 	"github.com/ryogrid/SamehadaDB/types"
@@ -20,16 +18,14 @@ type SeqScanExecutor struct {
 	plan          *plans.SeqScanPlanNode
 	tableMetadata *catalog.TableMetadata
 	it            *access.TableHeapIterator
-	lock_manager  *concurrency.LockManager
-	log_manager   *recovery.LogManager
 }
 
 // NewSeqScanExecutor creates a new sequential executor
 func NewSeqScanExecutor(context *ExecutorContext, plan *plans.SeqScanPlanNode) Executor {
 	tableMetadata := context.GetCatalog().GetTableByOID(plan.GetTableOID())
-	catalog := context.GetCatalog()
+	//catalog := context.GetCatalog()
 
-	return &SeqScanExecutor{context, plan, tableMetadata, nil, catalog.Lock_manager, catalog.Log_manager}
+	return &SeqScanExecutor{context, plan, tableMetadata, nil}
 }
 
 func (e *SeqScanExecutor) Init() {

@@ -17,6 +17,7 @@ import (
  *
  **/
 
+/*
 type TransactionState int32
 
 const (
@@ -25,6 +26,7 @@ const (
 	COMMITTED
 	ABORTED
 )
+*/
 
 /**
  * Type of write operation.
@@ -60,7 +62,7 @@ func NewWriteRecord(rid page.RID, wtype WType, tuple *interfaces.ITuple, table *
 
 type Transaction struct {
 	/** The current transaction state. */
-	state TransactionState
+	state interfaces.TransactionState
 
 	// /** The thread ID, used in single-threaded transactions. */
 	// thread_id ThreadID
@@ -87,7 +89,7 @@ type Transaction struct {
 
 func NewTransaction(txn_id types.TxnID) *Transaction {
 	return &Transaction{
-		GROWING,
+		interfaces.GROWING,
 		// std::this_thread::get_id(),
 		txn_id,
 		// deque<WriteRecord>
@@ -132,20 +134,26 @@ func (txn *Transaction) GetTransactionId() types.TxnID { return txn.txn_id }
 // /** @return the set of resources under an exclusive lock */
 // func (txn *Transaction) GetExclusiveLockSet() unordered_set<RID> { return txn.exclusive_lock_set }
 
-// /** @return true if rid is shared locked by this transaction */
-// func (txn *Transaction) IsSharedLocked(rid *RID ) { return txn.shared_lock_set.find(rid) != txn.shared_lock_set.end() }
+// TODO: (SDB) not ported yet
+/** @return true if rid is shared locked by this transaction */
+func (txn *Transaction) IsSharedLocked(rid *page.RID) bool {
+	return false /*txn.shared_lock_set.find(rid) != txn.shared_lock_set.end()*/
+}
 
-// /** @return true if rid is exclusively locked by this transaction */
-// func (txn *Transaction) IsExclusiveLocked(rid *RID) bool { return txn.exclusive_lock_set.find(rid) != txn.exclusive_lock_set.end() }
+// TODO: (SDB) not ported yet
+/** @return true if rid is exclusively locked by this transaction */
+func (txn *Transaction) IsExclusiveLocked(rid *page.RID) bool {
+	return false /*txn.exclusive_lock_set.find(rid) != txn.exclusive_lock_set.end()*/
+}
 
 /** @return the current state of the transaction */
-func (txn *Transaction) GetState() TransactionState { return txn.state }
+func (txn *Transaction) GetState() interfaces.TransactionState { return txn.state }
 
 /**
 * Set the state of the transaction.
 * @param state new state
  */
-func (txn *Transaction) SetState(state TransactionState) { txn.state = state }
+func (txn *Transaction) SetState(state interfaces.TransactionState) { txn.state = state }
 
 /** @return the previous LSN */
 func (txn *Transaction) GetPrevLSN() types.LSN { return txn.prev_lsn }

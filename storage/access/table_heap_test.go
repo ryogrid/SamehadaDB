@@ -6,6 +6,8 @@ package access
 import (
 	"testing"
 
+	"github.com/ryogrid/SamehadaDB/concurrency"
+	"github.com/ryogrid/SamehadaDB/recovery"
 	"github.com/ryogrid/SamehadaDB/storage/buffer"
 	"github.com/ryogrid/SamehadaDB/storage/disk"
 	"github.com/ryogrid/SamehadaDB/storage/page"
@@ -18,8 +20,11 @@ func TestTableHeap(t *testing.T) {
 	dm := disk.NewDiskManagerTest()
 	defer dm.ShutDown()
 	bpm := buffer.NewBufferPoolManager(10, dm)
+	log_manager := recovery.NewLogManager(&dm)
+	lock_manager := concurrency.NewLockManager(concurrency.REGULAR, concurrency.PREVENTION)
+	txn := concurrency.NewTransaction(types.TxnID(0))
 
-	th := NewTableHeap(bpm)
+	th := NewTableHeap(bpm, log_manager, lock_manager)
 
 	// this schema creates a tuple of size 8 bytes
 	// it means that a page can only contains 254 tuples of this schema
@@ -34,7 +39,7 @@ func TestTableHeap(t *testing.T) {
 		row = append(row, types.NewInteger(int32((i+1)*2)))
 
 		tuple := table.NewTupleFromSchema(row, schema)
-		_, err := th.InsertTuple(tuple)
+		_, err := th.InsertTuple(tuple, *txn)
 		testingpkg.Ok(t, err)
 	}
 

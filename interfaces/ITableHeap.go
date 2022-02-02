@@ -22,7 +22,7 @@ type ITableHeap interface {
 	// If the tuple is too large (>= page_size):
 	// 1. It tries to insert in the next page
 	// 2. If there is no next page, it creates a new page and insert in it
-	InsertTuple(tuple *ITuple) (rid *page.RID, err error)
+	InsertTuple(tuple *ITuple, txn *ITransaction) (rid *page.RID, err error)
 
 	// GetTuple reads a tuple from the table
 	GetTuple(rid *page.RID) *ITuple

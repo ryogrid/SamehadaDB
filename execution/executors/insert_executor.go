@@ -18,6 +18,8 @@ type InsertExecutor struct {
 
 func NewInsertExecutor(context *ExecutorContext, plan *plans.InsertPlanNode) Executor {
 	tableMetadata := context.GetCatalog().GetTableByOID(plan.GetTableOID())
+	//catalog := context.GetCatalog()
+
 	return &InsertExecutor{context, plan, tableMetadata}
 }
 
@@ -34,7 +36,7 @@ func (e *InsertExecutor) Next() (*table.Tuple, Done, error) {
 	for _, values := range e.plan.GetRawValues() {
 		tuple := table.NewTupleFromSchema(values, e.tableMetadata.Schema())
 		tableHeap := e.tableMetadata.Table()
-		_, err := tableHeap.InsertTuple(tuple)
+		_, err := tableHeap.InsertTuple(tuple, e.context.txn)
 		if err != nil {
 			return nil, true, err
 		}

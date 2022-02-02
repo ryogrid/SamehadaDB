@@ -2,6 +2,7 @@ package concurrency
 
 import (
 	"github.com/ryogrid/SamehadaDB/common"
+	"github.com/ryogrid/SamehadaDB/interfaces"
 	"github.com/ryogrid/SamehadaDB/recovery"
 	"github.com/ryogrid/SamehadaDB/types"
 )
@@ -38,7 +39,7 @@ func (transaction_manager *TransactionManager) Begin(txn *Transaction) *Transact
 }
 
 func (transaction_manager *TransactionManager) Commit(txn *Transaction) {
-	txn.SetState(COMMITTED)
+	txn.SetState(interfaces.COMMITTED)
 
 	// TODO: (SDB) need implement
 	/*
@@ -70,7 +71,7 @@ func (transaction_manager *TransactionManager) Commit(txn *Transaction) {
 }
 
 func (transaction_manager *TransactionManager) Abort(txn *Transaction) {
-	txn.SetState(ABORTED)
+	txn.SetState(interfaces.ABORTED)
 
 	// TODO: (SDB) need implement
 	/*
