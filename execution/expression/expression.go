@@ -4,10 +4,11 @@
 package expression
 
 import (
-	"github.com/ryogrid/SamehadaDB/storage/table"
+	"github.com/ryogrid/SamehadaDB/storage/table/schema"
+	"github.com/ryogrid/SamehadaDB/storage/tuple"
 	"github.com/ryogrid/SamehadaDB/types"
 )
 
 type Expression interface {
-	Evaluate(*table.Tuple, *table.Schema) types.Value
+	Evaluate(*tuple.Tuple, *schema.Schema) types.Value
 }

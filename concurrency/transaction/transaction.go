@@ -1,10 +1,11 @@
-package concurrency
+//package concurrency
+package transaction
 
 import (
 	"github.com/ryogrid/SamehadaDB/common"
 	"github.com/ryogrid/SamehadaDB/storage/access"
 	"github.com/ryogrid/SamehadaDB/storage/page"
-	"github.com/ryogrid/SamehadaDB/storage/table"
+	"github.com/ryogrid/SamehadaDB/storage/tuple"
 	"github.com/ryogrid/SamehadaDB/types"
 )
 
@@ -46,13 +47,13 @@ type WriteRecord struct {
 	wtype WType
 	/** The tuple is only used for the update operation. */
 	//tuple *interfaces.ITuple
-	tuple *table.Tuple
+	tuple *tuple.Tuple
 	/** The table heap specifies which table this write record is for. */
 	//table *interfaces.ITableHeap
 	table *access.TableHeap
 }
 
-func NewWriteRecord(rid page.RID, wtype WType, tuple *table.Tuple, table *access.TableHeap) *WriteRecord {
+func NewWriteRecord(rid page.RID, wtype WType, tuple *tuple.Tuple, table *access.TableHeap) *WriteRecord {
 	ret := new(WriteRecord)
 	ret.rid = rid
 	ret.wtype = wtype

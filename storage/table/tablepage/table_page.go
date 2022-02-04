@@ -1,7 +1,7 @@
 // this code is from https://github.com/brunocalza/go-bustub
 // there is license and copyright notice in licenses/go-bustub dir
 
-package table
+package tablepage
 
 import (
 	"fmt"
@@ -12,6 +12,7 @@ import (
 	"github.com/ryogrid/SamehadaDB/errors"
 	"github.com/ryogrid/SamehadaDB/recovery"
 	"github.com/ryogrid/SamehadaDB/storage/page"
+	"github.com/ryogrid/SamehadaDB/storage/tuple"
 	"github.com/ryogrid/SamehadaDB/types"
 )
 
@@ -57,7 +58,7 @@ func CastPageAsTablePage(page *page.Page) *TablePage {
 }
 
 // Inserts a tuple into the table
-func (tp *TablePage) InsertTuple(tuple *Tuple, log_manager *recovery.LogManager, lock_manager *concurrency.LockManager, txn concurrency.Transaction) (*page.RID, error) {
+func (tp *TablePage) InsertTuple(tuple *tuple.Tuple, log_manager *recovery.LogManager, lock_manager *concurrency.LockManager, txn concurrency.Transaction) (*page.RID, error) {
 	if tuple.Size() == 0 {
 		return nil, ErrEmptyTuple
 	}
@@ -142,9 +143,9 @@ func (tp *TablePage) SetTupleCount(tupleCount uint32) {
 	tp.Copy(offSetTupleCount, types.UInt32(tupleCount).Serialize())
 }
 
-func (tp *TablePage) setTuple(slot uint32, tuple *Tuple) {
+func (tp *TablePage) setTuple(slot uint32, tuple *tuple.Tuple) {
 	fsp := tp.GetFreeSpacePointer()
-	tp.Copy(fsp, tuple.data)                                                        // copy tuple to data starting at free space pointer
+	tp.Copy(fsp, tuple.Data())                                                      // copy tuple to data starting at free space pointer
 	tp.Copy(offsetTupleOffset+sizeTuple*slot, types.UInt32(fsp).Serialize())        // set tuple offset at slot
 	tp.Copy(offsetTupleSize+sizeTuple*slot, types.UInt32(tuple.Size()).Serialize()) // set tuple size at slot
 }
@@ -177,7 +178,7 @@ func (tp *TablePage) GetFreeSpacePointer() uint32 {
 	return uint32(types.NewUInt32FromBytes(tp.Data()[offsetFreeSpace:]))
 }
 
-func (tp *TablePage) GetTuple(rid *page.RID, log_manager *recovery.LogManager, lock_manager *concurrency.LockManager, txn concurrency.Transaction) *Tuple {
+func (tp *TablePage) GetTuple(rid *page.RID, log_manager *recovery.LogManager, lock_manager *concurrency.LockManager, txn concurrency.Transaction) *tuple.Tuple {
 	// If somehow we have more slots than tuples, abort the transaction.
 	if rid.GetSlot() >= tp.GetTupleCount() {
 		if common.EnableLogging {
@@ -215,7 +216,8 @@ func (tp *TablePage) GetTuple(rid *page.RID, log_manager *recovery.LogManager, l
 	tupleData := make([]byte, tupleSize)
 	copy(tupleData, tp.Data()[tupleOffset:])
 
-	return &Tuple{rid, tupleSize, tupleData}
+	//return &tuple.Tuple{rid, tupleSize, tupleData}
+	return tuple.NewTuple(rid, tupleSize, tupleData)
 }
 
 func (tp *TablePage) GetTupleFirstRID() *page.RID {

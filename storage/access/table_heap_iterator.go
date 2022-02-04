@@ -4,7 +4,8 @@
 package access
 
 import (
-	"github.com/ryogrid/SamehadaDB/storage/table"
+	"github.com/ryogrid/SamehadaDB/storage/table/tablepage"
+	"github.com/ryogrid/SamehadaDB/storage/tuple"
 )
 
 // TableHeapIterator is the access method for table heaps
@@ -13,7 +14,7 @@ import (
 // The tuple that it is being pointed to can be accessed with the method Current
 type TableHeapIterator struct {
 	tableHeap *TableHeap
-	tuple     *table.Tuple
+	tuple     *tuple.Tuple
 }
 
 // NewTableHeapIterator creates a new table heap operator for the given table heap
@@ -23,7 +24,7 @@ func NewTableHeapIterator(tableHeap *TableHeap) *TableHeapIterator {
 }
 
 // Current points to the current tuple
-func (it *TableHeapIterator) Current() *table.Tuple {
+func (it *TableHeapIterator) Current() *tuple.Tuple {
 	return it.tuple
 }
 
@@ -35,14 +36,14 @@ func (it *TableHeapIterator) End() bool {
 // Next advances the iterator trying to find the next tuple
 // The next tuple can be inside the same page of the current tuple
 // or it can be in the next page
-func (it *TableHeapIterator) Next() *table.Tuple {
+func (it *TableHeapIterator) Next() *tuple.Tuple {
 	bpm := it.tableHeap.bpm
-	currentPage := table.CastPageAsTablePage(bpm.FetchPage(it.tuple.GetRID().GetPageId()))
+	currentPage := tablepage.CastPageAsTablePage(bpm.FetchPage(it.tuple.GetRID().GetPageId()))
 
 	nextTupleRID := currentPage.GetNextTupleRID(it.tuple.GetRID())
 	if nextTupleRID == nil {
 		for currentPage.GetNextPageId().IsValid() {
-			nextPage := table.CastPageAsTablePage(bpm.FetchPage(currentPage.GetNextPageId()))
+			nextPage := tablepage.CastPageAsTablePage(bpm.FetchPage(currentPage.GetNextPageId()))
 			bpm.UnpinPage(currentPage.GetTablePageId(), false)
 			currentPage = nextPage
 			nextTupleRID = currentPage.GetNextTupleRID(it.tuple.GetRID())

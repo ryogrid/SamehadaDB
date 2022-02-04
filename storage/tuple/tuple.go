@@ -1,10 +1,12 @@
 // this code is from https://github.com/brunocalza/go-bustub
 // there is license and copyright notice in licenses/go-bustub dir
 
-package table
+//package table
+package tuple
 
 import (
 	"github.com/ryogrid/SamehadaDB/storage/page"
+	"github.com/ryogrid/SamehadaDB/storage/table/schema"
 	"github.com/ryogrid/SamehadaDB/types"
 )
 
@@ -14,8 +16,12 @@ type Tuple struct {
 	data []byte
 }
 
+func NewTuple(rid *page.RID, size uint32, data []byte) *Tuple {
+	return &Tuple{rid, size, data}
+}
+
 // NewTupleFromSchema creates a new tuple based on input value
-func NewTupleFromSchema(values []types.Value, schema *Schema) *Tuple {
+func NewTupleFromSchema(values []types.Value, schema *schema.Schema) *Tuple {
 	// calculate tuple size considering varchar columns
 	tupleSize := schema.Length()
 	for _, colIndex := range schema.GetUnlinedColumns() {
@@ -30,7 +36,7 @@ func NewTupleFromSchema(values []types.Value, schema *Schema) *Tuple {
 	// serialize each attribute base on the input value
 	tupleEndOffset := schema.Length()
 	for i := uint32(0); i < schema.GetColumnCount(); i++ {
-		if (*(schema.GetColumn(i))).IsInlined() {
+		if schema.GetColumn(i).IsInlined() {
 			tuple.Copy((*(schema.GetColumn(i))).GetOffset(), values[i].Serialize())
 		} else {
 			tuple.Copy((*(schema.GetColumn(i))).GetOffset(), types.UInt32(tupleEndOffset).Serialize())
@@ -41,14 +47,14 @@ func NewTupleFromSchema(values []types.Value, schema *Schema) *Tuple {
 	return tuple
 }
 
-func (t *Tuple) GetValue(schema table.Column, colIndex uint32) types.Value {
+func (t *Tuple) GetValue(schema *schema.Schema, colIndex uint32) types.Value {
 	column := *(schema.GetColumn(colIndex))
 	//column := (*((*interfaces.ISchema)(unsafe.Pointer(&(schema.(interfaces.ISchema)))))).GetColumn(colIndex)
 	//column := (schema.(interfaces.ISchema)).GetColumn(colIndex)
 	offset := column.GetOffset()
 	//castedColumn := (*Column)(unsafe.Pointer(&column))
 	if !column.IsInlined() {
-		offset = uint32(types.NewUInt32FromBytes(t.data[offset : offset+column.fixedLength]))
+		offset = uint32(types.NewUInt32FromBytes(t.data[offset : offset+column.FixedLength()]))
 	}
 
 	value := types.NewValueFromBytes(t.data[offset:], column.GetType())

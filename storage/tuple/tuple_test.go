@@ -1,23 +1,26 @@
 // this code is from https://github.com/brunocalza/go-bustub
 // there is license and copyright notice in licenses/go-bustub dir
 
-package table
+//package table
+package tuple
 
 import (
 	"testing"
 
+	"github.com/ryogrid/SamehadaDB/storage/table/column"
+	"github.com/ryogrid/SamehadaDB/storage/table/schema"
 	testingpkg "github.com/ryogrid/SamehadaDB/testing"
 	"github.com/ryogrid/SamehadaDB/types"
 )
 
 func TestTuple(t *testing.T) {
-	columnA := NewColumn("a", types.Integer)
-	columnB := NewColumn("b", types.Varchar)
-	columnC := NewColumn("c", types.Integer)
-	columnD := NewColumn("d", types.Varchar)
-	columnE := NewColumn("e", types.Varchar)
+	columnA := column.NewColumn("a", types.Integer)
+	columnB := column.NewColumn("b", types.Varchar)
+	columnC := column.NewColumn("c", types.Integer)
+	columnD := column.NewColumn("d", types.Varchar)
+	columnE := column.NewColumn("e", types.Varchar)
 
-	schema := NewSchema([]*Column{columnA, columnB, columnC, columnD, columnE})
+	schema := schema.NewSchema([]*column.Column{columnA, columnB, columnC, columnD, columnE})
 
 	row := make([]types.Value, 0)
 

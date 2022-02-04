@@ -1,4 +1,5 @@
-package concurrency
+//package concurrency
+package transaction
 
 import (
 	"github.com/ryogrid/SamehadaDB/common"

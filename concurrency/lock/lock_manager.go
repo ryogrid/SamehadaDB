@@ -1,4 +1,5 @@
-package concurrency
+//package concurrency
+package lock
 
 // TODO: need impl
 //===----------------------------------------------------------------------===//
@@ -15,6 +16,7 @@ package concurrency
 
 import (
 	"github.com/ryogrid/SamehadaDB/common"
+	"github.com/ryogrid/SamehadaDB/concurrency/transaction"
 	"github.com/ryogrid/SamehadaDB/storage/page"
 	"github.com/ryogrid/SamehadaDB/types"
 )
@@ -129,7 +131,7 @@ func (lock_manager *LockManager) Prevention() bool { return lock_manager.deadloc
 * @param rid the RID to be locked in shared mode
 * @return true if the lock is granted, false otherwise
  */
-func LockShared(txn *Transaction, rid *page.RID) bool {
+func LockShared(txn *transaction.Transaction, rid *page.RID) bool {
 	// TODO: (SDB) not ported yet
 	// txn.GetSharedLockSet().emplace(rid)
 	return true
@@ -141,7 +143,7 @@ func LockShared(txn *Transaction, rid *page.RID) bool {
 * @param rid the RID to be locked in exclusive mode
 * @return true if the lock is granted, false otherwise
  */
-func LockExclusive(txn *Transaction, rid *page.RID) bool {
+func LockExclusive(txn *transaction.Transaction, rid *page.RID) bool {
 	// TODO: (SDB) not ported yet
 	// txn.GetExclusiveLockSet().emplace(rid)
 	return true
@@ -153,7 +155,7 @@ func LockExclusive(txn *Transaction, rid *page.RID) bool {
 * @param rid the RID that should already be locked in shared mode by the requesting transaction
 * @return true if the upgrade is successful, false otherwise
  */
-func LockUpgrade(txn *Transaction, rid *page.RID) bool {
+func LockUpgrade(txn *transaction.Transaction, rid *page.RID) bool {
 	// TODO: (SDB) not ported yet
 	// txn.GetSharedLockSet().erase(rid)
 	// txn.GetExclusiveLockSet().emplace(rid)
@@ -166,7 +168,7 @@ func LockUpgrade(txn *Transaction, rid *page.RID) bool {
 * @param rid the RID that is locked by the transaction
 * @return true if the unlock is successful, false otherwise
  */
-func Unlock(txn *Transaction, rid *page.RID) bool {
+func Unlock(txn *transaction.Transaction, rid *page.RID) bool {
 	// TODO: (SDB) not ported yet
 	// txn.GetSharedLockSet().erase(rid)
 	// txn.GetExclusiveLockSet().erase(rid)

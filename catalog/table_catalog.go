@@ -4,11 +4,12 @@
 package catalog
 
 import (
-	"github.com/ryogrid/SamehadaDB/concurrency"
+	"github.com/ryogrid/SamehadaDB/concurrency/lock"
 	"github.com/ryogrid/SamehadaDB/recovery"
 	"github.com/ryogrid/SamehadaDB/storage/access"
 	"github.com/ryogrid/SamehadaDB/storage/buffer"
-	"github.com/ryogrid/SamehadaDB/storage/table"
+	"github.com/ryogrid/SamehadaDB/storage/table/column"
+	"github.com/ryogrid/SamehadaDB/storage/table/schema"
 	"github.com/ryogrid/SamehadaDB/types"
 )
 
@@ -31,7 +32,7 @@ type Catalog struct {
 	nextTableId  uint32
 	tableHeap    *access.TableHeap
 	Log_manager  *recovery.LogManager
-	Lock_manager *concurrency.LockManager
+	Lock_manager *lock.LockManager
 }
 
 // // BootstrapCatalog bootstrap the systems' catalogs on the first database initialization
@@ -43,7 +44,7 @@ type Catalog struct {
 // }
 
 // GetCatalog get all information about tables and columns from disk and put it on memory
-func GetCatalog(bpm *buffer.BufferPoolManager, log_manager *recovery.LogManager, lock_manager *concurrency.LockManager) *Catalog {
+func GetCatalog(bpm *buffer.BufferPoolManager, log_manager *recovery.LogManager, lock_manager *lock.LockManager) *Catalog {
 	tableCatalogHeapIt := access.InitTableHeap(bpm, TableCatalogPageId, log_manager, lock_manager).Iterator()
 
 	tableIds := make(map[uint32]*TableMetadata)
@@ -54,7 +55,7 @@ func GetCatalog(bpm *buffer.BufferPoolManager, log_manager *recovery.LogManager,
 		name := tuple.GetValue(TableCatalogSchema(), TableCatalogSchema().GetColIndex("name")).ToVarchar()
 		firstPage := tuple.GetValue(TableCatalogSchema(), TableCatalogSchema().GetColIndex("first_page")).ToInteger()
 
-		columns := []*table.Column{}
+		columns := []*column.Column{}
 		columnsCatalogHeapIt := access.InitTableHeap(bpm, ColumnsCatalogPageId, log_manager, lock_manager).Iterator()
 		for tuple := columnsCatalogHeapIt.Current(); !columnsCatalogHeapIt.End(); tuple = columnsCatalogHeapIt.Next() {
 			tableOid := tuple.GetValue(ColumnsCatalogSchema(), ColumnsCatalogSchema().GetColIndex("table_oid")).ToInteger()
@@ -67,11 +68,11 @@ func GetCatalog(bpm *buffer.BufferPoolManager, log_manager *recovery.LogManager,
 			//variableLength := tuple.GetValue(ColumnsCatalogSchema(), ColumnsCatalogSchema().GetColIndex("variable_length")).ToInteger()
 			//columnOffset := tuple.GetValue(ColumnsCatalogSchema(), ColumnsCatalogSchema().GetColIndex("offset")).ToInteger()
 
-			columns = append(columns, table.NewColumn(columnName, types.TypeID(columnType)))
+			columns = append(columns, column.NewColumn(columnName, types.TypeID(columnType)))
 		}
 
 		tableMetadata := &TableMetadata{
-			table.NewSchema(columns),
+			schema.NewSchema(columns),
 			name,
 			access.InitTableHeap(bpm, types.PageID(firstPage), log_manager, lock_manager),
 			uint32(oid)}
@@ -99,7 +100,7 @@ func (c *Catalog) GetTableByOID(oid uint32) *TableMetadata {
 }
 
 // CreateTable creates a new table and return its metadata
-func (c *Catalog) CreateTable(name string, schema *table.Schema) *TableMetadata {
+func (c *Catalog) CreateTable(name string, schema *schema.Schema) *TableMetadata {
 	oid := c.nextTableId
 	c.nextTableId++
 
