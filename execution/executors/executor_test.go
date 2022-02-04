@@ -7,13 +7,15 @@ import (
 	"testing"
 
 	"github.com/ryogrid/SamehadaDB/catalog"
-	"github.com/ryogrid/SamehadaDB/concurrency"
+	"github.com/ryogrid/SamehadaDB/concurrency/lock"
 	"github.com/ryogrid/SamehadaDB/execution/expression"
 	"github.com/ryogrid/SamehadaDB/execution/plans"
 	"github.com/ryogrid/SamehadaDB/recovery"
 	"github.com/ryogrid/SamehadaDB/storage/buffer"
 	"github.com/ryogrid/SamehadaDB/storage/disk"
 	"github.com/ryogrid/SamehadaDB/storage/table"
+	"github.com/ryogrid/SamehadaDB/storage/table/column"
+	"github.com/ryogrid/SamehadaDB/storage/table/schema"
 	testingpkg "github.com/ryogrid/SamehadaDB/testing"
 	"github.com/ryogrid/SamehadaDB/types"
 )
@@ -24,12 +26,12 @@ func TestSimpleInsertAndSeqScan(t *testing.T) {
 	bpm := buffer.NewBufferPoolManager(uint32(32), diskManager) //, recovery.NewLogManager(diskManager), concurrency.NewLockManager(concurrency.REGULAR, concurrency.PREVENTION))
 
 	//c := catalog.BootstrapCatalog(bpm)
-	c := catalog.GetCatalog(bpm, recovery.NewLogManager(&diskManager), concurrency.NewLockManager(concurrency.REGULAR, concurrency.PREVENTION))
+	c := catalog.GetCatalog(bpm, recovery.NewLogManager(&diskManager), lock.NewLockManager(lock.REGULAR, lock.PREVENTION))
 	c.CreateTable("columns_catalog", catalog.ColumnsCatalogSchema())
 
-	columnA := table.NewColumn("a", types.Integer)
-	columnB := table.NewColumn("b", types.Integer)
-	schema := table.NewSchema([]*table.Column{columnA, columnB})
+	columnA := column.NewColumn("a", types.Integer)
+	columnB := column.NewColumn("b", types.Integer)
+	schema := schema.NewSchema([]*table.Column{columnA, columnB})
 
 	tableMetadata := c.CreateTable("test_1", schema)
 
@@ -70,13 +72,13 @@ func TestSimpleInsertAndSeqScanWithPredicateComparison(t *testing.T) {
 	bpm := buffer.NewBufferPoolManager(uint32(32), diskManager) //, recovery.NewLogManager(diskManager), concurrency.NewLockManager(concurrency.REGULAR, concurrency.PREVENTION))
 
 	//c := catalog.BootstrapCatalog(bpm)
-	c := catalog.GetCatalog(bpm, recovery.NewLogManager(&diskManager), concurrency.NewLockManager(concurrency.REGULAR, concurrency.PREVENTION))
+	c := catalog.GetCatalog(bpm, recovery.NewLogManager(&diskManager), lock.NewLockManager(lock.REGULAR, lock.PREVENTION))
 	c.CreateTable("columns_catalog", catalog.ColumnsCatalogSchema())
 
-	columnA := table.NewColumn("a", types.Integer)
-	columnB := table.NewColumn("b", types.Integer)
-	columnC := table.NewColumn("c", types.Varchar)
-	schema := table.NewSchema([]*table.Column{columnA, columnB, columnC})
+	columnA := column.NewColumn("a", types.Integer)
+	columnB := column.NewColumn("b", types.Integer)
+	columnC := column.NewColumn("c", types.Varchar)
+	schema := schema.NewSchema([]*table.Column{columnA, columnB, columnC})
 
 	tableMetadata := c.CreateTable("test_1", schema)
 
@@ -189,7 +191,7 @@ func TestSimpleInsertAndLimitExecution(t *testing.T) {
 	bpm := buffer.NewBufferPoolManager(uint32(32), diskManager) //, recovery.NewLogManager(diskManager), concurrency.NewLockManager(concurrency.REGULAR, concurrency.PREVENTION))
 
 	//c := catalog.BootstrapCatalog(bpm)
-	c := catalog.GetCatalog(bpm, recovery.NewLogManager(&diskManager), concurrency.NewLockManager(concurrency.REGULAR, concurrency.PREVENTION))
+	c := catalog.GetCatalog(bpm, recovery.NewLogManager(&diskManager), lock.NewLockManager(lock.REGULAR, lock.PREVENTION))
 	c.CreateTable("columns_catalog", catalog.ColumnsCatalogSchema())
 
 	columnA := table.NewColumn("a", types.Integer)

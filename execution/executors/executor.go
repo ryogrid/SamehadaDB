@@ -3,7 +3,7 @@
 
 package executors
 
-import "github.com/ryogrid/SamehadaDB/storage/table"
+import "github.com/ryogrid/SamehadaDB/storage/tuple"
 
 type Done bool
 
@@ -15,5 +15,5 @@ type Done bool
 // Next produces the next tuple
 type Executor interface {
 	Init()
-	Next() (*table.Tuple, Done, error)
+	Next() (*tuple.Tuple, Done, error)
 }

@@ -8,7 +8,7 @@ import (
 	"github.com/ryogrid/SamehadaDB/execution/expression"
 	"github.com/ryogrid/SamehadaDB/execution/plans"
 	"github.com/ryogrid/SamehadaDB/storage/access"
-	"github.com/ryogrid/SamehadaDB/storage/table"
+	"github.com/ryogrid/SamehadaDB/storage/tuple"
 	"github.com/ryogrid/SamehadaDB/types"
 )
 
@@ -35,7 +35,7 @@ func (e *SeqScanExecutor) Init() {
 // Next implements the next method for the sequential scan operator
 // It uses the table heap iterator to iterate through the table heap
 // tyring to find a tuple. It performs selection and projection on-the-fly
-func (e *SeqScanExecutor) Next() (*table.Tuple, Done, error) {
+func (e *SeqScanExecutor) Next() (*tuple.Tuple, Done, error) {
 
 	// iterates through the table heap trying to select a tuple that matches the predicate
 	for t := e.it.Current(); !e.it.End(); t = e.it.Next() {
@@ -54,13 +54,13 @@ func (e *SeqScanExecutor) Next() (*table.Tuple, Done, error) {
 }
 
 // select evaluates an expression on the tuple
-func (e *SeqScanExecutor) selects(tuple *table.Tuple, predicate *expression.Expression) bool {
+func (e *SeqScanExecutor) selects(tuple *tuple.Tuple, predicate *expression.Expression) bool {
 	return predicate == nil || (*predicate).Evaluate(tuple, e.tableMetadata.Schema()).ToBoolean()
 }
 
 // project applies the projection operator defined by the output schema
 // It transform the tuple into a new tuple that corresponds to the output schema
-func (e *SeqScanExecutor) projects(tuple *table.Tuple) *table.Tuple {
+func (e *SeqScanExecutor) projects(tuple *tuple.Tuple) *tuple.Tuple {
 	outputSchema := e.plan.OutputSchema()
 
 	values := []types.Value{}
@@ -69,5 +69,5 @@ func (e *SeqScanExecutor) projects(tuple *table.Tuple) *table.Tuple {
 		values = append(values, tuple.GetValue(e.tableMetadata.Schema(), colIndex))
 	}
 
-	return table.NewTupleFromSchema(values, outputSchema)
+	return tuple.NewTupleFromSchema(values, outputSchema)
 }
