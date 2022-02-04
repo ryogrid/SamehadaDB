@@ -3,6 +3,8 @@
 
 package table
 
+import "github.com/ryogrid/SamehadaDB/interfaces"
+
 type Schema struct {
 	length           uint32    // Fixed-length column size, i.e. the number of bytes used by one tuple
 	columns          []*Column // All the columns in the schema, inlined and uninlined.
@@ -33,7 +35,8 @@ func NewSchema(columns []*Column) *Schema {
 	return schema
 }
 
-func (s *Schema) GetColumn(colIndex uint32) *Column {
+//func (s *Schema) GetColumn(colIndex uint32) *Column {
+func (s *Schema) GetColumn(colIndex uint32) interfaces.IColumn {
 	return s.columns[colIndex]
 }
 
@@ -59,6 +62,13 @@ func (s *Schema) GetColIndex(columnName string) uint32 {
 	panic("unreachable code") // this is not a good way to handle the issue
 }
 
-func (s *Schema) GetColumns() []*Column {
-	return s.columns
+//func (s *Schema) GetColumns() []*Column {
+func (s *Schema) GetColumns() []interfaces.IColumn {
+	var ret []interfaces.IColumn
+	// for i, column := range s.columns {
+	// 	ret = append(ret, interfaces.IColumn(*column))
+	// }
+	//return s.columns
+	//return []*interfaces.IColumn(s.columns)
+	return ret
 }

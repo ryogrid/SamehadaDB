@@ -237,6 +237,7 @@ func (tp *TablePage) GetNextTupleRID(rid *page.RID) *page.RID {
 
 	tupleCount := tp.GetTupleCount()
 	for i := rid.GetSlot() + 1; i < tupleCount; i++ {
+		// TODO: (SDB) need implement
 		// if is deleted
 		firstRID.Set(tp.GetTablePageId(), i)
 		return firstRID

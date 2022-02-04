@@ -46,7 +46,8 @@ func NewTupleFromSchema(values []types.Value, schema *Schema) *Tuple {
 
 func (t *Tuple) GetValue(schema interface{}, colIndex uint32) types.Value {
 	//column := *(schema.GetColumn(colIndex))
-	column := (*((*interfaces.ISchema)(unsafe.Pointer(&schema)))).GetColumn(colIndex)
+	//column := (*((*interfaces.ISchema)(unsafe.Pointer(&(schema.(interfaces.ISchema)))))).GetColumn(colIndex)
+	column := (schema.(interfaces.ISchema)).GetColumn(colIndex)
 	offset := column.GetOffset()
 	castedColumn := (*Column)(unsafe.Pointer(&column))
 	if !column.IsInlined() {
