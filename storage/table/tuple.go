@@ -4,9 +4,6 @@
 package table
 
 import (
-	"unsafe"
-
-	"github.com/ryogrid/SamehadaDB/interfaces"
 	"github.com/ryogrid/SamehadaDB/storage/page"
 	"github.com/ryogrid/SamehadaDB/types"
 )
@@ -44,14 +41,14 @@ func NewTupleFromSchema(values []types.Value, schema *Schema) *Tuple {
 	return tuple
 }
 
-func (t *Tuple) GetValue(schema interface{}, colIndex uint32) types.Value {
-	//column := *(schema.GetColumn(colIndex))
+func (t *Tuple) GetValue(schema table.Column, colIndex uint32) types.Value {
+	column := *(schema.GetColumn(colIndex))
 	//column := (*((*interfaces.ISchema)(unsafe.Pointer(&(schema.(interfaces.ISchema)))))).GetColumn(colIndex)
-	column := (schema.(interfaces.ISchema)).GetColumn(colIndex)
+	//column := (schema.(interfaces.ISchema)).GetColumn(colIndex)
 	offset := column.GetOffset()
-	castedColumn := (*Column)(unsafe.Pointer(&column))
+	//castedColumn := (*Column)(unsafe.Pointer(&column))
 	if !column.IsInlined() {
-		offset = uint32(types.NewUInt32FromBytes(t.data[offset : offset+castedColumn.fixedLength]))
+		offset = uint32(types.NewUInt32FromBytes(t.data[offset : offset+column.fixedLength]))
 	}
 
 	value := types.NewValueFromBytes(t.data[offset:], column.GetType())

@@ -5,7 +5,6 @@ package access
 
 import (
 	"github.com/ryogrid/SamehadaDB/concurrency"
-	"github.com/ryogrid/SamehadaDB/interfaces"
 	"github.com/ryogrid/SamehadaDB/recovery"
 	"github.com/ryogrid/SamehadaDB/storage/buffer"
 	"github.com/ryogrid/SamehadaDB/storage/page"
@@ -47,7 +46,7 @@ func (t *TableHeap) GetFirstPageId() types.PageID {
 // If the tuple is too large (>= page_size):
 // 1. It tries to insert in the next page
 // 2. If there is no next page, it creates a new page and insert in it
-func (t *TableHeap) InsertTuple(tuple *table.Tuple, txn interfaces.ITransaction) (rid *page.RID, err error) {
+func (t *TableHeap) InsertTuple(tuple *table.Tuple, txn concurrency.Transaction) (rid *page.RID, err error) {
 	currentPage := table.CastPageAsTablePage(t.bpm.FetchPage(t.firstPageId))
 
 	for {

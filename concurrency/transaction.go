@@ -2,8 +2,9 @@ package concurrency
 
 import (
 	"github.com/ryogrid/SamehadaDB/common"
-	"github.com/ryogrid/SamehadaDB/interfaces"
+	"github.com/ryogrid/SamehadaDB/storage/access"
 	"github.com/ryogrid/SamehadaDB/storage/page"
+	"github.com/ryogrid/SamehadaDB/storage/table"
 	"github.com/ryogrid/SamehadaDB/types"
 )
 
@@ -17,7 +18,6 @@ import (
  *
  **/
 
-/*
 type TransactionState int32
 
 const (
@@ -26,7 +26,6 @@ const (
 	COMMITTED
 	ABORTED
 )
-*/
 
 /**
  * Type of write operation.
@@ -46,12 +45,14 @@ type WriteRecord struct {
 	rid   page.RID
 	wtype WType
 	/** The tuple is only used for the update operation. */
-	tuple *interfaces.ITuple
+	//tuple *interfaces.ITuple
+	tuple *table.Tuple
 	/** The table heap specifies which table this write record is for. */
-	table *interfaces.ITableHeap
+	//table *interfaces.ITableHeap
+	table *access.TableHeap
 }
 
-func NewWriteRecord(rid page.RID, wtype WType, tuple *interfaces.ITuple, table *interfaces.ITableHeap) *WriteRecord {
+func NewWriteRecord(rid page.RID, wtype WType, tuple *table.Tuple, table *access.TableHeap) *WriteRecord {
 	ret := new(WriteRecord)
 	ret.rid = rid
 	ret.wtype = wtype
@@ -62,7 +63,7 @@ func NewWriteRecord(rid page.RID, wtype WType, tuple *interfaces.ITuple, table *
 
 type Transaction struct {
 	/** The current transaction state. */
-	state interfaces.TransactionState
+	state TransactionState
 
 	// /** The thread ID, used in single-threaded transactions. */
 	// thread_id ThreadID
@@ -89,7 +90,7 @@ type Transaction struct {
 
 func NewTransaction(txn_id types.TxnID) *Transaction {
 	return &Transaction{
-		interfaces.GROWING,
+		GROWING,
 		// std::this_thread::get_id(),
 		txn_id,
 		// deque<WriteRecord>
@@ -147,13 +148,13 @@ func (txn *Transaction) IsExclusiveLocked(rid *page.RID) bool {
 }
 
 /** @return the current state of the transaction */
-func (txn *Transaction) GetState() interfaces.TransactionState { return txn.state }
+func (txn *Transaction) GetState() TransactionState { return txn.state }
 
 /**
 * Set the state of the transaction.
 * @param state new state
  */
-func (txn *Transaction) SetState(state interfaces.TransactionState) { txn.state = state }
+func (txn *Transaction) SetState(state TransactionState) { txn.state = state }
 
 /** @return the previous LSN */
 func (txn *Transaction) GetPrevLSN() types.LSN { return txn.prev_lsn }

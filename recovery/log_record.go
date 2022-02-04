@@ -5,6 +5,7 @@ import (
 
 	"github.com/ryogrid/SamehadaDB/interfaces"
 	"github.com/ryogrid/SamehadaDB/storage/page"
+	"github.com/ryogrid/SamehadaDB/storage/table"
 	"github.com/ryogrid/SamehadaDB/types"
 )
 
@@ -63,16 +64,16 @@ type LogRecord struct {
 
 	// case1: for delete opeartion, delete_tuple_ for UNDO opeartion
 	delete_rid   *page.RID
-	delete_tuple interfaces.ITuple
+	delete_tuple table.Tuple
 
 	// case2: for insert opeartion
 	insert_rid   *page.RID
-	insert_tuple interfaces.ITuple
+	insert_tuple table.Tuple
 
 	// case3: for update opeartion
 	update_rid *page.RID
-	old_tuple  interfaces.ITuple
-	new_tuple  interfaces.ITuple
+	old_tuple  table.Tuple
+	new_tuple  table.Tuple
 
 	// case4: for new page opeartion
 	prev_page_id types.PageID //INVALID_PAGE_ID
@@ -94,7 +95,7 @@ func NewLogRecordTxn(txn_id types.TxnID, prev_lsn types.LSN, log_record_type Log
 }
 
 // constructor for INSERT/DELETE type
-func NewLogRecordInsertDelete(txn_id types.TxnID, prev_lsn types.LSN, log_record_type LogRecordType, rid *page.RID, tuple interfaces.ITuple) *LogRecord {
+func NewLogRecordInsertDelete(txn_id types.TxnID, prev_lsn types.LSN, log_record_type LogRecordType, rid *page.RID, tuple table.Tuple) *LogRecord {
 	ret := new(LogRecord)
 	ret.txn_id = txn_id
 	ret.prev_lsn = prev_lsn
@@ -115,7 +116,7 @@ func NewLogRecordInsertDelete(txn_id types.TxnID, prev_lsn types.LSN, log_record
 
 // constructor for UPDATE type
 func NewLogRecordUpdate(txn_id types.TxnID, prev_lsn types.LSN, log_record_type LogRecordType, update_rid *page.RID,
-	old_tuple interfaces.ITuple, new_tuple interfaces.ITuple) *LogRecord {
+	old_tuple table.Tuple, new_tuple table.Tuple) *LogRecord {
 	ret := new(LogRecord)
 	ret.txn_id = txn_id
 	ret.prev_lsn = prev_lsn

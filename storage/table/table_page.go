@@ -10,7 +10,6 @@ import (
 	"github.com/ryogrid/SamehadaDB/common"
 	"github.com/ryogrid/SamehadaDB/concurrency"
 	"github.com/ryogrid/SamehadaDB/errors"
-	"github.com/ryogrid/SamehadaDB/interfaces"
 	"github.com/ryogrid/SamehadaDB/recovery"
 	"github.com/ryogrid/SamehadaDB/storage/page"
 	"github.com/ryogrid/SamehadaDB/types"
@@ -58,7 +57,7 @@ func CastPageAsTablePage(page *page.Page) *TablePage {
 }
 
 // Inserts a tuple into the table
-func (tp *TablePage) InsertTuple(tuple *Tuple, log_manager *recovery.LogManager, lock_manager *concurrency.LockManager, txn interfaces.ITransaction) (*page.RID, error) {
+func (tp *TablePage) InsertTuple(tuple *Tuple, log_manager *recovery.LogManager, lock_manager *concurrency.LockManager, txn concurrency.Transaction) (*page.RID, error) {
 	if tuple.Size() == 0 {
 		return nil, ErrEmptyTuple
 	}
@@ -107,7 +106,7 @@ func (tp *TablePage) InsertTuple(tuple *Tuple, log_manager *recovery.LogManager,
 }
 
 // Init initializes the table header
-func (tp *TablePage) Init(pageId types.PageID, prevPageId types.PageID, log_manager *recovery.LogManager, lock_manager *concurrency.LockManager, txn interfaces.ITransaction) {
+func (tp *TablePage) Init(pageId types.PageID, prevPageId types.PageID, log_manager *recovery.LogManager, lock_manager *concurrency.LockManager, txn concurrency.Transaction) {
 	// Log that we are creating a new page.
 	if common.EnableLogging {
 		txn_ := (*concurrency.Transaction)(unsafe.Pointer(&txn))
@@ -178,11 +177,11 @@ func (tp *TablePage) GetFreeSpacePointer() uint32 {
 	return uint32(types.NewUInt32FromBytes(tp.Data()[offsetFreeSpace:]))
 }
 
-func (tp *TablePage) GetTuple(rid *page.RID, log_manager *recovery.LogManager, lock_manager *concurrency.LockManager, txn interfaces.ITransaction) *Tuple {
+func (tp *TablePage) GetTuple(rid *page.RID, log_manager *recovery.LogManager, lock_manager *concurrency.LockManager, txn concurrency.Transaction) *Tuple {
 	// If somehow we have more slots than tuples, abort the transaction.
 	if rid.GetSlot() >= tp.GetTupleCount() {
 		if common.EnableLogging {
-			txn.SetState(interfaces.ABORTED)
+			txn.SetState(concurrency.ABORTED)
 		}
 		// TODO: (SDB) need care of Aborting at GetTuple of TablePage
 		return nil
