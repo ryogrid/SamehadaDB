@@ -17,7 +17,6 @@ package transaction
 
 import (
 	"github.com/ryogrid/SamehadaDB/common"
-	//"github.com/ryogrid/SamehadaDB/concurrency/transaction"
 	"github.com/ryogrid/SamehadaDB/storage/page"
 	"github.com/ryogrid/SamehadaDB/types"
 )
