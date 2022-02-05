@@ -22,7 +22,7 @@ func TestClockReplacer(t *testing.T) {
 	clockReplacer.Unpin(1)
 	testingpkg.Equals(t, uint32(6), clockReplacer.Size())
 
-	// Scenario: get three victims from the clock.
+	// Scenario: get three victims from the ctransaction.
 	var value *FrameID
 	value = clockReplacer.Victim()
 	testingpkg.Equals(t, FrameID(1), *value)

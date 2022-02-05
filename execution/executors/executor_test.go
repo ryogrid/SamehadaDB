@@ -7,7 +7,7 @@ import (
 	"testing"
 
 	"github.com/ryogrid/SamehadaDB/catalog"
-	"github.com/ryogrid/SamehadaDB/concurrency/lock"
+	"github.com/ryogrid/SamehadaDB/concurrency/transaction"
 	"github.com/ryogrid/SamehadaDB/execution/expression"
 	"github.com/ryogrid/SamehadaDB/execution/plans"
 	"github.com/ryogrid/SamehadaDB/recovery"
@@ -23,10 +23,10 @@ import (
 func TestSimpleInsertAndSeqScan(t *testing.T) {
 	diskManager := disk.NewDiskManagerTest()
 	defer diskManager.ShutDown()
-	bpm := buffer.NewBufferPoolManager(uint32(32), diskManager) //, recovery.NewLogManager(diskManager), concurrency.NewLockManager(concurrency.REGULAR, concurrency.PREVENTION))
+	bpm := buffer.NewBufferPoolManager(uint32(32), diskManager) //, recovery.NewLogManager(diskManager), transaction.NewLockManager(transaction.REGULAR, transaction.PREVENTION))
 
 	//c := catalog.BootstrapCatalog(bpm)
-	c := catalog.GetCatalog(bpm, recovery.NewLogManager(&diskManager), lock.NewLockManager(lock.REGULAR, lock.PREVENTION))
+	c := catalog.GetCatalog(bpm, recovery.NewLogManager(&diskManager), transaction.NewLockManager(transaction.REGULAR, transaction.PREVENTION))
 	c.CreateTable("columns_catalog", catalog.ColumnsCatalogSchema())
 
 	columnA := column.NewColumn("a", types.Integer)
@@ -69,10 +69,10 @@ func TestSimpleInsertAndSeqScan(t *testing.T) {
 func TestSimpleInsertAndSeqScanWithPredicateComparison(t *testing.T) {
 	diskManager := disk.NewDiskManagerTest()
 	defer diskManager.ShutDown()
-	bpm := buffer.NewBufferPoolManager(uint32(32), diskManager) //, recovery.NewLogManager(diskManager), concurrency.NewLockManager(concurrency.REGULAR, concurrency.PREVENTION))
+	bpm := buffer.NewBufferPoolManager(uint32(32), diskManager) //, recovery.NewLogManager(diskManager), transaction.NewLockManager(transaction.REGULAR, transaction.PREVENTION))
 
 	//c := catalog.BootstrapCatalog(bpm)
-	c := catalog.GetCatalog(bpm, recovery.NewLogManager(&diskManager), lock.NewLockManager(lock.REGULAR, lock.PREVENTION))
+	c := catalog.GetCatalog(bpm, recovery.NewLogManager(&diskManager), transaction.NewLockManager(transaction.REGULAR, transaction.PREVENTION))
 	c.CreateTable("columns_catalog", catalog.ColumnsCatalogSchema())
 
 	columnA := column.NewColumn("a", types.Integer)
@@ -188,10 +188,10 @@ func TestSimpleInsertAndSeqScanWithPredicateComparison(t *testing.T) {
 func TestSimpleInsertAndLimitExecution(t *testing.T) {
 	diskManager := disk.NewDiskManagerTest()
 	defer diskManager.ShutDown()
-	bpm := buffer.NewBufferPoolManager(uint32(32), diskManager) //, recovery.NewLogManager(diskManager), concurrency.NewLockManager(concurrency.REGULAR, concurrency.PREVENTION))
+	bpm := buffer.NewBufferPoolManager(uint32(32), diskManager) //, recovery.NewLogManager(diskManager), transaction.NewLockManager(transaction.REGULAR, transaction.PREVENTION))
 
 	//c := catalog.BootstrapCatalog(bpm)
-	c := catalog.GetCatalog(bpm, recovery.NewLogManager(&diskManager), lock.NewLockManager(lock.REGULAR, lock.PREVENTION))
+	c := catalog.GetCatalog(bpm, recovery.NewLogManager(&diskManager), transaction.NewLockManager(transaction.REGULAR, transaction.PREVENTION))
 	c.CreateTable("columns_catalog", catalog.ColumnsCatalogSchema())
 
 	columnA := table.NewColumn("a", types.Integer)

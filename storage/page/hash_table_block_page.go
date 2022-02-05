@@ -39,7 +39,7 @@ func (page *HashTableBlockPage) ValueAt(index int) int {
 	return page.array[index].value
 }
 
-// Attempts to insert a key and value into an index in the block.
+// Attempts to insert a key and value into an index in the btransaction.
 func (page *HashTableBlockPage) Insert(index int, key int, value int) bool {
 	if page.IsOccupied(index) {
 		return false

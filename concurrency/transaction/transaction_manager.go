@@ -75,7 +75,7 @@ func (transaction_manager *TransactionManager) Abort(txn *Transaction) {
 
 	// TODO: (SDB) need implement
 	/*
-	   // Rollback before releasing the lock.
+	   // Rollback before releasing the transaction.
 	   auto write_set = txn.GetWriteSet();
 	   while (!write_set.empty()) {
 	     auto &item = write_set.back()

@@ -4,8 +4,6 @@
 package access
 
 import (
-	"github.com/ryogrid/SamehadaDB/concurrency"
-	"github.com/ryogrid/SamehadaDB/concurrency/lock"
 	"github.com/ryogrid/SamehadaDB/concurrency/transaction"
 	"github.com/ryogrid/SamehadaDB/recovery"
 	"github.com/ryogrid/SamehadaDB/storage/buffer"
@@ -21,11 +19,11 @@ type TableHeap struct {
 	bpm          *buffer.BufferPoolManager
 	firstPageId  types.PageID
 	log_manager  *recovery.LogManager
-	lock_manager *lock.LockManager
+	lock_manager *transaction.LockManager
 }
 
 // NewTableHeap creates a table heap without a transaction. (open table)
-func NewTableHeap(bpm *buffer.BufferPoolManager, log_manager *recovery.LogManager, lock_manager *concurrency.LockManager) *TableHeap {
+func NewTableHeap(bpm *buffer.BufferPoolManager, log_manager *recovery.LogManager, lock_manager *transaction.LockManager) *TableHeap {
 	p := bpm.NewPage()
 	firstPage := tablepage.CastPageAsTablePage(p)
 	firstPage.Init(p.ID(), types.InvalidPageID, log_manager, lock_manager)
@@ -34,7 +32,7 @@ func NewTableHeap(bpm *buffer.BufferPoolManager, log_manager *recovery.LogManage
 }
 
 // InitTableHeap ...
-func InitTableHeap(bpm *buffer.BufferPoolManager, pageId types.PageID, log_manager *recovery.LogManager, lock_manager *concurrency.LockManager) *TableHeap {
+func InitTableHeap(bpm *buffer.BufferPoolManager, pageId types.PageID, log_manager *recovery.LogManager, lock_manager *transaction.LockManager) *TableHeap {
 	return &TableHeap{bpm, pageId, log_manager, lock_manager}
 }
 
