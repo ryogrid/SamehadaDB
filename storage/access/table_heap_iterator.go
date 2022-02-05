@@ -14,12 +14,13 @@ import (
 type TableHeapIterator struct {
 	tableHeap *TableHeap
 	tuple     *tuple.Tuple
+	txn       *Transaction
 }
 
 // NewTableHeapIterator creates a new table heap operator for the given table heap
 // It points to the first tuple of the table heap
-func NewTableHeapIterator(tableHeap *TableHeap) *TableHeapIterator {
-	return &TableHeapIterator{tableHeap, tableHeap.GetFirstTuple()}
+func NewTableHeapIterator(tableHeap *TableHeap, txn *Transaction) *TableHeapIterator {
+	return &TableHeapIterator{tableHeap, tableHeap.GetFirstTuple(txn), txn}
 }
 
 // Current points to the current tuple
@@ -53,7 +54,7 @@ func (it *TableHeapIterator) Next() *tuple.Tuple {
 	}
 
 	if nextTupleRID != nil && nextTupleRID.GetPageId().IsValid() {
-		it.tuple = it.tableHeap.GetTuple(nextTupleRID)
+		it.tuple = it.tableHeap.GetTuple(nextTupleRID, it.txn)
 	} else {
 		it.tuple = nil
 	}

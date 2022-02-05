@@ -18,18 +18,19 @@ type SeqScanExecutor struct {
 	plan          *plans.SeqScanPlanNode
 	tableMetadata *catalog.TableMetadata
 	it            *access.TableHeapIterator
+	txn           *access.Transaction
 }
 
 // NewSeqScanExecutor creates a new sequential executor
-func NewSeqScanExecutor(context *ExecutorContext, plan *plans.SeqScanPlanNode) Executor {
+func NewSeqScanExecutor(context *ExecutorContext, plan *plans.SeqScanPlanNode, txn *access.Transaction) Executor {
 	tableMetadata := context.GetCatalog().GetTableByOID(plan.GetTableOID())
 	//catalog := context.GetCatalog()
 
-	return &SeqScanExecutor{context, plan, tableMetadata, nil}
+	return &SeqScanExecutor{context, plan, tableMetadata, nil, txn}
 }
 
 func (e *SeqScanExecutor) Init() {
-	e.it = e.tableMetadata.Table().Iterator()
+	e.it = e.tableMetadata.Table().Iterator(e.txn)
 }
 
 // Next implements the next method for the sequential scan operator

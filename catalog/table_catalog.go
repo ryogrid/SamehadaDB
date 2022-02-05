@@ -43,8 +43,8 @@ type Catalog struct {
 // }
 
 // GetCatalog get all information about tables and columns from disk and put it on memory
-func GetCatalog(bpm *buffer.BufferPoolManager, log_manager *recovery.LogManager, lock_manager *access.LockManager) *Catalog {
-	tableCatalogHeapIt := access.InitTableHeap(bpm, TableCatalogPageId, log_manager, lock_manager).Iterator()
+func GetCatalog(bpm *buffer.BufferPoolManager, log_manager *recovery.LogManager, lock_manager *access.LockManager, txn *access.Transaction) *Catalog {
+	tableCatalogHeapIt := access.InitTableHeap(bpm, TableCatalogPageId, log_manager, lock_manager).Iterator(txn)
 
 	tableIds := make(map[uint32]*TableMetadata)
 	tableNames := make(map[string]*TableMetadata)
@@ -55,7 +55,7 @@ func GetCatalog(bpm *buffer.BufferPoolManager, log_manager *recovery.LogManager,
 		firstPage := tuple.GetValue(TableCatalogSchema(), TableCatalogSchema().GetColIndex("first_page")).ToInteger()
 
 		columns := []*column.Column{}
-		columnsCatalogHeapIt := access.InitTableHeap(bpm, ColumnsCatalogPageId, log_manager, lock_manager).Iterator()
+		columnsCatalogHeapIt := access.InitTableHeap(bpm, ColumnsCatalogPageId, log_manager, lock_manager).Iterator(txn)
 		for tuple := columnsCatalogHeapIt.Current(); !columnsCatalogHeapIt.End(); tuple = columnsCatalogHeapIt.Next() {
 			tableOid := tuple.GetValue(ColumnsCatalogSchema(), ColumnsCatalogSchema().GetColIndex("table_oid")).ToInteger()
 			if tableOid != oid {
@@ -99,11 +99,11 @@ func (c *Catalog) GetTableByOID(oid uint32) *TableMetadata {
 }
 
 // CreateTable creates a new table and return its metadata
-func (c *Catalog) CreateTable(name string, schema *schema.Schema) *TableMetadata {
+func (c *Catalog) CreateTable(name string, schema *schema.Schema, txn *access.Transaction) *TableMetadata {
 	oid := c.nextTableId
 	c.nextTableId++
 
-	tableHeap := access.NewTableHeap(c.bpm, c.Log_manager, c.Lock_manager)
+	tableHeap := access.NewTableHeap(c.bpm, c.Log_manager, c.Lock_manager, txn)
 	tableMetadata := &TableMetadata{schema, name, tableHeap, oid}
 
 	c.tableIds[oid] = tableMetadata

@@ -21,10 +21,10 @@ type TableHeap struct {
 }
 
 // NewTableHeap creates a table heap without a  (open table)
-func NewTableHeap(bpm *buffer.BufferPoolManager, log_manager *recovery.LogManager, lock_manager *LockManager, transaction *Transaction) *TableHeap {
+func NewTableHeap(bpm *buffer.BufferPoolManager, log_manager *recovery.LogManager, lock_manager *LockManager, txn *Transaction) *TableHeap {
 	p := bpm.NewPage()
 	firstPage := CastPageAsTablePage(p)
-	firstPage.Init(p.ID(), types.InvalidPageID, log_manager, lock_manager, transaction)
+	firstPage.Init(p.ID(), types.InvalidPageID, log_manager, lock_manager, txn)
 	bpm.UnpinPage(p.ID(), true)
 	return &TableHeap{bpm, p.ID(), log_manager, lock_manager}
 }
@@ -73,14 +73,14 @@ func (t *TableHeap) InsertTuple(tuple *tuple.Tuple, txn *Transaction) (rid *page
 }
 
 // GetTuple reads a tuple from the table
-func (t *TableHeap) GetTuple(rid *page.RID, transaction *Transaction) *tuple.Tuple {
+func (t *TableHeap) GetTuple(rid *page.RID, txn *Transaction) *tuple.Tuple {
 	page := CastPageAsTablePage(t.bpm.FetchPage(rid.GetPageId()))
 	defer t.bpm.UnpinPage(page.ID(), false)
-	return page.GetTuple(rid, t.log_manager, t.lock_manager, transaction)
+	return page.GetTuple(rid, t.log_manager, t.lock_manager, txn)
 }
 
 // GetFirstTuple reads the first tuple from the table
-func (t *TableHeap) GetFirstTuple() *tuple.Tuple {
+func (t *TableHeap) GetFirstTuple(txn *Transaction) *tuple.Tuple {
 	var rid *page.RID
 	pageId := t.firstPageId
 	for pageId.IsValid() {
@@ -92,10 +92,10 @@ func (t *TableHeap) GetFirstTuple() *tuple.Tuple {
 		}
 		pageId = page.GetNextPageId()
 	}
-	return t.GetTuple(rid)
+	return t.GetTuple(rid, txn)
 }
 
 // Iterator returns a iterator for this table heap
-func (t *TableHeap) Iterator() *TableHeapIterator {
-	return NewTableHeapIterator(t)
+func (t *TableHeap) Iterator(txn *Transaction) *TableHeapIterator {
+	return NewTableHeapIterator(t, txn)
 }

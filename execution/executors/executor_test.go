@@ -23,17 +23,17 @@ func TestSimpleInsertAndSeqScan(t *testing.T) {
 	diskManager := disk.NewDiskManagerTest()
 	defer diskManager.ShutDown()
 	bpm := buffer.NewBufferPoolManager(uint32(32), diskManager) //, recovery.NewLogManager(diskManager), access.NewLockManager(access.REGULAR, access.PREVENTION))
-	transaction := access.NewTransaction(1)
+	txn := access.NewTransaction(1)
 
 	//c := catalog.BootstrapCatalog(bpm)
-	c := catalog.GetCatalog(bpm, recovery.NewLogManager(&diskManager), access.NewLockManager(access.REGULAR, access.PREVENTION))
-	c.CreateTable("columns_catalog", catalog.ColumnsCatalogSchema())
+	c := catalog.GetCatalog(bpm, recovery.NewLogManager(&diskManager), access.NewLockManager(access.REGULAR, access.PREVENTION), txn)
+	c.CreateTable("columns_catalog", catalog.ColumnsCatalogSchema(), txn)
 
 	columnA := column.NewColumn("a", types.Integer)
 	columnB := column.NewColumn("b", types.Integer)
 	schema := schema.NewSchema([]*column.Column{columnA, columnB})
 
-	tableMetadata := c.CreateTable("test_1", schema)
+	tableMetadata := c.CreateTable("test_1", schema, txn)
 
 	row1 := make([]types.Value, 0)
 	row1 = append(row1, types.NewInteger(20))
@@ -50,7 +50,7 @@ func TestSimpleInsertAndSeqScan(t *testing.T) {
 	insertPlanNode := plans.NewInsertPlanNode(rows, tableMetadata.OID())
 
 	executionEngine := &ExecutionEngine{}
-	executorContext := NewExecutorContext(c, bpm, transaction)
+	executorContext := NewExecutorContext(c, bpm, txn)
 	executionEngine.Execute(insertPlanNode, executorContext)
 
 	bpm.FlushAllpages()
@@ -71,18 +71,18 @@ func TestSimpleInsertAndSeqScanWithPredicateComparison(t *testing.T) {
 	defer diskManager.ShutDown()
 	bpm := buffer.NewBufferPoolManager(uint32(32), diskManager) //, recovery.NewLogManager(diskManager), access.NewLockManager(access.REGULAR, access.PREVENTION))
 	// TODO: (SDB) need incrementation of transaction ID
-	transaction := access.NewTransaction(1)
+	txn := access.NewTransaction(1)
 
 	//c := catalog.BootstrapCatalog(bpm)
-	c := catalog.GetCatalog(bpm, recovery.NewLogManager(&diskManager), access.NewLockManager(access.REGULAR, access.PREVENTION))
-	c.CreateTable("columns_catalog", catalog.ColumnsCatalogSchema())
+	c := catalog.GetCatalog(bpm, recovery.NewLogManager(&diskManager), access.NewLockManager(access.REGULAR, access.PREVENTION), txn)
+	c.CreateTable("columns_catalog", catalog.ColumnsCatalogSchema(), txn)
 
 	columnA := column.NewColumn("a", types.Integer)
 	columnB := column.NewColumn("b", types.Integer)
 	columnC := column.NewColumn("c", types.Varchar)
 	schema := schema.NewSchema([]*column.Column{columnA, columnB, columnC})
 
-	tableMetadata := c.CreateTable("test_1", schema)
+	tableMetadata := c.CreateTable("test_1", schema, txn)
 
 	row1 := make([]types.Value, 0)
 	row1 = append(row1, types.NewInteger(20))
@@ -192,17 +192,17 @@ func TestSimpleInsertAndLimitExecution(t *testing.T) {
 	defer diskManager.ShutDown()
 	bpm := buffer.NewBufferPoolManager(uint32(32), diskManager) //, recovery.NewLogManager(diskManager), access.NewLockManager(access.REGULAR, access.PREVENTION))
 	// TODO: (SDB) need incrementation of transaction ID
-	transaction := access.NewTransaction(1)
+	txn := access.NewTransaction(1)
 
 	//c := catalog.BootstrapCatalog(bpm)
-	c := catalog.GetCatalog(bpm, recovery.NewLogManager(&diskManager), access.NewLockManager(access.REGULAR, access.PREVENTION))
-	c.CreateTable("columns_catalog", catalog.ColumnsCatalogSchema())
+	c := catalog.GetCatalog(bpm, recovery.NewLogManager(&diskManager), access.NewLockManager(access.REGULAR, access.PREVENTION), txn)
+	c.CreateTable("columns_catalog", catalog.ColumnsCatalogSchema(), txn)
 
 	columnA := column.NewColumn("a", types.Integer)
 	columnB := column.NewColumn("b", types.Integer)
 	schema := schema.NewSchema([]*column.Column{columnA, columnB})
 
-	tableMetadata := c.CreateTable("test_1", schema)
+	tableMetadata := c.CreateTable("test_1", schema, txn)
 
 	row1 := make([]types.Value, 0)
 	row1 = append(row1, types.NewInteger(20))
@@ -229,7 +229,7 @@ func TestSimpleInsertAndLimitExecution(t *testing.T) {
 	insertPlanNode := plans.NewInsertPlanNode(rows, tableMetadata.OID())
 
 	executionEngine := &ExecutionEngine{}
-	executorContext := NewExecutorContext(c, bpm, transaction)
+	executorContext := NewExecutorContext(c, bpm, txn)
 	executionEngine.Execute(insertPlanNode, executorContext)
 
 	bpm.FlushAllpages()

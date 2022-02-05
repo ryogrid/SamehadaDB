@@ -25,7 +25,7 @@ func TestTableHeap(t *testing.T) {
 	lock_manager := NewLockManager(REGULAR, PREVENTION)
 	txn := NewTransaction(types.TxnID(0))
 
-	th := NewTableHeap(bpm, log_manager, lock_manager)
+	th := NewTableHeap(bpm, log_manager, lock_manager, txn)
 
 	// this schema creates a tuple of size 8 bytes
 	// it means that a page can only contains 254 tuples of this schema
@@ -40,20 +40,20 @@ func TestTableHeap(t *testing.T) {
 		row = append(row, types.NewInteger(int32((i+1)*2)))
 
 		tuple := tuple.NewTupleFromSchema(row, schema)
-		_, err := th.InsertTuple(tuple, *txn)
+		_, err := th.InsertTuple(tuple, txn)
 		testingpkg.Ok(t, err)
 	}
 
 	bpm.FlushAllpages()
 
-	firstTuple := th.GetFirstTuple()
+	firstTuple := th.GetFirstTuple(txn)
 	testingpkg.Equals(t, int32(0), firstTuple.GetValue(schema, 0).ToInteger())
 	testingpkg.Equals(t, int32(2), firstTuple.GetValue(schema, 1).ToInteger())
 
 	for i := 0; i < 1000; i++ {
 		rid := &page.RID{}
 		rid.Set(types.PageID(i/254), uint32(i%254))
-		tuple := th.GetTuple(rid)
+		tuple := th.GetTuple(rid, txn)
 		testingpkg.Equals(t, int32(i*2), tuple.GetValue(schema, 0).ToInteger())
 		testingpkg.Equals(t, int32((i+1)*2), tuple.GetValue(schema, 1).ToInteger())
 	}
@@ -62,7 +62,7 @@ func TestTableHeap(t *testing.T) {
 	testingpkg.Equals(t, int64(16384), dm.Size())
 
 	// let's iterate through the heap using the iterator
-	it := th.Iterator()
+	it := th.Iterator(txn)
 	i := int32(0)
 	for tuple := it.Current(); !it.End(); tuple = it.Next() {
 		testingpkg.Equals(t, i*2, tuple.GetValue(schema, 0).ToInteger())
