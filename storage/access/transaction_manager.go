@@ -19,6 +19,10 @@ type TransactionManager struct {
 
 var txn_map map[types.TxnID]*Transaction = make(map[types.TxnID]*Transaction)
 
+func NewTransactionManager(log_manager *recovery.LogManager) *TransactionManager {
+	return &TransactionManager{0, log_manager, common.NewRWLatch()}
+}
+
 func (transaction_manager *TransactionManager) Begin(txn *Transaction) *Transaction {
 	// Acquire the global transaction latch in shared mode.
 	transaction_manager.global_txn_latch.RLock()

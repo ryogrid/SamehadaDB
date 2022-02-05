@@ -23,10 +23,13 @@ func TestSimpleInsertAndSeqScan(t *testing.T) {
 	diskManager := disk.NewDiskManagerTest()
 	defer diskManager.ShutDown()
 	bpm := buffer.NewBufferPoolManager(uint32(32), diskManager) //, recovery.NewLogManager(diskManager), access.NewLockManager(access.REGULAR, access.PREVENTION))
-	txn := access.NewTransaction(1)
+	log_mgr := recovery.NewLogManager(&diskManager)
+	txn_mgr := access.NewTransactionManager(log_mgr)
+	//txn := access.NewTransaction(1)
+	txn := txn_mgr.Begin(nil)
 
 	//c := catalog.BootstrapCatalog(bpm)
-	c := catalog.GetCatalog(bpm, recovery.NewLogManager(&diskManager), access.NewLockManager(access.REGULAR, access.PREVENTION), txn)
+	c := catalog.GetCatalog(bpm, log_mgr, access.NewLockManager(access.REGULAR, access.PREVENTION), txn)
 	c.CreateTable("columns_catalog", catalog.ColumnsCatalogSchema(), txn)
 
 	columnA := column.NewColumn("a", types.Integer)
@@ -62,6 +65,8 @@ func TestSimpleInsertAndSeqScan(t *testing.T) {
 
 	results := executionEngine.Execute(seqPlan, executorContext)
 
+	txn_mgr.Commit(txn)
+
 	testingpkg.Assert(t, types.NewInteger(20).CompareEquals(results[0].GetValue(outSchema, 0)), "value should be 20")
 	testingpkg.Assert(t, types.NewInteger(99).CompareEquals(results[1].GetValue(outSchema, 0)), "value should be 99")
 }
@@ -71,10 +76,13 @@ func TestSimpleInsertAndSeqScanWithPredicateComparison(t *testing.T) {
 	defer diskManager.ShutDown()
 	bpm := buffer.NewBufferPoolManager(uint32(32), diskManager) //, recovery.NewLogManager(diskManager), access.NewLockManager(access.REGULAR, access.PREVENTION))
 	// TODO: (SDB) need incrementation of transaction ID
-	txn := access.NewTransaction(1)
+	log_manager := recovery.NewLogManager(&diskManager)
+	txn_mgr := access.NewTransactionManager(log_manager)
+	//txn := access.NewTransaction(1)
+	txn := txn_mgr.Begin(nil)
 
 	//c := catalog.BootstrapCatalog(bpm)
-	c := catalog.GetCatalog(bpm, recovery.NewLogManager(&diskManager), access.NewLockManager(access.REGULAR, access.PREVENTION), txn)
+	c := catalog.GetCatalog(bpm, log_manager, access.NewLockManager(access.REGULAR, access.PREVENTION), txn)
 	c.CreateTable("columns_catalog", catalog.ColumnsCatalogSchema(), txn)
 
 	columnA := column.NewColumn("a", types.Integer)
@@ -105,6 +113,8 @@ func TestSimpleInsertAndSeqScanWithPredicateComparison(t *testing.T) {
 	executionEngine.Execute(insertPlanNode, executorContext)
 
 	bpm.FlushAllpages()
+
+	txn_mgr.Commit(txn)
 
 	cases := []SeqScanTestCase{{
 		"select a ... WHERE b = 55",
@@ -192,10 +202,13 @@ func TestSimpleInsertAndLimitExecution(t *testing.T) {
 	defer diskManager.ShutDown()
 	bpm := buffer.NewBufferPoolManager(uint32(32), diskManager) //, recovery.NewLogManager(diskManager), access.NewLockManager(access.REGULAR, access.PREVENTION))
 	// TODO: (SDB) need incrementation of transaction ID
-	txn := access.NewTransaction(1)
+	log_mgr := recovery.NewLogManager(&diskManager)
+	txn_mgr := access.NewTransactionManager(log_mgr)
+	//txn := access.NewTransaction(1)
+	txn := txn_mgr.Begin(nil)
 
 	//c := catalog.BootstrapCatalog(bpm)
-	c := catalog.GetCatalog(bpm, recovery.NewLogManager(&diskManager), access.NewLockManager(access.REGULAR, access.PREVENTION), txn)
+	c := catalog.GetCatalog(bpm, log_mgr, access.NewLockManager(access.REGULAR, access.PREVENTION), txn)
 	c.CreateTable("columns_catalog", catalog.ColumnsCatalogSchema(), txn)
 
 	columnA := column.NewColumn("a", types.Integer)
@@ -233,6 +246,8 @@ func TestSimpleInsertAndLimitExecution(t *testing.T) {
 	executionEngine.Execute(insertPlanNode, executorContext)
 
 	bpm.FlushAllpages()
+
+	txn_mgr.Commit(txn)
 
 	// TEST 1: select a, b ... LIMIT 1
 	func() {

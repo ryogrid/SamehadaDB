@@ -23,7 +23,9 @@ func TestTableHeap(t *testing.T) {
 	bpm := buffer.NewBufferPoolManager(10, dm)
 	log_manager := recovery.NewLogManager(&dm)
 	lock_manager := NewLockManager(REGULAR, PREVENTION)
-	txn := NewTransaction(types.TxnID(0))
+	txn_mgr := NewTransactionManager(log_manager)
+	//txn := NewTransaction(types.TxnID(0))
+	txn := txn_mgr.Begin(nil)
 
 	th := NewTableHeap(bpm, log_manager, lock_manager, txn)
 
@@ -69,4 +71,6 @@ func TestTableHeap(t *testing.T) {
 		testingpkg.Equals(t, (i+1)*2, tuple.GetValue(schema, 1).ToInteger())
 		i++
 	}
+
+	txn_mgr.Commit(txn)
 }

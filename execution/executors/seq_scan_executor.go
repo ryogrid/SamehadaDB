@@ -24,10 +24,10 @@ type SeqScanExecutor struct {
 // NewSeqScanExecutor creates a new sequential executor
 func NewSeqScanExecutor(context *ExecutorContext, plan *plans.SeqScanPlanNode) Executor {
 	tableMetadata := context.GetCatalog().GetTableByOID(plan.GetTableOID())
-	txn := access.NewTransaction(1)
+	//txn := access.NewTransaction(1)
 	//catalog := context.GetCatalog()
 
-	return &SeqScanExecutor{context, plan, tableMetadata, nil, txn}
+	return &SeqScanExecutor{context, plan, tableMetadata, nil, context.GetTransaction()}
 }
 
 func (e *SeqScanExecutor) Init() {
