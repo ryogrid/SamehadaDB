@@ -1,5 +1,6 @@
 //package concurrency
-package transaction
+//package transaction
+package access
 
 import (
 	"github.com/ryogrid/SamehadaDB/common"
@@ -75,7 +76,7 @@ func (transaction_manager *TransactionManager) Abort(txn *Transaction) {
 
 	// TODO: (SDB) need implement
 	/*
-	   // Rollback before releasing the transaction.
+	   // Rollback before releasing the access.
 	   auto write_set = txn.GetWriteSet();
 	   while (!write_set.empty()) {
 	     auto &item = write_set.back()

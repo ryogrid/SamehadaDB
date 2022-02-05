@@ -4,7 +4,6 @@
 package catalog
 
 import (
-	"github.com/ryogrid/SamehadaDB/concurrency/transaction"
 	"github.com/ryogrid/SamehadaDB/recovery"
 	"github.com/ryogrid/SamehadaDB/storage/access"
 	"github.com/ryogrid/SamehadaDB/storage/buffer"
@@ -32,7 +31,7 @@ type Catalog struct {
 	nextTableId  uint32
 	tableHeap    *access.TableHeap
 	Log_manager  *recovery.LogManager
-	Lock_manager *transaction.LockManager
+	Lock_manager *access.LockManager
 }
 
 // // BootstrapCatalog bootstrap the systems' catalogs on the first database initialization
@@ -44,7 +43,7 @@ type Catalog struct {
 // }
 
 // GetCatalog get all information about tables and columns from disk and put it on memory
-func GetCatalog(bpm *buffer.BufferPoolManager, log_manager *recovery.LogManager, lock_manager *transaction.LockManager) *Catalog {
+func GetCatalog(bpm *buffer.BufferPoolManager, log_manager *recovery.LogManager, lock_manager *access.LockManager) *Catalog {
 	tableCatalogHeapIt := access.InitTableHeap(bpm, TableCatalogPageId, log_manager, lock_manager).Iterator()
 
 	tableIds := make(map[uint32]*TableMetadata)

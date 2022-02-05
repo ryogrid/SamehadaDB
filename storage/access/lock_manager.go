@@ -1,6 +1,7 @@
 //package concurrency
 //package lock
-package transaction
+//package transaction
+package access
 
 // TODO: need impl
 //===----------------------------------------------------------------------===//
@@ -150,7 +151,7 @@ func LockExclusive(txn *Transaction, rid *page.RID) bool {
 }
 
 /**
-* Upgrade a lock from a shared lock to an exclusive transaction.
+* Upgrade a lock from a shared lock to an exclusive access.
 * @param txn the transaction requesting the lock upgrade
 * @param rid the RID that should already be locked in shared mode by the requesting transaction
 * @return true if the upgrade is successful, false otherwise
@@ -163,7 +164,7 @@ func LockUpgrade(txn *Transaction, rid *page.RID) bool {
 }
 
 /**
-* Release the lock held by the transaction.
+* Release the lock held by the access.
 * @param txn the transaction releasing the lock, it should actually hold the lock
 * @param rid the RID that is locked by the transaction
 * @return true if the unlock is successful, false otherwise

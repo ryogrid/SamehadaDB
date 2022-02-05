@@ -35,6 +35,10 @@ func (c *Column) GetOffset() uint32 {
 	return c.columnOffset
 }
 
+func (c *Column) SetOffset(offset uint32) {
+	c.columnOffset = offset
+}
+
 func (c *Column) FixedLength() uint32 {
 	return c.fixedLength
 }

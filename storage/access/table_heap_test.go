@@ -6,12 +6,13 @@ package access
 import (
 	"testing"
 
-	"github.com/ryogrid/SamehadaDB/concurrency"
 	"github.com/ryogrid/SamehadaDB/recovery"
 	"github.com/ryogrid/SamehadaDB/storage/buffer"
 	"github.com/ryogrid/SamehadaDB/storage/disk"
 	"github.com/ryogrid/SamehadaDB/storage/page"
-	"github.com/ryogrid/SamehadaDB/storage/table"
+	"github.com/ryogrid/SamehadaDB/storage/table/column"
+	"github.com/ryogrid/SamehadaDB/storage/table/schema"
+	"github.com/ryogrid/SamehadaDB/storage/tuple"
 	testingpkg "github.com/ryogrid/SamehadaDB/testing"
 	"github.com/ryogrid/SamehadaDB/types"
 )
@@ -21,16 +22,16 @@ func TestTableHeap(t *testing.T) {
 	defer dm.ShutDown()
 	bpm := buffer.NewBufferPoolManager(10, dm)
 	log_manager := recovery.NewLogManager(&dm)
-	lock_manager := transaction.NewLockManager(transaction.REGULAR, transaction.PREVENTION)
-	txn := transaction.NewTransaction(types.TxnID(0))
+	lock_manager := NewLockManager(REGULAR, PREVENTION)
+	txn := NewTransaction(types.TxnID(0))
 
 	th := NewTableHeap(bpm, log_manager, lock_manager)
 
 	// this schema creates a tuple of size 8 bytes
 	// it means that a page can only contains 254 tuples of this schema
-	columnA := table.NewColumn("a", types.Integer)
-	columnB := table.NewColumn("b", types.Integer)
-	schema := table.NewSchema([]*table.Column{columnA, columnB})
+	columnA := column.NewColumn("a", types.Integer)
+	columnB := column.NewColumn("b", types.Integer)
+	schema := schema.NewSchema([]*column.Column{columnA, columnB})
 
 	// inserting 1000 tuples, means that we need at least 4 pages to insert all tuples
 	for i := 0; i < 1000; i++ {
@@ -38,7 +39,7 @@ func TestTableHeap(t *testing.T) {
 		row = append(row, types.NewInteger(int32(i*2)))
 		row = append(row, types.NewInteger(int32((i+1)*2)))
 
-		tuple := table.NewTupleFromSchema(row, schema)
+		tuple := tuple.NewTupleFromSchema(row, schema)
 		_, err := th.InsertTuple(tuple, *txn)
 		testingpkg.Ok(t, err)
 	}

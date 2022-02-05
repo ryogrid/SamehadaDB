@@ -5,7 +5,7 @@ package executors
 
 import (
 	"github.com/ryogrid/SamehadaDB/catalog"
-	"github.com/ryogrid/SamehadaDB/concurrency/transaction"
+	"github.com/ryogrid/SamehadaDB/storage/access"
 	"github.com/ryogrid/SamehadaDB/storage/buffer"
 )
 
@@ -13,10 +13,10 @@ import (
 type ExecutorContext struct {
 	catalog *catalog.Catalog
 	bpm     *buffer.BufferPoolManager
-	txn     *transaction.Transaction
+	txn     *access.Transaction
 }
 
-func NewExecutorContext(catalog *catalog.Catalog, bpm *buffer.BufferPoolManager, txn *transaction.Transaction) *ExecutorContext {
+func NewExecutorContext(catalog *catalog.Catalog, bpm *buffer.BufferPoolManager, txn *access.Transaction) *ExecutorContext {
 	return &ExecutorContext{catalog, bpm, txn}
 }
 
@@ -28,6 +28,6 @@ func (e *ExecutorContext) GetBufferPoolManager() *buffer.BufferPoolManager {
 	return e.bpm
 }
 
-func (e *ExecutorContext) GetTransaction() *transaction.Transaction {
+func (e *ExecutorContext) GetTransaction() *access.Transaction {
 	return e.txn
 }

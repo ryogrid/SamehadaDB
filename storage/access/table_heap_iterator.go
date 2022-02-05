@@ -4,7 +4,6 @@
 package access
 
 import (
-	"github.com/ryogrid/SamehadaDB/storage/table/tablepage"
 	"github.com/ryogrid/SamehadaDB/storage/tuple"
 )
 
@@ -38,12 +37,12 @@ func (it *TableHeapIterator) End() bool {
 // or it can be in the next page
 func (it *TableHeapIterator) Next() *tuple.Tuple {
 	bpm := it.tableHeap.bpm
-	currentPage := tablepage.CastPageAsTablePage(bpm.FetchPage(it.tuple.GetRID().GetPageId()))
+	currentPage := CastPageAsTablePage(bpm.FetchPage(it.tuple.GetRID().GetPageId()))
 
 	nextTupleRID := currentPage.GetNextTupleRID(it.tuple.GetRID())
 	if nextTupleRID == nil {
 		for currentPage.GetNextPageId().IsValid() {
-			nextPage := tablepage.CastPageAsTablePage(bpm.FetchPage(currentPage.GetNextPageId()))
+			nextPage := CastPageAsTablePage(bpm.FetchPage(currentPage.GetNextPageId()))
 			bpm.UnpinPage(currentPage.GetTablePageId(), false)
 			currentPage = nextPage
 			nextTupleRID = currentPage.GetNextTupleRID(it.tuple.GetRID())

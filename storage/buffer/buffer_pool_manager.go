@@ -175,7 +175,7 @@ func (b *BufferPoolManager) getFrameID() (*FrameID, bool) {
 }
 
 //NewBufferPoolManager returns a empty buffer pool manager
-//func NewBufferPoolManager(poolSize uint32, DiskManager disk.DiskManager, log_manager *recovery.LogManager, lock_manager *transaction.LockManager) *BufferPoolManager {
+//func NewBufferPoolManager(poolSize uint32, DiskManager disk.DiskManager, log_manager *recovery.LogManager, lock_manager *access.LockManager) *BufferPoolManager {
 func NewBufferPoolManager(poolSize uint32, DiskManager disk.DiskManager) *BufferPoolManager {
 	freeList := make([]FrameID, poolSize)
 	pages := make([]*page.Page, poolSize)

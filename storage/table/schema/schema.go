@@ -27,8 +27,10 @@ func NewSchema(columns []*column.Column) *Schema {
 			schema.uninlinedColumns = append(schema.uninlinedColumns, i)
 		}
 
-		column.columnOffset = currentOffset
-		currentOffset += column.fixedLength
+		//column.columnOffset = currentOffset
+		column.SetOffset(currentOffset)
+		//currentOffset += column.fixedLength
+		currentOffset += column.FixedLength()
 
 		schema.columns = append(schema.columns, column)
 	}
@@ -55,7 +57,8 @@ func (s *Schema) Length() uint32 {
 
 func (s *Schema) GetColIndex(columnName string) uint32 {
 	for i := uint32(0); i < s.GetColumnCount(); i++ {
-		if s.columns[i].columnName == columnName {
+		//if s.columns[i].columnName == columnName {
+		if s.columns[i].GetColumnName() == columnName {
 			return i
 		}
 	}

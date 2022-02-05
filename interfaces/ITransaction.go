@@ -58,7 +58,7 @@ type ITransaction interface {
 	GetState() TransactionState
 
 	/**
-	* Set the state of the transaction.
+	* Set the state of the access.
 	* @param state new state
 	 */
 	SetState(state TransactionState)

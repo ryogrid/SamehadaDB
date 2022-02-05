@@ -7,13 +7,12 @@ import (
 	"testing"
 
 	"github.com/ryogrid/SamehadaDB/catalog"
-	"github.com/ryogrid/SamehadaDB/concurrency/transaction"
 	"github.com/ryogrid/SamehadaDB/execution/expression"
 	"github.com/ryogrid/SamehadaDB/execution/plans"
 	"github.com/ryogrid/SamehadaDB/recovery"
+	"github.com/ryogrid/SamehadaDB/storage/access"
 	"github.com/ryogrid/SamehadaDB/storage/buffer"
 	"github.com/ryogrid/SamehadaDB/storage/disk"
-	"github.com/ryogrid/SamehadaDB/storage/table"
 	"github.com/ryogrid/SamehadaDB/storage/table/column"
 	"github.com/ryogrid/SamehadaDB/storage/table/schema"
 	testingpkg "github.com/ryogrid/SamehadaDB/testing"
@@ -23,15 +22,16 @@ import (
 func TestSimpleInsertAndSeqScan(t *testing.T) {
 	diskManager := disk.NewDiskManagerTest()
 	defer diskManager.ShutDown()
-	bpm := buffer.NewBufferPoolManager(uint32(32), diskManager) //, recovery.NewLogManager(diskManager), transaction.NewLockManager(transaction.REGULAR, transaction.PREVENTION))
+	bpm := buffer.NewBufferPoolManager(uint32(32), diskManager) //, recovery.NewLogManager(diskManager), access.NewLockManager(access.REGULAR, access.PREVENTION))
+	transaction := access.NewTransaction(1)
 
 	//c := catalog.BootstrapCatalog(bpm)
-	c := catalog.GetCatalog(bpm, recovery.NewLogManager(&diskManager), transaction.NewLockManager(transaction.REGULAR, transaction.PREVENTION))
+	c := catalog.GetCatalog(bpm, recovery.NewLogManager(&diskManager), access.NewLockManager(access.REGULAR, access.PREVENTION))
 	c.CreateTable("columns_catalog", catalog.ColumnsCatalogSchema())
 
 	columnA := column.NewColumn("a", types.Integer)
 	columnB := column.NewColumn("b", types.Integer)
-	schema := schema.NewSchema([]*table.Column{columnA, columnB})
+	schema := schema.NewSchema([]*column.Column{columnA, columnB})
 
 	tableMetadata := c.CreateTable("test_1", schema)
 
@@ -50,13 +50,13 @@ func TestSimpleInsertAndSeqScan(t *testing.T) {
 	insertPlanNode := plans.NewInsertPlanNode(rows, tableMetadata.OID())
 
 	executionEngine := &ExecutionEngine{}
-	executorContext := NewExecutorContext(c, bpm)
+	executorContext := NewExecutorContext(c, bpm, transaction)
 	executionEngine.Execute(insertPlanNode, executorContext)
 
 	bpm.FlushAllpages()
 
-	outColumnA := table.NewColumn("a", types.Integer)
-	outSchema := table.NewSchema([]*table.Column{outColumnA})
+	outColumnA := column.NewColumn("a", types.Integer)
+	outSchema := schema.NewSchema([]*column.Column{outColumnA})
 
 	seqPlan := plans.NewSeqScanPlanNode(outSchema, nil, tableMetadata.OID())
 
@@ -69,16 +69,18 @@ func TestSimpleInsertAndSeqScan(t *testing.T) {
 func TestSimpleInsertAndSeqScanWithPredicateComparison(t *testing.T) {
 	diskManager := disk.NewDiskManagerTest()
 	defer diskManager.ShutDown()
-	bpm := buffer.NewBufferPoolManager(uint32(32), diskManager) //, recovery.NewLogManager(diskManager), transaction.NewLockManager(transaction.REGULAR, transaction.PREVENTION))
+	bpm := buffer.NewBufferPoolManager(uint32(32), diskManager) //, recovery.NewLogManager(diskManager), access.NewLockManager(access.REGULAR, access.PREVENTION))
+	// TODO: (SDB) need incrementation of transaction ID
+	transaction := access.NewTransaction(1)
 
 	//c := catalog.BootstrapCatalog(bpm)
-	c := catalog.GetCatalog(bpm, recovery.NewLogManager(&diskManager), transaction.NewLockManager(transaction.REGULAR, transaction.PREVENTION))
+	c := catalog.GetCatalog(bpm, recovery.NewLogManager(&diskManager), access.NewLockManager(access.REGULAR, access.PREVENTION))
 	c.CreateTable("columns_catalog", catalog.ColumnsCatalogSchema())
 
 	columnA := column.NewColumn("a", types.Integer)
 	columnB := column.NewColumn("b", types.Integer)
 	columnC := column.NewColumn("c", types.Varchar)
-	schema := schema.NewSchema([]*table.Column{columnA, columnB, columnC})
+	schema := schema.NewSchema([]*column.Column{columnA, columnB, columnC})
 
 	tableMetadata := c.CreateTable("test_1", schema)
 
@@ -99,7 +101,7 @@ func TestSimpleInsertAndSeqScanWithPredicateComparison(t *testing.T) {
 	insertPlanNode := plans.NewInsertPlanNode(rows, tableMetadata.OID())
 
 	executionEngine := &ExecutionEngine{}
-	executorContext := NewExecutorContext(c, bpm)
+	executorContext := NewExecutorContext(c, bpm, transaction)
 	executionEngine.Execute(insertPlanNode, executorContext)
 
 	bpm.FlushAllpages()
@@ -188,15 +190,17 @@ func TestSimpleInsertAndSeqScanWithPredicateComparison(t *testing.T) {
 func TestSimpleInsertAndLimitExecution(t *testing.T) {
 	diskManager := disk.NewDiskManagerTest()
 	defer diskManager.ShutDown()
-	bpm := buffer.NewBufferPoolManager(uint32(32), diskManager) //, recovery.NewLogManager(diskManager), transaction.NewLockManager(transaction.REGULAR, transaction.PREVENTION))
+	bpm := buffer.NewBufferPoolManager(uint32(32), diskManager) //, recovery.NewLogManager(diskManager), access.NewLockManager(access.REGULAR, access.PREVENTION))
+	// TODO: (SDB) need incrementation of transaction ID
+	transaction := access.NewTransaction(1)
 
 	//c := catalog.BootstrapCatalog(bpm)
-	c := catalog.GetCatalog(bpm, recovery.NewLogManager(&diskManager), transaction.NewLockManager(transaction.REGULAR, transaction.PREVENTION))
+	c := catalog.GetCatalog(bpm, recovery.NewLogManager(&diskManager), access.NewLockManager(access.REGULAR, access.PREVENTION))
 	c.CreateTable("columns_catalog", catalog.ColumnsCatalogSchema())
 
-	columnA := table.NewColumn("a", types.Integer)
-	columnB := table.NewColumn("b", types.Integer)
-	schema := table.NewSchema([]*table.Column{columnA, columnB})
+	columnA := column.NewColumn("a", types.Integer)
+	columnB := column.NewColumn("b", types.Integer)
+	schema := schema.NewSchema([]*column.Column{columnA, columnB})
 
 	tableMetadata := c.CreateTable("test_1", schema)
 
@@ -225,16 +229,16 @@ func TestSimpleInsertAndLimitExecution(t *testing.T) {
 	insertPlanNode := plans.NewInsertPlanNode(rows, tableMetadata.OID())
 
 	executionEngine := &ExecutionEngine{}
-	executorContext := NewExecutorContext(c, bpm)
+	executorContext := NewExecutorContext(c, bpm, transaction)
 	executionEngine.Execute(insertPlanNode, executorContext)
 
 	bpm.FlushAllpages()
 
 	// TEST 1: select a, b ... LIMIT 1
 	func() {
-		a := table.NewColumn("a", types.Integer)
-		b := table.NewColumn("b", types.Integer)
-		outSchema := table.NewSchema([]*table.Column{a, b})
+		a := column.NewColumn("a", types.Integer)
+		b := column.NewColumn("b", types.Integer)
+		outSchema := schema.NewSchema([]*column.Column{a, b})
 		seqPlan := plans.NewSeqScanPlanNode(outSchema, nil, tableMetadata.OID())
 		limitPlan := plans.NewLimitPlanNode(seqPlan, 1, 1)
 
@@ -247,9 +251,9 @@ func TestSimpleInsertAndLimitExecution(t *testing.T) {
 
 	// TEST 1: select a, b ... LIMIT 2
 	func() {
-		a := table.NewColumn("a", types.Integer)
-		b := table.NewColumn("b", types.Integer)
-		outSchema := table.NewSchema([]*table.Column{a, b})
+		a := column.NewColumn("a", types.Integer)
+		b := column.NewColumn("b", types.Integer)
+		outSchema := schema.NewSchema([]*column.Column{a, b})
 		seqPlan := plans.NewSeqScanPlanNode(outSchema, nil, tableMetadata.OID())
 		limitPlan := plans.NewLimitPlanNode(seqPlan, 2, 0)
 
@@ -260,9 +264,9 @@ func TestSimpleInsertAndLimitExecution(t *testing.T) {
 
 	// TEST 1: select a, b ... LIMIT 3
 	func() {
-		a := table.NewColumn("a", types.Integer)
-		b := table.NewColumn("b", types.Integer)
-		outSchema := table.NewSchema([]*table.Column{a, b})
+		a := column.NewColumn("a", types.Integer)
+		b := column.NewColumn("b", types.Integer)
+		outSchema := schema.NewSchema([]*column.Column{a, b})
 		seqPlan := plans.NewSeqScanPlanNode(outSchema, nil, tableMetadata.OID())
 		limitPlan := plans.NewLimitPlanNode(seqPlan, 3, 0)
 
