@@ -22,8 +22,9 @@ type SeqScanExecutor struct {
 }
 
 // NewSeqScanExecutor creates a new sequential executor
-func NewSeqScanExecutor(context *ExecutorContext, plan *plans.SeqScanPlanNode, txn *access.Transaction) Executor {
+func NewSeqScanExecutor(context *ExecutorContext, plan *plans.SeqScanPlanNode) Executor {
 	tableMetadata := context.GetCatalog().GetTableByOID(plan.GetTableOID())
+	txn := access.NewTransaction(1)
 	//catalog := context.GetCatalog()
 
 	return &SeqScanExecutor{context, plan, tableMetadata, nil, txn}
@@ -61,13 +62,13 @@ func (e *SeqScanExecutor) selects(tuple *tuple.Tuple, predicate *expression.Expr
 
 // project applies the projection operator defined by the output schema
 // It transform the tuple into a new tuple that corresponds to the output schema
-func (e *SeqScanExecutor) projects(tuple *tuple.Tuple) *tuple.Tuple {
+func (e *SeqScanExecutor) projects(tuple_ *tuple.Tuple) *tuple.Tuple {
 	outputSchema := e.plan.OutputSchema()
 
 	values := []types.Value{}
 	for i := uint32(0); i < outputSchema.GetColumnCount(); i++ {
 		colIndex := e.tableMetadata.Schema().GetColIndex(outputSchema.GetColumns()[i].GetColumnName())
-		values = append(values, tuple.GetValue(e.tableMetadata.Schema(), colIndex))
+		values = append(values, tuple_.GetValue(e.tableMetadata.Schema(), colIndex))
 	}
 
 	return tuple.NewTupleFromSchema(values, outputSchema)

@@ -31,9 +31,9 @@ func TestSimpleInsertAndSeqScan(t *testing.T) {
 
 	columnA := column.NewColumn("a", types.Integer)
 	columnB := column.NewColumn("b", types.Integer)
-	schema := schema.NewSchema([]*column.Column{columnA, columnB})
+	schema_ := schema.NewSchema([]*column.Column{columnA, columnB})
 
-	tableMetadata := c.CreateTable("test_1", schema, txn)
+	tableMetadata := c.CreateTable("test_1", schema_, txn)
 
 	row1 := make([]types.Value, 0)
 	row1 = append(row1, types.NewInteger(20))
@@ -80,9 +80,9 @@ func TestSimpleInsertAndSeqScanWithPredicateComparison(t *testing.T) {
 	columnA := column.NewColumn("a", types.Integer)
 	columnB := column.NewColumn("b", types.Integer)
 	columnC := column.NewColumn("c", types.Varchar)
-	schema := schema.NewSchema([]*column.Column{columnA, columnB, columnC})
+	schema_ := schema.NewSchema([]*column.Column{columnA, columnB, columnC})
 
-	tableMetadata := c.CreateTable("test_1", schema, txn)
+	tableMetadata := c.CreateTable("test_1", schema_, txn)
 
 	row1 := make([]types.Value, 0)
 	row1 = append(row1, types.NewInteger(20))
@@ -101,7 +101,7 @@ func TestSimpleInsertAndSeqScanWithPredicateComparison(t *testing.T) {
 	insertPlanNode := plans.NewInsertPlanNode(rows, tableMetadata.OID())
 
 	executionEngine := &ExecutionEngine{}
-	executorContext := NewExecutorContext(c, bpm, transaction)
+	executorContext := NewExecutorContext(c, bpm, txn)
 	executionEngine.Execute(insertPlanNode, executorContext)
 
 	bpm.FlushAllpages()
@@ -200,9 +200,9 @@ func TestSimpleInsertAndLimitExecution(t *testing.T) {
 
 	columnA := column.NewColumn("a", types.Integer)
 	columnB := column.NewColumn("b", types.Integer)
-	schema := schema.NewSchema([]*column.Column{columnA, columnB})
+	schema_ := schema.NewSchema([]*column.Column{columnA, columnB})
 
-	tableMetadata := c.CreateTable("test_1", schema, txn)
+	tableMetadata := c.CreateTable("test_1", schema_, txn)
 
 	row1 := make([]types.Value, 0)
 	row1 = append(row1, types.NewInteger(20))
