@@ -5,17 +5,17 @@ package catalog
 
 import (
 	"github.com/ryogrid/SamehadaDB/storage/access"
-	"github.com/ryogrid/SamehadaDB/storage/table"
+	"github.com/ryogrid/SamehadaDB/storage/table/schema"
 )
 
 type TableMetadata struct {
-	schema *table.Schema
+	schema *schema.Schema
 	name   string
 	table  *access.TableHeap
 	oid    uint32
 }
 
-func (t *TableMetadata) Schema() *table.Schema {
+func (t *TableMetadata) Schema() *schema.Schema {
 	return t.schema
 }
 

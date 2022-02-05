@@ -7,7 +7,7 @@ import (
 )
 
 type ITableHeap interface {
-	// NewTableHeap creates a table heap without a transaction. (open table)
+	// NewTableHeap creates a table heap without a access. (open table)
 	NewTableHeap(bpm *buffer.BufferPoolManager) *ITableHeap
 
 	// InitTableHeap ...

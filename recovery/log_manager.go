@@ -55,7 +55,7 @@ func (log_manager *LogManager) Flush() {
 		lsn = log_manager.log_buffer_lsn.load()
 		offset = log_manager.offset.load()
 		offset = 0
-		//lock.unlock()
+		//access.unlock()
 		log_manager.latch.WUnlock()
 		swap(log_manager.log_buffer, log_manager.flush_buffer)
 		printf("offset:%lu\n", offset)
@@ -117,7 +117,7 @@ func (log_manager *LogManager) AppendLogRecord(log_record *LogRecord) types.LSN 
 		log_manager.log_buffer_lsn = log_record.lsn
 		pos  := offset + LogRecord::HEADER_SIZE
 		offset += log_record.size
-		// lock.unlock();
+		// access.unlock();
 
 		if (log_record.log_record_type_ == LogRecordType::INSERT) {
 			memcpy(log_manager.log_buffer + pos, &log_record.insert_rid, sizeof(RID))

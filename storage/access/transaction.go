@@ -1,9 +1,11 @@
-package concurrency
+//package concurrency
+//package transaction
+package access
 
 import (
 	"github.com/ryogrid/SamehadaDB/common"
-	"github.com/ryogrid/SamehadaDB/interfaces"
 	"github.com/ryogrid/SamehadaDB/storage/page"
+	"github.com/ryogrid/SamehadaDB/storage/tuple"
 	"github.com/ryogrid/SamehadaDB/types"
 )
 
@@ -17,7 +19,6 @@ import (
  *
  **/
 
-/*
 type TransactionState int32
 
 const (
@@ -26,7 +27,6 @@ const (
 	COMMITTED
 	ABORTED
 )
-*/
 
 /**
  * Type of write operation.
@@ -46,12 +46,14 @@ type WriteRecord struct {
 	rid   page.RID
 	wtype WType
 	/** The tuple is only used for the update operation. */
-	tuple *interfaces.ITuple
+	//tuple *interfaces.ITuple
+	tuple *tuple.Tuple
 	/** The table heap specifies which table this write record is for. */
-	table *interfaces.ITableHeap
+	//table *interfaces.ITableHeap
+	table *TableHeap
 }
 
-func NewWriteRecord(rid page.RID, wtype WType, tuple *interfaces.ITuple, table *interfaces.ITableHeap) *WriteRecord {
+func NewWriteRecord(rid page.RID, wtype WType, tuple *tuple.Tuple, table *TableHeap) *WriteRecord {
 	ret := new(WriteRecord)
 	ret.rid = rid
 	ret.wtype = wtype
@@ -62,18 +64,18 @@ func NewWriteRecord(rid page.RID, wtype WType, tuple *interfaces.ITuple, table *
 
 type Transaction struct {
 	/** The current transaction state. */
-	state interfaces.TransactionState
+	state TransactionState
 
 	// /** The thread ID, used in single-threaded transactions. */
 	// thread_id ThreadID
 
-	/** The ID of this transaction. */
+	/** The ID of this access. */
 	txn_id types.TxnID
 
-	// /** The undo set of the transaction. */
+	// /** The undo set of the access. */
 	// write_set deque<WriteRecord>
 
-	/** The LSN of the last record written by the transaction. */
+	/** The LSN of the last record written by the access. */
 	prev_lsn types.LSN
 
 	// /** Concurrent index: the pages that were latched during index operation. */
@@ -81,15 +83,15 @@ type Transaction struct {
 	// /** Concurrent index: the page IDs that were deleted during index operation.*/
 	// deleted_page_set unordered_set<PageID>
 
-	// /** LockManager: the set of shared-locked tuples held by this transaction. */
+	// /** LockManager: the set of shared-locked tuples held by this access. */
 	// shared_lock_set unordered_set<RID>
-	// /** LockManager: the set of exclusive-locked tuples held by this transaction. */
+	// /** LockManager: the set of exclusive-locked tuples held by this access. */
 	// exclusive_lock_set unordered_set<RID>
 }
 
 func NewTransaction(txn_id types.TxnID) *Transaction {
 	return &Transaction{
-		interfaces.GROWING,
+		GROWING,
 		// std::this_thread::get_id(),
 		txn_id,
 		// deque<WriteRecord>
@@ -147,13 +149,13 @@ func (txn *Transaction) IsExclusiveLocked(rid *page.RID) bool {
 }
 
 /** @return the current state of the transaction */
-func (txn *Transaction) GetState() interfaces.TransactionState { return txn.state }
+func (txn *Transaction) GetState() TransactionState { return txn.state }
 
 /**
-* Set the state of the transaction.
+* Set the state of the access.
 * @param state new state
  */
-func (txn *Transaction) SetState(state interfaces.TransactionState) { txn.state = state }
+func (txn *Transaction) SetState(state TransactionState) { txn.state = state }
 
 /** @return the previous LSN */
 func (txn *Transaction) GetPrevLSN() types.LSN { return txn.prev_lsn }

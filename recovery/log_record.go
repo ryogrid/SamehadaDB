@@ -3,8 +3,8 @@ package recovery
 import (
 	"unsafe"
 
-	"github.com/ryogrid/SamehadaDB/interfaces"
 	"github.com/ryogrid/SamehadaDB/storage/page"
+	"github.com/ryogrid/SamehadaDB/storage/tuple"
 	"github.com/ryogrid/SamehadaDB/types"
 )
 
@@ -63,16 +63,16 @@ type LogRecord struct {
 
 	// case1: for delete opeartion, delete_tuple_ for UNDO opeartion
 	delete_rid   *page.RID
-	delete_tuple interfaces.ITuple
+	delete_tuple tuple.Tuple
 
 	// case2: for insert opeartion
 	insert_rid   *page.RID
-	insert_tuple interfaces.ITuple
+	insert_tuple tuple.Tuple
 
 	// case3: for update opeartion
 	update_rid *page.RID
-	old_tuple  interfaces.ITuple
-	new_tuple  interfaces.ITuple
+	old_tuple  tuple.Tuple
+	new_tuple  tuple.Tuple
 
 	// case4: for new page opeartion
 	prev_page_id types.PageID //INVALID_PAGE_ID
@@ -94,7 +94,7 @@ func NewLogRecordTxn(txn_id types.TxnID, prev_lsn types.LSN, log_record_type Log
 }
 
 // constructor for INSERT/DELETE type
-func NewLogRecordInsertDelete(txn_id types.TxnID, prev_lsn types.LSN, log_record_type LogRecordType, rid *page.RID, tuple interfaces.ITuple) *LogRecord {
+func NewLogRecordInsertDelete(txn_id types.TxnID, prev_lsn types.LSN, log_record_type LogRecordType, rid *page.RID, tuple tuple.Tuple) *LogRecord {
 	ret := new(LogRecord)
 	ret.txn_id = txn_id
 	ret.prev_lsn = prev_lsn
@@ -115,7 +115,7 @@ func NewLogRecordInsertDelete(txn_id types.TxnID, prev_lsn types.LSN, log_record
 
 // constructor for UPDATE type
 func NewLogRecordUpdate(txn_id types.TxnID, prev_lsn types.LSN, log_record_type LogRecordType, update_rid *page.RID,
-	old_tuple interfaces.ITuple, new_tuple interfaces.ITuple) *LogRecord {
+	old_tuple tuple.Tuple, new_tuple tuple.Tuple) *LogRecord {
 	ret := new(LogRecord)
 	ret.txn_id = txn_id
 	ret.prev_lsn = prev_lsn
@@ -141,15 +141,15 @@ func NewLogRecordNewPage(txn_id types.TxnID, prev_lsn types.LSN, log_record_type
 	return ret
 }
 
-func (log_record *LogRecord) GetDeleteRID() *page.RID            { return log_record.delete_rid }
-func (log_record *LogRecord) GetInserteTuple() interfaces.ITuple { return log_record.insert_tuple }
-func (log_record *LogRecord) GetInsertRID() *page.RID            { return log_record.insert_rid }
-func (log_record *LogRecord) GetNewPageRecord() types.PageID     { return log_record.prev_page_id }
-func (log_record *LogRecord) GetSize() uint32                    { return log_record.size }
-func (log_record *LogRecord) GetLSN() types.LSN                  { return log_record.lsn }
-func (log_record *LogRecord) GetTxnId() types.TxnID              { return log_record.txn_id }
-func (log_record *LogRecord) GetPrevLSN() types.LSN              { return log_record.prev_lsn }
-func (log_record *LogRecord) GetLogRecordType() LogRecordType    { return log_record.log_record_type }
+func (log_record *LogRecord) GetDeleteRID() *page.RID         { return log_record.delete_rid }
+func (log_record *LogRecord) GetInserteTuple() tuple.Tuple    { return log_record.insert_tuple }
+func (log_record *LogRecord) GetInsertRID() *page.RID         { return log_record.insert_rid }
+func (log_record *LogRecord) GetNewPageRecord() types.PageID  { return log_record.prev_page_id }
+func (log_record *LogRecord) GetSize() uint32                 { return log_record.size }
+func (log_record *LogRecord) GetLSN() types.LSN               { return log_record.lsn }
+func (log_record *LogRecord) GetTxnId() types.TxnID           { return log_record.txn_id }
+func (log_record *LogRecord) GetPrevLSN() types.LSN           { return log_record.prev_lsn }
+func (log_record *LogRecord) GetLogRecordType() LogRecordType { return log_record.log_record_type }
 
 // // For debug purpose
 // std::string ToString() const {

@@ -5,7 +5,7 @@ package plans
 
 import (
 	"github.com/ryogrid/SamehadaDB/execution/expression"
-	"github.com/ryogrid/SamehadaDB/storage/table"
+	"github.com/ryogrid/SamehadaDB/storage/table/schema"
 )
 
 type SeqScanPlanNode struct {
@@ -14,7 +14,7 @@ type SeqScanPlanNode struct {
 	tableOID  uint32
 }
 
-func NewSeqScanPlanNode(schema *table.Schema, predicate *expression.Expression, tableOID uint32) Plan {
+func NewSeqScanPlanNode(schema *schema.Schema, predicate *expression.Expression, tableOID uint32) Plan {
 	return &SeqScanPlanNode{&AbstractPlanNode{schema, nil}, predicate, tableOID}
 }
 

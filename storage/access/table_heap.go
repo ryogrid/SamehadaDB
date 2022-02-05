@@ -4,12 +4,10 @@
 package access
 
 import (
-	"github.com/ryogrid/SamehadaDB/concurrency"
-	"github.com/ryogrid/SamehadaDB/interfaces"
 	"github.com/ryogrid/SamehadaDB/recovery"
 	"github.com/ryogrid/SamehadaDB/storage/buffer"
 	"github.com/ryogrid/SamehadaDB/storage/page"
-	"github.com/ryogrid/SamehadaDB/storage/table"
+	"github.com/ryogrid/SamehadaDB/storage/tuple"
 	"github.com/ryogrid/SamehadaDB/types"
 )
 
@@ -19,20 +17,20 @@ type TableHeap struct {
 	bpm          *buffer.BufferPoolManager
 	firstPageId  types.PageID
 	log_manager  *recovery.LogManager
-	lock_manager *concurrency.LockManager
+	lock_manager *LockManager
 }
 
-// NewTableHeap creates a table heap without a transaction. (open table)
-func NewTableHeap(bpm *buffer.BufferPoolManager, log_manager *recovery.LogManager, lock_manager *concurrency.LockManager) *TableHeap {
+// NewTableHeap creates a table heap without a  (open table)
+func NewTableHeap(bpm *buffer.BufferPoolManager, log_manager *recovery.LogManager, lock_manager *LockManager, txn *Transaction) *TableHeap {
 	p := bpm.NewPage()
-	firstPage := table.CastPageAsTablePage(p)
-	firstPage.Init(p.ID(), types.InvalidPageID, log_manager, lock_manager)
+	firstPage := CastPageAsTablePage(p)
+	firstPage.Init(p.ID(), types.InvalidPageID, log_manager, lock_manager, txn)
 	bpm.UnpinPage(p.ID(), true)
 	return &TableHeap{bpm, p.ID(), log_manager, lock_manager}
 }
 
 // InitTableHeap ...
-func InitTableHeap(bpm *buffer.BufferPoolManager, pageId types.PageID, log_manager *recovery.LogManager, lock_manager *concurrency.LockManager) *TableHeap {
+func InitTableHeap(bpm *buffer.BufferPoolManager, pageId types.PageID, log_manager *recovery.LogManager, lock_manager *LockManager) *TableHeap {
 	return &TableHeap{bpm, pageId, log_manager, lock_manager}
 }
 
@@ -47,24 +45,24 @@ func (t *TableHeap) GetFirstPageId() types.PageID {
 // If the tuple is too large (>= page_size):
 // 1. It tries to insert in the next page
 // 2. If there is no next page, it creates a new page and insert in it
-func (t *TableHeap) InsertTuple(tuple *table.Tuple, txn interfaces.ITransaction) (rid *page.RID, err error) {
-	currentPage := table.CastPageAsTablePage(t.bpm.FetchPage(t.firstPageId))
+func (t *TableHeap) InsertTuple(tuple *tuple.Tuple, txn *Transaction) (rid *page.RID, err error) {
+	currentPage := CastPageAsTablePage(t.bpm.FetchPage(t.firstPageId))
 
 	for {
 		rid, err = currentPage.InsertTuple(tuple, t.log_manager, t.lock_manager, txn)
-		if err == nil || err == table.ErrEmptyTuple {
+		if err == nil || err == ErrEmptyTuple {
 			break
 		}
 
 		nextPageId := currentPage.GetNextPageId()
 		if nextPageId.IsValid() {
 			t.bpm.UnpinPage(currentPage.GetTablePageId(), false)
-			currentPage = table.CastPageAsTablePage(t.bpm.FetchPage(nextPageId))
+			currentPage = CastPageAsTablePage(t.bpm.FetchPage(nextPageId))
 		} else {
 			p := t.bpm.NewPage()
-			newPage := table.CastPageAsTablePage(p)
+			newPage := CastPageAsTablePage(p)
 			currentPage.SetNextPageId(p.ID())
-			newPage.Init(p.ID(), currentPage.GetTablePageId(), t.log_manager, t.lock_manager)
+			newPage.Init(p.ID(), currentPage.GetTablePageId(), t.log_manager, t.lock_manager, txn)
 			t.bpm.UnpinPage(currentPage.GetTablePageId(), true)
 			currentPage = newPage
 		}
@@ -75,18 +73,18 @@ func (t *TableHeap) InsertTuple(tuple *table.Tuple, txn interfaces.ITransaction)
 }
 
 // GetTuple reads a tuple from the table
-func (t *TableHeap) GetTuple(rid *page.RID) *table.Tuple {
-	page := table.CastPageAsTablePage(t.bpm.FetchPage(rid.GetPageId()))
+func (t *TableHeap) GetTuple(rid *page.RID, txn *Transaction) *tuple.Tuple {
+	page := CastPageAsTablePage(t.bpm.FetchPage(rid.GetPageId()))
 	defer t.bpm.UnpinPage(page.ID(), false)
-	return page.GetTuple(rid, t.log_manager, t.lock_manager)
+	return page.GetTuple(rid, t.log_manager, t.lock_manager, txn)
 }
 
 // GetFirstTuple reads the first tuple from the table
-func (t *TableHeap) GetFirstTuple() *table.Tuple {
+func (t *TableHeap) GetFirstTuple(txn *Transaction) *tuple.Tuple {
 	var rid *page.RID
 	pageId := t.firstPageId
 	for pageId.IsValid() {
-		page := table.CastPageAsTablePage(t.bpm.FetchPage(pageId))
+		page := CastPageAsTablePage(t.bpm.FetchPage(pageId))
 		rid = page.GetTupleFirstRID()
 		t.bpm.UnpinPage(pageId, false)
 		if rid != nil {
@@ -94,10 +92,10 @@ func (t *TableHeap) GetFirstTuple() *table.Tuple {
 		}
 		pageId = page.GetNextPageId()
 	}
-	return t.GetTuple(rid)
+	return t.GetTuple(rid, txn)
 }
 
 // Iterator returns a iterator for this table heap
-func (t *TableHeap) Iterator() *TableHeapIterator {
-	return NewTableHeapIterator(t)
+func (t *TableHeap) Iterator(txn *Transaction) *TableHeapIterator {
+	return NewTableHeapIterator(t, txn)
 }

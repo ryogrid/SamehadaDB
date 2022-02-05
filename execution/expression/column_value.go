@@ -4,7 +4,8 @@
 package expression
 
 import (
-	"github.com/ryogrid/SamehadaDB/storage/table"
+	"github.com/ryogrid/SamehadaDB/storage/table/schema"
+	"github.com/ryogrid/SamehadaDB/storage/tuple"
 	"github.com/ryogrid/SamehadaDB/types"
 )
 
@@ -17,6 +18,6 @@ func NewColumnValue(tupleIndex uint32, colIndex uint32) Expression {
 	return &ColumnValue{tupleIndex, colIndex}
 }
 
-func (c *ColumnValue) Evaluate(tuple *table.Tuple, schema *table.Schema) types.Value {
+func (c *ColumnValue) Evaluate(tuple *tuple.Tuple, schema *schema.Schema) types.Value {
 	return tuple.GetValue(schema, c.colIndex)
 }

@@ -4,11 +4,11 @@
 package catalog
 
 import (
-	"github.com/ryogrid/SamehadaDB/concurrency"
 	"github.com/ryogrid/SamehadaDB/recovery"
 	"github.com/ryogrid/SamehadaDB/storage/access"
 	"github.com/ryogrid/SamehadaDB/storage/buffer"
-	"github.com/ryogrid/SamehadaDB/storage/table"
+	"github.com/ryogrid/SamehadaDB/storage/table/column"
+	"github.com/ryogrid/SamehadaDB/storage/table/schema"
 	"github.com/ryogrid/SamehadaDB/types"
 )
 
@@ -31,7 +31,7 @@ type Catalog struct {
 	nextTableId  uint32
 	tableHeap    *access.TableHeap
 	Log_manager  *recovery.LogManager
-	Lock_manager *concurrency.LockManager
+	Lock_manager *access.LockManager
 }
 
 // // BootstrapCatalog bootstrap the systems' catalogs on the first database initialization
@@ -43,8 +43,8 @@ type Catalog struct {
 // }
 
 // GetCatalog get all information about tables and columns from disk and put it on memory
-func GetCatalog(bpm *buffer.BufferPoolManager, log_manager *recovery.LogManager, lock_manager *concurrency.LockManager) *Catalog {
-	tableCatalogHeapIt := access.InitTableHeap(bpm, TableCatalogPageId, log_manager, lock_manager).Iterator()
+func GetCatalog(bpm *buffer.BufferPoolManager, log_manager *recovery.LogManager, lock_manager *access.LockManager, txn *access.Transaction) *Catalog {
+	tableCatalogHeapIt := access.InitTableHeap(bpm, TableCatalogPageId, log_manager, lock_manager).Iterator(txn)
 
 	tableIds := make(map[uint32]*TableMetadata)
 	tableNames := make(map[string]*TableMetadata)
@@ -54,8 +54,8 @@ func GetCatalog(bpm *buffer.BufferPoolManager, log_manager *recovery.LogManager,
 		name := tuple.GetValue(TableCatalogSchema(), TableCatalogSchema().GetColIndex("name")).ToVarchar()
 		firstPage := tuple.GetValue(TableCatalogSchema(), TableCatalogSchema().GetColIndex("first_page")).ToInteger()
 
-		columns := []*table.Column{}
-		columnsCatalogHeapIt := access.InitTableHeap(bpm, ColumnsCatalogPageId, log_manager, lock_manager).Iterator()
+		columns := []*column.Column{}
+		columnsCatalogHeapIt := access.InitTableHeap(bpm, ColumnsCatalogPageId, log_manager, lock_manager).Iterator(txn)
 		for tuple := columnsCatalogHeapIt.Current(); !columnsCatalogHeapIt.End(); tuple = columnsCatalogHeapIt.Next() {
 			tableOid := tuple.GetValue(ColumnsCatalogSchema(), ColumnsCatalogSchema().GetColIndex("table_oid")).ToInteger()
 			if tableOid != oid {
@@ -67,11 +67,11 @@ func GetCatalog(bpm *buffer.BufferPoolManager, log_manager *recovery.LogManager,
 			//variableLength := tuple.GetValue(ColumnsCatalogSchema(), ColumnsCatalogSchema().GetColIndex("variable_length")).ToInteger()
 			//columnOffset := tuple.GetValue(ColumnsCatalogSchema(), ColumnsCatalogSchema().GetColIndex("offset")).ToInteger()
 
-			columns = append(columns, table.NewColumn(columnName, types.TypeID(columnType)))
+			columns = append(columns, column.NewColumn(columnName, types.TypeID(columnType)))
 		}
 
 		tableMetadata := &TableMetadata{
-			table.NewSchema(columns),
+			schema.NewSchema(columns),
 			name,
 			access.InitTableHeap(bpm, types.PageID(firstPage), log_manager, lock_manager),
 			uint32(oid)}
@@ -99,11 +99,11 @@ func (c *Catalog) GetTableByOID(oid uint32) *TableMetadata {
 }
 
 // CreateTable creates a new table and return its metadata
-func (c *Catalog) CreateTable(name string, schema *table.Schema) *TableMetadata {
+func (c *Catalog) CreateTable(name string, schema *schema.Schema, txn *access.Transaction) *TableMetadata {
 	oid := c.nextTableId
 	c.nextTableId++
 
-	tableHeap := access.NewTableHeap(c.bpm, c.Log_manager, c.Lock_manager)
+	tableHeap := access.NewTableHeap(c.bpm, c.Log_manager, c.Lock_manager, txn)
 	tableMetadata := &TableMetadata{schema, name, tableHeap, oid}
 
 	c.tableIds[oid] = tableMetadata

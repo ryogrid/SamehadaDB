@@ -1,8 +1,9 @@
-package concurrency
+//package concurrency
+//package transaction
+package access
 
 import (
 	"github.com/ryogrid/SamehadaDB/common"
-	"github.com/ryogrid/SamehadaDB/interfaces"
 	"github.com/ryogrid/SamehadaDB/recovery"
 	"github.com/ryogrid/SamehadaDB/types"
 )
@@ -17,6 +18,10 @@ type TransactionManager struct {
 }
 
 var txn_map map[types.TxnID]*Transaction = make(map[types.TxnID]*Transaction)
+
+func NewTransactionManager(log_manager *recovery.LogManager) *TransactionManager {
+	return &TransactionManager{0, log_manager, common.NewRWLatch()}
+}
 
 func (transaction_manager *TransactionManager) Begin(txn *Transaction) *Transaction {
 	// Acquire the global transaction latch in shared mode.
@@ -39,7 +44,7 @@ func (transaction_manager *TransactionManager) Begin(txn *Transaction) *Transact
 }
 
 func (transaction_manager *TransactionManager) Commit(txn *Transaction) {
-	txn.SetState(interfaces.COMMITTED)
+	txn.SetState(COMMITTED)
 
 	// TODO: (SDB) need implement
 	/*
@@ -71,11 +76,11 @@ func (transaction_manager *TransactionManager) Commit(txn *Transaction) {
 }
 
 func (transaction_manager *TransactionManager) Abort(txn *Transaction) {
-	txn.SetState(interfaces.ABORTED)
+	txn.SetState(ABORTED)
 
 	// TODO: (SDB) need implement
 	/*
-	   // Rollback before releasing the lock.
+	   // Rollback before releasing the access.
 	   auto write_set = txn.GetWriteSet();
 	   while (!write_set.empty()) {
 	     auto &item = write_set.back()

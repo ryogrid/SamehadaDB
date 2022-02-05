@@ -4,26 +4,27 @@
 package catalog
 
 import (
-	"github.com/ryogrid/SamehadaDB/storage/table"
+	"github.com/ryogrid/SamehadaDB/storage/table/column"
+	"github.com/ryogrid/SamehadaDB/storage/table/schema"
 	"github.com/ryogrid/SamehadaDB/types"
 )
 
-func TableCatalogSchema() *table.Schema {
-	oidColumn := table.NewColumn("oid", types.Integer)
-	nameColumn := table.NewColumn("name", types.Varchar)
-	firstPageColumn := table.NewColumn("first_page", types.Integer)
-	return table.NewSchema([]*table.Column{oidColumn, nameColumn, firstPageColumn})
+func TableCatalogSchema() *schema.Schema {
+	oidColumn := column.NewColumn("oid", types.Integer)
+	nameColumn := column.NewColumn("name", types.Varchar)
+	firstPageColumn := column.NewColumn("first_page", types.Integer)
+	return schema.NewSchema([]*column.Column{oidColumn, nameColumn, firstPageColumn})
 }
 
-func ColumnsCatalogSchema() *table.Schema {
-	tableOIDColumn := table.NewColumn("table_oid", types.Integer)
-	typeColumn := table.NewColumn("type", types.Integer)
-	nameColumn := table.NewColumn("name", types.Varchar)
-	fixedLengthColumn := table.NewColumn("fixed_length", types.Integer)
-	variableLengthColumn := table.NewColumn("variable_length", types.Integer)
-	offsetColumn := table.NewColumn("offset", types.Integer)
+func ColumnsCatalogSchema() *schema.Schema {
+	tableOIDColumn := column.NewColumn("table_oid", types.Integer)
+	typeColumn := column.NewColumn("type", types.Integer)
+	nameColumn := column.NewColumn("name", types.Varchar)
+	fixedLengthColumn := column.NewColumn("fixed_length", types.Integer)
+	variableLengthColumn := column.NewColumn("variable_length", types.Integer)
+	offsetColumn := column.NewColumn("offset", types.Integer)
 
-	return table.NewSchema([]*table.Column{
+	return schema.NewSchema([]*column.Column{
 		tableOIDColumn,
 		typeColumn,
 		nameColumn,

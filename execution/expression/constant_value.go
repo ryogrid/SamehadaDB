@@ -4,7 +4,8 @@
 package expression
 
 import (
-	"github.com/ryogrid/SamehadaDB/storage/table"
+	"github.com/ryogrid/SamehadaDB/storage/table/schema"
+	"github.com/ryogrid/SamehadaDB/storage/tuple"
 	"github.com/ryogrid/SamehadaDB/types"
 )
 
@@ -16,6 +17,6 @@ func NewConstantValue(value types.Value) Expression {
 	return &ConstantValue{value}
 }
 
-func (c *ConstantValue) Evaluate(tuple *table.Tuple, schema *table.Schema) types.Value {
+func (c *ConstantValue) Evaluate(tuple *tuple.Tuple, schema *schema.Schema) types.Value {
 	return c.value
 }
