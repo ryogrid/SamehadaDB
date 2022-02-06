@@ -9,6 +9,7 @@ import (
 	"github.com/ryogrid/SamehadaDB/storage/buffer"
 	"github.com/ryogrid/SamehadaDB/storage/table/column"
 	"github.com/ryogrid/SamehadaDB/storage/table/schema"
+	"github.com/ryogrid/SamehadaDB/storage/tuple"
 	"github.com/ryogrid/SamehadaDB/types"
 )
 
@@ -34,13 +35,13 @@ type Catalog struct {
 	Lock_manager *access.LockManager
 }
 
-// // BootstrapCatalog bootstrap the systems' catalogs on the first database initialization
-// func BootstrapCatalog(bpm *buffer.BufferPoolManager) *Catalog {
-// 	tableCatalogHeap := access.NewTableHeap(bpm)
-// 	tableCatalog := &Catalog{bpm, make(map[uint32]*TableMetadata), make(map[string]*TableMetadata), 0, tableCatalogHeap}
-// 	tableCatalog.CreateTable("columns_catalog", ColumnsCatalogSchema())
-// 	return tableCatalog
-// }
+// BootstrapCatalog bootstrap the systems' catalogs on the first database initialization
+func BootstrapCatalog(bpm *buffer.BufferPoolManager, log_manager *recovery.LogManager, lock_manager *access.LockManager, txn *access.Transaction) *Catalog {
+	tableCatalogHeap := access.NewTableHeap(bpm, log_manager, lock_manager, txn)
+	tableCatalog := &Catalog{bpm, make(map[uint32]*TableMetadata), make(map[string]*TableMetadata), 0, tableCatalogHeap, log_manager, lock_manager}
+	tableCatalog.CreateTable("columns_catalog", ColumnsCatalogSchema(), txn)
+	return tableCatalog
+}
 
 // GetCatalog get all information about tables and columns from disk and put it on memory
 func GetCatalog(bpm *buffer.BufferPoolManager, log_manager *recovery.LogManager, lock_manager *access.LockManager, txn *access.Transaction) *Catalog {
@@ -108,22 +109,21 @@ func (c *Catalog) CreateTable(name string, schema *schema.Schema, txn *access.Tr
 
 	c.tableIds[oid] = tableMetadata
 	c.tableNames[name] = tableMetadata
-	// TODO: (SDB) comment-outed because it seems to be not needed by ryogrid
-	//c.InsertTable(tableMetadata)
+	// TODO: (SDB) this InsertTable call is needed?
+	c.InsertTable(tableMetadata, txn)
 
 	return tableMetadata
 }
 
-/*
-func (c *Catalog) InsertTable(tableMetadata *TableMetadata) {
+func (c *Catalog) InsertTable(tableMetadata *TableMetadata, txn *access.Transaction) {
 	row := make([]types.Value, 0)
 
 	row = append(row, types.NewInteger(int32(tableMetadata.oid)))
 	row = append(row, types.NewVarchar(tableMetadata.name))
 	row = append(row, types.NewInteger(int32(tableMetadata.table.GetFirstPageId())))
-	tuple := table.NewTupleFromSchema(row, TableCatalogSchema())
+	first_tuple := tuple.NewTupleFromSchema(row, TableCatalogSchema())
 
-	c.TableHeap.InsertTuple(tuple)
+	c.tableHeap.InsertTuple(first_tuple, txn)
 	for _, column := range tableMetadata.schema.GetColumns() {
 		row := make([]types.Value, 0)
 		row = append(row, types.NewInteger(int32(tableMetadata.oid)))
@@ -132,9 +132,8 @@ func (c *Catalog) InsertTable(tableMetadata *TableMetadata) {
 		row = append(row, types.NewInteger(int32(column.FixedLength())))
 		row = append(row, types.NewInteger(int32(column.VariableLength())))
 		row = append(row, types.NewInteger(int32(column.GetOffset())))
-		tuple := table.NewTupleFromSchema(row, ColumnsCatalogSchema())
+		new_tuple := tuple.NewTupleFromSchema(row, ColumnsCatalogSchema())
 
-		c.tableIds[ColumnsCatalogOID].Table().InsertTuple(tuple)
+		c.tableIds[ColumnsCatalogOID].Table().InsertTuple(new_tuple, txn)
 	}
 }
-*/

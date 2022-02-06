@@ -28,9 +28,9 @@ func TestSimpleInsertAndSeqScan(t *testing.T) {
 	//txn := access.NewTransaction(1)
 	txn := txn_mgr.Begin(nil)
 
-	//c := catalog.BootstrapCatalog(bpm)
-	c := catalog.GetCatalog(bpm, log_mgr, access.NewLockManager(access.REGULAR, access.PREVENTION), txn)
-	c.CreateTable("columns_catalog", catalog.ColumnsCatalogSchema(), txn)
+	c := catalog.BootstrapCatalog(bpm, log_mgr, access.NewLockManager(access.REGULAR, access.PREVENTION), txn)
+	// c := catalog.GetCatalog(bpm, log_mgr, access.NewLockManager(access.REGULAR, access.PREVENTION), txn)
+	// c.CreateTable("columns_catalog", catalog.ColumnsCatalogSchema(), txn)
 
 	columnA := column.NewColumn("a", types.Integer)
 	columnB := column.NewColumn("b", types.Integer)
@@ -76,14 +76,14 @@ func TestSimpleInsertAndSeqScanWithPredicateComparison(t *testing.T) {
 	defer diskManager.ShutDown()
 	bpm := buffer.NewBufferPoolManager(uint32(32), diskManager) //, recovery.NewLogManager(diskManager), access.NewLockManager(access.REGULAR, access.PREVENTION))
 	// TODO: (SDB) need incrementation of transaction ID
-	log_manager := recovery.NewLogManager(&diskManager)
-	txn_mgr := access.NewTransactionManager(log_manager)
+	log_mgr := recovery.NewLogManager(&diskManager)
+	txn_mgr := access.NewTransactionManager(log_mgr)
 	//txn := access.NewTransaction(1)
 	txn := txn_mgr.Begin(nil)
 
-	//c := catalog.BootstrapCatalog(bpm)
-	c := catalog.GetCatalog(bpm, log_manager, access.NewLockManager(access.REGULAR, access.PREVENTION), txn)
-	c.CreateTable("columns_catalog", catalog.ColumnsCatalogSchema(), txn)
+	c := catalog.BootstrapCatalog(bpm, log_mgr, access.NewLockManager(access.REGULAR, access.PREVENTION), txn)
+	// c := catalog.GetCatalog(bpm, log_manager, access.NewLockManager(access.REGULAR, access.PREVENTION), txn)
+	// c.CreateTable("columns_catalog", catalog.ColumnsCatalogSchema(), txn)
 
 	columnA := column.NewColumn("a", types.Integer)
 	columnB := column.NewColumn("b", types.Integer)
@@ -207,9 +207,9 @@ func TestSimpleInsertAndLimitExecution(t *testing.T) {
 	//txn := access.NewTransaction(1)
 	txn := txn_mgr.Begin(nil)
 
-	//c := catalog.BootstrapCatalog(bpm)
-	c := catalog.GetCatalog(bpm, log_mgr, access.NewLockManager(access.REGULAR, access.PREVENTION), txn)
-	c.CreateTable("columns_catalog", catalog.ColumnsCatalogSchema(), txn)
+	c := catalog.BootstrapCatalog(bpm, log_mgr, access.NewLockManager(access.REGULAR, access.PREVENTION), txn)
+	// c := catalog.GetCatalog(bpm, log_mgr, access.NewLockManager(access.REGULAR, access.PREVENTION), txn)
+	// c.CreateTable("columns_catalog", catalog.ColumnsCatalogSchema(), txn)
 
 	columnA := column.NewColumn("a", types.Integer)
 	columnB := column.NewColumn("b", types.Integer)
@@ -289,5 +289,4 @@ func TestSimpleInsertAndLimitExecution(t *testing.T) {
 
 		testingpkg.Equals(t, 3, len(results))
 	}()
-
 }
