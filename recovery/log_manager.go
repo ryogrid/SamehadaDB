@@ -26,6 +26,7 @@ type LogManager struct {
 	log_buffer     []byte
 	flush_buffer   []byte
 	latch          common.ReaderWriterLatch
+	// TODO: (SDB) need implement log flushing with dedicated thread
 	//flush_thread   *thread //__attribute__((__unused__));
 	//cv           condition_variable
 	disk_manager *disk.DiskManager //__attribute__((__unused__));
