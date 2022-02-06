@@ -48,7 +48,7 @@ func (log_manager *LogManager) SetPersistentLSN(lsn types.LSN) { log_manager.per
 func (log_manager *LogManager) GetLogBuffer() []byte           { return log_manager.log_buffer }
 
 func (log_manager *LogManager) Flush() {
-	//TODO: (SDB) not ported yet
+	//TODO: (SDB) [logging/recovery] not ported yet
 	/*
 		//unique_lock lock(log_manager.latch)
 		log_manager.latch.WLock()
@@ -102,7 +102,7 @@ func (log_manager *LogManager) AppendLogRecord(log_record *LogRecord) types.LSN 
 	// First, serialize the must have fields(20 bytes in total)
 	// std::unique_lock lock(latch_);
 
-	//TODO: (SDB) not ported yet
+	//TODO: (SDB) [logging/recovery] not ported yet
 	/*
 		if (LOG_BUFFER_SIZE - log_manager.offset < HEADER_SIZE) {
 			log_manager.Flush()

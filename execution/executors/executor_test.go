@@ -75,7 +75,7 @@ func TestSimpleInsertAndSeqScanWithPredicateComparison(t *testing.T) {
 	diskManager := disk.NewDiskManagerTest()
 	defer diskManager.ShutDown()
 	bpm := buffer.NewBufferPoolManager(uint32(32), diskManager) //, recovery.NewLogManager(diskManager), access.NewLockManager(access.REGULAR, access.PREVENTION))
-	// TODO: (SDB) need incrementation of transaction ID
+	// TODO: (SDB) [logging/recovery] need increment of transaction ID
 	log_mgr := recovery.NewLogManager(&diskManager)
 	txn_mgr := access.NewTransactionManager(log_mgr)
 	//txn := access.NewTransaction(1)
@@ -201,7 +201,7 @@ func TestSimpleInsertAndLimitExecution(t *testing.T) {
 	diskManager := disk.NewDiskManagerTest()
 	defer diskManager.ShutDown()
 	bpm := buffer.NewBufferPoolManager(uint32(32), diskManager) //, recovery.NewLogManager(diskManager), access.NewLockManager(access.REGULAR, access.PREVENTION))
-	// TODO: (SDB) need incrementation of transaction ID
+	// TODO: (SDB) [logging/recovery] need increment of transaction ID
 	log_mgr := recovery.NewLogManager(&diskManager)
 	txn_mgr := access.NewTransactionManager(log_mgr)
 	//txn := access.NewTransaction(1)

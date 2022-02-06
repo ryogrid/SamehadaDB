@@ -45,7 +45,7 @@ bool DeserializeLogRecord(const char *data, LogRecord *log_record)
  * incomplete log record
  */
 func (log_recovery *LogRecovery) DeserializeLogRecord(data []byte, log_record *LogRecord) bool {
-	// TODO: (SDB) not ported yet
+	// TODO: (SDB) [logging/recovery] not ported yet
 	/*
 		if (LOG_BUFFER_SIZE - (data - log_buffer) < LogRecord::HEADER_SIZE) {
 		  return false
@@ -95,7 +95,7 @@ func (log_recovery *LogRecovery) DeserializeLogRecord(data []byte, log_record *L
 *lsn_mapping table
  */
 func (log_recovery *LogRecovery) Redo() {
-	// TODO: (SDB) not ported yet
+	// TODO: (SDB) [logging/recovery] not ported yet
 	/*
 		int file_offset = 0
 		while (disk_manager.ReadLog(log_buffer, LOG_BUFFER_SIZE, file_offset)) {
@@ -169,7 +169,7 @@ func (log_recovery *LogRecovery) Redo() {
 *iterate through active txn map and undo each operation
  */
 func (log_recovery *LogRecovery) Undo() {
-	// TODO: (SDB) not ported yet
+	// TODO: (SDB) [logging/recovery] not ported yet
 	/*
 		LogRecord log_record
 		for (auto it : active_txn) {

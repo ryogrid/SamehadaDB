@@ -46,7 +46,7 @@ func (transaction_manager *TransactionManager) Begin(txn *Transaction) *Transact
 func (transaction_manager *TransactionManager) Commit(txn *Transaction) {
 	txn.SetState(COMMITTED)
 
-	// TODO: (SDB) need implement
+	// TODO: (SDB) not ported yet
 	/*
 	   // Perform all deletes before we commit.
 	   auto write_set = txn.GetWriteSet()
@@ -78,7 +78,7 @@ func (transaction_manager *TransactionManager) Commit(txn *Transaction) {
 func (transaction_manager *TransactionManager) Abort(txn *Transaction) {
 	txn.SetState(ABORTED)
 
-	// TODO: (SDB) need implement
+	// TODO: (SDB) not ported yet
 	/*
 	   // Rollback before releasing the access.
 	   auto write_set = txn.GetWriteSet();

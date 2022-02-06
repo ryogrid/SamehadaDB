@@ -48,6 +48,7 @@ type TablePage struct {
 
 // TODO: (SDB) not ported methods exist at TablePage.
 //             And additional loggings are needed when implement the methods
+//             ex: MarkDelete, ApplyDelete, UpdateTuple methods.
 
 // CastPageAsTablePage casts the abstract Page struct into TablePage
 func CastPageAsTablePage(page *page.Page) *TablePage {
@@ -192,7 +193,7 @@ func (tp *TablePage) GetTuple(rid *page.RID, log_manager *recovery.LogManager, l
 	tupleOffset := tp.GetTupleOffsetAtSlot(slot)
 	tupleSize := tp.GetTupleSize(slot)
 
-	// TODO: (SDB) need implement
+	// TODO: (SDB) [logging/recovery] need implement
 	// // If the tuple is deleted, abort the access.
 	// if (IsDeleted(tuple_size)) {
 	// 	if (enable_logging) {
@@ -208,7 +209,7 @@ func (tp *TablePage) GetTuple(rid *page.RID, log_manager *recovery.LogManager, l
 			//return false
 			// TODO: (SDB) need care of being returned nil
 			//return nil
-			// TODO: (SDB) not ported yet
+			// TODO: (SDB) [logging/recovery] need implement
 			// do nothing now
 		}
 	}
