@@ -5,7 +5,7 @@ package executors
 
 import (
 	"github.com/ryogrid/SamehadaDB/execution/plans"
-	"github.com/ryogrid/SamehadaDB/storage/table"
+	"github.com/ryogrid/SamehadaDB/storage/tuple"
 )
 
 // ExecutionEngine is the query execution engine.
@@ -17,11 +17,11 @@ import (
 type ExecutionEngine struct {
 }
 
-func (e *ExecutionEngine) Execute(plan plans.Plan, context *ExecutorContext) []*table.Tuple {
+func (e *ExecutionEngine) Execute(plan plans.Plan, context *ExecutorContext) []*tuple.Tuple {
 	executor := e.createExecutor(plan, context)
 	executor.Init()
 
-	tuples := []*table.Tuple{}
+	tuples := []*tuple.Tuple{}
 	for {
 		tuple, done, err := executor.Next()
 		if err != nil || done {

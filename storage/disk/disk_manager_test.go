@@ -6,7 +6,7 @@ package disk
 import (
 	"testing"
 
-	"github.com/ryogrid/SamehadaDB/storage/page"
+	"github.com/ryogrid/SamehadaDB/common"
 	testingpkg "github.com/ryogrid/SamehadaDB/testing"
 )
 
@@ -14,8 +14,8 @@ func TestReadWritePage(t *testing.T) {
 	dm := NewDiskManagerTest()
 	defer dm.ShutDown()
 
-	data := make([]byte, page.PageSize)
-	buffer := make([]byte, page.PageSize)
+	data := make([]byte, common.PageSize)
+	buffer := make([]byte, common.PageSize)
 
 	copy(data, "A test string.")
 

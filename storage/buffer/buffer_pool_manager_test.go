@@ -7,6 +7,7 @@ import (
 	"crypto/rand"
 	"testing"
 
+	"github.com/ryogrid/SamehadaDB/common"
 	"github.com/ryogrid/SamehadaDB/storage/disk"
 	"github.com/ryogrid/SamehadaDB/storage/page"
 	testingpkg "github.com/ryogrid/SamehadaDB/testing"
@@ -26,15 +27,15 @@ func TestBinaryData(t *testing.T) {
 	testingpkg.Equals(t, types.PageID(0), page0.ID())
 
 	// Generate random binary data
-	randomBinaryData := make([]byte, page.PageSize)
+	randomBinaryData := make([]byte, common.PageSize)
 	rand.Read(randomBinaryData)
 
 	// Insert terminal characters both in the middle and at end
-	randomBinaryData[page.PageSize/2] = '0'
-	randomBinaryData[page.PageSize-1] = '0'
+	randomBinaryData[common.PageSize/2] = '0'
+	randomBinaryData[common.PageSize-1] = '0'
 
-	var fixedRandomBinaryData [page.PageSize]byte
-	copy(fixedRandomBinaryData[:], randomBinaryData[:page.PageSize])
+	var fixedRandomBinaryData [common.PageSize]byte
+	copy(fixedRandomBinaryData[:], randomBinaryData[:common.PageSize])
 
 	// Scenario: Once we have a page, we should be able to read and write content.
 	page0.Copy(0, randomBinaryData)
@@ -82,7 +83,7 @@ func TestSample(t *testing.T) {
 
 	// Scenario: Once we have a page, we should be able to read and write content.
 	page0.Copy(0, []byte("Hello"))
-	testingpkg.Equals(t, [page.PageSize]byte{'H', 'e', 'l', 'l', 'o'}, *page0.Data())
+	testingpkg.Equals(t, [common.PageSize]byte{'H', 'e', 'l', 'l', 'o'}, *page0.Data())
 
 	// Scenario: We should be able to create new pages until we fill up the buffer pool.
 	for i := uint32(1); i < poolSize; i++ {
@@ -106,7 +107,7 @@ func TestSample(t *testing.T) {
 	}
 	// Scenario: We should be able to fetch the data we wrote a while ago.
 	page0 = bpm.FetchPage(types.PageID(0))
-	testingpkg.Equals(t, [page.PageSize]byte{'H', 'e', 'l', 'l', 'o'}, *page0.Data())
+	testingpkg.Equals(t, [common.PageSize]byte{'H', 'e', 'l', 'l', 'o'}, *page0.Data())
 
 	// Scenario: If we unpin page 0 and then make a new page, all the buffer pages should
 	// now be pinned. Fetching page 0 should fail.

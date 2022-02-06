@@ -1,7 +1,7 @@
 // this code is from https://github.com/brunocalza/go-bustub
 // there is license and copyright notice in licenses/go-bustub dir
 
-package table
+package column
 
 import (
 	"github.com/ryogrid/SamehadaDB/types"
@@ -33,6 +33,10 @@ func (c *Column) GetType() types.TypeID {
 
 func (c *Column) GetOffset() uint32 {
 	return c.columnOffset
+}
+
+func (c *Column) SetOffset(offset uint32) {
+	c.columnOffset = offset
 }
 
 func (c *Column) FixedLength() uint32 {

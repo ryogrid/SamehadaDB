@@ -17,6 +17,7 @@ import (
 type LinearProbeHashTable struct {
 	headerPageId types.PageID
 	bpm          *buffer.BufferPoolManager
+	// TODO: (SDB) need to use latch at LinearProbeHashTable
 }
 
 func NewHashTable(bpm *buffer.BufferPoolManager, numBuckets int) *LinearProbeHashTable {

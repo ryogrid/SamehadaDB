@@ -5,7 +5,7 @@ package executors
 
 import (
 	"github.com/ryogrid/SamehadaDB/execution/plans"
-	"github.com/ryogrid/SamehadaDB/storage/table"
+	"github.com/ryogrid/SamehadaDB/storage/tuple"
 )
 
 // LimitExecutor implements the limit/offset operation
@@ -25,7 +25,7 @@ func (e *LimitExecutor) Init() {
 	e.child.Init()
 }
 
-func (e *LimitExecutor) Next() (*table.Tuple, Done, error) {
+func (e *LimitExecutor) Next() (*tuple.Tuple, Done, error) {
 	tuple, done, err := e.child.Next()
 	if err != nil {
 		return nil, done, err

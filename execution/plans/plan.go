@@ -3,7 +3,9 @@
 
 package plans
 
-import "github.com/ryogrid/SamehadaDB/storage/table"
+import (
+	"github.com/ryogrid/SamehadaDB/storage/table/schema"
+)
 
 type PlanType int
 
@@ -14,14 +16,14 @@ const (
 )
 
 type Plan interface {
-	OutputSchema() *table.Schema
+	OutputSchema() *schema.Schema
 	GetChildAt(childIndex uint32) Plan
 	GetChildren() []Plan
 	GetType() PlanType
 }
 
 type AbstractPlanNode struct {
-	outputSchema *table.Schema
+	outputSchema *schema.Schema
 	children     []Plan
 }
 
@@ -33,6 +35,6 @@ func (p *AbstractPlanNode) GetChildren() []Plan {
 	return p.children
 }
 
-func (p *AbstractPlanNode) OutputSchema() *table.Schema {
+func (p *AbstractPlanNode) OutputSchema() *schema.Schema {
 	return p.outputSchema
 }

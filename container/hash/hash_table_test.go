@@ -14,7 +14,7 @@ import (
 func TestHashTable(t *testing.T) {
 	diskManager := disk.NewDiskManagerTest()
 	defer diskManager.ShutDown()
-	bpm := buffer.NewBufferPoolManager(10, diskManager)
+	bpm := buffer.NewBufferPoolManager(uint32(10), diskManager)
 
 	ht := NewHashTable(bpm, 1000)
 

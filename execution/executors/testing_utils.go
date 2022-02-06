@@ -9,7 +9,8 @@ import (
 	"github.com/ryogrid/SamehadaDB/catalog"
 	"github.com/ryogrid/SamehadaDB/execution/expression"
 	"github.com/ryogrid/SamehadaDB/execution/plans"
-	"github.com/ryogrid/SamehadaDB/storage/table"
+	"github.com/ryogrid/SamehadaDB/storage/table/column"
+	"github.com/ryogrid/SamehadaDB/storage/table/schema"
 	"github.com/ryogrid/SamehadaDB/types"
 
 	testingpkg "github.com/ryogrid/SamehadaDB/testing"
@@ -43,11 +44,11 @@ type SeqScanTestCase struct {
 }
 
 func ExecuteSeqScanTestCase(t *testing.T, testCase SeqScanTestCase) {
-	columns := []*table.Column{}
+	columns := []*column.Column{}
 	for _, c := range testCase.Columns {
-		columns = append(columns, table.NewColumn(c.Name, c.Kind))
+		columns = append(columns, column.NewColumn(c.Name, c.Kind))
 	}
-	outSchema := table.NewSchema(columns)
+	outSchema := schema.NewSchema(columns)
 
 	expression := expression.NewComparison(expression.NewColumnValue(0, testCase.TableMetadata.Schema().GetColIndex(testCase.Predicate.LeftColumn)), expression.NewConstantValue(getValue(testCase.Predicate.RightColumn)), testCase.Predicate.Operator)
 	seqPlan := plans.NewSeqScanPlanNode(outSchema, &expression, testCase.TableMetadata.OID())
