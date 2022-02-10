@@ -124,3 +124,8 @@ func (d *DiskManagerImpl) GetNumWrites() uint64 {
 func (d *DiskManagerImpl) Size() int64 {
 	return d.size
 }
+
+// ATTENTION: this method can be call after calling of Shutdown method
+func (d *DiskManagerImpl) RemoveDBFile() {
+	os.Remove(d.fileName)
+}

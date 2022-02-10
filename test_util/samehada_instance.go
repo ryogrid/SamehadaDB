@@ -46,7 +46,11 @@ func (si *SamehadaInstance) GetTransactionManager() *access.TransactionManager {
 	return si.transaction_manager
 }
 
-// do shutdown of DiskManager only
-func (si *SamehadaInstance) Finalize() {
-	((*disk.DiskManagerImpl)(unsafe.Pointer(si.disk_manager))).ShutDown()
+// functionality is Shutdown of DiskManager and action around DB file only
+func (si *SamehadaInstance) Finalize(isRemoveDBFile bool) {
+	dm := ((*disk.DiskManagerImpl)(unsafe.Pointer(si.disk_manager)))
+	dm.ShutDown()
+	if isRemoveDBFile {
+		dm.RemoveDBFile()
+	}
 }

@@ -18,6 +18,7 @@ import (
 )
 
 func TestTableHeap(t *testing.T) {
+	// TODO: (SDB) need rewrite with SamehadaInstance class
 	dm := disk.NewDiskManagerTest()
 	defer dm.ShutDown()
 	bpm := buffer.NewBufferPoolManager(10, dm)
