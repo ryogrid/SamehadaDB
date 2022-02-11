@@ -1,4 +1,4 @@
-package recovery
+package log_recovery
 
 import (
 	"fmt"
