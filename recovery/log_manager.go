@@ -50,8 +50,11 @@ func (log_manager *LogManager) GetLogBuffer() []byte           { return log_mana
 
 func (log_manager *LogManager) Flush() {
 	//TODO: (SDB) [logging/recovery] not ported yet
+
+	// TODO: (SDB) need use lock and unlock functionalty of log_manager.latch mutex
+	//             cpp impl releases lock automatically using std::unique_lock
 	/*
-		//unique_lock lock(log_manager.latch)
+		//std::unique_lock lock(log_manager.latch)
 		log_manager.latch.WLock()
 		lsn = log_manager.log_buffer_lsn.load()
 		offset = log_manager.offset.load()
@@ -101,6 +104,8 @@ func (log_manager *LogManager) StopFlushThread() { common.EnableLogging = false 
  */
 func (log_manager *LogManager) AppendLogRecord(log_record *LogRecord) types.LSN {
 	// First, serialize the must have fields(20 bytes in total)
+	// TODO: (SDB) need use lock and unlock functionalty of log_manager.latch mutex
+	//             cpp impl releases lock automatically using std::unique_lock
 	// std::unique_lock lock(latch_);
 
 	//TODO: (SDB) [logging/recovery] not ported yet

@@ -129,3 +129,61 @@ func (d *DiskManagerImpl) Size() int64 {
 func (d *DiskManagerImpl) RemoveDBFile() {
 	os.Remove(d.fileName)
 }
+
+// TODO: (SDB) need implement WriteLog and ReadLog of DiskManagerImpl for logging/recovery
+// /**
+//  * Write the contents of the log into disk file
+//  * Only return when sync is done, and only perform sequence write
+//  */
+//  void DiskManager::WriteLog(char *log_data, int size) {
+// 	// enforce swap log buffer
+// 	assert(log_data != buffer_used);
+// 	buffer_used = log_data;
+
+// 	if (size == 0) {  // no effect on num_flushes_ if log buffer is empty
+// 	  return;
+// 	}
+
+// 	flush_log_ = true;
+
+// 	if (flush_log_f_ != nullptr) {
+// 	  // used for checking non-blocking flushing
+// 	  assert(flush_log_f_->wait_for(std::chrono::seconds(10)) == std::future_status::ready);
+// 	}
+
+// 	num_flushes_ += 1;
+// 	// sequence write
+// 	log_io_.write(log_data, size);
+
+// 	// check for I/O error
+// 	if (log_io_.bad()) {
+// 	  LOG_DEBUG("I/O error while writing log");
+// 	  return;
+// 	}
+// 	// needs to flush to keep disk file in sync
+// 	log_io_.flush();
+// 	flush_log_ = false;
+//   }
+
+//   /**
+//    * Read the contents of the log into the given memory area
+//    * Always read from the beginning and perform sequence read
+//    * @return: false means already reach the end
+//    */
+//   bool DiskManager::ReadLog(char *log_data, int size, int offset) {
+// 	if (offset >= GetFileSize(log_name_)) {
+// 	  // LOG_DEBUG("end of log file");
+// 	  // LOG_DEBUG("file size is %d", GetFileSize(log_name_));
+// 	  return false;
+// 	}
+// 	log_io_.seekp(offset);
+// 	log_io_.read(log_data, size);
+// 	// if log file ends before reading "size"
+// 	int read_count = log_io_.gcount();
+// 	if (read_count < size) {
+// 	  log_io_.clear();
+// 	  memset(log_data + read_count, 0, size - read_count);
+// 	}
+
+// 	return true;
+//   }
