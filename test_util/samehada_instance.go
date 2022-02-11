@@ -3,6 +3,7 @@ package test_util
 import (
 	"unsafe"
 
+	"github.com/ryogrid/SamehadaDB/concurrency"
 	"github.com/ryogrid/SamehadaDB/recovery"
 	"github.com/ryogrid/SamehadaDB/storage/access"
 	"github.com/ryogrid/SamehadaDB/storage/buffer"
@@ -15,6 +16,7 @@ type SamehadaInstance struct {
 	bpm                 *buffer.BufferPoolManager
 	lock_manager        *access.LockManager
 	transaction_manager *access.TransactionManager
+	checkpoint_manger   *concurrency.CheckpointManager
 }
 
 func NewSamehadaInstance() *SamehadaInstance {
@@ -23,7 +25,8 @@ func NewSamehadaInstance() *SamehadaInstance {
 	bpm := buffer.NewBufferPoolManager(uint32(32), disk_manager)
 	lock_manager := access.NewLockManager(access.REGULAR, access.PREVENTION)
 	transaction_manager := access.NewTransactionManager(log_manager)
-	return &SamehadaInstance{&disk_manager, log_manager, bpm, lock_manager, transaction_manager}
+	checkpoint_manager := concurrency.NewCheckpointManager(transaction_manager, log_manager, bpm)
+	return &SamehadaInstance{&disk_manager, log_manager, bpm, lock_manager, transaction_manager, checkpoint_manager}
 }
 
 func (si *SamehadaInstance) GetDiskManager() *disk.DiskManager {
@@ -44,6 +47,10 @@ func (si *SamehadaInstance) GetLockManager() *access.LockManager {
 
 func (si *SamehadaInstance) GetTransactionManager() *access.TransactionManager {
 	return si.transaction_manager
+}
+
+func (si *SamehadaInstance) GetCheckpointManager() *concurrency.CheckpointManager {
+	return si.checkpoint_manger
 }
 
 // functionality is Shutdown of DiskManager and action around DB file only

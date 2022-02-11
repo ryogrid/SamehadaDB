@@ -1,6 +1,7 @@
 package recovery
 
 import (
+	"github.com/ryogrid/SamehadaDB/common"
 	"github.com/ryogrid/SamehadaDB/storage/buffer"
 	"github.com/ryogrid/SamehadaDB/storage/disk"
 	"github.com/ryogrid/SamehadaDB/types"
@@ -38,6 +39,10 @@ func Redo()
 func Undo()
 bool DeserializeLogRecord(const char *data, LogRecord *log_record)
 */
+
+func NewLogRecovery(disk_manager *disk.DiskManager, buffer_pool_manager *buffer.BufferPoolManager) *LogRecovery {
+	return &LogRecovery{disk_manager, buffer_pool_manager, make(map[types.TxnID]types.LSN), make(map[types.LSN]int), 0, make([]byte, common.LogBufferSize)}
+}
 
 /*
  * deserialize a log record from log buffer

@@ -174,6 +174,14 @@ func (b *BufferPoolManager) getFrameID() (*FrameID, bool) {
 	return (*b.replacer).Victim(), false
 }
 
+func (b *BufferPoolManager) GetPages() []*page.Page {
+	return b.pages
+}
+
+func (b *BufferPoolManager) GetPoolSize() int {
+	return len(b.pageTable)
+}
+
 //NewBufferPoolManager returns a empty buffer pool manager
 //func NewBufferPoolManager(poolSize uint32, DiskManager disk.DiskManager, log_manager *recovery.LogManager, lock_manager *access.LockManager) *BufferPoolManager {
 func NewBufferPoolManager(poolSize uint32, DiskManager disk.DiskManager) *BufferPoolManager {

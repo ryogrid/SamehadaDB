@@ -92,3 +92,9 @@ func (p *Page) GetLSN() types.LSN { return -1 /**reinterpret_cast<lsn_t *>(GetDa
 
 /** Sets the page LSN. */
 func (p *Page) SetLSN(lsn types.LSN) { /*memcpy(GetData() + OFFSET_LSN, &lsn, sizeof(lsn_t))*/ }
+
+func (p *Page) GetPageId() types.PageID { return p.id }
+
+func (p *Page) GetData() *[common.PageSize]byte {
+	return p.data
+}
