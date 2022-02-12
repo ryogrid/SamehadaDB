@@ -53,6 +53,11 @@ func (log_manager *LogManager) Flush() {
 
 	// TODO: (SDB) need use lock and unlock functionalty of log_manager.latch mutex
 	//             cpp impl releases lock automatically using std::unique_lock
+	// TODO: (SDB) need fix to occur buffer swap when already running flushing?
+	// For I/O efficiency, ideally flush thread should be used like below
+	// https://github.com/astronaut0131/bustub/blob/master/src/recovery/log_manager.cpp#L39
+	// maybe, blocking can be eliminated because txn must wait for log persistence at commit
+	// https://github.com/astronaut0131/bustub/blob/master/src/concurrency/transaction_manager.cpp#L64
 	/*
 		//std::unique_lock lock(log_manager.latch)
 		log_manager.latch.WLock()
