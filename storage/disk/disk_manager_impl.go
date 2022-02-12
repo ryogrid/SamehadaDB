@@ -8,6 +8,7 @@ import (
 	"io"
 	"log"
 	"os"
+	"strings"
 
 	"github.com/ryogrid/SamehadaDB/common"
 	"github.com/ryogrid/SamehadaDB/types"
@@ -15,11 +16,13 @@ import (
 
 //DiskManagerImpl is the disk implementation of DiskManager
 type DiskManagerImpl struct {
-	db         *os.File
-	fileName   string
-	nextPageID types.PageID
-	numWrites  uint64
-	size       int64
+	db           *os.File
+	fileName     string
+	log          *os.File
+	fileName_log string
+	nextPageID   types.PageID
+	numWrites    uint64
+	size         int64
 }
 
 // NewDiskManagerImpl returns a DiskManager instance
@@ -30,11 +33,28 @@ func NewDiskManagerImpl(dbFilename string) DiskManager {
 		return nil
 	}
 
+	period_idx := strings.LastIndex(dbFilename, ".")
+	logfname_base := dbFilename[period_idx:]
+	logfname := logfname_base + "." + "log"
+	file_1, err := os.OpenFile(logfname, os.O_RDWR|os.O_CREATE, 0666)
+	if err != nil {
+		log.Fatalln("can't open log file")
+		return nil
+	}
+
 	fileInfo, err := file.Stat()
 	if err != nil {
 		log.Fatalln("file info error")
 		return nil
 	}
+
+	fileInfo_1, err := file_1.Stat()
+	if err != nil {
+		log.Fatalln("file info error (log file)")
+		return nil
+	}
+
+	file_1.Seek(fileInfo_1.Size(), io.SeekStart)
 
 	fileSize := fileInfo.Size()
 	nPages := fileSize / common.PageSize
@@ -44,12 +64,13 @@ func NewDiskManagerImpl(dbFilename string) DiskManager {
 		nextPageID = types.PageID(int32(nPages + 1))
 	}
 
-	return &DiskManagerImpl{file, dbFilename, nextPageID, 0, fileSize}
+	return &DiskManagerImpl{file, dbFilename, file_1, logfname, nextPageID, 0, fileSize}
 }
 
 // ShutDown closes of the database file
 func (d *DiskManagerImpl) ShutDown() {
 	d.db.Close()
+	d.log.Close()
 }
 
 // Write a page to the database file
@@ -128,6 +149,11 @@ func (d *DiskManagerImpl) Size() int64 {
 // ATTENTION: this method can be call after calling of Shutdown method
 func (d *DiskManagerImpl) RemoveDBFile() {
 	os.Remove(d.fileName)
+}
+
+// ATTENTION: this method can be call after calling of Shutdown method
+func (d *DiskManagerImpl) RemoveLogFile() {
+	os.Remove(d.fileName_log)
 }
 
 // TODO: (SDB) need implement WriteLog and ReadLog of DiskManagerImpl for logging/recovery

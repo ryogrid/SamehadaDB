@@ -54,10 +54,11 @@ func (si *SamehadaInstance) GetCheckpointManager() *concurrency.CheckpointManage
 }
 
 // functionality is Shutdown of DiskManager and action around DB file only
-func (si *SamehadaInstance) Finalize(isRemoveDBFile bool) {
+func (si *SamehadaInstance) Finalize(IsRemoveFiles bool) {
 	dm := ((*disk.DiskManagerImpl)(unsafe.Pointer(si.disk_manager)))
 	dm.ShutDown()
-	if isRemoveDBFile {
+	if IsRemoveFiles {
 		dm.RemoveDBFile()
+		dm.RemoveLogFile()
 	}
 }

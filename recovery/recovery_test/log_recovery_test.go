@@ -2,14 +2,12 @@ package log_recovery
 
 import (
 	"fmt"
+	"os"
 	"testing"
-	"time"
-	"unsafe"
 
 	"github.com/ryogrid/SamehadaDB/common"
 	"github.com/ryogrid/SamehadaDB/recovery"
 	"github.com/ryogrid/SamehadaDB/storage/access"
-	"github.com/ryogrid/SamehadaDB/storage/disk"
 	"github.com/ryogrid/SamehadaDB/storage/page"
 	"github.com/ryogrid/SamehadaDB/storage/table/column"
 	"github.com/ryogrid/SamehadaDB/storage/table/schema"
@@ -22,6 +20,8 @@ import (
 func TestRedo(t *testing.T) {
 	// remove("test.db")
 	// remove("test.log")
+	os.Remove("test.db")
+	os.Remove("test.log")
 
 	samehada_instance := test_util.NewSamehadaInstance()
 
@@ -70,10 +70,12 @@ func TestRedo(t *testing.T) {
 
 	fmt.Println("Shutdown System")
 	// delete samehada_instance
+	samehada_instance.Finalize(false)
 
 	fmt.Println("System restart...")
 	samehada_instance = test_util.NewSamehadaInstance()
 
+	samehada_instance.GetLogManager().StopFlushThread()
 	testingpkg.AssertFalse(t, common.EnableLogging, "")
 	fmt.Println("Check if tuple is not in table before recovery")
 	// var old_tuple tuple.Tuple
@@ -81,8 +83,11 @@ func TestRedo(t *testing.T) {
 	txn = samehada_instance.GetTransactionManager().Begin(nil)
 	// test_table = access.NewTableHeap(samehada_instance.GetBufferPoolManager(), samehada_instance.GetLogManager(),
 	// 	samehada_instance.GetLockManager(), first_page_id)
-	test_table = access.NewTableHeap(samehada_instance.GetBufferPoolManager(), samehada_instance.GetLogManager(),
-		samehada_instance.GetLockManager(), txn)
+	test_table = access.NewTableHeap(
+		samehada_instance.GetBufferPoolManager(),
+		samehada_instance.GetLogManager(),
+		samehada_instance.GetLockManager(),
+		txn)
 	old_tuple := test_table.GetTuple(rid, txn)
 	testingpkg.AssertFalse(t, old_tuple != nil, "")
 	old_tuple1 := test_table.GetTuple(rid1, txn)
@@ -91,7 +96,9 @@ func TestRedo(t *testing.T) {
 	// delete txn
 
 	fmt.Println("Begin recovery")
-	log_recovery := recovery.NewLogRecovery(samehada_instance.GetDiskManager(), samehada_instance.GetBufferPoolManager())
+	log_recovery := recovery.NewLogRecovery(
+		samehada_instance.GetDiskManager(),
+		samehada_instance.GetBufferPoolManager())
 
 	testingpkg.AssertFalse(t, common.EnableLogging, "")
 
@@ -105,8 +112,11 @@ func TestRedo(t *testing.T) {
 	// delete test_table
 	// test_table = access.NewTableHeap(samehada_instance.GetBufferPoolManager(), samehada_instance.GetLogManager(),
 	// 	samehada_instance.GetLockManager(), first_page_id)
-	test_table = access.NewTableHeap(samehada_instance.GetBufferPoolManager(), samehada_instance.GetLogManager(),
-		samehada_instance.GetLockManager(), txn)
+	test_table = access.NewTableHeap(
+		samehada_instance.GetBufferPoolManager(),
+		samehada_instance.GetLogManager(),
+		samehada_instance.GetLockManager(),
+		txn)
 
 	// testingpkg.Assert(t, test_table.GetTuple(rid, &old_tuple, txn), "")
 	// testingpkg.Assert(t, test_table.GetTuple(rid1, &old_tuple1, txn), "")
@@ -131,6 +141,7 @@ func TestRedo(t *testing.T) {
 
 	// delete samehada_instance
 	fmt.Println("Tearing down the system..")
+	samehada_instance.Finalize(true)
 	// remove("test.db")
 	// remove("test.log")
 }
@@ -138,20 +149,25 @@ func TestRedo(t *testing.T) {
 func TestUndo(t *testing.T) {
 	// remove("test.db")
 	// remove("test.log")
+	os.Remove("test.db")
+	os.Remove("test.log")
+
 	samehada_instance := test_util.NewSamehadaInstance()
 
 	testingpkg.AssertFalse(t, common.EnableLogging, "")
 	fmt.Println("Skip system recovering...")
 
-	// TODO: (SDB) confirm that is flush thread indispensable for logging
 	samehada_instance.GetLogManager().RunFlushThread()
 	testingpkg.Assert(t, common.EnableLogging, "")
 	fmt.Println("System logging thread running...")
 
 	fmt.Println("Create a test table")
 	txn := samehada_instance.GetTransactionManager().Begin(nil)
-	test_table := access.NewTableHeap(samehada_instance.GetBufferPoolManager(), samehada_instance.GetLogManager(),
-		samehada_instance.GetLockManager(), txn)
+	test_table := access.NewTableHeap(
+		samehada_instance.GetBufferPoolManager(),
+		samehada_instance.GetLogManager(),
+		samehada_instance.GetLockManager(),
+		txn)
 	first_page_id := test_table.GetFirstPageId()
 
 	// col1 := &column.Column{"a", types.Varchar, 20}
@@ -179,6 +195,7 @@ func TestUndo(t *testing.T) {
 
 	fmt.Println("System crash before commit")
 	// delete samehada_instance
+	samehada_instance.Finalize(false)
 
 	fmt.Println("System restarted..")
 	samehada_instance = test_util.NewSamehadaInstance()
@@ -188,8 +205,11 @@ func TestUndo(t *testing.T) {
 	txn = samehada_instance.GetTransactionManager().Begin(nil)
 	// test_table = access.NewTableHeap(samehada_instance.GetBufferPoolManager(), samehada_instance.GetLogManager(),
 	// 	samehada_instance.GetLockManager(), first_page_id)
-	test_table = access.NewTableHeap(samehada_instance.GetBufferPoolManager(), samehada_instance.GetLogManager(),
-		samehada_instance.GetLockManager(), txn)
+	test_table = access.NewTableHeap(
+		samehada_instance.GetBufferPoolManager(),
+		samehada_instance.GetLogManager(),
+		samehada_instance.GetLockManager(),
+		txn)
 
 	//testingpkg.Assert(t, test_table.GetTuple(rid, &old_tuple, txn), "")
 	old_tuple = test_table.GetTuple(rid, txn)
@@ -202,8 +222,11 @@ func TestUndo(t *testing.T) {
 	// delete txn
 
 	fmt.Println("Recovery started..")
-	log_recovery := recovery.NewLogRecovery(samehada_instance.GetDiskManager(), samehada_instance.GetBufferPoolManager())
+	log_recovery := recovery.NewLogRecovery(
+		samehada_instance.GetDiskManager(),
+		samehada_instance.GetBufferPoolManager())
 
+	samehada_instance.GetLogManager().StopFlushThread()
 	testingpkg.AssertFalse(t, common.EnableLogging, "")
 
 	log_recovery.Redo()
@@ -216,8 +239,11 @@ func TestUndo(t *testing.T) {
 	// delete test_table
 	// test_table = access.NewTableHeap(samehada_instance.GetBufferPoolManager(), samehada_instance.GetLogManager(),
 	// 	samehada_instance.GetLockManager(), first_page_id)
-	test_table = access.NewTableHeap(samehada_instance.GetBufferPoolManager(), samehada_instance.GetLogManager(),
-		samehada_instance.GetLockManager(), txn)
+	test_table = access.NewTableHeap(
+		samehada_instance.GetBufferPoolManager(),
+		samehada_instance.GetLogManager(),
+		samehada_instance.GetLockManager(),
+		txn)
 
 	//testingpkg.AssertFalse(t, test_table.GetTuple(rid, &old_tuple, txn), "")
 	old_tuple = test_table.GetTuple(rid, txn)
@@ -230,6 +256,7 @@ func TestUndo(t *testing.T) {
 
 	// delete samehada_instance
 	fmt.Println("Tearing down the system..")
+	samehada_instance.Finalize(true)
 	// remove("test.db")
 	// remove("test.log")
 }
@@ -241,6 +268,7 @@ func memcmp(arg1 interface{}, arg2 interface{}, arg3 interface{}) int32 { return
 
 // TODO: (SDB) need prepare "expect" type testing utility func
 // TODO: (SDB) need implement TestCheckPoint
+/*
 func TestCheckpoint(t *testing.T) {
 	// remove("test.db")
 	// remove("test.log")
@@ -359,6 +387,7 @@ func TestCheckpoint(t *testing.T) {
 	// remove("test.db")
 	// remove("test.log")
 }
+*/
 
 // TODO: (SDB) need implement for testing recovery and checkpoint mechanism
 // use a fixed schema to construct a random tuple
