@@ -34,7 +34,7 @@ func NewDiskManagerImpl(dbFilename string) DiskManager {
 	}
 
 	period_idx := strings.LastIndex(dbFilename, ".")
-	logfname_base := dbFilename[period_idx:]
+	logfname_base := dbFilename[:period_idx]
 	logfname := logfname_base + "." + "log"
 	file_1, err := os.OpenFile(logfname, os.O_RDWR|os.O_CREATE, 0666)
 	if err != nil {

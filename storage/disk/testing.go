@@ -17,7 +17,7 @@ type DiskManagerTest struct {
 // NewDiskManagerTest returns a DiskManager instance for testing purposes
 func NewDiskManagerTest() DiskManager {
 	// Retrieve a temporary path.
-	f, err := ioutil.TempFile("", "")
+	f, err := ioutil.TempFile("", "samehada.")
 	if err != nil {
 		panic(err)
 	}
