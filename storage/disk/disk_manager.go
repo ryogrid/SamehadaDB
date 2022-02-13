@@ -16,4 +16,6 @@ type DiskManager interface {
 	GetNumWrites() uint64
 	ShutDown()
 	Size() int64
+	RemoveDBFile()
+	RemoveLogFile()
 }

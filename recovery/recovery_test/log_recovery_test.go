@@ -46,7 +46,8 @@ func TestRedo(t *testing.T) {
 	// col1 := &column.Column{"a", types.Varchar, 20}
 	// col2 := &column.Column{"b", types.Smallint}
 	col1 := column.NewColumn("a", types.Varchar)
-	col2 := column.NewColumn("b", types.Smallint)
+	//col2 := column.NewColumn("b", types.Smallint)
+	col2 := column.NewColumn("b", types.Integer)
 	cols := []*column.Column{col1, col2}
 	schema_ := schema.NewSchema(cols)
 	tuple_ := ConstructTuple(schema_)
@@ -176,7 +177,8 @@ func TestUndo(t *testing.T) {
 	// col1 := &column.Column{"a", types.Varchar, 20}
 	// col2 := &column.Column{"b", types.Smallint}
 	col1 := column.NewColumn("a", types.Varchar)
-	col2 := column.NewColumn("b", types.Smallint)
+	//	col2 := column.NewColumn("b", types.Smallint)
+	col2 := column.NewColumn("b", types.Integer)
 	cols := []*column.Column{col1, col2}
 	schema_ := schema.NewSchema(cols)
 	tuple_ := ConstructTuple(schema_)

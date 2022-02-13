@@ -5,6 +5,7 @@ package disk
 
 import (
 	"errors"
+	"fmt"
 	"io"
 	"log"
 	"os"
@@ -69,6 +70,8 @@ func NewDiskManagerImpl(dbFilename string) DiskManager {
 
 // ShutDown closes of the database file
 func (d *DiskManagerImpl) ShutDown() {
+	fmt.Println(d.db)
+	fmt.Println(d.log)
 	d.db.Close()
 	d.log.Close()
 }

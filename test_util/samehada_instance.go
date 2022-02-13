@@ -1,8 +1,6 @@
 package test_util
 
 import (
-	"unsafe"
-
 	"github.com/ryogrid/SamehadaDB/concurrency"
 	"github.com/ryogrid/SamehadaDB/recovery"
 	"github.com/ryogrid/SamehadaDB/storage/access"
@@ -55,10 +53,10 @@ func (si *SamehadaInstance) GetCheckpointManager() *concurrency.CheckpointManage
 
 // functionality is Shutdown of DiskManager and action around DB file only
 func (si *SamehadaInstance) Finalize(IsRemoveFiles bool) {
-	dm := ((*disk.DiskManagerImpl)(unsafe.Pointer(si.disk_manager)))
-	dm.ShutDown()
+	//dm := ((*disk.DiskManagerImpl)(unsafe.Pointer(si.disk_manager)))
+	(*si.disk_manager).ShutDown()
 	if IsRemoveFiles {
-		dm.RemoveDBFile()
-		dm.RemoveLogFile()
+		(*si.disk_manager).RemoveDBFile()
+		(*si.disk_manager).RemoveLogFile()
 	}
 }
