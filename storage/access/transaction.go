@@ -109,8 +109,8 @@ func (txn *Transaction) GetTransactionId() types.TxnID { return txn.txn_id }
 // /** @return the id of the thread running the transaction */
 // func (txn *Transaction) GetThreadId() ThreadID { return txn.thread_id }
 
-// /** @return the list of of write records of this transaction */
-// func (txn *Transaction) GetWriteSet() deque<WriteRecord> { return txn.write_set }
+/** @return the list of of write records of this transaction */
+func (txn *Transaction) GetWriteSet() deque<WriteRecord> { return txn.write_set }
 
 // /** @return the page set */
 // func (txn *Transaction) GetPageSet() deque<*Page> { return txn.page_set }
@@ -127,7 +127,7 @@ func (txn *Transaction) GetTransactionId() types.TxnID { return txn.txn_id }
 // /**
 // * Adds a page to the deleted page set.
 // * @param page_id id of the page to be marked as deleted
-// */
+//  */
 // func (txn *Transaction) AddIntoDeletedPageSet(page_id PageID) { txn.deleted_page_set.insert(page_id) }
 
 // /** @return the set of resources under a shared lock */
