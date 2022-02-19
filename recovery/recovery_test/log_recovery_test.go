@@ -394,7 +394,6 @@ func TestCheckpoint(t *testing.T) {
 }
 */
 
-// TODO: (SDB) need implement for testing recovery and checkpoint mechanism
 // use a fixed schema to construct a random tuple
 func ConstructTuple(schema_ *schema.Schema) *tuple.Tuple {
 	var values []types.Value

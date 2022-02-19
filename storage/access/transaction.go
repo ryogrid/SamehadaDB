@@ -145,13 +145,13 @@ func (txn *Transaction) AddIntoWriteSet(write_record *WriteRecord) {
 // TODO: (SDB) not ported yet
 /** @return true if rid is shared locked by this transaction */
 func (txn *Transaction) IsSharedLocked(rid *page.RID) bool {
-	return false /*txn.shared_lock_set.find(rid) != txn.shared_lock_set.end()*/
+	return true /*txn.shared_lock_set.find(rid) != txn.shared_lock_set.end()*/
 }
 
 // TODO: (SDB) not ported yet
 /** @return true if rid is exclusively locked by this transaction */
 func (txn *Transaction) IsExclusiveLocked(rid *page.RID) bool {
-	return false /*txn.exclusive_lock_set.find(rid) != txn.exclusive_lock_set.end()*/
+	return true /*txn.exclusive_lock_set.find(rid) != txn.exclusive_lock_set.end()*/
 }
 
 /** @return the current state of the transaction */
