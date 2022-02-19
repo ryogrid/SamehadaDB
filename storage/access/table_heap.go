@@ -45,11 +45,11 @@ func (t *TableHeap) GetFirstPageId() types.PageID {
 // If the tuple is too large (>= page_size):
 // 1. It tries to insert in the next page
 // 2. If there is no next page, it creates a new page and insert in it
-func (t *TableHeap) InsertTuple(tuple *tuple.Tuple, txn *Transaction) (rid *page.RID, err error) {
+func (t *TableHeap) InsertTuple(tuple_ *tuple.Tuple, txn *Transaction) (rid *page.RID, err error) {
 	currentPage := CastPageAsTablePage(t.bpm.FetchPage(t.firstPageId))
 
 	for {
-		rid, err = currentPage.InsertTuple(tuple, t.log_manager, t.lock_manager, txn)
+		rid, err = currentPage.InsertTuple(tuple_, t.log_manager, t.lock_manager, txn)
 		if err == nil || err == ErrEmptyTuple {
 			break
 		}
@@ -69,11 +69,12 @@ func (t *TableHeap) InsertTuple(tuple *tuple.Tuple, txn *Transaction) (rid *page
 	}
 
 	t.bpm.UnpinPage(currentPage.GetTablePageId(), true)
-  	// Update the transaction's write set.
-  	txn->GetWriteSet()->emplace_back(*rid, WType::INSERT, Tuple{}, this);
+	// Update the transaction's write set.
+	txn.AddIntoWriteSet(NewWriteRecord(*rid, INSERT, new(tuple.Tuple), t))
 	return rid, nil
 }
 
+/* TODO: (SDB) not ported yet
 /*
 bool TableHeap::MarkDelete(const RID &rid, Transaction *txn) {
 	// TODO(Amadou): remove empty page
@@ -93,7 +94,7 @@ bool TableHeap::MarkDelete(const RID &rid, Transaction *txn) {
 	txn->GetWriteSet()->emplace_back(rid, WType::DELETE, Tuple{}, this);
 	return true;
   }
-  
+
   bool TableHeap::UpdateTuple(const Tuple &tuple, const RID &rid, Transaction *txn) {
 	// Find the page which contains the tuple.
 	auto page = reinterpret_cast<TablePage *>(buffer_pool_manager_->FetchPage(rid.GetPageId()));
@@ -114,7 +115,7 @@ bool TableHeap::MarkDelete(const RID &rid, Transaction *txn) {
 	}
 	return is_updated;
   }
-  
+
   void TableHeap::ApplyDelete(const RID &rid, Transaction *txn) {
 	// Find the page which contains the tuple.
 	auto page = reinterpret_cast<TablePage *>(buffer_pool_manager_->FetchPage(rid.GetPageId()));
@@ -126,7 +127,7 @@ bool TableHeap::MarkDelete(const RID &rid, Transaction *txn) {
 	page->WUnlatch();
 	buffer_pool_manager_->UnpinPage(page->GetTablePageId(), true);
   }
-  
+
   void TableHeap::RollbackDelete(const RID &rid, Transaction *txn) {
 	// Find the page which contains the tuple.
 	auto page = reinterpret_cast<TablePage *>(buffer_pool_manager_->FetchPage(rid.GetPageId()));

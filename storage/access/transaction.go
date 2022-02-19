@@ -73,7 +73,7 @@ type Transaction struct {
 	txn_id types.TxnID
 
 	// /** The undo set of the access. */
-	// write_set deque<WriteRecord>
+	write_set []*WriteRecord
 
 	/** The LSN of the last record written by the access. */
 	prev_lsn types.LSN
@@ -94,7 +94,7 @@ func NewTransaction(txn_id types.TxnID) *Transaction {
 		GROWING,
 		// std::this_thread::get_id(),
 		txn_id,
-		// deque<WriteRecord>
+		make([]*WriteRecord, 0),
 		common.InvalidLSN,
 		// deque<*Page>,
 		// unordered_set<PageID>
@@ -110,7 +110,13 @@ func (txn *Transaction) GetTransactionId() types.TxnID { return txn.txn_id }
 // func (txn *Transaction) GetThreadId() ThreadID { return txn.thread_id }
 
 /** @return the list of of write records of this transaction */
-func (txn *Transaction) GetWriteSet() deque<WriteRecord> { return txn.write_set }
+func (txn *Transaction) GetWriteSet() []*WriteRecord { return txn.write_set }
+
+func (txn *Transaction) SetWriteSet(write_set []*WriteRecord) { txn.write_set = write_set }
+
+func (txn *Transaction) AddIntoWriteSet(write_record *WriteRecord) {
+	txn.write_set = append(txn.write_set, write_record)
+}
 
 // /** @return the page set */
 // func (txn *Transaction) GetPageSet() deque<*Page> { return txn.page_set }

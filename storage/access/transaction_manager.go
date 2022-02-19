@@ -46,21 +46,19 @@ func (transaction_manager *TransactionManager) Begin(txn *Transaction) *Transact
 func (transaction_manager *TransactionManager) Commit(txn *Transaction) {
 	txn.SetState(COMMITTED)
 
-	// TODO: (SDB) not ported yet
-	/*
-	   // Perform all deletes before we commit.
-	   auto write_set = txn.GetWriteSet()
-	   while (!write_set.empty()) {
-	     auto &item = write_set.back()
-	     auto table = item.table;
-	     if (item.wtype == WType::DELETE) {
-	       // Note that this also releases the lock when holding the page latch.
-	       table.ApplyDelete(item.rid, txn)
-	     }
-	     write_set.pop_back()
-	   }
-	   write_set.clear()
-	*/
+	// Perform all deletes before we commit.
+	write_set := txn.GetWriteSet()
+	for len(write_set) != 0 {
+		item := write_set[len(write_set)-1]
+		//table := item.table
+		if item.wtype == DELETE {
+			// Note that this also releases the lock when holding the page latch.
+			// TODO: (SDB) not ported yet
+			//table.ApplyDelete(item.rid, txn)
+		}
+		write_set = write_set[:len(write_set)-1]
+	}
+	txn.SetWriteSet(write_set)
 
 	if common.EnableLogging {
 		log_record := recovery.NewLogRecordTxn(txn.GetTransactionId(), txn.GetPrevLSN(), recovery.COMMIT)
@@ -78,25 +76,23 @@ func (transaction_manager *TransactionManager) Commit(txn *Transaction) {
 func (transaction_manager *TransactionManager) Abort(txn *Transaction) {
 	txn.SetState(ABORTED)
 
-	// TODO: (SDB) not ported yet
-	/*
-	   // Rollback before releasing the access.
-	   auto write_set = txn.GetWriteSet();
-	   while (!write_set.empty()) {
-	     auto &item = write_set.back()
-	     auto table = item.table
-	     if (item.wtype == WType::DELETE) {
-	       table.RollbackDelete(item.rid_, txn)
-	     } else if (item.wtype == WType::INSERT) {
-	       // Note that this also releases the lock when holding the page latch.
-	       table.ApplyDelete(item.rid, txn)
-	     } else if (item.wtype_ == WType::UPDATE) {
-	       table.UpdateTuple(item.tuple, item.rid_, txn)
-	     }
-	     write_set.pop_back()
-	   }
-	   write_set.clear()
-	*/
+	// Rollback before releasing the access.
+	write_set := txn.GetWriteSet()
+	for len(write_set) != 0 {
+		item := write_set[len(write_set)-1]
+		//table := item.table
+		// TODO: (SDB) not ported yet (inside of if block)
+		if item.wtype == DELETE {
+			//table.RollbackDelete(item.rid_, txn)
+		} else if item.wtype == INSERT {
+			// Note that this also releases the lock when holding the page latch.
+			//table.ApplyDelete(item.rid, txn)
+		} else if item.wtype == UPDATE {
+			//table.UpdateTuple(item.tuple, item.rid_, txn)
+		}
+		write_set = write_set[:len(write_set)-1]
+	}
+	txn.SetWriteSet(write_set)
 
 	if common.EnableLogging {
 		log_record := recovery.NewLogRecordTxn(txn.GetTransactionId(), txn.GetPrevLSN(), recovery.ABORT)
