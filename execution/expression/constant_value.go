@@ -9,6 +9,9 @@ import (
 	"github.com/ryogrid/SamehadaDB/types"
 )
 
+/**
+ * ConstantValue represents constants.
+ */
 type ConstantValue struct {
 	value types.Value
 }

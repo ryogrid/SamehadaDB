@@ -7,7 +7,10 @@ import (
 	"github.com/ryogrid/SamehadaDB/types"
 )
 
-// DiskManager is responsible for interacting with disk
+/**
+ * DiskManager takes care of the allocation and deallocation of pages within a database. It performs the reading and
+ * writing of pages to and from disk, providing a logical file layer within the context of a database management system.
+ */
 type DiskManager interface {
 	ReadPage(types.PageID, []byte) error
 	WritePage(types.PageID, []byte) error

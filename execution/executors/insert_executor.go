@@ -9,7 +9,10 @@ import (
 	"github.com/ryogrid/SamehadaDB/storage/tuple"
 )
 
-// InsertExecutor executes an insert into a table
+/**
+ * InsertExecutor executes an insert into a table.
+ * Inserted values can either be embedded in the plan itself ("raw insert") or come from a child executor.
+ */
 type InsertExecutor struct {
 	context       *ExecutorContext
 	plan          *plans.InsertPlanNode

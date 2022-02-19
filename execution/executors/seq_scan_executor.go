@@ -12,7 +12,9 @@ import (
 	"github.com/ryogrid/SamehadaDB/types"
 )
 
-// SeqScanExecutor executes a sequential scan
+/**
+ * SeqScanExecutor executes a sequential scan over a table.
+ */
 type SeqScanExecutor struct {
 	context       *ExecutorContext
 	plan          *plans.SeqScanPlanNode

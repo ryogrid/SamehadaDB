@@ -8,6 +8,9 @@ import (
 	"github.com/ryogrid/SamehadaDB/types"
 )
 
+/**
+ * TransactionManager keeps track of all the transactions running in the system.
+ */
 type TransactionManager struct {
 	// TODO: (SDB) must ensure atomicity
 	next_txn_id types.TxnID

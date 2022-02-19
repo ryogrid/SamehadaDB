@@ -7,8 +7,11 @@ import (
 	"github.com/ryogrid/SamehadaDB/types"
 )
 
-// InsertPlanNode identifies a table that should be inserted into
-// The values to be inserted are embedded into the InsertPlanNode itself
+/**
+ * InsertPlanNode identifies a table that should be inserted into.
+ * The values to be inserted are either embedded into the InsertPlanNode itself, i.e. a "raw insert",
+ * or will come from the child of the InsertPlanNode. To simplify the assignment, InsertPlanNode has at most one child.
+ */
 type InsertPlanNode struct {
 	*AbstractPlanNode
 	rawValues [][]types.Value

@@ -9,7 +9,9 @@ import (
 	"github.com/ryogrid/SamehadaDB/storage/buffer"
 )
 
-// ExecutorContext stores all the context necessary to run an executor
+/**
+ * ExecutorContext stores all the context necessary to run an executor.
+ */
 type ExecutorContext struct {
 	catalog *catalog.Catalog
 	bpm     *buffer.BufferPoolManager

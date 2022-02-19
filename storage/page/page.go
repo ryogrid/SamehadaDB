@@ -14,6 +14,12 @@ const SizePageHeader = 8
 const OffsetPageStart = 0
 const OffsetLSN = 4
 
+/**
+ * Page is the basic unit of storage within the database system. Page provides a wrapper for actual data pages being
+ * held in main memory. Page also contains book-keeping information that is used by the buffer pool manager, e.g.
+ * pin count, dirty flag, page id, etc.
+ */
+
 // Page represents an abstract page on disk
 type Page struct {
 	id       types.PageID           // idenfies the page. It is used to find the offset of the page on disk

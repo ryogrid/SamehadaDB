@@ -62,6 +62,9 @@ func NewWriteRecord(rid page.RID, wtype WType, tuple *tuple.Tuple, table *TableH
 	return ret
 }
 
+/**
+ * Transaction tracks information related to a transaction.
+ */
 type Transaction struct {
 	/** The current transaction state. */
 	state TransactionState

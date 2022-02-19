@@ -10,6 +10,12 @@ import (
 	"github.com/ryogrid/SamehadaDB/types"
 )
 
+/**
+ * Tuple format:
+ * ---------------------------------------------------------------------
+ * | FIXED-SIZE or VARIED-SIZED OFFSET | PAYLOAD OF VARIED-SIZED FIELD |
+ * ---------------------------------------------------------------------
+ */
 type Tuple struct {
 	rid  *page.RID
 	size uint32

@@ -8,6 +8,9 @@ import (
 	"encoding/binary"
 )
 
+// A value is an class that represents a view over SQL data stored in
+// some materialized state. All values have a type and comparison functions,
+// and implement other type-specific functionality.
 type Value struct {
 	valueType TypeID
 	integer   *int32
