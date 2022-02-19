@@ -8,8 +8,11 @@ import (
 	"github.com/ryogrid/SamehadaDB/types"
 )
 
-// // PageSize is the size of a page in disk (4KB)
-// const PageSize = 4096
+// PageSize is the size of a page in disk (4KB)
+//const PageSize = 4096
+const SizePageHeader = 8
+const OffsetPageStart = 0
+const OffsetLSN = 4
 
 // Page represents an abstract page on disk
 type Page struct {
@@ -85,13 +88,18 @@ func NewEmpty(id types.PageID) *Page {
 //   /** Release the page read latch. */
 //   inline void RUnlatch() { rwlatch_.RUnlock(); }
 
-// TODO: (SDB) [logging/recovery] need to port GetLSN and SetLSN at Page class
-
 /** @return the page LSN. */
-func (p *Page) GetLSN() types.LSN { return -1 /**reinterpret_cast<lsn_t *>(GetData() + OFFSET_LSN)*/ }
+func (p *Page) GetLSN() types.LSN {
+	/* return -1 */
+	/**reinterpret_cast<lsn_t *>(GetData() + OFFSET_LSN)*/
+	return types.NewLSNFromBytes(p.GetData()[OffsetLSN : OffsetLSN+types.SizeOfLSN])
+}
 
 /** Sets the page LSN. */
-func (p *Page) SetLSN(lsn types.LSN) { /*memcpy(GetData() + OFFSET_LSN, &lsn, sizeof(lsn_t))*/ }
+func (p *Page) SetLSN(lsn types.LSN) {
+	/*memcpy(GetData() + OFFSET_LSN, &lsn, sizeof(lsn_t))*/
+	copy(p.data[OffsetLSN:OffsetLSN+types.SizeOfLSN], lsn.Serialize())
+}
 
 func (p *Page) GetPageId() types.PageID { return p.id }
 
