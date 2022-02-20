@@ -85,3 +85,23 @@ func (t *Tuple) GetRID() *page.RID {
 func (t *Tuple) Copy(offset uint32, data []byte) {
 	copy(t.data[offset:], data)
 }
+
+// TODO: (SDB) [logging/recovery] not ported yet
+/*
+  void Tuple::SerializeTo(char *storage) const {
+	memcpy(storage, &size_, sizeof(int32_t));
+	memcpy(storage + sizeof(int32_t), data_, size_);
+  }
+
+  void Tuple::DeserializeFrom(const char *storage) {
+	uint32_t size = *reinterpret_cast<const uint32_t *>(storage);
+	// Construct a tuple.
+	this->size_ = size;
+	if (this->allocated_) {
+	  delete[] this->data_;
+	}
+	this->data_ = new char[this->size_];
+	memcpy(this->data_, storage + sizeof(int32_t), this->size_);
+	this->allocated_ = true;
+  }
+*/
