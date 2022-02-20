@@ -199,25 +199,46 @@ func (d *DiskManagerImpl) WriteLog(log_data []byte, size int32) {
 	d.flush_log = false
 }
 
-//   /**
-//    * Read the contents of the log into the given memory area
-//    * Always read from the beginning and perform sequence read
-//    * @return: false means already reach the end
-//    */
-//   bool DiskManager::ReadLog(char *log_data, int size, int offset) {
-// 	if (offset >= GetFileSize(log_name_)) {
-// 	  // LOG_DEBUG("end of log file")
-// 	  // LOG_DEBUG("file size is %d", GetFileSize(log_name_))
-// 	  return false
-// 	}
-// 	log_io_.seekp(offset)
-// 	log_io_.read(log_data, size)
-// 	// if log file ends before reading "size"
-// 	int read_count = log_io_.gcount()
-// 	if (read_count < size) {
-// 	  log_io_.clear()
-// 	  memset(log_data + read_count, 0, size - read_count)
-// 	}
+/**
+* Read the contents of the log into the given memory area
+* Always read from the beginning and perform sequence read
+* @return: false means already reach the end
+ */
+// Attention: len(log_data) specifies read data length
+func (d *DiskManagerImpl) ReadLog(log_data []byte, offset int32) bool {
+	if offset >= getFileSize(d.fileName_log) {
+		fmt.Println("end of log file")
+		fmt.Println("file size is %d", getFileSize(d.fileName_log))
+		return false
+	}
 
-// 	return true
-//   }
+	d.log.Seek(int64(offset), io.SeekStart)
+	readBytes, err := d.log.Read(log_data)
+	// if log file ends before reading "size"
+	//read_count := d.log.gcount()
+	if readBytes < len(log_data) {
+		d.log.Close()
+		//memset(log_data+read_count, 0, size-read_count)
+		log_data[readBytes] = byte(len(log_data) - readBytes)
+	}
+
+	if err != nil {
+		fmt.Println("I/O error at log data reading")
+		return false
+	}
+
+	return true
+}
+
+// TODO: (SDB) [logging/recovery] getFileSize is not ported yet
+/**
+ * Private helper function to get disk file size
+ */
+func getFileSize(file_name string) int32 {
+	/*
+		struct stat stat_buf;
+		int rc = stat(file_name.c_str(), &stat_buf);
+		return rc == 0 ? static_cast<int>(stat_buf.st_size) : -1;
+	*/
+	return 0
+}
