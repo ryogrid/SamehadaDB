@@ -5,10 +5,15 @@
 package tuple
 
 import (
+	"bytes"
+	"encoding/binary"
+
 	"github.com/ryogrid/SamehadaDB/storage/page"
 	"github.com/ryogrid/SamehadaDB/storage/table/schema"
 	"github.com/ryogrid/SamehadaDB/types"
 )
+
+var TupleOffset = 4 // payload size info in Bytes
 
 /**
  * Tuple format:
@@ -86,13 +91,18 @@ func (t *Tuple) Copy(offset uint32, data []byte) {
 	copy(t.data[offset:], data)
 }
 
+func (tuple_ *Tuple) SerializeTo(storage []byte) {
+	buf := new(bytes.Buffer)
+	binary.Write(buf, binary.LittleEndian, tuple_.size)
+	sizeInBytes := buf.Bytes()
+	// memcpy(storage, &tuple_.size, sizeof(int32_t))
+	// memcpy(storage+sizeof(int32_t), tuple_.data, tuple_.size)
+	copy(storage, sizeInBytes)
+	copy(storage[TupleOffset:TupleOffset+int(tuple_.size)], tuple_.data)
+}
+
 // TODO: (SDB) [logging/recovery] not ported yet
 /*
-  void Tuple::SerializeTo(char *storage) const {
-	memcpy(storage, &size_, sizeof(int32_t));
-	memcpy(storage + sizeof(int32_t), data_, size_);
-  }
-
   void Tuple::DeserializeFrom(const char *storage) {
 	uint32_t size = *reinterpret_cast<const uint32_t *>(storage);
 	// Construct a tuple.
