@@ -5,6 +5,7 @@ package disk
 
 import (
 	"errors"
+	"fmt"
 	"io"
 	"log"
 	"os"
@@ -23,6 +24,8 @@ type DiskManagerImpl struct {
 	nextPageID   types.PageID
 	numWrites    uint64
 	size         int64
+	flush_log    bool
+	numFlushes   uint64
 }
 
 // NewDiskManagerImpl returns a DiskManager instance
@@ -64,7 +67,7 @@ func NewDiskManagerImpl(dbFilename string) DiskManager {
 		nextPageID = types.PageID(int32(nPages + 1))
 	}
 
-	return &DiskManagerImpl{file, dbFilename, file_1, logfname, nextPageID, 0, fileSize}
+	return &DiskManagerImpl{file, dbFilename, file_1, logfname, nextPageID, 0, fileSize, false, 0}
 }
 
 // ShutDown closes of the database file
@@ -157,39 +160,44 @@ func (d *DiskManagerImpl) RemoveLogFile() {
 }
 
 // TODO: (SDB) need implement WriteLog and ReadLog of DiskManagerImpl for logging/recovery
-// /**
-//  * Write the contents of the log into disk file
-//  * Only return when sync is done, and only perform sequence write
-//  */
-//  void DiskManager::WriteLog(char *log_data, int size) {
-// 	// enforce swap log buffer
-// 	assert(log_data != buffer_used);
-// 	buffer_used = log_data;
 
-// 	if (size == 0) {  // no effect on num_flushes_ if log buffer is empty
-// 	  return;
-// 	}
+/**
+ * Write the contents of the log into disk file
+ * Only return when sync is done, and only perform sequence write
+ */
+func (d *DiskManagerImpl) WriteLog(log_data []byte, size int32) {
+	// enforce swap log buffer
 
-// 	flush_log_ = true;
+	//assert(log_data != buffer_used)
+	//buffer_used := log_data
 
-// 	if (flush_log_f_ != nullptr) {
-// 	  // used for checking non-blocking flushing
-// 	  assert(flush_log_f_->wait_for(std::chrono::seconds(10)) == std::future_status::ready);
-// 	}
+	if size == 0 { // no effect on num_flushes_ if log buffer is empty
+		return
+	}
 
-// 	num_flushes_ += 1;
-// 	// sequence write
-// 	log_io_.write(log_data, size);
+	d.flush_log = true
 
-// 	// check for I/O error
-// 	if (log_io_.bad()) {
-// 	  LOG_DEBUG("I/O error while writing log");
-// 	  return;
-// 	}
-// 	// needs to flush to keep disk file in sync
-// 	log_io_.flush();
-// 	flush_log_ = false;
-//   }
+	// Note: current implementation does not use non-blocking I/O
+	// if flush_log_f_ != nullptr {
+	//   // used for checking non-blocking flushing
+	//   assert(flush_log_f_.wait_for(std::chrono::seconds(10)) == std::future_status::ready)
+	// }
+
+	d.numFlushes += 1
+	// sequence write
+	//disk_manager.log.write(log_data, size)
+	_, err := d.log.Write(log_data)
+
+	// check for I/O error
+	if err != nil {
+		fmt.Println("I/O error while writing log")
+		return
+	}
+	// needs to flush to keep disk file in sync
+	//disk_manager.log.Flush()
+	d.log.Sync()
+	d.flush_log = false
+}
 
 //   /**
 //    * Read the contents of the log into the given memory area
@@ -198,18 +206,18 @@ func (d *DiskManagerImpl) RemoveLogFile() {
 //    */
 //   bool DiskManager::ReadLog(char *log_data, int size, int offset) {
 // 	if (offset >= GetFileSize(log_name_)) {
-// 	  // LOG_DEBUG("end of log file");
-// 	  // LOG_DEBUG("file size is %d", GetFileSize(log_name_));
-// 	  return false;
+// 	  // LOG_DEBUG("end of log file")
+// 	  // LOG_DEBUG("file size is %d", GetFileSize(log_name_))
+// 	  return false
 // 	}
-// 	log_io_.seekp(offset);
-// 	log_io_.read(log_data, size);
+// 	log_io_.seekp(offset)
+// 	log_io_.read(log_data, size)
 // 	// if log file ends before reading "size"
-// 	int read_count = log_io_.gcount();
+// 	int read_count = log_io_.gcount()
 // 	if (read_count < size) {
-// 	  log_io_.clear();
-// 	  memset(log_data + read_count, 0, size - read_count);
+// 	  log_io_.clear()
+// 	  memset(log_data + read_count, 0, size - read_count)
 // 	}
 
-// 	return true;
+// 	return true
 //   }
