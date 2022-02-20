@@ -206,9 +206,9 @@ func (d *DiskManagerImpl) WriteLog(log_data []byte, size int32) {
  */
 // Attention: len(log_data) specifies read data length
 func (d *DiskManagerImpl) ReadLog(log_data []byte, offset int32) bool {
-	if offset >= getFileSize(d.fileName_log) {
+	if int64(offset) >= d.GetLogFileSize() {
 		fmt.Println("end of log file")
-		fmt.Println("file size is %d", getFileSize(d.fileName_log))
+		fmt.Printf("file size is %d\n", d.GetLogFileSize())
 		return false
 	}
 
@@ -230,15 +230,19 @@ func (d *DiskManagerImpl) ReadLog(log_data []byte, offset int32) bool {
 	return true
 }
 
-// TODO: (SDB) [logging/recovery] getFileSize is not ported yet
 /**
  * Private helper function to get disk file size
  */
-func getFileSize(file_name string) int32 {
+func (d *DiskManagerImpl) GetLogFileSize() int64 {
 	/*
 		struct stat stat_buf;
 		int rc = stat(file_name.c_str(), &stat_buf);
 		return rc == 0 ? static_cast<int>(stat_buf.st_size) : -1;
 	*/
-	return 0
+	fileInfo, err := d.log.Stat()
+	if err != nil {
+		return -1
+	}
+
+	return fileInfo.Size()
 }
