@@ -1,6 +1,10 @@
 package recovery
 
 import (
+	"bytes"
+	"encoding/binary"
+	"unsafe"
+
 	"github.com/ryogrid/SamehadaDB/common"
 	"github.com/ryogrid/SamehadaDB/storage/buffer"
 	"github.com/ryogrid/SamehadaDB/storage/disk"
@@ -44,6 +48,8 @@ func NewLogRecovery(disk_manager *disk.DiskManager, buffer_pool_manager *buffer.
 	return &LogRecovery{disk_manager, buffer_pool_manager, make(map[types.TxnID]types.LSN), make(map[types.LSN]int), 0, make([]byte, common.LogBufferSize)}
 }
 
+// TODO: (SDB) DeserializeLogRecord at LogRecovery class has to be revert orinal
+//             function signiture
 /*
  * deserialize a log record from log buffer
  * @return: true means deserialize succeed, otherwise can't deserialize cause
@@ -51,53 +57,57 @@ func NewLogRecovery(disk_manager *disk.DiskManager, buffer_pool_manager *buffer.
  */
 func (log_recovery *LogRecovery) DeserializeLogRecord(data []byte) *LogRecord {
 	// TODO: (SDB) [logging/recovery] not ported yet
-	/*
-		if common.LogBufferSize-(len(data)-len(log_recovery.log_buffer)) < int(HEADER_SIZE) {
-			return nil
-		}
-		// First, unserialize the must have fields(20 bytes in total)
-		log_record := new(LogRecord)
-		record_construct_buf := new(bytes.Buffer)
-		//memcpy(log_record, data, HEADER_SIZE)
-		//copy(record_construct_buf, data[:HEADER_SIZE])
-		record_construct_buf.Write(data[:HEADER_SIZE])
-		//binary.Write(record_construct_buf, binary.LittleEndian,)
-		binary.Read(record_construct_buf, binary.LittleEndian, &log_record)
 
-		if log_record.size <= 0 {
-			return nil
-		}
-		if common.LogBufferSize-(len(data)-len(log_recovery.log_buffer)) < int(log_record.size) {
-			return nil
-		}
-		pos := HEADER_SIZE
-		if log_record.log_record_type == INSERT {
-			memcpy(&log_record.insert_rid, data+pos, sizeof(RID))
-			pos += sizeof(RID)
-			// we have provided serialize function for tuple class
-			log_record.insert_tuple.DeserializeFrom(data + pos)
-		} else if log_record.log_record_type == APPLYDELETE ||
-			log_record.log_record_type == MARKDELETE ||
-			log_record.log_record_type == ROLLBACKDELETE {
-			memcpy(&log_record.delete_rid, data+pos, sizeof(RID))
-			pos += sizeof(RID)
-			// we have provided serialize function for tuple class
-			log_record.delete_tuple.DeserializeFrom(data + pos)
-		} else if log_record.log_record_type == UPDATE {
-			memcpy(&log_record.update_rid, data+pos, sizeof(RID))
-			pos += sizeof(RID)
-			// we have provided serialize function for tuple class
-			log_record.old_tuple.DeserializeFrom(data + pos)
-			pos += sizeof(log_record.old_tuple.GetLength() + sizeof(uint32_t))
-			log_record.new_tuple.DeserializeFrom(data + pos)
-		} else if log_record.log_record_type == NEWPAGE {
-			memcpy(&log_record.prev_page_id, data+pos, sizeof(page_id_t))
-		}
+	if common.LogBufferSize-len(data) < int(HEADER_SIZE) {
+		return nil
+	}
+	// First, unserialize the must have fields(20 bytes in total)
+	log_record := new(LogRecord)
+	record_construct_buf := new(bytes.Buffer)
+	//memcpy(log_record, data, HEADER_SIZE)
+	//copy(record_construct_buf, data[:HEADER_SIZE])
+	record_construct_buf.Write(data[:HEADER_SIZE])
+	//binary.Write(record_construct_buf, binary.LittleEndian,)
+	binary.Read(record_construct_buf, binary.LittleEndian, &log_record)
 
-		//return true
-		return log_record
-	*/
-	return nil
+	if log_record.size <= 0 {
+		return nil
+	}
+	if common.LogBufferSize-len(data) < int(log_record.size) {
+		return nil
+	}
+
+	//binary.Read(bytes.NewBuffer(data), binary.LittleEndian, &ret)
+	pos := HEADER_SIZE
+	if log_record.log_record_type == INSERT {
+		//memcpy(&log_record.insert_rid, data+pos, sizeof(RID))
+		binary.Read(bytes.NewBuffer(data[pos:]), binary.LittleEndian, log_record.insert_rid)
+		pos += uint32(unsafe.Sizeof(log_record.insert_rid))
+		// we have provided serialize function for tuple class
+		log_record.insert_tuple.DeserializeFrom(data[pos:])
+	} else if log_record.log_record_type == APPLYDELETE ||
+		log_record.log_record_type == MARKDELETE ||
+		log_record.log_record_type == ROLLBACKDELETE {
+		//memcpy(&log_record.delete_rid, data+pos, sizeof(RID))
+		binary.Read(bytes.NewBuffer(data[pos:]), binary.LittleEndian, log_record.delete_rid)
+		pos += uint32(unsafe.Sizeof(log_record.delete_rid))
+		// we have provided serialize function for tuple class
+		log_record.delete_tuple.DeserializeFrom(data[pos:])
+	} else if log_record.log_record_type == UPDATE {
+		//memcpy(&log_record.update_rid, data+pos, sizeof(RID))
+		//pos += sizeof(RID)
+		binary.Read(bytes.NewBuffer(data[pos:]), binary.LittleEndian, log_record.update_rid)
+		pos += uint32(unsafe.Sizeof(log_record.update_rid))
+		// we have provided serialize function for tuple class
+		log_record.old_tuple.DeserializeFrom(data[pos:])
+		pos += log_record.old_tuple.Size() + uint32(unsafe.Sizeof(log_record.update_rid))
+		log_record.new_tuple.DeserializeFrom(data[pos:])
+	} else if log_record.log_record_type == NEWPAGE {
+		//memcpy(&log_record.prev_page_id, data+pos, sizeof(page_id_t))
+		binary.Read(bytes.NewBuffer(data[pos:]), binary.LittleEndian, log_record.prev_page_id)
+	}
+
+	return log_record
 }
 
 /*
