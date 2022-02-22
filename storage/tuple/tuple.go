@@ -101,17 +101,11 @@ func (tuple_ *Tuple) SerializeTo(storage []byte) {
 	copy(storage[TupleOffset:TupleOffset+int(tuple_.size)], tuple_.data)
 }
 
-// TODO: (SDB) [logging/recovery] not ported yet
-/*
-  void Tuple::DeserializeFrom(const char *storage) {
-	uint32_t size = *reinterpret_cast<const uint32_t *>(storage);
+func (tuple_ *Tuple) DeserializeFrom(storage []byte) {
+	size := len(storage) - TupleOffset
 	// Construct a tuple.
-	this->size_ = size;
-	if (this->allocated_) {
-	  delete[] this->data_;
-	}
-	this->data_ = new char[this->size_];
-	memcpy(this->data_, storage + sizeof(int32_t), this->size_);
-	this->allocated_ = true;
-  }
-*/
+	tuple_.size = uint32(size)
+	tuple_.data = make([]byte, tuple_.size)
+	//memcpy(this.data, storage+sizeof(int32_t), this.size)
+	copy(tuple_.data, storage[TupleOffset:])
+}
