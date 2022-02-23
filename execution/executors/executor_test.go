@@ -57,7 +57,7 @@ func TestSimpleInsertAndSeqScan(t *testing.T) {
 	executorContext := NewExecutorContext(c, bpm, txn)
 	executionEngine.Execute(insertPlanNode, executorContext)
 
-	bpm.FlushAllpages()
+	bpm.FlushAllPages()
 
 	outColumnA := column.NewColumn("a", types.Integer)
 	outSchema := schema.NewSchema([]*column.Column{outColumnA})
@@ -114,7 +114,7 @@ func TestSimpleInsertAndSeqScanWithPredicateComparison(t *testing.T) {
 	executorContext := NewExecutorContext(c, bpm, txn)
 	executionEngine.Execute(insertPlanNode, executorContext)
 
-	bpm.FlushAllpages()
+	bpm.FlushAllPages()
 
 	txn_mgr.Commit(txn)
 
@@ -248,7 +248,7 @@ func TestSimpleInsertAndLimitExecution(t *testing.T) {
 	executorContext := NewExecutorContext(c, bpm, txn)
 	executionEngine.Execute(insertPlanNode, executorContext)
 
-	bpm.FlushAllpages()
+	bpm.FlushAllPages()
 
 	txn_mgr.Commit(txn)
 

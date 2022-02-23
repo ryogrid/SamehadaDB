@@ -190,8 +190,10 @@ func (log_recovery *LogRecovery) Redo() {
 		// incomplete log record
 		file_offset += buffer_offset
 	}
-
 }
+
+// TODO: (SDB) not ported route exists at Undo method of LogRecovery class.
+//             when Log_record_type is APPLYDELETE, MARKDELETE, ROLLBACKDELETE, UPDATE
 
 /*
 *undo phase on TABLE PAGE level(table/table_page.h)
@@ -199,46 +201,45 @@ func (log_recovery *LogRecovery) Redo() {
  */
 func (log_recovery *LogRecovery) Undo() {
 	// TODO: (SDB) [logging/recovery] not ported yet
-	/*
-		LogRecord log_record
-		for (auto it : active_txn) {
-			auto lsn = it.second
-			while (lsn != INVALID_LSN) {
-			auto file_offset = lsn_mapping[lsn]
-			LOG_DEBUG("file_offset: %d", file_offset)
-			disk_manager.ReadLog(log_buffer, LOG_BUFFER_SIZE, file_offset)
-			DeserializeLogRecord(log_buffer, &log_record)
-			if (log_record.Log_record_type == LogRecordType::INSERT) {
-				auto page =
-					static_cast<TablePage *>(log_recovery.buffer_pool_manager.FetchPage(log_record.Insert_rid.GetPageId(), nil))
-				LOG_DEBUG("insert log type, page lsn:%d, log lsn:%d", page.GetLSN(), log_record.GetLSN())
+
+	var file_offset int
+	var log_record *recovery.LogRecord
+	for _, lsn := range log_recovery.active_txn {
+		//lsn = it.second
+		for lsn != common.InvalidLSN {
+			file_offset = log_recovery.lsn_mapping[lsn]
+			fmt.Printf("file_offset: %d\n", file_offset)
+			(*log_recovery.disk_manager).ReadLog(log_recovery.log_buffer, int32(file_offset))
+			log_recovery.DeserializeLogRecord(log_recovery.log_buffer, log_record)
+			if log_record.Log_record_type == recovery.INSERT {
+				page :=
+					access.CastPageAsTablePage(log_recovery.buffer_pool_manager.FetchPage(log_record.Insert_rid.GetPageId()))
+				fmt.Printf("insert log type, page lsn:%d, log lsn:%d", page.GetLSN(), log_record.GetLSN())
 				page.ApplyDelete(log_record.Insert_rid, nil, nil)
-				log_recovery.buffer_pool_manager.UnpinPage(log_record.Insert_rid.GetPageId(), true, nil)
-			} else if (log_record.Log_record_type == LogRecordType::APPLYDELETE) {
-				auto page =
-					static_cast<TablePage *>(log_recovery.buffer_pool_manager.FetchPage(log_record.Delete_rid.GetPageId(), nil))
-				page.InsertTuple(log_record.Delete_tuple, &log_record.Delete_rid, nil, nil, nil)
-				log_recovery.buffer_pool_manager.UnpinPage(log_record.Delete_rid.GetPageId(), true, nil)
-			} else if (log_record.Log_record_type == LogRecordType::MARKDELETE) {
-				auto page =
-					static_cast<TablePage *>(log_recovery.buffer_pool_manager.FetchPage(log_record.Delete_rid.GetPageId(), nil))
-				page.RollbackDelete(log_record.Delete_rid, nil, nil)
-				log_recovery.buffer_pool_manager.UnpinPage(log_record.Delete_rid.GetPageId(), true, nil)
-			} else if (log_record.Log_record_type == LogRecordType::ROLLBACKDELETE) {
-				auto page =
-					static_cast<TablePage *>(log_recovery.buffer_pool_manager.FetchPage(log_record.Delete_rid.GetPageId(), nil))
-				page.MarkDelete(log_record.Delete_rid, nil, nil, nil)
-				log_recovery.buffer_pool_manager.UnpinPage(log_record.Delete_rid.GetPageId(), true, nil)
-			} else if (log_record.Log_record_type == LogRecordType::UPDATE) {
-				auto page =
-					static_cast<TablePage *>(log_recovery.buffer_pool_manager.FetchPage(log_record.Update_rid.GetPageId(), nil))
-				page.UpdateTuple(log_record.Old_tuple, &log_record.New_tuple, log_record.Update_rid, nil, nil,
-								nil)
-				log_recovery.buffer_pool_manager.UnpinPage(log_record.Update_rid.GetPageId(), true, nil)
+				log_recovery.buffer_pool_manager.UnpinPage(log_record.Insert_rid.GetPageId(), true)
+			} else if log_record.Log_record_type == recovery.APPLYDELETE {
+				page :=
+					access.CastPageAsTablePage(log_recovery.buffer_pool_manager.FetchPage(log_record.Delete_rid.GetPageId()))
+				page.InsertTuple(&log_record.Delete_tuple, nil, nil, nil)
+				log_recovery.buffer_pool_manager.UnpinPage(log_record.Delete_rid.GetPageId(), true)
+				// } else if log_record.Log_record_type == recovery.MARKDELETE {
+				// 	page :=
+				// 		access.CastPageAsTablePage(log_recovery.buffer_pool_manager.FetchPage(log_record.Delete_rid.GetPageId(), nil))
+				// 	page.RollbackDelete(log_record.Delete_rid, nil, nil)
+				// 	log_recovery.buffer_pool_manager.UnpinPage(log_record.Delete_rid.GetPageId(), true)
+				// } else if log_record.Log_record_type == recovery.ROLLBACKDELETE {
+				// 	page :=
+				// 		access.CastPageAsTablePage(log_recovery.buffer_pool_manager.FetchPage(log_record.Delete_rid.GetPageId(), nil))
+				// 	page.MarkDelete(log_record.Delete_rid, nil, nil, nil)
+				// 	log_recovery.buffer_pool_manager.UnpinPage(log_record.Delete_rid.GetPageId(), true)
+				// } else if log_record.Log_record_type == recovery.UPDATE {
+				// 	page :=
+				// 		access.CastPageAsTablePage(log_recovery.buffer_pool_manager.FetchPage(log_record.Update_rid.GetPageId(), nil))
+				// 	page.UpdateTuple(log_record.Old_tuple, &log_record.New_tuple, log_record.Update_rid, nil, nil, nil)
+				// 	log_recovery.buffer_pool_manager.UnpinPage(log_record.Update_rid.GetPageId(), true)
 			}
 			lsn = log_record.Prev_lsn
-			}
 		}
-		log_recovery.buffer_pool_manager.FlushAllPages()
-	*/
+	}
+	log_recovery.buffer_pool_manager.FlushAllPages()
 }

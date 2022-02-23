@@ -107,6 +107,55 @@ func (tp *TablePage) InsertTuple(tuple *tuple.Tuple, log_manager *recovery.LogMa
 	return rid, nil
 }
 
+func (table_page *TablePage) ApplyDelete(rid page.RID, txn *Transaction, log_manager *recovery.LogManager) {
+	/*
+		uint32_t slot_num = rid.GetSlotNum();
+		BUSTUB_ASSERT(slot_num < GetTupleCount(), "Cannot have more slots than tuples.");
+
+		uint32_t tuple_offset = GetTupleOffsetAtSlot(slot_num);
+		uint32_t tuple_size = GetTupleSize(slot_num);
+		// Check if this is a delete operation, i.e. commit a delete.
+		if (IsDeleted(tuple_size)) {
+		  tuple_size = UnsetDeletedFlag(tuple_size);
+		}
+		// Otherwise we are rolling back an insert.
+
+		// We need to copy out the deleted tuple for undo purposes.
+		Tuple delete_tuple;
+		delete_tuple.size_ = tuple_size;
+		delete_tuple.data_ = new char[delete_tuple.size_];
+		memcpy(delete_tuple.data_, GetData() + tuple_offset, delete_tuple.size_);
+		delete_tuple.rid_ = rid;
+		delete_tuple.allocated_ = true;
+
+		if (enable_logging) {
+		  BUSTUB_ASSERT(txn->IsExclusiveLocked(rid), "We must own the exclusive lock!");
+
+		  LogRecord log_record(txn->GetTransactionId(), txn->GetPrevLSN(), LogRecordType::APPLYDELETE, rid, delete_tuple);
+		  lsn_t lsn = log_manager->AppendLogRecord(&log_record);
+		  SetLSN(lsn);
+		  txn->SetPrevLSN(lsn);
+		}
+
+		uint32_t free_space_pointer = GetFreeSpacePointer();
+		BUSTUB_ASSERT(tuple_offset >= free_space_pointer, "Free space appears before tuples.");
+
+		memmove(GetData() + free_space_pointer + tuple_size, GetData() + free_space_pointer,
+				tuple_offset - free_space_pointer);
+		SetFreeSpacePointer(free_space_pointer + tuple_size);
+		SetTupleSize(slot_num, 0);
+		SetTupleOffsetAtSlot(slot_num, 0);
+
+		// Update all tuple offsets.
+		for (uint32_t i = 0; i < GetTupleCount(); ++i) {
+		  uint32_t tuple_offset_i = GetTupleOffsetAtSlot(i);
+		  if (GetTupleSize(i) != 0 && tuple_offset_i < tuple_offset) {
+			SetTupleOffsetAtSlot(i, tuple_offset_i + tuple_size);
+		  }
+		}
+	*/
+}
+
 // Init initializes the table header
 func (tp *TablePage) Init(pageId types.PageID, prevPageId types.PageID, log_manager *recovery.LogManager, lock_manager *LockManager, txn *Transaction) {
 	// Log that we are creating a new page.

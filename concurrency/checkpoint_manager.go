@@ -29,7 +29,7 @@ func (checkpoint_manager *CheckpointManager) BeginCheckpoint() {
 	// creating a consistent checkpoint. Do NOT allow transactions to resume at the end of this method, resume them
 	// in CheckpointManager::EndCheckpoint() instead. This is for grading purposes.
 	checkpoint_manager.transaction_manager.BlockAllTransactions()
-	checkpoint_manager.buffer_pool_manager.FlushAllpages()
+	checkpoint_manager.buffer_pool_manager.FlushAllPages()
 	checkpoint_manager.log_manager.Flush()
 }
 

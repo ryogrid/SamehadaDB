@@ -47,7 +47,7 @@ func TestTableHeap(t *testing.T) {
 		testingpkg.Ok(t, err)
 	}
 
-	bpm.FlushAllpages()
+	bpm.FlushAllPages()
 
 	firstTuple := th.GetFirstTuple(txn)
 	testingpkg.Equals(t, int32(0), firstTuple.GetValue(schema, 0).ToInteger())

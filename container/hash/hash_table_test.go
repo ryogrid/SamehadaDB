@@ -77,5 +77,5 @@ func TestHashTable(t *testing.T) {
 		}
 	}
 
-	bpm.FlushAllpages()
+	bpm.FlushAllPages()
 }
