@@ -16,7 +16,7 @@ type ReaderWriterLatch interface {
 }
 
 /**
- * Reader-Writer latch backed by sync.Mutex
+ * Reader-Writer latch backed by sync.Mutex and sync.Cond
  */
 type readerWriterLatch struct {
 	mutex         *sync.Mutex
