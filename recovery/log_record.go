@@ -1,6 +1,8 @@
 package recovery
 
 import (
+	"bytes"
+	"encoding/binary"
 	"unsafe"
 
 	"github.com/ryogrid/SamehadaDB/storage/page"
@@ -150,6 +152,17 @@ func (log_record *LogRecord) GetLSN() types.LSN               { return log_recor
 func (log_record *LogRecord) GetTxnId() types.TxnID           { return log_record.txn_id }
 func (log_record *LogRecord) GetPrevLSN() types.LSN           { return log_record.prev_lsn }
 func (log_record *LogRecord) GetLogRecordType() LogRecordType { return log_record.log_record_type }
+
+func (log_record *LogRecord) GetLogHeaderData() []byte {
+	buf := new(bytes.Buffer)
+	binary.Write(buf, binary.LittleEndian, log_record.size)
+	binary.Write(buf, binary.LittleEndian, log_record.txn_id)
+	binary.Write(buf, binary.LittleEndian, log_record.prev_lsn)
+	binary.Write(buf, binary.LittleEndian, log_record.log_record_type)
+	binary.Write(buf, binary.LittleEndian, log_record.prev_page_id)
+
+	return buf.Bytes()
+}
 
 // // For debug purpose
 // std::string ToString() const {

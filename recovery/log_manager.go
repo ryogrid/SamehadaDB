@@ -134,16 +134,14 @@ func (log_manager *LogManager) AppendLogRecord(log_record *LogRecord) types.LSN 
 	log_record.lsn = log_manager.next_lsn
 	log_manager.next_lsn += 1
 	//memcpy(log_manager.log_buffer+log_manager.offset, log_record, HEADER_SIZE)
-	buf := new(bytes.Buffer)
-	binary.Write(buf, binary.LittleEndian, *log_record)
-	headerInBytes := buf.Bytes()
-	copy(log_manager.log_buffer[log_manager.offset:], headerInBytes[:HEADER_SIZE])
+	headerInBytes := log_record.GetLogHeaderData()
+	copy(log_manager.log_buffer[log_manager.offset:], headerInBytes)
 
 	if common.LogBufferSize-log_manager.offset < log_record.size {
 		log_manager.Flush()
 		// do it again in new buffer
 		//memcpy(log_manager.log_buffer+offset, log_record, HEADER_SIZE)
-		buf = new(bytes.Buffer)
+		buf := new(bytes.Buffer)
 		binary.Write(buf, binary.LittleEndian, *log_record)
 		headerInBytes := buf.Bytes()
 		copy(log_manager.log_buffer[log_manager.offset:], headerInBytes[:HEADER_SIZE])
@@ -155,7 +153,7 @@ func (log_manager *LogManager) AppendLogRecord(log_record *LogRecord) types.LSN 
 
 	if log_record.log_record_type == INSERT {
 		//memcpy(log_manager.log_buffer+pos, &log_record.insert_rid, sizeof(RID))
-		buf = new(bytes.Buffer)
+		buf := new(bytes.Buffer)
 		binary.Write(buf, binary.LittleEndian, log_record.insert_rid)
 		ridInBytes := buf.Bytes()
 		copy(log_manager.log_buffer[pos:], ridInBytes)
@@ -166,7 +164,7 @@ func (log_manager *LogManager) AppendLogRecord(log_record *LogRecord) types.LSN 
 		log_record.log_record_type == MARKDELETE ||
 		log_record.log_record_type == ROLLBACKDELETE {
 		//memcpy(log_manager.log_buffer+pos, &log_record.delete_rid, sizeof(RID))
-		buf = new(bytes.Buffer)
+		buf := new(bytes.Buffer)
 		binary.Write(buf, binary.LittleEndian, log_record.delete_rid)
 		ridInBytes := buf.Bytes()
 		copy(log_manager.log_buffer[pos:], ridInBytes)
@@ -175,7 +173,7 @@ func (log_manager *LogManager) AppendLogRecord(log_record *LogRecord) types.LSN 
 		log_record.delete_tuple.SerializeTo(log_manager.log_buffer[pos:])
 	} else if log_record.log_record_type == UPDATE {
 		//memcpy(log_buffer+pos, &log_record.update_rid, sizeof(RID))
-		buf = new(bytes.Buffer)
+		buf := new(bytes.Buffer)
 		binary.Write(buf, binary.LittleEndian, log_record.update_rid)
 		ridInBytes := buf.Bytes()
 		copy(log_manager.log_buffer[pos:], ridInBytes)
@@ -186,7 +184,7 @@ func (log_manager *LogManager) AppendLogRecord(log_record *LogRecord) types.LSN 
 		log_record.new_tuple.SerializeTo(log_manager.log_buffer[pos:])
 	} else if log_record.log_record_type == NEWPAGE {
 		//memcpy(log_manager.log_buffer+pos, &log_record.prev_page_id, sizeof(PageID))
-		buf = new(bytes.Buffer)
+		buf := new(bytes.Buffer)
 		binary.Write(buf, binary.LittleEndian, log_record.prev_page_id)
 		pageIdInBytes := buf.Bytes()
 		copy(log_manager.log_buffer[pos:], pageIdInBytes)
