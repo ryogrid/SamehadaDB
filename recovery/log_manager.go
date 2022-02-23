@@ -1,6 +1,8 @@
 package recovery
 
 import (
+	"fmt"
+
 	"github.com/ryogrid/SamehadaDB/common"
 	"github.com/ryogrid/SamehadaDB/storage/disk"
 	"github.com/ryogrid/SamehadaDB/types"
@@ -39,6 +41,7 @@ func NewLogManager(disk_manager *disk.DiskManager) *LogManager {
 	ret.disk_manager = disk_manager
 	ret.log_buffer = make([]byte, common.LogBufferSize)
 	ret.flush_buffer = make([]byte, common.LogBufferSize)
+	ret.latch = common.NewRWLatch()
 	ret.offset = 0
 	return ret
 }
@@ -58,19 +61,25 @@ func (log_manager *LogManager) Flush() {
 	// https://github.com/astronaut0131/bustub/blob/master/src/recovery/log_manager.cpp#L39
 	// maybe, blocking can be eliminated because txn must wait for log persistence at commit
 	// https://github.com/astronaut0131/bustub/blob/master/src/concurrency/transaction_manager.cpp#L64
-	/*
-		//std::unique_lock lock(log_manager.latch)
-		log_manager.latch.WLock()
-		lsn = log_manager.log_buffer_lsn.load()
-		offset = log_manager.offset.load()
-		offset = 0
-		//access.unlock()
-		log_manager.latch.WUnlock()
-		swap(log_manager.log_buffer, log_manager.flush_buffer)
-		printf("offset:%lu\n", offset)
-		disk_manager.WriteLog(log_manager.flush_buffer, offset)
-		log_manager.persistent_lsn = lsn
-	*/
+	//std::unique_lock lock(log_manager.latch)
+	log_manager.latch.WLock()
+
+	lsn := log_manager.log_buffer_lsn
+	offset := log_manager.offset
+	//offset = 0
+	//access.unlock()
+
+	// swap address of two buffers
+	//swap(log_manager.log_buffer, log_manager.flush_buffer)
+	tmp_p := log_manager.flush_buffer
+	log_manager.flush_buffer = log_manager.log_buffer
+	log_manager.log_buffer = tmp_p
+
+	log_manager.latch.WUnlock()
+
+	fmt.Printf("offset:%d\n", offset)
+	(*log_manager.disk_manager).WriteLog(log_manager.flush_buffer, int32(offset))
+	log_manager.persistent_lsn = lsn
 }
 
 /*

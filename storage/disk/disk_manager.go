@@ -21,4 +21,7 @@ type DiskManager interface {
 	Size() int64
 	RemoveDBFile()
 	RemoveLogFile()
+	WriteLog([]byte, int32)
+	ReadLog([]byte, int32) bool
+	GetLogFileSize() int64
 }
