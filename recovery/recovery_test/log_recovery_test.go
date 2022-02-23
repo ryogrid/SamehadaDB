@@ -9,14 +9,13 @@ import (
 	"time"
 
 	"github.com/ryogrid/SamehadaDB/common"
-	"github.com/ryogrid/SamehadaDB/recovery"
+	"github.com/ryogrid/SamehadaDB/recovery/log_recovery"
 	"github.com/ryogrid/SamehadaDB/storage/access"
 	"github.com/ryogrid/SamehadaDB/storage/page"
 	"github.com/ryogrid/SamehadaDB/storage/table/column"
 	"github.com/ryogrid/SamehadaDB/storage/table/schema"
 	"github.com/ryogrid/SamehadaDB/storage/tuple"
 	"github.com/ryogrid/SamehadaDB/test_util"
-	testingpkg "github.com/ryogrid/SamehadaDB/testing"
 	"github.com/ryogrid/SamehadaDB/types"
 )
 
@@ -100,7 +99,7 @@ func TestRedo(t *testing.T) {
 	// delete txn
 
 	fmt.Println("Begin recovery")
-	log_recovery := recovery.NewLogRecovery(
+	log_recovery := log_recovery.NewLogRecovery(
 		samehada_instance.GetDiskManager(),
 		samehada_instance.GetBufferPoolManager())
 
@@ -227,7 +226,7 @@ func TestUndo(t *testing.T) {
 	// delete txn
 
 	fmt.Println("Recovery started..")
-	log_recovery := recovery.NewLogRecovery(
+	log_recovery := log_recovery.NewLogRecovery(
 		samehada_instance.GetDiskManager(),
 		samehada_instance.GetBufferPoolManager())
 

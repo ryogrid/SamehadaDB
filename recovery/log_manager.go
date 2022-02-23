@@ -131,64 +131,65 @@ func (log_manager *LogManager) AppendLogRecord(log_record *LogRecord) types.LSN 
 	if common.LogBufferSize-log_manager.offset < HEADER_SIZE {
 		log_manager.Flush()
 	}
-	log_record.lsn = log_manager.next_lsn
+	log_record.Lsn = log_manager.next_lsn
 	log_manager.next_lsn += 1
 	//memcpy(log_manager.log_buffer+log_manager.offset, log_record, HEADER_SIZE)
 	headerInBytes := log_record.GetLogHeaderData()
 	copy(log_manager.log_buffer[log_manager.offset:], headerInBytes)
 
-	if common.LogBufferSize-log_manager.offset < log_record.size {
+	if common.LogBufferSize-log_manager.offset < log_record.Size {
 		log_manager.Flush()
 		// do it again in new buffer
 		//memcpy(log_manager.log_buffer+offset, log_record, HEADER_SIZE)
-		buf := new(bytes.Buffer)
-		binary.Write(buf, binary.LittleEndian, *log_record)
-		headerInBytes := buf.Bytes()
-		copy(log_manager.log_buffer[log_manager.offset:], headerInBytes[:HEADER_SIZE])
+		//buf := new(bytes.Buffer)
+		// binary.Write(buf, binary.LittleEndian, *log_record)
+		// headerInBytes := buf.Bytes()
+		// copy(log_manager.log_buffer[log_manager.offset:], headerInBytes[:HEADER_SIZE])
+		copy(log_manager.log_buffer[log_manager.offset:], log_record.GetLogHeaderData())
 	}
-	log_manager.log_buffer_lsn = log_record.lsn
+	log_manager.log_buffer_lsn = log_record.Lsn
 	pos := log_manager.offset + HEADER_SIZE
-	log_manager.offset += log_record.size
+	log_manager.offset += log_record.Size
 	// access.unlock();
 
-	if log_record.log_record_type == INSERT {
+	if log_record.Log_record_type == INSERT {
 		//memcpy(log_manager.log_buffer+pos, &log_record.insert_rid, sizeof(RID))
 		buf := new(bytes.Buffer)
-		binary.Write(buf, binary.LittleEndian, log_record.insert_rid)
+		binary.Write(buf, binary.LittleEndian, log_record.Insert_rid)
 		ridInBytes := buf.Bytes()
 		copy(log_manager.log_buffer[pos:], ridInBytes)
-		pos += uint32(unsafe.Sizeof(log_record.insert_rid))
+		pos += uint32(unsafe.Sizeof(log_record.Insert_rid))
 		// we have provided serialize function for tuple class
-		log_record.insert_tuple.SerializeTo(log_manager.log_buffer[pos:])
-	} else if log_record.log_record_type == APPLYDELETE ||
-		log_record.log_record_type == MARKDELETE ||
-		log_record.log_record_type == ROLLBACKDELETE {
+		log_record.Insert_tuple.SerializeTo(log_manager.log_buffer[pos:])
+	} else if log_record.Log_record_type == APPLYDELETE ||
+		log_record.Log_record_type == MARKDELETE ||
+		log_record.Log_record_type == ROLLBACKDELETE {
 		//memcpy(log_manager.log_buffer+pos, &log_record.delete_rid, sizeof(RID))
 		buf := new(bytes.Buffer)
-		binary.Write(buf, binary.LittleEndian, log_record.delete_rid)
+		binary.Write(buf, binary.LittleEndian, log_record.Delete_rid)
 		ridInBytes := buf.Bytes()
 		copy(log_manager.log_buffer[pos:], ridInBytes)
-		pos += uint32(unsafe.Sizeof(log_record.delete_rid))
+		pos += uint32(unsafe.Sizeof(log_record.Delete_rid))
 		// we have provided serialize function for tuple class
-		log_record.delete_tuple.SerializeTo(log_manager.log_buffer[pos:])
-	} else if log_record.log_record_type == UPDATE {
+		log_record.Delete_tuple.SerializeTo(log_manager.log_buffer[pos:])
+	} else if log_record.Log_record_type == UPDATE {
 		//memcpy(log_buffer+pos, &log_record.update_rid, sizeof(RID))
 		buf := new(bytes.Buffer)
-		binary.Write(buf, binary.LittleEndian, log_record.update_rid)
+		binary.Write(buf, binary.LittleEndian, log_record.Update_rid)
 		ridInBytes := buf.Bytes()
 		copy(log_manager.log_buffer[pos:], ridInBytes)
-		pos += uint32(unsafe.Sizeof(log_record.update_rid))
+		pos += uint32(unsafe.Sizeof(log_record.Update_rid))
 		// we have provided serialize function for tuple class
-		log_record.old_tuple.SerializeTo(log_manager.log_buffer[pos:])
-		pos += log_record.old_tuple.Size() + uint32(tuple.TupleOffset)
-		log_record.new_tuple.SerializeTo(log_manager.log_buffer[pos:])
-	} else if log_record.log_record_type == NEWPAGE {
+		log_record.Old_tuple.SerializeTo(log_manager.log_buffer[pos:])
+		pos += log_record.Old_tuple.Size() + uint32(tuple.TupleOffset)
+		log_record.New_tuple.SerializeTo(log_manager.log_buffer[pos:])
+	} else if log_record.Log_record_type == NEWPAGE {
 		//memcpy(log_manager.log_buffer+pos, &log_record.prev_page_id, sizeof(PageID))
 		buf := new(bytes.Buffer)
-		binary.Write(buf, binary.LittleEndian, log_record.prev_page_id)
+		binary.Write(buf, binary.LittleEndian, log_record.Prev_page_id)
 		pageIdInBytes := buf.Bytes()
 		copy(log_manager.log_buffer[pos:], pageIdInBytes)
 	}
 
-	return log_record.lsn
+	return log_record.Lsn
 }
