@@ -22,7 +22,7 @@ func (r *RID) GetPageId() types.PageID {
 	return r.pageId
 }
 
-// GetSlot gets the slot number
-func (r *RID) GetSlot() uint32 {
+// GetSlotNum gets the slot number
+func (r *RID) GetSlotNum() uint32 {
 	return r.slotNum
 }

@@ -5,6 +5,8 @@
 package access
 
 import (
+	"bytes"
+	"encoding/binary"
 	"fmt"
 	"unsafe"
 
@@ -15,6 +17,9 @@ import (
 	"github.com/ryogrid/SamehadaDB/storage/tuple"
 	"github.com/ryogrid/SamehadaDB/types"
 )
+
+//static constexpr uint64_t DELETE_MASK = (1U << (8 * sizeof(uint32_t) - 1));
+const deleteMask = uint64((1<<(8*4) - 1))
 
 const sizeTablePageHeader = uint32(24)
 const sizeTuple = uint32(8)
@@ -210,12 +215,30 @@ func (tp *TablePage) GetTupleCount() uint32 {
 	return uint32(types.NewUInt32FromBytes(tp.Data()[offSetTupleCount:]))
 }
 
-func (tp *TablePage) GetTupleOffsetAtSlot(slot uint32) uint32 {
-	return uint32(types.NewUInt32FromBytes(tp.Data()[offsetTupleOffset+sizeTuple*slot:]))
+func (tp *TablePage) GetTupleOffsetAtSlot(slot_num uint32) uint32 {
+	return uint32(types.NewUInt32FromBytes(tp.Data()[offsetTupleOffset+sizeTuple*slot_num:]))
 }
 
-func (tp *TablePage) GetTupleSize(slot uint32) uint32 {
-	return uint32(types.NewUInt32FromBytes(tp.Data()[offsetTupleSize+sizeTuple*slot:]))
+/** Set tuple offset at slot slot_num. */
+func (tp *TablePage) SetTupleOffsetAtSlot(slot_num uint32, offset uint32) {
+	buf := new(bytes.Buffer)
+	binary.Write(buf, binary.LittleEndian, offset)
+	offsetInBytes := buf.Bytes()
+	//memcpy(GetData() + OFFSET_TUPLE_OFFSET + SIZE_TUPLE * slot_num, &offset, sizeof(uint32_t));
+	copy(tp.Data()[offsetTupleOffset+sizeTuple*slot_num:], offsetInBytes)
+}
+
+func (tp *TablePage) GetTupleSize(slot_num uint32) uint32 {
+	return uint32(types.NewUInt32FromBytes(tp.Data()[offsetTupleSize+sizeTuple*slot_num:]))
+}
+
+/** Set tuple size at slot slot_num. */
+func (tp *TablePage) SetTupleSize(slot_num uint32, size uint32) {
+	buf := new(bytes.Buffer)
+	binary.Write(buf, binary.LittleEndian, size)
+	sizeInBytes := buf.Bytes()
+	//memcpy(GetData() + OFFSET_TUPLE_SIZE + SIZE_TUPLE * slot_num, &size, sizeof(uint32_t));
+	copy(tp.Data()[offsetTupleSize+sizeTuple*slot_num:], sizeInBytes)
 }
 
 func (tp *TablePage) getFreeSpaceRemaining() uint32 {
@@ -228,7 +251,7 @@ func (tp *TablePage) GetFreeSpacePointer() uint32 {
 
 func (tp *TablePage) GetTuple(rid *page.RID, log_manager *recovery.LogManager, lock_manager *LockManager, txn *Transaction) *tuple.Tuple {
 	// If somehow we have more slots than tuples, abort the
-	if rid.GetSlot() >= tp.GetTupleCount() {
+	if rid.GetSlotNum() >= tp.GetTupleCount() {
 		if common.EnableLogging {
 			txn.SetState(ABORTED)
 		}
@@ -236,7 +259,7 @@ func (tp *TablePage) GetTuple(rid *page.RID, log_manager *recovery.LogManager, l
 		return nil
 	}
 
-	slot := rid.GetSlot()
+	slot := rid.GetSlotNum()
 	tupleOffset := tp.GetTupleOffsetAtSlot(slot)
 	tupleSize := tp.GetTupleSize(slot)
 
@@ -285,11 +308,26 @@ func (tp *TablePage) GetNextTupleRID(rid *page.RID) *page.RID {
 	firstRID := &page.RID{}
 
 	tupleCount := tp.GetTupleCount()
-	for i := rid.GetSlot() + 1; i < tupleCount; i++ {
+	for i := rid.GetSlotNum() + 1; i < tupleCount; i++ {
 		// TODO: (SDB) need implement
 		// if is deleted
 		firstRID.Set(tp.GetTablePageId(), i)
 		return firstRID
 	}
 	return nil
+}
+
+/** @return true if the tuple is deleted or empty */
+func IsDeleted(tuple_size uint32) bool {
+	return tuple_size&uint32(deleteMask) == uint32(deleteMask) || tuple_size == 0
+}
+
+/** @return tuple size with the deleted flag set */
+func SetDeletedFlag(tuple_size uint32) uint32 {
+	return tuple_size | uint32(deleteMask)
+}
+
+/** @return tuple size with the deleted flag unset */
+func UnsetDeletedFlag(tuple_size uint32) uint32 {
+	return tuple_size & (^uint32(deleteMask))
 }

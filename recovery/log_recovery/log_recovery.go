@@ -82,7 +82,7 @@ func (log_recovery *LogRecovery) DeserializeLogRecord(data []byte, log_record *r
 	pos := recovery.HEADER_SIZE
 	if log_record.Log_record_type == recovery.INSERT {
 		//memcpy(&log_record.Insert_rid, data+pos, sizeof(RID))
-		binary.Read(bytes.NewBuffer(data[pos:]), binary.LittleEndian, log_record.Insert_rid)
+		binary.Read(bytes.NewBuffer(data[pos:]), binary.LittleEndian, &log_record.Insert_rid)
 		pos += uint32(unsafe.Sizeof(log_record.Insert_rid))
 		// we have provided serialize function for tuple class
 		log_record.Insert_tuple.DeserializeFrom(data[pos:])
@@ -90,14 +90,14 @@ func (log_recovery *LogRecovery) DeserializeLogRecord(data []byte, log_record *r
 		log_record.Log_record_type == recovery.MARKDELETE ||
 		log_record.Log_record_type == recovery.ROLLBACKDELETE {
 		//memcpy(&log_record.Delete_rid, data+pos, sizeof(RID))
-		binary.Read(bytes.NewBuffer(data[pos:]), binary.LittleEndian, log_record.Delete_rid)
+		binary.Read(bytes.NewBuffer(data[pos:]), binary.LittleEndian, &log_record.Delete_rid)
 		pos += uint32(unsafe.Sizeof(log_record.Delete_rid))
 		// we have provided serialize function for tuple class
 		log_record.Delete_tuple.DeserializeFrom(data[pos:])
 	} else if log_record.Log_record_type == recovery.UPDATE {
 		//memcpy(&log_record.Update_rid, data+pos, sizeof(RID))
 		//pos += sizeof(RID)
-		binary.Read(bytes.NewBuffer(data[pos:]), binary.LittleEndian, log_record.Update_rid)
+		binary.Read(bytes.NewBuffer(data[pos:]), binary.LittleEndian, &log_record.Update_rid)
 		pos += uint32(unsafe.Sizeof(log_record.Update_rid))
 		// we have provided serialize function for tuple class
 		log_record.Old_tuple.DeserializeFrom(data[pos:])
@@ -105,7 +105,7 @@ func (log_recovery *LogRecovery) DeserializeLogRecord(data []byte, log_record *r
 		log_record.New_tuple.DeserializeFrom(data[pos:])
 	} else if log_record.Log_record_type == recovery.NEWPAGE {
 		//memcpy(&log_record.Prev_page_id, data+pos, sizeof(page_id_t))
-		binary.Read(bytes.NewBuffer(data[pos:]), binary.LittleEndian, log_record.Prev_page_id)
+		binary.Read(bytes.NewBuffer(data[pos:]), binary.LittleEndian, &log_record.Prev_page_id)
 	}
 
 	return true
