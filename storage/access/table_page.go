@@ -154,7 +154,7 @@ func (table_page *TablePage) ApplyDelete(rid page.RID, txn *Transaction, log_man
 
 	// Update all tuple offsets.
 	tuple_count := int(table_page.GetTupleCount())
-	for ii := 0; ii < tuple_count; ii += 1 {
+	for ii := 0; ii < tuple_count; ii++ {
 		tuple_offset_ii := table_page.GetTupleOffsetAtSlot(uint32(ii))
 		if table_page.GetTupleSize(uint32(ii)) != 0 && tuple_offset_ii < tuple_offset {
 			table_page.SetTupleOffsetAtSlot(uint32(ii), tuple_offset_ii+tuple_size)
