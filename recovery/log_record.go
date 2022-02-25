@@ -96,19 +96,19 @@ func NewLogRecordTxn(txn_id types.TxnID, prev_lsn types.LSN, log_record_type Log
 }
 
 // constructor for INSERT/DELETE type
-func NewLogRecordInsertDelete(txn_id types.TxnID, prev_lsn types.LSN, log_record_type LogRecordType, rid page.RID, tuple tuple.Tuple) *LogRecord {
+func NewLogRecordInsertDelete(txn_id types.TxnID, prev_lsn types.LSN, log_record_type LogRecordType, rid page.RID, tuple *tuple.Tuple) *LogRecord {
 	ret := new(LogRecord)
 	ret.Txn_id = txn_id
 	ret.Prev_lsn = prev_lsn
 	ret.Log_record_type = log_record_type
 	if log_record_type == INSERT {
 		ret.Insert_rid = rid
-		ret.Insert_tuple = tuple
+		ret.Insert_tuple = *tuple
 	} else {
 		// assert(log_record_type == LogRecordType::APPLYDELETE || log_record_type == LogRecordType::MARKDELETE ||
 		// 		log_record_type == LogRecordType::ROLLBACKDELETE)
 		ret.Delete_rid = rid
-		ret.Delete_tuple = tuple
+		ret.Delete_tuple = *tuple
 	}
 	// calculate log record size
 	ret.Size = HEADER_SIZE + uint32(unsafe.Sizeof(rid)) + uint32(unsafe.Sizeof(int32(0))) + tuple.Size()

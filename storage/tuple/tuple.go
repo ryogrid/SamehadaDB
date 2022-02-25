@@ -79,12 +79,24 @@ func (t *Tuple) Size() uint32 {
 	return t.size
 }
 
+func (t *Tuple) SetSize(size uint32) {
+	t.size = size
+}
+
 func (t *Tuple) Data() []byte {
 	return t.data
 }
 
+func (t *Tuple) SetData(data []byte) {
+	t.data = data
+}
+
 func (t *Tuple) GetRID() *page.RID {
 	return t.rid
+}
+
+func (t *Tuple) SetRID(rid *page.RID) {
+	t.rid = rid
 }
 
 func (t *Tuple) Copy(offset uint32, data []byte) {

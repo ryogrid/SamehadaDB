@@ -104,7 +104,7 @@ func (tp *TablePage) InsertTuple(tuple *tuple.Tuple, log_manager *recovery.LogMa
 		locked := LockExclusive(txn, rid)
 		fmt.Print(locked)
 		//BUSTUB_ASSERT(locked, "Locking a new tuple should always work.");
-		log_record := recovery.NewLogRecordInsertDelete(txn.GetTransactionId(), txn.GetPrevLSN(), recovery.INSERT, *rid, *tuple)
+		log_record := recovery.NewLogRecordInsertDelete(txn.GetTransactionId(), txn.GetPrevLSN(), recovery.INSERT, *rid, tuple)
 		lsn := log_manager.AppendLogRecord(log_record)
 		tp.Page.SetLSN(lsn)
 		txn.SetPrevLSN(lsn)
@@ -120,21 +120,21 @@ func (table_page *TablePage) ApplyDelete(rid page.RID, txn *Transaction, log_man
 	tuple_size := table_page.GetTupleSize(slot_num)
 	// Check if this is a delete operation, i.e. commit a delete.
 	if IsDeleted(tuple_size) {
-		tuple_size = table_page.UnsetDeletedFlag(tuple_size)
+		tuple_size = UnsetDeletedFlag(tuple_size)
 	}
 	// Otherwise we are rolling back an insert.
 
 	// We need to copy out the deleted tuple for undo purposes.
 	var delete_tuple *tuple.Tuple
-	delete_tuple.size = tuple_size
-	delete_tuple.data = make([]byte, delete_tuple.size)
-	memcpy(delete_tuple.data, GetData()+tuple_offset, delete_tuple.size)
-	delete_tuple.rid = rid
-	delete_tuple.allocated = true
+	delete_tuple.SetSize(tuple_size)
+	delete_tuple.SetData(make([]byte, delete_tuple.Size()))
+	//memcpy(delete_tuple.Data(), table_page.Data()+tuple_offset, delete_tuple.Size())
+	copy(delete_tuple.Data(), table_page.Data()[tuple_offset:tuple_offset+delete_tuple.Size()])
+	delete_tuple.SetRID(&rid)
+	//delete_tuple.allocated = true
 
 	if common.EnableLogging {
 		//BUSTUB_ASSERT(txn.IsExclusiveLocked(rid), "We must own the exclusive lock!")
-
 		log_record := recovery.NewLogRecordInsertDelete(txn.GetTransactionId(), txn.GetPrevLSN(), recovery.APPLYDELETE, rid, delete_tuple)
 		lsn := log_manager.AppendLogRecord(log_record)
 		table_page.SetLSN(lsn)
@@ -144,17 +144,20 @@ func (table_page *TablePage) ApplyDelete(rid page.RID, txn *Transaction, log_man
 	free_space_pointer := table_page.GetFreeSpacePointer()
 	//BUSTUB_ASSERT(tuple_offset >= free_space_pointer, "Free space appears before tuples.")
 
-	memmove(GetData()+free_space_pointer+tuple_size, table_page.GetData()+free_space_pointer,
-		tuple_offset-free_space_pointer)
+	// memmove(GetData() + free_space_pointer + tuple_size, GetData() + free_space_pointer,
+	// tuple_offset - free_space_pointer);
+	copy(table_page.Data()[free_space_pointer+tuple_size:], table_page.Data()[free_space_pointer:tuple_offset])
+
 	table_page.SetFreeSpacePointer(free_space_pointer + tuple_size)
 	table_page.SetTupleSize(slot_num, 0)
 	table_page.SetTupleOffsetAtSlot(slot_num, 0)
 
 	// Update all tuple offsets.
-	for i := 0; i < table_page.GetTupleCount(); i += 1 {
-		tuple_offset_i := table_page.GetTupleOffsetAtSlot(i)
-		if table_page.GetTupleSize(i) != 0 && tuple_offset_i < tuple_offset {
-			table_page.SetTupleOffsetAtSlot(i, tuple_offset_i+tuple_size)
+	tuple_count := int(table_page.GetTupleCount())
+	for ii := 0; ii < tuple_count; ii += 1 {
+		tuple_offset_ii := table_page.GetTupleOffsetAtSlot(uint32(ii))
+		if table_page.GetTupleSize(uint32(ii)) != 0 && tuple_offset_ii < tuple_offset {
+			table_page.SetTupleOffsetAtSlot(uint32(ii), tuple_offset_ii+tuple_size)
 		}
 	}
 }
