@@ -219,9 +219,12 @@ func (d *DiskManagerImpl) ReadLog(log_data []byte, offset int32) bool {
 	// if log file ends before reading "size"
 	//read_count := d.log.gcount()
 	if readBytes < len(log_data) {
-		d.log.Close()
-		//memset(log_data+read_count, 0, size-read_count)
-		log_data[readBytes] = byte(len(log_data) - readBytes)
+		// TODO: (SDB) comment-outed for Redo test.
+		//             but this code may be nessesary for some situation...?
+		// d.log.Close()
+		// //memset(log_data+read_count, 0, size-read_count)
+		// log_data[readBytes] = byte(len(log_data) - readBytes)
+		return false
 	}
 
 	if err != nil {
