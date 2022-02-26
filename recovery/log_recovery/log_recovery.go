@@ -63,13 +63,18 @@ func (log_recovery *LogRecovery) DeserializeLogRecord(data []byte, log_record *r
 	// 	return false
 	// }
 	// First, unserialize the must have fields(20 bytes in total)
-	log_record = new(recovery.LogRecord)
+	//log_record = new(recovery.LogRecord)
 	record_construct_buf := new(bytes.Buffer)
 	//memcpy(log_record, data, HEADER_SIZE)
 	//copy(record_construct_buf, data[:HEADER_SIZE])
 	record_construct_buf.Write(data[:recovery.HEADER_SIZE])
 	//binary.Write(record_construct_buf, binary.LittleEndian,)
-	binary.Read(record_construct_buf, binary.LittleEndian, &log_record)
+	//binary.Read(record_construct_buf, binary.LittleEndian, &log_record)
+	binary.Read(record_construct_buf, binary.LittleEndian, &(log_record.Size))
+	binary.Read(record_construct_buf, binary.LittleEndian, &(log_record.Lsn))
+	binary.Read(record_construct_buf, binary.LittleEndian, &(log_record.Txn_id))
+	binary.Read(record_construct_buf, binary.LittleEndian, &(log_record.Prev_lsn))
+	binary.Read(record_construct_buf, binary.LittleEndian, &(log_record.Log_record_type))
 
 	if log_record.Size <= 0 {
 		fmt.Println(log_record)
@@ -125,8 +130,6 @@ func (log_recovery *LogRecovery) DeserializeLogRecord(data []byte, log_record *r
 *lsn_mapping table
  */
 func (log_recovery *LogRecovery) Redo() {
-	// TODO: (SDB) [logging/recovery] not ported yet
-
 	readLogLoopCnt := 0
 	deserializeLoopCnt := 0
 	log_recovery.log_buffer = make([]byte, common.LogBufferSize)
@@ -222,8 +225,6 @@ func (log_recovery *LogRecovery) Redo() {
 *iterate through active txn map and undo each operation
  */
 func (log_recovery *LogRecovery) Undo() {
-	// TODO: (SDB) [logging/recovery] not ported yet
-
 	var file_offset int
 	var log_record *recovery.LogRecord
 	for _, lsn := range log_recovery.active_txn {

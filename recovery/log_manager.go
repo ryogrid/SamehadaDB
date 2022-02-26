@@ -82,7 +82,8 @@ func (log_manager *LogManager) Flush() {
 	log_manager.latch.WUnlock()
 
 	fmt.Printf("offset:%d\n", offset)
-	(*log_manager.disk_manager).WriteLog(log_manager.flush_buffer, int32(offset))
+	//(*log_manager.disk_manager).WriteLog(log_manager.flush_buffer, int32(offset))
+	(*log_manager.disk_manager).WriteLog(log_manager.flush_buffer[:offset])
 	log_manager.persistent_lsn = lsn
 }
 
@@ -100,6 +101,7 @@ func (log_manager *LogManager) RunFlushThread() { common.EnableLogging = true }
  */
 func (log_manager *LogManager) StopFlushThread() { common.EnableLogging = false }
 
+//TODO: (SDB) cases that record type is BEGIN and COMMIT should be implemented?
 /*
 * append a log record into log buffer
 * you MUST set the log record's lsn within this method

@@ -165,15 +165,16 @@ func (d *DiskManagerImpl) RemoveLogFile() {
  * Write the contents of the log into disk file
  * Only return when sync is done, and only perform sequence write
  */
-func (d *DiskManagerImpl) WriteLog(log_data []byte, size int32) {
+//func (d *DiskManagerImpl) WriteLog(log_data []byte, size int32) {
+func (d *DiskManagerImpl) WriteLog(log_data []byte) {
 	// enforce swap log buffer
 
 	//assert(log_data != buffer_used)
 	//buffer_used := log_data
 
-	if size == 0 { // no effect on num_flushes_ if log buffer is empty
-		return
-	}
+	// if size == 0 { // no effect on num_flushes_ if log buffer is empty
+	// 	return
+	// }
 
 	d.flush_log = true
 

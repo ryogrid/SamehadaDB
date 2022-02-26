@@ -3,6 +3,7 @@ package recovery
 import (
 	"bytes"
 	"encoding/binary"
+	"fmt"
 	"unsafe"
 
 	"github.com/ryogrid/SamehadaDB/storage/page"
@@ -12,7 +13,7 @@ import (
 
 const HEADER_SIZE uint32 = 20
 
-type LogRecordType int
+type LogRecordType int32
 
 /** The type of the log record. */
 const (
@@ -161,6 +162,13 @@ func (log_record *LogRecord) GetLogHeaderData() []byte {
 	binary.Write(buf, binary.LittleEndian, log_record.Log_record_type)
 	binary.Write(buf, binary.LittleEndian, log_record.Prev_page_id)
 
+	fmt.Printf("GetLogHeaderData: %d, %d, %d, %d, %d, %d\n",
+		log_record.Size,
+		log_record.Txn_id,
+		log_record.Prev_lsn,
+		log_record.Log_record_type,
+		log_record.Prev_page_id,
+		buf.Len())
 	return buf.Bytes()
 }
 
