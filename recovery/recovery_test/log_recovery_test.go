@@ -21,6 +21,7 @@ import (
 )
 
 func TestRedo(t *testing.T) {
+	fmt.Println("start Test Redo")
 	// remove("test.db")
 	// remove("test.log")
 	os.Remove("test.db")
@@ -151,6 +152,8 @@ func TestRedo(t *testing.T) {
 }
 
 func TestUndo(t *testing.T) {
+	os.Stdout.Sync()
+	fmt.Println("start Test Undo")
 	// remove("test.db")
 	// remove("test.log")
 	os.Remove("test.db")

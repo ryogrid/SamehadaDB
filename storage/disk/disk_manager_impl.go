@@ -214,6 +214,7 @@ func (d *DiskManagerImpl) ReadLog(log_data []byte, offset int32) bool {
 
 	d.log.Seek(int64(offset), io.SeekStart)
 	readBytes, err := d.log.Read(log_data)
+	fmt.Printf("readBytes %d\n", readBytes)
 	// if log file ends before reading "size"
 	//read_count := d.log.gcount()
 	if readBytes < len(log_data) {

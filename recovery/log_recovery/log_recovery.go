@@ -57,11 +57,11 @@ func NewLogRecovery(disk_manager *disk.DiskManager, buffer_pool_manager *buffer.
  * incomplete log record
  */
 func (log_recovery *LogRecovery) DeserializeLogRecord(data []byte, log_record *recovery.LogRecord) bool {
-	// TODO: (SDB) [logging/recovery] not ported yet
-
-	if common.LogBufferSize-len(data) < int(recovery.HEADER_SIZE) {
-		return false
-	}
+	// if common.LogBufferSize-len(data) < int(recovery.HEADER_SIZE) {
+	// 	fmt.Printf("len(data) = %d\n", len(data))
+	// 	fmt.Println("return false point 1")
+	// 	return false
+	// }
 	// First, unserialize the must have fields(20 bytes in total)
 	log_record = new(recovery.LogRecord)
 	record_construct_buf := new(bytes.Buffer)
@@ -72,11 +72,14 @@ func (log_recovery *LogRecovery) DeserializeLogRecord(data []byte, log_record *r
 	binary.Read(record_construct_buf, binary.LittleEndian, &log_record)
 
 	if log_record.Size <= 0 {
+		fmt.Println(log_record)
+		fmt.Println("return false point 2")
 		return false
 	}
-	if common.LogBufferSize-len(data) < int(log_record.Size) {
-		return false
-	}
+	// if common.LogBufferSize-len(data) < int(log_record.Size) {
+	// 	fmt.Println("return false point 3")
+	// 	return false
+	// }
 
 	//binary.Read(bytes.NewBuffer(data), binary.LittleEndian, &ret)
 	pos := recovery.HEADER_SIZE
@@ -124,12 +127,30 @@ func (log_recovery *LogRecovery) DeserializeLogRecord(data []byte, log_record *r
 func (log_recovery *LogRecovery) Redo() {
 	// TODO: (SDB) [logging/recovery] not ported yet
 
+	readLogLoopCnt := 0
+	deserializeLoopCnt := 0
 	log_recovery.log_buffer = make([]byte, common.LogBufferSize)
 	var file_offset uint32 = 0
 	for (*log_recovery.disk_manager).ReadLog(log_recovery.log_buffer, int32(file_offset)) {
 		var buffer_offset uint32 = 0
 		var log_record recovery.LogRecord
+		fmt.Printf("outer file_offset %d\n", file_offset)
+		readLogLoopCnt++
+		if readLogLoopCnt > 100 {
+			//fmt.Printf("file_offset %d\n", file_offset)
+			panic("readLogLoopCnt is illegal")
+		}
 		for log_recovery.DeserializeLogRecord(log_recovery.log_buffer[buffer_offset:], &log_record) {
+			deserializeLoopCnt++
+			fmt.Printf("inner file_offset %d\n", file_offset)
+			fmt.Printf("inner buffer_offset %d\n", buffer_offset)
+			fmt.Println(log_record)
+			// if deserializeLoopCnt > 100 {
+			// 	fmt.Printf("file_offset %d\n", file_offset)
+			// 	fmt.Printf("buffer_offset %d\n", buffer_offset)
+			// 	fmt.Println(log_record)
+			// 	panic("deserializeLoopCnt is illegal")
+			// }
 			log_recovery.active_txn[log_record.Txn_id] = log_record.Lsn
 			log_recovery.lsn_mapping[log_record.Lsn] = int(file_offset + buffer_offset)
 			if log_record.Log_record_type == recovery.INSERT {
@@ -188,6 +209,7 @@ func (log_recovery *LogRecovery) Redo() {
 			buffer_offset += log_record.Size
 		}
 		// incomplete log record
+		fmt.Printf("buffer_offset %d\n", buffer_offset)
 		file_offset += buffer_offset
 	}
 }
