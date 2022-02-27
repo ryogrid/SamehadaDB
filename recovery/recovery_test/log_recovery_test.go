@@ -91,37 +91,53 @@ func TestLogSererializeAndDeserialize(t *testing.T) {
 		}
 	}
 
+	//panic("serialize finish")
+
 	readLogLoopCnt := 0
 	deserializeLoopCnt := 0
 	var file_offset uint32 = 0
+	var readDataBytes uint32
 	log_buffer := make([]byte, common.LogBufferSize)
-	for dm.ReadLog(log_buffer, int32(file_offset)) {
+	for dm.ReadLog(log_buffer, int32(file_offset), &readDataBytes) {
 		var buffer_offset uint32 = 0
 		var log_record recovery.LogRecord
 		readLogLoopCnt++
-		if readLogLoopCnt > 100 {
+		if readLogLoopCnt > 10 {
 			//fmt.Printf("file_offset %d\n", file_offset)
+			//fmt.Println(log_record)
 			panic("readLogLoopCnt is illegal")
 		}
 		//fmt.Printf("outer file_offset %d\n", file_offset)
-		for lr.DeserializeLogRecord(log_buffer[buffer_offset:], &log_record) {
+		for lr.DeserializeLogRecord(log_buffer[buffer_offset:readDataBytes], &log_record) {
 			fmt.Printf("inner file_offset %d\n", file_offset)
 			fmt.Printf("inner buffer_offset %d\n", buffer_offset)
-			fmt.Println(log_record)
+			//fmt.Println(log_record)
+			fmt.Println(log_record.Size)
+			fmt.Println(log_record.Lsn)
+			fmt.Println(log_record.Txn_id)
+			fmt.Println(log_record.Prev_lsn)
+			fmt.Println(log_record.Log_record_type)
 			deserializeLoopCnt++
-			if deserializeLoopCnt > 100 {
-				fmt.Printf("file_offset %d\n", file_offset)
-				fmt.Printf("buffer_offset %d\n", buffer_offset)
-				panic("deserializeLoopCnt is illegal")
-			}
+			// if deserializeLoopCnt > 10 {
+			// 	//fmt.Println(log_record)
+			// 	fmt.Printf("file_offset %d\n", file_offset)
+			// 	fmt.Printf("buffer_offset %d\n", buffer_offset)
+			// 	panic("deserializeLoopCnt is illegal")
+			// }
 			if log_record.Log_record_type == recovery.INSERT {
 				fmt.Println("Deserialized INSERT log record.")
 				fmt.Println(log_record.Insert_rid)
 				fmt.Println(log_record.Insert_tuple)
 			} else if log_record.Log_record_type == recovery.UPDATE {
 				fmt.Println("Deserialized UPDATE log record.")
+				fmt.Println(log_record.Update_rid)
+				fmt.Println(log_record.Old_tuple.Size())
+				fmt.Println(log_record.New_tuple.Size())
+				// fmt.Println(log_record.Old_tuple)
+				// fmt.Println(log_record.New_tuple)
 			} else if log_record.Log_record_type == recovery.NEWPAGE {
 				fmt.Println("Deserialized NEWPAGE log record.")
+				fmt.Println(log_record.Prev_page_id)
 			}
 			buffer_offset += log_record.Size
 		}

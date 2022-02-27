@@ -121,5 +121,5 @@ func (tuple_ *Tuple) DeserializeFrom(storage []byte) {
 	//tuple_.size = uint32(size)
 	tuple_.data = make([]byte, tuple_.size)
 	//memcpy(this.data, storage+sizeof(int32_t), this.size)
-	copy(tuple_.data, storage[TupleSizeOffsetInLogrecord:])
+	copy(tuple_.data, storage[TupleSizeOffsetInLogrecord:TupleSizeOffsetInLogrecord])
 }

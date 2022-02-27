@@ -23,6 +23,6 @@ type DiskManager interface {
 	RemoveLogFile()
 	//WriteLog([]byte, int32)
 	WriteLog([]byte)
-	ReadLog([]byte, int32) bool
+	ReadLog([]byte, int32, *uint32) bool
 	GetLogFileSize() int64
 }

@@ -57,11 +57,12 @@ func NewLogRecovery(disk_manager *disk.DiskManager, buffer_pool_manager *buffer.
  * incomplete log record
  */
 func (log_recovery *LogRecovery) DeserializeLogRecord(data []byte, log_record *recovery.LogRecord) bool {
-	// if common.LogBufferSize-len(data) < int(recovery.HEADER_SIZE) {
-	// 	fmt.Printf("len(data) = %d\n", len(data))
-	// 	fmt.Println("return false point 1")
-	// 	return false
-	// }
+	//if common.LogBufferSize-len(data) < int(recovery.HEADER_SIZE) {
+	if len(data) < int(recovery.HEADER_SIZE) {
+		fmt.Printf("len(data) = %d\n", len(data))
+		fmt.Println("return false point 1")
+		return false
+	}
 	// First, unserialize the must have fields(20 bytes in total)
 	//log_record = new(recovery.LogRecord)
 	record_construct_buf := new(bytes.Buffer)
@@ -110,7 +111,7 @@ func (log_recovery *LogRecovery) DeserializeLogRecord(data []byte, log_record *r
 		pos += uint32(unsafe.Sizeof(log_record.Update_rid))
 		// we have provided serialize function for tuple class
 		log_record.Old_tuple.DeserializeFrom(data[pos:])
-		pos += log_record.Old_tuple.Size() + uint32(unsafe.Sizeof(log_record.Update_rid))
+		pos += log_record.Old_tuple.Size()
 		log_record.New_tuple.DeserializeFrom(data[pos:])
 	} else if log_record.Log_record_type == recovery.NEWPAGE {
 		//memcpy(&log_record.Prev_page_id, data+pos, sizeof(page_id_t))
@@ -133,24 +134,25 @@ func (log_recovery *LogRecovery) DeserializeLogRecord(data []byte, log_record *r
 *lsn_mapping table
  */
 func (log_recovery *LogRecovery) Redo() {
-	readLogLoopCnt := 0
-	deserializeLoopCnt := 0
+	// readLogLoopCnt := 0
+	// deserializeLoopCnt := 0
 	log_recovery.log_buffer = make([]byte, common.LogBufferSize)
 	var file_offset uint32 = 0
-	for (*log_recovery.disk_manager).ReadLog(log_recovery.log_buffer, int32(file_offset)) {
+	var readBytes uint32
+	for (*log_recovery.disk_manager).ReadLog(log_recovery.log_buffer, int32(file_offset), &readBytes) {
 		var buffer_offset uint32 = 0
 		var log_record recovery.LogRecord
 		fmt.Printf("outer file_offset %d\n", file_offset)
-		readLogLoopCnt++
-		if readLogLoopCnt > 100 {
-			//fmt.Printf("file_offset %d\n", file_offset)
-			panic("readLogLoopCnt is illegal")
-		}
-		for log_recovery.DeserializeLogRecord(log_recovery.log_buffer[buffer_offset:], &log_record) {
-			deserializeLoopCnt++
+		// readLogLoopCnt++
+		// if readLogLoopCnt > 100 {
+		// 	//fmt.Printf("file_offset %d\n", file_offset)
+		// 	panic("readLogLoopCnt is illegal")
+		// }
+		for log_recovery.DeserializeLogRecord(log_recovery.log_buffer[buffer_offset:readBytes], &log_record) {
 			fmt.Printf("inner file_offset %d\n", file_offset)
 			fmt.Printf("inner buffer_offset %d\n", buffer_offset)
 			fmt.Println(log_record)
+			// deserializeLoopCnt++
 			// if deserializeLoopCnt > 100 {
 			// 	fmt.Printf("file_offset %d\n", file_offset)
 			// 	fmt.Printf("buffer_offset %d\n", buffer_offset)
@@ -236,8 +238,9 @@ func (log_recovery *LogRecovery) Undo() {
 		for lsn != common.InvalidLSN {
 			file_offset = log_recovery.lsn_mapping[lsn]
 			fmt.Printf("file_offset: %d\n", file_offset)
-			(*log_recovery.disk_manager).ReadLog(log_recovery.log_buffer, int32(file_offset))
-			log_recovery.DeserializeLogRecord(log_recovery.log_buffer, log_record)
+			var readBytes uint32
+			(*log_recovery.disk_manager).ReadLog(log_recovery.log_buffer, int32(file_offset), &readBytes)
+			log_recovery.DeserializeLogRecord(log_recovery.log_buffer[:readBytes], log_record)
 			if log_record.Log_record_type == recovery.INSERT {
 				page :=
 					access.CastPageAsTablePage(log_recovery.buffer_pool_manager.FetchPage(log_record.Insert_rid.GetPageId()))

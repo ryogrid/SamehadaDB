@@ -206,7 +206,7 @@ func (d *DiskManagerImpl) WriteLog(log_data []byte) {
 * @return: false means already reach the end
  */
 // Attention: len(log_data) specifies read data length
-func (d *DiskManagerImpl) ReadLog(log_data []byte, offset int32) bool {
+func (d *DiskManagerImpl) ReadLog(log_data []byte, offset int32, retReadBytes *uint32) bool {
 	if int64(offset) >= d.GetLogFileSize() {
 		fmt.Println("end of log file")
 		fmt.Printf("file size is %d\n", d.GetLogFileSize())
@@ -215,6 +215,7 @@ func (d *DiskManagerImpl) ReadLog(log_data []byte, offset int32) bool {
 
 	d.log.Seek(int64(offset), io.SeekStart)
 	readBytes, err := d.log.Read(log_data)
+	*retReadBytes = uint32(readBytes)
 	fmt.Printf("readBytes %d\n", readBytes)
 	// if log file ends before reading "size"
 	//read_count := d.log.gcount()
