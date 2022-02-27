@@ -13,7 +13,7 @@ import (
 	"github.com/ryogrid/SamehadaDB/types"
 )
 
-var TupleOffset = 4 // payload size info in Bytes
+var TupleSizeOffsetInLogrecord = 4 // payload size info in Bytes
 
 /**
  * Tuple format:
@@ -110,14 +110,16 @@ func (tuple_ *Tuple) SerializeTo(storage []byte) {
 	// memcpy(storage, &tuple_.size, sizeof(int32_t))
 	// memcpy(storage+sizeof(int32_t), tuple_.data, tuple_.size)
 	copy(storage, sizeInBytes)
-	copy(storage[TupleOffset:TupleOffset+int(tuple_.size)], tuple_.data)
+	copy(storage[TupleSizeOffsetInLogrecord:TupleSizeOffsetInLogrecord+int(tuple_.size)], tuple_.data)
 }
 
 func (tuple_ *Tuple) DeserializeFrom(storage []byte) {
-	size := len(storage) - TupleOffset
+	//size := len(storage) - TupleOffset
+	buf := bytes.NewBuffer(storage)
+	binary.Read(buf, binary.LittleEndian, tuple_.size)
 	// Construct a tuple.
-	tuple_.size = uint32(size)
+	//tuple_.size = uint32(size)
 	tuple_.data = make([]byte, tuple_.size)
 	//memcpy(this.data, storage+sizeof(int32_t), this.size)
-	copy(tuple_.data, storage[TupleOffset:])
+	copy(tuple_.data, storage[TupleSizeOffsetInLogrecord:])
 }

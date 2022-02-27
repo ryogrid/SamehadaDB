@@ -76,7 +76,6 @@ func (log_recovery *LogRecovery) DeserializeLogRecord(data []byte, log_record *r
 	binary.Read(record_construct_buf, binary.LittleEndian, &(log_record.Prev_lsn))
 	binary.Read(record_construct_buf, binary.LittleEndian, &(log_record.Log_record_type))
 
-	fmt.Println(log_record)
 	if log_record.Size <= 0 {
 		fmt.Println(log_record)
 		fmt.Println("return false point 2")
@@ -116,6 +115,8 @@ func (log_recovery *LogRecovery) DeserializeLogRecord(data []byte, log_record *r
 		//memcpy(&log_record.Prev_page_id, data+pos, sizeof(page_id_t))
 		binary.Read(bytes.NewBuffer(data[pos:]), binary.LittleEndian, &log_record.Prev_page_id)
 	}
+
+	fmt.Println(log_record)
 
 	return true
 }

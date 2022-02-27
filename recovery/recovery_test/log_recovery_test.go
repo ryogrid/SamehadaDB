@@ -1,7 +1,6 @@
 package log_recovery
 
 import (
-	"fmt"
 	"math"
 	"math/rand"
 	"os"
@@ -9,17 +8,85 @@ import (
 	"time"
 
 	"github.com/ryogrid/SamehadaDB/common"
-	"github.com/ryogrid/SamehadaDB/recovery/log_recovery"
+	"github.com/ryogrid/SamehadaDB/recovery"
 	"github.com/ryogrid/SamehadaDB/storage/access"
+	"github.com/ryogrid/SamehadaDB/storage/disk"
 	"github.com/ryogrid/SamehadaDB/storage/page"
-	"github.com/ryogrid/SamehadaDB/storage/table/column"
 	"github.com/ryogrid/SamehadaDB/storage/table/schema"
 	"github.com/ryogrid/SamehadaDB/storage/tuple"
-	"github.com/ryogrid/SamehadaDB/test_util"
-	testingpkg "github.com/ryogrid/SamehadaDB/testing"
 	"github.com/ryogrid/SamehadaDB/types"
 )
 
+func TestLogSererializeAndDeserialize(t *testing.T) {
+	os.Remove("test.log")
+
+	// on this test, EnableLogging should no be true
+	common.EnableLogging = false
+
+	dm := disk.NewDiskManagerImpl("test.log")
+	lm := recovery.NewLogManager(&dm)
+	//lr := log_recovery.NewLogRecovery(&dm, nil)
+	tm := access.NewTransactionManager(lm)
+
+	dummyTupleData1 := make([]byte, 100)
+	for ii := 0; ii < 100; ii++ {
+		// each Byte value is 7!
+		dummyTupleData1[ii] = byte(7)
+	}
+
+	dummyTupleData2 := make([]byte, 100)
+	for ii := 0; ii < 100; ii++ {
+		// each Byte value is 11!
+		dummyTupleData2[ii] = byte(11)
+	}
+
+	var cntup_num uint32 = 0
+	//INSERT, APPLYDELETE, UPDATE, NEWPAGE
+	for ii := 0; ii < 1000; ii++ {
+		txn := tm.Begin(nil)
+		rid := new(page.RID)
+		rid.Set(types.PageID(cntup_num), cntup_num)
+		dummyData := make([]byte, 100)
+		copy(dummyData, dummyTupleData1)
+		tuple_ := tuple.NewTuple(rid, 100, dummyData)
+		log_rec := recovery.NewLogRecordInsertDelete(txn.GetTransactionId(), txn.GetPrevLSN(),
+			recovery.INSERT, *rid, tuple_)
+		lsn := lm.AppendLogRecord(log_rec)
+		txn.SetPrevLSN(lsn)
+		cntup_num++
+		////////////////////////
+
+		txn = tm.Begin(nil)
+		rid = new(page.RID)
+		rid.Set(types.PageID(cntup_num), cntup_num)
+		dummyData = make([]byte, 100)
+		copy(dummyData, dummyTupleData1)
+		tuple_old := tuple.NewTuple(rid, 100, dummyData)
+		dummyData2 := make([]byte, 100)
+		copy(dummyData2, dummyTupleData2)
+		tuple_new := tuple.NewTuple(rid, 100, dummyData2)
+		log_rec = recovery.NewLogRecordUpdate(txn.GetTransactionId(), txn.GetPrevLSN(),
+			recovery.UPDATE, *rid, *tuple_old, *tuple_new)
+		lsn = lm.AppendLogRecord(log_rec)
+		txn.SetPrevLSN(lsn)
+		cntup_num++
+		////////////////////////
+
+		txn = tm.Begin(nil)
+		rid = new(page.RID)
+		rid.Set(types.PageID(cntup_num), cntup_num)
+		cntup_num++
+		dummyData = make([]byte, 100)
+		copy(dummyData, dummyTupleData1)
+		log_rec = recovery.NewLogRecordNewPage(txn.GetTransactionId(), txn.GetPrevLSN(),
+			recovery.NEWPAGE, types.PageID(cntup_num))
+		lsn = lm.AppendLogRecord(log_rec)
+		txn.SetPrevLSN(lsn)
+		cntup_num++
+	}
+}
+
+/*
 func TestRedo(t *testing.T) {
 	fmt.Println("start Test Redo")
 	// remove("test.db")
@@ -268,6 +335,7 @@ func TestUndo(t *testing.T) {
 	// remove("test.db")
 	// remove("test.log")
 }
+*/
 
 func EXPECT_TRUE(condition bool)                                        {}
 func EXPECT_FALSE(condition bool)                                       {}
