@@ -70,6 +70,7 @@ func (log_manager *LogManager) Flush() {
 
 	lsn := log_manager.log_buffer_lsn
 	offset := log_manager.offset
+	log_manager.offset = 0
 	//offset = 0
 	//access.unlock()
 
@@ -81,7 +82,7 @@ func (log_manager *LogManager) Flush() {
 
 	log_manager.latch.WUnlock()
 
-	fmt.Printf("offset:%d\n", offset)
+	fmt.Printf("offset at Flush:%d\n", offset)
 	//(*log_manager.disk_manager).WriteLog(log_manager.flush_buffer, int32(offset))
 	(*log_manager.disk_manager).WriteLog(log_manager.flush_buffer[:offset])
 	log_manager.persistent_lsn = lsn

@@ -90,6 +90,7 @@ func (log_recovery *LogRecovery) DeserializeLogRecord(data []byte, log_record *r
 	pos := recovery.HEADER_SIZE
 	if log_record.Log_record_type == recovery.INSERT {
 		//memcpy(&log_record.Insert_rid, data+pos, sizeof(RID))
+		//buf := bytes.NewBuffer(data[pos : pos+uint32(unsafe.Sizeof(log_record.Insert_rid))])
 		binary.Read(bytes.NewBuffer(data[pos:]), binary.LittleEndian, &log_record.Insert_rid)
 		pos += uint32(unsafe.Sizeof(log_record.Insert_rid))
 		// we have provided serialize function for tuple class
@@ -116,7 +117,7 @@ func (log_recovery *LogRecovery) DeserializeLogRecord(data []byte, log_record *r
 		binary.Read(bytes.NewBuffer(data[pos:]), binary.LittleEndian, &log_record.Prev_page_id)
 	}
 
-	fmt.Println(log_record)
+	//fmt.Println(log_record)
 
 	return true
 }
@@ -162,6 +163,7 @@ func (log_recovery *LogRecovery) Redo() {
 				page :=
 					access.CastPageAsTablePage(log_recovery.buffer_pool_manager.FetchPage(log_record.Insert_rid.GetPageId()))
 				if page.GetLSN() < log_record.GetLSN() {
+					log_record.Insert_tuple.SetRID(&log_record.Insert_rid)
 					page.InsertTuple(&log_record.Insert_tuple, nil, nil, nil)
 					page.SetLSN(log_record.GetLSN())
 				}
@@ -245,6 +247,7 @@ func (log_recovery *LogRecovery) Undo() {
 			} else if log_record.Log_record_type == recovery.APPLYDELETE {
 				page :=
 					access.CastPageAsTablePage(log_recovery.buffer_pool_manager.FetchPage(log_record.Delete_rid.GetPageId()))
+				log_record.Delete_tuple.SetRID(&log_record.Delete_rid)
 				page.InsertTuple(&log_record.Delete_tuple, nil, nil, nil)
 				log_recovery.buffer_pool_manager.UnpinPage(log_record.Delete_rid.GetPageId(), true)
 				// } else if log_record.Log_record_type == recovery.MARKDELETE {

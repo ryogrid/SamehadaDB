@@ -116,7 +116,7 @@ func (tuple_ *Tuple) SerializeTo(storage []byte) {
 func (tuple_ *Tuple) DeserializeFrom(storage []byte) {
 	//size := len(storage) - TupleOffset
 	buf := bytes.NewBuffer(storage)
-	binary.Read(buf, binary.LittleEndian, tuple_.size)
+	binary.Read(buf, binary.LittleEndian, &tuple_.size)
 	// Construct a tuple.
 	//tuple_.size = uint32(size)
 	tuple_.data = make([]byte, tuple_.size)

@@ -3,7 +3,6 @@ package recovery
 import (
 	"bytes"
 	"encoding/binary"
-	"fmt"
 	"unsafe"
 
 	"github.com/ryogrid/SamehadaDB/storage/page"
@@ -157,18 +156,18 @@ func (log_record *LogRecord) GetLogRecordType() LogRecordType { return log_recor
 func (log_record *LogRecord) GetLogHeaderData() []byte {
 	buf := new(bytes.Buffer)
 	binary.Write(buf, binary.LittleEndian, log_record.Size)
+	binary.Write(buf, binary.LittleEndian, log_record.Lsn)
 	binary.Write(buf, binary.LittleEndian, log_record.Txn_id)
 	binary.Write(buf, binary.LittleEndian, log_record.Prev_lsn)
 	binary.Write(buf, binary.LittleEndian, log_record.Log_record_type)
-	binary.Write(buf, binary.LittleEndian, log_record.Prev_page_id)
 
-	fmt.Printf("GetLogHeaderData: %d, %d, %d, %d, %d, %d\n",
-		log_record.Size,
-		log_record.Txn_id,
-		log_record.Prev_lsn,
-		log_record.Log_record_type,
-		log_record.Prev_page_id,
-		buf.Len())
+	// fmt.Printf("GetLogHeaderData: %d, %d, %d, %d, %d, %d\n",
+	// 	log_record.Size,
+	// 	log_record.Txn_id,
+	// 	log_record.Prev_lsn,
+	// 	log_record.Log_record_type,
+	// 	log_record.Prev_page_id,
+	// 	buf.Len())
 	return buf.Bytes()
 }
 

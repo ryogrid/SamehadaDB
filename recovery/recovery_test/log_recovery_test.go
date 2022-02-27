@@ -1,6 +1,7 @@
 package log_recovery
 
 import (
+	"fmt"
 	"math"
 	"math/rand"
 	"os"
@@ -9,6 +10,7 @@ import (
 
 	"github.com/ryogrid/SamehadaDB/common"
 	"github.com/ryogrid/SamehadaDB/recovery"
+	"github.com/ryogrid/SamehadaDB/recovery/log_recovery"
 	"github.com/ryogrid/SamehadaDB/storage/access"
 	"github.com/ryogrid/SamehadaDB/storage/disk"
 	"github.com/ryogrid/SamehadaDB/storage/page"
@@ -25,7 +27,7 @@ func TestLogSererializeAndDeserialize(t *testing.T) {
 
 	dm := disk.NewDiskManagerImpl("test.log")
 	lm := recovery.NewLogManager(&dm)
-	//lr := log_recovery.NewLogRecovery(&dm, nil)
+	lr := log_recovery.NewLogRecovery(&dm, nil)
 	tm := access.NewTransactionManager(lm)
 
 	dummyTupleData1 := make([]byte, 100)
@@ -76,13 +78,43 @@ func TestLogSererializeAndDeserialize(t *testing.T) {
 		rid = new(page.RID)
 		rid.Set(types.PageID(cntup_num), cntup_num)
 		cntup_num++
-		dummyData = make([]byte, 100)
-		copy(dummyData, dummyTupleData1)
+		// dummyData = make([]byte, 100)
+		// copy(dummyData, dummyTupleData1)
 		log_rec = recovery.NewLogRecordNewPage(txn.GetTransactionId(), txn.GetPrevLSN(),
 			recovery.NEWPAGE, types.PageID(cntup_num))
 		lsn = lm.AppendLogRecord(log_rec)
 		txn.SetPrevLSN(lsn)
 		cntup_num++
+
+		if cntup_num%100 == 0 {
+			lm.Flush()
+		}
+	}
+
+	var file_offset uint32 = 0
+	log_buffer := make([]byte, common.LogBufferSize)
+	for dm.ReadLog(log_buffer, int32(file_offset)) {
+		var buffer_offset uint32 = 0
+		var log_record recovery.LogRecord
+		//fmt.Printf("outer file_offset %d\n", file_offset)
+		for lr.DeserializeLogRecord(log_buffer[buffer_offset:], &log_record) {
+			fmt.Printf("inner file_offset %d\n", file_offset)
+			fmt.Printf("inner buffer_offset %d\n", buffer_offset)
+			fmt.Println(log_record)
+			if log_record.Log_record_type == recovery.INSERT {
+				fmt.Println("Deserialized INSERT log record.")
+				fmt.Println(log_record.Insert_rid)
+				fmt.Println(log_record.Insert_tuple)
+			} else if log_record.Log_record_type == recovery.UPDATE {
+				fmt.Println("Deserialized UPDATE log record.")
+			} else if log_record.Log_record_type == recovery.NEWPAGE {
+				fmt.Println("Deserialized NEWPAGE log record.")
+			}
+			buffer_offset += log_record.Size
+		}
+		// incomplete log record
+		fmt.Printf("buffer_offset %d\n", buffer_offset)
+		file_offset += buffer_offset
 	}
 }
 
