@@ -69,7 +69,7 @@ func (log_recovery *LogRecovery) DeserializeLogRecord(data []byte, log_record *r
 	//copy(record_construct_buf, data[:HEADER_SIZE])
 	record_construct_buf.Write(data[:recovery.HEADER_SIZE])
 	//binary.Write(record_construct_buf, binary.LittleEndian,)
-	binary.Read(record_construct_buf, binary.LittleEndian, &log_record)
+	//binary.Read(record_construct_buf, binary.LittleEndian, &log_record)
 	binary.Read(record_construct_buf, binary.LittleEndian, &(log_record.Size))
 	binary.Read(record_construct_buf, binary.LittleEndian, &(log_record.Lsn))
 	binary.Read(record_construct_buf, binary.LittleEndian, &(log_record.Txn_id))
