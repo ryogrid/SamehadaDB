@@ -205,6 +205,7 @@ func (log_recovery *LogRecovery) Redo() {
 			} else if log_record.Log_record_type == recovery.BEGIN {
 				log_recovery.active_txn[log_record.Txn_id] = log_record.Lsn
 			} else if log_record.Log_record_type == recovery.COMMIT {
+				fmt.Println("found COMMIT log record")
 				delete(log_recovery.active_txn, log_record.Txn_id)
 			} else if log_record.Log_record_type == recovery.NEWPAGE {
 				var page_id types.PageID

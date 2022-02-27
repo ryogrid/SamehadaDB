@@ -9,16 +9,18 @@ import (
 	"time"
 
 	"github.com/ryogrid/SamehadaDB/common"
-	"github.com/ryogrid/SamehadaDB/recovery"
 	"github.com/ryogrid/SamehadaDB/recovery/log_recovery"
 	"github.com/ryogrid/SamehadaDB/storage/access"
-	"github.com/ryogrid/SamehadaDB/storage/disk"
 	"github.com/ryogrid/SamehadaDB/storage/page"
+	"github.com/ryogrid/SamehadaDB/storage/table/column"
 	"github.com/ryogrid/SamehadaDB/storage/table/schema"
 	"github.com/ryogrid/SamehadaDB/storage/tuple"
+	"github.com/ryogrid/SamehadaDB/test_util"
+	testingpkg "github.com/ryogrid/SamehadaDB/testing"
 	"github.com/ryogrid/SamehadaDB/types"
 )
 
+/*
 func TestLogSererializeAndDeserialize(t *testing.T) {
 	os.Remove("test.log")
 
@@ -146,8 +148,8 @@ func TestLogSererializeAndDeserialize(t *testing.T) {
 		file_offset += buffer_offset
 	}
 }
+*/
 
-/*
 func TestRedo(t *testing.T) {
 	fmt.Println("start Test Redo")
 	// remove("test.db")
@@ -396,7 +398,6 @@ func TestUndo(t *testing.T) {
 	// remove("test.db")
 	// remove("test.log")
 }
-*/
 
 func EXPECT_TRUE(condition bool)                                        {}
 func EXPECT_FALSE(condition bool)                                       {}
