@@ -224,7 +224,7 @@ func (d *DiskManagerImpl) ReadLog(log_data []byte, offset int32) bool {
 		// d.log.Close()
 		// //memset(log_data+read_count, 0, size-read_count)
 		// log_data[readBytes] = byte(len(log_data) - readBytes)
-		return false
+		//return false
 	}
 
 	if err != nil {
