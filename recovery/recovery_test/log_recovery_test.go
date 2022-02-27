@@ -194,7 +194,7 @@ func TestRedo(t *testing.T) {
 	// testingpkg.Assert(t, test_table.InsertTuple(tuple_1, &rid1, txn), "")
 	rid, _ = test_table.InsertTuple(tuple_, txn)
 	testingpkg.Assert(t, rid != nil, "")
-	rid1, _ = test_table.InsertTuple(tuple_, txn)
+	rid1, _ = test_table.InsertTuple(tuple1_, txn)
 	testingpkg.Assert(t, rid != nil, "")
 
 	samehada_instance.GetTransactionManager().Commit(txn)
@@ -327,6 +327,9 @@ func TestUndo(t *testing.T) {
 
 	fmt.Println("Table page content is written to disk")
 	samehada_instance.GetBufferPoolManager().FlushPage(first_page_id)
+
+	// TODO: (SDB) log flushing is SamehadaDB original code. Pay attention.
+	samehada_instance.GetLogManager().Flush()
 
 	// delete txn
 	// delete test_table

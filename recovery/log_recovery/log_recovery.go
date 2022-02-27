@@ -203,6 +203,7 @@ func (log_recovery *LogRecovery) Redo() {
 				// 	}
 				// 	log_recovery.buffer_pool_manager.UnpinPage(log_record.Update_rid.GetPageId(), true)
 			} else if log_record.Log_record_type == recovery.BEGIN {
+				fmt.Println("found BEGIN log record")
 				log_recovery.active_txn[log_record.Txn_id] = log_record.Lsn
 			} else if log_record.Log_record_type == recovery.COMMIT {
 				fmt.Println("found COMMIT log record")
@@ -234,8 +235,10 @@ func (log_recovery *LogRecovery) Redo() {
 func (log_recovery *LogRecovery) Undo() {
 	var file_offset int
 	var log_record *recovery.LogRecord
+	fmt.Println(log_recovery.active_txn)
 	for _, lsn := range log_recovery.active_txn {
 		//lsn = it.second
+		fmt.Printf("lsn at Undo loop top: %d", lsn)
 		for lsn != common.InvalidLSN {
 			file_offset = log_recovery.lsn_mapping[lsn]
 			fmt.Printf("file_offset: %d\n", file_offset)
@@ -271,6 +274,7 @@ func (log_recovery *LogRecovery) Undo() {
 				// 	log_recovery.buffer_pool_manager.UnpinPage(log_record.Update_rid.GetPageId(), true)
 			}
 			lsn = log_record.Prev_lsn
+			fmt.Printf("lsn at Undo loop bottom: %d", lsn)
 		}
 	}
 	log_recovery.buffer_pool_manager.FlushAllPages()
