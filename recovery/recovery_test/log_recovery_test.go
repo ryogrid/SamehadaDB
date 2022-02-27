@@ -44,7 +44,7 @@ func TestLogSererializeAndDeserialize(t *testing.T) {
 
 	var cntup_num uint32 = 0
 	//INSERT, APPLYDELETE, UPDATE, NEWPAGE
-	for ii := 0; ii < 1000; ii++ {
+	for ii := 0; ii < 110; ii++ {
 		txn := tm.Begin(nil)
 		rid := new(page.RID)
 		rid.Set(types.PageID(cntup_num), cntup_num)
@@ -91,16 +91,29 @@ func TestLogSererializeAndDeserialize(t *testing.T) {
 		}
 	}
 
+	readLogLoopCnt := 0
+	deserializeLoopCnt := 0
 	var file_offset uint32 = 0
 	log_buffer := make([]byte, common.LogBufferSize)
 	for dm.ReadLog(log_buffer, int32(file_offset)) {
 		var buffer_offset uint32 = 0
 		var log_record recovery.LogRecord
+		readLogLoopCnt++
+		if readLogLoopCnt > 100 {
+			//fmt.Printf("file_offset %d\n", file_offset)
+			panic("readLogLoopCnt is illegal")
+		}
 		//fmt.Printf("outer file_offset %d\n", file_offset)
 		for lr.DeserializeLogRecord(log_buffer[buffer_offset:], &log_record) {
 			fmt.Printf("inner file_offset %d\n", file_offset)
 			fmt.Printf("inner buffer_offset %d\n", buffer_offset)
 			fmt.Println(log_record)
+			deserializeLoopCnt++
+			if deserializeLoopCnt > 100 {
+				fmt.Printf("file_offset %d\n", file_offset)
+				fmt.Printf("buffer_offset %d\n", buffer_offset)
+				panic("deserializeLoopCnt is illegal")
+			}
 			if log_record.Log_record_type == recovery.INSERT {
 				fmt.Println("Deserialized INSERT log record.")
 				fmt.Println(log_record.Insert_rid)
