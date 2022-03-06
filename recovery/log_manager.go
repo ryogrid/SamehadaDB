@@ -3,7 +3,6 @@ package recovery
 import (
 	"bytes"
 	"encoding/binary"
-	"fmt"
 	"unsafe"
 
 	"github.com/ryogrid/SamehadaDB/common"
@@ -81,7 +80,7 @@ func (log_manager *LogManager) Flush() {
 
 	log_manager.latch.WUnlock()
 
-	fmt.Printf("offset at Flush:%d\n", offset)
+	// fmt.Printf("offset at Flush:%d\n", offset)
 	//(*log_manager.disk_manager).WriteLog(log_manager.flush_buffer, int32(offset))
 	(*log_manager.disk_manager).WriteLog(log_manager.flush_buffer[:offset])
 	log_manager.persistent_lsn = lsn

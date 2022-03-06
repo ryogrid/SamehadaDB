@@ -151,7 +151,7 @@ func TestLogSererializeAndDeserialize(t *testing.T) {
 */
 
 func TestRedo(t *testing.T) {
-	fmt.Println("start Test Redo")
+	// fmt.Println("start Test Redo")
 	// remove("test.db")
 	// remove("test.log")
 	os.Remove("test.db")
@@ -283,7 +283,7 @@ func TestRedo(t *testing.T) {
 
 func TestUndo(t *testing.T) {
 	os.Stdout.Sync()
-	fmt.Println("start Test Undo")
+	// fmt.Println("start Test Undo")
 	// remove("test.db")
 	// remove("test.log")
 	os.Remove("test.db")
@@ -389,8 +389,8 @@ func TestUndo(t *testing.T) {
 		txn)
 
 	//testingpkg.AssertFalse(t, test_table.GetTuple(rid, &old_tuple, txn), "")
-	fmt.Println("before assert old_tuple is nil.")
-	fmt.Println(old_tuple)
+	// fmt.Println("before assert old_tuple is nil.")
+	// fmt.Println(old_tuple)
 	old_tuple = test_table.GetTuple(rid, txn)
 	testingpkg.AssertFalse(t, old_tuple != nil, "")
 	samehada_instance.GetTransactionManager().Commit(txn)

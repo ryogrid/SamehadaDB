@@ -3,8 +3,6 @@
 package access
 
 import (
-	"fmt"
-
 	"github.com/ryogrid/SamehadaDB/common"
 	"github.com/ryogrid/SamehadaDB/recovery"
 	"github.com/ryogrid/SamehadaDB/types"
@@ -36,7 +34,7 @@ func (transaction_manager *TransactionManager) Begin(txn *Transaction) *Transact
 	if txn_ret == nil {
 		transaction_manager.next_txn_id += 1
 		txn_ret = NewTransaction(transaction_manager.next_txn_id)
-		fmt.Printf("new transactin ID: %d\n", transaction_manager.next_txn_id)
+		// fmt.Printf("new transactin ID: %d\n", transaction_manager.next_txn_id)
 	}
 
 	if common.EnableLogging {
