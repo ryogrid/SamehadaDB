@@ -234,7 +234,7 @@ func (log_recovery *LogRecovery) Redo() {
  */
 func (log_recovery *LogRecovery) Undo() {
 	var file_offset int
-	var log_record *recovery.LogRecord
+	var log_record recovery.LogRecord
 	fmt.Println(log_recovery.active_txn)
 	for _, lsn := range log_recovery.active_txn {
 		//lsn = it.second
@@ -244,7 +244,7 @@ func (log_recovery *LogRecovery) Undo() {
 			fmt.Printf("file_offset: %d\n", file_offset)
 			var readBytes uint32
 			(*log_recovery.disk_manager).ReadLog(log_recovery.log_buffer, int32(file_offset), &readBytes)
-			log_recovery.DeserializeLogRecord(log_recovery.log_buffer[:readBytes], log_record)
+			log_recovery.DeserializeLogRecord(log_recovery.log_buffer[:readBytes], &log_record)
 			if log_record.Log_record_type == recovery.INSERT {
 				page :=
 					access.CastPageAsTablePage(log_recovery.buffer_pool_manager.FetchPage(log_record.Insert_rid.GetPageId()))
@@ -274,7 +274,7 @@ func (log_recovery *LogRecovery) Undo() {
 				// 	log_recovery.buffer_pool_manager.UnpinPage(log_record.Update_rid.GetPageId(), true)
 			}
 			lsn = log_record.Prev_lsn
-			fmt.Printf("lsn at Undo loop bottom: %d", lsn)
+			fmt.Printf("lsn at Undo loop bottom: %d\n", lsn)
 		}
 	}
 	log_recovery.buffer_pool_manager.FlushAllPages()

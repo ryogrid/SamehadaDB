@@ -1,6 +1,7 @@
 package test_util
 
 import (
+	"github.com/ryogrid/SamehadaDB/common"
 	"github.com/ryogrid/SamehadaDB/concurrency"
 	"github.com/ryogrid/SamehadaDB/recovery"
 	"github.com/ryogrid/SamehadaDB/storage/access"
@@ -17,7 +18,11 @@ type SamehadaInstance struct {
 	checkpoint_manger   *concurrency.CheckpointManager
 }
 
+// reset program state except for variables on testcase function
+// and db/log file
 func NewSamehadaInstance() *SamehadaInstance {
+	common.EnableLogging = false
+
 	disk_manager := disk.NewDiskManagerImpl("test.db")
 	log_manager := recovery.NewLogManager(&disk_manager)
 	bpm := buffer.NewBufferPoolManager(uint32(32), disk_manager)

@@ -362,6 +362,8 @@ func TestUndo(t *testing.T) {
 	samehada_instance.GetTransactionManager().Commit(txn)
 	// delete txn
 
+	testingpkg.AssertFalse(t, common.EnableLogging, "common.EnableLogging is not false!")
+
 	fmt.Println("Recovery started..")
 	log_recovery := log_recovery.NewLogRecovery(
 		samehada_instance.GetDiskManager(),
@@ -402,10 +404,11 @@ func TestUndo(t *testing.T) {
 	// remove("test.log")
 }
 
-func EXPECT_TRUE(condition bool)                                        {}
-func EXPECT_FALSE(condition bool)                                       {}
-func EXPECT_EQ(arg1 interface{}, arg2 interface{})                      {}
-func memcmp(arg1 interface{}, arg2 interface{}, arg3 interface{}) int32 { return -1 }
+func EXPECT_TRUE(condition bool)                   {}
+func EXPECT_FALSE(condition bool)                  {}
+func EXPECT_EQ(arg1 interface{}, arg2 interface{}) {}
+
+//func memcmp(arg1 interface{}, arg2 interface{}, arg3 interface{}) int32 { return -1 }
 
 // TODO: (SDB) need prepare "expect" type testing utility func
 // TODO: (SDB) need implement TestCheckPoint
