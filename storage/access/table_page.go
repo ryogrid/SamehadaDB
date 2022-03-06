@@ -266,14 +266,13 @@ func (tp *TablePage) GetTuple(rid *page.RID, log_manager *recovery.LogManager, l
 	tupleOffset := tp.GetTupleOffsetAtSlot(slot)
 	tupleSize := tp.GetTupleSize(slot)
 
-	// TODO: (SDB) [logging/recovery] need implement
-	// // If the tuple is deleted, abort the access.
-	// if (IsDeleted(tuple_size)) {
-	// 	if (enable_logging) {
-	// 	txn.SetState(TransactionState::ABORTED);
-	// 	}
-	// 	return false;
-	// }
+	// If the tuple is deleted, abort the access.
+	if IsDeleted(tupleSize) {
+		if common.EnableLogging {
+			txn.SetState(ABORTED)
+		}
+		return nil
+	}
 
 	// Otherwise we have a valid tuple, try to acquire at least a shared access.
 	if common.EnableLogging {

@@ -389,6 +389,8 @@ func TestUndo(t *testing.T) {
 		txn)
 
 	//testingpkg.AssertFalse(t, test_table.GetTuple(rid, &old_tuple, txn), "")
+	fmt.Println("before assert old_tuple is nil.")
+	fmt.Println(old_tuple)
 	old_tuple = test_table.GetTuple(rid, txn)
 	testingpkg.AssertFalse(t, old_tuple != nil, "")
 	samehada_instance.GetTransactionManager().Commit(txn)
