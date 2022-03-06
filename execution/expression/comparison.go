@@ -11,11 +11,15 @@ import (
 
 type ComparisonType int
 
+/** ComparisonType represents the type of comparison that we want to perform. */
 const (
 	Equal ComparisonType = iota
 	NotEqual
 )
 
+/**
+ * ComparisonExpression represents two expressions being compared.
+ */
 type Comparison struct {
 	comparisonType ComparisonType
 	children       []Expression

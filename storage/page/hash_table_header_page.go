@@ -7,6 +7,8 @@ import "github.com/ryogrid/SamehadaDB/types"
 
 /**
  *
+ * Header Page for linear probing hash table.
+ *
  * Header format (size in byte, 16 bytes in total):
  * -------------------------------------------------------------
  * | LSN (4) | Size (4) | PageId(4) | NextBlockIndex(4)

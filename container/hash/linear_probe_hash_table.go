@@ -14,6 +14,11 @@ import (
 	"github.com/spaolacci/murmur3"
 )
 
+/**
+ * Implementation of linear probing hash table that is backed by a buffer pool
+ * manager. Non-unique keys are supported. Supports insert and delete. The
+ * table dynamically grows once full.
+ */
 type LinearProbeHashTable struct {
 	headerPageId types.PageID
 	bpm          *buffer.BufferPoolManager

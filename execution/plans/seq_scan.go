@@ -8,6 +8,9 @@ import (
 	"github.com/ryogrid/SamehadaDB/storage/table/schema"
 )
 
+/**
+ * SeqScanPlanNode identifies a table that should be scanned with an optional predicate.
+ */
 type SeqScanPlanNode struct {
 	*AbstractPlanNode
 	predicate *expression.Expression

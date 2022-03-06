@@ -1,6 +1,10 @@
 package recovery
 
 import (
+	"bytes"
+	"encoding/binary"
+	"unsafe"
+
 	"github.com/ryogrid/SamehadaDB/common"
 	"github.com/ryogrid/SamehadaDB/storage/disk"
 	"github.com/ryogrid/SamehadaDB/types"
@@ -26,6 +30,7 @@ type LogManager struct {
 	log_buffer     []byte
 	flush_buffer   []byte
 	latch          common.ReaderWriterLatch
+	// TODO: (SDB) need implement log flushing with dedicated thread
 	//flush_thread   *thread //__attribute__((__unused__));
 	//cv           condition_variable
 	disk_manager *disk.DiskManager //__attribute__((__unused__));
@@ -38,6 +43,7 @@ func NewLogManager(disk_manager *disk.DiskManager) *LogManager {
 	ret.disk_manager = disk_manager
 	ret.log_buffer = make([]byte, common.LogBufferSize)
 	ret.flush_buffer = make([]byte, common.LogBufferSize)
+	ret.latch = common.NewRWLatch()
 	ret.offset = 0
 	return ret
 }
@@ -48,20 +54,36 @@ func (log_manager *LogManager) SetPersistentLSN(lsn types.LSN) { log_manager.per
 func (log_manager *LogManager) GetLogBuffer() []byte           { return log_manager.log_buffer }
 
 func (log_manager *LogManager) Flush() {
-	//TODO: (SDB) [logging/recovery] not ported yet
-	/*
-		//unique_lock lock(log_manager.latch)
-		log_manager.latch.WLock()
-		lsn = log_manager.log_buffer_lsn.load()
-		offset = log_manager.offset.load()
-		offset = 0
-		//access.unlock()
-		log_manager.latch.WUnlock()
-		swap(log_manager.log_buffer, log_manager.flush_buffer)
-		printf("offset:%lu\n", offset)
-		disk_manager.WriteLog(log_manager.flush_buffer, offset)
-		log_manager.persistent_lsn = lsn
-	*/
+	// TODO: (SDB) need use lock and unlock functionalty of log_manager.latch mutex
+	//             cpp impl releases lock automatically using std::unique_lock
+	// TODO: (SDB) need fix to occur buffer swap when already running flushing?
+
+	// For I/O efficiency, ideally flush thread should be used like below
+	// https://github.com/astronaut0131/bustub/blob/master/src/recovery/log_manager.cpp#L39
+	// maybe, blocking can be eliminated because txn must wait for log persistence at commit
+	// https://github.com/astronaut0131/bustub/blob/master/src/concurrency/transaction_manager.cpp#L64
+
+	//std::unique_lock lock(log_manager.latch)
+	log_manager.latch.WLock()
+
+	lsn := log_manager.log_buffer_lsn
+	offset := log_manager.offset
+	log_manager.offset = 0
+	//offset = 0
+	//access.unlock()
+
+	// swap address of two buffers
+	//swap(log_manager.log_buffer, log_manager.flush_buffer)
+	tmp_p := log_manager.flush_buffer
+	log_manager.flush_buffer = log_manager.log_buffer
+	log_manager.log_buffer = tmp_p
+
+	log_manager.latch.WUnlock()
+
+	// fmt.Printf("offset at Flush:%d\n", offset)
+	//(*log_manager.disk_manager).WriteLog(log_manager.flush_buffer, int32(offset))
+	(*log_manager.disk_manager).WriteLog(log_manager.flush_buffer[:offset])
+	log_manager.persistent_lsn = lsn
 }
 
 /*
@@ -78,6 +100,7 @@ func (log_manager *LogManager) RunFlushThread() { common.EnableLogging = true }
  */
 func (log_manager *LogManager) StopFlushThread() { common.EnableLogging = false }
 
+//TODO: (SDB) cases that record type is BEGIN and COMMIT should be implemented?
 /*
 * append a log record into log buffer
 * you MUST set the log record's lsn within this method
@@ -100,47 +123,74 @@ func (log_manager *LogManager) StopFlushThread() { common.EnableLogging = false 
  */
 func (log_manager *LogManager) AppendLogRecord(log_record *LogRecord) types.LSN {
 	// First, serialize the must have fields(20 bytes in total)
+
+	// TODO: (SDB) need use lock and unlock functionalty of log_manager.latch mutex
+	//             cpp impl releases lock automatically using std::unique_lock
+
 	// std::unique_lock lock(latch_);
 
-	//TODO: (SDB) [logging/recovery] not ported yet
-	/*
-		if (LOG_BUFFER_SIZE - log_manager.offset < HEADER_SIZE) {
-			log_manager.Flush()
-		}
-		log_record.lsn = next_lsn++
-		memcpy(log_manager.log_buffer + offset, log_record, HEADER_SIZE)
-		if ((int32_t)(LOG_BUFFER_SIZE - offset) < log_record.size) {
-			log_manager.Flush()
-			// do it again in new buffer
-			memcpy(log_manager.log_buffer + offset, log_record, HEADER_SIZE)
-		}
-		log_manager.log_buffer_lsn = log_record.lsn
-		pos  := offset + LogRecord::HEADER_SIZE
-		offset += log_record.size
-		// access.unlock();
+	if common.LogBufferSize-log_manager.offset < HEADER_SIZE {
+		log_manager.Flush()
+	}
+	log_record.Lsn = log_manager.next_lsn
+	log_manager.next_lsn += 1
+	//memcpy(log_manager.log_buffer+log_manager.offset, log_record, HEADER_SIZE)
+	headerInBytes := log_record.GetLogHeaderData()
+	copy(log_manager.log_buffer[log_manager.offset:], headerInBytes)
 
-		if (log_record.log_record_type_ == LogRecordType::INSERT) {
-			memcpy(log_manager.log_buffer + pos, &log_record.insert_rid, sizeof(RID))
-			pos += sizeof(RID)
-			// we have provided serialize function for tuple class
-			log_record.insert_tuple.SerializeTo(log_manager.log_buffer + pos)
-		} else if (log_record.log_record_type_ == LogRecordType::APPLYDELETE ||
-					log_record.log_record_type_ == LogRecordType::MARKDELETE ||
-					log_record.log_record_type_ == LogRecordType::ROLLBACKDELETE) {
-			memcpy(log_manager.log_buffer + pos, &log_record.delete_rid, sizeof(RID))
-			pos += sizeof(RID);
-			// we have provided serialize function for tuple class
-			log_record.delete_tuple.SerializeTo(log_manager.log_buffer_ + pos)
-		} else if (log_record.log_record_type_ == LogRecordType::UPDATE) {
-			memcpy(log_buffer + pos, &log_record.update_rid_, sizeof(RID))
-			pos += sizeof(RID)
-			// we have provided serialize function for tuple class
-			log_record.old_tuple.SerializeTo(log_manager.log_buffer + pos)
-			pos += sizeof(log_record.old_tuple.GetLength() + sizeof(uint32)))
-			log_record.new_tuple.SerializeTo(log_buffer + pos)
-		} else if (log_record.log_record_type == LogRecordType::NEWPAGE) {
-			memcpy(log_manager.log_buffer + pos, &log_record.prev_page_id, sizeof(PageID))
-		}
-	*/
-	return log_record.lsn
+	if common.LogBufferSize-log_manager.offset < log_record.Size {
+		log_manager.Flush()
+		// do it again in new buffer
+		//memcpy(log_manager.log_buffer+offset, log_record, HEADER_SIZE)
+		//buf := new(bytes.Buffer)
+		// binary.Write(buf, binary.LittleEndian, *log_record)
+		// headerInBytes := buf.Bytes()
+		// copy(log_manager.log_buffer[log_manager.offset:], headerInBytes[:HEADER_SIZE])
+		copy(log_manager.log_buffer[log_manager.offset:], log_record.GetLogHeaderData())
+	}
+	log_manager.log_buffer_lsn = log_record.Lsn
+	pos := log_manager.offset + HEADER_SIZE
+	log_manager.offset += log_record.Size
+	// access.unlock();
+
+	if log_record.Log_record_type == INSERT {
+		//memcpy(log_manager.log_buffer+pos, &log_record.insert_rid, sizeof(RID))
+		buf := new(bytes.Buffer)
+		binary.Write(buf, binary.LittleEndian, log_record.Insert_rid)
+		ridInBytes := buf.Bytes()
+		copy(log_manager.log_buffer[pos:], ridInBytes)
+		pos += uint32(unsafe.Sizeof(log_record.Insert_rid))
+		// we have provided serialize function for tuple class
+		log_record.Insert_tuple.SerializeTo(log_manager.log_buffer[pos:])
+	} else if log_record.Log_record_type == APPLYDELETE ||
+		log_record.Log_record_type == MARKDELETE ||
+		log_record.Log_record_type == ROLLBACKDELETE {
+		//memcpy(log_manager.log_buffer+pos, &log_record.delete_rid, sizeof(RID))
+		buf := new(bytes.Buffer)
+		binary.Write(buf, binary.LittleEndian, log_record.Delete_rid)
+		ridInBytes := buf.Bytes()
+		copy(log_manager.log_buffer[pos:], ridInBytes)
+		pos += uint32(unsafe.Sizeof(log_record.Delete_rid))
+		// we have provided serialize function for tuple class
+		log_record.Delete_tuple.SerializeTo(log_manager.log_buffer[pos:])
+	} else if log_record.Log_record_type == UPDATE {
+		//memcpy(log_buffer+pos, &log_record.update_rid, sizeof(RID))
+		buf := new(bytes.Buffer)
+		binary.Write(buf, binary.LittleEndian, log_record.Update_rid)
+		ridInBytes := buf.Bytes()
+		copy(log_manager.log_buffer[pos:], ridInBytes)
+		pos += uint32(unsafe.Sizeof(log_record.Update_rid))
+		// we have provided serialize function for tuple class
+		log_record.Old_tuple.SerializeTo(log_manager.log_buffer[pos:])
+		pos += log_record.Old_tuple.Size() // + uint32(tuple.TupleSizeOffsetInLogrecord)
+		log_record.New_tuple.SerializeTo(log_manager.log_buffer[pos:])
+	} else if log_record.Log_record_type == NEWPAGE {
+		//memcpy(log_manager.log_buffer+pos, &log_record.prev_page_id, sizeof(PageID))
+		buf := new(bytes.Buffer)
+		binary.Write(buf, binary.LittleEndian, log_record.Prev_page_id)
+		pageIdInBytes := buf.Bytes()
+		copy(log_manager.log_buffer[pos:], pageIdInBytes)
+	}
+
+	return log_record.Lsn
 }

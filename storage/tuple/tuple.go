@@ -5,11 +5,22 @@
 package tuple
 
 import (
+	"bytes"
+	"encoding/binary"
+
 	"github.com/ryogrid/SamehadaDB/storage/page"
 	"github.com/ryogrid/SamehadaDB/storage/table/schema"
 	"github.com/ryogrid/SamehadaDB/types"
 )
 
+var TupleSizeOffsetInLogrecord = 4 // payload size info in Bytes
+
+/**
+ * Tuple format:
+ * ---------------------------------------------------------------------
+ * | FIXED-SIZE or VARIED-SIZED OFFSET | PAYLOAD OF VARIED-SIZED FIELD |
+ * ---------------------------------------------------------------------
+ */
 type Tuple struct {
 	rid  *page.RID
 	size uint32
@@ -68,14 +79,47 @@ func (t *Tuple) Size() uint32 {
 	return t.size
 }
 
+func (t *Tuple) SetSize(size uint32) {
+	t.size = size
+}
+
 func (t *Tuple) Data() []byte {
 	return t.data
+}
+
+func (t *Tuple) SetData(data []byte) {
+	t.data = data
 }
 
 func (t *Tuple) GetRID() *page.RID {
 	return t.rid
 }
 
+func (t *Tuple) SetRID(rid *page.RID) {
+	t.rid = rid
+}
+
 func (t *Tuple) Copy(offset uint32, data []byte) {
 	copy(t.data[offset:], data)
+}
+
+func (tuple_ *Tuple) SerializeTo(storage []byte) {
+	buf := new(bytes.Buffer)
+	binary.Write(buf, binary.LittleEndian, tuple_.size)
+	sizeInBytes := buf.Bytes()
+	// memcpy(storage, &tuple_.size, sizeof(int32_t))
+	// memcpy(storage+sizeof(int32_t), tuple_.data, tuple_.size)
+	copy(storage, sizeInBytes)
+	copy(storage[TupleSizeOffsetInLogrecord:TupleSizeOffsetInLogrecord+int(tuple_.size)], tuple_.data)
+}
+
+func (tuple_ *Tuple) DeserializeFrom(storage []byte) {
+	//size := len(storage) - TupleOffset
+	buf := bytes.NewBuffer(storage)
+	binary.Read(buf, binary.LittleEndian, &tuple_.size)
+	// Construct a tuple.
+	//tuple_.size = uint32(size)
+	tuple_.data = make([]byte, tuple_.size)
+	//memcpy(this.data, storage+sizeof(int32_t), this.size)
+	copy(tuple_.data, storage[TupleSizeOffsetInLogrecord:TupleSizeOffsetInLogrecord+int(tuple_.size)])
 }

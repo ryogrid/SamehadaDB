@@ -20,6 +20,7 @@ import (
 )
 
 func TestSimpleInsertAndSeqScan(t *testing.T) {
+	// TODO: (SDB) need rewrite with SamehadaInstance class
 	diskManager := disk.NewDiskManagerTest()
 	defer diskManager.ShutDown()
 	bpm := buffer.NewBufferPoolManager(uint32(32), diskManager) //, recovery.NewLogManager(diskManager), access.NewLockManager(access.REGULAR, access.PREVENTION))
@@ -56,7 +57,7 @@ func TestSimpleInsertAndSeqScan(t *testing.T) {
 	executorContext := NewExecutorContext(c, bpm, txn)
 	executionEngine.Execute(insertPlanNode, executorContext)
 
-	bpm.FlushAllpages()
+	bpm.FlushAllPages()
 
 	outColumnA := column.NewColumn("a", types.Integer)
 	outSchema := schema.NewSchema([]*column.Column{outColumnA})
@@ -72,6 +73,7 @@ func TestSimpleInsertAndSeqScan(t *testing.T) {
 }
 
 func TestSimpleInsertAndSeqScanWithPredicateComparison(t *testing.T) {
+	// TODO: (SDB) need rewrite with SamehadaInstance class
 	diskManager := disk.NewDiskManagerTest()
 	defer diskManager.ShutDown()
 	bpm := buffer.NewBufferPoolManager(uint32(32), diskManager) //, recovery.NewLogManager(diskManager), access.NewLockManager(access.REGULAR, access.PREVENTION))
@@ -112,7 +114,7 @@ func TestSimpleInsertAndSeqScanWithPredicateComparison(t *testing.T) {
 	executorContext := NewExecutorContext(c, bpm, txn)
 	executionEngine.Execute(insertPlanNode, executorContext)
 
-	bpm.FlushAllpages()
+	bpm.FlushAllPages()
 
 	txn_mgr.Commit(txn)
 
@@ -198,6 +200,7 @@ func TestSimpleInsertAndSeqScanWithPredicateComparison(t *testing.T) {
 }
 
 func TestSimpleInsertAndLimitExecution(t *testing.T) {
+	// TODO: (SDB) need rewrite with SamehadaInstance class
 	diskManager := disk.NewDiskManagerTest()
 	defer diskManager.ShutDown()
 	bpm := buffer.NewBufferPoolManager(uint32(32), diskManager) //, recovery.NewLogManager(diskManager), access.NewLockManager(access.REGULAR, access.PREVENTION))
@@ -245,7 +248,7 @@ func TestSimpleInsertAndLimitExecution(t *testing.T) {
 	executorContext := NewExecutorContext(c, bpm, txn)
 	executionEngine.Execute(insertPlanNode, executorContext)
 
-	bpm.FlushAllpages()
+	bpm.FlushAllPages()
 
 	txn_mgr.Commit(txn)
 

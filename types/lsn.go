@@ -11,6 +11,8 @@ import (
 // LSN is the type of the log identifier
 type LSN int32
 
+const SizeOfLSN = 4
+
 // Serialize casts it to []byte
 func (lsn LSN) Serialize() []byte {
 	buf := new(bytes.Buffer)
@@ -18,8 +20,8 @@ func (lsn LSN) Serialize() []byte {
 	return buf.Bytes()
 }
 
-// NewPageIDFromBytes creates a LSN from []byte
-func NewLSNFromBytes(data []byte) (ret TxnID) {
+// NewLSNFromBytes creates a LSN from []byte
+func NewLSNFromBytes(data []byte) (ret LSN) {
 	binary.Read(bytes.NewBuffer(data), binary.LittleEndian, &ret)
 	return ret
 }

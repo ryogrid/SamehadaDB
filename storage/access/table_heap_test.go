@@ -18,6 +18,7 @@ import (
 )
 
 func TestTableHeap(t *testing.T) {
+	// TODO: (SDB) need rewrite with SamehadaInstance class
 	dm := disk.NewDiskManagerTest()
 	defer dm.ShutDown()
 	bpm := buffer.NewBufferPoolManager(10, dm)
@@ -46,7 +47,7 @@ func TestTableHeap(t *testing.T) {
 		testingpkg.Ok(t, err)
 	}
 
-	bpm.FlushAllpages()
+	bpm.FlushAllPages()
 
 	firstTuple := th.GetFirstTuple(txn)
 	testingpkg.Equals(t, int32(0), firstTuple.GetValue(schema, 0).ToInteger())

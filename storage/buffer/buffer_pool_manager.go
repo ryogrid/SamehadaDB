@@ -156,8 +156,8 @@ func (b *BufferPoolManager) DeletePage(pageID types.PageID) error {
 
 }
 
-// FlushAllpages flushes all the pages in the buffer pool to disk.
-func (b *BufferPoolManager) FlushAllpages() {
+// FlushAllPages flushes all the pages in the buffer pool to disk.
+func (b *BufferPoolManager) FlushAllPages() {
 	for pageID := range b.pageTable {
 		b.FlushPage(pageID)
 	}
@@ -172,6 +172,14 @@ func (b *BufferPoolManager) getFrameID() (*FrameID, bool) {
 	}
 
 	return (*b.replacer).Victim(), false
+}
+
+func (b *BufferPoolManager) GetPages() []*page.Page {
+	return b.pages
+}
+
+func (b *BufferPoolManager) GetPoolSize() int {
+	return len(b.pageTable)
 }
 
 //NewBufferPoolManager returns a empty buffer pool manager

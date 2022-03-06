@@ -9,6 +9,10 @@ import (
 	"github.com/ryogrid/SamehadaDB/types"
 )
 
+/**
+ * Expression interface is the base of all the expressions in the system.
+ * Expressions are modeled as trees, i.e. every expression may have a variable number of children.
+ */
 type Expression interface {
 	Evaluate(*tuple.Tuple, *schema.Schema) types.Value
 }

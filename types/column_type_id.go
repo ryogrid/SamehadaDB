@@ -5,6 +5,7 @@ package types
 
 type TypeID int
 
+// Every possible SQL type ID
 const (
 	Invalid TypeID = iota
 	Boolean

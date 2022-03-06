@@ -6,7 +6,9 @@ package buffer
 //FrameID is the type for frame id
 type FrameID uint32
 
-//ClockReplacer represents the clock replacer algorithm
+/**
+ * ClockReplacer implements the clock replacement policy, which approximates the Least Recently Used policy.
+ */
 type ClockReplacer struct {
 	cList     *circularList
 	clockHand **node

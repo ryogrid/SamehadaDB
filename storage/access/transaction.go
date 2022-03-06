@@ -62,6 +62,9 @@ func NewWriteRecord(rid page.RID, wtype WType, tuple *tuple.Tuple, table *TableH
 	return ret
 }
 
+/**
+ * Transaction tracks information related to a transaction.
+ */
 type Transaction struct {
 	/** The current transaction state. */
 	state TransactionState
@@ -73,7 +76,7 @@ type Transaction struct {
 	txn_id types.TxnID
 
 	// /** The undo set of the access. */
-	// write_set deque<WriteRecord>
+	write_set []*WriteRecord
 
 	/** The LSN of the last record written by the access. */
 	prev_lsn types.LSN
@@ -94,7 +97,7 @@ func NewTransaction(txn_id types.TxnID) *Transaction {
 		GROWING,
 		// std::this_thread::get_id(),
 		txn_id,
-		// deque<WriteRecord>
+		make([]*WriteRecord, 0),
 		common.InvalidLSN,
 		// deque<*Page>,
 		// unordered_set<PageID>
@@ -109,8 +112,14 @@ func (txn *Transaction) GetTransactionId() types.TxnID { return txn.txn_id }
 // /** @return the id of the thread running the transaction */
 // func (txn *Transaction) GetThreadId() ThreadID { return txn.thread_id }
 
-// /** @return the list of of write records of this transaction */
-// func (txn *Transaction) GetWriteSet() deque<WriteRecord> { return txn.write_set }
+/** @return the list of of write records of this transaction */
+func (txn *Transaction) GetWriteSet() []*WriteRecord { return txn.write_set }
+
+func (txn *Transaction) SetWriteSet(write_set []*WriteRecord) { txn.write_set = write_set }
+
+func (txn *Transaction) AddIntoWriteSet(write_record *WriteRecord) {
+	txn.write_set = append(txn.write_set, write_record)
+}
 
 // /** @return the page set */
 // func (txn *Transaction) GetPageSet() deque<*Page> { return txn.page_set }
@@ -127,7 +136,7 @@ func (txn *Transaction) GetTransactionId() types.TxnID { return txn.txn_id }
 // /**
 // * Adds a page to the deleted page set.
 // * @param page_id id of the page to be marked as deleted
-// */
+//  */
 // func (txn *Transaction) AddIntoDeletedPageSet(page_id PageID) { txn.deleted_page_set.insert(page_id) }
 
 // /** @return the set of resources under a shared lock */
@@ -139,13 +148,13 @@ func (txn *Transaction) GetTransactionId() types.TxnID { return txn.txn_id }
 // TODO: (SDB) not ported yet
 /** @return true if rid is shared locked by this transaction */
 func (txn *Transaction) IsSharedLocked(rid *page.RID) bool {
-	return false /*txn.shared_lock_set.find(rid) != txn.shared_lock_set.end()*/
+	return true /*txn.shared_lock_set.find(rid) != txn.shared_lock_set.end()*/
 }
 
 // TODO: (SDB) not ported yet
 /** @return true if rid is exclusively locked by this transaction */
 func (txn *Transaction) IsExclusiveLocked(rid *page.RID) bool {
-	return false /*txn.exclusive_lock_set.find(rid) != txn.exclusive_lock_set.end()*/
+	return true /*txn.exclusive_lock_set.find(rid) != txn.exclusive_lock_set.end()*/
 }
 
 /** @return the current state of the transaction */
