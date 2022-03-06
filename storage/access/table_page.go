@@ -125,7 +125,7 @@ func (table_page *TablePage) ApplyDelete(rid page.RID, txn *Transaction, log_man
 	// Otherwise we are rolling back an insert.
 
 	// We need to copy out the deleted tuple for undo purposes.
-	var delete_tuple *tuple.Tuple
+	var delete_tuple *tuple.Tuple = new(tuple.Tuple)
 	delete_tuple.SetSize(tuple_size)
 	delete_tuple.SetData(make([]byte, delete_tuple.Size()))
 	//memcpy(delete_tuple.Data(), table_page.Data()+tuple_offset, delete_tuple.Size())
