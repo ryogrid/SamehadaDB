@@ -1,16 +1,19 @@
 package log_recovery
 
 import (
+	"bytes"
 	"fmt"
 	"math"
 	"math/rand"
 	"os"
 	"testing"
 	"time"
+	"unsafe"
 
 	"github.com/ryogrid/SamehadaDB/common"
 	"github.com/ryogrid/SamehadaDB/recovery/log_recovery"
 	"github.com/ryogrid/SamehadaDB/storage/access"
+	"github.com/ryogrid/SamehadaDB/storage/disk"
 	"github.com/ryogrid/SamehadaDB/storage/page"
 	"github.com/ryogrid/SamehadaDB/storage/table/column"
 	"github.com/ryogrid/SamehadaDB/storage/table/schema"
@@ -414,17 +417,19 @@ func EXPECT_EQ(arg1 interface{}, arg2 interface{}) {}
 
 // TODO: (SDB) need prepare "expect" type testing utility func
 // TODO: (SDB) need implement TestCheckPoint
-/*
+
 func TestCheckpoint(t *testing.T) {
 	// remove("test.db")
 	// remove("test.log")
 	samehada_instance := test_util.NewSamehadaInstance()
 
-	EXPECT_FALSE(common.EnableLogging)
+	//EXPECT_FALSE(common.EnableLogging)
+	testingpkg.AssertFalse(t, common.EnableLogging, "")
 	fmt.Println("Skip system recovering...")
 
 	samehada_instance.GetLogManager().RunFlushThread()
-	EXPECT_TRUE(common.EnableLogging)
+	//EXPECT_TRUE(common.EnableLogging)
+	testingpkg.Assert(t, common.EnableLogging, "")
 	fmt.Println("System logging thread running...")
 
 	fmt.Println("Create a test table")
@@ -448,14 +453,15 @@ func TestCheckpoint(t *testing.T) {
 
 	// set log time out very high so that flush doesn't happen before checkpoint is performed
 
-	common.LogTimeout, _ = time.ParseDuration("5s") //seconds(15) //chrono::seconds(15)
+	common.LogTimeout, _ = time.ParseDuration("15s") //seconds(15) //chrono::seconds(15)
 
 	// insert a ton of tuples
 	txn1 := samehada_instance.GetTransactionManager().Begin(nil)
 	for i := 0; i < 1000; i++ {
 		var rid *page.RID = nil
 		rid, _ = test_table.InsertTuple(tuple_, txn1)
-		EXPECT_TRUE(rid != nil)
+		//EXPECT_TRUE(rid != nil)
+		testingpkg.Assert(t, rid != nil, "")
 	}
 	samehada_instance.GetTransactionManager().Commit(txn1)
 
@@ -463,8 +469,6 @@ func TestCheckpoint(t *testing.T) {
 	samehada_instance.GetCheckpointManager().BeginCheckpoint()
 	samehada_instance.GetCheckpointManager().EndCheckpoint()
 
-	// TODO: (SDB) need to implment BufferPoolManager::{GetPages, GetPoolSize}
-	//             for checkpoint
 	pages := samehada_instance.GetBufferPoolManager().GetPages()
 	pool_size := samehada_instance.GetBufferPoolManager().GetPoolSize()
 
@@ -479,7 +483,8 @@ func TestCheckpoint(t *testing.T) {
 			break
 		}
 	}
-	EXPECT_TRUE(all_pages_clean)
+	//EXPECT_TRUE(all_pages_clean)
+	testingpkg.Assert(t, all_pages_clean, "")
 
 	// compare each page in the buffer pool to that page's
 	// data on disk. ensure they match after the checkpoint
@@ -493,20 +498,23 @@ func TestCheckpoint(t *testing.T) {
 			dmgr_impl := ((*disk.DiskManagerImpl)(unsafe.Pointer(samehada_instance.GetDiskManager())))
 			//samehada_instance.GetDiskManager().ReadPage(page_id, disk_data)
 			dmgr_impl.ReadPage(page_id, disk_data)
-			if memcmp(disk_data, page.GetData(), common.PageSize) != 0 {
+			//if memcmp(disk_data, page.GetData(), common.PageSize) != 0 {
+			if !bytes.Equal(disk_data[:common.PageSize], page.GetData()[:common.PageSize]) {
 				all_pages_match = false
 				break
 			}
 		}
 	}
 
-	EXPECT_TRUE(all_pages_match)
+	//EXPECT_TRUE(all_pages_match)
+	testingpkg.Assert(t, all_pages_match, "")
 	// delete[] disk_data
 
 	// Verify all committed transactions flushed to disk
 	persistent_lsn := samehada_instance.GetLogManager().GetPersistentLSN()
 	next_lsn := samehada_instance.GetLogManager().GetNextLSN()
-	EXPECT_EQ(persistent_lsn, (next_lsn - 1))
+	//EXPECT_EQ(persistent_lsn, (next_lsn - 1))
+	testingpkg.Assert(t, persistent_lsn == (next_lsn-1), "")
 
 	// verify log was flushed and each page's LSN <= persistent lsn
 	all_pages_lte := true
@@ -520,7 +528,8 @@ func TestCheckpoint(t *testing.T) {
 		}
 	}
 
-	EXPECT_TRUE(all_pages_lte)
+	//EXPECT_TRUE(all_pages_lte)
+	testingpkg.Assert(t, all_pages_lte, "")
 
 	// delete txn
 	// delete txn1
@@ -533,7 +542,6 @@ func TestCheckpoint(t *testing.T) {
 	// remove("test.db")
 	// remove("test.log")
 }
-*/
 
 // use a fixed schema to construct a random tuple
 func ConstructTuple(schema_ *schema.Schema) *tuple.Tuple {

@@ -159,13 +159,10 @@ func (d *DiskManagerImpl) RemoveLogFile() {
 	os.Remove(d.fileName_log)
 }
 
-// TODO: (SDB) need implement WriteLog and ReadLog of DiskManagerImpl for logging/recovery
-
 /**
  * Write the contents of the log into disk file
  * Only return when sync is done, and only perform sequence write
  */
-//func (d *DiskManagerImpl) WriteLog(log_data []byte, size int32) {
 func (d *DiskManagerImpl) WriteLog(log_data []byte) {
 	// enforce swap log buffer
 
