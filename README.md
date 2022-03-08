@@ -15,9 +15,9 @@ original codes of go-bustub are [here](https://github.com/brunocalza/go-bustub).
 - [x] Persistent Catalog
 - [ ] LRU replacer
 - [ ] Latches
-- [ ] Transactions
-- [ ] Logging
-- [ ] Recovery from Logs
+- [x] Transactions
+- [x] Logging
+- [x] Recovery from Logs
 - [ ] Hash Index
 - [ ] BTree Index
 - [ ] Join
