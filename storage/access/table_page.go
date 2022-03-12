@@ -7,7 +7,6 @@ package access
 import (
 	"bytes"
 	"encoding/binary"
-	"fmt"
 	"unsafe"
 
 	"github.com/ryogrid/SamehadaDB/common"
@@ -53,7 +52,9 @@ type TablePage struct {
 
 // TODO: (SDB) not ported methods exist at TablePage.
 //             And additional loggings are needed when implement the methods
-//             ex: MarkDelete, ApplyDelete, UpdateTuple methods.
+//             ex: MarkDelete, UpdateTuple methods.
+//                 adding codes to related methods on other classes is also neede.
+//                 ex: logging/recovery, executer(maybe)
 
 // CastPageAsTablePage casts the abstract Page struct into TablePage
 func CastPageAsTablePage(page *page.Page) *TablePage {
@@ -101,8 +102,11 @@ func (tp *TablePage) InsertTuple(tuple *tuple.Tuple, log_manager *recovery.LogMa
 		// Acquire an exclusive lock on the new tuple.
 		// bool locked = lock_manager.Exclusive(txn, *rid);
 		//txn_ := (*Transaction)(unsafe.Pointer(&txn))
-		locked := LockExclusive(txn, rid)
-		fmt.Print(locked)
+
+		// TODO: (SDB) need to check having lock
+		//locked := LockExclusive(txn, rid)
+		//fmt.Print(locked)
+
 		//BUSTUB_ASSERT(locked, "Locking a new tuple should always work.");
 		log_record := recovery.NewLogRecordInsertDelete(txn.GetTransactionId(), txn.GetPrevLSN(), recovery.INSERT, *rid, tuple)
 		lsn := log_manager.AppendLogRecord(log_record)
@@ -253,12 +257,11 @@ func (tp *TablePage) GetFreeSpacePointer() uint32 {
 }
 
 func (tp *TablePage) GetTuple(rid *page.RID, log_manager *recovery.LogManager, lock_manager *LockManager, txn *Transaction) *tuple.Tuple {
-	// If somehow we have more slots than tuples, abort the
+	// If somehow we have more slots than tuples, abort transaction
 	if rid.GetSlotNum() >= tp.GetTupleCount() {
 		if common.EnableLogging {
 			txn.SetState(ABORTED)
 		}
-		// TODO: (SDB) need care of Aborting at GetTuple of TablePage
 		return nil
 	}
 
@@ -298,7 +301,7 @@ func (tp *TablePage) GetTupleFirstRID() *page.RID {
 
 	tupleCount := tp.GetTupleCount()
 	for i := uint32(0); i < tupleCount; i++ {
-		// TODO: (SDB) need implement
+		// TODO: (SDB) need implement (if is deleted)
 		// if is deleted
 		firstRID.Set(tp.GetTablePageId(), i)
 		return firstRID
@@ -311,7 +314,7 @@ func (tp *TablePage) GetNextTupleRID(rid *page.RID) *page.RID {
 
 	tupleCount := tp.GetTupleCount()
 	for i := rid.GetSlotNum() + 1; i < tupleCount; i++ {
-		// TODO: (SDB) need implement
+		// TODO: (SDB) need implement (if is deleted)
 		// if is deleted
 		firstRID.Set(tp.GetTablePageId(), i)
 		return firstRID

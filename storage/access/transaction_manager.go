@@ -54,11 +54,13 @@ func (transaction_manager *TransactionManager) Commit(txn *Transaction) {
 	write_set := txn.GetWriteSet()
 	for len(write_set) != 0 {
 		item := write_set[len(write_set)-1]
-		//table := item.table
+		table := item.table
+		rid := item.rid
 		if item.wtype == DELETE {
 			// Note that this also releases the lock when holding the page latch.
-			// TODO: (SDB) not ported yet
-			//table.ApplyDelete(item.rid, txn)
+			pageID := rid.GetPageId()
+			tpage := CastPageAsTablePage(table.bpm.FetchPage(pageID))
+			tpage.ApplyDelete(item.rid, txn, transaction_manager.log_manager)
 		}
 		write_set = write_set[:len(write_set)-1]
 	}
@@ -84,13 +86,18 @@ func (transaction_manager *TransactionManager) Abort(txn *Transaction) {
 	write_set := txn.GetWriteSet()
 	for len(write_set) != 0 {
 		item := write_set[len(write_set)-1]
-		//table := item.table
+		table := item.table
 		// TODO: (SDB) not ported yet (inside of if block)
 		if item.wtype == DELETE {
 			//table.RollbackDelete(item.rid_, txn)
 		} else if item.wtype == INSERT {
 			// Note that this also releases the lock when holding the page latch.
 			//table.ApplyDelete(item.rid, txn)
+			rid := item.rid
+			// Note that this also releases the lock when holding the page latch.
+			pageID := rid.GetPageId()
+			tpage := CastPageAsTablePage(table.bpm.FetchPage(pageID))
+			tpage.ApplyDelete(item.rid, txn, transaction_manager.log_manager)
 		} else if item.wtype == UPDATE {
 			//table.UpdateTuple(item.tuple, item.rid_, txn)
 		}
