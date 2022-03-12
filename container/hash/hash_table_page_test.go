@@ -11,6 +11,7 @@ import (
 	"github.com/ryogrid/SamehadaDB/storage/buffer"
 	"github.com/ryogrid/SamehadaDB/storage/disk"
 	"github.com/ryogrid/SamehadaDB/storage/page"
+	testingpkg "github.com/ryogrid/SamehadaDB/testing"
 	"github.com/ryogrid/SamehadaDB/types"
 )
 
@@ -63,44 +64,47 @@ func TestHashTableHeaderPage(t *testing.T) {
 	os.Remove("test.db")
 }
 
-// func TestHashTableBlockPage(t *testing.T) {
-// 	diskManager := disk.NewDiskManagerImpl("test.db")
-// 	bpm := buffer.NewBufferPoolManager(diskManager, buffer.NewClockReplacer(5))
+func TestHashTableBlockPage(t *testing.T) {
+	diskManager := disk.NewDiskManagerImpl("test.db")
+	//bpm := buffer.NewBufferPoolManager(diskManager, buffer.NewClockReplacer(5))
+	bpm := buffer.NewBufferPoolManager(uint32(32), diskManager)
 
-// 	newPage := bpm.NewPage()
-// 	newPageData := newPage.Data()
+	newPage := bpm.NewPage()
+	newPageData := newPage.Data()
 
-// 	blockPage := (*page.HashTableBlockPage)(unsafe.Pointer(newPageData))
+	blockPage := (*page.HashTableBlockPage)(unsafe.Pointer(newPageData))
 
-// 	for i := 0; i < 10; i++ {
-// 		blockPage.Insert(i, i, i)
-// 	}
+	for i := 0; i < 10; i++ {
+		blockPage.Insert(i, i, i)
+	}
 
-// 	for i := 0; i < 10; i++ {
-// 		equals(t, i, blockPage.KeyAt(i))
-// 		equals(t, i, blockPage.ValueAt(i))
-// 	}
+	for i := 0; i < 10; i++ {
+		// equals(t, i, blockPage.KeyAt(i))
+		testingpkg.Assert(t, i == blockPage.KeyAt(i), "")
+		//equals(t, i, blockPage.ValueAt(i))
+		testingpkg.Assert(t, i == blockPage.ValueAt(i), "")
+	}
 
-// 	for i := 0; i < 10; i++ {
-// 		if i%2 == 1 {
-// 			blockPage.Remove(i)
-// 		}
-// 	}
+	for i := 0; i < 10; i++ {
+		if i%2 == 1 {
+			blockPage.Remove(i)
+		}
+	}
 
-// 	for i := 0; i < 15; i++ {
-// 		if i < 10 {
-// 			assert(t, true == blockPage.IsOccupied(i), "block page should be occupied")
-// 			if i%2 == 1 {
-// 				assert(t, false == blockPage.IsReadable(i), "block page should not be readable")
-// 			} else {
-// 				assert(t, true == blockPage.IsReadable(i), "block page should be readable")
-// 			}
-// 		} else {
-// 			assert(t, false == blockPage.IsOccupied(i), "block page should not be occupied")
-// 		}
-// 	}
+	for i := 0; i < 15; i++ {
+		if i < 10 {
+			testingpkg.Assert(t, true == blockPage.IsOccupied(i), "block page should be occupied")
+			if i%2 == 1 {
+				testingpkg.Assert(t, false == blockPage.IsReadable(i), "block page should not be readable")
+			} else {
+				testingpkg.Assert(t, true == blockPage.IsReadable(i), "block page should be readable")
+			}
+		} else {
+			testingpkg.Assert(t, false == blockPage.IsOccupied(i), "block page should not be occupied")
+		}
+	}
 
-// 	bpm.UnpinPage(newPage.ID(), true)
-// 	bpm.FlushAllpages()
-// 	os.Remove("test.db")
-// }
+	bpm.UnpinPage(newPage.ID(), true)
+	bpm.FlushAllPages()
+	os.Remove("test.db")
+}
