@@ -8,12 +8,10 @@ import (
 	"os"
 	"testing"
 	"time"
-	"unsafe"
 
 	"github.com/ryogrid/SamehadaDB/common"
 	"github.com/ryogrid/SamehadaDB/recovery/log_recovery"
 	"github.com/ryogrid/SamehadaDB/storage/access"
-	"github.com/ryogrid/SamehadaDB/storage/disk"
 	"github.com/ryogrid/SamehadaDB/storage/page"
 	"github.com/ryogrid/SamehadaDB/storage/table/column"
 	"github.com/ryogrid/SamehadaDB/storage/table/schema"
@@ -154,9 +152,6 @@ func TestLogSererializeAndDeserialize(t *testing.T) {
 */
 
 func TestRedo(t *testing.T) {
-	// fmt.Println("start Test Redo")
-	// remove("test.db")
-	// remove("test.log")
 	os.Remove("test.db")
 	os.Remove("test.log")
 
@@ -177,10 +172,7 @@ func TestRedo(t *testing.T) {
 
 	var rid *page.RID
 	var rid1 *page.RID
-	// col1 := &column.Column{"a", types.Varchar, 20}
-	// col2 := &column.Column{"b", types.Smallint}
 	col1 := column.NewColumn("a", types.Varchar)
-	//col2 := column.NewColumn("b", types.Smallint)
 	col2 := column.NewColumn("b", types.Integer)
 	cols := []*column.Column{col1, col2}
 	schema_ := schema.NewSchema(cols)
@@ -264,9 +256,6 @@ func TestRedo(t *testing.T) {
 	testingpkg.Assert(t, old_tuple1 != nil, "")
 
 	samehada_instance.GetTransactionManager().Commit(txn)
-	// delete txn
-	// delete test_table
-	// delete log_recovery
 
 	// testingpkg.Equals(t, old_tuple.GetValue(&schema_, 1).CompareEquals(val_1), CmpBool::CmpTrue)
 	// testingpkg.Equals(t, old_tuple.GetValue(&schema_, 0).CompareEquals(val_0), CmpBool::CmpTrue)
@@ -280,15 +269,10 @@ func TestRedo(t *testing.T) {
 	// delete samehada_instance
 	fmt.Println("Tearing down the system..")
 	samehada_instance.Finalize(true)
-	// remove("test.db")
-	// remove("test.log")
 }
 
 func TestUndo(t *testing.T) {
 	os.Stdout.Sync()
-	// fmt.Println("start Test Undo")
-	// remove("test.db")
-	// remove("test.log")
 	os.Remove("test.db")
 	os.Remove("test.log")
 
@@ -310,10 +294,7 @@ func TestUndo(t *testing.T) {
 		txn)
 	first_page_id := test_table.GetFirstPageId()
 
-	// col1 := &column.Column{"a", types.Varchar, 20}
-	// col2 := &column.Column{"b", types.Smallint}
 	col1 := column.NewColumn("a", types.Varchar)
-	//	col2 := column.NewColumn("b", types.Smallint)
 	col2 := column.NewColumn("b", types.Integer)
 	cols := []*column.Column{col1, col2}
 	schema_ := schema.NewSchema(cols)
@@ -333,9 +314,6 @@ func TestUndo(t *testing.T) {
 
 	// TODO: (SDB) log flushing is SamehadaDB original code. Pay attention.
 	samehada_instance.GetLogManager().Flush()
-
-	// delete txn
-	// delete test_table
 
 	fmt.Println("System crash before commit")
 	// delete samehada_instance
@@ -363,7 +341,6 @@ func TestUndo(t *testing.T) {
 	//testingpkg.Assert(t, old_tuple.GetValue(&schema_, 1).CompareEquals(val_1), CmpBool::CmpTrue)
 	testingpkg.Assert(t, old_tuple.GetValue(schema_, 1).CompareEquals(val_1), "")
 	samehada_instance.GetTransactionManager().Commit(txn)
-	// delete txn
 
 	testingpkg.AssertFalse(t, common.EnableLogging, "common.EnableLogging is not false!")
 
@@ -405,21 +382,17 @@ func TestUndo(t *testing.T) {
 	// delete samehada_instance
 	fmt.Println("Tearing down the system..")
 	samehada_instance.Finalize(true)
-	// remove("test.db")
-	// remove("test.log")
 }
 
 func TestCheckpoint(t *testing.T) {
-	// remove("test.db")
-	// remove("test.log")
+	os.Remove("test.db")
+	os.Remove("test.log")
 	samehada_instance := test_util.NewSamehadaInstance()
 
-	//EXPECT_FALSE(common.EnableLogging)
 	testingpkg.AssertFalse(t, common.EnableLogging, "")
 	fmt.Println("Skip system recovering...")
 
 	samehada_instance.GetLogManager().RunFlushThread()
-	//EXPECT_TRUE(common.EnableLogging)
 	testingpkg.Assert(t, common.EnableLogging, "")
 	fmt.Println("System logging thread running...")
 
@@ -432,18 +405,12 @@ func TestCheckpoint(t *testing.T) {
 		txn)
 	samehada_instance.GetTransactionManager().Commit(txn)
 
-	// col1 := &column.Column{"a", types.Varchar, 20}
-	// col2 := &column.Column{"b", types.Smallint}
 	col1 := column.NewColumn("a", types.Varchar)
-	//col2 := column.NewColumn("b", types.Smallint)
 	col2 := column.NewColumn("b", types.Integer)
 	cols := []*column.Column{col1, col2}
 	schema_ := schema.NewSchema(cols)
 
 	tuple_ := ConstructTuple(schema_)
-	fmt.Println(tuple_)
-	// val_0 := tuple_.GetValue(schema_, 0)
-	// val_1 := tuple_.GetValue(schema_, 1)
 	_ = tuple_.GetValue(schema_, 0)
 	_ = tuple_.GetValue(schema_, 1)
 
@@ -456,7 +423,6 @@ func TestCheckpoint(t *testing.T) {
 	for i := 0; i < 1000; i++ {
 		var rid *page.RID = nil
 		rid, _ = test_table.InsertTuple(tuple_, txn1)
-		//EXPECT_TRUE(rid != nil)
 		testingpkg.Assert(t, rid != nil, "")
 	}
 	samehada_instance.GetTransactionManager().Commit(txn1)
@@ -479,7 +445,6 @@ func TestCheckpoint(t *testing.T) {
 			break
 		}
 	}
-	//EXPECT_TRUE(all_pages_clean)
 	testingpkg.Assert(t, all_pages_clean, "")
 
 	// compare each page in the buffer pool to that page's
@@ -491,10 +456,8 @@ func TestCheckpoint(t *testing.T) {
 		page_id := page.GetPageId()
 
 		if page_id != common.InvalidPageID {
-			dmgr_impl := ((*disk.DiskManagerImpl)(unsafe.Pointer(samehada_instance.GetDiskManager())))
-			//samehada_instance.GetDiskManager().ReadPage(page_id, disk_data)
+			dmgr_impl := *samehada_instance.GetDiskManager()
 			dmgr_impl.ReadPage(page_id, disk_data)
-			//if memcmp(disk_data, page.GetData(), common.PageSize) != 0 {
 			if !bytes.Equal(disk_data[:common.PageSize], page.GetData()[:common.PageSize]) {
 				all_pages_match = false
 				break
@@ -502,9 +465,7 @@ func TestCheckpoint(t *testing.T) {
 		}
 	}
 
-	//EXPECT_TRUE(all_pages_match)
 	testingpkg.Assert(t, all_pages_match, "")
-	// delete[] disk_data
 
 	// Verify all committed transactions flushed to disk
 	persistent_lsn := samehada_instance.GetLogManager().GetPersistentLSN()
@@ -524,20 +485,12 @@ func TestCheckpoint(t *testing.T) {
 		}
 	}
 
-	//EXPECT_TRUE(all_pages_lte)
 	testingpkg.Assert(t, all_pages_lte, "")
-
-	// delete txn
-	// delete txn1
-	// delete test_table
 
 	fmt.Println("Shutdown System")
 	samehada_instance.Finalize(true)
-	// delete samehada_instance
 
 	fmt.Println("Tearing down the system..")
-	// remove("test.db")
-	// remove("test.log")
 }
 
 // use a fixed schema to construct a random tuple
