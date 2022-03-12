@@ -17,6 +17,8 @@ original codes of go-bustub are [here](https://github.com/brunocalza/go-bustub).
 - [ ] Latches
 - [x] Transactions
 - [x] Logging
+- [x] Checkpointing
+- [ ] Fuzzy Checkpointing (ARIES)
 - [x] Recovery from Logs
 - [ ] Hash Index
 - [ ] BTree Index
@@ -24,10 +26,11 @@ original codes of go-bustub are [here](https://github.com/brunocalza/go-bustub).
 - [ ] Aggregations (COUNT, MAX, MIN ... on SELECT clause)
 - [ ] Sort (ORDER BY clause) 
 - [ ] Index Scan
-- [ ] Execution Planning from Query Description (SQL or SQL like description)
 - [ ] Query Optimazation
 - [ ] Concurrent Execution of Transactions
-- [ ] Nested Query 
+- [ ] Nested Query
+- [ ] Execution Planning from Query Description (SQL or SQL like description)
+- [ ] DB Connector or Other Access Interface
 
 ## Past work
 [FunnelKVS: Rust implementation of autonomous distributed key-value store which has REST interfaces](https://github.com/ryogrid/rust_dkvs)
