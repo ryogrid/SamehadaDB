@@ -60,6 +60,7 @@ func NewTupleFromSchema(values []types.Value, schema *schema.Schema) *Tuple {
 
 func (t *Tuple) GetValue(schema *schema.Schema, colIndex uint32) types.Value {
 	column := *(schema.GetColumn(colIndex))
+	//fmt.Printf("column at GetValue: %+v \n", column)
 	//column := (*((*interfaces.ISchema)(unsafe.Pointer(&(schema.(interfaces.ISchema)))))).GetColumn(colIndex)
 	//column := (schema.(interfaces.ISchema)).GetColumn(colIndex)
 	offset := column.GetOffset()

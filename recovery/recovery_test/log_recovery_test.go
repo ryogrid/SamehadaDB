@@ -409,15 +409,6 @@ func TestUndo(t *testing.T) {
 	// remove("test.log")
 }
 
-func EXPECT_TRUE(condition bool)                   {}
-func EXPECT_FALSE(condition bool)                  {}
-func EXPECT_EQ(arg1 interface{}, arg2 interface{}) {}
-
-//func memcmp(arg1 interface{}, arg2 interface{}, arg3 interface{}) int32 { return -1 }
-
-// TODO: (SDB) need prepare "expect" type testing utility func
-// TODO: (SDB) need implement TestCheckPoint
-
 func TestCheckpoint(t *testing.T) {
 	// remove("test.db")
 	// remove("test.log")
@@ -434,18 +425,23 @@ func TestCheckpoint(t *testing.T) {
 
 	fmt.Println("Create a test table")
 	txn := samehada_instance.GetTransactionManager().Begin(nil)
-	test_table := access.NewTableHeap(samehada_instance.GetBufferPoolManager(), samehada_instance.GetLogManager(),
-		samehada_instance.GetLockManager(), txn)
+	test_table := access.NewTableHeap(
+		samehada_instance.GetBufferPoolManager(),
+		samehada_instance.GetLogManager(),
+		samehada_instance.GetLockManager(),
+		txn)
 	samehada_instance.GetTransactionManager().Commit(txn)
 
 	// col1 := &column.Column{"a", types.Varchar, 20}
 	// col2 := &column.Column{"b", types.Smallint}
 	col1 := column.NewColumn("a", types.Varchar)
-	col2 := column.NewColumn("b", types.Smallint)
+	//col2 := column.NewColumn("b", types.Smallint)
+	col2 := column.NewColumn("b", types.Integer)
 	cols := []*column.Column{col1, col2}
 	schema_ := schema.NewSchema(cols)
 
 	tuple_ := ConstructTuple(schema_)
+	fmt.Println(tuple_)
 	// val_0 := tuple_.GetValue(schema_, 0)
 	// val_1 := tuple_.GetValue(schema_, 1)
 	_ = tuple_.GetValue(schema_, 0)
@@ -536,6 +532,7 @@ func TestCheckpoint(t *testing.T) {
 	// delete test_table
 
 	fmt.Println("Shutdown System")
+	samehada_instance.Finalize(true)
 	// delete samehada_instance
 
 	fmt.Println("Tearing down the system..")
