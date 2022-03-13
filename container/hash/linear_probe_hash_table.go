@@ -19,6 +19,7 @@ import (
  * manager. Non-unique keys are supported. Supports insert and delete. The
  * table dynamically grows once full.
  */
+// TODO: (SDB) LinearProbeHashTable does not dynamically grows...
 type LinearProbeHashTable struct {
 	headerPageId types.PageID
 	bpm          *buffer.BufferPoolManager
