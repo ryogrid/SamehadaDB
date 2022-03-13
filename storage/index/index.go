@@ -1,5 +1,9 @@
 package index
 
+import (
+	"github.com/ryogrid/SamehadaDB/storage/table/schema"
+)
+
 // TODO: (SDB) need port IndexMetadata class
 /**
  * class IndexMetadata - Holds metadata of an index object
@@ -9,36 +13,41 @@ package index
  * the index key, so it is the index's responsibility to maintain such a
  * mapping relation and does the conversion between tuple key and index key
  */
+
+type IndexMetadata struct {
+	name       string
+	table_name string
+	// The mapping relation between key schema and tuple schema
+	key_attrs []uint32
+	// schema of the indexed key
+	key_schema *schema.Schema
+}
+
+func NewIndexMetadata(index_name string, table_name string, tuple_schema *schema.Schema,
+	key_attrs []uint32) *IndexMetadata {
+	ret := new(IndexMetadata)
+	ret.name = index_name
+	ret.table_name = table_name
+	ret.key_attrs = key_attrs
+	ret.key_schema = schema.CopySchema(tuple_schema, key_attrs)
+}
+
+func (im *IndexMetadata) GetName() *string      { return &im.name }
+func (im *IndexMetadata) GetTableName() *string { return &im.table_name }
+
+// Returns a schema object pointer that represents the indexed key
+func (im *IndexMetadata) GetKeySchema() *schema.Schema { return &im.key_schema }
+
+// Return the number of columns inside index key (not in tuple key)
+// Note that this must be defined inside the cpp source file
+// because it uses the member of catalog::Schema which is not known here
+func (im *IndexMetadata) GetIndexColumnCount() uint32 { return uint32(im.key_attrs.size()) }
+
+//  Returns the mapping relation between indexed columns  and base table
+//  columns
+func (im *IndexMetadata) GetKeyAttrs() []uint32 { return im.key_attrs }
+
 /*
- class Transaction;
- class IndexMetadata {
-  public:
-   IndexMetadata() = delete;
-
-   IndexMetadata(std::string index_name, std::string table_name, const Schema *tuple_schema,
-				 std::vector<uint32_t> key_attrs)
-	   : name_(std::move(index_name)), table_name_(std::move(table_name)), key_attrs_(std::move(key_attrs)) {
-	 key_schema_ = Schema::CopySchema(tuple_schema, key_attrs_);
-   }
-
-   ~IndexMetadata() { delete key_schema_; }
-
-   inline const std::string &GetName() const { return name_; }
-
-   inline const std::string &GetTableName() { return table_name_; }
-
-   // Returns a schema object pointer that represents the indexed key
-   inline Schema *GetKeySchema() const { return key_schema_; }
-
-   // Return the number of columns inside index key (not in tuple key)
-   // Note that this must be defined inside the cpp source file
-   // because it uses the member of catalog::Schema which is not known here
-   uint32_t GetIndexColumnCount() const { return static_cast<uint32_t>(key_attrs_.size()); }
-
-   //  Returns the mapping relation between indexed columns  and base table
-   //  columns
-   inline const std::vector<uint32_t> &GetKeyAttrs() const { return key_attrs_; }
-
    // Get a string representation for debugging
    std::string ToString() const {
 	 std::stringstream os;
@@ -53,13 +62,6 @@ package index
    }
 
   private:
-   std::string name_;
-   std::string table_name_;
-   // The mapping relation between key schema and tuple schema
-   const std::vector<uint32_t> key_attrs_;
-   // schema of the indexed key
-   Schema *key_schema_;
- };
 */
 
 /////////////////////////////////////////////////////////////////////
