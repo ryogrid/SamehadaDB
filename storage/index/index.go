@@ -102,7 +102,7 @@ type Index interface {
 	InsertEntry(*tuple.Tuple, page.RID, *access.Transaction)
 	// delete the index entry linked to given tuple
 	DeleteEntry(*tuple.Tuple, page.RID, *access.Transaction)
-	ScanKey(*tuple.Tuple, page.RID, *access.Transaction)
+	ScanKey(*tuple.Tuple, *access.Transaction) []page.RID
 
 	/*
 	      // Get a string representation for debugging

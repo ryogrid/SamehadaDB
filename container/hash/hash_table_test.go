@@ -11,12 +11,12 @@ import (
 	testingpkg "github.com/ryogrid/SamehadaDB/testing"
 )
 
-func TestHashTable(t *testing.T) {
+func TestLinearProbeHashTable(t *testing.T) {
 	diskManager := disk.NewDiskManagerTest()
 	defer diskManager.ShutDown()
 	bpm := buffer.NewBufferPoolManager(uint32(10), diskManager)
 
-	ht := NewHashTable(bpm, 1000)
+	ht := NewLinearProbeHashTable(bpm, 1000)
 
 	for i := 0; i < 5; i++ {
 		ht.Insert(i, i)

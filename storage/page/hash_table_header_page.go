@@ -16,13 +16,13 @@ import "github.com/ryogrid/SamehadaDB/types"
  */
 type HashTableHeaderPage struct {
 	pageId       types.PageID
-	lsn          int // log sequence number
-	nextIndex    int // the next index to add a new entry to blockPageIds
-	size         int // the number of key/value pairs the hash table can hold
+	lsn          int    // log sequence number
+	nextIndex    uint32 // the next index to add a new entry to blockPageIds
+	size         int    // the number of key/value pairs the hash table can hold
 	blockPageIds [1020]types.PageID
 }
 
-func (page *HashTableHeaderPage) GetBlockPageId(index int) types.PageID {
+func (page *HashTableHeaderPage) GetBlockPageId(index uint32) types.PageID {
 	return page.blockPageIds[index]
 }
 
@@ -47,7 +47,7 @@ func (page *HashTableHeaderPage) AddBlockPageId(pageId types.PageID) {
 	page.nextIndex++
 }
 
-func (page *HashTableHeaderPage) NumBlocks() int {
+func (page *HashTableHeaderPage) NumBlocks() uint32 {
 	return page.nextIndex
 }
 
