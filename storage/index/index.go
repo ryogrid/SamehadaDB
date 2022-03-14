@@ -89,11 +89,10 @@ func (im *IndexMetadata) GetKeyAttrs() []uint32 { return im.key_attrs }
  */
 
 type Index interface {
-	Index(*IndexMetadata)
 	// Return the metadata object associated with the index
-	GetMetadata() IndexMetadata
-	GetIndexColumnCount() int
-	GetName() string
+	GetMetadata() *IndexMetadata
+	GetIndexColumnCount() uint32
+	GetName() *string
 	GetKeySchema() *schema.Schema
 	GetKeyAttrs() []uint32
 	///////////////////////////////////////////////////////////////////

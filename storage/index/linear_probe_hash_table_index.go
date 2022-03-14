@@ -1,63 +1,65 @@
 package index
 
+import (
+	hash "github.com/ryogrid/SamehadaDB/container/hash"
+	"github.com/ryogrid/SamehadaDB/storage/access"
+	"github.com/ryogrid/SamehadaDB/storage/page"
+	"github.com/ryogrid/SamehadaDB/storage/table/schema"
+	"github.com/ryogrid/SamehadaDB/storage/tuple"
+)
+
 // TODO: (SDB) need port LinearProbeHashTableIndex class
-/*
-#define HASH_TABLE_INDEX_TYPE LinearProbeHashTableIndex<KeyType, ValueType, KeyComparator>
 
-template <typename KeyType, typename ValueType, typename KeyComparator>
-class LinearProbeHashTableIndex : public Index {
+//#define HASH_TABLE_INDEX_TYPE LinearProbeHashTableIndex<KeyType, ValueType, KeyComparator>
 
-	// Constructor
-	template <typename KeyType, typename ValueType, typename KeyComparator>
-	HASH_TABLE_INDEX_TYPE::LinearProbeHashTableIndex(IndexMetadata *metadata, BufferPoolManager *buffer_pool_manager,
-													size_t num_buckets, const HashFunction<KeyType> &hash_fn)
-		: Index(metadata),
-		comparator_(metadata->GetKeySchema()),
-		container_(metadata->GetName(), buffer_pool_manager, comparator_, num_buckets, hash_fn) {}
-
-	// Return the metadata object associated with the index
-	IndexMetadata *GetMetadata() const { return metadata_; }
-
-	int GetIndexColumnCount() const { return metadata_->GetIndexColumnCount(); }
-
-	const std::string &GetName() const { return metadata_->GetName(); }
-
-	Schema *GetKeySchema() const { return metadata_->GetKeySchema(); }
-
-	const std::vector<uint32_t> &GetKeyAttrs() const { return metadata_->GetKeyAttrs(); }
-
-	template <typename KeyType, typename ValueType, typename KeyComparator>
-	void HASH_TABLE_INDEX_TYPE::InsertEntry(const Tuple &key, RID rid, Transaction *transaction) {
-	// construct insert index key
-	KeyType index_key;
-	index_key.SetFromKey(key);
-
-	container_.Insert(transaction, index_key, rid);
-	}
-
-	template <typename KeyType, typename ValueType, typename KeyComparator>
-	void HASH_TABLE_INDEX_TYPE::DeleteEntry(const Tuple &key, RID rid, Transaction *transaction) {
-	// construct delete index key
-	KeyType index_key;
-	index_key.SetFromKey(key);
-
-	container_.Remove(transaction, index_key, rid);
-	}
-
-	template <typename KeyType, typename ValueType, typename KeyComparator>
-	void HASH_TABLE_INDEX_TYPE::ScanKey(const Tuple &key, std::vector<RID> *result, Transaction *transaction) {
-	// construct scan index key
-	KeyType index_key;
-	index_key.SetFromKey(key);
-
-	container_.GetValue(transaction, index_key, result);
-	}
-
- protected:
+type LinearProbeHashTableIndex struct {
 	// comparator for key
-	KeyComparator comparator_;
+	//KeyComparator comparator_;
 	// container
-	LinearProbeHashTable<KeyType, ValueType, KeyComparator> container_;
-   	IndexMetadata *metadata_;
-};
-*/
+	container hash.LinearProbeHashTable
+	metadata  *IndexMetadata
+}
+
+func NewLinearProbeHashTableIndex(metadata *IndexMetadata, buffer_pool_manager *BufferPoolManager,
+	num_buckets int) *LinearProbeHashTableIndex {
+	ret := new(LinearProbeHashTableIndex)
+	ret.metadata = metadata
+	ret.container = *hash.NewHashTable(buffer_pool_manager, num_buckets)
+	return ret
+}
+
+// Return the metadata object associated with the index
+func (htidx *LinearProbeHashTableIndex) GetMetadata() *IndexMetadata { return htidx.metadata }
+
+func (htidx *LinearProbeHashTableIndex) GetIndexColumnCount() uint32 {
+	return htidx.metadata.GetIndexColumnCount()
+}
+func (htidx *LinearProbeHashTableIndex) GetName() *string { return htidx.metadata.GetName() }
+func (htidx *LinearProbeHashTableIndex) GetKeySchema() *schema.Schema {
+	return htidx.metadata.GetKeySchema()
+}
+func (htidx *LinearProbeHashTableIndex) GetKeyAttrs() []uint32 { return htidx.metadata.GetKeyAttrs() }
+
+func (htidx *LinearProbeHashTableIndex) InsertEntry(key *tuple.Tuple, rid page.RID, transaction *access.Transaction) {
+	// // construct insert index key
+	// KeyType index_key;
+	// index_key.SetFromKey(key);
+
+	htidx.container.Insert(index_key, rid)
+}
+
+func (htidx *LinearProbeHashTableIndex) DeleteEntry(key *tuple.Tuple, rid page.RID, transaction *access.Transaction) {
+	// // construct delete index key
+	// KeyType index_key;
+	// index_key.SetFromKey(key);
+
+	htidx.container.Remove(index_key, rid)
+}
+
+func (htidx *LinearProbeHashTableIndex) ScanKey(key *tuple.Tuple, result *[]page.RID, transaction *access.Transaction) {
+	// // construct scan index key
+	// KeyType index_key;
+	// index_key.SetFromKey(key);
+
+	htidx.container.GetValue(index_key, result)
+}
