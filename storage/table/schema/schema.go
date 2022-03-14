@@ -76,3 +76,18 @@ func (s *Schema) GetColumns() []*column.Column {
 	//return []*interfaces.IColumn(s.columns)
 	//return ret
 }
+
+func CopySchema(from *Schema, attrs []uint32) *Schema {
+	var cols_obj []column.Column
+	var cols_p []*column.Column
+	for _, col := range from.columns {
+		cols_obj = append(cols_obj, *col)
+	}
+	for _, col := range cols_obj {
+		cols_p = append(cols_p, &col)
+	}
+
+	ret := new(Schema)
+	ret.columns = cols_p
+	return ret
+}

@@ -1,7 +1,10 @@
 package index
 
 import (
+	"github.com/ryogrid/SamehadaDB/storage/access"
+	"github.com/ryogrid/SamehadaDB/storage/page"
 	"github.com/ryogrid/SamehadaDB/storage/table/schema"
+	"github.com/ryogrid/SamehadaDB/storage/tuple"
 )
 
 // TODO: (SDB) need port IndexMetadata class
@@ -30,18 +33,19 @@ func NewIndexMetadata(index_name string, table_name string, tuple_schema *schema
 	ret.table_name = table_name
 	ret.key_attrs = key_attrs
 	ret.key_schema = schema.CopySchema(tuple_schema, key_attrs)
+	return ret
 }
 
 func (im *IndexMetadata) GetName() *string      { return &im.name }
 func (im *IndexMetadata) GetTableName() *string { return &im.table_name }
 
 // Returns a schema object pointer that represents the indexed key
-func (im *IndexMetadata) GetKeySchema() *schema.Schema { return &im.key_schema }
+func (im *IndexMetadata) GetKeySchema() *schema.Schema { return im.key_schema }
 
 // Return the number of columns inside index key (not in tuple key)
 // Note that this must be defined inside the cpp source file
 // because it uses the member of catalog::Schema which is not known here
-func (im *IndexMetadata) GetIndexColumnCount() uint32 { return uint32(im.key_attrs.size()) }
+func (im *IndexMetadata) GetIndexColumnCount() uint32 { return uint32(len(im.key_attrs)) }
 
 //  Returns the mapping relation between indexed columns  and base table
 //  columns
@@ -83,48 +87,32 @@ func (im *IndexMetadata) GetKeyAttrs() []uint32 { return im.key_attrs }
  * only supports conjunction, and may or may not be optimized depending on
  * the type of expressions inside the predicate.
  */
-/*
- class Index {
-  public:
-   explicit Index(IndexMetadata *metadata) : metadata_(metadata) {}
 
-   virtual ~Index() { delete metadata_; }
+type Index interface {
+	Index(*IndexMetadata)
+	// Return the metadata object associated with the index
+	GetMetadata() IndexMetadata
+	GetIndexColumnCount() int
+	GetName() string
+	GetKeySchema() *schema.Schema
+	GetKeyAttrs() []uint32
+	///////////////////////////////////////////////////////////////////
+	// Point Modification
+	///////////////////////////////////////////////////////////////////
+	// designed for secondary indexes.
+	InsertEntry(*tuple.Tuple, page.RID, *access.Transaction)
+	// delete the index entry linked to given tuple
+	DeleteEntry(*tuple.Tuple, page.RID, *access.Transaction)
+	ScanKey(*tuple.Tuple, page.RID, *access.Transaction)
 
-   // Return the metadata object associated with the index
-   IndexMetadata *GetMetadata() const { return metadata_; }
+	/*
+	      // Get a string representation for debugging
+	      std::string ToString() const {
+	   	 std::stringstream os;
 
-   int GetIndexColumnCount() const { return metadata_->GetIndexColumnCount(); }
-
-   const std::string &GetName() const { return metadata_->GetName(); }
-
-   Schema *GetKeySchema() const { return metadata_->GetKeySchema(); }
-
-   const std::vector<uint32_t> &GetKeyAttrs() const { return metadata_->GetKeyAttrs(); }
-
-   // Get a string representation for debugging
-   std::string ToString() const {
-	 std::stringstream os;
-
-	 os << "INDEX: (" << GetName() << ")";
-	 os << metadata_->ToString();
-	 return os.str();
-   }
-
-   ///////////////////////////////////////////////////////////////////
-   // Point Modification
-   ///////////////////////////////////////////////////////////////////
-   // designed for secondary indexes.
-   virtual void InsertEntry(const Tuple &key, RID rid, Transaction *transaction) = 0;
-
-   // delete the index entry linked to given tuple
-   virtual void DeleteEntry(const Tuple &key, RID rid, Transaction *transaction) = 0;
-
-   virtual void ScanKey(const Tuple &key, std::vector<RID> *result, Transaction *transaction) = 0;
-
-  private:
-   //===--------------------------------------------------------------------===//
-   //  Data members
-   //===--------------------------------------------------------------------===//
-   IndexMetadata *metadata_;
- };
-*/
+	   	 os << "INDEX: (" << GetName() << ")";
+	   	 os << metadata_->ToString();
+	   	 return os.str();
+	      }
+	*/
+}

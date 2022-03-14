@@ -58,5 +58,6 @@ class LinearProbeHashTableIndex : public Index {
 	KeyComparator comparator_;
 	// container
 	LinearProbeHashTable<KeyType, ValueType, KeyComparator> container_;
+   	IndexMetadata *metadata_;
 };
 */
