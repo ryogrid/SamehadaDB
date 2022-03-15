@@ -15,7 +15,7 @@ import (
 
 func IntToBytes(val int) []byte {
 	buf := new(bytes.Buffer)
-	binary.Write(buf, binary.LittleEndian, val)
+	binary.Write(buf, binary.LittleEndian, int32(val))
 	return buf.Bytes()
 }
 
