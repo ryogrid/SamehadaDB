@@ -25,13 +25,13 @@ original codes of go-bustub are [here](https://github.com/brunocalza/go-bustub).
 - [ ] BTree Index
 - [ ] Join
 - [ ] Aggregations (COUNT, MAX, MIN ... on SELECT clause)
+- [ ] GROUP By caluese
 - [ ] Sort (ORDER BY clause) 
-- [ ] Index Scan
 - [ ] Query Optimazation
 - [ ] Concurrent Execution of Transactions
 - [ ] Nested Query
 - [ ] Execution Planning from Query Description (SQL or SQL like description)
-- [ ] DB Connector or Other Access Interface
+- [ ] DB Connector or Other Kind Access Interface
 
 ## Past work
 [FunnelKVS: Rust implementation of autonomous distributed key-value store which has REST interfaces](https://github.com/ryogrid/rust_dkvs)
