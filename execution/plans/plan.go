@@ -14,6 +14,7 @@ const (
 	SeqScan PlanType = iota
 	Insert
 	Limit
+	HashScanIndex
 )
 
 type Plan interface {
