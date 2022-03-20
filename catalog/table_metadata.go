@@ -56,7 +56,12 @@ func (t *TableMetadata) Table() *access.TableHeap {
 }
 
 func (t *TableMetadata) GetIndex(colIndex int) *index.Index {
-	return &t.indexes[colIndex]
+	ret := t.indexes[colIndex]
+	if ret == nil {
+		return nil
+	} else {
+		return &t.indexes[colIndex]
+	}
 }
 
 func (t *TableMetadata) GetColumnNum() uint32 {
