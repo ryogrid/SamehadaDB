@@ -8,21 +8,20 @@ import (
 	"github.com/ryogrid/SamehadaDB/storage/table/schema"
 )
 
-/* TODO: (SDB) not implemented yet (HashScanIndexNode) */
 /**
  * HashScanIndexNode use hash index to filter rows matches predicate.
  */
 type HashScanIndexPlanNode struct {
 	*AbstractPlanNode
-	predicate *expression.Expression
+	predicate *expression.Comparison
 	tableOID  uint32
 }
 
-func NewHashScanIndexPlanNode(schema *schema.Schema, predicate *expression.Expression, tableOID uint32) Plan {
+func NewHashScanIndexPlanNode(schema *schema.Schema, predicate *expression.Comparison, tableOID uint32) Plan {
 	return &HashScanIndexPlanNode{&AbstractPlanNode{schema, nil}, predicate, tableOID}
 }
 
-func (p *HashScanIndexPlanNode) GetPredicate() *expression.Expression {
+func (p *HashScanIndexPlanNode) GetPredicate() *expression.Comparison {
 	return p.predicate
 }
 

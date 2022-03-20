@@ -23,7 +23,7 @@ type IndexMetadata struct {
 	// The mapping relation between key schema and tuple schema
 	key_attrs []uint32
 	// schema of the indexed key
-	key_schema *schema.Schema
+	tuple_schema *schema.Schema
 }
 
 func NewIndexMetadata(index_name string, table_name string, tuple_schema *schema.Schema,
@@ -32,7 +32,8 @@ func NewIndexMetadata(index_name string, table_name string, tuple_schema *schema
 	ret.name = index_name
 	ret.table_name = table_name
 	ret.key_attrs = key_attrs
-	ret.key_schema = schema.CopySchema(tuple_schema, key_attrs)
+	//ret.tuple_schema = schema.CopySchema(tuple_schema, key_attrs)
+	ret.tuple_schema = tuple_schema
 	return ret
 }
 
@@ -40,7 +41,7 @@ func (im *IndexMetadata) GetName() *string      { return &im.name }
 func (im *IndexMetadata) GetTableName() *string { return &im.table_name }
 
 // Returns a schema object pointer that represents the indexed key
-func (im *IndexMetadata) GetKeySchema() *schema.Schema { return im.key_schema }
+func (im *IndexMetadata) GetTupleSchema() *schema.Schema { return im.tuple_schema }
 
 // Return the number of columns inside index key (not in tuple key)
 // Note that this must be defined inside the cpp source file
@@ -93,7 +94,7 @@ type Index interface {
 	GetMetadata() *IndexMetadata
 	GetIndexColumnCount() uint32
 	GetName() *string
-	GetKeySchema() *schema.Schema
+	GetTupleSchema() *schema.Schema
 	GetKeyAttrs() []uint32
 	///////////////////////////////////////////////////////////////////
 	// Point Modification

@@ -40,8 +40,8 @@ func (htidx *LinearProbeHashTableIndex) GetIndexColumnCount() uint32 {
 	return htidx.metadata.GetIndexColumnCount()
 }
 func (htidx *LinearProbeHashTableIndex) GetName() *string { return htidx.metadata.GetName() }
-func (htidx *LinearProbeHashTableIndex) GetKeySchema() *schema.Schema {
-	return htidx.metadata.GetKeySchema()
+func (htidx *LinearProbeHashTableIndex) GetTupleSchema() *schema.Schema {
+	return htidx.metadata.GetTupleSchema()
 }
 func (htidx *LinearProbeHashTableIndex) GetKeyAttrs() []uint32 { return htidx.metadata.GetKeyAttrs() }
 
@@ -52,7 +52,7 @@ func (htidx *LinearProbeHashTableIndex) InsertEntry(key *tuple.Tuple, rid page.R
 
 	// TODO: (SDB) current implementation supports one column index only
 	keyColIdx := htidx.GetKeyAttrs()[0]
-	tupleSchema_ := htidx.GetKeySchema()
+	tupleSchema_ := htidx.GetTupleSchema()
 	keyDataInBytes := key.GetValueInBytes(tupleSchema_, keyColIdx)
 
 	htidx.container.Insert(keyDataInBytes, PackRIDtoUint32(&rid))
@@ -65,7 +65,7 @@ func (htidx *LinearProbeHashTableIndex) DeleteEntry(key *tuple.Tuple, rid page.R
 	// TODO: (SDB) current implementation supports one column index only
 
 	keyColIdx := htidx.GetKeyAttrs()[0]
-	tupleSchema_ := htidx.GetKeySchema()
+	tupleSchema_ := htidx.GetTupleSchema()
 	keyDataInBytes := key.GetValueInBytes(tupleSchema_, keyColIdx)
 
 	htidx.container.Remove(keyDataInBytes, PackRIDtoUint32(&rid))
@@ -77,7 +77,7 @@ func (htidx *LinearProbeHashTableIndex) ScanKey(key *tuple.Tuple, transaction *a
 	// index_key.SetFromKey(key);
 
 	keyColIdx := htidx.GetKeyAttrs()[0]
-	tupleSchema_ := htidx.GetKeySchema()
+	tupleSchema_ := htidx.GetTupleSchema()
 	keyDataInBytes := key.GetValueInBytes(tupleSchema_, keyColIdx)
 
 	packed_values := htidx.container.GetValue(keyDataInBytes)

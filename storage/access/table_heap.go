@@ -169,3 +169,7 @@ func (t *TableHeap) GetFirstTuple(txn *Transaction) *tuple.Tuple {
 func (t *TableHeap) Iterator(txn *Transaction) *TableHeapIterator {
 	return NewTableHeapIterator(t, txn)
 }
+
+func (t *TableHeap) GetBufferPoolManager() *buffer.BufferPoolManager {
+	return t.bpm
+}

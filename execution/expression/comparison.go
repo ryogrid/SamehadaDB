@@ -47,3 +47,15 @@ func (c *Comparison) performComparison(lhs types.Value, rhs types.Value) bool {
 	}
 	return false
 }
+
+func (c *Comparison) GetLeftSideValue(tuple *tuple.Tuple, schema *schema.Schema) types.Value {
+	return c.children[0].Evaluate(tuple, schema)
+}
+
+func (c *Comparison) GetRightSideValue(tuple *tuple.Tuple, schema *schema.Schema) types.Value {
+	return c.children[1].Evaluate(tuple, schema)
+}
+
+func (c *Comparison) GetComparisonType() ComparisonType {
+	return c.comparisonType
+}

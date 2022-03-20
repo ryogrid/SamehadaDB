@@ -39,10 +39,20 @@ func (e *InsertExecutor) Next() (*tuple.Tuple, Done, error) {
 	for _, values := range e.plan.GetRawValues() {
 		tuple := tuple.NewTupleFromSchema(values, e.tableMetadata.Schema())
 		tableHeap := e.tableMetadata.Table()
-		_, err := tableHeap.InsertTuple(tuple, e.context.txn)
-		// TODO: (SDB) insert index entry if needed
+		rid, err := tableHeap.InsertTuple(tuple, e.context.txn)
 		if err != nil {
 			return nil, true, err
+		}
+
+		colNum := e.tableMetadata.GetColumnNum()
+		for ii := 0; ii < int(colNum); ii++ {
+			ret := e.tableMetadata.GetIndex(ii)
+			if ret == nil {
+				continue
+			} else {
+				index_ := *ret
+				index_.InsertEntry(tuple, *rid, e.context.txn)
+			}
 		}
 	}
 
