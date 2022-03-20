@@ -71,11 +71,11 @@ func GetCatalog(bpm *buffer.BufferPoolManager, log_manager *recovery.LogManager,
 			columns = append(columns, column.NewColumn(columnName, types.TypeID(columnType)))
 		}
 
-		tableMetadata := &TableMetadata{
+		tableMetadata := NewTableMetadata(
 			schema.NewSchema(columns),
 			name,
 			access.InitTableHeap(bpm, types.PageID(firstPage), log_manager, lock_manager),
-			uint32(oid)}
+			uint32(oid))
 
 		tableIds[uint32(oid)] = tableMetadata
 		tableNames[name] = tableMetadata
@@ -105,7 +105,7 @@ func (c *Catalog) CreateTable(name string, schema *schema.Schema, txn *access.Tr
 	c.nextTableId++
 
 	tableHeap := access.NewTableHeap(c.bpm, c.Log_manager, c.Lock_manager, txn)
-	tableMetadata := &TableMetadata{schema, name, tableHeap, oid}
+	tableMetadata := NewTableMetadata(schema, name, tableHeap, oid)
 
 	c.tableIds[oid] = tableMetadata
 	c.tableNames[name] = tableMetadata
@@ -123,7 +123,7 @@ func (c *Catalog) InsertTable(tableMetadata *TableMetadata, txn *access.Transact
 	row = append(row, types.NewInteger(int32(tableMetadata.table.GetFirstPageId())))
 	first_tuple := tuple.NewTupleFromSchema(row, TableCatalogSchema())
 
-	c.tableHeap.InsertTuple(first_tuple, txn)
+	c.tableHeap.InsertTuple(first_tuple, txn, -1, nil)
 	for _, column := range tableMetadata.schema.GetColumns() {
 		row := make([]types.Value, 0)
 		row = append(row, types.NewInteger(int32(tableMetadata.oid)))

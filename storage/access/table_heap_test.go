@@ -43,7 +43,7 @@ func TestTableHeap(t *testing.T) {
 		row = append(row, types.NewInteger(int32((i+1)*2)))
 
 		tuple := tuple.NewTupleFromSchema(row, schema)
-		_, err := th.InsertTuple(tuple, txn)
+		_, err := th.InsertTuple(tuple, txn, -1, nil)
 		testingpkg.Ok(t, err)
 	}
 

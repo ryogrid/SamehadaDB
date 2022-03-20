@@ -4,6 +4,7 @@
 package access
 
 import (
+	"github.com/ryogrid/SamehadaDB/catalog"
 	"github.com/ryogrid/SamehadaDB/recovery"
 	"github.com/ryogrid/SamehadaDB/storage/buffer"
 	"github.com/ryogrid/SamehadaDB/storage/page"
@@ -12,7 +13,7 @@ import (
 )
 
 // TableHeap represents a physical table on disk.
-// It contains the id of the first table table. The table page is a doubly-linked to other table pages.
+// It contains the id of the first table page. The table page is a doubly-linked to other table pages.
 type TableHeap struct {
 	bpm          *buffer.BufferPoolManager
 	firstPageId  types.PageID
@@ -45,7 +46,7 @@ func (t *TableHeap) GetFirstPageId() types.PageID {
 // If the tuple is too large (>= page_size):
 // 1. It tries to insert in the next page
 // 2. If there is no next page, it creates a new page and insert in it
-func (t *TableHeap) InsertTuple(tuple_ *tuple.Tuple, txn *Transaction) (rid *page.RID, err error) {
+func (t *TableHeap) InsertTuple(tuple_ *tuple.Tuple, txn *Transaction, idxKeyColNum int, table_metadata *catalog.TableMetadata) (rid *page.RID, err error) {
 	currentPage := CastPageAsTablePage(t.bpm.FetchPage(t.firstPageId))
 
 	for {
@@ -55,6 +56,8 @@ func (t *TableHeap) InsertTuple(tuple_ *tuple.Tuple, txn *Transaction) (rid *pag
 		}
 		// TODO: (SDB) rid setting is SemehadaDB original code. Pay attention.
 		tuple_.SetRID(rid)
+
+		// TODO: (SDB) insert index entry if needed
 
 		nextPageId := currentPage.GetNextPageId()
 		if nextPageId.IsValid() {
@@ -147,6 +150,18 @@ func (t *TableHeap) GetTuple(rid *page.RID, txn *Transaction) *tuple.Tuple {
 	defer t.bpm.UnpinPage(page.ID(), false)
 	return page.GetTuple(rid, t.log_manager, t.lock_manager, txn)
 }
+
+/*
+// GetTuple reads a tuple from the table
+func (t *TableHeap) GetTuplesWithIndexKey(key []byte, table_metadata *catalog.TableMetadata, txn *Transaction) *tuple.Tuple {
+	// TODO: (SDB) need implment GetTuplesWithIndexKey
+	panic("not implmented yet")
+	// get Index class from table_metadata and get RIDs with it. then call GetTuple.
+	page := CastPageAsTablePage(t.bpm.FetchPage(rid.GetPageId()))
+	defer t.bpm.UnpinPage(page.ID(), false)
+	return page.GetTuple(rid, t.log_manager, t.lock_manager, txn)
+}
+*/
 
 // GetFirstTuple reads the first tuple from the table
 func (t *TableHeap) GetFirstTuple(txn *Transaction) *tuple.Tuple {
