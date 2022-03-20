@@ -32,6 +32,13 @@ func NewComparison(left Expression, right Expression, comparisonType ComparisonT
 	return &Comparison{comparisonType, children}
 }
 
+func NewComparisonAsComparison(left Expression, right Expression, comparisonType ComparisonType) *Comparison {
+	children := make([]Expression, 2)
+	children[0] = left
+	children[1] = right
+	return &Comparison{comparisonType, children}
+}
+
 func (c *Comparison) Evaluate(tuple *tuple.Tuple, schema *schema.Schema) types.Value {
 	lhs := c.children[0].Evaluate(tuple, schema)
 	rhs := c.children[1].Evaluate(tuple, schema)

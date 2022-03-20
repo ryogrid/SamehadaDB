@@ -21,6 +21,12 @@ type Column struct {
 	Kind types.TypeID
 }
 
+type ColumnIdx struct {
+	Name     string
+	Kind     types.TypeID
+	HasIndex bool
+}
+
 type Predicate struct {
 	LeftColumn  string
 	Operator    expression.ComparisonType
@@ -67,7 +73,7 @@ type HashIndexScanTestCase struct {
 	ExecutionEngine *ExecutionEngine
 	ExecutorContext *ExecutorContext
 	TableMetadata   *catalog.TableMetadata
-	Columns         []Column
+	Columns         []ColumnIdx
 	Predicate       Predicate
 	Asserts         []Assertion
 	TotalHits       uint32
@@ -76,14 +82,16 @@ type HashIndexScanTestCase struct {
 func ExecuteHashIndexScanTestCase(t *testing.T, testCase HashIndexScanTestCase) {
 	columns := []*column.Column{}
 	for _, c := range testCase.Columns {
-		columns = append(columns, column.NewColumn(c.Name, c.Kind, false))
+		columns = append(columns, column.NewColumn(c.Name, c.Kind, c.HasIndex))
 	}
 	outSchema := schema.NewSchema(columns)
 
-	expression := expression.NewComparison(expression.NewColumnValue(0, testCase.TableMetadata.Schema().GetColIndex(testCase.Predicate.LeftColumn)), expression.NewConstantValue(getValue(testCase.Predicate.RightColumn)), testCase.Predicate.Operator)
-	seqPlan := plans.NewSeqScanPlanNode(outSchema, &expression, testCase.TableMetadata.OID())
+	expression := expression.NewComparisonAsComparison(expression.NewColumnValue(0, testCase.TableMetadata.Schema().GetColIndex(testCase.Predicate.LeftColumn)), expression.NewConstantValue(getValue(testCase.Predicate.RightColumn)), testCase.Predicate.Operator)
+	//seqPlan := plans.NewSeqScanPlanNode(outSchema, &expression, testCase.TableMetadata.OID())
+	hashIndexScanPlan := plans.NewHashScanIndexPlanNode(outSchema, expression, testCase.TableMetadata.OID())
 
-	results := testCase.ExecutionEngine.Execute(seqPlan, testCase.ExecutorContext)
+	//results := testCase.ExecutionEngine.Execute(seqPlan, testCase.ExecutorContext)
+	results := testCase.ExecutionEngine.Execute(hashIndexScanPlan, testCase.ExecutorContext)
 
 	testingpkg.Equals(t, testCase.TotalHits, uint32(len(results)))
 	for _, assert := range testCase.Asserts {

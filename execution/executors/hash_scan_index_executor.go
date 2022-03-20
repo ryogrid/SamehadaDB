@@ -24,8 +24,6 @@ type HashScanIndexExecutor struct {
 	foundTuples []*tuple.Tuple
 }
 
-// TODO: (SDB) not implemented yet (HashScanIndexExecutor)
-
 func NewHashScanIndexExecutor(context *ExecutorContext, plan *plans.HashScanIndexPlanNode) Executor {
 	tableMetadata := context.GetCatalog().GetTableByOID(plan.GetTableOID())
 	//txn := access.NewTransaction(1)
