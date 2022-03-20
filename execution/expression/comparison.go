@@ -22,26 +22,35 @@ const (
  */
 type Comparison struct {
 	comparisonType ComparisonType
-	children       []Expression
+	//children       []Expression
+	children_left  ColumnValue
+	children_right Expression
 }
 
-func NewComparison(left Expression, right Expression, comparisonType ComparisonType) Expression {
-	children := make([]Expression, 2)
-	children[0] = left
-	children[1] = right
-	return &Comparison{comparisonType, children}
+//func NewComparison(left Expression, right Expression, comparisonType ComparisonType) Expression {
+func NewComparison(left ColumnValue, right Expression, comparisonType ComparisonType) Expression {
+	//children := make([]Expression, 2)
+	// children[0] = left
+	// children[1] = right
+
+	//return &Comparison{comparisonType, children}
+	return &Comparison{comparisonType, left, right}
 }
 
-func NewComparisonAsComparison(left Expression, right Expression, comparisonType ComparisonType) *Comparison {
-	children := make([]Expression, 2)
-	children[0] = left
-	children[1] = right
-	return &Comparison{comparisonType, children}
+//func NewComparisonAsComparison(left Expression, right Expression, comparisonType ComparisonType) *Comparison {
+func NewComparisonAsComparison(left ColumnValue, right Expression, comparisonType ComparisonType) *Comparison {
+	// children := make([]Expression, 2)
+	// children[0] = left
+	// children[1] = right
+	// return &Comparison{comparisonType, children}
+	return &Comparison{comparisonType, left, right}
 }
 
 func (c *Comparison) Evaluate(tuple *tuple.Tuple, schema *schema.Schema) types.Value {
-	lhs := c.children[0].Evaluate(tuple, schema)
-	rhs := c.children[1].Evaluate(tuple, schema)
+	// lhs := c.children[0].Evaluate(tuple, schema)
+	// rhs := c.children[1].Evaluate(tuple, schema)
+	lhs := c.children_left.Evaluate(tuple, schema)
+	rhs := c.children_right.Evaluate(tuple, schema)
 	return types.NewBoolean(c.performComparison(lhs, rhs))
 }
 
@@ -55,12 +64,18 @@ func (c *Comparison) performComparison(lhs types.Value, rhs types.Value) bool {
 	return false
 }
 
-func (c *Comparison) GetLeftSideValue(tuple *tuple.Tuple, schema *schema.Schema) types.Value {
-	return c.children[0].Evaluate(tuple, schema)
+// func (c *Comparison) GetLeftSideValue(tuple *tuple.Tuple, schema *schema.Schema) types.Value {
+// 	return c.children[0].Evaluate(tuple, schema)
+// }
+
+func (c *Comparison) GetLeftSideColIdx() uint32 {
+	//return (*ColumnValue)(unsafe.Pointer(&c.children[0])).colIndex
+	return c.children_left.colIndex
 }
 
 func (c *Comparison) GetRightSideValue(tuple *tuple.Tuple, schema *schema.Schema) types.Value {
-	return c.children[1].Evaluate(tuple, schema)
+	//return c.children[1].Evaluate(tuple, schema)
+	return c.children_right.Evaluate(tuple, schema)
 }
 
 func (c *Comparison) GetComparisonType() ComparisonType {

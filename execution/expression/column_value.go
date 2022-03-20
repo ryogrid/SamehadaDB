@@ -24,3 +24,11 @@ func NewColumnValue(tupleIndex uint32, colIndex uint32) Expression {
 func (c *ColumnValue) Evaluate(tuple *tuple.Tuple, schema *schema.Schema) types.Value {
 	return tuple.GetValue(schema, c.colIndex)
 }
+
+func (c *ColumnValue) SetTupleIndex(tupleIndex uint32) {
+	c.tupleIndex = tupleIndex
+}
+
+func (c *ColumnValue) SetColIndex(colIndex uint32) {
+	c.colIndex = colIndex
+}

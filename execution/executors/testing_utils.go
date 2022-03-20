@@ -56,7 +56,12 @@ func ExecuteSeqScanTestCase(t *testing.T, testCase SeqScanTestCase) {
 	}
 	outSchema := schema.NewSchema(columns)
 
-	expression := expression.NewComparison(expression.NewColumnValue(0, testCase.TableMetadata.Schema().GetColIndex(testCase.Predicate.LeftColumn)), expression.NewConstantValue(getValue(testCase.Predicate.RightColumn)), testCase.Predicate.Operator)
+	//expression := expression.NewComparison(expression.NewColumnValue(0, testCase.TableMetadata.Schema().GetColIndex(testCase.Predicate.LeftColumn)), expression.NewConstantValue(getValue(testCase.Predicate.RightColumn)), testCase.Predicate.Operator)
+
+	tmpColVal := new(expression.ColumnValue)
+	tmpColVal.SetTupleIndex(0)
+	tmpColVal.SetColIndex(testCase.TableMetadata.Schema().GetColIndex(testCase.Predicate.LeftColumn))
+	expression := expression.NewComparison(*tmpColVal, expression.NewConstantValue(getValue(testCase.Predicate.RightColumn)), testCase.Predicate.Operator)
 	seqPlan := plans.NewSeqScanPlanNode(outSchema, &expression, testCase.TableMetadata.OID())
 
 	results := testCase.ExecutionEngine.Execute(seqPlan, testCase.ExecutorContext)
@@ -86,8 +91,12 @@ func ExecuteHashIndexScanTestCase(t *testing.T, testCase HashIndexScanTestCase) 
 	}
 	outSchema := schema.NewSchema(columns)
 
-	expression := expression.NewComparisonAsComparison(expression.NewColumnValue(0, testCase.TableMetadata.Schema().GetColIndex(testCase.Predicate.LeftColumn)), expression.NewConstantValue(getValue(testCase.Predicate.RightColumn)), testCase.Predicate.Operator)
+	//expression := expression.NewComparisonAsComparison(expression.NewColumnValue(0, testCase.TableMetadata.Schema().GetColIndex(testCase.Predicate.LeftColumn)), expression.NewConstantValue(getValue(testCase.Predicate.RightColumn)), testCase.Predicate.Operator)
 	//seqPlan := plans.NewSeqScanPlanNode(outSchema, &expression, testCase.TableMetadata.OID())
+	tmpColVal := new(expression.ColumnValue)
+	tmpColVal.SetTupleIndex(0)
+	tmpColVal.SetColIndex(testCase.TableMetadata.Schema().GetColIndex(testCase.Predicate.LeftColumn))
+	expression := expression.NewComparisonAsComparison(*tmpColVal, expression.NewConstantValue(getValue(testCase.Predicate.RightColumn)), testCase.Predicate.Operator)
 	hashIndexScanPlan := plans.NewHashScanIndexPlanNode(outSchema, expression, testCase.TableMetadata.OID())
 
 	//results := testCase.ExecutionEngine.Execute(seqPlan, testCase.ExecutorContext)

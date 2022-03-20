@@ -4,6 +4,8 @@
 package executors
 
 import (
+	"fmt"
+
 	"github.com/ryogrid/SamehadaDB/catalog"
 	"github.com/ryogrid/SamehadaDB/execution/plans"
 	"github.com/ryogrid/SamehadaDB/storage/access"
@@ -37,8 +39,10 @@ func (e *HashScanIndexExecutor) Init() {
 
 	comparison := e.plan.GetPredicate()
 	schema_ := e.tableMetadata.Schema()
-	colName := comparison.GetLeftSideValue(nil, schema_).ToVarchar()
-	colIdxOfPred := schema_.GetColIndex(colName)
+	// colName := comparison.GetLeftSideValue(nil, schema_).ToVarchar()
+	// colIdxOfPred := schema_.GetColIndex(colName)
+	colIdxOfPred := comparison.GetLeftSideColIdx()
+	fmt.Println(colIdxOfPred)
 
 	colNum := int(e.tableMetadata.GetColumnNum())
 	var index_ index.Index = nil
