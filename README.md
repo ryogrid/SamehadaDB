@@ -22,7 +22,7 @@ original codes of go-bustub are [here](https://github.com/brunocalza/go-bustub).
 - [x] Checkpointing
 - [ ] Fuzzy Checkpointing (ARIES)
 - [x] Recovery from Logs
-- [ ] Hash Index
+- [x] Hash Index
 - [ ] BTree Index
 - [ ] Join
 - [ ] Aggregations (COUNT, MAX, MIN ... on SELECT clause)
