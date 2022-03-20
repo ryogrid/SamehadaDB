@@ -32,6 +32,5 @@ func ColumnsCatalogSchema() *schema.Schema {
 		fixedLengthColumn,
 		variableLengthColumn,
 		offsetColumn,
-		hasIndexColumn
-	})
+		hasIndexColumn})
 }

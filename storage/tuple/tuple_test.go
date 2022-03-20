@@ -14,11 +14,11 @@ import (
 )
 
 func TestTuple(t *testing.T) {
-	columnA := column.NewColumn("a", types.Integer)
-	columnB := column.NewColumn("b", types.Varchar)
-	columnC := column.NewColumn("c", types.Integer)
-	columnD := column.NewColumn("d", types.Varchar)
-	columnE := column.NewColumn("e", types.Varchar)
+	columnA := column.NewColumn("a", types.Integer, false)
+	columnB := column.NewColumn("b", types.Varchar, false)
+	columnC := column.NewColumn("c", types.Integer, false)
+	columnD := column.NewColumn("d", types.Varchar, false)
+	columnE := column.NewColumn("e", types.Varchar, false)
 
 	schema := schema.NewSchema([]*column.Column{columnA, columnB, columnC, columnD, columnE})
 

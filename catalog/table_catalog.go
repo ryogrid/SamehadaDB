@@ -124,7 +124,6 @@ func (c *Catalog) CreateTable(name string, schema *schema.Schema, txn *access.Tr
 
 	c.tableIds[oid] = tableMetadata
 	c.tableNames[name] = tableMetadata
-	// TODO: (SDB) this InsertTable call is needed?
 	c.InsertTable(tableMetadata, txn)
 
 	return tableMetadata
@@ -160,4 +159,6 @@ func (c *Catalog) InsertTable(tableMetadata *TableMetadata, txn *access.Transact
 
 		c.tableIds[ColumnsCatalogOID].Table().InsertTuple(new_tuple, txn)
 	}
+	// flush a page having table definitions
+	c.bpm.FlushPage(ColumnsCatalogOID)
 }

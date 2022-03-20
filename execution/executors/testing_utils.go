@@ -46,7 +46,7 @@ type SeqScanTestCase struct {
 func ExecuteSeqScanTestCase(t *testing.T, testCase SeqScanTestCase) {
 	columns := []*column.Column{}
 	for _, c := range testCase.Columns {
-		columns = append(columns, column.NewColumn(c.Name, c.Kind))
+		columns = append(columns, column.NewColumn(c.Name, c.Kind, false))
 	}
 	outSchema := schema.NewSchema(columns)
 
