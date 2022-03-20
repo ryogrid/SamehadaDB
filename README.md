@@ -5,7 +5,6 @@ original codes of go-bustub are [here](https://github.com/brunocalza/go-bustub).
 ## Roadmap
 
 - [x] Predicates on Seq Scan
-- [ ] Making Schemas (Table Definitions) Persistent
 - [ ] Multiple Condition on Predicate: AND, OR
 - [ ] Predicates: <, >, <=, >=
 - [ ] Null
@@ -14,7 +13,7 @@ original codes of go-bustub are [here](https://github.com/brunocalza/go-bustub).
 - [ ] Update
 - [x] LIMIT / OFFSET
 - [x] Varchar
-- [x] Persistent Catalog
+- [ ] Persistent Catalog (method for restore is not kicked now)
 - [ ] LRU replacer
 - [ ] Latches
 - [x] Transactions
