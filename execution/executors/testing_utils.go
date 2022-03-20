@@ -21,6 +21,12 @@ type Column struct {
 	Kind types.TypeID
 }
 
+type ColumnIdx struct {
+	Name     string
+	Kind     types.TypeID
+	HasIndex bool
+}
+
 type Predicate struct {
 	LeftColumn  string
 	Operator    expression.ComparisonType
@@ -46,14 +52,55 @@ type SeqScanTestCase struct {
 func ExecuteSeqScanTestCase(t *testing.T, testCase SeqScanTestCase) {
 	columns := []*column.Column{}
 	for _, c := range testCase.Columns {
-		columns = append(columns, column.NewColumn(c.Name, c.Kind))
+		columns = append(columns, column.NewColumn(c.Name, c.Kind, false))
 	}
 	outSchema := schema.NewSchema(columns)
 
-	expression := expression.NewComparison(expression.NewColumnValue(0, testCase.TableMetadata.Schema().GetColIndex(testCase.Predicate.LeftColumn)), expression.NewConstantValue(getValue(testCase.Predicate.RightColumn)), testCase.Predicate.Operator)
+	//expression := expression.NewComparison(expression.NewColumnValue(0, testCase.TableMetadata.Schema().GetColIndex(testCase.Predicate.LeftColumn)), expression.NewConstantValue(getValue(testCase.Predicate.RightColumn)), testCase.Predicate.Operator)
+
+	tmpColVal := new(expression.ColumnValue)
+	tmpColVal.SetTupleIndex(0)
+	tmpColVal.SetColIndex(testCase.TableMetadata.Schema().GetColIndex(testCase.Predicate.LeftColumn))
+	expression := expression.NewComparison(*tmpColVal, expression.NewConstantValue(getValue(testCase.Predicate.RightColumn)), testCase.Predicate.Operator)
 	seqPlan := plans.NewSeqScanPlanNode(outSchema, &expression, testCase.TableMetadata.OID())
 
 	results := testCase.ExecutionEngine.Execute(seqPlan, testCase.ExecutorContext)
+
+	testingpkg.Equals(t, testCase.TotalHits, uint32(len(results)))
+	for _, assert := range testCase.Asserts {
+		colIndex := outSchema.GetColIndex(assert.Column)
+		testingpkg.Assert(t, getValue(assert.Exp).CompareEquals(results[0].GetValue(outSchema, colIndex)), "value should be %v but was %v", assert.Exp, results[0].GetValue(outSchema, colIndex))
+	}
+}
+
+type HashIndexScanTestCase struct {
+	Description     string
+	ExecutionEngine *ExecutionEngine
+	ExecutorContext *ExecutorContext
+	TableMetadata   *catalog.TableMetadata
+	Columns         []Column
+	Predicate       Predicate
+	Asserts         []Assertion
+	TotalHits       uint32
+}
+
+func ExecuteHashIndexScanTestCase(t *testing.T, testCase HashIndexScanTestCase) {
+	columns := []*column.Column{}
+	for _, c := range testCase.Columns {
+		columns = append(columns, column.NewColumn(c.Name, c.Kind, false))
+	}
+	outSchema := schema.NewSchema(columns)
+
+	//expression := expression.NewComparisonAsComparison(expression.NewColumnValue(0, testCase.TableMetadata.Schema().GetColIndex(testCase.Predicate.LeftColumn)), expression.NewConstantValue(getValue(testCase.Predicate.RightColumn)), testCase.Predicate.Operator)
+	//seqPlan := plans.NewSeqScanPlanNode(outSchema, &expression, testCase.TableMetadata.OID())
+	tmpColVal := new(expression.ColumnValue)
+	tmpColVal.SetTupleIndex(0)
+	tmpColVal.SetColIndex(testCase.TableMetadata.Schema().GetColIndex(testCase.Predicate.LeftColumn))
+	expression := expression.NewComparisonAsComparison(*tmpColVal, expression.NewConstantValue(getValue(testCase.Predicate.RightColumn)), testCase.Predicate.Operator)
+	hashIndexScanPlan := plans.NewHashScanIndexPlanNode(outSchema, expression, testCase.TableMetadata.OID())
+
+	//results := testCase.ExecutionEngine.Execute(seqPlan, testCase.ExecutorContext)
+	results := testCase.ExecutionEngine.Execute(hashIndexScanPlan, testCase.ExecutorContext)
 
 	testingpkg.Equals(t, testCase.TotalHits, uint32(len(results)))
 	for _, assert := range testCase.Asserts {

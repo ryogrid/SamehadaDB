@@ -14,13 +14,13 @@ import (
 type hashTableIterator struct {
 	bpm        *buffer.BufferPoolManager
 	headerPage *page.HashTableHeaderPage
-	bucket     int
-	offset     int
+	bucket     uint32
+	offset     uint32
 	blockId    types.PageID
 	blockPage  *page.HashTableBlockPage
 }
 
-func newHashTableIterator(bpm *buffer.BufferPoolManager, header *page.HashTableHeaderPage, bucket int, offset int) *hashTableIterator {
+func newHashTableIterator(bpm *buffer.BufferPoolManager, header *page.HashTableHeaderPage, bucket uint32, offset uint32) *hashTableIterator {
 	blockPageId := header.GetBlockPageId(bucket)
 
 	bPageData := bpm.FetchPage(blockPageId).Data()

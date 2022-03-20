@@ -58,6 +58,32 @@ func NewTupleFromSchema(values []types.Value, schema *schema.Schema) *Tuple {
 	return tuple
 }
 
+// generate tuple obj for hash index search
+// generated tuple filled only specifed column only due to use methods
+// defined on Index interface
+func GenTupleForHashIndexSearch(schema_ *schema.Schema, colIndex uint32, keyVal types.Value) *Tuple {
+	// TODO: (SDB) not implemented yet (GenTupleForHashIndexSearch)
+	colmuns := schema_.GetColumns()
+	values := make([]types.Value, 0)
+	for idx, columnObj := range colmuns {
+		switch columnObj.GetType() {
+		case types.Integer:
+			if idx == int(colIndex) {
+				values = append(values, keyVal)
+			} else {
+				values = append(values, types.NewInteger(0))
+			}
+		case types.Varchar:
+			if idx == int(colIndex) {
+				values = append(values, keyVal)
+			} else {
+				values = append(values, types.NewVarchar(""))
+			}
+		}
+	}
+	return NewTupleFromSchema(values, schema_)
+}
+
 func (t *Tuple) GetValue(schema *schema.Schema, colIndex uint32) types.Value {
 	column := *(schema.GetColumn(colIndex))
 	//fmt.Printf("column at GetValue: %+v \n", column)
@@ -74,6 +100,31 @@ func (t *Tuple) GetValue(schema *schema.Schema, colIndex uint32) types.Value {
 		panic(value)
 	}
 	return *value
+}
+
+func (t *Tuple) GetValueInBytes(schema *schema.Schema, colIndex uint32) []byte {
+	column := *(schema.GetColumn(colIndex))
+	offset := column.GetOffset()
+	if !column.IsInlined() {
+		offset = uint32(types.NewUInt32FromBytes(t.data[offset : offset+column.FixedLength()]))
+	}
+
+	switch column.GetType() {
+	case types.Integer:
+		v := new(int32)
+		binary.Read(bytes.NewBuffer(t.data[offset:]), binary.LittleEndian, v)
+		retBuf := new(bytes.Buffer)
+		binary.Write(retBuf, binary.LittleEndian, v)
+		return retBuf.Bytes()
+	case types.Varchar:
+		data := t.data[offset:]
+		lengthInBytes := data[0:2]
+		length := new(int16)
+		binary.Read(bytes.NewBuffer(lengthInBytes), binary.LittleEndian, length)
+		return data[2:(*length + 2)]
+	default:
+		panic("illegal type column found in schema")
+	}
 }
 
 func (t *Tuple) Size() uint32 {

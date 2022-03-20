@@ -32,8 +32,8 @@ func TestTableHeap(t *testing.T) {
 
 	// this schema creates a tuple of size 8 bytes
 	// it means that a page can only contains 254 tuples of this schema
-	columnA := column.NewColumn("a", types.Integer)
-	columnB := column.NewColumn("b", types.Integer)
+	columnA := column.NewColumn("a", types.Integer, false)
+	columnB := column.NewColumn("b", types.Integer, false)
 	schema := schema.NewSchema([]*column.Column{columnA, columnB})
 
 	// inserting 1000 tuples, means that we need at least 4 pages to insert all tuples

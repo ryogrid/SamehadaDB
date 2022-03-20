@@ -19,13 +19,14 @@ import (
  * manager. Non-unique keys are supported. Supports insert and delete. The
  * table dynamically grows once full.
  */
+// TODO: (SDB) LinearProbeHashTable does not dynamically grows...
 type LinearProbeHashTable struct {
 	headerPageId types.PageID
 	bpm          *buffer.BufferPoolManager
 	// TODO: (SDB) need to use latch at LinearProbeHashTable
 }
 
-func NewHashTable(bpm *buffer.BufferPoolManager, numBuckets int) *LinearProbeHashTable {
+func NewLinearProbeHashTable(bpm *buffer.BufferPoolManager, numBuckets int) *LinearProbeHashTable {
 	header := bpm.NewPage()
 	headerData := header.Data()
 	headerPage := (*page.HashTableHeaderPage)(unsafe.Pointer(headerData))
@@ -43,7 +44,7 @@ func NewHashTable(bpm *buffer.BufferPoolManager, numBuckets int) *LinearProbeHas
 	return &LinearProbeHashTable{header.ID(), bpm}
 }
 
-func (ht *LinearProbeHashTable) GetValue(key int) []int {
+func (ht *LinearProbeHashTable) GetValue(key []byte) []uint32 {
 	hPageData := ht.bpm.FetchPage(ht.headerPageId).Data()
 	headerPage := (*page.HashTableHeaderPage)(unsafe.Pointer(hPageData))
 
@@ -54,11 +55,11 @@ func (ht *LinearProbeHashTable) GetValue(key int) []int {
 
 	iterator := newHashTableIterator(ht.bpm, headerPage, originalBucketIndex, originalBucketOffset)
 
-	result := []int{}
+	result := []uint32{}
 	blockPage, offset := iterator.blockPage, iterator.offset
-	var bucket int
+	var bucket uint32
 	for blockPage.IsOccupied(offset) { // stop the search and we find an empty spot
-		if blockPage.IsReadable(offset) && blockPage.KeyAt(offset) == key {
+		if blockPage.IsReadable(offset) && blockPage.KeyAt(offset) == hash {
 			result = append(result, blockPage.ValueAt(offset))
 		}
 
@@ -75,7 +76,7 @@ func (ht *LinearProbeHashTable) GetValue(key int) []int {
 	return result
 }
 
-func (ht *LinearProbeHashTable) Insert(key int, value int) (err error) {
+func (ht *LinearProbeHashTable) Insert(key []byte, value uint32) (err error) {
 	hPageData := ht.bpm.FetchPage(ht.headerPageId).Data()
 	headerPage := (*page.HashTableHeaderPage)(unsafe.Pointer(hPageData))
 
@@ -87,7 +88,7 @@ func (ht *LinearProbeHashTable) Insert(key int, value int) (err error) {
 	iterator := newHashTableIterator(ht.bpm, headerPage, originalBucketIndex, originalBucketOffset)
 
 	blockPage, offset := iterator.blockPage, iterator.offset
-	var bucket int
+	var bucket uint32
 	for {
 		if blockPage.IsOccupied(offset) && blockPage.ValueAt(offset) == value {
 			err = errors.New("duplicated values on the same key are not allowed")
@@ -95,7 +96,7 @@ func (ht *LinearProbeHashTable) Insert(key int, value int) (err error) {
 		}
 
 		if !blockPage.IsOccupied(offset) {
-			blockPage.Insert(offset, key, value)
+			blockPage.Insert(offset, hash, value)
 			err = nil
 			break
 		}
@@ -113,7 +114,7 @@ func (ht *LinearProbeHashTable) Insert(key int, value int) (err error) {
 	return
 }
 
-func (ht *LinearProbeHashTable) Remove(key int, value int) {
+func (ht *LinearProbeHashTable) Remove(key []byte, value uint32) {
 	hPageData := ht.bpm.FetchPage(ht.headerPageId).Data()
 	headerPage := (*page.HashTableHeaderPage)(unsafe.Pointer(hPageData))
 
@@ -125,9 +126,9 @@ func (ht *LinearProbeHashTable) Remove(key int, value int) {
 	iterator := newHashTableIterator(ht.bpm, headerPage, originalBucketIndex, originalBucketOffset)
 
 	blockPage, offset := iterator.blockPage, iterator.offset
-	var bucket int
+	var bucket uint32
 	for blockPage.IsOccupied(offset) { // stop the search and we find an empty spot
-		if blockPage.IsOccupied(offset) && blockPage.KeyAt(offset) == key && blockPage.ValueAt(offset) == value {
+		if blockPage.IsOccupied(offset) && blockPage.KeyAt(offset) == hash && blockPage.ValueAt(offset) == value {
 			blockPage.Remove(offset)
 		}
 
@@ -142,14 +143,17 @@ func (ht *LinearProbeHashTable) Remove(key int, value int) {
 	ht.bpm.UnpinPage(ht.headerPageId, false)
 }
 
-func (ht *LinearProbeHashTable) hash(key int) int {
+//func (ht *LinearProbeHashTable) hash(key int) int {
+func (ht *LinearProbeHashTable) hash(key []byte) uint32 {
 	h := murmur3.New128()
-	bs := make([]byte, 4)
-	binary.LittleEndian.PutUint32(bs, uint32(key))
+	//bs := make([]byte, 4)
+	//binary.LittleEndian.PutUint32(bs, uint32(key))
 
-	h.Write(bs)
+	//h.Write(bs)
+	h.Write(key)
 
 	hash := h.Sum(nil)
 
-	return int(binary.LittleEndian.Uint32(hash))
+	//return int(binary.LittleEndian.Uint32(hash))
+	return binary.LittleEndian.Uint32(hash)
 }

@@ -12,7 +12,7 @@ import (
 )
 
 // TableHeap represents a physical table on disk.
-// It contains the id of the first table table. The table page is a doubly-linked to other table pages.
+// It contains the id of the first table page. The table page is a doubly-linked to other table pages.
 type TableHeap struct {
 	bpm          *buffer.BufferPoolManager
 	firstPageId  types.PageID
@@ -40,6 +40,7 @@ func (t *TableHeap) GetFirstPageId() types.PageID {
 }
 
 // InsertTuple inserts a tuple into the table
+// PAY ATTENTION: index entry is not inserted
 //
 // It fetches the first page and tries to insert the tuple there.
 // If the tuple is too large (>= page_size):
@@ -167,4 +168,8 @@ func (t *TableHeap) GetFirstTuple(txn *Transaction) *tuple.Tuple {
 // Iterator returns a iterator for this table heap
 func (t *TableHeap) Iterator(txn *Transaction) *TableHeapIterator {
 	return NewTableHeapIterator(t, txn)
+}
+
+func (t *TableHeap) GetBufferPoolManager() *buffer.BufferPoolManager {
+	return t.bpm
 }
