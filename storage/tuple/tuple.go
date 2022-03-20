@@ -76,6 +76,31 @@ func (t *Tuple) GetValue(schema *schema.Schema, colIndex uint32) types.Value {
 	return *value
 }
 
+func (t *Tuple) GetValueInBytes(schema *schema.Schema, colIndex uint32) []byte {
+	column := *(schema.GetColumn(colIndex))
+	offset := column.GetOffset()
+	if !column.IsInlined() {
+		offset = uint32(types.NewUInt32FromBytes(t.data[offset : offset+column.FixedLength()]))
+	}
+
+	switch column.GetType() {
+	case types.Integer:
+		v := new(int32)
+		binary.Read(bytes.NewBuffer(t.data[offset:]), binary.LittleEndian, v)
+		retBuf := new(bytes.Buffer)
+		binary.Write(retBuf, binary.LittleEndian, v)
+		return retBuf.Bytes()
+	case types.Varchar:
+		data := t.data[offset:]
+		lengthInBytes := data[0:2]
+		length := new(int16)
+		binary.Read(bytes.NewBuffer(lengthInBytes), binary.LittleEndian, length)
+		return data[2:(*length + 2)]
+	default:
+		panic("illegal type column found in schema")
+	}
+}
+
 func (t *Tuple) Size() uint32 {
 	return t.size
 }

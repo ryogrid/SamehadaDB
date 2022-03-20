@@ -23,7 +23,6 @@ type HashScanIndexExecutor struct {
 	txn           *access.Transaction
 }
 
-// TODO: (SDB) need to modify TableMetadata or other appropriate class having index data
 // TODO: (SDB) not implemented yet (HashScanIndexExecutor)
 
 func NewHashScanIndexExecutor(context *ExecutorContext, plan *plans.HashScanIndexPlanNode) Executor {

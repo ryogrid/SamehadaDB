@@ -50,15 +50,25 @@ func (htidx *LinearProbeHashTableIndex) InsertEntry(key *tuple.Tuple, rid page.R
 	// KeyType index_key;
 	// index_key.SetFromKey(key);
 
-	htidx.container.Insert(key.Data(), PackRIDtoUint32(&rid))
+	// TODO: (SDB) current implementation supports one column index only
+	keyColIdx := htidx.GetKeyAttrs()[0]
+	tupleSchema_ := htidx.GetKeySchema()
+	keyDataInBytes := key.GetValueInBytes(tupleSchema_, keyColIdx)
+
+	htidx.container.Insert(keyDataInBytes, PackRIDtoUint32(&rid))
 }
 
 func (htidx *LinearProbeHashTableIndex) DeleteEntry(key *tuple.Tuple, rid page.RID, transaction *access.Transaction) {
 	// // construct delete index key
 	// KeyType index_key;
 	// index_key.SetFromKey(key);
+	// TODO: (SDB) current implementation supports one column index only
 
-	htidx.container.Remove(key.Data(), PackRIDtoUint32(&rid))
+	keyColIdx := htidx.GetKeyAttrs()[0]
+	tupleSchema_ := htidx.GetKeySchema()
+	keyDataInBytes := key.GetValueInBytes(tupleSchema_, keyColIdx)
+
+	htidx.container.Remove(keyDataInBytes, PackRIDtoUint32(&rid))
 }
 
 func (htidx *LinearProbeHashTableIndex) ScanKey(key *tuple.Tuple, transaction *access.Transaction) []page.RID {
@@ -66,7 +76,11 @@ func (htidx *LinearProbeHashTableIndex) ScanKey(key *tuple.Tuple, transaction *a
 	// KeyType index_key;
 	// index_key.SetFromKey(key);
 
-	packed_values := htidx.container.GetValue(key.Data())
+	keyColIdx := htidx.GetKeyAttrs()[0]
+	tupleSchema_ := htidx.GetKeySchema()
+	keyDataInBytes := key.GetValueInBytes(tupleSchema_, keyColIdx)
+
+	packed_values := htidx.container.GetValue(keyDataInBytes)
 	var ret_arr []page.RID
 	for _, packed_val := range packed_values {
 		ret_arr = append(ret_arr, UnpackUint32toRID(packed_val))
