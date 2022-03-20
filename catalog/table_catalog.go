@@ -146,6 +146,7 @@ func (c *Catalog) InsertTable(tableMetadata *TableMetadata, txn *access.Transact
 	row = append(row, types.NewInteger(int32(tableMetadata.table.GetFirstPageId())))
 	first_tuple := tuple.NewTupleFromSchema(row, TableCatalogSchema())
 
+	// insert entry to TableCatalogPage (PageId = 0)
 	c.tableHeap.InsertTuple(first_tuple, txn)
 	for _, column := range tableMetadata.schema.GetColumns() {
 		row := make([]types.Value, 0)
@@ -158,8 +159,11 @@ func (c *Catalog) InsertTable(tableMetadata *TableMetadata, txn *access.Transact
 		row = append(row, types.NewInteger(boolToInt32(column.HasIndex())))
 		new_tuple := tuple.NewTupleFromSchema(row, ColumnsCatalogSchema())
 
+		// insert entry to ColumnsCatalogPage (PageId = 1)
 		c.tableIds[ColumnsCatalogOID].Table().InsertTuple(new_tuple, txn)
 	}
 	// flush a page having table definitions
-	c.bpm.FlushPage(ColumnsCatalogOID)
+	c.bpm.FlushPage(TableCatalogPageId)
+	// flush a page having columns definitions on table
+	c.bpm.FlushPage(ColumnsCatalogPageId)
 }
