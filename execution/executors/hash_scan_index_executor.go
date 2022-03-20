@@ -28,41 +28,44 @@ type HashScanIndexExecutor struct {
 
 func NewHashScanIndexExecutor(context *ExecutorContext, plan *plans.HashScanIndexPlanNode) Executor {
 	tableMetadata := context.GetCatalog().GetTableByOID(plan.GetTableOID())
-	//txn := access.NewTransaction(1)
-	//catalog := context.GetCatalog()
 
 	return &HashScanIndexExecutor{context, plan, tableMetadata, context.GetTransaction(), make([]*tuple.Tuple, 0)}
 }
 
 func (e *HashScanIndexExecutor) Init() {
-	//e.it = e.tableMetadata.Table().Iterator(e.txn)
-
 	comparison := e.plan.GetPredicate()
 	schema_ := e.tableMetadata.Schema()
-	// colName := comparison.GetLeftSideValue(nil, schema_).ToVarchar()
-	// colIdxOfPred := schema_.GetColIndex(colName)
 	colIdxOfPred := comparison.GetLeftSideColIdx()
 
 	colNum := int(e.tableMetadata.GetColumnNum())
+
 	var index_ index.Index = nil
 	var indexColNum int = -1
-	for ii := 0; ii < colNum; ii++ {
-		ret := e.tableMetadata.GetIndex(ii)
-		if ret == nil {
-			continue
-		} else {
-			index_ = *ret
-			indexColNum = ii
-			break
+	for {
+		index_ = nil
+		for ii := indexColNum + 1; ii < colNum; ii++ {
+			ret := e.tableMetadata.GetIndex(ii)
+			if ret == nil {
+				continue
+			} else {
+				index_ = *ret
+				indexColNum = ii
+				break
+			}
 		}
-	}
 
-	if index_ == nil || indexColNum == -1 {
-		panic("HashScanIndexExecutor assumes that table which has index are passed.")
-	}
-	if colIdxOfPred != uint32(indexColNum) {
-		fmt.Printf("colIdxOfPred=%d,indexColNum=%d\n", colIdxOfPred, indexColNum)
-		panic("HashScanIndexExecutor assumes that column which has index matches one specified on predicate.")
+		if index_ == nil || indexColNum == -1 {
+			fmt.Printf("colIdxOfPred=%d,indexColNum=%d\n", colIdxOfPred, indexColNum)
+			panic("HashScanIndexExecutor assumes that table which has index are passed.")
+		}
+		if colIdxOfPred != uint32(indexColNum) {
+			// fmt.Printf("colIdxOfPred=%d,indexColNum=%d\n", colIdxOfPred, indexColNum)
+			// panic("HashScanIndexExecutor assumes that column which has index matches one specified on predicate.")
+
+			// find next index having column
+			continue
+		}
+		break
 	}
 
 	dummyTuple := tuple.GenTupleForHashIndexSearch(schema_, uint32(indexColNum), comparison.GetRightSideValue(nil, schema_))
@@ -70,40 +73,9 @@ func (e *HashScanIndexExecutor) Init() {
 	for _, rid := range rids {
 		e.foundTuples = append(e.foundTuples, e.tableMetadata.Table().GetTuple(&rid, e.txn))
 	}
-	//e.tableMetadata.Table().GetTuple(e.context.txn)
-	//comparison.
 }
-
-/*
-// GetTuple reads a tuple from the table
-func (t *TableHeap) GetTuplesWithIndexKey(key []byte, table_metadata *catalog.TableMetadata, txn *Transaction) *tuple.Tuple {
-	// TODO: (SDB) need implment GetTuplesWithIndexKey
-	panic("not implmented yet")
-	// get Index class from table_metadata and get RIDs with it. then call GetTuple.
-	page := CastPageAsTablePage(t.bpm.FetchPage(rid.GetPageId()))
-	defer t.bpm.UnpinPage(page.ID(), false)
-	return page.GetTuple(rid, t.log_manager, t.lock_manager, txn)
-}
-*/
 
 func (e *HashScanIndexExecutor) Next() (*tuple.Tuple, Done, error) {
-	/*
-		// iterates through the table heap trying to select a tuple that matches the predicate
-		for t := e.it.Current(); !e.it.End(); t = e.it.Next() {
-			if e.selects(t, e.plan.GetPredicate()) {
-				break
-			}
-		}
-	*/
-
-	/*
-		// projects the current tuple into the output schema
-		if !e.it.End() {
-			defer e.it.Next() // advances the iterator after projection
-			return e.projects(e.it.Current()), false, nil
-		}
-	*/
-
 	if len(e.foundTuples) > 0 {
 		tuple_ := e.foundTuples[0]
 		e.foundTuples = e.foundTuples[1:]
