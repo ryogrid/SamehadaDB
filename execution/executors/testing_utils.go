@@ -78,7 +78,7 @@ type HashIndexScanTestCase struct {
 	ExecutionEngine *ExecutionEngine
 	ExecutorContext *ExecutorContext
 	TableMetadata   *catalog.TableMetadata
-	Columns         []ColumnIdx
+	Columns         []Column
 	Predicate       Predicate
 	Asserts         []Assertion
 	TotalHits       uint32
@@ -87,7 +87,7 @@ type HashIndexScanTestCase struct {
 func ExecuteHashIndexScanTestCase(t *testing.T, testCase HashIndexScanTestCase) {
 	columns := []*column.Column{}
 	for _, c := range testCase.Columns {
-		columns = append(columns, column.NewColumn(c.Name, c.Kind, c.HasIndex))
+		columns = append(columns, column.NewColumn(c.Name, c.Kind, false))
 	}
 	outSchema := schema.NewSchema(columns)
 

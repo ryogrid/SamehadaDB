@@ -311,9 +311,9 @@ func TestHashTableIndex(t *testing.T) {
 	// c := catalog.GetCatalog(bpm, log_manager, access.NewLockManager(access.REGULAR, access.PREVENTION), txn)
 	// c.CreateTable("columns_catalog", catalog.ColumnsCatalogSchema(), txn)
 
-	columnA := column.NewColumn("a", types.Integer, true)
+	columnA := column.NewColumn("a", types.Integer, false)
 	columnB := column.NewColumn("b", types.Integer, false)
-	columnC := column.NewColumn("c", types.Varchar, false)
+	columnC := column.NewColumn("c", types.Varchar, true)
 	schema_ := schema.NewSchema([]*column.Column{columnA, columnB, columnC})
 
 	tableMetadata := c.CreateTable("test_1", schema_, txn)
@@ -343,76 +343,69 @@ func TestHashTableIndex(t *testing.T) {
 	txn_mgr.Commit(txn)
 
 	cases := []HashIndexScanTestCase{{
-		"select a ... WHERE b = 55",
-		executionEngine,
-		executorContext,
-		tableMetadata,
-		[]ColumnIdx{{"a", types.Integer, true}},
-		Predicate{"b", expression.Equal, 55},
-		[]Assertion{{"a", 99}},
-		1,
-	}, {
-		"select b ... WHERE b = 55",
-		executionEngine,
-		executorContext,
-		tableMetadata,
-		[]ColumnIdx{{"b", types.Integer, true}},
-		Predicate{"b", expression.Equal, 55},
-		[]Assertion{{"b", 55}},
-		1,
-	}, {
-		"select a, b ... WHERE a = 20",
-		executionEngine,
-		executorContext,
-		tableMetadata,
-		[]ColumnIdx{{"a", types.Integer, true}, {"b", types.Integer, false}},
-		Predicate{"a", expression.Equal, 20},
-		[]Assertion{{"a", 20}, {"b", 22}},
-		1,
-	}, {
-		"select a, b ... WHERE a = 99",
-		executionEngine,
-		executorContext,
-		tableMetadata,
-		[]ColumnIdx{{"a", types.Integer, true}, {"b", types.Integer, false}},
-		Predicate{"a", expression.Equal, 99},
-		[]Assertion{{"a", 99}, {"b", 55}},
-		1,
-	}, {
-		"select a, b ... WHERE a = 100",
-		executionEngine,
-		executorContext,
-		tableMetadata,
-		[]ColumnIdx{{"a", types.Integer, true}, {"b", types.Integer, false}},
-		Predicate{"a", expression.Equal, 100},
-		[]Assertion{},
-		0,
-	}, {
-		"select a, b ... WHERE b = 55",
-		executionEngine,
-		executorContext,
-		tableMetadata,
-		[]ColumnIdx{{"a", types.Integer, false}, {"b", types.Integer, true}},
-		Predicate{"b", expression.NotEqual, 55},
-		[]Assertion{{"a", 20}, {"b", 22}},
-		1,
-	}, {
+		// "select a ... WHERE b = 55",
+		// executionEngine,
+		// executorContext,
+		// tableMetadata,
+		// []Column{{"a", types.Integer}},
+		// Predicate{"b", expression.Equal, 55},
+		// []Assertion{{"a", 99}},
+		// 1,
+
+		// }, {
+		// 	"select b ... WHERE b = 55",
+		// 	executionEngine,
+		// 	executorContext,
+		// 	tableMetadata,
+		// 	[]ColumnIdx{{"b", types.Integer, true}},
+		// 	Predicate{"b", expression.Equal, 55},
+		// 	[]Assertion{{"b", 55}},
+		// 	1,
+		// }, {
+		// 	"select a, b ... WHERE a = 20",
+		// 	executionEngine,
+		// 	executorContext,
+		// 	tableMetadata,
+		// 	[]ColumnIdx{{"a", types.Integer, true}, {"b", types.Integer, false}},
+		// 	Predicate{"a", expression.Equal, 20},
+		// 	[]Assertion{{"a", 20}, {"b", 22}},
+		// 	1,
+		// }, {
+		// 	"select a, b ... WHERE a = 99",
+		// 	executionEngine,
+		// 	executorContext,
+		// 	tableMetadata,
+		// 	[]ColumnIdx{{"a", types.Integer, true}, {"b", types.Integer, false}},
+		// 	Predicate{"a", expression.Equal, 99},
+		// 	[]Assertion{{"a", 99}, {"b", 55}},
+		// 	1,
+		// }, {
+		// 	"select a, b ... WHERE a = 100",
+		// 	executionEngine,
+		// 	executorContext,
+		// 	tableMetadata,
+		// 	[]ColumnIdx{{"a", types.Integer, true}, {"b", types.Integer, false}},
+		// 	Predicate{"a", expression.Equal, 100},
+		// 	[]Assertion{},
+		// 	0,
+		// }, {
+		// 	"select a, b ... WHERE b = 55",
+		// 	executionEngine,
+		// 	executorContext,
+		// 	tableMetadata,
+		// 	[]ColumnIdx{{"a", types.Integer, false}, {"b", types.Integer, true}},
+		// 	Predicate{"b", expression.NotEqual, 55},
+		// 	[]Assertion{{"a", 20}, {"b", 22}},
+		// 	1,
+		// }, {
+
 		"select a, b, c ... WHERE c = 'foo'",
 		executionEngine,
 		executorContext,
 		tableMetadata,
-		[]ColumnIdx{{"a", types.Integer, false}, {"b", types.Integer, false}, {"c", types.Varchar, true}},
+		[]Column{{"a", types.Integer}, {"b", types.Integer}, {"c", types.Varchar}},
 		Predicate{"c", expression.Equal, "foo"},
 		[]Assertion{{"a", 20}, {"b", 22}, {"c", "foo"}},
-		1,
-	}, {
-		"select a, b, c ... WHERE c = 'foo'",
-		executionEngine,
-		executorContext,
-		tableMetadata,
-		[]ColumnIdx{{"a", types.Integer, false}, {"b", types.Integer, false}, {"c", types.Varchar, true}},
-		Predicate{"c", expression.Equal, "foo"},
-		[]Assertion{{"a", 99}, {"b", 55}, {"c", "bar"}},
 		1,
 	}}
 

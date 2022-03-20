@@ -42,7 +42,6 @@ func (e *HashScanIndexExecutor) Init() {
 	// colName := comparison.GetLeftSideValue(nil, schema_).ToVarchar()
 	// colIdxOfPred := schema_.GetColIndex(colName)
 	colIdxOfPred := comparison.GetLeftSideColIdx()
-	fmt.Println(colIdxOfPred)
 
 	colNum := int(e.tableMetadata.GetColumnNum())
 	var index_ index.Index = nil
@@ -62,6 +61,7 @@ func (e *HashScanIndexExecutor) Init() {
 		panic("HashScanIndexExecutor assumes that table which has index are passed.")
 	}
 	if colIdxOfPred != uint32(indexColNum) {
+		fmt.Printf("colIdxOfPred=%d,indexColNum=%d\n", colIdxOfPred, indexColNum)
 		panic("HashScanIndexExecutor assumes that column which has index matches one specified on predicate.")
 	}
 
