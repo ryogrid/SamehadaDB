@@ -295,7 +295,7 @@ func TestSimpleInsertAndLimitExecution(t *testing.T) {
 }
 
 func TestHashTableIndex(t *testing.T) {
-	testingpkg.Assert(t, false, "TestHashTableIndex is not implemented yet")
+	//testingpkg.Assert(t, false, "TestHashTableIndex is not implemented yet")
 
 	// TODO: (SDB) need rewrite with SamehadaInstance class
 	diskManager := disk.NewDiskManagerTest()
