@@ -40,6 +40,7 @@ func (e *InsertExecutor) Next() (*tuple.Tuple, Done, error) {
 		tuple := tuple.NewTupleFromSchema(values, e.tableMetadata.Schema())
 		tableHeap := e.tableMetadata.Table()
 		_, err := tableHeap.InsertTuple(tuple, e.context.txn)
+		// TODO: (SDB) insert index entry if needed
 		if err != nil {
 			return nil, true, err
 		}

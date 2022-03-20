@@ -172,8 +172,8 @@ func TestRedo(t *testing.T) {
 
 	var rid *page.RID
 	var rid1 *page.RID
-	col1 := column.NewColumn("a", types.Varchar)
-	col2 := column.NewColumn("b", types.Integer)
+	col1 := column.NewColumn("a", types.Varchar, false)
+	col2 := column.NewColumn("b", types.Integer, false)
 	cols := []*column.Column{col1, col2}
 	schema_ := schema.NewSchema(cols)
 	tuple_ := ConstructTuple(schema_)
@@ -188,8 +188,10 @@ func TestRedo(t *testing.T) {
 	// testingpkg.Assert(t, test_table.InsertTuple(tuple_, &rid, txn), "")
 	// testingpkg.Assert(t, test_table.InsertTuple(tuple_1, &rid1, txn), "")
 	rid, _ = test_table.InsertTuple(tuple_, txn)
+	// TODO: (SDB) insert index entry if needed
 	testingpkg.Assert(t, rid != nil, "")
 	rid1, _ = test_table.InsertTuple(tuple1_, txn)
+	// TODO: (SDB) insert index entry if needed
 	testingpkg.Assert(t, rid != nil, "")
 
 	samehada_instance.GetTransactionManager().Commit(txn)
@@ -294,8 +296,8 @@ func TestUndo(t *testing.T) {
 		txn)
 	first_page_id := test_table.GetFirstPageId()
 
-	col1 := column.NewColumn("a", types.Varchar)
-	col2 := column.NewColumn("b", types.Integer)
+	col1 := column.NewColumn("a", types.Varchar, false)
+	col2 := column.NewColumn("b", types.Integer, false)
 	cols := []*column.Column{col1, col2}
 	schema_ := schema.NewSchema(cols)
 	tuple_ := ConstructTuple(schema_)
@@ -307,6 +309,7 @@ func TestUndo(t *testing.T) {
 	//testingpkg.Assert(t, test_table.InsertTuple(tuple_, &rid, txn), "")
 	var rid *page.RID
 	rid, _ = test_table.InsertTuple(tuple_, txn)
+	// TODO: (SDB) insert index entry if needed
 	testingpkg.Assert(t, rid != nil, "")
 
 	fmt.Println("Table page content is written to disk")
@@ -405,8 +408,8 @@ func TestCheckpoint(t *testing.T) {
 		txn)
 	samehada_instance.GetTransactionManager().Commit(txn)
 
-	col1 := column.NewColumn("a", types.Varchar)
-	col2 := column.NewColumn("b", types.Integer)
+	col1 := column.NewColumn("a", types.Varchar, false)
+	col2 := column.NewColumn("b", types.Integer, false)
 	cols := []*column.Column{col1, col2}
 	schema_ := schema.NewSchema(cols)
 
@@ -423,6 +426,7 @@ func TestCheckpoint(t *testing.T) {
 	for i := 0; i < 1000; i++ {
 		var rid *page.RID = nil
 		rid, _ = test_table.InsertTuple(tuple_, txn1)
+		// TODO: (SDB) insert index entry if needed
 		testingpkg.Assert(t, rid != nil, "")
 	}
 	samehada_instance.GetTransactionManager().Commit(txn1)

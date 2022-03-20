@@ -38,6 +38,18 @@ func (e *HashScanIndexExecutor) Init() {
 	e.it = e.tableMetadata.Table().Iterator(e.txn)
 }
 
+/*
+// GetTuple reads a tuple from the table
+func (t *TableHeap) GetTuplesWithIndexKey(key []byte, table_metadata *catalog.TableMetadata, txn *Transaction) *tuple.Tuple {
+	// TODO: (SDB) need implment GetTuplesWithIndexKey
+	panic("not implmented yet")
+	// get Index class from table_metadata and get RIDs with it. then call GetTuple.
+	page := CastPageAsTablePage(t.bpm.FetchPage(rid.GetPageId()))
+	defer t.bpm.UnpinPage(page.ID(), false)
+	return page.GetTuple(rid, t.log_manager, t.lock_manager, txn)
+}
+*/
+
 func (e *HashScanIndexExecutor) Next() (*tuple.Tuple, Done, error) {
 
 	// iterates through the table heap trying to select a tuple that matches the predicate

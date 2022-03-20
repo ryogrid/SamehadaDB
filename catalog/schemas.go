@@ -10,19 +10,20 @@ import (
 )
 
 func TableCatalogSchema() *schema.Schema {
-	oidColumn := column.NewColumn("oid", types.Integer)
-	nameColumn := column.NewColumn("name", types.Varchar)
-	firstPageColumn := column.NewColumn("first_page", types.Integer)
+	oidColumn := column.NewColumn("oid", types.Integer, false)
+	nameColumn := column.NewColumn("name", types.Varchar, false)
+	firstPageColumn := column.NewColumn("first_page", types.Integer, false)
 	return schema.NewSchema([]*column.Column{oidColumn, nameColumn, firstPageColumn})
 }
 
 func ColumnsCatalogSchema() *schema.Schema {
-	tableOIDColumn := column.NewColumn("table_oid", types.Integer)
-	typeColumn := column.NewColumn("type", types.Integer)
-	nameColumn := column.NewColumn("name", types.Varchar)
-	fixedLengthColumn := column.NewColumn("fixed_length", types.Integer)
-	variableLengthColumn := column.NewColumn("variable_length", types.Integer)
-	offsetColumn := column.NewColumn("offset", types.Integer)
+	tableOIDColumn := column.NewColumn("table_oid", types.Integer, false)
+	typeColumn := column.NewColumn("type", types.Integer, false)
+	nameColumn := column.NewColumn("name", types.Varchar, false)
+	fixedLengthColumn := column.NewColumn("fixed_length", types.Integer, false)
+	variableLengthColumn := column.NewColumn("variable_length", types.Integer, false)
+	offsetColumn := column.NewColumn("offset", types.Integer, false)
+	hasIndexColumn := column.NewColumn("has_index", types.Integer, false)
 
 	return schema.NewSchema([]*column.Column{
 		tableOIDColumn,
@@ -31,5 +32,6 @@ func ColumnsCatalogSchema() *schema.Schema {
 		fixedLengthColumn,
 		variableLengthColumn,
 		offsetColumn,
+		hasIndexColumn
 	})
 }

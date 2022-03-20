@@ -35,6 +35,14 @@ type Catalog struct {
 	Lock_manager *access.LockManager
 }
 
+func Int32toBool(val int32) bool {
+	if val == 1 {
+		return true
+	} else {
+		return false
+	}
+}
+
 // BootstrapCatalog bootstrap the systems' catalogs on the first database initialization
 func BootstrapCatalog(bpm *buffer.BufferPoolManager, log_manager *recovery.LogManager, lock_manager *access.LockManager, txn *access.Transaction) *Catalog {
 	tableCatalogHeap := access.NewTableHeap(bpm, log_manager, lock_manager, txn)
@@ -43,8 +51,8 @@ func BootstrapCatalog(bpm *buffer.BufferPoolManager, log_manager *recovery.LogMa
 	return tableCatalog
 }
 
-// GetCatalog get all information about tables and columns from disk and put it on memory
-func GetCatalog(bpm *buffer.BufferPoolManager, log_manager *recovery.LogManager, lock_manager *access.LockManager, txn *access.Transaction) *Catalog {
+// RecoveryCatalogFromCatalogPage get all information about tables and columns from disk and put it on memory
+func RecoveryCatalogFromCatalogPage(bpm *buffer.BufferPoolManager, log_manager *recovery.LogManager, lock_manager *access.LockManager, txn *access.Transaction) *Catalog {
 	tableCatalogHeapIt := access.InitTableHeap(bpm, TableCatalogPageId, log_manager, lock_manager).Iterator(txn)
 
 	tableIds := make(map[uint32]*TableMetadata)
@@ -64,11 +72,18 @@ func GetCatalog(bpm *buffer.BufferPoolManager, log_manager *recovery.LogManager,
 			}
 			columnType := tuple.GetValue(ColumnsCatalogSchema(), ColumnsCatalogSchema().GetColIndex("type")).ToInteger()
 			columnName := tuple.GetValue(ColumnsCatalogSchema(), ColumnsCatalogSchema().GetColIndex("name")).ToVarchar()
-			//fixedLength := tuple.GetValue(ColumnsCatalogSchema(), ColumnsCatalogSchema().GetColIndex("fixed_length")).ToInteger()
-			//variableLength := tuple.GetValue(ColumnsCatalogSchema(), ColumnsCatalogSchema().GetColIndex("variable_length")).ToInteger()
-			//columnOffset := tuple.GetValue(ColumnsCatalogSchema(), ColumnsCatalogSchema().GetColIndex("offset")).ToInteger()
+			fixedLength := tuple.GetValue(ColumnsCatalogSchema(), ColumnsCatalogSchema().GetColIndex("fixed_length")).ToInteger()
+			variableLength := tuple.GetValue(ColumnsCatalogSchema(), ColumnsCatalogSchema().GetColIndex("variable_length")).ToInteger()
+			columnOffset := tuple.GetValue(ColumnsCatalogSchema(), ColumnsCatalogSchema().GetColIndex("offset")).ToInteger()
+			hasIndex := Int32toBool(tuple.GetValue(ColumnsCatalogSchema(), ColumnsCatalogSchema().GetColIndex("has_index")).ToInteger())
 
-			columns = append(columns, column.NewColumn(columnName, types.TypeID(columnType)))
+			column_ := column.NewColumn(columnName, types.TypeID(columnType), false)
+			column_.SetFixedLength(uint32(fixedLength))
+			column_.SetVariableLength(uint32(variableLength))
+			column_.SetOffset(uint32(columnOffset))
+			column_.SetHasIndex(hasIndex)
+
+			columns = append(columns, column_)
 		}
 
 		tableMetadata := NewTableMetadata(
@@ -115,6 +130,14 @@ func (c *Catalog) CreateTable(name string, schema *schema.Schema, txn *access.Tr
 	return tableMetadata
 }
 
+func boolToInt32(val bool) int32 {
+	if val {
+		return 1
+	} else {
+		return 0
+	}
+}
+
 func (c *Catalog) InsertTable(tableMetadata *TableMetadata, txn *access.Transaction) {
 	row := make([]types.Value, 0)
 
@@ -123,7 +146,7 @@ func (c *Catalog) InsertTable(tableMetadata *TableMetadata, txn *access.Transact
 	row = append(row, types.NewInteger(int32(tableMetadata.table.GetFirstPageId())))
 	first_tuple := tuple.NewTupleFromSchema(row, TableCatalogSchema())
 
-	c.tableHeap.InsertTuple(first_tuple, txn, -1, nil)
+	c.tableHeap.InsertTuple(first_tuple, txn)
 	for _, column := range tableMetadata.schema.GetColumns() {
 		row := make([]types.Value, 0)
 		row = append(row, types.NewInteger(int32(tableMetadata.oid)))
@@ -132,6 +155,7 @@ func (c *Catalog) InsertTable(tableMetadata *TableMetadata, txn *access.Transact
 		row = append(row, types.NewInteger(int32(column.FixedLength())))
 		row = append(row, types.NewInteger(int32(column.VariableLength())))
 		row = append(row, types.NewInteger(int32(column.GetOffset())))
+		row = append(row, types.NewInteger(boolToInt32(column.HasIndex())))
 		new_tuple := tuple.NewTupleFromSchema(row, ColumnsCatalogSchema())
 
 		c.tableIds[ColumnsCatalogOID].Table().InsertTuple(new_tuple, txn)

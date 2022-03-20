@@ -11,6 +11,7 @@ type Schema struct {
 	columns          []*column.Column // All the columns in the schema, inlined and uninlined.
 	tupleIsInlined   bool             // True if all the columns are inlined, false otherwise
 	uninlinedColumns []uint32         // Indices of all uninlined columns
+	hasIndexColumns  []bool           // True if corresponding column has index
 }
 
 func NewSchema(columns []*column.Column) *Schema {
@@ -26,6 +27,8 @@ func NewSchema(columns []*column.Column) *Schema {
 			schema.tupleIsInlined = false
 			schema.uninlinedColumns = append(schema.uninlinedColumns, i)
 		}
+
+		// TODO: (SDB) need initialize hasIndexColumns member (NewSchema func)
 
 		//column.columnOffset = currentOffset
 		column.SetOffset(currentOffset)

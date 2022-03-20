@@ -33,8 +33,8 @@ func TestSimpleInsertAndSeqScan(t *testing.T) {
 	// c := catalog.GetCatalog(bpm, log_mgr, access.NewLockManager(access.REGULAR, access.PREVENTION), txn)
 	// c.CreateTable("columns_catalog", catalog.ColumnsCatalogSchema(), txn)
 
-	columnA := column.NewColumn("a", types.Integer)
-	columnB := column.NewColumn("b", types.Integer)
+	columnA := column.NewColumn("a", types.Integer, false)
+	columnB := column.NewColumn("b", types.Integer, false)
 	schema_ := schema.NewSchema([]*column.Column{columnA, columnB})
 
 	tableMetadata := c.CreateTable("test_1", schema_, txn)
@@ -59,7 +59,7 @@ func TestSimpleInsertAndSeqScan(t *testing.T) {
 
 	bpm.FlushAllPages()
 
-	outColumnA := column.NewColumn("a", types.Integer)
+	outColumnA := column.NewColumn("a", types.Integer, false)
 	outSchema := schema.NewSchema([]*column.Column{outColumnA})
 
 	seqPlan := plans.NewSeqScanPlanNode(outSchema, nil, tableMetadata.OID())
@@ -87,9 +87,9 @@ func TestSimpleInsertAndSeqScanWithPredicateComparison(t *testing.T) {
 	// c := catalog.GetCatalog(bpm, log_manager, access.NewLockManager(access.REGULAR, access.PREVENTION), txn)
 	// c.CreateTable("columns_catalog", catalog.ColumnsCatalogSchema(), txn)
 
-	columnA := column.NewColumn("a", types.Integer)
-	columnB := column.NewColumn("b", types.Integer)
-	columnC := column.NewColumn("c", types.Varchar)
+	columnA := column.NewColumn("a", types.Integer, false)
+	columnB := column.NewColumn("b", types.Integer, false)
+	columnC := column.NewColumn("c", types.Varchar, false)
 	schema_ := schema.NewSchema([]*column.Column{columnA, columnB, columnC})
 
 	tableMetadata := c.CreateTable("test_1", schema_, txn)
@@ -214,8 +214,8 @@ func TestSimpleInsertAndLimitExecution(t *testing.T) {
 	// c := catalog.GetCatalog(bpm, log_mgr, access.NewLockManager(access.REGULAR, access.PREVENTION), txn)
 	// c.CreateTable("columns_catalog", catalog.ColumnsCatalogSchema(), txn)
 
-	columnA := column.NewColumn("a", types.Integer)
-	columnB := column.NewColumn("b", types.Integer)
+	columnA := column.NewColumn("a", types.Integer, false)
+	columnB := column.NewColumn("b", types.Integer, false)
 	schema_ := schema.NewSchema([]*column.Column{columnA, columnB})
 
 	tableMetadata := c.CreateTable("test_1", schema_, txn)
@@ -254,8 +254,8 @@ func TestSimpleInsertAndLimitExecution(t *testing.T) {
 
 	// TEST 1: select a, b ... LIMIT 1
 	func() {
-		a := column.NewColumn("a", types.Integer)
-		b := column.NewColumn("b", types.Integer)
+		a := column.NewColumn("a", types.Integer, false)
+		b := column.NewColumn("b", types.Integer, false)
 		outSchema := schema.NewSchema([]*column.Column{a, b})
 		seqPlan := plans.NewSeqScanPlanNode(outSchema, nil, tableMetadata.OID())
 		limitPlan := plans.NewLimitPlanNode(seqPlan, 1, 1)
@@ -269,8 +269,8 @@ func TestSimpleInsertAndLimitExecution(t *testing.T) {
 
 	// TEST 1: select a, b ... LIMIT 2
 	func() {
-		a := column.NewColumn("a", types.Integer)
-		b := column.NewColumn("b", types.Integer)
+		a := column.NewColumn("a", types.Integer, false)
+		b := column.NewColumn("b", types.Integer, false)
 		outSchema := schema.NewSchema([]*column.Column{a, b})
 		seqPlan := plans.NewSeqScanPlanNode(outSchema, nil, tableMetadata.OID())
 		limitPlan := plans.NewLimitPlanNode(seqPlan, 2, 0)
@@ -282,8 +282,8 @@ func TestSimpleInsertAndLimitExecution(t *testing.T) {
 
 	// TEST 1: select a, b ... LIMIT 3
 	func() {
-		a := column.NewColumn("a", types.Integer)
-		b := column.NewColumn("b", types.Integer)
+		a := column.NewColumn("a", types.Integer, false)
+		b := column.NewColumn("b", types.Integer, false)
 		outSchema := schema.NewSchema([]*column.Column{a, b})
 		seqPlan := plans.NewSeqScanPlanNode(outSchema, nil, tableMetadata.OID())
 		limitPlan := plans.NewLimitPlanNode(seqPlan, 3, 0)

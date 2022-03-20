@@ -13,14 +13,15 @@ type Column struct {
 	fixedLength    uint32 // For a non-inlined column, this is the size of a pointer. Otherwise, the size of the fixed length column
 	variableLength uint32 // For an inlined column, 0. Otherwise, the length of the variable length column
 	columnOffset   uint32 // Column offset in the tuple
+	hasIndex       bool   // whether the column has index data
 }
 
-func NewColumn(name string, columnType types.TypeID) *Column {
+func NewColumn(name string, columnType types.TypeID, hasIndex bool) *Column {
 	if columnType != types.Varchar {
-		return &Column{name, columnType, columnType.Size(), 0, 0}
+		return &Column{name, columnType, columnType.Size(), 0, 0, hasIndex}
 	}
 
-	return &Column{name, types.Varchar, 4, 255, 0}
+	return &Column{name, types.Varchar, 4, 255, 0, hasIndex}
 }
 
 func (c *Column) IsInlined() bool {
@@ -43,10 +44,26 @@ func (c *Column) FixedLength() uint32 {
 	return c.fixedLength
 }
 
+func (c *Column) SetFixedLength(fixedLength uint32) {
+	c.fixedLength = fixedLength
+}
+
 func (c *Column) VariableLength() uint32 {
 	return c.variableLength
 }
 
+func (c *Column) SetVariableLength(variableLength uint32) {
+	c.variableLength = variableLength
+}
+
 func (c *Column) GetColumnName() string {
 	return c.columnName
+}
+
+func (c *Column) HasIndex() bool {
+	return c.hasIndex
+}
+
+func (c *Column) SetHasIndex(hasIndex bool) {
+	c.hasIndex = hasIndex
 }
