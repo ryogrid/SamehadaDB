@@ -63,8 +63,11 @@ func (e *HashScanIndexExecutor) Init() {
 		panic("HashScanIndexExecutor assumes that column which has index matches one specified on predicate.")
 	}
 
-	dummyTuple := 
-	rids := index_.ScanKey()
+	dummyTuple := tuple.GenTupleForHashIndexSearch(schema_, uint32(indexColNum), comparison.GetRightSideValue(nil, schema_))
+	rids := index_.ScanKey(dummyTuple, e.txn)
+	for _, rid := range rids {
+		e.foundTuples = append(e.foundTuples, e.tableMetadata.Table().GetTuple(&rid, e.txn))
+	}
 	//e.tableMetadata.Table().GetTuple(e.context.txn)
 	//comparison.
 }
@@ -89,21 +92,24 @@ func (e *HashScanIndexExecutor) Next() (*tuple.Tuple, Done, error) {
 				break
 			}
 		}
+	*/
 
-		// if the iterator is not in the end, projects the current tuple into the output schema
+	/*
+		// projects the current tuple into the output schema
 		if !e.it.End() {
 			defer e.it.Next() // advances the iterator after projection
 			return e.projects(e.it.Current()), false, nil
 		}
 	*/
 
+	if len(e.foundTuples) > 0 {
+		tuple_ := e.foundTuples[0]
+		e.foundTuples = e.foundTuples[1:]
+		return e.projects(tuple_), false, nil
+	}
+
 	return nil, true, nil
 }
-
-// // select evaluates an expression on the tuple
-// func (e *HashScanIndexExecutor) selects(tuple *tuple.Tuple, predicate *expression.Expression) bool {
-// 	return predicate == nil || (*predicate).Evaluate(tuple, e.tableMetadata.Schema()).ToBoolean()
-// }
 
 // project applies the projection operator defined by the output schema
 // It transform the tuple into a new tuple that corresponds to the output schema
