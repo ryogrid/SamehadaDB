@@ -13,8 +13,6 @@ import (
 	"github.com/ryogrid/SamehadaDB/types"
 )
 
-// TODO: (SDB) need port LinearProbeHashTableIndex class
-
 //#define HASH_TABLE_INDEX_TYPE LinearProbeHashTableIndex<KeyType, ValueType, KeyComparator>
 
 type LinearProbeHashTableIndex struct {

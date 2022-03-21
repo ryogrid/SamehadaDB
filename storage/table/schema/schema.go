@@ -11,7 +11,6 @@ type Schema struct {
 	columns          []*column.Column // All the columns in the schema, inlined and uninlined.
 	tupleIsInlined   bool             // True if all the columns are inlined, false otherwise
 	uninlinedColumns []uint32         // Indices of all uninlined columns
-	hasIndexColumns  []bool           // True if corresponding column has index
 }
 
 func NewSchema(columns []*column.Column) *Schema {
@@ -28,11 +27,7 @@ func NewSchema(columns []*column.Column) *Schema {
 			schema.uninlinedColumns = append(schema.uninlinedColumns, i)
 		}
 
-		// TODO: (SDB) need initialize hasIndexColumns member (NewSchema func)
-
-		//column.columnOffset = currentOffset
 		column.SetOffset(currentOffset)
-		//currentOffset += column.fixedLength
 		currentOffset += column.FixedLength()
 
 		schema.columns = append(schema.columns, column)
@@ -42,7 +37,6 @@ func NewSchema(columns []*column.Column) *Schema {
 }
 
 func (s *Schema) GetColumn(colIndex uint32) *column.Column {
-	//func (s *Schema) GetColumn(colIndex uint32) interfaces.IColumn {
 	return s.columns[colIndex]
 }
 
@@ -60,7 +54,6 @@ func (s *Schema) Length() uint32 {
 
 func (s *Schema) GetColIndex(columnName string) uint32 {
 	for i := uint32(0); i < s.GetColumnCount(); i++ {
-		//if s.columns[i].columnName == columnName {
 		if s.columns[i].GetColumnName() == columnName {
 			return i
 		}
@@ -70,14 +63,7 @@ func (s *Schema) GetColIndex(columnName string) uint32 {
 }
 
 func (s *Schema) GetColumns() []*column.Column {
-	//func (s *Schema) GetColumns() []interfaces.IColumn {
-	//var ret []interfaces.IColumn
-	// for i, column := range s.columns {
-	// 	ret = append(ret, interfaces.IColumn(*column))
-	// }
 	return s.columns
-	//return []*interfaces.IColumn(s.columns)
-	//return ret
 }
 
 func CopySchema(from *Schema, attrs []uint32) *Schema {
