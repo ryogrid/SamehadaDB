@@ -99,7 +99,6 @@ func ExecuteHashIndexScanTestCase(t *testing.T, testCase HashIndexScanTestCase) 
 	expression := expression.NewComparisonAsComparison(*tmpColVal, expression.NewConstantValue(getValue(testCase.Predicate.RightColumn)), testCase.Predicate.Operator)
 	hashIndexScanPlan := plans.NewHashScanIndexPlanNode(outSchema, expression, testCase.TableMetadata.OID())
 
-	//results := testCase.ExecutionEngine.Execute(seqPlan, testCase.ExecutorContext)
 	results := testCase.ExecutionEngine.Execute(hashIndexScanPlan, testCase.ExecutorContext)
 
 	testingpkg.Equals(t, testCase.TotalHits, uint32(len(results)))

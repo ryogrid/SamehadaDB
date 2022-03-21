@@ -7,7 +7,6 @@ import (
 	"github.com/ryogrid/SamehadaDB/storage/tuple"
 )
 
-// TODO: (SDB) need port IndexMetadata class
 /**
  * class IndexMetadata - Holds metadata of an index object
  *
@@ -73,7 +72,6 @@ func (im *IndexMetadata) GetKeyAttrs() []uint32 { return im.key_attrs }
 // Index class definition
 /////////////////////////////////////////////////////////////////////
 
-// TODO: (SDB) need port Index class as interface
 /**
  * class Index - Base class for derived indices of different types
  *

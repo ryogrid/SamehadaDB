@@ -308,9 +308,21 @@ func TestHashTableIndex(t *testing.T) {
 	row2 = append(row2, types.NewInteger(55))
 	row2 = append(row2, types.NewVarchar("bar"))
 
+	row3 := make([]types.Value, 0)
+	row3 = append(row3, types.NewInteger(1225))
+	row3 = append(row3, types.NewInteger(712))
+	row3 = append(row3, types.NewVarchar("baz"))
+
+	row4 := make([]types.Value, 0)
+	row4 = append(row4, types.NewInteger(1225))
+	row4 = append(row4, types.NewInteger(712))
+	row4 = append(row4, types.NewVarchar("baz"))
+
 	rows := make([][]types.Value, 0)
 	rows = append(rows, row1)
 	rows = append(rows, row2)
+	rows = append(rows, row3)
+	rows = append(rows, row4)
 
 	insertPlanNode := plans.NewInsertPlanNode(rows, tableMetadata.OID())
 
@@ -377,7 +389,6 @@ func TestHashTableIndex(t *testing.T) {
 		[]Assertion{{"a", 99}, {"b", 55}},
 		1,
 	}, {
-
 		"select a, b, c ... WHERE c = 'foo'",
 		executionEngine,
 		executorContext,
@@ -386,6 +397,15 @@ func TestHashTableIndex(t *testing.T) {
 		Predicate{"c", expression.Equal, "foo"},
 		[]Assertion{{"a", 20}, {"b", 22}, {"c", "foo"}},
 		1,
+	}, {
+		"select a, b ... WHERE c = 'baz'",
+		executionEngine,
+		executorContext,
+		tableMetadata,
+		[]Column{{"a", types.Integer}, {"b", types.Integer}},
+		Predicate{"c", expression.Equal, "baz"},
+		[]Assertion{{"a", 1225}, {"b", 712}},
+		2,
 	}}
 
 	for _, test := range cases {

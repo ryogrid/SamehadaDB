@@ -13,8 +13,6 @@ import (
 	"github.com/ryogrid/SamehadaDB/types"
 )
 
-// TODO: (SDB) need port LinearProbeHashTableIndex class
-
 //#define HASH_TABLE_INDEX_TYPE LinearProbeHashTableIndex<KeyType, ValueType, KeyComparator>
 
 type LinearProbeHashTableIndex struct {
@@ -58,6 +56,9 @@ func (htidx *LinearProbeHashTableIndex) InsertEntry(key *tuple.Tuple, rid page.R
 	htidx.container.Insert(keyDataInBytes, PackRIDtoUint32(&rid))
 }
 
+// TODO: (SDB) not tested yet (DeleteEntry at LinearProbeHashTableIndex)
+// TODO: (SDB) need check DeleteEntry of LinearProbeHashTableIndex deletes appropriately key duplicated case
+//             (all entry correspoind to a key must not be deleted)
 func (htidx *LinearProbeHashTableIndex) DeleteEntry(key *tuple.Tuple, rid page.RID, transaction *access.Transaction) {
 	// // construct delete index key
 	// KeyType index_key;

@@ -62,7 +62,6 @@ func NewTupleFromSchema(values []types.Value, schema *schema.Schema) *Tuple {
 // generated tuple filled only specifed column only due to use methods
 // defined on Index interface
 func GenTupleForHashIndexSearch(schema_ *schema.Schema, colIndex uint32, keyVal types.Value) *Tuple {
-	// TODO: (SDB) not implemented yet (GenTupleForHashIndexSearch)
 	colmuns := schema_.GetColumns()
 	values := make([]types.Value, 0)
 	for idx, columnObj := range colmuns {
