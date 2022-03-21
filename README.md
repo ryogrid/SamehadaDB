@@ -19,7 +19,7 @@ original codes of go-bustub are [here](https://github.com/brunocalza/go-bustub).
 - [ ] Update
 - [x] LIMIT / OFFSET
 - [x] Varchar
-- [ ] Persistent Catalog (method for restore is not kicked now)
+- [x] Persistent Catalog
 - [ ] LRU replacer
 - [ ] Latches
 - [x] Transactions
