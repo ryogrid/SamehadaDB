@@ -135,6 +135,11 @@ func (b *BufferPoolManager) NewPage() *page.Page {
 
 // DeletePage deletes a page from the buffer pool.
 func (b *BufferPoolManager) DeletePage(pageID types.PageID) error {
+	// 0.   Make sure you call DiskManager::DeallocatePage!
+	// 1.   Search the page table for the requested page (P).
+	// 1.   If P does not exist, return true.
+	// 2.   If P exists, but has a non-zero pin-count, return false. Someone is using the page.
+	// 3.   Otherwise, P can be deleted. Remove P from the page table, reset its metadata and return it to the free list.
 	var frameID FrameID
 	var ok bool
 	if frameID, ok = b.pageTable[pageID]; !ok {
