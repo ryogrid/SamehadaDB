@@ -280,6 +280,147 @@ func TestSimpleInsertAndLimitExecution(t *testing.T) {
 	}()
 }
 
+func TestSimpleInsertAndLimitExecutionMultiTable(t *testing.T) {
+	diskManager := disk.NewDiskManagerTest()
+	defer diskManager.ShutDown()
+	bpm := buffer.NewBufferPoolManager(uint32(32), diskManager)
+	log_mgr := recovery.NewLogManager(&diskManager)
+	txn_mgr := access.NewTransactionManager(log_mgr)
+	txn := txn_mgr.Begin(nil)
+
+	c := catalog.BootstrapCatalog(bpm, log_mgr, access.NewLockManager(access.REGULAR, access.PREVENTION), txn)
+
+	columnA := column.NewColumn("a", types.Integer, false)
+	columnB := column.NewColumn("b", types.Integer, false)
+	schema_ := schema.NewSchema([]*column.Column{columnA, columnB})
+
+	tableMetadata := c.CreateTable("test_1", schema_, txn)
+
+	row1 := make([]types.Value, 0)
+	row1 = append(row1, types.NewInteger(20))
+	row1 = append(row1, types.NewInteger(22))
+
+	row2 := make([]types.Value, 0)
+	row2 = append(row2, types.NewInteger(99))
+	row2 = append(row2, types.NewInteger(55))
+
+	row3 := make([]types.Value, 0)
+	row3 = append(row3, types.NewInteger(11))
+	row3 = append(row3, types.NewInteger(44))
+
+	row4 := make([]types.Value, 0)
+	row4 = append(row4, types.NewInteger(76))
+	row4 = append(row4, types.NewInteger(90))
+
+	rows := make([][]types.Value, 0)
+	rows = append(rows, row1)
+	rows = append(rows, row2)
+	rows = append(rows, row3)
+	rows = append(rows, row4)
+
+	insertPlanNode := plans.NewInsertPlanNode(rows, tableMetadata.OID())
+
+	executionEngine := &ExecutionEngine{}
+	executorContext := NewExecutorContext(c, bpm, txn)
+	executionEngine.Execute(insertPlanNode, executorContext)
+
+	// construct second table
+
+	columnA = column.NewColumn("a", types.Integer, false)
+	columnB = column.NewColumn("b", types.Integer, false)
+	schema_ = schema.NewSchema([]*column.Column{columnA, columnB})
+
+	tableMetadata2 := c.CreateTable("test_2", schema_, txn)
+
+	row1 = make([]types.Value, 0)
+	row1 = append(row1, types.NewInteger(20))
+	row1 = append(row1, types.NewInteger(22))
+
+	row2 = make([]types.Value, 0)
+	row2 = append(row2, types.NewInteger(99))
+	row2 = append(row2, types.NewInteger(55))
+
+	row3 = make([]types.Value, 0)
+	row3 = append(row3, types.NewInteger(11))
+	row3 = append(row3, types.NewInteger(44))
+
+	row4 = make([]types.Value, 0)
+	row4 = append(row4, types.NewInteger(76))
+	row4 = append(row4, types.NewInteger(90))
+
+	rows = make([][]types.Value, 0)
+	rows = append(rows, row1)
+	rows = append(rows, row2)
+	rows = append(rows, row3)
+	rows = append(rows, row4)
+
+	insertPlanNode = plans.NewInsertPlanNode(rows, tableMetadata2.OID())
+
+	//executionEngine := &ExecutionEngine{}
+	//executorContext := NewExecutorContext(c, bpm, txn)
+	executionEngine.Execute(insertPlanNode, executorContext)
+
+	bpm.FlushAllPages()
+
+	txn_mgr.Commit(txn)
+
+	// TEST 1: select a, b ... LIMIT 1
+	func() {
+		a := column.NewColumn("a", types.Integer, false)
+		b := column.NewColumn("b", types.Integer, false)
+		outSchema := schema.NewSchema([]*column.Column{a, b})
+		seqPlan := plans.NewSeqScanPlanNode(outSchema, nil, tableMetadata.OID())
+		limitPlan := plans.NewLimitPlanNode(seqPlan, 1, 1)
+
+		results := executionEngine.Execute(limitPlan, executorContext)
+
+		testingpkg.Equals(t, 1, len(results))
+		testingpkg.Assert(t, types.NewInteger(99).CompareEquals(results[0].GetValue(outSchema, 0)), "value should be 99 but was %d", results[0].GetValue(outSchema, 0).ToInteger())
+		testingpkg.Assert(t, types.NewInteger(55).CompareEquals(results[0].GetValue(outSchema, 1)), "value should be 55 but was %d", results[0].GetValue(outSchema, 1).ToInteger())
+	}()
+
+	// TEST 1: select a, b ... LIMIT 2
+	func() {
+		a := column.NewColumn("a", types.Integer, false)
+		b := column.NewColumn("b", types.Integer, false)
+		outSchema := schema.NewSchema([]*column.Column{a, b})
+		seqPlan := plans.NewSeqScanPlanNode(outSchema, nil, tableMetadata.OID())
+		limitPlan := plans.NewLimitPlanNode(seqPlan, 2, 0)
+
+		results := executionEngine.Execute(limitPlan, executorContext)
+
+		testingpkg.Equals(t, 2, len(results))
+	}()
+
+	// TEST 1: select a, b ... LIMIT 1
+	func() {
+		a := column.NewColumn("a", types.Integer, false)
+		b := column.NewColumn("b", types.Integer, false)
+		outSchema := schema.NewSchema([]*column.Column{a, b})
+		seqPlan := plans.NewSeqScanPlanNode(outSchema, nil, tableMetadata2.OID())
+		limitPlan := plans.NewLimitPlanNode(seqPlan, 1, 1)
+
+		results := executionEngine.Execute(limitPlan, executorContext)
+
+		testingpkg.Equals(t, 1, len(results))
+		testingpkg.Assert(t, types.NewInteger(99).CompareEquals(results[0].GetValue(outSchema, 0)), "value should be 99 but was %d", results[0].GetValue(outSchema, 0).ToInteger())
+		testingpkg.Assert(t, types.NewInteger(55).CompareEquals(results[0].GetValue(outSchema, 1)), "value should be 55 but was %d", results[0].GetValue(outSchema, 1).ToInteger())
+	}()
+
+	// TEST 1: select a, b ... LIMIT 3
+	func() {
+		a := column.NewColumn("a", types.Integer, false)
+		b := column.NewColumn("b", types.Integer, false)
+		outSchema := schema.NewSchema([]*column.Column{a, b})
+		seqPlan := plans.NewSeqScanPlanNode(outSchema, nil, tableMetadata2.OID())
+		limitPlan := plans.NewLimitPlanNode(seqPlan, 3, 0)
+
+		results := executionEngine.Execute(limitPlan, executorContext)
+
+		testingpkg.Equals(t, 3, len(results))
+	}()
+}
+
 func TestHashTableIndex(t *testing.T) {
 	diskManager := disk.NewDiskManagerTest()
 	defer diskManager.ShutDown()

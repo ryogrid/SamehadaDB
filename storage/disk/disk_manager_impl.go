@@ -136,9 +136,7 @@ func (d *DiskManagerImpl) AllocatePage() types.PageID {
 // DeallocatePage deallocates page
 // Need bitmap in header page for tracking pages
 // This does not actually need to do anything for now.
-func (d *DiskManagerImpl) DeallocatePage(pageID types.PageID) {
-	// TODO: (SDB) need implmenet DeallocatePage method of DiskManagerImpl class
-}
+func (d *DiskManagerImpl) DeallocatePage(pageID types.PageID) {}
 
 // GetNumWrites returns the number of disk writes
 func (d *DiskManagerImpl) GetNumWrites() uint64 {
