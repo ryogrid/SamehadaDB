@@ -29,14 +29,15 @@ original codes of go-bustub are [here](https://github.com/brunocalza/go-bustub).
 - [x] Recovery from Logs
 - [x] Hash Index
 - [ ] BTree Index
-- [ ] Join
+- [ ] Join (Hash Join)
 - [ ] Aggregations (COUNT, MAX, MIN ... on SELECT clause)
 - [ ] GROUP By caluese
 - [ ] Sort (ORDER BY clause) 
-- [ ] Query Optimazation
 - [ ] Concurrent Execution of Transactions
+- [ ] Execution Planning from hard coded SQL like methods I/F (like several kind of embeded DB)
+- [ ] Execution Planning from Query Description text (SQL, SQL like description)
+- [ ] Query Optimazation
 - [ ] Nested Query
-- [ ] Execution Planning from Query Description (SQL or SQL like description)
 - [ ] DB Connector or Other Kind Access Interface
 
 ## Past work
