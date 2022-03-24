@@ -342,45 +342,43 @@ func (tp *TablePage) GetTuple(rid *page.RID, log_manager *recovery.LogManager, l
 
 	// Otherwise we have a valid tuple, try to acquire at least a shared access.
 	if common.EnableLogging {
-		//txn_ := (*Transaction)(unsafe.Pointer(&txn))
 		if !txn.IsSharedLocked(rid) && !txn.IsExclusiveLocked(rid) && !lock_manager.LockShared(txn, rid) {
-			//return false
-			// TODO: (SDB) need care of being returned nil
-			//return nil
-			// TODO: (SDB) [logging/recovery] need implement
-			// do nothing now
+			// TODO: (SDB) this impl is collect? blocking or ARORTED state setting is not needed?
+			return nil
 		}
 	}
 
 	tupleData := make([]byte, tupleSize)
 	copy(tupleData, tp.Data()[tupleOffset:])
 
-	//return &tuple.Tuple{rid, tupleSize, tupleData}
 	return tuple.NewTuple(rid, tupleSize, tupleData)
 }
 
 func (tp *TablePage) GetTupleFirstRID() *page.RID {
 	firstRID := &page.RID{}
 
+	// Find and return the first valid tuple.
 	tupleCount := tp.GetTupleCount()
-	for i := uint32(0); i < tupleCount; i++ {
-		// TODO: (SDB) need implement (if is deleted)
-		// if is deleted
-		firstRID.Set(tp.GetTablePageId(), i)
-		return firstRID
+	for ii := uint32(0); ii < tupleCount; ii++ {
+		if tp.GetTupleSize(ii) > 0 {
+			firstRID.Set(tp.GetTablePageId(), ii)
+			return firstRID
+		}
+
 	}
 	return nil
 }
 
-func (tp *TablePage) GetNextTupleRID(rid *page.RID) *page.RID {
-	firstRID := &page.RID{}
+func (tp *TablePage) GetNextTupleRID(curRID *page.RID) *page.RID {
+	nextRID := &page.RID{}
 
+	// Find and return the first valid tuple after our current slot number.
 	tupleCount := tp.GetTupleCount()
-	for i := rid.GetSlotNum() + 1; i < tupleCount; i++ {
-		// TODO: (SDB) need implement (if is deleted)
-		// if is deleted
-		firstRID.Set(tp.GetTablePageId(), i)
-		return firstRID
+	for ii := curRID.GetSlotNum() + 1; ii < tupleCount; ii++ {
+		if tp.GetTupleSize(ii) > 0 {
+			nextRID.Set(tp.GetTablePageId(), ii)
+			return nextRID
+		}
 	}
 	return nil
 }
