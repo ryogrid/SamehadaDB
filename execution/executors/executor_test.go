@@ -555,5 +555,96 @@ func TestHashTableIndex(t *testing.T) {
 			ExecuteHashIndexScanTestCase(t, test)
 		})
 	}
+}
 
+func TestSimpleDelete(t *testing.T) {
+	diskManager := disk.NewDiskManagerTest()
+	defer diskManager.ShutDown()
+	log_mgr := recovery.NewLogManager(&diskManager)
+	bpm := buffer.NewBufferPoolManager(uint32(32), diskManager, log_mgr) //, recovery.NewLogManager(diskManager), access.NewLockManager(access.REGULAR, access.PREVENTION))
+	txn_mgr := access.NewTransactionManager(log_mgr)
+	txn := txn_mgr.Begin(nil)
+
+	c := catalog.BootstrapCatalog(bpm, log_mgr, access.NewLockManager(access.REGULAR, access.PREVENTION), txn)
+
+	columnA := column.NewColumn("a", types.Integer, false)
+	columnB := column.NewColumn("b", types.Integer, false)
+	columnC := column.NewColumn("c", types.Varchar, false)
+	schema_ := schema.NewSchema([]*column.Column{columnA, columnB, columnC})
+
+	tableMetadata := c.CreateTable("test_1", schema_, txn)
+
+	row1 := make([]types.Value, 0)
+	row1 = append(row1, types.NewInteger(20))
+	row1 = append(row1, types.NewInteger(22))
+	row1 = append(row1, types.NewVarchar("foo"))
+
+	row2 := make([]types.Value, 0)
+	row2 = append(row2, types.NewInteger(99))
+	row2 = append(row2, types.NewInteger(55))
+	row2 = append(row2, types.NewVarchar("bar"))
+
+	row3 := make([]types.Value, 0)
+	row3 = append(row3, types.NewInteger(1225))
+	row3 = append(row3, types.NewInteger(712))
+	row3 = append(row3, types.NewVarchar("baz"))
+
+	row4 := make([]types.Value, 0)
+	row4 = append(row4, types.NewInteger(1225))
+	row4 = append(row4, types.NewInteger(712))
+	row4 = append(row4, types.NewVarchar("baz"))
+
+	rows := make([][]types.Value, 0)
+	rows = append(rows, row1)
+	rows = append(rows, row2)
+	rows = append(rows, row3)
+	rows = append(rows, row4)
+
+	insertPlanNode := plans.NewInsertPlanNode(rows, tableMetadata.OID())
+
+	executionEngine := &ExecutionEngine{}
+	executorContext := NewExecutorContext(c, bpm, txn)
+	executionEngine.Execute(insertPlanNode, executorContext)
+
+	bpm.FlushAllPages()
+
+	txn_mgr.Commit(txn)
+
+	cases := []DeleteTestCase{{
+		"delete ... WHERE c = 'baz'",
+		txn_mgr,
+		executionEngine,
+		executorContext,
+		tableMetadata,
+		[]Column{{"a", types.Integer}, {"b", types.Integer}, {"c", types.Varchar}},
+		Predicate{"c", expression.Equal, "baz"},
+		[]Assertion{{"a", 1225}, {"b", 712}, {"c", "baz"}},
+		2,
+	}, {
+		"delete ... WHERE b = 55",
+		txn_mgr,
+		executionEngine,
+		executorContext,
+		tableMetadata,
+		[]Column{{"a", types.Integer}, {"b", types.Integer}, {"c", types.Varchar}},
+		Predicate{"b", expression.Equal, 55},
+		[]Assertion{{"a", 99}, {"b", 55}, {"c", "bar"}},
+		1,
+	}, {
+		"delete ... WHERE a = 20",
+		txn_mgr,
+		executionEngine,
+		executorContext,
+		tableMetadata,
+		[]Column{{"a", types.Integer}, {"b", types.Integer}, {"c", types.Varchar}},
+		Predicate{"a", expression.Equal, 20},
+		[]Assertion{{"a", 20}, {"b", 22}, {"c", "foo"}},
+		1,
+	}}
+
+	for _, test := range cases {
+		t.Run(test.Description, func(t *testing.T) {
+			ExecuteDeleteTestCase(t, test)
+		})
+	}
 }
