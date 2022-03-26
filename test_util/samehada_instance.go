@@ -25,7 +25,7 @@ func NewSamehadaInstance() *SamehadaInstance {
 
 	disk_manager := disk.NewDiskManagerImpl("test.db")
 	log_manager := recovery.NewLogManager(&disk_manager)
-	bpm := buffer.NewBufferPoolManager(uint32(32), disk_manager)
+	bpm := buffer.NewBufferPoolManager(uint32(32), disk_manager, log_manager)
 	lock_manager := access.NewLockManager(access.REGULAR, access.PREVENTION)
 	transaction_manager := access.NewTransactionManager(log_manager)
 	checkpoint_manager := concurrency.NewCheckpointManager(transaction_manager, log_manager, bpm)

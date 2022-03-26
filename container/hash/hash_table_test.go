@@ -8,6 +8,7 @@ import (
 	"encoding/binary"
 	"testing"
 
+	"github.com/ryogrid/SamehadaDB/recovery"
 	"github.com/ryogrid/SamehadaDB/storage/buffer"
 	"github.com/ryogrid/SamehadaDB/storage/disk"
 	testingpkg "github.com/ryogrid/SamehadaDB/testing"
@@ -22,7 +23,7 @@ func IntToBytes(val int) []byte {
 func TestLinearProbeHashTable(t *testing.T) {
 	diskManager := disk.NewDiskManagerTest()
 	defer diskManager.ShutDown()
-	bpm := buffer.NewBufferPoolManager(uint32(10), diskManager)
+	bpm := buffer.NewBufferPoolManager(uint32(10), diskManager, recovery.NewLogManager(&diskManager))
 
 	ht := NewLinearProbeHashTable(bpm, 1000)
 

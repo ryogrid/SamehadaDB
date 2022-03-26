@@ -22,7 +22,7 @@ func TestTableCatalogReload(t *testing.T) {
 	samehada_instance := test_util.NewSamehadaInstance()
 	//diskManager := disk.NewDiskManagerImpl("test.db")
 	//defer diskManager.ShutDown()
-	bpm := buffer.NewBufferPoolManager(uint32(32), *samehada_instance.GetDiskManager())
+	bpm := buffer.NewBufferPoolManager(uint32(32), *samehada_instance.GetDiskManager(), samehada_instance.GetLogManager())
 
 	txn := samehada_instance.GetTransactionManager().Begin(nil)
 	catalog_old := BootstrapCatalog(bpm, samehada_instance.GetLogManager(), samehada_instance.GetLockManager(), txn)

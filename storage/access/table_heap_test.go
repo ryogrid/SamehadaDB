@@ -21,8 +21,8 @@ func TestTableHeap(t *testing.T) {
 	// TODO: (SDB) need rewrite with SamehadaInstance class
 	dm := disk.NewDiskManagerTest()
 	defer dm.ShutDown()
-	bpm := buffer.NewBufferPoolManager(10, dm)
 	log_manager := recovery.NewLogManager(&dm)
+	bpm := buffer.NewBufferPoolManager(10, dm, log_manager)
 	lock_manager := NewLockManager(REGULAR, PREVENTION)
 	txn_mgr := NewTransactionManager(log_manager)
 	//txn := NewTransaction(types.TxnID(0))

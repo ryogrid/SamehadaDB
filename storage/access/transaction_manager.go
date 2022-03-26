@@ -87,9 +87,8 @@ func (transaction_manager *TransactionManager) Abort(txn *Transaction) {
 	for len(write_set) != 0 {
 		item := write_set[len(write_set)-1]
 		table := item.table
-		// TODO: (SDB) not ported yet (inside of if block)
 		if item.wtype == DELETE {
-			//table.RollbackDelete(item.rid_, txn)
+			table.RollbackDelete(&item.rid, txn)
 		} else if item.wtype == INSERT {
 			// Note that this also releases the lock when holding the page latch.
 			//table.ApplyDelete(item.rid, txn)
@@ -99,6 +98,7 @@ func (transaction_manager *TransactionManager) Abort(txn *Transaction) {
 			tpage := CastPageAsTablePage(table.bpm.FetchPage(pageID))
 			tpage.ApplyDelete(&item.rid, txn, transaction_manager.log_manager)
 		} else if item.wtype == UPDATE {
+			// TODO: (SDB) not ported `rollback of UPDATE yet
 			//table.UpdateTuple(item.tuple, item.rid_, txn)
 		}
 		write_set = write_set[:len(write_set)-1]

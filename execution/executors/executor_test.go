@@ -22,8 +22,8 @@ import (
 func TestSimpleInsertAndSeqScan(t *testing.T) {
 	diskManager := disk.NewDiskManagerTest()
 	defer diskManager.ShutDown()
-	bpm := buffer.NewBufferPoolManager(uint32(32), diskManager)
 	log_mgr := recovery.NewLogManager(&diskManager)
+	bpm := buffer.NewBufferPoolManager(uint32(32), diskManager, log_mgr)
 	txn_mgr := access.NewTransactionManager(log_mgr)
 	txn := txn_mgr.Begin(nil)
 
@@ -71,8 +71,8 @@ func TestSimpleInsertAndSeqScan(t *testing.T) {
 func TestSimpleInsertAndSeqScanWithPredicateComparison(t *testing.T) {
 	diskManager := disk.NewDiskManagerTest()
 	defer diskManager.ShutDown()
-	bpm := buffer.NewBufferPoolManager(uint32(32), diskManager) //, recovery.NewLogManager(diskManager), access.NewLockManager(access.REGULAR, access.PREVENTION))
 	log_mgr := recovery.NewLogManager(&diskManager)
+	bpm := buffer.NewBufferPoolManager(uint32(32), diskManager, log_mgr) //, recovery.NewLogManager(diskManager), access.NewLockManager(access.REGULAR, access.PREVENTION))
 	txn_mgr := access.NewTransactionManager(log_mgr)
 	txn := txn_mgr.Begin(nil)
 
@@ -193,8 +193,8 @@ func TestSimpleInsertAndSeqScanWithPredicateComparison(t *testing.T) {
 func TestSimpleInsertAndLimitExecution(t *testing.T) {
 	diskManager := disk.NewDiskManagerTest()
 	defer diskManager.ShutDown()
-	bpm := buffer.NewBufferPoolManager(uint32(32), diskManager)
 	log_mgr := recovery.NewLogManager(&diskManager)
+	bpm := buffer.NewBufferPoolManager(uint32(32), diskManager, log_mgr)
 	txn_mgr := access.NewTransactionManager(log_mgr)
 	txn := txn_mgr.Begin(nil)
 
@@ -283,8 +283,8 @@ func TestSimpleInsertAndLimitExecution(t *testing.T) {
 func TestSimpleInsertAndLimitExecutionMultiTable(t *testing.T) {
 	diskManager := disk.NewDiskManagerTest()
 	defer diskManager.ShutDown()
-	bpm := buffer.NewBufferPoolManager(uint32(32), diskManager)
 	log_mgr := recovery.NewLogManager(&diskManager)
+	bpm := buffer.NewBufferPoolManager(uint32(32), diskManager, log_mgr)
 	txn_mgr := access.NewTransactionManager(log_mgr)
 	txn := txn_mgr.Begin(nil)
 
@@ -424,9 +424,10 @@ func TestSimpleInsertAndLimitExecutionMultiTable(t *testing.T) {
 func TestHashTableIndex(t *testing.T) {
 	diskManager := disk.NewDiskManagerTest()
 	defer diskManager.ShutDown()
-	bpm := buffer.NewBufferPoolManager(uint32(32), diskManager) //, recovery.NewLogManager(diskManager), access.NewLockManager(access.REGULAR, access.PREVENTION))
-	// TODO: (SDB) [logging/recovery] need increment of transaction ID
 	log_mgr := recovery.NewLogManager(&diskManager)
+	bpm := buffer.NewBufferPoolManager(uint32(32), diskManager, log_mgr) //, recovery.NewLogManager(diskManager), access.NewLockManager(access.REGULAR, access.PREVENTION))
+	// TODO: (SDB) [logging/recovery] need increment of transaction ID
+
 	txn_mgr := access.NewTransactionManager(log_mgr)
 	txn := txn_mgr.Begin(nil)
 
