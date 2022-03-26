@@ -9,6 +9,7 @@ import (
 	"github.com/ryogrid/SamehadaDB/catalog"
 	"github.com/ryogrid/SamehadaDB/execution/expression"
 	"github.com/ryogrid/SamehadaDB/execution/plans"
+	"github.com/ryogrid/SamehadaDB/storage/access"
 	"github.com/ryogrid/SamehadaDB/storage/table/column"
 	"github.com/ryogrid/SamehadaDB/storage/table/schema"
 	"github.com/ryogrid/SamehadaDB/types"
@@ -67,9 +68,11 @@ func ExecuteSeqScanTestCase(t *testing.T, testCase SeqScanTestCase) {
 	results := testCase.ExecutionEngine.Execute(seqPlan, testCase.ExecutorContext)
 
 	testingpkg.Equals(t, testCase.TotalHits, uint32(len(results)))
-	for _, assert := range testCase.Asserts {
-		colIndex := outSchema.GetColIndex(assert.Column)
-		testingpkg.Assert(t, getValue(assert.Exp).CompareEquals(results[0].GetValue(outSchema, colIndex)), "value should be %v but was %v", assert.Exp, results[0].GetValue(outSchema, colIndex))
+	if len(results) > 0 {
+		for _, assert := range testCase.Asserts {
+			colIndex := outSchema.GetColIndex(assert.Column)
+			testingpkg.Assert(t, getValue(assert.Exp).CompareEquals(results[0].GetValue(outSchema, colIndex)), "value should be %v but was %v", assert.Exp, results[0].GetValue(outSchema, colIndex))
+		}
 	}
 }
 
@@ -100,6 +103,45 @@ func ExecuteHashIndexScanTestCase(t *testing.T, testCase HashIndexScanTestCase) 
 	hashIndexScanPlan := plans.NewHashScanIndexPlanNode(outSchema, expression, testCase.TableMetadata.OID())
 
 	results := testCase.ExecutionEngine.Execute(hashIndexScanPlan, testCase.ExecutorContext)
+
+	testingpkg.Equals(t, testCase.TotalHits, uint32(len(results)))
+	for _, assert := range testCase.Asserts {
+		colIndex := outSchema.GetColIndex(assert.Column)
+		testingpkg.Assert(t, getValue(assert.Exp).CompareEquals(results[0].GetValue(outSchema, colIndex)), "value should be %v but was %v", assert.Exp, results[0].GetValue(outSchema, colIndex))
+	}
+}
+
+type DeleteTestCase struct {
+	Description        string
+	TransactionManager *access.TransactionManager
+	ExecutionEngine    *ExecutionEngine
+	ExecutorContext    *ExecutorContext
+	TableMetadata      *catalog.TableMetadata
+	Columns            []Column
+	Predicate          Predicate
+	Asserts            []Assertion
+	TotalHits          uint32
+}
+
+func ExecuteDeleteTestCase(t *testing.T, testCase DeleteTestCase) {
+	txn := testCase.TransactionManager.Begin(nil)
+
+	columns := []*column.Column{}
+	for _, c := range testCase.Columns {
+		columns = append(columns, column.NewColumn(c.Name, c.Kind, false))
+	}
+	outSchema := schema.NewSchema(columns)
+
+	tmpColVal := new(expression.ColumnValue)
+	tmpColVal.SetTupleIndex(0)
+	tmpColVal.SetColIndex(testCase.TableMetadata.Schema().GetColIndex(testCase.Predicate.LeftColumn))
+	expression := expression.NewComparison(*tmpColVal, expression.NewConstantValue(getValue(testCase.Predicate.RightColumn)), testCase.Predicate.Operator)
+	hashIndexScanPlan := plans.NewDeletePlanNode(&expression, testCase.TableMetadata.OID())
+
+	testCase.ExecutorContext.SetTransaction(txn)
+	results := testCase.ExecutionEngine.Execute(hashIndexScanPlan, testCase.ExecutorContext)
+
+	testCase.TransactionManager.Commit(txn)
 
 	testingpkg.Equals(t, testCase.TotalHits, uint32(len(results)))
 	for _, assert := range testCase.Asserts {

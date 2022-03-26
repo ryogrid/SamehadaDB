@@ -7,6 +7,7 @@ import (
 	"errors"
 
 	"github.com/ryogrid/SamehadaDB/common"
+	"github.com/ryogrid/SamehadaDB/recovery"
 	"github.com/ryogrid/SamehadaDB/storage/disk"
 	"github.com/ryogrid/SamehadaDB/storage/page"
 	"github.com/ryogrid/SamehadaDB/types"
@@ -19,6 +20,7 @@ type BufferPoolManager struct {
 	replacer    *ClockReplacer
 	freeList    []FrameID
 	pageTable   map[types.PageID]FrameID
+	log_manager *recovery.LogManager
 	//TODO: (SDB) need to use latch at BufferPoolManager
 }
 
@@ -43,6 +45,7 @@ func (b *BufferPoolManager) FetchPage(pageID types.PageID) *page.Page {
 		currentPage := b.pages[*frameID]
 		if currentPage != nil {
 			if currentPage.IsDirty() {
+				b.log_manager.Flush()
 				data := currentPage.Data()
 				b.diskManager.WritePage(currentPage.ID(), data[:])
 			}
@@ -115,6 +118,7 @@ func (b *BufferPoolManager) NewPage() *page.Page {
 		currentPage := b.pages[*frameID]
 		if currentPage != nil {
 			if currentPage.IsDirty() {
+				b.log_manager.Flush()
 				data := currentPage.Data()
 				b.diskManager.WritePage(currentPage.ID(), data[:])
 			}
@@ -189,7 +193,7 @@ func (b *BufferPoolManager) GetPoolSize() int {
 
 //NewBufferPoolManager returns a empty buffer pool manager
 //func NewBufferPoolManager(poolSize uint32, DiskManager disk.DiskManager, log_manager *recovery.LogManager, lock_manager *access.LockManager) *BufferPoolManager {
-func NewBufferPoolManager(poolSize uint32, DiskManager disk.DiskManager) *BufferPoolManager {
+func NewBufferPoolManager(poolSize uint32, DiskManager disk.DiskManager, log_manager *recovery.LogManager) *BufferPoolManager {
 	freeList := make([]FrameID, poolSize)
 	pages := make([]*page.Page, poolSize)
 	for i := uint32(0); i < poolSize; i++ {
@@ -199,5 +203,5 @@ func NewBufferPoolManager(poolSize uint32, DiskManager disk.DiskManager) *Buffer
 
 	replacer := NewClockReplacer(poolSize)
 	//return &BufferPoolManager{DiskManager, pages, replacer, freeList, make(map[types.PageID]FrameID), log_manager, lock_manager}
-	return &BufferPoolManager{DiskManager, pages, replacer, freeList, make(map[types.PageID]FrameID)}
+	return &BufferPoolManager{DiskManager, pages, replacer, freeList, make(map[types.PageID]FrameID), log_manager}
 }

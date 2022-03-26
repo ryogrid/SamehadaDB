@@ -77,27 +77,28 @@ func (t *TableHeap) InsertTuple(tuple_ *tuple.Tuple, txn *Transaction) (rid *pag
 	return rid, nil
 }
 
-/* TODO: (SDB) not ported yet
-/*
-bool TableHeap::MarkDelete(const RID &rid, Transaction *txn) {
+func (t *TableHeap) MarkDelete(rid *page.RID, txn *Transaction) bool {
 	// TODO(Amadou): remove empty page
 	// Find the page which contains the tuple.
-	auto page = reinterpret_cast<TablePage *>(buffer_pool_manager_->FetchPage(rid.GetPageId()));
+	page_ := CastPageAsTablePage(t.bpm.FetchPage(rid.GetPageId()))
 	// If the page could not be found, then abort the transaction.
-	if (page == nullptr) {
-	  txn->SetState(TransactionState::ABORTED);
-	  return false;
+	if page_ == nil {
+		txn.SetState(ABORTED)
+		return false
 	}
 	// Otherwise, mark the tuple as deleted.
-	page->WLatch();
-	page->MarkDelete(rid, txn, lock_manager_, log_manager_);
-	page->WUnlatch();
-	buffer_pool_manager_->UnpinPage(page->GetTablePageId(), true);
+	page_.WLatch()
+	page_.MarkDelete(rid, txn, t.lock_manager, t.log_manager)
+	page_.WUnlatch()
+	t.bpm.UnpinPage(page_.GetTablePageId(), true)
 	// Update the transaction's write set.
-	txn->GetWriteSet()->emplace_back(rid, WType::DELETE, Tuple{}, this);
-	return true;
-  }
+	txn.AddIntoWriteSet(NewWriteRecord(*rid, DELETE, new(tuple.Tuple), t))
 
+	return true
+}
+
+// TODO: (SDB) not ported yet (UpdateTuple)
+/*
   bool TableHeap::UpdateTuple(const Tuple &tuple, const RID &rid, Transaction *txn) {
 	// Find the page which contains the tuple.
 	auto page = reinterpret_cast<TablePage *>(buffer_pool_manager_->FetchPage(rid.GetPageId()));
@@ -118,30 +119,32 @@ bool TableHeap::MarkDelete(const RID &rid, Transaction *txn) {
 	}
 	return is_updated;
   }
-
-  void TableHeap::ApplyDelete(const RID &rid, Transaction *txn) {
-	// Find the page which contains the tuple.
-	auto page = reinterpret_cast<TablePage *>(buffer_pool_manager_->FetchPage(rid.GetPageId()));
-	BUSTUB_ASSERT(page != nullptr, "Couldn't find a page containing that RID.");
-	// Delete the tuple from the page.
-	page->WLatch();
-	page->ApplyDelete(rid, txn, log_manager_);
-	lock_manager_->Unlock(txn, rid);
-	page->WUnlatch();
-	buffer_pool_manager_->UnpinPage(page->GetTablePageId(), true);
-  }
-
-  void TableHeap::RollbackDelete(const RID &rid, Transaction *txn) {
-	// Find the page which contains the tuple.
-	auto page = reinterpret_cast<TablePage *>(buffer_pool_manager_->FetchPage(rid.GetPageId()));
-	BUSTUB_ASSERT(page != nullptr, "Couldn't find a page containing that RID.");
-	// Rollback the delete.
-	page->WLatch();
-	page->RollbackDelete(rid, txn, log_manager_);
-	page->WUnlatch();
-	buffer_pool_manager_->UnpinPage(page->GetTablePageId(), true);
-  }
 */
+
+func (t *TableHeap) ApplyDelete(rid *page.RID, txn *Transaction) {
+	// Find the page which contains the tuple.
+	page_ := CastPageAsTablePage(t.bpm.FetchPage(rid.GetPageId()))
+	//BUSTUB_ASSERT(page != nullptr, "Couldn't find a page containing that RID.");
+	// Delete the tuple from the page.
+	page_.WLatch()
+	page_.ApplyDelete(rid, txn, t.log_manager)
+	t.lock_manager.Unlock(txn, rid)
+	page_.WUnlatch()
+	t.bpm.UnpinPage(page_.GetTablePageId(), true)
+}
+
+// TODO: (SDB) not ported yet (RollbackDelete)
+func (t *TableHeap) RollbackDelete(rid *page.RID, txn *Transaction) {
+	// Find the page which contains the tuple.
+	page_ := CastPageAsTablePage(t.bpm.FetchPage(rid.GetPageId()))
+	//BUSTUB_ASSERT(page != nullptr, "Couldn't find a page containing that RID.");
+	// Rollback the delete.
+	page_.WLatch()
+	page_.RollbackDelete(rid, txn, t.log_manager)
+	page_.WUnlatch()
+	t.bpm.UnpinPage(page_.GetTablePageId(), true)
+}
+
 // GetTuple reads a tuple from the table
 func (t *TableHeap) GetTuple(rid *page.RID, txn *Transaction) *tuple.Tuple {
 	page := CastPageAsTablePage(t.bpm.FetchPage(rid.GetPageId()))

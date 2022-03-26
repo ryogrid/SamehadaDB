@@ -13,6 +13,7 @@ type PlanType int
 const (
 	SeqScan PlanType = iota
 	Insert
+	Delete
 	Limit
 	HashScanIndex
 )

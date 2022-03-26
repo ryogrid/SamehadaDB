@@ -8,6 +8,7 @@ import (
 	"testing"
 
 	"github.com/ryogrid/SamehadaDB/common"
+	"github.com/ryogrid/SamehadaDB/recovery"
 	"github.com/ryogrid/SamehadaDB/storage/disk"
 	"github.com/ryogrid/SamehadaDB/storage/page"
 	testingpkg "github.com/ryogrid/SamehadaDB/testing"
@@ -19,7 +20,7 @@ func TestBinaryData(t *testing.T) {
 
 	dm := disk.NewDiskManagerTest()
 	defer dm.ShutDown()
-	bpm := NewBufferPoolManager(poolSize, dm)
+	bpm := NewBufferPoolManager(poolSize, dm, recovery.NewLogManager(&dm))
 
 	page0 := bpm.NewPage()
 
@@ -74,7 +75,7 @@ func TestSample(t *testing.T) {
 
 	dm := disk.NewDiskManagerTest()
 	defer dm.ShutDown()
-	bpm := NewBufferPoolManager(poolSize, dm)
+	bpm := NewBufferPoolManager(poolSize, dm, recovery.NewLogManager(&dm))
 
 	page0 := bpm.NewPage()
 

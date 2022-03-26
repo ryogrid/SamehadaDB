@@ -33,3 +33,7 @@ func (e *ExecutorContext) GetBufferPoolManager() *buffer.BufferPoolManager {
 func (e *ExecutorContext) GetTransaction() *access.Transaction {
 	return e.txn
 }
+
+func (e *ExecutorContext) SetTransaction(txn *access.Transaction) {
+	e.txn = txn
+}

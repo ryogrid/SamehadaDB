@@ -285,7 +285,7 @@ func TestUndo(t *testing.T) {
 
 	samehada_instance.GetLogManager().RunFlushThread()
 	testingpkg.Assert(t, common.EnableLogging, "")
-	fmt.Println("System logging thread running...")
+	//fmt.Println("System logging thread running...")
 
 	fmt.Println("Create a test table")
 	txn := samehada_instance.GetTransactionManager().Begin(nil)
@@ -300,6 +300,15 @@ func TestUndo(t *testing.T) {
 	col2 := column.NewColumn("b", types.Integer, false)
 	cols := []*column.Column{col1, col2}
 	schema_ := schema.NewSchema(cols)
+	tuple0_ := ConstructTuple(schema_)
+	var rid0 *page.RID
+	rid0, _ = test_table.InsertTuple(tuple0_, txn)
+	testingpkg.Assert(t, rid0 != nil, "")
+
+	fmt.Println("first tuple insertion is commited")
+	samehada_instance.GetTransactionManager().Commit(txn)
+
+	txn = samehada_instance.GetTransactionManager().Begin(nil)
 	tuple_ := ConstructTuple(schema_)
 
 	val_0 := tuple_.GetValue(schema_, 0)
@@ -311,6 +320,8 @@ func TestUndo(t *testing.T) {
 	rid, _ = test_table.InsertTuple(tuple_, txn)
 	// TODO: (SDB) insert index entry if needed
 	testingpkg.Assert(t, rid != nil, "")
+
+	test_table.MarkDelete(rid0, txn)
 
 	fmt.Println("Table page content is written to disk")
 	samehada_instance.GetBufferPoolManager().FlushPage(first_page_id)
@@ -343,6 +354,11 @@ func TestUndo(t *testing.T) {
 	testingpkg.Assert(t, old_tuple.GetValue(schema_, 0).CompareEquals(val_0), "")
 	//testingpkg.Assert(t, old_tuple.GetValue(&schema_, 1).CompareEquals(val_1), CmpBool::CmpTrue)
 	testingpkg.Assert(t, old_tuple.GetValue(schema_, 1).CompareEquals(val_1), "")
+
+	fmt.Println("Check if deleted tuple does not exist before recovery")
+	old_tuple0 := test_table.GetTuple(rid0, txn)
+	testingpkg.Assert(t, old_tuple0 == nil, "")
+
 	samehada_instance.GetTransactionManager().Commit(txn)
 
 	testingpkg.AssertFalse(t, common.EnableLogging, "common.EnableLogging is not false!")
@@ -375,7 +391,11 @@ func TestUndo(t *testing.T) {
 	// fmt.Println("before assert old_tuple is nil.")
 	// fmt.Println(old_tuple)
 	old_tuple = test_table.GetTuple(rid, txn)
-	testingpkg.AssertFalse(t, old_tuple != nil, "")
+	testingpkg.Assert(t, old_tuple == nil, "")
+
+	old_tuple0 = test_table.GetTuple(rid0, txn)
+	testingpkg.Assert(t, old_tuple0 != nil, "")
+
 	samehada_instance.GetTransactionManager().Commit(txn)
 
 	// delete txn
