@@ -40,6 +40,6 @@ original codes of go-bustub are [here](https://github.com/brunocalza/go-bustub).
 - [ ] Nested Query
 - [ ] DB Connector or Other Kind Access Interface
 - [ ] Deallocate and Reuse Page
-  - need tracking page usage by BufferPoolManager or TableHeap and need bitmap in header page corresponding to the tracking
+  - Need tracking page usage by BufferPoolManager or TableHeap and need bitmap in header page corresponding to the tracking
 ## Past work
 [FunnelKVS: Rust implementation of autonomous distributed key-value store which has REST interfaces](https://github.com/ryogrid/rust_dkvs)
