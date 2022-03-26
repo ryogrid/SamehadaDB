@@ -4,8 +4,6 @@
 package executors
 
 import (
-	"fmt"
-
 	"github.com/ryogrid/SamehadaDB/catalog"
 	"github.com/ryogrid/SamehadaDB/execution/expression"
 	"github.com/ryogrid/SamehadaDB/execution/plans"
@@ -45,7 +43,6 @@ func (e *SeqScanExecutor) Next() (*tuple.Tuple, Done, error) {
 
 	// iterates through the table heap trying to select a tuple that matches the predicate
 	for t := e.it.Current(); !e.it.End(); t = e.it.Next() {
-		fmt.Println(e.it.Current())
 		if e.selects(t, e.plan.GetPredicate()) {
 			break
 		}

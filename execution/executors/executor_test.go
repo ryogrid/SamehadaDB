@@ -650,7 +650,7 @@ func TestSimpleDelete(t *testing.T) {
 	}
 }
 
-func TestDeleteAndSelect(t *testing.T) {
+func TestDeleteWithSelctInsert(t *testing.T) {
 	diskManager := disk.NewDiskManagerTest()
 	defer diskManager.ShutDown()
 	log_mgr := recovery.NewLogManager(&diskManager)

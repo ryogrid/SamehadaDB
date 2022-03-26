@@ -138,6 +138,7 @@ func ExecuteDeleteTestCase(t *testing.T, testCase DeleteTestCase) {
 	expression := expression.NewComparison(*tmpColVal, expression.NewConstantValue(getValue(testCase.Predicate.RightColumn)), testCase.Predicate.Operator)
 	hashIndexScanPlan := plans.NewDeletePlanNode(&expression, testCase.TableMetadata.OID())
 
+	testCase.ExecutorContext.SetTransaction(txn)
 	results := testCase.ExecutionEngine.Execute(hashIndexScanPlan, testCase.ExecutorContext)
 
 	testCase.TransactionManager.Commit(txn)
