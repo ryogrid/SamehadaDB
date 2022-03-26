@@ -555,13 +555,14 @@ func TestHashTableIndex(t *testing.T) {
 			ExecuteHashIndexScanTestCase(t, test)
 		})
 	}
+
 }
 
 func TestSimpleDelete(t *testing.T) {
 	diskManager := disk.NewDiskManagerTest()
 	defer diskManager.ShutDown()
 	log_mgr := recovery.NewLogManager(&diskManager)
-	bpm := buffer.NewBufferPoolManager(uint32(32), diskManager, log_mgr) //, recovery.NewLogManager(diskManager), access.NewLockManager(access.REGULAR, access.PREVENTION))
+	bpm := buffer.NewBufferPoolManager(uint32(32), diskManager, log_mgr)
 	txn_mgr := access.NewTransactionManager(log_mgr)
 	txn := txn_mgr.Begin(nil)
 
@@ -645,6 +646,138 @@ func TestSimpleDelete(t *testing.T) {
 	for _, test := range cases {
 		t.Run(test.Description, func(t *testing.T) {
 			ExecuteDeleteTestCase(t, test)
+		})
+	}
+}
+
+func TestDeleteAndSelect(t *testing.T) {
+	diskManager := disk.NewDiskManagerTest()
+	defer diskManager.ShutDown()
+	log_mgr := recovery.NewLogManager(&diskManager)
+	bpm := buffer.NewBufferPoolManager(uint32(32), diskManager, log_mgr)
+	txn_mgr := access.NewTransactionManager(log_mgr)
+	txn := txn_mgr.Begin(nil)
+
+	c := catalog.BootstrapCatalog(bpm, log_mgr, access.NewLockManager(access.REGULAR, access.PREVENTION), txn)
+
+	columnA := column.NewColumn("a", types.Integer, false)
+	columnB := column.NewColumn("b", types.Integer, false)
+	columnC := column.NewColumn("c", types.Varchar, false)
+	schema_ := schema.NewSchema([]*column.Column{columnA, columnB, columnC})
+
+	tableMetadata := c.CreateTable("test_1", schema_, txn)
+
+	row1 := make([]types.Value, 0)
+	row1 = append(row1, types.NewInteger(20))
+	row1 = append(row1, types.NewInteger(22))
+	row1 = append(row1, types.NewVarchar("foo"))
+
+	row2 := make([]types.Value, 0)
+	row2 = append(row2, types.NewInteger(99))
+	row2 = append(row2, types.NewInteger(55))
+	row2 = append(row2, types.NewVarchar("bar"))
+
+	row3 := make([]types.Value, 0)
+	row3 = append(row3, types.NewInteger(1225))
+	row3 = append(row3, types.NewInteger(712))
+	row3 = append(row3, types.NewVarchar("baz"))
+
+	row4 := make([]types.Value, 0)
+	row4 = append(row4, types.NewInteger(1225))
+	row4 = append(row4, types.NewInteger(712))
+	row4 = append(row4, types.NewVarchar("baz"))
+
+	rows := make([][]types.Value, 0)
+	rows = append(rows, row1)
+	rows = append(rows, row2)
+	rows = append(rows, row3)
+	rows = append(rows, row4)
+
+	insertPlanNode := plans.NewInsertPlanNode(rows, tableMetadata.OID())
+
+	executionEngine := &ExecutionEngine{}
+	executorContext := NewExecutorContext(c, bpm, txn)
+	executionEngine.Execute(insertPlanNode, executorContext)
+
+	bpm.FlushAllPages()
+
+	txn_mgr.Commit(txn)
+
+	cases := []DeleteTestCase{{
+		"delete ... WHERE c = 'baz'",
+		txn_mgr,
+		executionEngine,
+		executorContext,
+		tableMetadata,
+		[]Column{{"a", types.Integer}, {"b", types.Integer}, {"c", types.Varchar}},
+		Predicate{"c", expression.Equal, "baz"},
+		[]Assertion{{"a", 1225}, {"b", 712}, {"c", "baz"}},
+		2,
+	}}
+
+	for _, test := range cases {
+		t.Run(test.Description, func(t *testing.T) {
+			ExecuteDeleteTestCase(t, test)
+		})
+	}
+
+	cases2 := []SeqScanTestCase{{
+		"select a ... WHERE c = baz",
+		executionEngine,
+		executorContext,
+		tableMetadata,
+		[]Column{{"a", types.Integer}},
+		Predicate{"c", expression.Equal, "baz"},
+		[]Assertion{{"a", 99}},
+		0,
+	}, {
+		"select b ... WHERE b = 55",
+		executionEngine,
+		executorContext,
+		tableMetadata,
+		[]Column{{"b", types.Integer}},
+		Predicate{"b", expression.Equal, 55},
+		[]Assertion{{"b", 55}},
+		1,
+	}}
+
+	for _, test := range cases2 {
+		t.Run(test.Description, func(t *testing.T) {
+			ExecuteSeqScanTestCase(t, test)
+		})
+	}
+
+	// insert new records
+	txn = txn_mgr.Begin(nil)
+	row1 = make([]types.Value, 0)
+	row1 = append(row1, types.NewInteger(666))
+	row1 = append(row1, types.NewInteger(777))
+	row1 = append(row1, types.NewVarchar("fin"))
+	rows = make([][]types.Value, 0)
+	rows = append(rows, row1)
+
+	insertPlanNode = plans.NewInsertPlanNode(rows, tableMetadata.OID())
+
+	executionEngine = &ExecutionEngine{}
+	executorContext = NewExecutorContext(c, bpm, txn)
+	executionEngine.Execute(insertPlanNode, executorContext)
+	bpm.FlushAllPages()
+	txn_mgr.Commit(txn)
+
+	cases3 := []SeqScanTestCase{{
+		"select a,c ... WHERE b = 777",
+		executionEngine,
+		executorContext,
+		tableMetadata,
+		[]Column{{"a", types.Integer}, {"c", types.Varchar}},
+		Predicate{"b", expression.Equal, 777},
+		[]Assertion{{"a", 666}, {"c", "fin"}},
+		1,
+	}}
+
+	for _, test := range cases3 {
+		t.Run(test.Description, func(t *testing.T) {
+			ExecuteSeqScanTestCase(t, test)
 		})
 	}
 }

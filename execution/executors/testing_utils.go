@@ -68,9 +68,11 @@ func ExecuteSeqScanTestCase(t *testing.T, testCase SeqScanTestCase) {
 	results := testCase.ExecutionEngine.Execute(seqPlan, testCase.ExecutorContext)
 
 	testingpkg.Equals(t, testCase.TotalHits, uint32(len(results)))
-	for _, assert := range testCase.Asserts {
-		colIndex := outSchema.GetColIndex(assert.Column)
-		testingpkg.Assert(t, getValue(assert.Exp).CompareEquals(results[0].GetValue(outSchema, colIndex)), "value should be %v but was %v", assert.Exp, results[0].GetValue(outSchema, colIndex))
+	if len(results) > 0 {
+		for _, assert := range testCase.Asserts {
+			colIndex := outSchema.GetColIndex(assert.Column)
+			testingpkg.Assert(t, getValue(assert.Exp).CompareEquals(results[0].GetValue(outSchema, colIndex)), "value should be %v but was %v", assert.Exp, results[0].GetValue(outSchema, colIndex))
+		}
 	}
 }
 
