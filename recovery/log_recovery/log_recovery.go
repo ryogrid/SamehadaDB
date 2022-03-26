@@ -3,6 +3,7 @@ package log_recovery
 import (
 	"bytes"
 	"encoding/binary"
+	"fmt"
 	"unsafe"
 
 	"github.com/ryogrid/SamehadaDB/common"
@@ -204,7 +205,7 @@ func (log_recovery *LogRecovery) Redo() {
 func (log_recovery *LogRecovery) Undo() {
 	var file_offset int
 	var log_record recovery.LogRecord
-	// fmt.Println(log_recovery.active_txn)
+	fmt.Println(log_recovery.active_txn)
 	for _, lsn := range log_recovery.active_txn {
 		//lsn = it.second
 		// fmt.Printf("lsn at Undo loop top: %d", lsn)
@@ -227,8 +228,11 @@ func (log_recovery *LogRecovery) Undo() {
 				page.InsertTuple(&log_record.Delete_tuple, nil, nil, nil)
 				log_recovery.buffer_pool_manager.UnpinPage(log_record.Delete_rid.GetPageId(), true)
 			} else if log_record.Log_record_type == recovery.MARKDELETE {
+				fmt.Println("MARKDELETE log found at undo phase.")
 				page :=
 					access.CastPageAsTablePage(log_recovery.buffer_pool_manager.FetchPage(log_record.Delete_rid.GetPageId()))
+				fmt.Println(log_record.Delete_rid)
+				fmt.Println(page)
 				page.RollbackDelete(&log_record.Delete_rid, nil, nil)
 				log_recovery.buffer_pool_manager.UnpinPage(log_record.Delete_rid.GetPageId(), true)
 			} else if log_record.Log_record_type == recovery.ROLLBACKDELETE {
