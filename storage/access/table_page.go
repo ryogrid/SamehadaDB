@@ -7,7 +7,6 @@ package access
 import (
 	"bytes"
 	"encoding/binary"
-	"fmt"
 	"unsafe"
 
 	"github.com/ryogrid/SamehadaDB/common"
@@ -19,7 +18,6 @@ import (
 )
 
 //static constexpr uint64_t DELETE_MASK = (1U << (8 * sizeof(uint32_t) - 1));
-//const deleteMask = uint64((1<<(8*4) - 1))
 const deleteMask = uint32(1 << ((8 * 4) - 1))
 
 const sizeTablePageHeader = uint32(24)
@@ -129,7 +127,6 @@ func (tp *TablePage) MarkDelete(rid *page.RID, txn *Transaction, lock_manager *L
 	}
 
 	tuple_size := tp.GetTupleSize(slot_num)
-	fmt.Printf("tuple size at MarkDelete: %d\n", tuple_size)
 	// If the tuple is already deleted, abort the transaction.
 	if IsDeleted(tuple_size) {
 		if common.EnableLogging {
@@ -156,8 +153,6 @@ func (tp *TablePage) MarkDelete(rid *page.RID, txn *Transaction, lock_manager *L
 
 	// Mark the tuple as deleted.
 	if tuple_size > 0 {
-		tmp_tuple_size := SetDeletedFlag(tuple_size)
-		fmt.Printf("MarkDelete before recovery. SetDeletedFlaged tuple size is %d\n", tmp_tuple_size)
 		tp.SetTupleSize(slot_num, SetDeletedFlag(tuple_size))
 	}
 	return true
@@ -225,19 +220,11 @@ func (tp *TablePage) RollbackDelete(rid *page.RID, txn *Transaction, log_manager
 	}
 
 	slot_num := rid.GetSlotNum()
-	fmt.Println(slot_num)
 	//BUSTUB_ASSERT(slot_num < GetTupleCount(), "We can't have more slots than tuples.");
 	tuple_size := tp.GetTupleSize(slot_num)
-	fmt.Println(tuple_size)
 
 	// Unset the deleted flag.
 	if IsDeleted(tuple_size) {
-		fmt.Println("IsDeleted is true")
-		tmpUnsetSize := UnsetDeletedFlag(tuple_size)
-		fmt.Println(tmpUnsetSize)
-		if !IsDeleted(tmpUnsetSize) {
-			fmt.Println("deleted flag is removed collectly")
-		}
 		tp.SetTupleSize(slot_num, UnsetDeletedFlag(tuple_size))
 	}
 }

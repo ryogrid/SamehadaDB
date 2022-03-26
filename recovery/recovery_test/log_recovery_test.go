@@ -302,11 +302,8 @@ func TestUndo(t *testing.T) {
 	schema_ := schema.NewSchema(cols)
 	tuple0_ := ConstructTuple(schema_)
 	var rid0 *page.RID
-	var rid1 *page.RID
 	rid0, _ = test_table.InsertTuple(tuple0_, txn)
 	testingpkg.Assert(t, rid0 != nil, "")
-	rid1, _ = test_table.InsertTuple(tuple0_, txn)
-	testingpkg.Assert(t, rid1 != nil, "")
 
 	fmt.Println("first tuple insertion is commited")
 	samehada_instance.GetTransactionManager().Commit(txn)
@@ -325,7 +322,6 @@ func TestUndo(t *testing.T) {
 	testingpkg.Assert(t, rid != nil, "")
 
 	test_table.MarkDelete(rid0, txn)
-	test_table.MarkDelete(rid1, txn)
 
 	fmt.Println("Table page content is written to disk")
 	samehada_instance.GetBufferPoolManager().FlushPage(first_page_id)
