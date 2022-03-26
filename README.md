@@ -15,7 +15,7 @@ original codes of go-bustub are [here](https://github.com/brunocalza/go-bustub).
 - [ ] Predicates: <, >, <=, >=
 - [ ] Null
 - [ ] Other inline types (boolean, bigint, smallint, decimal, timestamp)
-- [ ] Deletion
+- [x] Deletion
 - [ ] Update
 - [x] LIMIT / OFFSET
 - [x] Varchar
