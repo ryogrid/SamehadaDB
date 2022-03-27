@@ -44,6 +44,7 @@ func (e *InsertExecutor) Next() (*tuple.Tuple, Done, error) {
 			return nil, true, err
 		}
 
+		// InsertEntry is called once at most because a table can have one index only
 		colNum := e.tableMetadata.GetColumnNum()
 		for ii := 0; ii < int(colNum); ii++ {
 			ret := e.tableMetadata.GetIndex(ii)

@@ -32,7 +32,7 @@ func NewTableMetadata(schema *schema.Schema, name string, table *access.TableHea
 		if column_.HasIndex() {
 			im := index.NewIndexMetadata(column_.GetColumnName()+"_index", name, schema, []uint32{uint32(idx)})
 			// TODO: (SDB) index bucket size is 50 (auto size extending is needed...)
-			indexes = append(indexes, index.NewLinearProbeHashTableIndex(im, table.GetBufferPoolManager(), common.BucketSize))
+			indexes = append(indexes, index.NewLinearProbeHashTableIndex(im, table.GetBufferPoolManager(), uint32(idx), common.BucketSize))
 		} else {
 			indexes = append(indexes, nil)
 		}

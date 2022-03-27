@@ -13,21 +13,22 @@ import (
 	"github.com/ryogrid/SamehadaDB/types"
 )
 
-//#define HASH_TABLE_INDEX_TYPE LinearProbeHashTableIndex<KeyType, ValueType, KeyComparator>
-
 type LinearProbeHashTableIndex struct {
 	// comparator for key
 	//KeyComparator comparator_;
 	// container
 	container hash.LinearProbeHashTable
 	metadata  *IndexMetadata
+	// idx of target column on table
+	col_idx uint32
 }
 
-func NewLinearProbeHashTableIndex(metadata *IndexMetadata, buffer_pool_manager *buffer.BufferPoolManager,
+func NewLinearProbeHashTableIndex(metadata *IndexMetadata, buffer_pool_manager *buffer.BufferPoolManager, col_idx uint32,
 	num_buckets int) *LinearProbeHashTableIndex {
 	ret := new(LinearProbeHashTableIndex)
 	ret.metadata = metadata
 	ret.container = *hash.NewLinearProbeHashTable(buffer_pool_manager, num_buckets)
+	ret.col_idx = col_idx
 	return ret
 }
 
@@ -44,42 +45,25 @@ func (htidx *LinearProbeHashTableIndex) GetTupleSchema() *schema.Schema {
 func (htidx *LinearProbeHashTableIndex) GetKeyAttrs() []uint32 { return htidx.metadata.GetKeyAttrs() }
 
 func (htidx *LinearProbeHashTableIndex) InsertEntry(key *tuple.Tuple, rid page.RID, transaction *access.Transaction) {
-	// // construct insert index key
-	// KeyType index_key;
-	// index_key.SetFromKey(key);
-
-	// TODO: (SDB) current implementation supports one column index only
-	keyColIdx := htidx.GetKeyAttrs()[0]
 	tupleSchema_ := htidx.GetTupleSchema()
-	keyDataInBytes := key.GetValueInBytes(tupleSchema_, keyColIdx)
+	keyDataInBytes := key.GetValueInBytes(tupleSchema_, htidx.col_idx)
 
 	htidx.container.Insert(keyDataInBytes, PackRIDtoUint32(&rid))
 }
 
 // TODO: (SDB) not tested yet (DeleteEntry at LinearProbeHashTableIndex)
-// TODO: (SDB) need check DeleteEntry of LinearProbeHashTableIndex deletes appropriately key duplicated case
+// TODO: (SDB) need test DeleteEntry of LinearProbeHashTableIndex deletes appropriately key duplicated case
 //             (all entry correspoind to a key must not be deleted)
 func (htidx *LinearProbeHashTableIndex) DeleteEntry(key *tuple.Tuple, rid page.RID, transaction *access.Transaction) {
-	// // construct delete index key
-	// KeyType index_key;
-	// index_key.SetFromKey(key);
-	// TODO: (SDB) current implementation supports one column index only
-
-	keyColIdx := htidx.GetKeyAttrs()[0]
 	tupleSchema_ := htidx.GetTupleSchema()
-	keyDataInBytes := key.GetValueInBytes(tupleSchema_, keyColIdx)
+	keyDataInBytes := key.GetValueInBytes(tupleSchema_, htidx.col_idx)
 
 	htidx.container.Remove(keyDataInBytes, PackRIDtoUint32(&rid))
 }
 
 func (htidx *LinearProbeHashTableIndex) ScanKey(key *tuple.Tuple, transaction *access.Transaction) []page.RID {
-	// // construct scan index key
-	// KeyType index_key;
-	// index_key.SetFromKey(key);
-
-	keyColIdx := htidx.GetKeyAttrs()[0]
 	tupleSchema_ := htidx.GetTupleSchema()
-	keyDataInBytes := key.GetValueInBytes(tupleSchema_, keyColIdx)
+	keyDataInBytes := key.GetValueInBytes(tupleSchema_, htidx.col_idx)
 
 	packed_values := htidx.container.GetValue(keyDataInBytes)
 	var ret_arr []page.RID

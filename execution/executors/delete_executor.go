@@ -44,6 +44,19 @@ func (e *DeleteExecutor) Next() (*tuple.Tuple, Done, error) {
 			}
 			rid := e.it.Current().GetRID()
 			e.tableMetadata.Table().MarkDelete(rid, e.txn)
+
+			// DeleteEntry is called once at most because a table can have one index only
+			colNum := e.tableMetadata.GetColumnNum()
+			for ii := 0; ii < int(colNum); ii++ {
+				ret := e.tableMetadata.GetIndex(ii)
+				if ret == nil {
+					continue
+				} else {
+					index_ := *ret
+					index_.DeleteEntry(e.it.Current(), *rid, e.txn)
+				}
+			}
+
 			return e.it.Current(), false, nil
 		}
 	}
