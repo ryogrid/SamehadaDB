@@ -52,7 +52,7 @@ type TablePage struct {
 
 // TODO: (SDB) not ported methods exist at TablePage.
 //             And additional loggings are needed when implement the methods
-//             ex: MarkDelete, UpdateTuple methods.
+//             ex: UpdateTuple methods.
 //                 adding codes to related methods on other classes is also neede.
 //                 ex: logging/recovery, executer(maybe)
 
@@ -114,6 +114,78 @@ func (tp *TablePage) InsertTuple(tuple *tuple.Tuple, log_manager *recovery.LogMa
 		txn.SetPrevLSN(lsn)
 	}
 	return rid, nil
+}
+
+func (tp *TablePage) UpdateTuple(new_tuple *tuple.Tuple, old_tuple *tuple.Tuple, rid *page.RID, txn *Transaction,
+	lock_manager *LockManager, log_manager *recovery.LogManager) bool {
+	//BUSTUB_ASSERT(new_tuple.size_ > 0, "Cannot have empty tuples.");
+	slot_num := rid.GetSlotNum()
+	// If the slot number is invalid, abort the transaction.
+	if slot_num >= tp.GetTupleCount() {
+		if common.EnableLogging {
+			txn.SetState(ABORTED)
+		}
+		return false
+	}
+	tuple_size := tp.GetTupleSize(slot_num)
+	// If the tuple is deleted, abort the transaction.
+	if IsDeleted(tuple_size) {
+		if common.EnableLogging {
+			txn.SetState(ABORTED)
+		}
+		return false
+	}
+	// If there is not enuogh space to update, we need to update via delete followed by an insert (not enough space).
+	if tp.getFreeSpaceRemaining()+tuple_size < new_tuple.Size() {
+		return false
+	}
+
+	// Copy out the old value.
+	tuple_offset := tp.GetTupleOffsetAtSlot(slot_num)
+	old_tuple.SetSize(tuple_size)
+	// if (old_tuple.allocated_) {
+	// 	delete[] old_tuple->data_;
+	// }
+	// old_tuple->data_ = new char[old_tuple->size_];
+	old_tuple.SetData(tp.GetData()[tuple_offset : tuple_offset+old_tuple.Size()])
+	old_tuple.SetRID(rid)
+	//old_tuple->allocated_ = true;
+
+	if common.EnableLogging {
+		// Acquire an exclusive lock, upgrading from shared if necessary.
+		if txn.IsSharedLocked(rid) {
+			if !lock_manager.LockUpgrade(txn, rid) {
+				return false
+			}
+		} else if !txn.IsExclusiveLocked(rid) && !lock_manager.LockExclusive(txn, rid) {
+			return false
+		}
+		log_record := recovery.NewLogRecordUpdate(txn.GetTransactionId(), txn.GetPrevLSN(), recovery.UPDATE, *rid, *old_tuple, *new_tuple)
+		lsn := log_manager.AppendLogRecord(log_record)
+		tp.SetLSN(lsn)
+		txn.SetPrevLSN(lsn)
+	}
+
+	// Perform the update.
+	free_space_pointer := tp.GetFreeSpacePointer()
+	//BUSTUB_ASSERT(tuple_offset >= free_space_pointer, "Offset should appear after current free space position.");
+
+	//memmove(GetData() + free_space_pointer + tuple_size - new_tuple.size_, GetData() + free_space_pointer, tuple_offset - free_space_pointer);
+	copy(tp.GetData()[free_space_pointer+tuple_size-new_tuple.Size():], tp.GetData()[free_space_pointer:free_space_pointer+tuple_offset])
+	tp.SetFreeSpacePointer(free_space_pointer + tuple_size - new_tuple.Size())
+	//memcpy(tp.GetData() + tuple_offset + tuple_size - new_tuple.Size(), new_tuple.data_, new_tuple.Size());
+	copy(tp.GetData()[tuple_offset+tuple_size-new_tuple.Size():], new_tuple.Data()[:new_tuple.Size()])
+	tp.SetTupleSize(slot_num, new_tuple.Size())
+
+	// Update all tuple offsets.
+	tuple_cnt := int(tp.GetTupleCount())
+	for ii := 0; ii < tuple_cnt; ii++ {
+		tuple_offset_i := tp.GetTupleOffsetAtSlot(uint32(ii))
+		if tp.GetTupleSize(uint32(ii)) > 0 && tuple_offset_i < tuple_offset+tuple_size {
+			tp.SetTupleOffsetAtSlot(uint32(ii), tuple_offset_i+tuple_size-new_tuple.Size())
+		}
+	}
+	return true
 }
 
 func (tp *TablePage) MarkDelete(rid *page.RID, txn *Transaction, lock_manager *LockManager, log_manager *recovery.LogManager) bool {

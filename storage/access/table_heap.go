@@ -77,26 +77,6 @@ func (t *TableHeap) InsertTuple(tuple_ *tuple.Tuple, txn *Transaction) (rid *pag
 	return rid, nil
 }
 
-func (t *TableHeap) MarkDelete(rid *page.RID, txn *Transaction) bool {
-	// TODO(Amadou): remove empty page
-	// Find the page which contains the tuple.
-	page_ := CastPageAsTablePage(t.bpm.FetchPage(rid.GetPageId()))
-	// If the page could not be found, then abort the transaction.
-	if page_ == nil {
-		txn.SetState(ABORTED)
-		return false
-	}
-	// Otherwise, mark the tuple as deleted.
-	page_.WLatch()
-	page_.MarkDelete(rid, txn, t.lock_manager, t.log_manager)
-	page_.WUnlatch()
-	t.bpm.UnpinPage(page_.GetTablePageId(), true)
-	// Update the transaction's write set.
-	txn.AddIntoWriteSet(NewWriteRecord(*rid, DELETE, new(tuple.Tuple), t))
-
-	return true
-}
-
 // TODO: (SDB) not ported yet (UpdateTuple)
 /*
   bool TableHeap::UpdateTuple(const Tuple &tuple, const RID &rid, Transaction *txn) {
@@ -120,6 +100,26 @@ func (t *TableHeap) MarkDelete(rid *page.RID, txn *Transaction) bool {
 	return is_updated;
   }
 */
+
+func (t *TableHeap) MarkDelete(rid *page.RID, txn *Transaction) bool {
+	// TODO(Amadou): remove empty page
+	// Find the page which contains the tuple.
+	page_ := CastPageAsTablePage(t.bpm.FetchPage(rid.GetPageId()))
+	// If the page could not be found, then abort the transaction.
+	if page_ == nil {
+		txn.SetState(ABORTED)
+		return false
+	}
+	// Otherwise, mark the tuple as deleted.
+	page_.WLatch()
+	page_.MarkDelete(rid, txn, t.lock_manager, t.log_manager)
+	page_.WUnlatch()
+	t.bpm.UnpinPage(page_.GetTablePageId(), true)
+	// Update the transaction's write set.
+	txn.AddIntoWriteSet(NewWriteRecord(*rid, DELETE, new(tuple.Tuple), t))
+
+	return true
+}
 
 func (t *TableHeap) ApplyDelete(rid *page.RID, txn *Transaction) {
 	// Find the page which contains the tuple.
