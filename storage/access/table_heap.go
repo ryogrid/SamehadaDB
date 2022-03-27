@@ -77,29 +77,27 @@ func (t *TableHeap) InsertTuple(tuple_ *tuple.Tuple, txn *Transaction) (rid *pag
 	return rid, nil
 }
 
-// TODO: (SDB) not ported yet (UpdateTuple)
-/*
-  bool TableHeap::UpdateTuple(const Tuple &tuple, const RID &rid, Transaction *txn) {
+func (t *TableHeap) UpdateTuple(tuple_ *tuple.Tuple, rid page.RID, txn *Transaction) bool {
 	// Find the page which contains the tuple.
-	auto page = reinterpret_cast<TablePage *>(buffer_pool_manager_->FetchPage(rid.GetPageId()));
+	page_ := CastPageAsTablePage(t.bpm.FetchPage(rid.GetPageId()))
 	// If the page could not be found, then abort the transaction.
-	if (page == nullptr) {
-	  txn->SetState(TransactionState::ABORTED);
-	  return false;
+	if page_ == nil {
+		txn.SetState(ABORTED)
+		return false
 	}
 	// Update the tuple; but first save the old value for rollbacks.
-	Tuple old_tuple;
-	page->WLatch();
-	bool is_updated = page->UpdateTuple(tuple, &old_tuple, rid, txn, lock_manager_, log_manager_);
-	page->WUnlatch();
-	buffer_pool_manager_->UnpinPage(page->GetTablePageId(), is_updated);
+	old_tuple := new(tuple.Tuple)
+	old_tuple.SetRID(new(page.RID))
+	page_.WLatch()
+	is_updated := page_.UpdateTuple(tuple_, old_tuple, &rid, txn, t.lock_manager, t.log_manager)
+	page_.WUnlatch()
+	t.bpm.UnpinPage(page_.GetTablePageId(), is_updated)
 	// Update the transaction's write set.
-	if (is_updated && txn->GetState() != TransactionState::ABORTED) {
-	  txn->GetWriteSet()->emplace_back(rid, WType::UPDATE, old_tuple, this);
+	if is_updated && txn.GetState() != ABORTED {
+		txn.AddIntoWriteSet(NewWriteRecord(rid, UPDATE, old_tuple, t))
 	}
-	return is_updated;
-  }
-*/
+	return is_updated
+}
 
 func (t *TableHeap) MarkDelete(rid *page.RID, txn *Transaction) bool {
 	// TODO(Amadou): remove empty page
