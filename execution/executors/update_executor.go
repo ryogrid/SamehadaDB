@@ -2,6 +2,7 @@ package executors
 
 import (
 	"errors"
+	"fmt"
 
 	"github.com/ryogrid/SamehadaDB/catalog"
 	"github.com/ryogrid/SamehadaDB/execution/expression"
@@ -62,7 +63,7 @@ func (e *UpdateExecutor) Next() (*tuple.Tuple, Done, error) {
 			is_updated := e.tableMetadata.Table().UpdateTuple(new_tuple, *rid, e.txn)
 			var err error = nil
 			if !is_updated {
-				err = errors.New("tuple update failed. PageId:SlotNum = " + string(rid.GetPageId()) + ":" + string(rid.GetSlotNum()))
+				err = errors.New("tuple update failed. PageId:SlotNum = " + string(rid.GetPageId()) + ":" + fmt.Sprint(rid.GetSlotNum()))
 			}
 
 			return new_tuple, false, err
