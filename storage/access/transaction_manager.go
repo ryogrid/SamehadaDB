@@ -1,5 +1,3 @@
-//package concurrency
-//package transaction
 package access
 
 import (
