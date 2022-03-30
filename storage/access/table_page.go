@@ -116,6 +116,7 @@ func (tp *TablePage) InsertTuple(tuple *tuple.Tuple, log_manager *recovery.LogMa
 	return rid, nil
 }
 
+// TODO: (SDB) need to update selected column only (UpdateTuple of TablePage)
 func (tp *TablePage) UpdateTuple(new_tuple *tuple.Tuple, old_tuple *tuple.Tuple, rid *page.RID, txn *Transaction,
 	lock_manager *LockManager, log_manager *recovery.LogManager) bool {
 	//BUSTUB_ASSERT(new_tuple.size_ > 0, "Cannot have empty tuples.");

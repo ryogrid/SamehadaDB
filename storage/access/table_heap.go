@@ -77,6 +77,7 @@ func (t *TableHeap) InsertTuple(tuple_ *tuple.Tuple, txn *Transaction) (rid *pag
 	return rid, nil
 }
 
+// TODO: (SDB) need to update selected column only (UpdateTuple of TableHeap)
 func (t *TableHeap) UpdateTuple(tuple_ *tuple.Tuple, rid page.RID, txn *Transaction) bool {
 	// Find the page which contains the tuple.
 	page_ := CastPageAsTablePage(t.bpm.FetchPage(rid.GetPageId()))
@@ -131,7 +132,6 @@ func (t *TableHeap) ApplyDelete(rid *page.RID, txn *Transaction) {
 	t.bpm.UnpinPage(page_.GetTablePageId(), true)
 }
 
-// TODO: (SDB) not ported yet (RollbackDelete)
 func (t *TableHeap) RollbackDelete(rid *page.RID, txn *Transaction) {
 	// Find the page which contains the tuple.
 	page_ := CastPageAsTablePage(t.bpm.FetchPage(rid.GetPageId()))
