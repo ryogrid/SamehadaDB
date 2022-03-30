@@ -1,6 +1,8 @@
 package executors
 
 import (
+	"errors"
+
 	"github.com/ryogrid/SamehadaDB/catalog"
 	"github.com/ryogrid/SamehadaDB/execution/expression"
 	"github.com/ryogrid/SamehadaDB/execution/plans"
@@ -13,13 +15,13 @@ import (
  */
 type UpdateExecutor struct {
 	context       *ExecutorContext
-	plan          *plans.DeletePlanNode
+	plan          *plans.UpdatePlanNode
 	tableMetadata *catalog.TableMetadata
 	it            *access.TableHeapIterator
 	txn           *access.Transaction
 }
 
-func NewUpdateExecutor(context *ExecutorContext, plan *plans.DeletePlanNode) Executor {
+func NewUpdateExecutor(context *ExecutorContext, plan *plans.UpdatePlanNode) Executor {
 	tableMetadata := context.GetCatalog().GetTableByOID(plan.GetTableOID())
 
 	return &UpdateExecutor{context, plan, tableMetadata, nil, context.GetTransaction()}
@@ -27,6 +29,7 @@ func NewUpdateExecutor(context *ExecutorContext, plan *plans.DeletePlanNode) Exe
 
 func (e *UpdateExecutor) Init() {
 	e.it = e.tableMetadata.Table().Iterator(e.txn)
+
 }
 
 // Next implements the next method for the sequential scan operator
@@ -42,9 +45,8 @@ func (e *UpdateExecutor) Next() (*tuple.Tuple, Done, error) {
 				defer e.it.Next()
 			}
 			rid := e.it.Current().GetRID()
-			e.tableMetadata.Table().MarkDelete(rid, e.txn)
+			new_tuple := tuple.NewTupleFromSchema(e.plan.GetRawValues(), e.tableMetadata.Schema())
 
-			// DeleteEntry is called once at most because a table can have one index only
 			colNum := e.tableMetadata.GetColumnNum()
 			for ii := 0; ii < int(colNum); ii++ {
 				ret := e.tableMetadata.GetIndex(ii)
@@ -53,10 +55,17 @@ func (e *UpdateExecutor) Next() (*tuple.Tuple, Done, error) {
 				} else {
 					index_ := *ret
 					index_.DeleteEntry(e.it.Current(), *rid, e.txn)
+					index_.InsertEntry(new_tuple, *rid, e.txn)
 				}
 			}
 
-			return e.it.Current(), false, nil
+			is_updated := e.tableMetadata.Table().UpdateTuple(new_tuple, *rid, e.txn)
+			var err error = nil
+			if !is_updated {
+				err = errors.New("tuple update failed. PageId:SlotNum = " + string(rid.GetPageId()) + ":" + string(rid.GetSlotNum()))
+			}
+
+			return new_tuple, false, err
 		}
 	}
 

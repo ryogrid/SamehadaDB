@@ -10,12 +10,12 @@ import (
  */
 type UpdatePlanNode struct {
 	*AbstractPlanNode
-	rawValues [][]types.Value
+	rawValues []types.Value
 	predicate *expression.Expression
 	tableOID  uint32
 }
 
-func NewUpdatePlanNode(rawValues [][]types.Value, predicate *expression.Expression, oid uint32) Plan {
+func NewUpdatePlanNode(rawValues []types.Value, predicate *expression.Expression, oid uint32) Plan {
 	return &UpdatePlanNode{&AbstractPlanNode{nil, nil}, rawValues, predicate, oid}
 }
 
@@ -32,6 +32,6 @@ func (p *UpdatePlanNode) GetType() PlanType {
 }
 
 // GetRawValues returns the raw values to be overwrite data
-func (p *UpdatePlanNode) GetRawValues() [][]types.Value {
+func (p *UpdatePlanNode) GetRawValues() []types.Value {
 	return p.rawValues
 }
