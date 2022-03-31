@@ -172,7 +172,7 @@ func (tp *TablePage) UpdateTuple(new_tuple *tuple.Tuple, old_tuple *tuple.Tuple,
 	//BUSTUB_ASSERT(tuple_offset >= free_space_pointer, "Offset should appear after current free space position.");
 
 	//memmove(GetData() + free_space_pointer + tuple_size - new_tuple.size_, GetData() + free_space_pointer, tuple_offset - free_space_pointer);
-	copy(tp.GetData()[free_space_pointer+tuple_size-new_tuple.Size():], tp.GetData()[free_space_pointer:free_space_pointer+tuple_offset])
+	copy(tp.GetData()[free_space_pointer+tuple_size-new_tuple.Size():], tp.GetData()[free_space_pointer:tuple_offset])
 	tp.SetFreeSpacePointer(free_space_pointer + tuple_size - new_tuple.Size())
 	//memcpy(tp.GetData() + tuple_offset + tuple_size - new_tuple.Size(), new_tuple.data_, new_tuple.Size());
 	copy(tp.GetData()[tuple_offset+tuple_size-new_tuple.Size():], new_tuple.Data()[:new_tuple.Size()])
