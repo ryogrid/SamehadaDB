@@ -148,7 +148,9 @@ func (tp *TablePage) UpdateTuple(new_tuple *tuple.Tuple, old_tuple *tuple.Tuple,
 	// 	delete[] old_tuple->data_;
 	// }
 	// old_tuple->data_ = new char[old_tuple->size_];
-	old_tuple.SetData(tp.GetData()[tuple_offset : tuple_offset+old_tuple.Size()])
+	old_tuple_data := make([]byte, old_tuple.Size())
+	copy(old_tuple_data, tp.GetData()[tuple_offset:tuple_offset+old_tuple.Size()])
+	old_tuple.SetData(old_tuple_data)
 	old_tuple.SetRID(rid)
 	//old_tuple->allocated_ = true;
 

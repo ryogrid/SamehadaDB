@@ -9,6 +9,7 @@ import (
 	"testing"
 
 	"github.com/ryogrid/SamehadaDB/catalog"
+	"github.com/ryogrid/SamehadaDB/common"
 	"github.com/ryogrid/SamehadaDB/execution/expression"
 	"github.com/ryogrid/SamehadaDB/execution/plans"
 	"github.com/ryogrid/SamehadaDB/recovery"
@@ -1015,32 +1016,34 @@ func TestAbortWIthDeleteUpdate(t *testing.T) {
 	txn = txn_mgr.Begin(nil)
 	executorContext.SetTransaction(txn)
 
-	// // update
-	// row1 = make([]types.Value, 0)
-	// row1 = append(row1, types.NewInteger(99))
-	// row1 = append(row1, types.NewVarchar("updated"))
+	// update
+	row1 = make([]types.Value, 0)
+	row1 = append(row1, types.NewInteger(99))
+	row1 = append(row1, types.NewVarchar("updated"))
 
-	// pred := Predicate{"b", expression.Equal, "foo"}
-	// tmpColVal := new(expression.ColumnValue)
-	// tmpColVal.SetTupleIndex(0)
-	// tmpColVal.SetColIndex(tableMetadata.Schema().GetColIndex(pred.LeftColumn))
-	// expression_ := expression.NewComparison(*tmpColVal, expression.NewConstantValue(getValue(pred.RightColumn)), pred.Operator)
-
-	// updatePlanNode := plans.NewUpdatePlanNode(row1, &expression_, tableMetadata.OID())
-	// updated_tuple := executionEngine.Execute(updatePlanNode, executorContext)
-	// fmt.Println(*updated_tuple[0])
-
-	//txn_mgr.Commit(txn)
-
-	// delete
-	pred := Predicate{"a", expression.Equal, 20}
+	pred := Predicate{"b", expression.Equal, "foo"}
 	tmpColVal := new(expression.ColumnValue)
 	tmpColVal.SetTupleIndex(0)
 	tmpColVal.SetColIndex(tableMetadata.Schema().GetColIndex(pred.LeftColumn))
 	expression_ := expression.NewComparison(*tmpColVal, expression.NewConstantValue(getValue(pred.RightColumn)), pred.Operator)
 
-	deletePlanNode := plans.NewDeletePlanNode(&expression_, tableMetadata.OID())
-	executionEngine.Execute(deletePlanNode, executorContext)
+	updatePlanNode := plans.NewUpdatePlanNode(row1, &expression_, tableMetadata.OID())
+	updated_tuple := executionEngine.Execute(updatePlanNode, executorContext)
+	fmt.Println(*updated_tuple[0])
+
+	//txn_mgr.Commit(txn)
+
+	// // delete
+	// pred := Predicate{"a", expression.Equal, 20}
+	// tmpColVal := new(expression.ColumnValue)
+	// tmpColVal.SetTupleIndex(0)
+	// tmpColVal.SetColIndex(tableMetadata.Schema().GetColIndex(pred.LeftColumn))
+	// expression_ := expression.NewComparison(*tmpColVal, expression.NewConstantValue(getValue(pred.RightColumn)), pred.Operator)
+
+	// deletePlanNode := plans.NewDeletePlanNode(&expression_, tableMetadata.OID())
+	// executionEngine.Execute(deletePlanNode, executorContext)
+
+	common.EnableLogging = false
 
 	fmt.Println("select and check value before Abort...")
 
@@ -1054,12 +1057,12 @@ func TestAbortWIthDeleteUpdate(t *testing.T) {
 	tmpColVal.SetColIndex(tableMetadata.Schema().GetColIndex(pred.LeftColumn))
 	expression_ = expression.NewComparison(*tmpColVal, expression.NewConstantValue(getValue(pred.RightColumn)), pred.Operator)
 
-	//seqPlan := plans.NewSeqScanPlanNode(outSchema, &expression_, tableMetadata.OID())
-	seqPlan := plans.NewSeqScanPlanNode(outSchema, nil, tableMetadata.OID())
+	seqPlan := plans.NewSeqScanPlanNode(outSchema, &expression_, tableMetadata.OID())
+	//seqPlan := plans.NewSeqScanPlanNode(outSchema, nil, tableMetadata.OID())
 	results := executionEngine.Execute(seqPlan, executorContext)
 
 	fmt.Println(results)
-
+	fmt.Println(results[0].GetValue(outSchema, 0).ToVarchar())
 	testingpkg.Assert(t, types.NewVarchar("updated").CompareEquals(results[0].GetValue(outSchema, 0)), "value should be 'updated'")
 
 	// // check deleted row
