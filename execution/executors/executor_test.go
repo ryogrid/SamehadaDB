@@ -1000,9 +1000,14 @@ func TestAbortWIthDeleteUpdate(t *testing.T) {
 	row2 = append(row2, types.NewInteger(99))
 	row2 = append(row2, types.NewVarchar("foo"))
 
+	row3 := make([]types.Value, 0)
+	row3 = append(row3, types.NewInteger(777))
+	row3 = append(row3, types.NewVarchar("bar"))
+
 	rows := make([][]types.Value, 0)
 	rows = append(rows, row1)
 	rows = append(rows, row2)
+	rows = append(rows, row3)
 
 	insertPlanNode := plans.NewInsertPlanNode(rows, tableMetadata.OID())
 
@@ -1033,15 +1038,15 @@ func TestAbortWIthDeleteUpdate(t *testing.T) {
 
 	//txn_mgr.Commit(txn)
 
-	// // delete
-	// pred := Predicate{"a", expression.Equal, 20}
-	// tmpColVal := new(expression.ColumnValue)
-	// tmpColVal.SetTupleIndex(0)
-	// tmpColVal.SetColIndex(tableMetadata.Schema().GetColIndex(pred.LeftColumn))
-	// expression_ := expression.NewComparison(*tmpColVal, expression.NewConstantValue(getValue(pred.RightColumn)), pred.Operator)
+	// delete
+	pred = Predicate{"b", expression.Equal, "bar"}
+	tmpColVal = new(expression.ColumnValue)
+	tmpColVal.SetTupleIndex(0)
+	tmpColVal.SetColIndex(tableMetadata.Schema().GetColIndex(pred.LeftColumn))
+	expression_ = expression.NewComparison(*tmpColVal, expression.NewConstantValue(getValue(pred.RightColumn)), pred.Operator)
 
-	// deletePlanNode := plans.NewDeletePlanNode(&expression_, tableMetadata.OID())
-	// executionEngine.Execute(deletePlanNode, executorContext)
+	deletePlanNode := plans.NewDeletePlanNode(&expression_, tableMetadata.OID())
+	executionEngine.Execute(deletePlanNode, executorContext)
 
 	common.EnableLogging = false
 
@@ -1065,20 +1070,20 @@ func TestAbortWIthDeleteUpdate(t *testing.T) {
 	fmt.Println(results[0].GetValue(outSchema, 0).ToVarchar())
 	testingpkg.Assert(t, types.NewVarchar("updated").CompareEquals(results[0].GetValue(outSchema, 0)), "value should be 'updated'")
 
-	// // check deleted row
-	// outColumnB = column.NewColumn("b", types.Integer, false)
-	// outSchema = schema.NewSchema([]*column.Column{outColumnB})
+	// check deleted row
+	outColumnB = column.NewColumn("b", types.Integer, false)
+	outSchema = schema.NewSchema([]*column.Column{outColumnB})
 
-	// pred = Predicate{"a", expression.Equal, 20}
-	// tmpColVal = new(expression.ColumnValue)
-	// tmpColVal.SetTupleIndex(0)
-	// tmpColVal.SetColIndex(tableMetadata.Schema().GetColIndex(pred.LeftColumn))
-	// expression_ = expression.NewComparison(*tmpColVal, expression.NewConstantValue(getValue(pred.RightColumn)), pred.Operator)
+	pred = Predicate{"b", expression.Equal, "bar"}
+	tmpColVal = new(expression.ColumnValue)
+	tmpColVal.SetTupleIndex(0)
+	tmpColVal.SetColIndex(tableMetadata.Schema().GetColIndex(pred.LeftColumn))
+	expression_ = expression.NewComparison(*tmpColVal, expression.NewConstantValue(getValue(pred.RightColumn)), pred.Operator)
 
-	// seqPlan = plans.NewSeqScanPlanNode(outSchema, &expression_, tableMetadata.OID())
-	// results = executionEngine.Execute(seqPlan, executorContext)
+	seqPlan = plans.NewSeqScanPlanNode(outSchema, &expression_, tableMetadata.OID())
+	results = executionEngine.Execute(seqPlan, executorContext)
 
-	// testingpkg.Assert(t, len(results) == 0, "")
+	testingpkg.Assert(t, len(results) == 0, "")
 
 	txn_mgr.Abort(txn)
 
@@ -1106,7 +1111,7 @@ func TestAbortWIthDeleteUpdate(t *testing.T) {
 	outColumnB = column.NewColumn("b", types.Integer, false)
 	outSchema = schema.NewSchema([]*column.Column{outColumnB})
 
-	pred = Predicate{"a", expression.Equal, 20}
+	pred = Predicate{"b", expression.Equal, "bar"}
 	tmpColVal = new(expression.ColumnValue)
 	tmpColVal.SetTupleIndex(0)
 	tmpColVal.SetColIndex(tableMetadata.Schema().GetColIndex(pred.LeftColumn))
