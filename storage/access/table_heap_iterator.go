@@ -4,8 +4,6 @@
 package access
 
 import (
-	"fmt"
-
 	"github.com/ryogrid/SamehadaDB/storage/tuple"
 )
 
@@ -43,11 +41,6 @@ func (it *TableHeapIterator) Next() *tuple.Tuple {
 	currentPage := CastPageAsTablePage(bpm.FetchPage(it.tuple.GetRID().GetPageId()))
 
 	nextTupleRID := currentPage.GetNextTupleRID(it.tuple.GetRID())
-	if nextTupleRID != nil {
-		fmt.Printf("nextTupleRID %d %d\n", nextTupleRID.PageId, nextTupleRID.SlotNum)
-	} else {
-		fmt.Println("nextTupleRID is nil!!!")
-	}
 	if nextTupleRID == nil {
 		for currentPage.GetNextPageId().IsValid() {
 			nextPage := CastPageAsTablePage(bpm.FetchPage(currentPage.GetNextPageId()))
@@ -62,9 +55,7 @@ func (it *TableHeapIterator) Next() *tuple.Tuple {
 
 	if nextTupleRID != nil && nextTupleRID.GetPageId().IsValid() {
 		it.tuple = it.tableHeap.GetTuple(nextTupleRID, it.txn)
-		fmt.Printf("branch1 at TableHeapIterator::Next() %v\n", it.tuple)
 	} else {
-		fmt.Println("branch2 at TableHeapIterator::Next()")
 		it.tuple = nil
 	}
 

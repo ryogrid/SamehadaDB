@@ -1033,10 +1033,7 @@ func TestAbortWIthDeleteUpdate(t *testing.T) {
 	expression_ := expression.NewComparison(*tmpColVal, expression.NewConstantValue(getValue(pred.RightColumn)), pred.Operator)
 
 	updatePlanNode := plans.NewUpdatePlanNode(row1, &expression_, tableMetadata.OID())
-	updated_tuple := executionEngine.Execute(updatePlanNode, executorContext)
-	fmt.Println(*updated_tuple[0])
-
-	//txn_mgr.Commit(txn)
+	executionEngine.Execute(updatePlanNode, executorContext)
 
 	// delete
 	pred = Predicate{"b", expression.Equal, "bar"}
@@ -1063,11 +1060,8 @@ func TestAbortWIthDeleteUpdate(t *testing.T) {
 	expression_ = expression.NewComparison(*tmpColVal, expression.NewConstantValue(getValue(pred.RightColumn)), pred.Operator)
 
 	seqPlan := plans.NewSeqScanPlanNode(outSchema, &expression_, tableMetadata.OID())
-	//seqPlan := plans.NewSeqScanPlanNode(outSchema, nil, tableMetadata.OID())
 	results := executionEngine.Execute(seqPlan, executorContext)
 
-	fmt.Println(results)
-	fmt.Println(results[0].GetValue(outSchema, 0).ToVarchar())
 	testingpkg.Assert(t, types.NewVarchar("updated").CompareEquals(results[0].GetValue(outSchema, 0)), "value should be 'updated'")
 
 	// check deleted row

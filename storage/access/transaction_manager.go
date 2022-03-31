@@ -1,8 +1,6 @@
 package access
 
 import (
-	"fmt"
-
 	"github.com/ryogrid/SamehadaDB/common"
 	"github.com/ryogrid/SamehadaDB/recovery"
 	"github.com/ryogrid/SamehadaDB/types"
@@ -96,8 +94,6 @@ func (transaction_manager *TransactionManager) Abort(txn *Transaction) {
 			tpage := CastPageAsTablePage(table.bpm.FetchPage(pageID))
 			tpage.ApplyDelete(&item.rid, txn, transaction_manager.log_manager)
 		} else if item.wtype == UPDATE {
-			fmt.Println("table.UpdateTuple(...) at Abort")
-			fmt.Println(*item.tuple)
 			table.UpdateTuple(item.tuple, item.rid, txn)
 		}
 		write_set = write_set[:len(write_set)-1]
