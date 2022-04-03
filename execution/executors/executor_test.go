@@ -4,9 +4,12 @@
 package executors
 
 import (
+	"fmt"
+	"os"
 	"testing"
 
 	"github.com/ryogrid/SamehadaDB/catalog"
+	"github.com/ryogrid/SamehadaDB/common"
 	"github.com/ryogrid/SamehadaDB/execution/expression"
 	"github.com/ryogrid/SamehadaDB/execution/plans"
 	"github.com/ryogrid/SamehadaDB/recovery"
@@ -780,4 +783,336 @@ func TestDeleteWithSelctInsert(t *testing.T) {
 			ExecuteSeqScanTestCase(t, test)
 		})
 	}
+}
+
+func TestSimpleInsertAndUpdate(t *testing.T) {
+	diskManager := disk.NewDiskManagerTest()
+	defer diskManager.ShutDown()
+	log_mgr := recovery.NewLogManager(&diskManager)
+	bpm := buffer.NewBufferPoolManager(uint32(32), diskManager, log_mgr)
+	txn_mgr := access.NewTransactionManager(log_mgr)
+	txn := txn_mgr.Begin(nil)
+
+	c := catalog.BootstrapCatalog(bpm, log_mgr, access.NewLockManager(access.REGULAR, access.PREVENTION), txn)
+
+	columnA := column.NewColumn("a", types.Integer, false)
+	columnB := column.NewColumn("b", types.Varchar, false)
+	schema_ := schema.NewSchema([]*column.Column{columnA, columnB})
+
+	tableMetadata := c.CreateTable("test_1", schema_, txn)
+
+	row1 := make([]types.Value, 0)
+	row1 = append(row1, types.NewInteger(20))
+	row1 = append(row1, types.NewVarchar("hoge"))
+
+	row2 := make([]types.Value, 0)
+	row2 = append(row2, types.NewInteger(99))
+	row2 = append(row2, types.NewVarchar("foo"))
+
+	rows := make([][]types.Value, 0)
+	rows = append(rows, row1)
+	rows = append(rows, row2)
+
+	insertPlanNode := plans.NewInsertPlanNode(rows, tableMetadata.OID())
+
+	executionEngine := &ExecutionEngine{}
+	executorContext := NewExecutorContext(c, bpm, txn)
+	executionEngine.Execute(insertPlanNode, executorContext)
+
+	txn_mgr.Commit(txn)
+
+	fmt.Println("update a row...")
+	txn = txn_mgr.Begin(nil)
+
+	row1 = make([]types.Value, 0)
+	row1 = append(row1, types.NewInteger(99))
+	row1 = append(row1, types.NewVarchar("updated"))
+
+	pred := Predicate{"b", expression.Equal, "foo"}
+	tmpColVal := new(expression.ColumnValue)
+	tmpColVal.SetTupleIndex(0)
+	tmpColVal.SetColIndex(tableMetadata.Schema().GetColIndex(pred.LeftColumn))
+	expression_ := expression.NewComparison(*tmpColVal, expression.NewConstantValue(GetValue(pred.RightColumn)), pred.Operator)
+
+	updatePlanNode := plans.NewUpdatePlanNode(row1, &expression_, tableMetadata.OID())
+	executionEngine.Execute(updatePlanNode, executorContext)
+
+	txn_mgr.Commit(txn)
+
+	fmt.Println("select and check value...")
+	txn = txn_mgr.Begin(nil)
+
+	outColumnB := column.NewColumn("b", types.Varchar, false)
+	outSchema := schema.NewSchema([]*column.Column{outColumnB})
+
+	pred = Predicate{"a", expression.Equal, 99}
+	tmpColVal = new(expression.ColumnValue)
+	tmpColVal.SetTupleIndex(0)
+	tmpColVal.SetColIndex(tableMetadata.Schema().GetColIndex(pred.LeftColumn))
+	expression_ = expression.NewComparison(*tmpColVal, expression.NewConstantValue(GetValue(pred.RightColumn)), pred.Operator)
+
+	seqPlan := plans.NewSeqScanPlanNode(outSchema, &expression_, tableMetadata.OID())
+	results := executionEngine.Execute(seqPlan, executorContext)
+
+	txn_mgr.Commit(txn)
+
+	testingpkg.Assert(t, types.NewVarchar("updated").CompareEquals(results[0].GetValue(outSchema, 0)), "value should be 'updated'")
+	//testingpkg.Assert(t, types.NewInteger(99).CompareEquals(results[1].GetValue(outSchema, 0)), "value should be 99")
+}
+
+func TestInsertUpdateMix(t *testing.T) {
+	diskManager := disk.NewDiskManagerTest()
+	defer diskManager.ShutDown()
+	log_mgr := recovery.NewLogManager(&diskManager)
+	bpm := buffer.NewBufferPoolManager(uint32(32), diskManager, log_mgr)
+	txn_mgr := access.NewTransactionManager(log_mgr)
+	txn := txn_mgr.Begin(nil)
+
+	c := catalog.BootstrapCatalog(bpm, log_mgr, access.NewLockManager(access.REGULAR, access.PREVENTION), txn)
+
+	columnA := column.NewColumn("a", types.Integer, false)
+	columnB := column.NewColumn("b", types.Varchar, false)
+	schema_ := schema.NewSchema([]*column.Column{columnA, columnB})
+
+	tableMetadata := c.CreateTable("test_1", schema_, txn)
+
+	row1 := make([]types.Value, 0)
+	row1 = append(row1, types.NewInteger(20))
+	row1 = append(row1, types.NewVarchar("hoge"))
+
+	row2 := make([]types.Value, 0)
+	row2 = append(row2, types.NewInteger(99))
+	row2 = append(row2, types.NewVarchar("foo"))
+
+	rows := make([][]types.Value, 0)
+	rows = append(rows, row1)
+	rows = append(rows, row2)
+
+	insertPlanNode := plans.NewInsertPlanNode(rows, tableMetadata.OID())
+
+	executionEngine := &ExecutionEngine{}
+	executorContext := NewExecutorContext(c, bpm, txn)
+	executionEngine.Execute(insertPlanNode, executorContext)
+
+	txn_mgr.Commit(txn)
+
+	fmt.Println("update a row...")
+	txn = txn_mgr.Begin(nil)
+
+	row1 = make([]types.Value, 0)
+	row1 = append(row1, types.NewInteger(99))
+	row1 = append(row1, types.NewVarchar("updated"))
+
+	pred := Predicate{"b", expression.Equal, "foo"}
+	tmpColVal := new(expression.ColumnValue)
+	tmpColVal.SetTupleIndex(0)
+	tmpColVal.SetColIndex(tableMetadata.Schema().GetColIndex(pred.LeftColumn))
+	expression_ := expression.NewComparison(*tmpColVal, expression.NewConstantValue(GetValue(pred.RightColumn)), pred.Operator)
+
+	updatePlanNode := plans.NewUpdatePlanNode(row1, &expression_, tableMetadata.OID())
+	executionEngine.Execute(updatePlanNode, executorContext)
+
+	txn_mgr.Commit(txn)
+
+	fmt.Println("select and check value...")
+	txn = txn_mgr.Begin(nil)
+
+	outColumnB := column.NewColumn("b", types.Varchar, false)
+	outSchema := schema.NewSchema([]*column.Column{outColumnB})
+
+	pred = Predicate{"a", expression.Equal, 99}
+	tmpColVal = new(expression.ColumnValue)
+	tmpColVal.SetTupleIndex(0)
+	tmpColVal.SetColIndex(tableMetadata.Schema().GetColIndex(pred.LeftColumn))
+	expression_ = expression.NewComparison(*tmpColVal, expression.NewConstantValue(GetValue(pred.RightColumn)), pred.Operator)
+
+	seqPlan := plans.NewSeqScanPlanNode(outSchema, &expression_, tableMetadata.OID())
+	results := executionEngine.Execute(seqPlan, executorContext)
+
+	txn_mgr.Commit(txn)
+
+	testingpkg.Assert(t, types.NewVarchar("updated").CompareEquals(results[0].GetValue(outSchema, 0)), "value should be 'updated'")
+
+	fmt.Println("insert after update...")
+
+	txn = txn_mgr.Begin(nil)
+
+	row1 = make([]types.Value, 0)
+	row1 = append(row1, types.NewInteger(77))
+	row1 = append(row1, types.NewVarchar("hage"))
+
+	row2 = make([]types.Value, 0)
+	row2 = append(row2, types.NewInteger(666))
+	row2 = append(row2, types.NewVarchar("fuba"))
+
+	rows = make([][]types.Value, 0)
+	rows = append(rows, row1)
+	rows = append(rows, row2)
+
+	insertPlanNode = plans.NewInsertPlanNode(rows, tableMetadata.OID())
+
+	executionEngine.Execute(insertPlanNode, executorContext)
+
+	txn_mgr.Commit(txn)
+
+	fmt.Println("select inserted row and check value...")
+	txn = txn_mgr.Begin(nil)
+
+	outColumnA := column.NewColumn("a", types.Integer, false)
+	outSchema = schema.NewSchema([]*column.Column{outColumnA})
+
+	pred = Predicate{"b", expression.Equal, "hage"}
+	tmpColVal = new(expression.ColumnValue)
+	tmpColVal.SetTupleIndex(0)
+	tmpColVal.SetColIndex(tableMetadata.Schema().GetColIndex(pred.LeftColumn))
+	expression_ = expression.NewComparison(*tmpColVal, expression.NewConstantValue(GetValue(pred.RightColumn)), pred.Operator)
+
+	seqPlan = plans.NewSeqScanPlanNode(outSchema, &expression_, tableMetadata.OID())
+	results = executionEngine.Execute(seqPlan, executorContext)
+
+	txn_mgr.Commit(txn)
+
+	testingpkg.Assert(t, types.NewInteger(77).CompareEquals(results[0].GetValue(outSchema, 0)), "value should be 777")
+}
+
+func TestAbortWIthDeleteUpdate(t *testing.T) {
+	os.Stdout.Sync()
+	diskManager := disk.NewDiskManagerTest()
+	defer diskManager.ShutDown()
+	log_mgr := recovery.NewLogManager(&diskManager)
+	bpm := buffer.NewBufferPoolManager(uint32(32), diskManager, log_mgr)
+	txn_mgr := access.NewTransactionManager(log_mgr)
+	txn := txn_mgr.Begin(nil)
+
+	c := catalog.BootstrapCatalog(bpm, log_mgr, access.NewLockManager(access.REGULAR, access.PREVENTION), txn)
+
+	columnA := column.NewColumn("a", types.Integer, false)
+	columnB := column.NewColumn("b", types.Varchar, false)
+	schema_ := schema.NewSchema([]*column.Column{columnA, columnB})
+
+	tableMetadata := c.CreateTable("test_1", schema_, txn)
+
+	row1 := make([]types.Value, 0)
+	row1 = append(row1, types.NewInteger(20))
+	row1 = append(row1, types.NewVarchar("hoge"))
+
+	row2 := make([]types.Value, 0)
+	row2 = append(row2, types.NewInteger(99))
+	row2 = append(row2, types.NewVarchar("foo"))
+
+	row3 := make([]types.Value, 0)
+	row3 = append(row3, types.NewInteger(777))
+	row3 = append(row3, types.NewVarchar("bar"))
+
+	rows := make([][]types.Value, 0)
+	rows = append(rows, row1)
+	rows = append(rows, row2)
+	rows = append(rows, row3)
+
+	insertPlanNode := plans.NewInsertPlanNode(rows, tableMetadata.OID())
+
+	executionEngine := &ExecutionEngine{}
+	executorContext := NewExecutorContext(c, bpm, txn)
+	executionEngine.Execute(insertPlanNode, executorContext)
+
+	txn_mgr.Commit(txn)
+
+	fmt.Println("update and delete rows...")
+	txn = txn_mgr.Begin(nil)
+	executorContext.SetTransaction(txn)
+
+	// update
+	row1 = make([]types.Value, 0)
+	row1 = append(row1, types.NewInteger(99))
+	row1 = append(row1, types.NewVarchar("updated"))
+
+	pred := Predicate{"b", expression.Equal, "foo"}
+	tmpColVal := new(expression.ColumnValue)
+	tmpColVal.SetTupleIndex(0)
+	tmpColVal.SetColIndex(tableMetadata.Schema().GetColIndex(pred.LeftColumn))
+	expression_ := expression.NewComparison(*tmpColVal, expression.NewConstantValue(GetValue(pred.RightColumn)), pred.Operator)
+
+	updatePlanNode := plans.NewUpdatePlanNode(row1, &expression_, tableMetadata.OID())
+	executionEngine.Execute(updatePlanNode, executorContext)
+
+	// delete
+	pred = Predicate{"b", expression.Equal, "bar"}
+	tmpColVal = new(expression.ColumnValue)
+	tmpColVal.SetTupleIndex(0)
+	tmpColVal.SetColIndex(tableMetadata.Schema().GetColIndex(pred.LeftColumn))
+	expression_ = expression.NewComparison(*tmpColVal, expression.NewConstantValue(GetValue(pred.RightColumn)), pred.Operator)
+
+	deletePlanNode := plans.NewDeletePlanNode(&expression_, tableMetadata.OID())
+	executionEngine.Execute(deletePlanNode, executorContext)
+
+	common.EnableLogging = false
+
+	fmt.Println("select and check value before Abort...")
+
+	// check updated row
+	outColumnB := column.NewColumn("b", types.Varchar, false)
+	outSchema := schema.NewSchema([]*column.Column{outColumnB})
+
+	pred = Predicate{"a", expression.Equal, 99}
+	tmpColVal = new(expression.ColumnValue)
+	tmpColVal.SetTupleIndex(0)
+	tmpColVal.SetColIndex(tableMetadata.Schema().GetColIndex(pred.LeftColumn))
+	expression_ = expression.NewComparison(*tmpColVal, expression.NewConstantValue(GetValue(pred.RightColumn)), pred.Operator)
+
+	seqPlan := plans.NewSeqScanPlanNode(outSchema, &expression_, tableMetadata.OID())
+	results := executionEngine.Execute(seqPlan, executorContext)
+
+	testingpkg.Assert(t, types.NewVarchar("updated").CompareEquals(results[0].GetValue(outSchema, 0)), "value should be 'updated'")
+
+	// check deleted row
+	outColumnB = column.NewColumn("b", types.Integer, false)
+	outSchema = schema.NewSchema([]*column.Column{outColumnB})
+
+	pred = Predicate{"b", expression.Equal, "bar"}
+	tmpColVal = new(expression.ColumnValue)
+	tmpColVal.SetTupleIndex(0)
+	tmpColVal.SetColIndex(tableMetadata.Schema().GetColIndex(pred.LeftColumn))
+	expression_ = expression.NewComparison(*tmpColVal, expression.NewConstantValue(GetValue(pred.RightColumn)), pred.Operator)
+
+	seqPlan = plans.NewSeqScanPlanNode(outSchema, &expression_, tableMetadata.OID())
+	results = executionEngine.Execute(seqPlan, executorContext)
+
+	testingpkg.Assert(t, len(results) == 0, "")
+
+	txn_mgr.Abort(txn)
+
+	fmt.Println("select and check value after Abort...")
+
+	txn = txn_mgr.Begin(nil)
+	executorContext.SetTransaction(txn)
+
+	// check updated row
+	outColumnB = column.NewColumn("b", types.Varchar, false)
+	outSchema = schema.NewSchema([]*column.Column{outColumnB})
+
+	pred = Predicate{"a", expression.Equal, 99}
+	tmpColVal = new(expression.ColumnValue)
+	tmpColVal.SetTupleIndex(0)
+	tmpColVal.SetColIndex(tableMetadata.Schema().GetColIndex(pred.LeftColumn))
+	expression_ = expression.NewComparison(*tmpColVal, expression.NewConstantValue(GetValue(pred.RightColumn)), pred.Operator)
+
+	seqPlan = plans.NewSeqScanPlanNode(outSchema, &expression_, tableMetadata.OID())
+	results = executionEngine.Execute(seqPlan, executorContext)
+
+	testingpkg.Assert(t, types.NewVarchar("foo").CompareEquals(results[0].GetValue(outSchema, 0)), "value should be 'foo'")
+
+	// check deleted row
+	outColumnB = column.NewColumn("b", types.Integer, false)
+	outSchema = schema.NewSchema([]*column.Column{outColumnB})
+
+	pred = Predicate{"b", expression.Equal, "bar"}
+	tmpColVal = new(expression.ColumnValue)
+	tmpColVal.SetTupleIndex(0)
+	tmpColVal.SetColIndex(tableMetadata.Schema().GetColIndex(pred.LeftColumn))
+	expression_ = expression.NewComparison(*tmpColVal, expression.NewConstantValue(GetValue(pred.RightColumn)), pred.Operator)
+
+	seqPlan = plans.NewSeqScanPlanNode(outSchema, &expression_, tableMetadata.OID())
+	results = executionEngine.Execute(seqPlan, executorContext)
+
+	testingpkg.Assert(t, len(results) == 1, "")
 }

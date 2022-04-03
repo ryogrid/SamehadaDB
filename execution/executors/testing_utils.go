@@ -62,7 +62,7 @@ func ExecuteSeqScanTestCase(t *testing.T, testCase SeqScanTestCase) {
 	tmpColVal := new(expression.ColumnValue)
 	tmpColVal.SetTupleIndex(0)
 	tmpColVal.SetColIndex(testCase.TableMetadata.Schema().GetColIndex(testCase.Predicate.LeftColumn))
-	expression := expression.NewComparison(*tmpColVal, expression.NewConstantValue(getValue(testCase.Predicate.RightColumn)), testCase.Predicate.Operator)
+	expression := expression.NewComparison(*tmpColVal, expression.NewConstantValue(GetValue(testCase.Predicate.RightColumn)), testCase.Predicate.Operator)
 	seqPlan := plans.NewSeqScanPlanNode(outSchema, &expression, testCase.TableMetadata.OID())
 
 	results := testCase.ExecutionEngine.Execute(seqPlan, testCase.ExecutorContext)
@@ -71,7 +71,7 @@ func ExecuteSeqScanTestCase(t *testing.T, testCase SeqScanTestCase) {
 	if len(results) > 0 {
 		for _, assert := range testCase.Asserts {
 			colIndex := outSchema.GetColIndex(assert.Column)
-			testingpkg.Assert(t, getValue(assert.Exp).CompareEquals(results[0].GetValue(outSchema, colIndex)), "value should be %v but was %v", assert.Exp, results[0].GetValue(outSchema, colIndex))
+			testingpkg.Assert(t, GetValue(assert.Exp).CompareEquals(results[0].GetValue(outSchema, colIndex)), "value should be %v but was %v", assert.Exp, results[0].GetValue(outSchema, colIndex))
 		}
 	}
 }
@@ -99,7 +99,7 @@ func ExecuteHashIndexScanTestCase(t *testing.T, testCase HashIndexScanTestCase) 
 	tmpColVal := new(expression.ColumnValue)
 	tmpColVal.SetTupleIndex(0)
 	tmpColVal.SetColIndex(testCase.TableMetadata.Schema().GetColIndex(testCase.Predicate.LeftColumn))
-	expression := expression.NewComparisonAsComparison(*tmpColVal, expression.NewConstantValue(getValue(testCase.Predicate.RightColumn)), testCase.Predicate.Operator)
+	expression := expression.NewComparisonAsComparison(*tmpColVal, expression.NewConstantValue(GetValue(testCase.Predicate.RightColumn)), testCase.Predicate.Operator)
 	hashIndexScanPlan := plans.NewHashScanIndexPlanNode(outSchema, expression, testCase.TableMetadata.OID())
 
 	results := testCase.ExecutionEngine.Execute(hashIndexScanPlan, testCase.ExecutorContext)
@@ -107,7 +107,7 @@ func ExecuteHashIndexScanTestCase(t *testing.T, testCase HashIndexScanTestCase) 
 	testingpkg.Equals(t, testCase.TotalHits, uint32(len(results)))
 	for _, assert := range testCase.Asserts {
 		colIndex := outSchema.GetColIndex(assert.Column)
-		testingpkg.Assert(t, getValue(assert.Exp).CompareEquals(results[0].GetValue(outSchema, colIndex)), "value should be %v but was %v", assert.Exp, results[0].GetValue(outSchema, colIndex))
+		testingpkg.Assert(t, GetValue(assert.Exp).CompareEquals(results[0].GetValue(outSchema, colIndex)), "value should be %v but was %v", assert.Exp, results[0].GetValue(outSchema, colIndex))
 	}
 }
 
@@ -135,7 +135,7 @@ func ExecuteDeleteTestCase(t *testing.T, testCase DeleteTestCase) {
 	tmpColVal := new(expression.ColumnValue)
 	tmpColVal.SetTupleIndex(0)
 	tmpColVal.SetColIndex(testCase.TableMetadata.Schema().GetColIndex(testCase.Predicate.LeftColumn))
-	expression := expression.NewComparison(*tmpColVal, expression.NewConstantValue(getValue(testCase.Predicate.RightColumn)), testCase.Predicate.Operator)
+	expression := expression.NewComparison(*tmpColVal, expression.NewConstantValue(GetValue(testCase.Predicate.RightColumn)), testCase.Predicate.Operator)
 	hashIndexScanPlan := plans.NewDeletePlanNode(&expression, testCase.TableMetadata.OID())
 
 	testCase.ExecutorContext.SetTransaction(txn)
@@ -146,11 +146,11 @@ func ExecuteDeleteTestCase(t *testing.T, testCase DeleteTestCase) {
 	testingpkg.Equals(t, testCase.TotalHits, uint32(len(results)))
 	for _, assert := range testCase.Asserts {
 		colIndex := outSchema.GetColIndex(assert.Column)
-		testingpkg.Assert(t, getValue(assert.Exp).CompareEquals(results[0].GetValue(outSchema, colIndex)), "value should be %v but was %v", assert.Exp, results[0].GetValue(outSchema, colIndex))
+		testingpkg.Assert(t, GetValue(assert.Exp).CompareEquals(results[0].GetValue(outSchema, colIndex)), "value should be %v but was %v", assert.Exp, results[0].GetValue(outSchema, colIndex))
 	}
 }
 
-func getValue(data interface{}) (value types.Value) {
+func GetValue(data interface{}) (value types.Value) {
 	switch v := data.(type) {
 	case int:
 		value = types.NewInteger(int32(v))

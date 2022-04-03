@@ -48,6 +48,8 @@ func (e *ExecutionEngine) createExecutor(plan plans.Plan, context *ExecutorConte
 		return NewLimitExecutor(context, p, e.createExecutor(plan.GetChildAt(0), context))
 	case *plans.DeletePlanNode:
 		return NewDeleteExecutor(context, p)
+	case *plans.UpdatePlanNode:
+		return NewUpdateExecutor(context, p)
 	}
 	return nil
 }

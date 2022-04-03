@@ -7,6 +7,7 @@ import (
 
 	"github.com/ryogrid/SamehadaDB/common"
 	"github.com/ryogrid/SamehadaDB/storage/disk"
+	"github.com/ryogrid/SamehadaDB/storage/tuple"
 	"github.com/ryogrid/SamehadaDB/types"
 )
 
@@ -182,7 +183,7 @@ func (log_manager *LogManager) AppendLogRecord(log_record *LogRecord) types.LSN 
 		pos += uint32(unsafe.Sizeof(log_record.Update_rid))
 		// we have provided serialize function for tuple class
 		log_record.Old_tuple.SerializeTo(log_manager.log_buffer[pos:])
-		pos += log_record.Old_tuple.Size() // + uint32(tuple.TupleSizeOffsetInLogrecord)
+		pos += log_record.Old_tuple.Size() + uint32(tuple.TupleSizeOffsetInLogrecord)
 		log_record.New_tuple.SerializeTo(log_manager.log_buffer[pos:])
 	} else if log_record.Log_record_type == NEWPAGE {
 		//memcpy(log_manager.log_buffer+pos, &log_record.prev_page_id, sizeof(PageID))
