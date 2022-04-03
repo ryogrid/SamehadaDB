@@ -311,9 +311,6 @@ func TestUndo(t *testing.T) {
 	tuple2 := ConstructTuple(schema_)
 	val2_0 := tuple2.GetValue(schema_, 0)
 	val2_1 := tuple2.GetValue(schema_, 1)
-	fmt.Println(val2_0.ToVarchar())
-	fmt.Println(val2_0.Size())
-	fmt.Println(val2_1.ToInteger())
 
 	var rid2 *page.RID
 	rid2, _ = test_table.InsertTuple(tuple2, txn)
@@ -406,10 +403,6 @@ func TestUndo(t *testing.T) {
 	fmt.Println("Check updated tuple's values are rollbacked")
 	old_tuple2 = test_table.GetTuple(rid2, txn)
 	testingpkg.Assert(t, old_tuple2 != nil, "")
-	fmt.Println(old_tuple2.GetValue(schema_, 0).ToVarchar())
-	fmt.Println(old_tuple2.GetValue(schema_, 1).ToInteger())
-	fmt.Println(val2_0.ToVarchar())
-	fmt.Println(val2_1.ToInteger())
 	testingpkg.Assert(t, old_tuple2.GetValue(schema_, 0).CompareEquals(val2_0), "")
 	testingpkg.Assert(t, old_tuple2.GetValue(schema_, 1).CompareEquals(val2_1), "")
 
