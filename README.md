@@ -16,13 +16,15 @@ original codes of go-bustub are [here](https://github.com/brunocalza/go-bustub).
 - [ ] Null
 - [ ] Other inline types (boolean, bigint, smallint, decimal, timestamp)
 - [x] Deletion
-- [x] Update
+- [x] Update Tuple (all new column values are needed)
+- [ ] Update Tuple (specified colmun only)
 - [x] LIMIT / OFFSET
 - [x] Varchar
 - [x] Persistent Catalog
 - [ ] LRU replacer
 - [ ] Latches
 - [x] Transactions
+- [ ] Rollback When Abort Occurs (not tested yet)
 - [x] Logging
 - [x] Checkpointing
 - [ ] Fuzzy Checkpointing (ARIES)
