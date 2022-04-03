@@ -51,9 +51,6 @@ func (htidx *LinearProbeHashTableIndex) InsertEntry(key *tuple.Tuple, rid page.R
 	htidx.container.Insert(keyDataInBytes, PackRIDtoUint32(&rid))
 }
 
-// TODO: (SDB) not tested yet (DeleteEntry at LinearProbeHashTableIndex)
-// TODO: (SDB) need test DeleteEntry of LinearProbeHashTableIndex deletes appropriately key duplicated case
-//             (all entry correspoind to a key must not be deleted)
 func (htidx *LinearProbeHashTableIndex) DeleteEntry(key *tuple.Tuple, rid page.RID, transaction *access.Transaction) {
 	tupleSchema_ := htidx.GetTupleSchema()
 	keyDataInBytes := key.GetValueInBytes(tupleSchema_, htidx.col_idx)

@@ -50,12 +50,6 @@ type TablePage struct {
 	page.Page
 }
 
-// TODO: (SDB) not ported methods exist at TablePage.
-//             And additional loggings are needed when implement the methods
-//             ex: UpdateTuple methods.
-//                 adding codes to related methods on other classes is also neede.
-//                 ex: logging/recovery, executer(maybe)
-
 // CastPageAsTablePage casts the abstract Page struct into TablePage
 func CastPageAsTablePage(page *page.Page) *TablePage {
 	if page == nil {

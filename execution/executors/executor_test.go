@@ -1116,3 +1116,59 @@ func TestAbortWIthDeleteUpdate(t *testing.T) {
 
 	testingpkg.Assert(t, len(results) == 1, "")
 }
+
+TEST_F(ExecutorTest, SimpleHashJoinTest) {
+	// INSERT INTO empty_table2 SELECT colA, colB FROM test_1 WHERE colA < 500
+	std::unique_ptr<AbstractPlanNode> scan_plan1;
+	const Schema *out_schema1;
+	{
+	  auto table_info = GetExecutorContext()->GetCatalog()->GetTable("test_1");
+	  auto &schema = table_info->schema_;
+	  auto colA = MakeColumnValueExpression(schema, 0, "colA");
+	  auto colB = MakeColumnValueExpression(schema, 0, "colB");
+	  out_schema1 = MakeOutputSchema({{"colA", colA}, {"colB", colB}});
+	  scan_plan1 = std::make_unique<SeqScanPlanNode>(out_schema1, nullptr, table_info->oid_);
+	}
+	std::unique_ptr<AbstractPlanNode> scan_plan2;
+	const Schema *out_schema2;
+	{
+	  auto table_info = GetExecutorContext()->GetCatalog()->GetTable("test_2");
+	  auto &schema = table_info->schema_;
+	  auto col1 = MakeColumnValueExpression(schema, 0, "col1");
+	  auto col2 = MakeColumnValueExpression(schema, 0, "col2");
+	  out_schema2 = MakeOutputSchema({{"col1", col1}, {"col2", col2}});
+	  scan_plan2 = std::make_unique<SeqScanPlanNode>(out_schema2, nullptr, table_info->oid_);
+	}
+	std::unique_ptr<HashJoinPlanNode> join_plan;
+	const Schema *out_final;
+	{
+	  // colA and colB have a tuple index of 0 because they are the left side of the join
+	  auto colA = MakeColumnValueExpression(*out_schema1, 0, "colA");
+	  auto colB = MakeColumnValueExpression(*out_schema1, 0, "colB");
+	  // col1 and col2 have a tuple index of 1 because they are the right side of the join
+	  auto col1 = MakeColumnValueExpression(*out_schema2, 1, "col1");
+	  auto col2 = MakeColumnValueExpression(*out_schema2, 1, "col2");
+	  std::vector<const AbstractExpression *> left_keys{colA};
+	  std::vector<const AbstractExpression *> right_keys{col1};
+	  auto predicate = MakeComparisonExpression(colA, col1, ComparisonType::Equal);
+	  out_final = MakeOutputSchema({{"colA", colA}, {"colB", colB}, {"col1", col1}, {"col2", col2}});
+	  join_plan = std::make_unique<HashJoinPlanNode>(
+		  out_final, std::vector<const AbstractPlanNode *>{scan_plan1.get(), scan_plan2.get()}, predicate,
+		  std::move(left_keys), std::move(right_keys));
+	}
+  
+	auto executor = ExecutorFactory::CreateExecutor(GetExecutorContext(), join_plan.get());
+	executor->Init();
+	Tuple tuple;
+	uint32_t num_tuples = 0;
+	std::cout << "ColA, ColB, Col1, Col2" << std::endl;
+	while (executor->Next(&tuple)) {
+	  std::cout << tuple.GetValue(out_final, out_schema1->GetColIdx("colA")).GetAs<int32_t>() << ", "
+				<< tuple.GetValue(out_final, out_schema1->GetColIdx("colB")).GetAs<int32_t>() << ", "
+				<< tuple.GetValue(out_final, out_schema2->GetColIdx("col1")).GetAs<int16_t>() << ", "
+				<< tuple.GetValue(out_final, out_schema2->GetColIdx("col2")).GetAs<int32_t>() << std::endl;
+  
+	  num_tuples++;
+	}
+	ASSERT_EQ(num_tuples, 100);
+  }
