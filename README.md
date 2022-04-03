@@ -15,9 +15,9 @@ original codes of go-bustub are [here](https://github.com/brunocalza/go-bustub).
 - [ ] Predicates: <, >, <=, >=
 - [ ] Null
 - [ ] Other inline types (boolean, bigint, smallint, decimal, timestamp)
-- [x] Deletion
-- [x] Update Tuple (all new column values are needed)
-- [ ] Update Tuple (specified colmun only)
+- [x] Delete Tuple
+- [x] Update Tuple (need to pass values of all columns...)
+- [ ] Update Tuple (need to pass values of target colmuns only)
 - [x] LIMIT / OFFSET
 - [x] Varchar
 - [x] Persistent Catalog
