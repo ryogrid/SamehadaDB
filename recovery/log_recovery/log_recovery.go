@@ -3,6 +3,7 @@ package log_recovery
 import (
 	"bytes"
 	"encoding/binary"
+	"fmt"
 	"unsafe"
 
 	"github.com/ryogrid/SamehadaDB/common"
@@ -10,6 +11,9 @@ import (
 	"github.com/ryogrid/SamehadaDB/storage/access"
 	"github.com/ryogrid/SamehadaDB/storage/buffer"
 	"github.com/ryogrid/SamehadaDB/storage/disk"
+	"github.com/ryogrid/SamehadaDB/storage/table/column"
+	"github.com/ryogrid/SamehadaDB/storage/table/schema"
+	"github.com/ryogrid/SamehadaDB/storage/tuple"
 	"github.com/ryogrid/SamehadaDB/types"
 )
 
@@ -81,7 +85,7 @@ func (log_recovery *LogRecovery) DeserializeLogRecord(data []byte, log_record *r
 		pos += uint32(unsafe.Sizeof(log_record.Update_rid))
 		// we have provided serialize function for tuple class
 		log_record.Old_tuple.DeserializeFrom(data[pos:])
-		pos += log_record.Old_tuple.Size()
+		pos += log_record.Old_tuple.Size() + uint32(tuple.TupleSizeOffsetInLogrecord)
 		log_record.New_tuple.DeserializeFrom(data[pos:])
 	} else if log_record.Log_record_type == recovery.NEWPAGE {
 		binary.Read(bytes.NewBuffer(data[pos:]), binary.LittleEndian, &log_record.Prev_page_id)
@@ -161,11 +165,13 @@ func (log_recovery *LogRecovery) Redo() {
 				}
 				log_recovery.buffer_pool_manager.UnpinPage(log_record.Delete_rid.GetPageId(), true)
 			} else if log_record.Log_record_type == recovery.UPDATE {
+				fmt.Println("Redo: Log_record_type == recovery.UPDATE")
 				page_ :=
 					access.CastPageAsTablePage(log_recovery.buffer_pool_manager.FetchPage(log_record.Update_rid.GetPageId()))
 				if page_.GetLSN() < log_record.GetLSN() {
 					// UpdateTuple overwrites Old_tuple argument
 					// but it is no problem because log_record is read from log file again in Undo phase
+					fmt.Println("Redo: Re-do UpdateTuple(...)")
 					page_.UpdateTuple(&log_record.New_tuple, &log_record.Old_tuple, &log_record.Update_rid, nil, nil, nil)
 					page_.SetLSN(log_record.GetLSN())
 				}
@@ -200,11 +206,12 @@ func (log_recovery *LogRecovery) Redo() {
 func (log_recovery *LogRecovery) Undo() {
 	var file_offset int
 	var log_record recovery.LogRecord
-	//fmt.Println(log_recovery.active_txn)
+	fmt.Println(log_recovery.active_txn)
+	fmt.Println(log_recovery.lsn_mapping)
 	for _, lsn := range log_recovery.active_txn {
 		//lsn = it.second
-		// fmt.Printf("lsn at Undo loop top: %d", lsn)
 		for lsn != common.InvalidLSN {
+			fmt.Printf("lsn at Undo loop top: %d\n", lsn)
 			file_offset = log_recovery.lsn_mapping[lsn]
 			// fmt.Printf("file_offset: %d\n", file_offset)
 			var readBytes uint32
@@ -233,6 +240,17 @@ func (log_recovery *LogRecovery) Undo() {
 				page_.MarkDelete(&log_record.Delete_rid, nil, nil, nil)
 				log_recovery.buffer_pool_manager.UnpinPage(log_record.Delete_rid.GetPageId(), true)
 			} else if log_record.Log_record_type == recovery.UPDATE {
+				fmt.Println("Undo: Log_record_type == recovery.UPDATE")
+				col1 := column.NewColumn("a", types.Varchar, false)
+				col2 := column.NewColumn("b", types.Integer, false)
+				cols := []*column.Column{col1, col2}
+				schema_ := schema.NewSchema(cols)
+				fmt.Println(log_record.Old_tuple)
+				fmt.Println(log_record.Old_tuple.GetValue(schema_, 0).ToVarchar())
+				fmt.Println(log_record.Old_tuple.GetValue(schema_, 1).ToInteger())
+				fmt.Println(log_record.New_tuple)
+				fmt.Println(log_record.New_tuple.GetValue(schema_, 0).ToVarchar())
+				fmt.Println(log_record.New_tuple.GetValue(schema_, 1).ToInteger())
 				page_ :=
 					access.CastPageAsTablePage(log_recovery.buffer_pool_manager.FetchPage(log_record.Update_rid.GetPageId()))
 				page_.UpdateTuple(&log_record.Old_tuple, &log_record.New_tuple, &log_record.Update_rid, nil, nil, nil)

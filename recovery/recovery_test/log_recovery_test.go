@@ -302,6 +302,8 @@ func TestUndo(t *testing.T) {
 
 	schema_ := schema.NewSchema(cols)
 	tuple1 := ConstructTuple(schema_)
+	val1_0 := tuple1.GetValue(schema_, 0)
+	val1_1 := tuple1.GetValue(schema_, 1)
 	var rid1 *page.RID
 	rid1, _ = test_table.InsertTuple(tuple1, txn)
 	testingpkg.Assert(t, rid1 != nil, "")
@@ -309,11 +311,16 @@ func TestUndo(t *testing.T) {
 	tuple2 := ConstructTuple(schema_)
 	val2_0 := tuple2.GetValue(schema_, 0)
 	val2_1 := tuple2.GetValue(schema_, 1)
+	fmt.Println(val2_0.ToVarchar())
+	fmt.Println(val2_0.Size())
+	fmt.Println(val2_1.ToInteger())
 
 	var rid2 *page.RID
 	rid2, _ = test_table.InsertTuple(tuple2, txn)
 	testingpkg.Assert(t, rid2 != nil, "")
 
+	fmt.Println("Log page content is written to disk")
+	samehada_instance.GetLogManager().Flush()
 	fmt.Println("two tuples inserted are commited")
 	samehada_instance.GetTransactionManager().Commit(txn)
 
@@ -335,10 +342,10 @@ func TestUndo(t *testing.T) {
 	// TODO: (SDB) insert index entry if needed
 	testingpkg.Assert(t, rid3 != nil, "")
 
-	fmt.Println("Table page content is written to disk")
-	samehada_instance.GetBufferPoolManager().FlushPage(first_page_id)
 	fmt.Println("Log page content is written to disk")
 	samehada_instance.GetLogManager().Flush()
+	fmt.Println("Table page content is written to disk")
+	samehada_instance.GetBufferPoolManager().FlushPage(first_page_id)
 
 	fmt.Println("System crash before commit")
 	// delete samehada_instance
@@ -393,6 +400,8 @@ func TestUndo(t *testing.T) {
 	fmt.Println("Check deleted tuple exists")
 	old_tuple1 = test_table.GetTuple(rid1, txn)
 	testingpkg.Assert(t, old_tuple1 != nil, "")
+	testingpkg.Assert(t, old_tuple1.GetValue(schema_, 0).CompareEquals(val1_0), "")
+	testingpkg.Assert(t, old_tuple1.GetValue(schema_, 1).CompareEquals(val1_1), "")
 
 	fmt.Println("Check updated tuple's values are rollbacked")
 	old_tuple2 = test_table.GetTuple(rid2, txn)
@@ -562,13 +571,13 @@ func ConstructTuple(schema_ *schema.Schema) *tuple.Tuple {
 		case types.Varchar:
 			alphabets :=
 				"ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz"
-			len := int(1 + rand.Intn(math.MaxUint32)%10)
+			len_ := int(1 + rand.Intn(math.MaxUint32)%10)
 			//char s[10]
 			s := ""
-			for j := 0; j < len; j++ {
+			for j := 0; j < len_; j++ {
 				//s[j] = alphanum[rand.Intn(math.MaxUint32) % (sizeof(alphanum) - 1)]
-				idx := rand.Intn(53)
-				s = s + alphabets[idx:idx]
+				idx := rand.Intn(52)
+				s = s + alphabets[idx:idx+1]
 			}
 			//s[len] = 0
 			//v = Value(type, s, len + 1, true)
