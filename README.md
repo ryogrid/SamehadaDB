@@ -24,7 +24,7 @@ original codes of go-bustub are [here](https://github.com/brunocalza/go-bustub).
 - [ ] LRU replacer
 - [ ] Latches
 - [x] Transactions
-- [ ] Rollback When Abort Occurs (not tested yet)
+- [x] Rollback When Abort Occurs
 - [x] Logging
 - [x] Checkpointing
 - [ ] Fuzzy Checkpointing (ARIES)
