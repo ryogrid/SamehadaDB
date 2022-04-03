@@ -7,15 +7,12 @@ package access
 import (
 	"bytes"
 	"encoding/binary"
-	"fmt"
 	"unsafe"
 
 	"github.com/ryogrid/SamehadaDB/common"
 	"github.com/ryogrid/SamehadaDB/errors"
 	"github.com/ryogrid/SamehadaDB/recovery"
 	"github.com/ryogrid/SamehadaDB/storage/page"
-	"github.com/ryogrid/SamehadaDB/storage/table/column"
-	"github.com/ryogrid/SamehadaDB/storage/table/schema"
 	"github.com/ryogrid/SamehadaDB/storage/tuple"
 	"github.com/ryogrid/SamehadaDB/types"
 )
@@ -154,16 +151,6 @@ func (tp *TablePage) UpdateTuple(new_tuple *tuple.Tuple, old_tuple *tuple.Tuple,
 	old_tuple_data := make([]byte, old_tuple.Size())
 	copy(old_tuple_data, tp.GetData()[tuple_offset:tuple_offset+old_tuple.Size()])
 	old_tuple.SetData(old_tuple_data)
-
-	fmt.Printf("TablePage UpdateTuple: size=%v\n", old_tuple.Size())
-	fmt.Printf("TablePage UpdateTuple: data=%v\n", old_tuple_data)
-	col1 := column.NewColumn("a", types.Varchar, false)
-	col2 := column.NewColumn("b", types.Integer, false)
-	cols := []*column.Column{col1, col2}
-	schema_ := schema.NewSchema(cols)
-	fmt.Println(old_tuple)
-	fmt.Println(old_tuple.GetValue(schema_, 0).ToVarchar())
-	fmt.Println(old_tuple.GetValue(schema_, 1).ToInteger())
 
 	old_tuple.SetRID(rid)
 	//old_tuple->allocated_ = true;
