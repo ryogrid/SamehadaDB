@@ -1117,6 +1117,7 @@ func TestAbortWIthDeleteUpdate(t *testing.T) {
 	testingpkg.Assert(t, len(results) == 1, "")
 }
 
+/*
 TEST_F(ExecutorTest, SimpleHashJoinTest) {
 	// INSERT INTO empty_table2 SELECT colA, colB FROM test_1 WHERE colA < 500
 	std::unique_ptr<AbstractPlanNode> scan_plan1;
@@ -1156,7 +1157,7 @@ TEST_F(ExecutorTest, SimpleHashJoinTest) {
 		  out_final, std::vector<const AbstractPlanNode *>{scan_plan1.get(), scan_plan2.get()}, predicate,
 		  std::move(left_keys), std::move(right_keys));
 	}
-  
+
 	auto executor = ExecutorFactory::CreateExecutor(GetExecutorContext(), join_plan.get());
 	executor->Init();
 	Tuple tuple;
@@ -1167,8 +1168,9 @@ TEST_F(ExecutorTest, SimpleHashJoinTest) {
 				<< tuple.GetValue(out_final, out_schema1->GetColIdx("colB")).GetAs<int32_t>() << ", "
 				<< tuple.GetValue(out_final, out_schema2->GetColIdx("col1")).GetAs<int16_t>() << ", "
 				<< tuple.GetValue(out_final, out_schema2->GetColIdx("col2")).GetAs<int32_t>() << std::endl;
-  
+
 	  num_tuples++;
 	}
 	ASSERT_EQ(num_tuples, 100);
   }
+*/
