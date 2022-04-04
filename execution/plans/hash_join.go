@@ -32,13 +32,13 @@ func (p *HashJoinPlanNode) GetType() PlanType { return HashJoin }
 func (p *HashJoinPlanNode) Predicate() *expression.Expression { return p.predicate }
 
 /** @return the left plan node of the hash join, by convention this is used to build the table */
-func (p *HashJoinPlanNode) GetLeftPlan() *AbstractPlanNode {
+func (p *HashJoinPlanNode) GetLeftPlan() Plan {
 	//BUSTUB_ASSERT(GetChildren().size() == 2, "Hash joins should have exactly two children plans.")
 	return p.GetChildAt(0)
 }
 
 /** @return the right plan node of the hash join */
-func (p *HashJoinPlanNode) GetRightPlan() *AbstractPlanNode {
+func (p *HashJoinPlanNode) GetRightPlan() Plan {
 	//BUSTUB_ASSERT(GetChildren().size() == 2, "Hash joins should have exactly two children plans.")
 	return p.GetChildAt(1)
 }

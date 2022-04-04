@@ -1118,7 +1118,7 @@ func TestAbortWIthDeleteUpdate(t *testing.T) {
 }
 
 /*
-TEST_F(ExecutorTest, SimpleHashJoinTest) {
+TEST_F(ExecutorTest, TestSimpleHashJoin) {
 	// INSERT INTO empty_table2 SELECT colA, colB FROM test_1 WHERE colA < 500
 	std::unique_ptr<AbstractPlanNode> scan_plan1;
 	const Schema *out_schema1;
