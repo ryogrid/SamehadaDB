@@ -59,7 +59,7 @@ func NewHashJoinExecutor(exec_ctx *ExecutorContext, plan *plans.HashJoinPlanNode
 	ret.right_ = right
 	// about 200k entry can be stored
 	ret.jht_num_buckets_ = 100
-	ret.jht_ = hash.NewLinearProbeHashTable(exec_ctx.GetBufferPoolManager(), ret.jht_num_buckets_)
+	ret.jht_ = hash.NewLinearProbeHashTable(exec_ctx.GetBufferPoolManager(), int(ret.jht_num_buckets_))
 	return ret
 }
 
@@ -83,7 +83,7 @@ func (e *HashJoinExecutor) Init() {
 	var left_tuple tuple.Tuple
 	// store all the left tuples in tmp pages in that it can not fit in memory
 	// use tmp tuple as the value of the hash table kv pair
-	var tmp_page *TmpTuplePage = nil
+	var tmp_page *hash.TmpTuplePage = nil
 	tmp_page_id := INVALID_PAGE_ID
 	var tmp_tuple TmpTuple
 	for e.left_.Next(&left_tuple) {
@@ -93,7 +93,7 @@ func (e *HashJoinExecutor) Init() {
 				e.context.GetBufferPoolManager().UnpinPage(tmp_page_id, true)
 			}
 			// create new tmp page
-			tmp_page = (*TmpTuplePage)(e.context.GetBufferPoolManager().NewPage(&tmp_page_id))
+			tmp_page = (*hash.TmpTuplePage)(e.context.GetBufferPoolManager().NewPage(&tmp_page_id))
 			if !tmp_page {
 				panic("fail to create new tmp page when doing hash join")
 			}
@@ -148,7 +148,7 @@ func (e *HashJoinExecutor) Next(tuple_ *tuple.Tuple) bool {
 }
 
 func (e *HashJoinExecutor) FetchTupleFromTmpTuplePage(tuple_ *tuple.Tuple, tmp_tuple *TmpTuple) {
-	tmp_page := (*TmpTuplePage)(e.context.GetBufferPoolManager().FetchPage(tmp_tuple.GetPageId()))
+	tmp_page := (*hash.TmpTuplePage)(e.context.GetBufferPoolManager().FetchPage(tmp_tuple.GetPageId()))
 	if !tmp_page { /*throw std::runtime_error("fail to fetch tmp page when doing hash join")*/
 	}
 	tmp_page.Get(tuple_, tmp_tuple.GetOffset())
