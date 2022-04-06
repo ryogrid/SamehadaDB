@@ -28,6 +28,14 @@ type TmpTuplePage struct {
 	*page.Page
 }
 
+// CastPageAsTmpTuplePage casts the abstract Page struct into TmpTuplePage
+func CastPageAsTmpTuplePage(page *page.Page) *TmpTuplePage {
+	if page == nil {
+		return nil
+	}
+	return (*TmpTuplePage)(unsafe.Pointer(page))
+}
+
 // similar code learned from table_page.h/cpp  :)
 func (p *TmpTuplePage) Init(page_id types.PageID, page_size uint32) {
 	p.SetPageId(page_id)

@@ -30,7 +30,7 @@ type HashJoinExecutor struct {
 	//HashFunction<Value> jht_hash_fn_{}
 
 	/** The hash table that we are using. */
-	jht_ *hash.LinearProbeHashTable
+	jht_ *SimpleHashJoinHashTable //*hash.LinearProbeHashTable
 	/** The number of buckets in the hash table. */
 	jht_num_buckets_ uint32 //= 2
 	left_            Executor
@@ -51,8 +51,8 @@ type HashJoinExecutor struct {
 * @param left the left child, used by convention to build the hash table
 * @param right the right child, used by convention to probe the hash table
  */
-func NewHashJoinExecutor(exec_ctx *ExecutorContext, plan *plans.HashJoinPlanNode, left *Executor,
-	right *Executor) *HashJoinExecutor {
+func NewHashJoinExecutor(exec_ctx *ExecutorContext, plan *plans.HashJoinPlanNode, left Executor,
+	right Executor) *HashJoinExecutor {
 	//retun &HashJoinExecutor{exec_ctx, plan, }
 	ret := new(HashJoinExecutor)
 	ret.context = exec_ctx
@@ -60,12 +60,13 @@ func NewHashJoinExecutor(exec_ctx *ExecutorContext, plan *plans.HashJoinPlanNode
 	ret.right_ = right
 	// about 200k entry can be stored
 	ret.jht_num_buckets_ = 100
-	ret.jht_ = hash.NewLinearProbeHashTable(exec_ctx.GetBufferPoolManager(), int(ret.jht_num_buckets_))
+	//ret.jht_ = hash.NewLinearProbeHashTable(exec_ctx.GetBufferPoolManager(), int(ret.jht_num_buckets_))
+	ret.jht_ = new(SimpleHashJoinHashTable)
 	return ret
 }
 
 /** @return the JHT in use. Do not modify this function, otherwise you will get a zero. */
-func (e *HashJoinExecutor) GetJHT() *hash.LinearProbeHashTable { return e.jht_ }
+func (e *HashJoinExecutor) GetJHT() *SimpleHashJoinHashTable { return e.jht_ }
 
 func (e *HashJoinExecutor) GetOutputSchema() *schema.Schema { return e.plan_.OutputSchema() }
 
@@ -81,31 +82,32 @@ func (e *HashJoinExecutor) Init() {
 	e.right_.Init()
 	e.left_expr_ = e.plan_.Predicate().GetChildAt(0)
 	e.right_expr_ = e.plan_.Predicate().GetChildAt(1)
-	var left_tuple tuple.Tuple
+	//var left_tuple tuple.Tuple
 	// store all the left tuples in tmp pages in that it can not fit in memory
 	// use tmp tuple as the value of the hash table kv pair
 	var tmp_page *hash.TmpTuplePage = nil
-	tmp_page_id := common.InvalidPageID
+	var tmp_page_id types.PageID = common.InvalidPageID
 	var tmp_tuple hash.TmpTuple
-	for e.left_.Next(&left_tuple) {
+	for left_tuple, done, _ := e.left_.Next(); !done; left_tuple, done, _ = e.left_.Next() {
 		if tmp_page == nil || !tmp_page.Insert(left_tuple, &tmp_tuple) {
 			// unpin the last full tmp page
 			if tmp_page_id != common.InvalidPageID {
 				e.context.GetBufferPoolManager().UnpinPage(tmp_page_id, true)
 			}
 			// create new tmp page
-			tmp_page = (*hash.TmpTuplePage)(e.context.GetBufferPoolManager().NewPage(&tmp_page_id))
-			if !tmp_page {
+			tmp_page = hash.CastPageAsTmpTuplePage(e.context.GetBufferPoolManager().NewPage())
+			if tmp_page == nil {
 				panic("fail to create new tmp page when doing hash join")
 			}
-			tmp_page.Init(tmp_page_id, common.PageSize)
-			e.tmp_page_ids_ = append(e.tmp_page_ids_, (tmp_page_id))
+			tmp_page.Init(tmp_page.GetPageId(), common.PageSize)
+			tmp_page_id = tmp_page.GetPageId()
+			e.tmp_page_ids_ = append(e.tmp_page_ids_, tmp_page_id)
 			// reinsert the tuple
 			//assert(tmp_page.Insert(left_tuple, &tmp_tuple))
 			tmp_page.Insert(left_tuple, &tmp_tuple)
 		}
-		value := e.left_expr_.Evaluate(&left_tuple, e.left_.GetOutputSchema())
-		e.jht_.Insert(e.context.GetTransaction(), value, tmp_tuple)
+		value := e.left_expr_.Evaluate(left_tuple, e.left_.GetOutputSchema())
+		e.jht_.Insert(value, tmp_tuple)
 	}
 }
 
@@ -193,3 +195,34 @@ func (e *HashJoinExecutor) HashValues(tuple_ *tuple.Tuple, schema_ *schema.Schem
 	}
 	return curr_hash
 }
+
+type SimpleHashJoinHashTable struct {
+	hash_table_ map[uint32][]*tuple.Tuple
+}
+
+/**
+ * Inserts a (hash key, tuple) pair into the hash table.
+ * @param txn the transaction that we execute in
+ * @param h the hash key
+ * @param t the tuple to associate with the key
+ * @return true if the insert succeeded
+ */
+func (jht *SimpleHashJoinHashTable) Insert(h uint32, t *tuple.Tuple) bool {
+	if jht.hash_table_[h] == nil {
+		vals := make([]*tuple.Tuple, 0)
+		vals = append(vals, t)
+		jht.hash_table_[h] = vals
+	} else {
+		jht.hash_table_[h] = append(jht.hash_table_[h], t)
+	}
+
+	return true
+}
+
+/**
+ * Gets the values in the hash table that match the given hash key.
+ * @param txn the transaction that we execute in
+ * @param h the hash key
+ * @param[out] t the list of tuples that matched the key
+ */
+func (jht *SimpleHashJoinHashTable) GetValue(h uint32) []*tuple.Tuple { return jht.hash_table_[h] }

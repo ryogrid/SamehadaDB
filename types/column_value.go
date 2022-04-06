@@ -105,3 +105,7 @@ func (v Value) ToInteger() int32 {
 func (v Value) ToVarchar() string {
 	return *v.varchar
 }
+
+func (v Value) ValueType() TypeID {
+	return v.valueType
+}
