@@ -1,6 +1,7 @@
 package executors
 
 import (
+	"github.com/ryogrid/SamehadaDB/common"
 	"github.com/ryogrid/SamehadaDB/container/hash"
 	"github.com/ryogrid/SamehadaDB/execution/expression"
 	"github.com/ryogrid/SamehadaDB/execution/plans"
@@ -32,11 +33,11 @@ type HashJoinExecutor struct {
 	jht_ *hash.LinearProbeHashTable
 	/** The number of buckets in the hash table. */
 	jht_num_buckets_ uint32 //= 2
-	left_            *Executor
-	right_           *Executor
-	left_expr_       *expression.Expression
-	right_expr_      *expression.Expression
-	tmp_tuples_      []TmpTuple
+	left_            Executor
+	right_           Executor
+	left_expr_       expression.Expression
+	right_expr_      expression.Expression
+	tmp_tuples_      []hash.TmpTuple
 	index_           int32
 	output_exprs_    []expression.Expression
 	tmp_page_ids_    []types.PageID
@@ -64,16 +65,16 @@ func NewHashJoinExecutor(exec_ctx *ExecutorContext, plan *plans.HashJoinPlanNode
 }
 
 /** @return the JHT in use. Do not modify this function, otherwise you will get a zero. */
-func (e *HashJoinExecutor) GetJHT() *hash.LinearProbeHashTable { return jht_ }
+func (e *HashJoinExecutor) GetJHT() *hash.LinearProbeHashTable { return e.jht_ }
 
 func (e *HashJoinExecutor) GetOutputSchema() *schema.Schema { return e.plan_.OutputSchema() }
 
 func (e *HashJoinExecutor) Init() {
 	// get exprs to evaluate to output result
-	output_column_cnt := GetOutputSchema().GetColumnCount()
+	output_column_cnt := int(e.GetOutputSchema().GetColumnCount())
 	e.output_exprs_.resize(output_column_cnt)
 	for i := 0; i < output_column_cnt; i++ {
-		e.output_exprs_[i] = GetOutputSchema().GetColumn(i).GetExpr()
+		e.output_exprs_[i] = e.GetOutputSchema().GetColumn(i).GetExpr()
 	}
 	// build hash table from left
 	e.left_.Init()
@@ -84,12 +85,12 @@ func (e *HashJoinExecutor) Init() {
 	// store all the left tuples in tmp pages in that it can not fit in memory
 	// use tmp tuple as the value of the hash table kv pair
 	var tmp_page *hash.TmpTuplePage = nil
-	tmp_page_id := INVALID_PAGE_ID
-	var tmp_tuple TmpTuple
+	tmp_page_id := common.InvalidPageID
+	var tmp_tuple hash.TmpTuple
 	for e.left_.Next(&left_tuple) {
-		if !tmp_page || !tmp_page.Insert(left_tuple, &tmp_tuple) {
+		if tmp_page == nil || !tmp_page.Insert(left_tuple, &tmp_tuple) {
 			// unpin the last full tmp page
-			if tmp_page_id != INVALID_PAGE_ID {
+			if tmp_page_id != common.InvalidPageID {
 				e.context.GetBufferPoolManager().UnpinPage(tmp_page_id, true)
 			}
 			// create new tmp page
@@ -97,7 +98,7 @@ func (e *HashJoinExecutor) Init() {
 			if !tmp_page {
 				panic("fail to create new tmp page when doing hash join")
 			}
-			tmp_page.Init(tmp_page_id, PAGE_SIZE)
+			tmp_page.Init(tmp_page_id, common.PageSize)
 			e.tmp_page_ids_ = append(e.tmp_page_ids_, (tmp_page_id))
 			// reinsert the tuple
 			//assert(tmp_page.Insert(left_tuple, &tmp_tuple))
@@ -110,12 +111,13 @@ func (e *HashJoinExecutor) Init() {
 
 func (e *HashJoinExecutor) Next(tuple_ *tuple.Tuple) bool {
 	for true {
-		for e.index_ == e.tmp_tuples_.size() {
+		for e.index_ == len(e.tmp_tuples_) {
 			// we have traversed all possible join combination of the current right tuple
 			// move to the next right tuple
 			e.tmp_tuples_.clear()
 			e.index_ = 0
-			if !e.right_.Next(e.right_tuple_) {
+			_, done, _ := e.right_.Next(e.right_tuple_)
+			if !done {
 				// hash join finished, delete all the tmp page we created
 				for tmp_page_id := range e.tmp_page_ids_ {
 					e.context.GetBufferPoolManager().DeletePage(tmp_page_id)
@@ -128,18 +130,18 @@ func (e *HashJoinExecutor) Next(tuple_ *tuple.Tuple) bool {
 		// traverse corresponding left tuples stored in the tmp pages util we find one satisfying the predicate with current right tuple
 		left_tmp_tuple := e.tmp_tuples_[e.index_]
 		var left_tuple tuple.Tuple
-		FetchTupleFromTmpTuplePage(&left_tuple, left_tmp_tuple)
+		e.FetchTupleFromTmpTuplePage(&left_tuple, left_tmp_tuple)
 		for !IsValidCombination(left_tuple, e.right_tuple_) {
 			e.index_++
-			if e.index_ == e.tmp_tuples_.size() {
+			if e.index_ == len(e.tmp_tuples_) {
 				break
 			}
 			left_tmp_tuple = e.tmp_tuples_[e.index_]
-			FetchTupleFromTmpTuplePage(&left_tuple, left_tmp_tuple)
+			e.FetchTupleFromTmpTuplePage(&left_tuple, left_tmp_tuple)
 		}
-		if e.index_ < e.tmp_tuples_.size() {
+		if e.index_ < len(e.tmp_tuples_) {
 			// valid combination found
-			MakeOutputTuple(tuple_, &left_tuple, &e.right_tuple_)
+			e.MakeOutputTuple(tuple_, &left_tuple, &e.right_tuple_)
 			e.index_++
 			return true
 		}
@@ -161,13 +163,13 @@ func (e *HashJoinExecutor) IsValidCombination(left_tuple *tuple.Tuple, right_tup
 }
 
 func (e *HashJoinExecutor) MakeOutputTuple(output_tuple *tuple.Tuple, left_tuple *tuple.Tuple, tuple_ *tuple.Tuple, right_tuple *tuple.Tuple) {
-	output_column_cnt := GetOutputSchema().GetColumnCount()
+	output_column_cnt := e.GetOutputSchema().GetColumnCount()
 	values := make([]types.Value, output_column_cnt)
 	for i := 0; i < output_column_cnt; i++ {
 		values[i] =
 			e.output_exprs_[i].EvaluateJoin(left_tuple, e.left_.GetOutputSchema(), right_tuple, e.right_.GetOutputSchema())
 	}
-	output_tuple = tuple.NewTupleFromSchema(values, GetOutputSchema())
+	output_tuple = tuple.NewTupleFromSchema(values, e.GetOutputSchema())
 }
 
 /**

@@ -23,3 +23,11 @@ func NewConstantValue(value types.Value) Expression {
 func (c *ConstantValue) Evaluate(tuple *tuple.Tuple, schema *schema.Schema) types.Value {
 	return c.value
 }
+
+func (c *ConstantValue) EvaluateJoin(left_tuple *tuple.Tuple, left_schema *schema.Schema, right_tuple *tuple.Tuple, right_schema *schema.Schema) types.Value {
+	return *new(types.Value)
+}
+
+func (c *ConstantValue) GetChildAt(child_idx uint32) Expression {
+	return nil
+}

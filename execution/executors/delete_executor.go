@@ -5,6 +5,7 @@ import (
 	"github.com/ryogrid/SamehadaDB/execution/expression"
 	"github.com/ryogrid/SamehadaDB/execution/plans"
 	"github.com/ryogrid/SamehadaDB/storage/access"
+	"github.com/ryogrid/SamehadaDB/storage/table/schema"
 	"github.com/ryogrid/SamehadaDB/storage/tuple"
 )
 
@@ -67,3 +68,5 @@ func (e *DeleteExecutor) Next() (*tuple.Tuple, Done, error) {
 func (e *DeleteExecutor) selects(tuple *tuple.Tuple, predicate *expression.Expression) bool {
 	return predicate == nil || (*predicate).Evaluate(tuple, e.tableMetadata.Schema()).ToBoolean()
 }
+
+func (e *DeleteExecutor) GetOutputSchema() *schema.Schema { return nil }

@@ -32,3 +32,11 @@ func (c *ColumnValue) SetTupleIndex(tupleIndex uint32) {
 func (c *ColumnValue) SetColIndex(colIndex uint32) {
 	c.colIndex = colIndex
 }
+
+func (c *ColumnValue) EvaluateJoin(left_tuple *tuple.Tuple, left_schema *schema.Schema, right_tuple *tuple.Tuple, right_schema *schema.Schema) types.Value {
+	return *new(types.Value)
+}
+
+func (c *ColumnValue) GetChildAt(child_idx uint32) Expression {
+	return nil
+}

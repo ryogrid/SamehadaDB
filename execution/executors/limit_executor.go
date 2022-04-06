@@ -5,6 +5,7 @@ package executors
 
 import (
 	"github.com/ryogrid/SamehadaDB/execution/plans"
+	"github.com/ryogrid/SamehadaDB/storage/table/schema"
 	"github.com/ryogrid/SamehadaDB/storage/tuple"
 )
 
@@ -43,3 +44,5 @@ func (e *LimitExecutor) Next() (*tuple.Tuple, Done, error) {
 
 	return tuple, false, nil
 }
+
+func (e *LimitExecutor) GetOutputSchema() *schema.Schema { return nil }

@@ -81,3 +81,11 @@ func (c *Comparison) GetRightSideValue(tuple *tuple.Tuple, schema *schema.Schema
 func (c *Comparison) GetComparisonType() ComparisonType {
 	return c.comparisonType
 }
+
+func (c *Comparison) EvaluateJoin(left_tuple *tuple.Tuple, left_schema *schema.Schema, right_tuple *tuple.Tuple, right_schema *schema.Schema) types.Value {
+	return *new(types.Value)
+}
+
+func (c *Comparison) GetChildAt(child_idx uint32) Expression {
+	return nil
+}
