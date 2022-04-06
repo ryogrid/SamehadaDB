@@ -67,3 +67,8 @@ func (c *Column) HasIndex() bool {
 func (c *Column) SetHasIndex(hasIndex bool) {
 	c.hasIndex = hasIndex
 }
+
+// TODO: (SDB) dummy method for pass compile
+func (c *Column) GetExpr() interface{} {
+	panic("GetExpr is dummy")
+}

@@ -109,3 +109,11 @@ func (v Value) ToVarchar() string {
 func (v Value) ValueType() TypeID {
 	return v.valueType
 }
+
+func (v Value) SetNull() {
+	v.valueType = Null
+}
+
+func (v Value) IsNull() bool {
+	return v.valueType == Null
+}

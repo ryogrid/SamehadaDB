@@ -16,6 +16,7 @@ const (
 	Decimal
 	Varchar
 	Timestamp
+	Null
 )
 
 func (t TypeID) Size() uint32 {
