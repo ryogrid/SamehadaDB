@@ -79,4 +79,7 @@ func (e *UpdateExecutor) selects(tuple *tuple.Tuple, predicate *expression.Expre
 	return predicate == nil || (*predicate).Evaluate(tuple, e.tableMetadata.Schema()).ToBoolean()
 }
 
-func (e *UpdateExecutor) GetOutputSchema() *schema.Schema { return nil }
+func (e *UpdateExecutor) GetOutputSchema() *schema.Schema {
+	//return nil
+	panic("not implemented")
+}

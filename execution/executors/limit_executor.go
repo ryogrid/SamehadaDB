@@ -45,4 +45,7 @@ func (e *LimitExecutor) Next() (*tuple.Tuple, Done, error) {
 	return tuple, false, nil
 }
 
-func (e *LimitExecutor) GetOutputSchema() *schema.Schema { return nil }
+func (e *LimitExecutor) GetOutputSchema() *schema.Schema {
+	//return nil
+	panic("not implemented")
+}

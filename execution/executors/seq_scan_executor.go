@@ -77,4 +77,7 @@ func (e *SeqScanExecutor) projects(tuple_ *tuple.Tuple) *tuple.Tuple {
 	return tuple.NewTupleFromSchema(values, outputSchema)
 }
 
-func (e *SeqScanExecutor) GetOutputSchema() *schema.Schema { return nil }
+func (e *SeqScanExecutor) GetOutputSchema() *schema.Schema {
+	//return nil
+	panic("not implemented")
+}

@@ -60,4 +60,7 @@ func (e *InsertExecutor) Next() (*tuple.Tuple, Done, error) {
 	return nil, true, nil
 }
 
-func (e *InsertExecutor) GetOutputSchema() *schema.Schema { return nil }
+func (e *InsertExecutor) GetOutputSchema() *schema.Schema {
+	//return nil
+	panic("not implemented")
+}

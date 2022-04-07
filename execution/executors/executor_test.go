@@ -10,6 +10,7 @@ import (
 	"os"
 	"testing"
 	"time"
+	"unsafe"
 
 	"github.com/ryogrid/SamehadaDB/catalog"
 	"github.com/ryogrid/SamehadaDB/common"
@@ -1221,6 +1222,25 @@ func FillTable(info *catalog.TableMetadata, table_meta *TableInsertMeta) {
 	//LOG_INFO("Wrote %d tuples to table %s.", num_inserted, table_meta.name_)
 }
 
+func MakeColumnValueExpression(schema_ schema.Schema, tuple_idx uint32,
+	col_name string) *expression.Expression {
+	col_idx := schema_.GetColIndex(col_name)
+	//col_type := schema.GetColumn(col_idx).GetType()
+	col_val := expression.NewColumnValue(tuple_idx, col_idx)
+	return &col_val
+	//allocated_exprs = append(allocated_exprs, casted_col_val)
+	//return allocated_exprs_.back().get()
+}
+
+func MakeComparisonExpression(lhs *expression.Expression, rhs *expression.Expression,
+	comp_type expression.ComparisonType) *expression.Expression {
+	//allocated_exprs_.emplace_back(std::make_unique<ComparisonExpression>(lhs, rhs, comp_type));
+	//return allocated_exprs_.back().get();
+	casted_lhs := (*expression.ColumnValue)(unsafe.Pointer(lhs))
+	ret_exp := expression.NewComparison(*casted_lhs, *rhs, comp_type)
+	return &ret_exp
+}
+
 func TestSimpleHashJoin(t *testing.T) {
 	// INSERT INTO empty_table2 SELECT colA, colB FROM test_1 WHERE colA < 500
 	diskManager := disk.NewDiskManagerTest()
@@ -1265,47 +1285,53 @@ func TestSimpleHashJoin(t *testing.T) {
 	FillTable(tableMetadata1, tableMeta1)
 	FillTable(tableMetadata2, tableMeta2)
 
-	var scan_plan1 plans.PlanNode
-	out_schema1 * schema.Schema
+	var scan_plan1 plans.Plan
+	var out_schema1 *schema.Schema
 	{
-		table_info = executorContext.GetCatalog().GetTable("test_1")
+		table_info := executorContext.GetCatalog().GetTableByName("test_1")
 		//&schema := table_info.schema_
 		colA := column.NewColumn("colA", types.Varchar, false)
 		colB := column.NewColumn("colB", types.Varchar, false)
 		out_schema1 := schema.NewSchema([]*column.Column{colA, colB})
-		scan_plan1 := plans.NewSeqScanPlanNode(out_schema1, nullptr, table_info.oid_)
+		scan_plan1 = plans.NewSeqScanPlanNode(out_schema1, nil, table_info.OID())
 	}
-	var scan_plan2 plans.PlanNode
+	var scan_plan2 plans.Plan
 	var out_schema2 *schema.Schema
 	{
-		table_info := executorContext.GetCatalog().GetTable("test_2")
+		table_info := executorContext.GetCatalog().GetTableByName("test_2")
 		//schema := table_info.schema_
-		col1 := column.NewColumn(schema, 0, "col1")
-		col2 := column.NewColumn(schema, 0, "col2")
+		col1 := column.NewColumn("col1", types.Integer, false)
+		col2 := column.NewColumn("col2", types.Integer, false)
 		out_schema2 := schema.NewSchema([]*column.Column{col1, col2})
-		scan_plan2 = plans.NewSeqScanPlanNode(out_schema2, nullptr, table_info.oid_)
+		scan_plan2 = plans.NewSeqScanPlanNode(out_schema2, nil, table_info.OID())
 	}
-	var join_plan HashJoinPlanNode
+	var join_plan *plans.HashJoinPlanNode
 	var out_final *schema.Schema
 	{
 		// colA and colB have a tuple index of 0 because they are the left side of the join
+		//var allocated_exprs []*expression.ColumnValue
 		colA := MakeColumnValueExpression(*out_schema1, 0, "colA")
-		colB := MakeColumnValueExpression(*out_schema1, 0, "colB")
+		colA_c := column.NewColumn("colA", types.Integer, false)
+		// colB := MakeColumnValueExpression(allocated_exprs, *out_schema1, 0, "colB")
+		colB_c := column.NewColumn("colB", types.Integer, false)
 		// col1 and col2 have a tuple index of 1 because they are the right side of the join
 		col1 := MakeColumnValueExpression(*out_schema2, 1, "col1")
-		col2 := MakeColumnValueExpression(*out_schema2, 1, "col2")
+		col1_c := column.NewColumn("col1", types.Integer, false)
+		// col2 := MakeColumnValueExpression(allocated_exprs, *out_schema2, 1, "col2")
+		col2_c := column.NewColumn("col2", types.Integer, false)
 		var left_keys []*expression.Expression
-		append(left_keys, colA)
+		left_keys = append(left_keys, (*expression.Expression)(unsafe.Pointer(colA)))
 		var right_keys []*expression.Expression
-		append(right_keys, col1)
+		right_keys = append(right_keys, (*expression.Expression)(unsafe.Pointer(col1)))
 		predicate := MakeComparisonExpression(colA, col1, expression.Equal)
-		out_final = schema.NewSchema([]*column.Column{colA, colB, col1, col2})
-		join_plan = plans.NewHashJoinPlanNode(out_final, []*plans.PlanNode{scan_plan1.get(), scan_plan2.get()}, predicate,
+		out_final = schema.NewSchema([]*column.Column{colA_c, colB_c, col1_c, col2_c})
+		plans_ := []plans.Plan{scan_plan1, scan_plan2}
+		join_plan = plans.NewHashJoinPlanNode(out_final, plans_, *predicate,
 			left_keys, right_keys)
 	}
 
 	executionEngine := &ExecutionEngine{}
-	results := executionEngine.Execute(joinPlanNode, executorContext)
+	results := executionEngine.Execute(join_plan, executorContext)
 
 	// executor := ExecutorFactory::CreateExecutor(GetExecutorContext(), join_plan.get())
 	// executor.Init()

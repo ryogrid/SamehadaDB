@@ -113,7 +113,7 @@ func (e *HashJoinExecutor) Init() {
 }
 
 func (e *HashJoinExecutor) Next() (*tuple.Tuple, bool, error) {
-	for true {
+	for {
 		for int(e.index_) == len(e.tmp_tuples_) {
 			// we have traversed all possible join combination of the current right tuple
 			// move to the next right tuple
@@ -149,7 +149,7 @@ func (e *HashJoinExecutor) Next() (*tuple.Tuple, bool, error) {
 		}
 		// no valid combination, turn to the next right tuple by for loop
 	}
-	return nil, false, nil
+	//return nil, false, nil
 }
 
 func (e *HashJoinExecutor) FetchTupleFromTmpTuplePage(tuple_ *tuple.Tuple, tmp_tuple *hash.TmpTuple) {

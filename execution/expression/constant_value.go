@@ -25,9 +25,11 @@ func (c *ConstantValue) Evaluate(tuple *tuple.Tuple, schema *schema.Schema) type
 }
 
 func (c *ConstantValue) EvaluateJoin(left_tuple *tuple.Tuple, left_schema *schema.Schema, right_tuple *tuple.Tuple, right_schema *schema.Schema) types.Value {
-	return *new(types.Value)
+	//return *new(types.Value)
+	panic("not implemented")
 }
 
 func (c *ConstantValue) GetChildAt(child_idx uint32) Expression {
-	return nil
+	//return nil
+	panic("not implemented")
 }
