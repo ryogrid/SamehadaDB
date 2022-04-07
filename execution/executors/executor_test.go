@@ -5,8 +5,11 @@ package executors
 
 import (
 	"fmt"
+	"math"
+	"math/rand"
 	"os"
 	"testing"
+	"time"
 
 	"github.com/ryogrid/SamehadaDB/catalog"
 	"github.com/ryogrid/SamehadaDB/common"
@@ -18,6 +21,7 @@ import (
 	"github.com/ryogrid/SamehadaDB/storage/disk"
 	"github.com/ryogrid/SamehadaDB/storage/table/column"
 	"github.com/ryogrid/SamehadaDB/storage/table/schema"
+	"github.com/ryogrid/SamehadaDB/storage/tuple"
 	testingpkg "github.com/ryogrid/SamehadaDB/testing"
 	"github.com/ryogrid/SamehadaDB/types"
 )
@@ -1117,60 +1121,206 @@ func TestAbortWIthDeleteUpdate(t *testing.T) {
 	testingpkg.Assert(t, len(results) == 1, "")
 }
 
-/*
-TEST_F(ExecutorTest, TestSimpleHashJoin) {
+type ColumnInsertMeta struct {
+	/**
+	 * Name of the column
+	 */
+	name_ string
+	/**
+	 * Type of the column
+	 */
+	type_ types.TypeID
+	/**
+	 * Whether the column is nullable
+	 */
+	nullable_ bool
+	/**
+	 * Distribution of values
+	 */
+	dist_ int32
+	/**
+	 * Min value of the column
+	 */
+	min_ int32
+	/**
+	 * Max value of the column
+	 */
+	max_ int32
+	/**
+	 * Counter to generate serial data
+	 */
+	serial_counter_ int32
+}
+
+type TableInsertMeta struct {
+	/**
+	 * Name of the table
+	 */
+	name_ string
+	/**
+	 * Number of rows
+	 */
+	num_rows_ uint32
+	/**
+	 * Columns
+	 */
+	col_meta_ []*ColumnInsertMeta
+}
+
+const DistSerial int32 = 0
+const DistUniform int32 = 1
+
+func GenNumericValues(col_meta ColumnInsertMeta, count uint32) []types.Value {
+	var values []types.Value
+	if col_meta.dist_ == DistSerial {
+		for i := 0; i < int(count); i++ {
+			values = append(values, types.NewInteger(col_meta.serial_counter_))
+			col_meta.serial_counter_ += 1
+		}
+		return values
+	}
+
+	seed := time.Now().UnixNano()
+	rand.Seed(seed)
+	for i := 0; i < int(count); i++ {
+		values = append(values, types.NewInteger(rand.Int31n(col_meta.max_)))
+	}
+	return values
+}
+
+func MakeValues(col_meta *ColumnInsertMeta, count uint32) []types.Value {
+	//var values []types.Value
+	switch col_meta.type_ {
+	case types.Integer:
+		return GenNumericValues(*col_meta, count)
+	default:
+		panic("Not yet implemented")
+	}
+}
+
+func FillTable(info *catalog.TableMetadata, table_meta *TableInsertMeta) {
+	var num_inserted uint32 = 0
+	var batch_size uint32 = 128
+	for num_inserted < table_meta.num_rows_ {
+		var values []types.Value
+		var num_values uint32 = uint32(math.Min(float64(batch_size), float64(table_meta.num_rows_-num_inserted)))
+		for _, col_meta := range table_meta.col_meta_ {
+			values = append(values, MakeValues(col_meta, num_values)...)
+		}
+		for i := 0; i < int(num_values); i++ {
+			var entry []types.Value
+			//entry.reserve(values.size())
+			entry = append(entry, values...)
+			//var rid page.RID
+			info.Table().InsertTuple(tuple.NewTupleFromSchema(entry, info.Schema()), nil)
+			//BUSTUB_ASSERT(inserted, "Sequential insertion cannot fail")
+			num_inserted++
+		}
+		// exec_ctx_.GetBufferPoolManager().FlushAllPages()
+	}
+	//LOG_INFO("Wrote %d tuples to table %s.", num_inserted, table_meta.name_)
+}
+
+func TestSimpleHashJoin(t *testing.T) {
 	// INSERT INTO empty_table2 SELECT colA, colB FROM test_1 WHERE colA < 500
-	std::unique_ptr<AbstractPlanNode> scan_plan1;
-	const Schema *out_schema1;
+	diskManager := disk.NewDiskManagerTest()
+	defer diskManager.ShutDown()
+	log_mgr := recovery.NewLogManager(&diskManager)
+	bpm := buffer.NewBufferPoolManager(uint32(32), diskManager, log_mgr)
+	txn_mgr := access.NewTransactionManager(log_mgr)
+	txn := txn_mgr.Begin(nil)
+	c := catalog.BootstrapCatalog(bpm, log_mgr, access.NewLockManager(access.REGULAR, access.PREVENTION), txn)
+	executorContext := NewExecutorContext(c, bpm, txn)
+
+	columnA := column.NewColumn("colA", types.Integer, false)
+	columnB := column.NewColumn("colB", types.Integer, false)
+	columnC := column.NewColumn("colC", types.Integer, false)
+	columnD := column.NewColumn("colD", types.Integer, false)
+	schema_ := schema.NewSchema([]*column.Column{columnA, columnB, columnC, columnD})
+	tableMetadata1 := c.CreateTable("test_1", schema_, txn)
+
+	column1 := column.NewColumn("col1", types.Integer, false)
+	column2 := column.NewColumn("col2", types.Integer, false)
+	column3 := column.NewColumn("col3", types.Integer, false)
+	column4 := column.NewColumn("col3", types.Integer, false)
+	schema_ = schema.NewSchema([]*column.Column{column1, column2, column3, column4})
+	tableMetadata2 := c.CreateTable("test_2", schema_, txn)
+
+	tableMeta1 := &TableInsertMeta{"test_1",
+		100,
+		[]*ColumnInsertMeta{
+			&ColumnInsertMeta{"colA", types.Integer, false, DistSerial, 0, 0, 0},
+			&ColumnInsertMeta{"colB", types.Integer, false, DistUniform, 0, 9, 0},
+			&ColumnInsertMeta{"colC", types.Integer, false, DistUniform, 0, 9999, 0},
+			&ColumnInsertMeta{"colD", types.Integer, false, DistUniform, 0, 99999, 0},
+		}}
+	tableMeta2 := &TableInsertMeta{"test_2",
+		1000,
+		[]*ColumnInsertMeta{
+			&ColumnInsertMeta{"col1", types.Integer, false, DistSerial, 0, 0, 0},
+			&ColumnInsertMeta{"col2", types.Integer, false, DistUniform, 0, 9, 9},
+			&ColumnInsertMeta{"col3", types.Integer, false, DistUniform, 0, 9999, 1024},
+			&ColumnInsertMeta{"col4", types.Integer, false, DistUniform, 0, 99999, 2048},
+		}}
+	FillTable(tableMetadata1, tableMeta1)
+	FillTable(tableMetadata2, tableMeta2)
+
+	var scan_plan1 plans.PlanNode
+	out_schema1 * schema.Schema
 	{
-	  auto table_info = GetExecutorContext()->GetCatalog()->GetTable("test_1");
-	  auto &schema = table_info->schema_;
-	  auto colA = MakeColumnValueExpression(schema, 0, "colA");
-	  auto colB = MakeColumnValueExpression(schema, 0, "colB");
-	  out_schema1 = MakeOutputSchema({{"colA", colA}, {"colB", colB}});
-	  scan_plan1 = std::make_unique<SeqScanPlanNode>(out_schema1, nullptr, table_info->oid_);
+		table_info = executorContext.GetCatalog().GetTable("test_1")
+		//&schema := table_info.schema_
+		colA := column.NewColumn("colA", types.Varchar, false)
+		colB := column.NewColumn("colB", types.Varchar, false)
+		out_schema1 := schema.NewSchema([]*column.Column{colA, colB})
+		scan_plan1 := plans.NewSeqScanPlanNode(out_schema1, nullptr, table_info.oid_)
 	}
-	std::unique_ptr<AbstractPlanNode> scan_plan2;
-	const Schema *out_schema2;
+	var scan_plan2 plans.PlanNode
+	var out_schema2 *schema.Schema
 	{
-	  auto table_info = GetExecutorContext()->GetCatalog()->GetTable("test_2");
-	  auto &schema = table_info->schema_;
-	  auto col1 = MakeColumnValueExpression(schema, 0, "col1");
-	  auto col2 = MakeColumnValueExpression(schema, 0, "col2");
-	  out_schema2 = MakeOutputSchema({{"col1", col1}, {"col2", col2}});
-	  scan_plan2 = std::make_unique<SeqScanPlanNode>(out_schema2, nullptr, table_info->oid_);
+		table_info := executorContext.GetCatalog().GetTable("test_2")
+		//schema := table_info.schema_
+		col1 := column.NewColumn(schema, 0, "col1")
+		col2 := column.NewColumn(schema, 0, "col2")
+		out_schema2 := schema.NewSchema([]*column.Column{col1, col2})
+		scan_plan2 = plans.NewSeqScanPlanNode(out_schema2, nullptr, table_info.oid_)
 	}
-	std::unique_ptr<HashJoinPlanNode> join_plan;
-	const Schema *out_final;
+	var join_plan HashJoinPlanNode
+	var out_final *schema.Schema
 	{
-	  // colA and colB have a tuple index of 0 because they are the left side of the join
-	  auto colA = MakeColumnValueExpression(*out_schema1, 0, "colA");
-	  auto colB = MakeColumnValueExpression(*out_schema1, 0, "colB");
-	  // col1 and col2 have a tuple index of 1 because they are the right side of the join
-	  auto col1 = MakeColumnValueExpression(*out_schema2, 1, "col1");
-	  auto col2 = MakeColumnValueExpression(*out_schema2, 1, "col2");
-	  std::vector<const AbstractExpression *> left_keys{colA};
-	  std::vector<const AbstractExpression *> right_keys{col1};
-	  auto predicate = MakeComparisonExpression(colA, col1, ComparisonType::Equal);
-	  out_final = MakeOutputSchema({{"colA", colA}, {"colB", colB}, {"col1", col1}, {"col2", col2}});
-	  join_plan = std::make_unique<HashJoinPlanNode>(
-		  out_final, std::vector<const AbstractPlanNode *>{scan_plan1.get(), scan_plan2.get()}, predicate,
-		  std::move(left_keys), std::move(right_keys));
+		// colA and colB have a tuple index of 0 because they are the left side of the join
+		colA := MakeColumnValueExpression(*out_schema1, 0, "colA")
+		colB := MakeColumnValueExpression(*out_schema1, 0, "colB")
+		// col1 and col2 have a tuple index of 1 because they are the right side of the join
+		col1 := MakeColumnValueExpression(*out_schema2, 1, "col1")
+		col2 := MakeColumnValueExpression(*out_schema2, 1, "col2")
+		var left_keys []*expression.Expression
+		append(left_keys, colA)
+		var right_keys []*expression.Expression
+		append(right_keys, col1)
+		predicate := MakeComparisonExpression(colA, col1, expression.Equal)
+		out_final = schema.NewSchema([]*column.Column{colA, colB, col1, col2})
+		join_plan = plans.NewHashJoinPlanNode(out_final, []*plans.PlanNode{scan_plan1.get(), scan_plan2.get()}, predicate,
+			left_keys, right_keys)
 	}
 
-	auto executor = ExecutorFactory::CreateExecutor(GetExecutorContext(), join_plan.get());
-	executor->Init();
-	Tuple tuple;
-	uint32_t num_tuples = 0;
-	std::cout << "ColA, ColB, Col1, Col2" << std::endl;
-	while (executor->Next(&tuple)) {
-	  std::cout << tuple.GetValue(out_final, out_schema1->GetColIdx("colA")).GetAs<int32_t>() << ", "
-				<< tuple.GetValue(out_final, out_schema1->GetColIdx("colB")).GetAs<int32_t>() << ", "
-				<< tuple.GetValue(out_final, out_schema2->GetColIdx("col1")).GetAs<int16_t>() << ", "
-				<< tuple.GetValue(out_final, out_schema2->GetColIdx("col2")).GetAs<int32_t>() << std::endl;
+	executionEngine := &ExecutionEngine{}
+	results := executionEngine.Execute(joinPlanNode, executorContext)
 
-	  num_tuples++;
-	}
-	ASSERT_EQ(num_tuples, 100);
-  }
-*/
+	// executor := ExecutorFactory::CreateExecutor(GetExecutorContext(), join_plan.get())
+	// executor.Init()
+	// Tuple tuple
+	// uint32_t num_tuples = 0
+	// std::cout << "ColA, ColB, Col1, Col2" << std::endl
+	// while (executor.Next(&tuple)) {
+	//   std::cout << tuple.GetValue(out_final, out_schema1.GetColIdx("colA")).GetAs<int32_t>() << ", "
+	// 			<< tuple.GetValue(out_final, out_schema1.GetColIdx("colB")).GetAs<int32_t>() << ", "
+	// 			<< tuple.GetValue(out_final, out_schema2.GetColIdx("col1")).GetAs<int16_t>() << ", "
+	// 			<< tuple.GetValue(out_final, out_schema2.GetColIdx("col2")).GetAs<int32_t>() << std::endl
+
+	//   num_tuples++
+	// }
+	//ASSERT_EQ(len(result), 100)
+	num_tuples := len(results)
+	testingpkg.Assert(t, num_tuples == 100, "")
+}
