@@ -95,6 +95,5 @@ func (e *HashScanIndexExecutor) projects(tuple_ *tuple.Tuple) *tuple.Tuple {
 }
 
 func (e *HashScanIndexExecutor) GetOutputSchema() *schema.Schema {
-	//return nil
-	panic("not implemented")
+	return e.plan.OutputSchema()
 }

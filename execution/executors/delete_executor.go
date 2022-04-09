@@ -69,4 +69,4 @@ func (e *DeleteExecutor) selects(tuple *tuple.Tuple, predicate *expression.Expre
 	return predicate == nil || (*predicate).Evaluate(tuple, e.tableMetadata.Schema()).ToBoolean()
 }
 
-func (e *DeleteExecutor) GetOutputSchema() *schema.Schema { return nil }
+func (e *DeleteExecutor) GetOutputSchema() *schema.Schema { return e.plan.OutputSchema() }

@@ -46,6 +46,5 @@ func (e *LimitExecutor) Next() (*tuple.Tuple, Done, error) {
 }
 
 func (e *LimitExecutor) GetOutputSchema() *schema.Schema {
-	//return nil
-	panic("not implemented")
+	return e.plan.OutputSchema()
 }

@@ -61,6 +61,5 @@ func (e *InsertExecutor) Next() (*tuple.Tuple, Done, error) {
 }
 
 func (e *InsertExecutor) GetOutputSchema() *schema.Schema {
-	//return nil
-	panic("not implemented")
+	return e.plan.OutputSchema()
 }

@@ -21,6 +21,7 @@ const (
  * ComparisonExpression represents two expressions being compared.
  */
 type Comparison struct {
+	*AbstractExpression
 	comparisonType ComparisonType
 	//children       []Expression
 	children_left  ColumnValue
@@ -28,22 +29,22 @@ type Comparison struct {
 }
 
 //func NewComparison(left Expression, right Expression, comparisonType ComparisonType) Expression {
-func NewComparison(left ColumnValue, right Expression, comparisonType ComparisonType) Expression {
+func NewComparison(left ColumnValue, right Expression, comparisonType ComparisonType, colType types.TypeID) Expression {
 	//children := make([]Expression, 2)
 	// children[0] = left
 	// children[1] = right
 
 	//return &Comparison{comparisonType, children}
-	return &Comparison{comparisonType, left, right}
+	return &Comparison{&AbstractExpression{[]*Expression{}, colType}, comparisonType, left, right}
 }
 
 //func NewComparisonAsComparison(left Expression, right Expression, comparisonType ComparisonType) *Comparison {
-func NewComparisonAsComparison(left ColumnValue, right Expression, comparisonType ComparisonType) *Comparison {
+func NewComparisonAsComparison(left ColumnValue, right Expression, comparisonType ComparisonType, colType types.TypeID) *Comparison {
 	// children := make([]Expression, 2)
 	// children[0] = left
 	// children[1] = right
 	// return &Comparison{comparisonType, children}
-	return &Comparison{comparisonType, left, right}
+	return &Comparison{&AbstractExpression{[]*Expression{}, colType}, comparisonType, left, right}
 }
 
 func (c *Comparison) Evaluate(tuple *tuple.Tuple, schema *schema.Schema) types.Value {
@@ -84,10 +85,14 @@ func (c *Comparison) GetComparisonType() ComparisonType {
 
 func (c *Comparison) EvaluateJoin(left_tuple *tuple.Tuple, left_schema *schema.Schema, right_tuple *tuple.Tuple, right_schema *schema.Schema) types.Value {
 	//return *new(types.Value)
-	panic("not implemented")
+	//panic("not implemented")
+	lhs := c.GetChildAt(0).EvaluateJoin(left_tuple, left_schema, right_tuple, right_schema)
+	rhs := c.GetChildAt(1).EvaluateJoin(left_tuple, left_schema, right_tuple, right_schema)
+	return types.NewBoolean(c.performComparison(lhs, rhs))
 }
 
 func (c *Comparison) GetChildAt(child_idx uint32) Expression {
 	//return nil
-	panic("not implemented")
+	//panic("not implemented")
+	return *c.children[child_idx]
 }

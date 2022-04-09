@@ -78,6 +78,5 @@ func (e *SeqScanExecutor) projects(tuple_ *tuple.Tuple) *tuple.Tuple {
 }
 
 func (e *SeqScanExecutor) GetOutputSchema() *schema.Schema {
-	//return nil
-	panic("not implemented")
+	return e.plan.OutputSchema()
 }

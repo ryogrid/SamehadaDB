@@ -80,6 +80,5 @@ func (e *UpdateExecutor) selects(tuple *tuple.Tuple, predicate *expression.Expre
 }
 
 func (e *UpdateExecutor) GetOutputSchema() *schema.Schema {
-	//return nil
-	panic("not implemented")
+	return e.plan.OutputSchema()
 }

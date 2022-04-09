@@ -6,6 +6,7 @@ package types
 import (
 	"bytes"
 	"encoding/binary"
+	"unsafe"
 )
 
 // A value is an class that represents a view over SQL data stored in
@@ -44,6 +45,11 @@ func NewValueFromBytes(data []byte, valueType TypeID) (ret *Value) {
 		binary.Read(bytes.NewBuffer(lengthInBytes), binary.LittleEndian, length)
 		varchar := NewVarchar(string(data[2:(*length + 2)]))
 		ret = &varchar
+	case Boolean:
+		v := new(bool)
+		binary.Read(bytes.NewBuffer(data), binary.LittleEndian, v)
+		vBoolean := NewBoolean(*v)
+		ret = &vBoolean
 	}
 	return ret
 }
@@ -54,6 +60,8 @@ func (v Value) CompareEquals(right Value) bool {
 		return *v.integer == *right.integer
 	case Varchar:
 		return *v.varchar == *right.varchar
+	case Boolean:
+		return *v.boolean == *right.boolean
 	}
 	return false
 }
@@ -64,6 +72,8 @@ func (v Value) CompareNotEquals(right Value) bool {
 		return *v.integer != *right.integer
 	case Varchar:
 		return *v.varchar != *right.varchar
+	case Boolean:
+		return *v.boolean != *right.boolean
 	}
 	return false
 }
@@ -79,6 +89,10 @@ func (v Value) Serialize() []byte {
 		binary.Write(buf, binary.LittleEndian, uint16(len(v.ToVarchar())))
 		lengthInBytes := buf.Bytes()
 		return append(lengthInBytes, []byte(v.ToVarchar())...)
+	case Boolean:
+		buf := new(bytes.Buffer)
+		binary.Write(buf, binary.LittleEndian, v.ToBoolean())
+		return buf.Bytes()
 	}
 	return []byte{}
 }
@@ -90,8 +104,10 @@ func (v Value) Size() uint32 {
 		return 4
 	case Varchar:
 		return uint32(len(*v.varchar)) + 2 // varchar occupies the size of the string + 2 bytes for length storage
+	case Boolean:
+		return uint32(unsafe.Sizeof(true))
 	}
-	return 0
+	panic("not implemented")
 }
 
 func (v Value) ToBoolean() bool {
