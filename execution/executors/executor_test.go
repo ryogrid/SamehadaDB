@@ -10,7 +10,6 @@ import (
 	"os"
 	"testing"
 	"time"
-	"unsafe"
 
 	"github.com/ryogrid/SamehadaDB/catalog"
 	"github.com/ryogrid/SamehadaDB/common"
@@ -1223,21 +1222,23 @@ func FillTable(info *catalog.TableMetadata, table_meta *TableInsertMeta, txn *ac
 }
 
 func MakeColumnValueExpression(schema_ *schema.Schema, tuple_idx uint32,
-	col_name string) *expression.Expression {
+	col_name string) expression.Expression {
 	col_idx := schema_.GetColIndex(col_name)
 	col_type := schema_.GetColumn(col_idx).GetType()
 	col_val := expression.NewColumnValue(tuple_idx, col_idx, col_type)
-	return &col_val
+	return col_val
 	//allocated_exprs = append(allocated_exprs, casted_col_val)
 	//return allocated_exprs_.back().get()
 }
 
-func MakeComparisonExpression(lhs *expression.Expression, rhs *expression.Expression,
+func MakeComparisonExpression(lhs expression.Expression, rhs expression.Expression,
 	comp_type expression.ComparisonType) *expression.Expression {
 	//allocated_exprs_.emplace_back(std::make_unique<ComparisonExpression>(lhs, rhs, comp_type));
 	//return allocated_exprs_.back().get();
-	casted_lhs := (*expression.ColumnValue)(unsafe.Pointer(lhs))
-	ret_exp := expression.NewComparison(*casted_lhs, *rhs, comp_type, types.Boolean)
+	//casted_lhs := (*expression.ColumnValue)(unsafe.Pointer(lhs))
+	casted_lhs := lhs.(*expression.ColumnValue)
+
+	ret_exp := expression.NewComparison(*casted_lhs, rhs, comp_type, types.Boolean)
 	return &ret_exp
 }
 
@@ -1324,9 +1325,9 @@ func TestSimpleHashJoin(t *testing.T) {
 		// col2 := MakeColumnValueExpression(allocated_exprs, *out_schema2, 1, "col2")
 		col2_c := column.NewColumn("col2", types.Integer, false)
 		col1_c.SetIsLeft(false)
-		var left_keys []*expression.Expression
+		var left_keys []expression.Expression
 		left_keys = append(left_keys, colA)
-		var right_keys []*expression.Expression
+		var right_keys []expression.Expression
 		right_keys = append(right_keys, col1)
 		predicate := MakeComparisonExpression(colA, col1, expression.Equal)
 		out_final = schema.NewSchema([]*column.Column{colA_c, colB_c, col1_c, col2_c})

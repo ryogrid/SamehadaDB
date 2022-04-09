@@ -55,6 +55,7 @@ func NewHashJoinExecutor(exec_ctx *ExecutorContext, plan *plans.HashJoinPlanNode
 	right Executor) *HashJoinExecutor {
 	//retun &HashJoinExecutor{exec_ctx, plan, }
 	ret := new(HashJoinExecutor)
+	ret.plan_ = plan
 	ret.context = exec_ctx
 	ret.left_ = left
 	ret.right_ = right

@@ -18,7 +18,7 @@ type ConstantValue struct {
 }
 
 func NewConstantValue(value types.Value, colType types.TypeID) Expression {
-	return &ConstantValue{&AbstractExpression{[]*Expression{}, colType}, value}
+	return &ConstantValue{&AbstractExpression{[2]Expression{}, colType}, value}
 }
 
 func (c *ConstantValue) Evaluate(tuple *tuple.Tuple, schema *schema.Schema) types.Value {
@@ -34,5 +34,5 @@ func (c *ConstantValue) EvaluateJoin(left_tuple *tuple.Tuple, left_schema *schem
 func (c *ConstantValue) GetChildAt(child_idx uint32) Expression {
 	//return nil
 	//panic("not implemented")
-	return *c.children[child_idx]
+	return c.children[child_idx]
 }

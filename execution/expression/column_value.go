@@ -19,7 +19,7 @@ type ColumnValue struct {
 }
 
 func NewColumnValue(tupleIndex uint32, colIndex uint32, colType types.TypeID) Expression {
-	return &ColumnValue{&AbstractExpression{[]*Expression{}, colType}, tupleIndex, colIndex}
+	return &ColumnValue{&AbstractExpression{[2]Expression{}, colType}, tupleIndex, colIndex}
 }
 
 func (c *ColumnValue) Evaluate(tuple *tuple.Tuple, schema *schema.Schema) types.Value {
@@ -47,7 +47,7 @@ func (c *ColumnValue) EvaluateJoin(left_tuple *tuple.Tuple, left_schema *schema.
 func (c *ColumnValue) GetChildAt(child_idx uint32) Expression {
 	//return nil
 	//panic("not implemented")
-	return *c.children[child_idx]
+	return c.children[child_idx]
 }
 
 func (c *ColumnValue) GetReturnType() types.TypeID { return c.ret_type }

@@ -35,7 +35,10 @@ func NewComparison(left ColumnValue, right Expression, comparisonType Comparison
 	// children[1] = right
 
 	//return &Comparison{comparisonType, children}
-	return &Comparison{&AbstractExpression{[]*Expression{}, colType}, comparisonType, left, right}
+	ret := &Comparison{&AbstractExpression{[2]Expression{}, colType}, comparisonType, left, right}
+	ret.SetChildAt(0, &left)
+	ret.SetChildAt(1, right)
+	return ret
 }
 
 //func NewComparisonAsComparison(left Expression, right Expression, comparisonType ComparisonType) *Comparison {
@@ -44,14 +47,17 @@ func NewComparisonAsComparison(left ColumnValue, right Expression, comparisonTyp
 	// children[0] = left
 	// children[1] = right
 	// return &Comparison{comparisonType, children}
-	return &Comparison{&AbstractExpression{[]*Expression{}, colType}, comparisonType, left, right}
+	ret := &Comparison{&AbstractExpression{[2]Expression{}, colType}, comparisonType, left, right}
+	ret.SetChildAt(0, &left)
+	ret.SetChildAt(1, right)
+	return ret
 }
 
 func (c *Comparison) Evaluate(tuple *tuple.Tuple, schema *schema.Schema) types.Value {
-	// lhs := c.children[0].Evaluate(tuple, schema)
-	// rhs := c.children[1].Evaluate(tuple, schema)
-	lhs := c.children_left.Evaluate(tuple, schema)
-	rhs := c.children_right.Evaluate(tuple, schema)
+	lhs := c.children[0].Evaluate(tuple, schema)
+	rhs := c.children[1].Evaluate(tuple, schema)
+	// lhs := c.children_left.Evaluate(tuple, schema)
+	// rhs := c.children_right.Evaluate(tuple, schema)
 	return types.NewBoolean(c.performComparison(lhs, rhs))
 }
 
@@ -94,5 +100,11 @@ func (c *Comparison) EvaluateJoin(left_tuple *tuple.Tuple, left_schema *schema.S
 func (c *Comparison) GetChildAt(child_idx uint32) Expression {
 	//return nil
 	//panic("not implemented")
-	return *c.children[child_idx]
+	return c.children[child_idx]
+}
+
+func (c *Comparison) SetChildAt(child_idx uint32, child Expression) {
+	//return nil
+	//panic("not implemented")
+	c.children[child_idx] = child
 }

@@ -15,14 +15,14 @@ type HashJoinPlanNode struct {
 	/** The hash join predicate. */
 	predicate expression.Expression
 	/** The left child's hash keys. */
-	left_hash_keys []*expression.Expression
+	left_hash_keys []expression.Expression
 	/** The right child's hash keys. */
-	right_hash_keys []*expression.Expression
+	right_hash_keys []expression.Expression
 }
 
 func NewHashJoinPlanNode(output_schema *schema.Schema, children []Plan,
-	predicate expression.Expression, left_hash_keys []*expression.Expression,
-	right_hash_keys []*expression.Expression) *HashJoinPlanNode {
+	predicate expression.Expression, left_hash_keys []expression.Expression,
+	right_hash_keys []expression.Expression) *HashJoinPlanNode {
 	return &HashJoinPlanNode{&AbstractPlanNode{output_schema, children}, predicate, left_hash_keys, right_hash_keys}
 }
 
@@ -44,17 +44,17 @@ func (p *HashJoinPlanNode) GetRightPlan() Plan {
 }
 
 /** @return the left key at the given index */
-func (p *HashJoinPlanNode) GetLeftKeyAt(idx uint32) *expression.Expression {
+func (p *HashJoinPlanNode) GetLeftKeyAt(idx uint32) expression.Expression {
 	return p.left_hash_keys[idx]
 }
 
 /** @return the left keys */
-func (p *HashJoinPlanNode) GetLeftKeys() []*expression.Expression { return p.left_hash_keys }
+func (p *HashJoinPlanNode) GetLeftKeys() []expression.Expression { return p.left_hash_keys }
 
 /** @return the right key at the given index */
-func (p *HashJoinPlanNode) GetRightKeyAt(idx uint32) *expression.Expression {
+func (p *HashJoinPlanNode) GetRightKeyAt(idx uint32) expression.Expression {
 	return p.right_hash_keys[idx]
 }
 
 /** @return the right keys */
-func (p *HashJoinPlanNode) GetRightKeys() []*expression.Expression { return p.right_hash_keys }
+func (p *HashJoinPlanNode) GetRightKeys() []expression.Expression { return p.right_hash_keys }
