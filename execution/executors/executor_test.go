@@ -1222,7 +1222,7 @@ func FillTable(info *catalog.TableMetadata, table_meta *TableInsertMeta, txn *ac
 	//LOG_INFO("Wrote %d tuples to table %s.", num_inserted, table_meta.name_)
 }
 
-func MakeColumnValueExpression(schema_ schema.Schema, tuple_idx uint32,
+func MakeColumnValueExpression(schema_ *schema.Schema, tuple_idx uint32,
 	col_name string) *expression.Expression {
 	col_idx := schema_.GetColIndex(col_name)
 	col_type := schema_.GetColumn(col_idx).GetType()
@@ -1293,7 +1293,7 @@ func TestSimpleHashJoin(t *testing.T) {
 		//&schema := table_info.schema_
 		colA := column.NewColumn("colA", types.Varchar, false)
 		colB := column.NewColumn("colB", types.Varchar, false)
-		out_schema1 := schema.NewSchema([]*column.Column{colA, colB})
+		out_schema1 = schema.NewSchema([]*column.Column{colA, colB})
 		scan_plan1 = plans.NewSeqScanPlanNode(out_schema1, nil, table_info.OID())
 	}
 	var scan_plan2 plans.Plan
@@ -1303,7 +1303,7 @@ func TestSimpleHashJoin(t *testing.T) {
 		//schema := table_info.schema_
 		col1 := column.NewColumn("col1", types.Integer, false)
 		col2 := column.NewColumn("col2", types.Integer, false)
-		out_schema2 := schema.NewSchema([]*column.Column{col1, col2})
+		out_schema2 = schema.NewSchema([]*column.Column{col1, col2})
 		scan_plan2 = plans.NewSeqScanPlanNode(out_schema2, nil, table_info.OID())
 	}
 	var join_plan *plans.HashJoinPlanNode
@@ -1311,14 +1311,14 @@ func TestSimpleHashJoin(t *testing.T) {
 	{
 		// colA and colB have a tuple index of 0 because they are the left side of the join
 		//var allocated_exprs []*expression.ColumnValue
-		colA := MakeColumnValueExpression(*out_schema1, 0, "colA")
+		colA := MakeColumnValueExpression(out_schema1, 0, "colA")
 		colA_c := column.NewColumn("colA", types.Integer, false)
 		colA_c.SetIsLeft(true)
 		// colB := MakeColumnValueExpression(allocated_exprs, *out_schema1, 0, "colB")
 		colB_c := column.NewColumn("colB", types.Integer, false)
 		colA_c.SetIsLeft(true)
 		// col1 and col2 have a tuple index of 1 because they are the right side of the join
-		col1 := MakeColumnValueExpression(*out_schema2, 1, "col1")
+		col1 := MakeColumnValueExpression(out_schema2, 1, "col1")
 		col1_c := column.NewColumn("col1", types.Integer, false)
 		col1_c.SetIsLeft(false)
 		// col2 := MakeColumnValueExpression(allocated_exprs, *out_schema2, 1, "col2")
