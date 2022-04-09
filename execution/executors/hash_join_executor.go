@@ -64,7 +64,7 @@ func NewHashJoinExecutor(exec_ctx *ExecutorContext, plan *plans.HashJoinPlanNode
 	// about 200k entry can be stored
 	ret.jht_num_buckets_ = 100
 	//ret.jht_ = hash.NewLinearProbeHashTable(exec_ctx.GetBufferPoolManager(), int(ret.jht_num_buckets_))
-	ret.jht_ = new(SimpleHashJoinHashTable)
+	ret.jht_ = NewSimpleHashJoinHashTable()
 	return ret
 }
 
@@ -100,6 +100,7 @@ func (e *HashJoinExecutor) Init() {
 	var tmp_page *hash.TmpTuplePage = nil
 	var tmp_page_id types.PageID = common.InvalidPageID
 	var tmp_tuple hash.TmpTuple
+	var loop_cnt int32 = 0
 	for left_tuple, done, _ := e.left_.Next(); !done; left_tuple, done, _ = e.left_.Next() {
 		if tmp_page == nil || !tmp_page.Insert(left_tuple, &tmp_tuple) {
 			// unpin the last full tmp page
@@ -118,9 +119,14 @@ func (e *HashJoinExecutor) Init() {
 			// reinsert the tuple
 			//assert(tmp_page.Insert(left_tuple, &tmp_tuple))
 			tmp_page.Insert(left_tuple, &tmp_tuple)
+			loop_cnt++
+			if loop_cnt > 100 {
+				panic("loop_cnt > 100")
+			}
 		}
 		valueAsKey := e.left_expr_.Evaluate(left_tuple, e.left_.GetOutputSchema())
 		e.jht_.Insert(hash.HashValue(&valueAsKey), &tmp_tuple)
+		fmt.Println("insert left tuple into hash table")
 	}
 }
 
@@ -212,6 +218,10 @@ func (e *HashJoinExecutor) HashValues(tuple_ *tuple.Tuple, schema_ *schema.Schem
 
 type SimpleHashJoinHashTable struct {
 	hash_table_ map[uint32][]*hash.TmpTuple
+}
+
+func NewSimpleHashJoinHashTable() *SimpleHashJoinHashTable {
+	return &SimpleHashJoinHashTable{hash_table_: make(map[uint32][]*hash.TmpTuple)}
 }
 
 /**

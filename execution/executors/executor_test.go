@@ -1243,6 +1243,7 @@ func MakeComparisonExpression(lhs expression.Expression, rhs expression.Expressi
 }
 
 func TestSimpleHashJoin(t *testing.T) {
+	os.Stdout.Sync()
 	diskManager := disk.NewDiskManagerTest()
 	defer diskManager.ShutDown()
 	log_mgr := recovery.NewLogManager(&diskManager)
