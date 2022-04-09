@@ -14,14 +14,15 @@ type Column struct {
 	variableLength uint32 // For an inlined column, 0. Otherwise, the length of the variable length column
 	columnOffset   uint32 // Column offset in the tuple
 	hasIndex       bool   // whether the column has index data
+	isLeft         bool   // when temporal schema, this is used for join
 }
 
 func NewColumn(name string, columnType types.TypeID, hasIndex bool) *Column {
 	if columnType != types.Varchar {
-		return &Column{name, columnType, columnType.Size(), 0, 0, hasIndex}
+		return &Column{name, columnType, columnType.Size(), 0, 0, hasIndex, true}
 	}
 
-	return &Column{name, types.Varchar, 4, 255, 0, hasIndex}
+	return &Column{name, types.Varchar, 4, 255, 0, hasIndex, true}
 }
 
 func (c *Column) IsInlined() bool {
@@ -68,7 +69,15 @@ func (c *Column) SetHasIndex(hasIndex bool) {
 	c.hasIndex = hasIndex
 }
 
-// TODO: (SDB) dummy method for pass compile
-func (c *Column) GetExpr() interface{} {
-	panic("GetExpr is dummy")
+// // TODO: (SDB) dummy method for pass compile
+// func (c *Column) GetExpr() interface{} {
+// 	panic("GetExpr is dummy")
+// }
+
+func (c *Column) IsLeft() bool {
+	return c.isLeft
+}
+
+func (c *Column) SetIsLeft(isLeft bool) {
+	c.isLeft = isLeft
 }

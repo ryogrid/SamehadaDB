@@ -76,7 +76,14 @@ func (e *HashJoinExecutor) Init() {
 	//e.output_exprs_.resize(output_column_cnt)
 	for i := 0; i < output_column_cnt; i++ {
 		//e.output_exprs_[i] = e.GetOutputSchema().GetColumn(uint32(i)).GetExpr().(expression.Expression)
-		colVal := expression.NewColumnValue(0, uint32(i), types.Invalid)
+		column_ := e.GetOutputSchema().GetColumn(uint32(i))
+		var colVal expression.Expression
+		if column_.IsLeft() {
+			colVal = expression.NewColumnValue(0, uint32(i), types.Invalid)
+		} else {
+			colVal = expression.NewColumnValue(1, uint32(i), types.Invalid)
+		}
+
 		e.output_exprs_ = append(e.output_exprs_, colVal)
 	}
 	// build hash table from left

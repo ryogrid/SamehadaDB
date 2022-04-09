@@ -1311,17 +1311,21 @@ func TestSimpleHashJoin(t *testing.T) {
 		//var allocated_exprs []*expression.ColumnValue
 		colA := MakeColumnValueExpression(*out_schema1, 0, "colA")
 		colA_c := column.NewColumn("colA", types.Integer, false)
+		colA_c.SetIsLeft(true)
 		// colB := MakeColumnValueExpression(allocated_exprs, *out_schema1, 0, "colB")
 		colB_c := column.NewColumn("colB", types.Integer, false)
+		colA_c.SetIsLeft(true)
 		// col1 and col2 have a tuple index of 1 because they are the right side of the join
 		col1 := MakeColumnValueExpression(*out_schema2, 1, "col1")
 		col1_c := column.NewColumn("col1", types.Integer, false)
+		col1_c.SetIsLeft(false)
 		// col2 := MakeColumnValueExpression(allocated_exprs, *out_schema2, 1, "col2")
 		col2_c := column.NewColumn("col2", types.Integer, false)
+		col1_c.SetIsLeft(false)
 		var left_keys []*expression.Expression
-		left_keys = append(left_keys, (*expression.Expression)(unsafe.Pointer(colA)))
+		left_keys = append(left_keys, colA)
 		var right_keys []*expression.Expression
-		right_keys = append(right_keys, (*expression.Expression)(unsafe.Pointer(col1)))
+		right_keys = append(right_keys, col1)
 		predicate := MakeComparisonExpression(colA, col1, expression.Equal)
 		out_final = schema.NewSchema([]*column.Column{colA_c, colB_c, col1_c, col2_c})
 		plans_ := []plans.Plan{scan_plan1, scan_plan2}
