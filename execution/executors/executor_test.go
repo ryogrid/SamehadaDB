@@ -1199,7 +1199,7 @@ func MakeValues(col_meta *ColumnInsertMeta, count uint32) []types.Value {
 	}
 }
 
-func FillTable(info *catalog.TableMetadata, table_meta *TableInsertMeta) {
+func FillTable(info *catalog.TableMetadata, table_meta *TableInsertMeta, txn *access.Transaction) {
 	var num_inserted uint32 = 0
 	var batch_size uint32 = 128
 	for num_inserted < table_meta.num_rows_ {
@@ -1213,7 +1213,7 @@ func FillTable(info *catalog.TableMetadata, table_meta *TableInsertMeta) {
 			//entry.reserve(values.size())
 			entry = append(entry, values...)
 			//var rid page.RID
-			info.Table().InsertTuple(tuple.NewTupleFromSchema(entry, info.Schema()), nil)
+			info.Table().InsertTuple(tuple.NewTupleFromSchema(entry, info.Schema()), txn)
 			//BUSTUB_ASSERT(inserted, "Sequential insertion cannot fail")
 			num_inserted++
 		}
@@ -1268,21 +1268,23 @@ func TestSimpleHashJoin(t *testing.T) {
 	tableMeta1 := &TableInsertMeta{"test_1",
 		100,
 		[]*ColumnInsertMeta{
-			&ColumnInsertMeta{"colA", types.Integer, false, DistSerial, 0, 0, 0},
-			&ColumnInsertMeta{"colB", types.Integer, false, DistUniform, 0, 9, 0},
-			&ColumnInsertMeta{"colC", types.Integer, false, DistUniform, 0, 9999, 0},
-			&ColumnInsertMeta{"colD", types.Integer, false, DistUniform, 0, 99999, 0},
+			{"colA", types.Integer, false, DistSerial, 0, 0, 0},
+			{"colB", types.Integer, false, DistUniform, 0, 9, 0},
+			{"colC", types.Integer, false, DistUniform, 0, 9999, 0},
+			{"colD", types.Integer, false, DistUniform, 0, 99999, 0},
 		}}
 	tableMeta2 := &TableInsertMeta{"test_2",
 		1000,
 		[]*ColumnInsertMeta{
-			&ColumnInsertMeta{"col1", types.Integer, false, DistSerial, 0, 0, 0},
-			&ColumnInsertMeta{"col2", types.Integer, false, DistUniform, 0, 9, 9},
-			&ColumnInsertMeta{"col3", types.Integer, false, DistUniform, 0, 9999, 1024},
-			&ColumnInsertMeta{"col4", types.Integer, false, DistUniform, 0, 99999, 2048},
+			{"col1", types.Integer, false, DistSerial, 0, 0, 0},
+			{"col2", types.Integer, false, DistUniform, 0, 9, 9},
+			{"col3", types.Integer, false, DistUniform, 0, 9999, 1024},
+			{"col4", types.Integer, false, DistUniform, 0, 99999, 2048},
 		}}
-	FillTable(tableMetadata1, tableMeta1)
-	FillTable(tableMetadata2, tableMeta2)
+	FillTable(tableMetadata1, tableMeta1, txn)
+	FillTable(tableMetadata2, tableMeta2, txn)
+
+	txn_mgr.Commit(txn)
 
 	var scan_plan1 plans.Plan
 	var out_schema1 *schema.Schema
