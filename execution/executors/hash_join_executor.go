@@ -112,7 +112,7 @@ func (e *HashJoinExecutor) Init() {
 	}
 }
 
-func (e *HashJoinExecutor) Next() (*tuple.Tuple, bool, error) {
+func (e *HashJoinExecutor) Next() (*tuple.Tuple, Done, error) {
 	for {
 		for int(e.index_) == len(e.tmp_tuples_) {
 			// we have traversed all possible join combination of the current right tuple

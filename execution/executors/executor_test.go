@@ -1330,7 +1330,11 @@ func TestSimpleHashJoin(t *testing.T) {
 	}
 
 	executionEngine := &ExecutionEngine{}
-	results := executionEngine.Execute(join_plan, executorContext)
+	left_executor := executionEngine.CreateExecutor(join_plan.GetLeftPlan(), executorContext)
+	right_executor := executionEngine.CreateExecutor(join_plan.GetRightPlan(), executorContext)
+	hashJoinExecutor := NewHashJoinExecutor(executorContext, join_plan, left_executor, right_executor)
+	//results := executionEngine.Execute(join_plan, executorContext)
+	results := executionEngine.ExecuteWithExecutor(hashJoinExecutor)
 
 	// executor := ExecutorFactory::CreateExecutor(GetExecutorContext(), join_plan.get())
 	// executor.Init()
