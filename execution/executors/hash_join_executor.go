@@ -75,8 +75,9 @@ func (e *HashJoinExecutor) Init() {
 	output_column_cnt := int(e.GetOutputSchema().GetColumnCount())
 	//e.output_exprs_.resize(output_column_cnt)
 	for i := 0; i < output_column_cnt; i++ {
-		// TODO: (SDB) need to modify to collect collect code...
-		e.output_exprs_[i] = e.GetOutputSchema().GetColumn(uint32(i)).GetExpr().(expression.Expression)
+		//e.output_exprs_[i] = e.GetOutputSchema().GetColumn(uint32(i)).GetExpr().(expression.Expression)
+		colVal := expression.NewColumnValue(0, uint32(i), types.Invalid)
+		e.output_exprs_ = append(e.output_exprs_, colVal)
 	}
 	// build hash table from left
 	e.left_.Init()
