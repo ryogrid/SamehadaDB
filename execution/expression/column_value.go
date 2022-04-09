@@ -51,3 +51,7 @@ func (c *ColumnValue) GetChildAt(child_idx uint32) Expression {
 }
 
 func (c *ColumnValue) GetReturnType() types.TypeID { return c.ret_type }
+
+func (c *ColumnValue) SetReturnType(valueType types.TypeID) {
+	c.ret_type = valueType
+}

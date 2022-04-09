@@ -59,10 +59,13 @@ func ExecuteSeqScanTestCase(t *testing.T, testCase SeqScanTestCase) {
 
 	//expression := expression.NewComparison(expression.NewColumnValue(0, testCase.TableMetadata.Schema().GetColIndex(testCase.Predicate.LeftColumn)), expression.NewConstantValue(getValue(testCase.Predicate.RightColumn)), testCase.Predicate.Operator)
 
-	tmpColVal := new(expression.ColumnValue)
-	tmpColVal.SetTupleIndex(0)
-	tmpColVal.SetColIndex(testCase.TableMetadata.Schema().GetColIndex(testCase.Predicate.LeftColumn))
-	expression := expression.NewComparison(*tmpColVal, expression.NewConstantValue(GetValue(testCase.Predicate.RightColumn), tmpColVal.GetReturnType()), testCase.Predicate.Operator, types.Boolean)
+	// tmpColVal := new(expression.ColumnValue)
+	// tmpColVal.SetTupleIndex(0)
+	// tmpColVal.SetColIndex(testCase.TableMetadata.Schema().GetColIndex(testCase.Predicate.LeftColumn))
+	// tmpColVal.SetReturnType(GetValueType(testCase.Predicate.RightColumn))
+	tmpColVal_ := expression.NewColumnValue(0, testCase.TableMetadata.Schema().GetColIndex(testCase.Predicate.LeftColumn), GetValueType(testCase.Predicate.RightColumn))
+	tmpColVal := tmpColVal_.(*expression.ColumnValue)
+	expression := expression.NewComparison(*tmpColVal, expression.NewConstantValue(GetValue(testCase.Predicate.RightColumn), GetValueType(testCase.Predicate.RightColumn)), testCase.Predicate.Operator, types.Boolean)
 	seqPlan := plans.NewSeqScanPlanNode(outSchema, &expression, testCase.TableMetadata.OID())
 
 	results := testCase.ExecutionEngine.Execute(seqPlan, testCase.ExecutorContext)
@@ -96,9 +99,12 @@ func ExecuteHashIndexScanTestCase(t *testing.T, testCase HashIndexScanTestCase) 
 
 	//expression := expression.NewComparisonAsComparison(expression.NewColumnValue(0, testCase.TableMetadata.Schema().GetColIndex(testCase.Predicate.LeftColumn)), expression.NewConstantValue(getValue(testCase.Predicate.RightColumn)), testCase.Predicate.Operator)
 	//seqPlan := plans.NewSeqScanPlanNode(outSchema, &expression, testCase.TableMetadata.OID())
-	tmpColVal := new(expression.ColumnValue)
-	tmpColVal.SetTupleIndex(0)
-	tmpColVal.SetColIndex(testCase.TableMetadata.Schema().GetColIndex(testCase.Predicate.LeftColumn))
+	// tmpColVal := new(expression.ColumnValue)
+	// tmpColVal.SetTupleIndex(0)
+	// tmpColVal.SetColIndex(testCase.TableMetadata.Schema().GetColIndex(testCase.Predicate.LeftColumn))
+	// tmpColVal.SetReturnType(GetValueType(testCase.Predicate.RightColumn))
+	tmpColVal_ := expression.NewColumnValue(0, testCase.TableMetadata.Schema().GetColIndex(testCase.Predicate.LeftColumn), GetValueType(testCase.Predicate.RightColumn))
+	tmpColVal := tmpColVal_.(*expression.ColumnValue)
 	expression := expression.NewComparisonAsComparison(*tmpColVal, expression.NewConstantValue(GetValue(testCase.Predicate.RightColumn), GetValueType(testCase.Predicate.RightColumn)), testCase.Predicate.Operator, types.Boolean)
 	hashIndexScanPlan := plans.NewHashScanIndexPlanNode(outSchema, expression, testCase.TableMetadata.OID())
 
@@ -132,9 +138,12 @@ func ExecuteDeleteTestCase(t *testing.T, testCase DeleteTestCase) {
 	}
 	outSchema := schema.NewSchema(columns)
 
-	tmpColVal := new(expression.ColumnValue)
-	tmpColVal.SetTupleIndex(0)
-	tmpColVal.SetColIndex(testCase.TableMetadata.Schema().GetColIndex(testCase.Predicate.LeftColumn))
+	// tmpColVal := new(expression.ColumnValue)
+	// tmpColVal.SetTupleIndex(0)
+	// tmpColVal.SetColIndex(testCase.TableMetadata.Schema().GetColIndex(testCase.Predicate.LeftColumn))
+	// tmpColVal.SetReturnType(GetValueType(testCase.Predicate.RightColumn))
+	tmpColVal_ := expression.NewColumnValue(0, testCase.TableMetadata.Schema().GetColIndex(testCase.Predicate.LeftColumn), GetValueType(testCase.Predicate.RightColumn))
+	tmpColVal := tmpColVal_.(*expression.ColumnValue)
 	expression := expression.NewComparison(*tmpColVal, expression.NewConstantValue(GetValue(testCase.Predicate.RightColumn), GetValueType(testCase.Predicate.RightColumn)), testCase.Predicate.Operator, types.Boolean)
 	hashIndexScanPlan := plans.NewDeletePlanNode(&expression, testCase.TableMetadata.OID())
 
@@ -156,6 +165,8 @@ func GetValue(data interface{}) (value types.Value) {
 		value = types.NewInteger(int32(v))
 	case string:
 		value = types.NewVarchar(v)
+	case bool:
+		value = types.NewBoolean(v)
 	}
 	return
 }
@@ -166,6 +177,8 @@ func GetValueType(data interface{}) (value types.TypeID) {
 		return types.Integer
 	case string:
 		return types.Varchar
+	case bool:
+		return types.Boolean
 	}
-	return
+	panic("not implemented")
 }
