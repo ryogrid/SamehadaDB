@@ -25,7 +25,7 @@ const offsetFreeSpace = uint32(16)
  * We choose this format because DeserializeExpression expects to read Size followed by Data.
  */
 type TmpTuplePage struct {
-	*page.Page
+	page.Page
 }
 
 // CastPageAsTmpTuplePage casts the abstract Page struct into TmpTuplePage

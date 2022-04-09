@@ -1,6 +1,8 @@
 package executors
 
 import (
+	"fmt"
+
 	"github.com/ryogrid/SamehadaDB/common"
 	"github.com/ryogrid/SamehadaDB/container/hash"
 	"github.com/ryogrid/SamehadaDB/execution/expression"
@@ -109,6 +111,7 @@ func (e *HashJoinExecutor) Init() {
 			if tmp_page == nil {
 				panic("fail to create new tmp page when doing hash join")
 			}
+			fmt.Println("create new tmp page")
 			tmp_page.Init(tmp_page.GetPageId(), common.PageSize)
 			tmp_page_id = tmp_page.GetPageId()
 			e.tmp_page_ids_ = append(e.tmp_page_ids_, tmp_page_id)
