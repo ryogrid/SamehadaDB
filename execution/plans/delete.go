@@ -7,11 +7,11 @@ import "github.com/ryogrid/SamehadaDB/execution/expression"
  */
 type DeletePlanNode struct {
 	*AbstractPlanNode
-	predicate *expression.Expression
+	predicate expression.Expression
 	tableOID  uint32
 }
 
-func NewDeletePlanNode(predicate *expression.Expression, oid uint32) Plan {
+func NewDeletePlanNode(predicate expression.Expression, oid uint32) Plan {
 	return &DeletePlanNode{&AbstractPlanNode{nil, nil}, predicate, oid}
 }
 
@@ -19,7 +19,7 @@ func (p *DeletePlanNode) GetTableOID() uint32 {
 	return p.tableOID
 }
 
-func (p *DeletePlanNode) GetPredicate() *expression.Expression {
+func (p *DeletePlanNode) GetPredicate() expression.Expression {
 	return p.predicate
 }
 

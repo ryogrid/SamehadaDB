@@ -1046,7 +1046,7 @@ func TestAbortWIthDeleteUpdate(t *testing.T) {
 	tmpColVal.SetColIndex(tableMetadata.Schema().GetColIndex(pred.LeftColumn))
 	expression_ = expression.NewComparison(*tmpColVal, expression.NewConstantValue(GetValue(pred.RightColumn), GetValueType(pred.RightColumn)), pred.Operator, types.Boolean)
 
-	deletePlanNode := plans.NewDeletePlanNode(&expression_, tableMetadata.OID())
+	deletePlanNode := plans.NewDeletePlanNode(expression_, tableMetadata.OID())
 	executionEngine.Execute(deletePlanNode, executorContext)
 
 	common.EnableLogging = false

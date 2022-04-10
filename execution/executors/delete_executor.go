@@ -65,8 +65,8 @@ func (e *DeleteExecutor) Next() (*tuple.Tuple, Done, error) {
 }
 
 // select evaluates an expression on the tuple
-func (e *DeleteExecutor) selects(tuple *tuple.Tuple, predicate *expression.Expression) bool {
-	return predicate == nil || (*predicate).Evaluate(tuple, e.tableMetadata.Schema()).ToBoolean()
+func (e *DeleteExecutor) selects(tuple *tuple.Tuple, predicate expression.Expression) bool {
+	return predicate == nil || predicate.Evaluate(tuple, e.tableMetadata.Schema()).ToBoolean()
 }
 
 func (e *DeleteExecutor) GetOutputSchema() *schema.Schema { return e.plan.OutputSchema() }

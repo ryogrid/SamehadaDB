@@ -55,12 +55,12 @@ func (t *TableMetadata) Table() *access.TableHeap {
 	return t.table
 }
 
-func (t *TableMetadata) GetIndex(colIndex int) *index.Index {
+func (t *TableMetadata) GetIndex(colIndex int) index.Index {
 	ret := t.indexes[colIndex]
 	if ret == nil {
 		return nil
 	} else {
-		return &t.indexes[colIndex]
+		return t.indexes[colIndex]
 	}
 }
 

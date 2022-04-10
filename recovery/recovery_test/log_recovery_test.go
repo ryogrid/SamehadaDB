@@ -489,7 +489,7 @@ func TestCheckpoint(t *testing.T) {
 		page_id := page.GetPageId()
 
 		if page_id != common.InvalidPageID {
-			dmgr_impl := *samehada_instance.GetDiskManager()
+			dmgr_impl := samehada_instance.GetDiskManager()
 			dmgr_impl.ReadPage(page_id, disk_data)
 			if !bytes.Equal(disk_data[:common.PageSize], page.GetData()[:common.PageSize]) {
 				all_pages_match = false

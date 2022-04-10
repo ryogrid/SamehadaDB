@@ -41,12 +41,16 @@ func (e *ExecutionEngine) ExecuteWithExecutor(executor Executor) []*tuple.Tuple 
 	executor.Init()
 
 	tuples := []*tuple.Tuple{}
+	num := 0
 	for {
 		tuple, done, err := executor.Next()
 		if err != nil || done {
 			break
 		}
-
+		if num > 100 {
+			panic("not implemented")
+		}
+		num++
 		if tuple != nil {
 			tuples = append(tuples, tuple)
 		}

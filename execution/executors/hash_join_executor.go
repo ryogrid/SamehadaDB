@@ -120,13 +120,9 @@ func (e *HashJoinExecutor) Init() {
 			//assert(tmp_page.Insert(left_tuple, &tmp_tuple))
 			tmp_page.Insert(left_tuple, &tmp_tuple)
 			loop_cnt++
-			if loop_cnt > 100 {
-				panic("loop_cnt > 100")
-			}
 		}
 		valueAsKey := e.left_expr_.Evaluate(left_tuple, e.left_.GetOutputSchema())
 		e.jht_.Insert(hash.HashValue(&valueAsKey), &tmp_tuple)
-		fmt.Println("insert left tuple into hash table")
 	}
 }
 
@@ -163,6 +159,7 @@ func (e *HashJoinExecutor) Next() (*tuple.Tuple, Done, error) {
 			// valid combination found
 			ret_tuple := e.MakeOutputTuple(&left_tuple, &e.right_tuple_)
 			e.index_++
+			fmt.Println("hash join output tuple")
 			return ret_tuple, true, nil
 		}
 		// no valid combination, turn to the next right tuple by for loop
