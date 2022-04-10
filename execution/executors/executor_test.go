@@ -1330,7 +1330,7 @@ func TestSimpleHashJoin(t *testing.T) {
 		col1_c.SetIsLeft(false)
 		// col2 := MakeColumnValueExpression(allocated_exprs, *out_schema2, 1, "col2")
 		col2_c := column.NewColumn("col2", types.Integer, false)
-		col1_c.SetIsLeft(false)
+		col2_c.SetIsLeft(false)
 		var left_keys []expression.Expression
 		left_keys = append(left_keys, colA)
 		var right_keys []expression.Expression

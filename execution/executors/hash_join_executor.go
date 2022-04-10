@@ -82,9 +82,11 @@ func (e *HashJoinExecutor) Init() {
 		column_ := e.GetOutputSchema().GetColumn(uint32(i))
 		var colVal expression.Expression
 		if column_.IsLeft() {
-			colVal = expression.NewColumnValue(0, uint32(i), types.Invalid)
+			colIndex := e.plan_.GetLeftPlan().OutputSchema().GetColIndex(column_.GetColumnName())
+			colVal = expression.NewColumnValue(0, colIndex, types.Invalid)
 		} else {
-			colVal = expression.NewColumnValue(1, uint32(i), types.Invalid)
+			colIndex := e.plan_.GetRightPlan().OutputSchema().GetColIndex(column_.GetColumnName())
+			colVal = expression.NewColumnValue(1, colIndex, types.Invalid)
 		}
 
 		e.output_exprs_ = append(e.output_exprs_, colVal)
@@ -148,7 +150,7 @@ func (e *HashJoinExecutor) Next() (*tuple.Tuple, Done, error) {
 			value := e.right_expr_.Evaluate(&e.right_tuple_, e.right_.GetOutputSchema())
 			e.tmp_tuples_ = e.jht_.GetValue(hash.HashValue(&value))
 		}
-		panic("second bloc of HashJoinExecutor::Next()")
+		//panic("second bloc of HashJoinExecutor::Next()")
 		// traverse corresponding left tuples stored in the tmp pages util we find one satisfying the predicate with current right tuple
 		left_tmp_tuple := e.tmp_tuples_[e.index_]
 		var left_tuple tuple.Tuple
