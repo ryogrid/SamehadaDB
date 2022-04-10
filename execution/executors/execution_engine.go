@@ -4,6 +4,8 @@
 package executors
 
 import (
+	"fmt"
+
 	"github.com/ryogrid/SamehadaDB/execution/plans"
 	"github.com/ryogrid/SamehadaDB/storage/tuple"
 )
@@ -43,16 +45,18 @@ func (e *ExecutionEngine) ExecuteWithExecutor(executor Executor) []*tuple.Tuple 
 	tuples := []*tuple.Tuple{}
 	num := 0
 	for {
-		tuple, done, err := executor.Next()
+		tuple_, done, err := executor.Next()
 		if err != nil || done {
 			break
 		}
-		if num > 100 {
-			panic("not implemented")
-		}
+		fmt.Println(tuple_)
+		fmt.Printf("executor.Next call cnt: %d\n", num)
 		num++
-		if tuple != nil {
-			tuples = append(tuples, tuple)
+		if num > 100 {
+			panic("call times exceed 100")
+		}
+		if tuple_ != nil {
+			tuples = append(tuples, tuple_)
 		}
 	}
 

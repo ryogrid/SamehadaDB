@@ -1202,16 +1202,21 @@ func FillTable(info *catalog.TableMetadata, table_meta *TableInsertMeta, txn *ac
 	var num_inserted uint32 = 0
 	var batch_size uint32 = 128
 	for num_inserted < table_meta.num_rows_ {
-		var values []types.Value
+		var values [][]types.Value
 		var num_values uint32 = uint32(math.Min(float64(batch_size), float64(table_meta.num_rows_-num_inserted)))
 		for _, col_meta := range table_meta.col_meta_ {
-			values = append(values, MakeValues(col_meta, num_values)...)
+			values = append(values, MakeValues(col_meta, num_values))
 		}
+
 		for i := 0; i < int(num_values); i++ {
 			var entry []types.Value
+			for idx, _ := range table_meta.col_meta_ {
+				entry = append(entry, values[idx][i])
+			}
 			//entry.reserve(values.size())
-			entry = append(entry, values...)
+			//entry = append(entry, values...)
 			//var rid page.RID
+			//info.Table().InsertTuple(tuple.NewTupleFromSchema(entry, info.Schema()), txn)
 			info.Table().InsertTuple(tuple.NewTupleFromSchema(entry, info.Schema()), txn)
 			//BUSTUB_ASSERT(inserted, "Sequential insertion cannot fail")
 			num_inserted++
@@ -1279,9 +1284,9 @@ func TestSimpleHashJoin(t *testing.T) {
 		1000,
 		[]*ColumnInsertMeta{
 			{"col1", types.Integer, false, DistSerial, 0, 0, 0},
-			{"col2", types.Integer, false, DistUniform, 0, 9, 9},
-			{"col3", types.Integer, false, DistUniform, 0, 9999, 1024},
-			{"col4", types.Integer, false, DistUniform, 0, 99999, 2048},
+			{"col2", types.Integer, false, DistUniform, 0, 9, 0},
+			{"col3", types.Integer, false, DistUniform, 0, 1024, 0},
+			{"col4", types.Integer, false, DistUniform, 0, 2048, 0},
 		}}
 	FillTable(tableMetadata1, tableMeta1, txn)
 	FillTable(tableMetadata2, tableMeta2, txn)

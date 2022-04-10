@@ -133,16 +133,22 @@ func (e *HashJoinExecutor) Next() (*tuple.Tuple, Done, error) {
 			// move to the next right tuple
 			e.tmp_tuples_ = []*hash.TmpTuple{}
 			e.index_ = 0
-			if _, done, _ := e.right_.Next(); !done {
+			var done Done = false
+			var tmp_tuple *tuple.Tuple
+			if tmp_tuple, done, _ = e.right_.Next(); done {
 				// hash join finished, delete all the tmp page we created
 				for _, tmp_page_id := range e.tmp_page_ids_ {
 					e.context.GetBufferPoolManager().DeletePage(tmp_page_id)
 				}
-				return nil, false, nil
+				fmt.Println("reached Done is true")
+				return tmp_tuple, true, nil
 			}
+			e.right_tuple_ = *tmp_tuple
+			fmt.Printf("right tuple is %v\n", e.right_tuple_)
 			value := e.right_expr_.Evaluate(&e.right_tuple_, e.right_.GetOutputSchema())
 			e.tmp_tuples_ = e.jht_.GetValue(hash.HashValue(&value))
 		}
+		panic("second bloc of HashJoinExecutor::Next()")
 		// traverse corresponding left tuples stored in the tmp pages util we find one satisfying the predicate with current right tuple
 		left_tmp_tuple := e.tmp_tuples_[e.index_]
 		var left_tuple tuple.Tuple
@@ -160,7 +166,7 @@ func (e *HashJoinExecutor) Next() (*tuple.Tuple, Done, error) {
 			ret_tuple := e.MakeOutputTuple(&left_tuple, &e.right_tuple_)
 			e.index_++
 			fmt.Println("hash join output tuple")
-			return ret_tuple, true, nil
+			return ret_tuple, false, nil
 		}
 		// no valid combination, turn to the next right tuple by for loop
 	}
