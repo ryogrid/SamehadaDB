@@ -10,6 +10,7 @@ import (
 var CycleDetectionInterval time.Duration
 var EnableLogging bool = false
 var LogTimeout time.Duration
+var EnableDebug bool = false
 
 const (
 	// invalid page id

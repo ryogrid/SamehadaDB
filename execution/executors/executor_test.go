@@ -1210,7 +1210,7 @@ func FillTable(info *catalog.TableMetadata, table_meta *TableInsertMeta, txn *ac
 
 		for i := 0; i < int(num_values); i++ {
 			var entry []types.Value
-			for idx, _ := range table_meta.col_meta_ {
+			for idx := range table_meta.col_meta_ {
 				entry = append(entry, values[idx][i])
 			}
 			//entry.reserve(values.size())
@@ -1298,8 +1298,8 @@ func TestSimpleHashJoin(t *testing.T) {
 	{
 		table_info := executorContext.GetCatalog().GetTableByName("test_1")
 		//&schema := table_info.schema_
-		colA := column.NewColumn("colA", types.Varchar, false)
-		colB := column.NewColumn("colB", types.Varchar, false)
+		colA := column.NewColumn("colA", types.Integer, false)
+		colB := column.NewColumn("colB", types.Integer, false)
 		out_schema1 = schema.NewSchema([]*column.Column{colA, colB})
 		scan_plan1 = plans.NewSeqScanPlanNode(out_schema1, nil, table_info.OID())
 	}
@@ -1347,8 +1347,9 @@ func TestSimpleHashJoin(t *testing.T) {
 	right_executor := executionEngine.CreateExecutor(join_plan.GetRightPlan(), executorContext)
 	hashJoinExecutor := NewHashJoinExecutor(executorContext, join_plan, left_executor, right_executor)
 	//results := executionEngine.Execute(join_plan, executorContext)
+	common.EnableDebug = true
 	results := executionEngine.ExecuteWithExecutor(hashJoinExecutor)
-
+	common.EnableDebug = false
 	// executor := ExecutorFactory::CreateExecutor(GetExecutorContext(), join_plan.get())
 	// executor.Init()
 	// Tuple tuple
