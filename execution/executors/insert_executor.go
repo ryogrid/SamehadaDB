@@ -51,7 +51,7 @@ func (e *InsertExecutor) Next() (*tuple.Tuple, Done, error) {
 			if ret == nil {
 				continue
 			} else {
-				index_ := *ret
+				index_ := ret
 				index_.InsertEntry(tuple_, *rid, e.context.txn)
 			}
 		}

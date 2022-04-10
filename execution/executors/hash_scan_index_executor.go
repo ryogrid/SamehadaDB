@@ -46,7 +46,7 @@ func (e *HashScanIndexExecutor) Init() {
 			if ret == nil {
 				continue
 			} else {
-				index_ = *ret
+				index_ = ret
 				indexColNum = ii
 				break
 			}

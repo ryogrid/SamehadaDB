@@ -52,7 +52,7 @@ func (e *DeleteExecutor) Next() (*tuple.Tuple, Done, error) {
 				if ret == nil {
 					continue
 				} else {
-					index_ := *ret
+					index_ := ret
 					index_.DeleteEntry(e.it.Current(), *rid, e.txn)
 				}
 			}
