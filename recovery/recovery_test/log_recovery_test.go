@@ -184,9 +184,6 @@ func TestRedo(t *testing.T) {
 	val1_1 := tuple1_.GetValue(schema_, 1)
 	val1_0 := tuple1_.GetValue(schema_, 0)
 
-	// TODO: (SDB) need check that assertion logic is collect
-	// testingpkg.Assert(t, test_table.InsertTuple(tuple_, &rid, txn), "")
-	// testingpkg.Assert(t, test_table.InsertTuple(tuple_1, &rid1, txn), "")
 	rid, _ = test_table.InsertTuple(tuple_, txn)
 	// TODO: (SDB) insert index entry if needed
 	testingpkg.Assert(t, rid != nil, "")
@@ -197,11 +194,7 @@ func TestRedo(t *testing.T) {
 	samehada_instance.GetTransactionManager().Commit(txn)
 	fmt.Println("Commit txn")
 
-	// delete txn
-	// delete test_table
-
 	fmt.Println("Shutdown System")
-	// delete samehada_instance
 	samehada_instance.Finalize(false)
 
 	fmt.Println("System restart...")
@@ -210,11 +203,7 @@ func TestRedo(t *testing.T) {
 	samehada_instance.GetLogManager().StopFlushThread()
 	testingpkg.AssertFalse(t, common.EnableLogging, "")
 	fmt.Println("Check if tuple is not in table before recovery")
-	// var old_tuple tuple.Tuple
-	// var old_tuple1 tuple.Tuple
 	txn = samehada_instance.GetTransactionManager().Begin(nil)
-	// test_table = access.NewTableHeap(samehada_instance.GetBufferPoolManager(), samehada_instance.GetLogManager(),
-	// 	samehada_instance.GetLockManager(), first_page_id)
 	test_table = access.NewTableHeap(
 		samehada_instance.GetBufferPoolManager(),
 		samehada_instance.GetLogManager(),
@@ -225,7 +214,6 @@ func TestRedo(t *testing.T) {
 	old_tuple1 := test_table.GetTuple(rid1, txn)
 	testingpkg.AssertFalse(t, old_tuple1 != nil, "")
 	samehada_instance.GetTransactionManager().Commit(txn)
-	// delete txn
 
 	fmt.Println("Begin recovery")
 	log_recovery := log_recovery.NewLogRecovery(
@@ -241,17 +229,13 @@ func TestRedo(t *testing.T) {
 
 	fmt.Println("Check if recovery success")
 	txn = samehada_instance.GetTransactionManager().Begin(nil)
-	// delete test_table
-	// test_table = access.NewTableHeap(samehada_instance.GetBufferPoolManager(), samehada_instance.GetLogManager(),
-	// 	samehada_instance.GetLockManager(), first_page_id)
+
 	test_table = access.NewTableHeap(
 		samehada_instance.GetBufferPoolManager(),
 		samehada_instance.GetLogManager(),
 		samehada_instance.GetLockManager(),
 		txn)
 
-	// testingpkg.Assert(t, test_table.GetTuple(rid, &old_tuple, txn), "")
-	// testingpkg.Assert(t, test_table.GetTuple(rid1, &old_tuple1, txn), "")
 	old_tuple = test_table.GetTuple(rid, txn)
 	testingpkg.Assert(t, old_tuple != nil, "")
 	old_tuple1 = test_table.GetTuple(rid1, txn)
@@ -259,16 +243,11 @@ func TestRedo(t *testing.T) {
 
 	samehada_instance.GetTransactionManager().Commit(txn)
 
-	// testingpkg.Equals(t, old_tuple.GetValue(&schema_, 1).CompareEquals(val_1), CmpBool::CmpTrue)
-	// testingpkg.Equals(t, old_tuple.GetValue(&schema_, 0).CompareEquals(val_0), CmpBool::CmpTrue)
-	// testingpkg.Equals(t, old_tuple1.GetValue(&schema_, 1).CompareEquals(val1_1), CmpBool::CmpTrue)
-	// testingpkg.Equals(t, old_tuple1.GetValue(&schema_, 0).CompareEquals(val1_0), CmpBool::CmpTrue)
 	testingpkg.Assert(t, old_tuple.GetValue(schema_, 1).CompareEquals(val_1), "")
 	testingpkg.Assert(t, old_tuple.GetValue(schema_, 0).CompareEquals(val_0), "")
 	testingpkg.Assert(t, old_tuple1.GetValue(schema_, 1).CompareEquals(val1_1), "")
 	testingpkg.Assert(t, old_tuple1.GetValue(schema_, 0).CompareEquals(val1_0), "")
 
-	// delete samehada_instance
 	fmt.Println("Tearing down the system..")
 	samehada_instance.Finalize(true)
 }

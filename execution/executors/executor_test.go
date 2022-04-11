@@ -433,7 +433,6 @@ func TestHashTableIndex(t *testing.T) {
 	defer diskManager.ShutDown()
 	log_mgr := recovery.NewLogManager(&diskManager)
 	bpm := buffer.NewBufferPoolManager(uint32(32), diskManager, log_mgr) //, recovery.NewLogManager(diskManager), access.NewLockManager(access.REGULAR, access.PREVENTION))
-	// TODO: (SDB) [logging/recovery] need increment of transaction ID
 
 	txn_mgr := access.NewTransactionManager(log_mgr)
 	txn := txn_mgr.Begin(nil)
