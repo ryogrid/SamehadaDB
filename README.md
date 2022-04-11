@@ -31,7 +31,7 @@ original codes of go-bustub are [here](https://github.com/brunocalza/go-bustub).
 - [x] Recovery from Logs
 - [x] Hash Index
 - [ ] BTree Index
-- [ ] Join (Hash Join)
+- [x] Join (Hash Join)
 - [ ] Aggregations (COUNT, MAX, MIN ... on SELECT clause)
 - [ ] GROUP By caluese
 - [ ] Sort (ORDER BY clause) 
