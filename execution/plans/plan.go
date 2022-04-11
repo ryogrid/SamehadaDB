@@ -16,6 +16,7 @@ const (
 	Delete
 	Limit
 	HashScanIndex
+	HashJoin
 )
 
 type Plan interface {

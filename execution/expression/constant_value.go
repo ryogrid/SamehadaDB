@@ -13,13 +13,26 @@ import (
  * ConstantValue represents constants.
  */
 type ConstantValue struct {
+	*AbstractExpression
 	value types.Value
 }
 
-func NewConstantValue(value types.Value) Expression {
-	return &ConstantValue{value}
+func NewConstantValue(value types.Value, colType types.TypeID) Expression {
+	return &ConstantValue{&AbstractExpression{[2]Expression{}, colType}, value}
 }
 
 func (c *ConstantValue) Evaluate(tuple *tuple.Tuple, schema *schema.Schema) types.Value {
 	return c.value
+}
+
+func (c *ConstantValue) EvaluateJoin(left_tuple *tuple.Tuple, left_schema *schema.Schema, right_tuple *tuple.Tuple, right_schema *schema.Schema) types.Value {
+	//return *new(types.Value)
+	//panic("not implemented")
+	return c.value
+}
+
+func (c *ConstantValue) GetChildAt(child_idx uint32) Expression {
+	//return nil
+	//panic("not implemented")
+	return c.children[child_idx]
 }

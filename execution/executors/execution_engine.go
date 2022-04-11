@@ -18,7 +18,7 @@ type ExecutionEngine struct {
 }
 
 func (e *ExecutionEngine) Execute(plan plans.Plan, context *ExecutorContext) []*tuple.Tuple {
-	executor := e.createExecutor(plan, context)
+	executor := e.CreateExecutor(plan, context)
 	executor.Init()
 
 	tuples := []*tuple.Tuple{}
@@ -36,7 +36,26 @@ func (e *ExecutionEngine) Execute(plan plans.Plan, context *ExecutorContext) []*
 	return tuples
 }
 
-func (e *ExecutionEngine) createExecutor(plan plans.Plan, context *ExecutorContext) Executor {
+func (e *ExecutionEngine) ExecuteWithExecutor(executor Executor) []*tuple.Tuple {
+	executor.Init()
+
+	tuples := []*tuple.Tuple{}
+	num := 0
+	for {
+		tuple_, done, err := executor.Next()
+		if err != nil || done {
+			break
+		}
+		num++
+		if tuple_ != nil {
+			tuples = append(tuples, tuple_)
+		}
+	}
+
+	return tuples
+}
+
+func (e *ExecutionEngine) CreateExecutor(plan plans.Plan, context *ExecutorContext) Executor {
 	switch p := plan.(type) {
 	case *plans.InsertPlanNode:
 		return NewInsertExecutor(context, p)
@@ -45,11 +64,13 @@ func (e *ExecutionEngine) createExecutor(plan plans.Plan, context *ExecutorConte
 	case *plans.HashScanIndexPlanNode:
 		return NewHashScanIndexExecutor(context, p)
 	case *plans.LimitPlanNode:
-		return NewLimitExecutor(context, p, e.createExecutor(plan.GetChildAt(0), context))
+		return NewLimitExecutor(context, p, e.CreateExecutor(plan.GetChildAt(0), context))
 	case *plans.DeletePlanNode:
 		return NewDeleteExecutor(context, p)
 	case *plans.UpdatePlanNode:
 		return NewUpdateExecutor(context, p)
+		// case *plans.HashJoinPlanNode:
+		// 	return NewHashJoinExecutor(context, p)
 	}
 	return nil
 }

@@ -18,7 +18,7 @@ import (
  * Read log file from disk, redo and undo.
  */
 type LogRecovery struct {
-	disk_manager        *disk.DiskManager         //__attribute__((__unused__))
+	disk_manager        disk.DiskManager          //__attribute__((__unused__))
 	buffer_pool_manager *buffer.BufferPoolManager //__attribute__((__unused__))
 
 	/** Maintain active transactions and its corresponding latest lsn. */
@@ -30,7 +30,7 @@ type LogRecovery struct {
 	log_buffer []byte
 }
 
-func NewLogRecovery(disk_manager *disk.DiskManager, buffer_pool_manager *buffer.BufferPoolManager) *LogRecovery {
+func NewLogRecovery(disk_manager disk.DiskManager, buffer_pool_manager *buffer.BufferPoolManager) *LogRecovery {
 	return &LogRecovery{disk_manager, buffer_pool_manager, make(map[types.TxnID]types.LSN), make(map[types.LSN]int), 0, make([]byte, common.LogBufferSize)}
 }
 
@@ -106,7 +106,7 @@ func (log_recovery *LogRecovery) Redo() {
 	log_recovery.log_buffer = make([]byte, common.LogBufferSize)
 	var file_offset uint32 = 0
 	var readBytes uint32
-	for (*log_recovery.disk_manager).ReadLog(log_recovery.log_buffer, int32(file_offset), &readBytes) {
+	for log_recovery.disk_manager.ReadLog(log_recovery.log_buffer, int32(file_offset), &readBytes) {
 		var buffer_offset uint32 = 0
 		var log_record recovery.LogRecord
 		// fmt.Printf("outer file_offset %d\n", file_offset)
@@ -210,7 +210,7 @@ func (log_recovery *LogRecovery) Undo() {
 			file_offset = log_recovery.lsn_mapping[lsn]
 			// fmt.Printf("file_offset: %d\n", file_offset)
 			var readBytes uint32
-			(*log_recovery.disk_manager).ReadLog(log_recovery.log_buffer, int32(file_offset), &readBytes)
+			log_recovery.disk_manager.ReadLog(log_recovery.log_buffer, int32(file_offset), &readBytes)
 			log_recovery.DeserializeLogRecord(log_recovery.log_buffer[:readBytes], &log_record)
 			if log_record.Log_record_type == recovery.INSERT {
 				page_ :=

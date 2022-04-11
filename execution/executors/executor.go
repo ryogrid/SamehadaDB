@@ -3,7 +3,10 @@
 
 package executors
 
-import "github.com/ryogrid/SamehadaDB/storage/tuple"
+import (
+	"github.com/ryogrid/SamehadaDB/storage/table/schema"
+	"github.com/ryogrid/SamehadaDB/storage/tuple"
+)
 
 type Done bool
 
@@ -16,4 +19,5 @@ type Done bool
 type Executor interface {
 	Init()
 	Next() (*tuple.Tuple, Done, error)
+	GetOutputSchema() *schema.Schema
 }

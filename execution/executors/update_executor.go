@@ -8,6 +8,7 @@ import (
 	"github.com/ryogrid/SamehadaDB/execution/expression"
 	"github.com/ryogrid/SamehadaDB/execution/plans"
 	"github.com/ryogrid/SamehadaDB/storage/access"
+	"github.com/ryogrid/SamehadaDB/storage/table/schema"
 	"github.com/ryogrid/SamehadaDB/storage/tuple"
 )
 
@@ -54,7 +55,7 @@ func (e *UpdateExecutor) Next() (*tuple.Tuple, Done, error) {
 				if ret == nil {
 					continue
 				} else {
-					index_ := *ret
+					index_ := ret
 					index_.DeleteEntry(e.it.Current(), *rid, e.txn)
 					index_.InsertEntry(new_tuple, *rid, e.txn)
 				}
@@ -76,4 +77,8 @@ func (e *UpdateExecutor) Next() (*tuple.Tuple, Done, error) {
 // select evaluates an expression on the tuple
 func (e *UpdateExecutor) selects(tuple *tuple.Tuple, predicate *expression.Expression) bool {
 	return predicate == nil || (*predicate).Evaluate(tuple, e.tableMetadata.Schema()).ToBoolean()
+}
+
+func (e *UpdateExecutor) GetOutputSchema() *schema.Schema {
+	return e.plan.OutputSchema()
 }

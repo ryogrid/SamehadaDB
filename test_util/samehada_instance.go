@@ -10,7 +10,7 @@ import (
 )
 
 type SamehadaInstance struct {
-	disk_manager        *disk.DiskManager
+	disk_manager        disk.DiskManager
 	log_manager         *recovery.LogManager
 	bpm                 *buffer.BufferPoolManager
 	lock_manager        *access.LockManager
@@ -29,10 +29,10 @@ func NewSamehadaInstance() *SamehadaInstance {
 	lock_manager := access.NewLockManager(access.REGULAR, access.PREVENTION)
 	transaction_manager := access.NewTransactionManager(log_manager)
 	checkpoint_manager := concurrency.NewCheckpointManager(transaction_manager, log_manager, bpm)
-	return &SamehadaInstance{&disk_manager, log_manager, bpm, lock_manager, transaction_manager, checkpoint_manager}
+	return &SamehadaInstance{disk_manager, log_manager, bpm, lock_manager, transaction_manager, checkpoint_manager}
 }
 
-func (si *SamehadaInstance) GetDiskManager() *disk.DiskManager {
+func (si *SamehadaInstance) GetDiskManager() disk.DiskManager {
 	return si.disk_manager
 }
 
@@ -59,9 +59,9 @@ func (si *SamehadaInstance) GetCheckpointManager() *concurrency.CheckpointManage
 // functionality is Shutdown of DiskManager and action around DB file only
 func (si *SamehadaInstance) Finalize(IsRemoveFiles bool) {
 	//dm := ((*disk.DiskManagerImpl)(unsafe.Pointer(si.disk_manager)))
-	(*si.disk_manager).ShutDown()
+	si.disk_manager.ShutDown()
 	if IsRemoveFiles {
-		(*si.disk_manager).RemoveDBFile()
-		(*si.disk_manager).RemoveLogFile()
+		si.disk_manager.RemoveDBFile()
+		si.disk_manager.RemoveLogFile()
 	}
 }

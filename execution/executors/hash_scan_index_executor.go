@@ -7,6 +7,7 @@ import (
 	"github.com/ryogrid/SamehadaDB/execution/plans"
 	"github.com/ryogrid/SamehadaDB/storage/access"
 	"github.com/ryogrid/SamehadaDB/storage/index"
+	"github.com/ryogrid/SamehadaDB/storage/table/schema"
 	"github.com/ryogrid/SamehadaDB/storage/tuple"
 	"github.com/ryogrid/SamehadaDB/types"
 )
@@ -45,7 +46,7 @@ func (e *HashScanIndexExecutor) Init() {
 			if ret == nil {
 				continue
 			} else {
-				index_ = *ret
+				index_ = ret
 				indexColNum = ii
 				break
 			}
@@ -91,4 +92,8 @@ func (e *HashScanIndexExecutor) projects(tuple_ *tuple.Tuple) *tuple.Tuple {
 	}
 
 	return tuple.NewTupleFromSchema(values, outputSchema)
+}
+
+func (e *HashScanIndexExecutor) GetOutputSchema() *schema.Schema {
+	return e.plan.OutputSchema()
 }

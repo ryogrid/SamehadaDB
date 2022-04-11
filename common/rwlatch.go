@@ -30,7 +30,7 @@ const (
 	MaxReaders = math.MaxUint32
 )
 
-func NewRWLatch() *readerWriterLatch {
+func NewRWLatch() ReaderWriterLatch {
 	latch := readerWriterLatch{}
 
 	latch.mutex = new(sync.Mutex)
