@@ -1,8 +1,6 @@
 package executors
 
 import (
-	"fmt"
-
 	"github.com/ryogrid/SamehadaDB/common"
 	"github.com/ryogrid/SamehadaDB/container/hash"
 	"github.com/ryogrid/SamehadaDB/execution/expression"
@@ -12,13 +10,6 @@ import (
 	"github.com/ryogrid/SamehadaDB/types"
 )
 
-// TODO(student): when you are ready to attempt task 3, replace the using declaration!
-// using HT = SimpleHashJoinHashTable
-
-// using HashJoinKeyType = Value
-// using HashJoinValType = TmpTuple
-// using HT = LinearProbeHashTable<HashJoinKeyType, HashJoinValType, ValueComparator>
-
 /**
 * HashJoinExecutor executes hash join operations.
  */
@@ -26,11 +17,6 @@ type HashJoinExecutor struct {
 	context *ExecutorContext
 	/** The hash join plan node. */
 	plan_ *plans.HashJoinPlanNode
-	/** The comparator is used to compare hashes. */
-	//ValueComparator jht_comp
-	/** The identity hash function. */
-	//HashFunction<Value> jht_hash_fn_{}
-
 	/** The hash table that we are using. */
 	jht_ *SimpleHashJoinHashTable //*hash.LinearProbeHashTable
 	/** The number of buckets in the hash table. */
@@ -39,7 +25,7 @@ type HashJoinExecutor struct {
 	right_           Executor
 	left_expr_       expression.Expression
 	right_expr_      expression.Expression
-	tmp_tuples_      []*hash.TmpTuple
+	tmp_tuples_      []hash.TmpTuple
 	index_           int32
 	output_exprs_    []expression.Expression
 	tmp_page_ids_    []types.PageID
@@ -76,9 +62,7 @@ func (e *HashJoinExecutor) GetOutputSchema() *schema.Schema { return e.plan_.Out
 func (e *HashJoinExecutor) Init() {
 	// get exprs to evaluate to output result
 	output_column_cnt := int(e.GetOutputSchema().GetColumnCount())
-	//e.output_exprs_.resize(output_column_cnt)
 	for i := 0; i < output_column_cnt; i++ {
-		//e.output_exprs_[i] = e.GetOutputSchema().GetColumn(uint32(i)).GetExpr().(expression.Expression)
 		column_ := e.GetOutputSchema().GetColumn(uint32(i))
 		var colVal expression.Expression
 		if column_.IsLeft() {
@@ -102,7 +86,6 @@ func (e *HashJoinExecutor) Init() {
 	var tmp_page *hash.TmpTuplePage = nil
 	var tmp_page_id types.PageID = common.InvalidPageID
 	var tmp_tuple hash.TmpTuple
-	var loop_cnt int32 = 0
 	for left_tuple, done, _ := e.left_.Next(); !done; left_tuple, done, _ = e.left_.Next() {
 		if tmp_page == nil || !tmp_page.Insert(left_tuple, &tmp_tuple) {
 			// unpin the last full tmp page
@@ -114,14 +97,11 @@ func (e *HashJoinExecutor) Init() {
 			if tmp_page == nil {
 				panic("fail to create new tmp page when doing hash join")
 			}
-			fmt.Println("create new tmp page")
 			tmp_page.Init(tmp_page.GetPageId(), common.PageSize)
 			tmp_page_id = tmp_page.GetPageId()
 			e.tmp_page_ids_ = append(e.tmp_page_ids_, tmp_page_id)
 			// reinsert the tuple
-			//assert(tmp_page.Insert(left_tuple, &tmp_tuple))
 			tmp_page.Insert(left_tuple, &tmp_tuple)
-			loop_cnt++
 		}
 		valueAsKey := e.left_expr_.Evaluate(left_tuple, e.left_.GetOutputSchema())
 		e.jht_.Insert(hash.HashValue(&valueAsKey), &tmp_tuple)
@@ -129,11 +109,12 @@ func (e *HashJoinExecutor) Init() {
 }
 
 func (e *HashJoinExecutor) Next() (*tuple.Tuple, Done, error) {
+	inner_next_cnt := 0
 	for {
 		for int(e.index_) == len(e.tmp_tuples_) {
 			// we have traversed all possible join combination of the current right tuple
 			// move to the next right tuple
-			e.tmp_tuples_ = []*hash.TmpTuple{}
+			e.tmp_tuples_ = []hash.TmpTuple{}
 			e.index_ = 0
 			var done Done = false
 			var tmp_tuple *tuple.Tuple
@@ -142,37 +123,33 @@ func (e *HashJoinExecutor) Next() (*tuple.Tuple, Done, error) {
 				for _, tmp_page_id := range e.tmp_page_ids_ {
 					e.context.GetBufferPoolManager().DeletePage(tmp_page_id)
 				}
-				fmt.Println("reached Done is true")
 				return tmp_tuple, true, nil
 			}
+			inner_next_cnt++
 			e.right_tuple_ = *tmp_tuple
-			fmt.Printf("right tuple is %v\n", e.right_tuple_)
 			value := e.right_expr_.Evaluate(&e.right_tuple_, e.right_.GetOutputSchema())
 			e.tmp_tuples_ = e.jht_.GetValue(hash.HashValue(&value))
 		}
-		//panic("second bloc of HashJoinExecutor::Next()")
 		// traverse corresponding left tuples stored in the tmp pages util we find one satisfying the predicate with current right tuple
 		left_tmp_tuple := e.tmp_tuples_[e.index_]
 		var left_tuple tuple.Tuple
-		e.FetchTupleFromTmpTuplePage(&left_tuple, left_tmp_tuple)
+		e.FetchTupleFromTmpTuplePage(&left_tuple, &left_tmp_tuple)
 		for !e.IsValidCombination(&left_tuple, &e.right_tuple_) {
 			e.index_++
 			if int(e.index_) == len(e.tmp_tuples_) {
 				break
 			}
 			left_tmp_tuple = e.tmp_tuples_[e.index_]
-			e.FetchTupleFromTmpTuplePage(&left_tuple, left_tmp_tuple)
+			e.FetchTupleFromTmpTuplePage(&left_tuple, &left_tmp_tuple)
 		}
 		if int(e.index_) < len(e.tmp_tuples_) {
 			// valid combination found
 			ret_tuple := e.MakeOutputTuple(&left_tuple, &e.right_tuple_)
 			e.index_++
-			fmt.Println("hash join output tuple")
 			return ret_tuple, false, nil
 		}
 		// no valid combination, turn to the next right tuple by for loop
 	}
-	//return nil, false, nil
 }
 
 func (e *HashJoinExecutor) FetchTupleFromTmpTuplePage(tuple_ *tuple.Tuple, tmp_tuple *hash.TmpTuple) {
@@ -184,7 +161,6 @@ func (e *HashJoinExecutor) FetchTupleFromTmpTuplePage(tuple_ *tuple.Tuple, tmp_t
 	e.context.GetBufferPoolManager().UnpinPage(tmp_tuple.GetPageId(), false)
 }
 
-// TODO: (SDB) need port codes of Boolean type support for hash join
 func (e *HashJoinExecutor) IsValidCombination(left_tuple *tuple.Tuple, right_tuple *tuple.Tuple) bool {
 	return e.plan_.Predicate().EvaluateJoin(left_tuple, e.left_.GetOutputSchema(), right_tuple, e.right_.GetOutputSchema()).ToBoolean()
 }
@@ -199,34 +175,12 @@ func (e *HashJoinExecutor) MakeOutputTuple(left_tuple *tuple.Tuple, right_tuple 
 	return tuple.NewTupleFromSchema(values, e.GetOutputSchema())
 }
 
-/**
-* Hashes a tuple by evaluating it against every expression on the given schema, combining all non-null hashes.
-* @param tuple tuple to be hashed
-* @param schema schema to evaluate the tuple on
-* @param exprs expressions to evaluate the tuple with
-* @return the hashed tuple
- */
-func (e *HashJoinExecutor) HashValues(tuple_ *tuple.Tuple, schema_ *schema.Schema, exprs []*expression.Expression) uint32 {
-	var curr_hash uint32 = 0
-	// For every expression,
-	for _, expr := range exprs {
-		// We evaluate the tuple on the expression and schema.
-		val := (*expr).Evaluate(tuple_, schema_)
-		// If this produces a value,
-		if !val.IsNull() {
-			// We combine the hash of that value into our current hash.
-			curr_hash = hash.CombineHashes(curr_hash, hash.HashValue(&val))
-		}
-	}
-	return curr_hash
-}
-
 type SimpleHashJoinHashTable struct {
-	hash_table_ map[uint32][]*hash.TmpTuple
+	hash_table_ map[uint32][]hash.TmpTuple
 }
 
 func NewSimpleHashJoinHashTable() *SimpleHashJoinHashTable {
-	return &SimpleHashJoinHashTable{hash_table_: make(map[uint32][]*hash.TmpTuple)}
+	return &SimpleHashJoinHashTable{hash_table_: make(map[uint32][]hash.TmpTuple)}
 }
 
 /**
@@ -238,11 +192,11 @@ func NewSimpleHashJoinHashTable() *SimpleHashJoinHashTable {
  */
 func (jht *SimpleHashJoinHashTable) Insert(h uint32, t *hash.TmpTuple) bool {
 	if jht.hash_table_[h] == nil {
-		vals := make([]*hash.TmpTuple, 0)
-		vals = append(vals, t)
+		vals := make([]hash.TmpTuple, 0)
+		vals = append(vals, *t)
 		jht.hash_table_[h] = vals
 	} else {
-		jht.hash_table_[h] = append(jht.hash_table_[h], t)
+		jht.hash_table_[h] = append(jht.hash_table_[h], *t)
 	}
 
 	return true
@@ -254,4 +208,4 @@ func (jht *SimpleHashJoinHashTable) Insert(h uint32, t *hash.TmpTuple) bool {
  * @param h the hash key
  * @param[out] t the list of tuples that matched the key
  */
-func (jht *SimpleHashJoinHashTable) GetValue(h uint32) []*hash.TmpTuple { return jht.hash_table_[h] }
+func (jht *SimpleHashJoinHashTable) GetValue(h uint32) []hash.TmpTuple { return jht.hash_table_[h] }

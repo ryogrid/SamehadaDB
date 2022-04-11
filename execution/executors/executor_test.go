@@ -1170,7 +1170,7 @@ type TableInsertMeta struct {
 const DistSerial int32 = 0
 const DistUniform int32 = 1
 
-func GenNumericValues(col_meta ColumnInsertMeta, count uint32) []types.Value {
+func GenNumericValues(col_meta *ColumnInsertMeta, count uint32) []types.Value {
 	var values []types.Value
 	if col_meta.dist_ == DistSerial {
 		for i := 0; i < int(count); i++ {
@@ -1192,7 +1192,7 @@ func MakeValues(col_meta *ColumnInsertMeta, count uint32) []types.Value {
 	//var values []types.Value
 	switch col_meta.type_ {
 	case types.Integer:
-		return GenNumericValues(*col_meta, count)
+		return GenNumericValues(col_meta, count)
 	default:
 		panic("Not yet implemented")
 	}
@@ -1213,17 +1213,10 @@ func FillTable(info *catalog.TableMetadata, table_meta *TableInsertMeta, txn *ac
 			for idx := range table_meta.col_meta_ {
 				entry = append(entry, values[idx][i])
 			}
-			//entry.reserve(values.size())
-			//entry = append(entry, values...)
-			//var rid page.RID
-			//info.Table().InsertTuple(tuple.NewTupleFromSchema(entry, info.Schema()), txn)
 			info.Table().InsertTuple(tuple.NewTupleFromSchema(entry, info.Schema()), txn)
-			//BUSTUB_ASSERT(inserted, "Sequential insertion cannot fail")
 			num_inserted++
 		}
-		// exec_ctx_.GetBufferPoolManager().FlushAllPages()
 	}
-	//LOG_INFO("Wrote %d tuples to table %s.", num_inserted, table_meta.name_)
 }
 
 func MakeColumnValueExpression(schema_ *schema.Schema, tuple_idx uint32,
@@ -1232,15 +1225,10 @@ func MakeColumnValueExpression(schema_ *schema.Schema, tuple_idx uint32,
 	col_type := schema_.GetColumn(col_idx).GetType()
 	col_val := expression.NewColumnValue(tuple_idx, col_idx, col_type)
 	return col_val
-	//allocated_exprs = append(allocated_exprs, casted_col_val)
-	//return allocated_exprs_.back().get()
 }
 
 func MakeComparisonExpression(lhs expression.Expression, rhs expression.Expression,
 	comp_type expression.ComparisonType) *expression.Expression {
-	//allocated_exprs_.emplace_back(std::make_unique<ComparisonExpression>(lhs, rhs, comp_type));
-	//return allocated_exprs_.back().get();
-	//casted_lhs := (*expression.ColumnValue)(unsafe.Pointer(lhs))
 	casted_lhs := lhs.(*expression.ColumnValue)
 
 	ret_exp := expression.NewComparison(*casted_lhs, rhs, comp_type, types.Boolean)
@@ -1321,14 +1309,12 @@ func TestSimpleHashJoin(t *testing.T) {
 		colA := MakeColumnValueExpression(out_schema1, 0, "colA")
 		colA_c := column.NewColumn("colA", types.Integer, false)
 		colA_c.SetIsLeft(true)
-		// colB := MakeColumnValueExpression(allocated_exprs, *out_schema1, 0, "colB")
 		colB_c := column.NewColumn("colB", types.Integer, false)
-		colA_c.SetIsLeft(true)
+		colB_c.SetIsLeft(true)
 		// col1 and col2 have a tuple index of 1 because they are the right side of the join
 		col1 := MakeColumnValueExpression(out_schema2, 1, "col1")
 		col1_c := column.NewColumn("col1", types.Integer, false)
 		col1_c.SetIsLeft(false)
-		// col2 := MakeColumnValueExpression(allocated_exprs, *out_schema2, 1, "col2")
 		col2_c := column.NewColumn("col2", types.Integer, false)
 		col2_c.SetIsLeft(false)
 		var left_keys []expression.Expression
@@ -1342,28 +1328,23 @@ func TestSimpleHashJoin(t *testing.T) {
 			left_keys, right_keys)
 	}
 
-	executionEngine := &ExecutionEngine{}
-	left_executor := executionEngine.CreateExecutor(join_plan.GetLeftPlan(), executorContext)
-	right_executor := executionEngine.CreateExecutor(join_plan.GetRightPlan(), executorContext)
-	hashJoinExecutor := NewHashJoinExecutor(executorContext, join_plan, left_executor, right_executor)
-	//results := executionEngine.Execute(join_plan, executorContext)
-	common.EnableDebug = true
-	results := executionEngine.ExecuteWithExecutor(hashJoinExecutor)
-	common.EnableDebug = false
-	// executor := ExecutorFactory::CreateExecutor(GetExecutorContext(), join_plan.get())
-	// executor.Init()
-	// Tuple tuple
-	// uint32_t num_tuples = 0
 	// std::cout << "ColA, ColB, Col1, Col2" << std::endl
 	// while (executor.Next(&tuple)) {
 	//   std::cout << tuple.GetValue(out_final, out_schema1.GetColIdx("colA")).GetAs<int32_t>() << ", "
 	// 			<< tuple.GetValue(out_final, out_schema1.GetColIdx("colB")).GetAs<int32_t>() << ", "
 	// 			<< tuple.GetValue(out_final, out_schema2.GetColIdx("col1")).GetAs<int16_t>() << ", "
 	// 			<< tuple.GetValue(out_final, out_schema2.GetColIdx("col2")).GetAs<int32_t>() << std::endl
+	executionEngine := &ExecutionEngine{}
+	left_executor := executionEngine.CreateExecutor(join_plan.GetLeftPlan(), executorContext)
+	right_executor := executionEngine.CreateExecutor(join_plan.GetRightPlan(), executorContext)
+	hashJoinExecutor := NewHashJoinExecutor(executorContext, join_plan, left_executor, right_executor)
+	results := executionEngine.ExecuteWithExecutor(hashJoinExecutor)
 
-	//   num_tuples++
-	// }
-	//ASSERT_EQ(len(result), 100)
 	num_tuples := len(results)
 	testingpkg.Assert(t, num_tuples == 100, "")
+	for ii := 0; ii < 20; ii++ {
+		fmt.Println(results[ii])
+	}
+	fmt.Println("...")
+	fmt.Printf("results length = %d\n", num_tuples)
 }

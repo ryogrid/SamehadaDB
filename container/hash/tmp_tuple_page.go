@@ -59,7 +59,7 @@ func (p *TmpTuplePage) Insert(tuple_ *tuple.Tuple, out *TmpTuple) bool {
 	size := tuple_.Size()
 	buf := new(bytes.Buffer)
 	binary.Write(buf, binary.LittleEndian, size)
-	copy(addr[:], buf.Bytes())
+	copy(addr[0:], buf.Bytes())
 	data := tuple_.Data()
 	copy(addr[int(unsafe.Sizeof(size)):], data[:tuple_.Size()])
 	*out = *NewTmpTuple(p.GetTablePageId(), p.GetOffset())
@@ -72,7 +72,7 @@ func (p *TmpTuplePage) Get(tuple_ *tuple.Tuple, offset uint32) {
 }
 
 func (p *TmpTuplePage) SetPageId(page_id types.PageID) {
-	copy(p.GetData()[:], page_id.Serialize())
+	copy(p.GetData()[0:], page_id.Serialize())
 }
 func (p *TmpTuplePage) GetFreeSpacePointer() uint32 {
 	//return p.GetData() + unsafe.Sizeof(*new(types.PageID)) + unsafe.Sizeof(*new(types.LSN))
