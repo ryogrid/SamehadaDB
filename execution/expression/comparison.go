@@ -58,6 +58,14 @@ func (c *Comparison) performComparison(lhs types.Value, rhs types.Value) bool {
 		return lhs.CompareEquals(rhs)
 	case NotEqual:
 		return lhs.CompareNotEquals(rhs)
+	case GreaterThan:
+		return lhs.CompareGreaterThan(rhs)
+	case GreaterThanOrEqual:
+		return lhs.CompareGreaterThanOrEqual(rhs)
+	case LessThan:
+		return lhs.CompareLessThan(rhs)
+	case LessThanOrEqual:
+		return lhs.CompareLessThanOrEqual(rhs)
 	}
 	return false
 }
