@@ -78,6 +78,54 @@ func (v Value) CompareNotEquals(right Value) bool {
 	return false
 }
 
+func (v Value) CompareGreaterThan(right Value) bool {
+	switch v.valueType {
+	case Integer:
+		return *v.integer > *right.integer
+	case Varchar:
+		return *v.varchar > *right.varchar
+	case Boolean:
+		return false
+	}
+	return false
+}
+
+func (v Value) CompareGreaterThanOrEqual(right Value) bool {
+	switch v.valueType {
+	case Integer:
+		return *v.integer >= *right.integer
+	case Varchar:
+		return *v.varchar >= *right.varchar
+	case Boolean:
+		return *v.boolean == *right.boolean
+	}
+	return false
+}
+
+func (v Value) CompareLessThan(right Value) bool {
+	switch v.valueType {
+	case Integer:
+		return *v.integer < *right.integer
+	case Varchar:
+		return *v.varchar < *right.varchar
+	case Boolean:
+		return false
+	}
+	return false
+}
+
+func (v Value) CompareLessThanOrEqual(right Value) bool {
+	switch v.valueType {
+	case Integer:
+		return *v.integer <= *right.integer
+	case Varchar:
+		return *v.varchar <= *right.varchar
+	case Boolean:
+		return *v.boolean == *right.boolean
+	}
+	return false
+}
+
 func (v Value) Serialize() []byte {
 	switch v.valueType {
 	case Integer:

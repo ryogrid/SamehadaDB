@@ -101,7 +101,6 @@ func (log_manager *LogManager) RunFlushThread() { common.EnableLogging = true }
  */
 func (log_manager *LogManager) StopFlushThread() { common.EnableLogging = false }
 
-//TODO: (SDB) cases that record type is BEGIN and COMMIT should be implemented?
 /*
 * append a log record into log buffer
 * you MUST set the log record's lsn within this method
