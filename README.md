@@ -12,7 +12,7 @@ original codes of go-bustub are [here](https://github.com/brunocalza/go-bustub).
 
 - [x] Predicates on Seq Scan
 - [ ] Multiple Condition on Predicate: AND, OR
-- [ ] Predicates: <, >, <=, >=
+- [x] Predicates: <, >, <=, >=
 - [ ] Null
 - [ ] Other inline types (boolean, bigint, smallint, decimal, timestamp)
 - [x] Delete Tuple
