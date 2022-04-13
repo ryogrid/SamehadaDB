@@ -4,6 +4,7 @@
 package access
 
 import (
+	"github.com/ryogrid/SamehadaDB/common"
 	"github.com/ryogrid/SamehadaDB/recovery"
 	"github.com/ryogrid/SamehadaDB/storage/buffer"
 	"github.com/ryogrid/SamehadaDB/storage/page"
@@ -123,7 +124,7 @@ func (t *TableHeap) MarkDelete(rid *page.RID, txn *Transaction) bool {
 func (t *TableHeap) ApplyDelete(rid *page.RID, txn *Transaction) {
 	// Find the page which contains the tuple.
 	page_ := CastPageAsTablePage(t.bpm.FetchPage(rid.GetPageId()))
-	//BUSTUB_ASSERT(page != nullptr, "Couldn't find a page containing that RID.");
+	common.SH_Assert(page_ != nil, "Couldn't find a page containing that RID.")
 	// Delete the tuple from the page.
 	page_.WLatch()
 	page_.ApplyDelete(rid, txn, t.log_manager)
@@ -135,7 +136,7 @@ func (t *TableHeap) ApplyDelete(rid *page.RID, txn *Transaction) {
 func (t *TableHeap) RollbackDelete(rid *page.RID, txn *Transaction) {
 	// Find the page which contains the tuple.
 	page_ := CastPageAsTablePage(t.bpm.FetchPage(rid.GetPageId()))
-	//BUSTUB_ASSERT(page != nullptr, "Couldn't find a page containing that RID.");
+	common.SH_Assert(page_ != nil, "Couldn't find a page containing that RID.")
 	// Rollback the delete.
 	page_.WLatch()
 	page_.RollbackDelete(rid, txn, t.log_manager)

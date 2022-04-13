@@ -115,7 +115,7 @@ func (tp *TablePage) InsertTuple(tuple *tuple.Tuple, log_manager *recovery.LogMa
 // TODO: (SDB) need to update selected column only (UpdateTuple of TablePage)
 func (tp *TablePage) UpdateTuple(new_tuple *tuple.Tuple, old_tuple *tuple.Tuple, rid *page.RID, txn *Transaction,
 	lock_manager *LockManager, log_manager *recovery.LogManager) bool {
-	//BUSTUB_ASSERT(new_tuple.size_ > 0, "Cannot have empty tuples.");
+	common.SH_Assert(new_tuple.Size() > 0, "Cannot have empty tuples.")
 	slot_num := rid.GetSlotNum()
 	// If the slot number is invalid, abort the transaction.
 	if slot_num >= tp.GetTupleCount() {
@@ -168,7 +168,7 @@ func (tp *TablePage) UpdateTuple(new_tuple *tuple.Tuple, old_tuple *tuple.Tuple,
 
 	// Perform the update.
 	free_space_pointer := tp.GetFreeSpacePointer()
-	//BUSTUB_ASSERT(tuple_offset >= free_space_pointer, "Offset should appear after current free space position.");
+	common.SH_Assert(tuple_offset >= free_space_pointer, "Offset should appear after current free space position.")
 
 	//memmove(GetData() + free_space_pointer + tuple_size - new_tuple.size_, GetData() + free_space_pointer, tuple_offset - free_space_pointer);
 	copy(tp.GetData()[free_space_pointer+tuple_size-new_tuple.Size():], tp.GetData()[free_space_pointer:tuple_offset])
@@ -232,7 +232,7 @@ func (tp *TablePage) MarkDelete(rid *page.RID, txn *Transaction, lock_manager *L
 
 func (table_page *TablePage) ApplyDelete(rid *page.RID, txn *Transaction, log_manager *recovery.LogManager) {
 	slot_num := rid.GetSlotNum()
-	//BUSTUB_ASSERT(slot_num < GetTupleCount(), "Cannot have more slots than tuples.")
+	common.SH_Assert(slot_num < table_page.GetTupleCount(), "Cannot have more slots than tuples.")
 
 	tuple_offset := table_page.GetTupleOffsetAtSlot(slot_num)
 	tuple_size := table_page.GetTupleSize(slot_num)
@@ -252,7 +252,7 @@ func (table_page *TablePage) ApplyDelete(rid *page.RID, txn *Transaction, log_ma
 	//delete_tuple.allocated = true
 
 	if common.EnableLogging {
-		//BUSTUB_ASSERT(txn.IsExclusiveLocked(rid), "We must own the exclusive lock!")
+		common.SH_Assert(txn.IsExclusiveLocked(rid), "We must own the exclusive lock!")
 		log_record := recovery.NewLogRecordInsertDelete(txn.GetTransactionId(), txn.GetPrevLSN(), recovery.APPLYDELETE, *rid, delete_tuple)
 		lsn := log_manager.AppendLogRecord(log_record)
 		table_page.SetLSN(lsn)
@@ -260,7 +260,7 @@ func (table_page *TablePage) ApplyDelete(rid *page.RID, txn *Transaction, log_ma
 	}
 
 	free_space_pointer := table_page.GetFreeSpacePointer()
-	//BUSTUB_ASSERT(tuple_offset >= free_space_pointer, "Free space appears before tuples.")
+	common.SH_Assert(tuple_offset >= free_space_pointer, "Free space appears before tuples.")
 
 	// memmove(GetData() + free_space_pointer + tuple_size, GetData() + free_space_pointer,
 	// tuple_offset - free_space_pointer);
@@ -283,7 +283,7 @@ func (table_page *TablePage) ApplyDelete(rid *page.RID, txn *Transaction, log_ma
 func (tp *TablePage) RollbackDelete(rid *page.RID, txn *Transaction, log_manager *recovery.LogManager) {
 	// Log the rollback.
 	if common.EnableLogging {
-		//BUSTUB_ASSERT(txn->IsExclusiveLocked(rid), "We must own an exclusive lock on the RID.");
+		common.SH_Assert(txn.IsExclusiveLocked(rid), "We must own an exclusive lock on the RID.")
 		dummy_tuple := new(tuple.Tuple)
 		log_record := recovery.NewLogRecordInsertDelete(txn.GetTransactionId(), txn.GetPrevLSN(), recovery.ROLLBACKDELETE, *rid, dummy_tuple)
 		lsn := log_manager.AppendLogRecord(log_record)
@@ -292,7 +292,7 @@ func (tp *TablePage) RollbackDelete(rid *page.RID, txn *Transaction, log_manager
 	}
 
 	slot_num := rid.GetSlotNum()
-	//BUSTUB_ASSERT(slot_num < GetTupleCount(), "We can't have more slots than tuples.");
+	common.SH_Assert(slot_num < tp.GetTupleCount(), "We can't have more slots than tuples.")
 	tuple_size := tp.GetTupleSize(slot_num)
 
 	// Unset the deleted flag.
