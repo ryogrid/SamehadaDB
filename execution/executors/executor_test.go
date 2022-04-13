@@ -31,7 +31,7 @@ func TestSimpleInsertAndSeqScan(t *testing.T) {
 	defer diskManager.ShutDown()
 	log_mgr := recovery.NewLogManager(&diskManager)
 	bpm := buffer.NewBufferPoolManager(uint32(32), diskManager, log_mgr)
-	txn_mgr := access.NewTransactionManager(log_mgr)
+	txn_mgr := access.NewTransactionManager(access.NewLockManager(access.REGULAR, access.DETECTION), log_mgr)
 	txn := txn_mgr.Begin(nil)
 
 	c := catalog.BootstrapCatalog(bpm, log_mgr, access.NewLockManager(access.REGULAR, access.PREVENTION), txn)
@@ -80,7 +80,7 @@ func TestSimpleInsertAndSeqScanWithPredicateComparison(t *testing.T) {
 	defer diskManager.ShutDown()
 	log_mgr := recovery.NewLogManager(&diskManager)
 	bpm := buffer.NewBufferPoolManager(uint32(32), diskManager, log_mgr) //, recovery.NewLogManager(diskManager), access.NewLockManager(access.REGULAR, access.PREVENTION))
-	txn_mgr := access.NewTransactionManager(log_mgr)
+	txn_mgr := access.NewTransactionManager(access.NewLockManager(access.REGULAR, access.DETECTION), log_mgr)
 	txn := txn_mgr.Begin(nil)
 
 	c := catalog.BootstrapCatalog(bpm, log_mgr, access.NewLockManager(access.REGULAR, access.PREVENTION), txn)
@@ -202,7 +202,7 @@ func TestSimpleInsertAndLimitExecution(t *testing.T) {
 	defer diskManager.ShutDown()
 	log_mgr := recovery.NewLogManager(&diskManager)
 	bpm := buffer.NewBufferPoolManager(uint32(32), diskManager, log_mgr)
-	txn_mgr := access.NewTransactionManager(log_mgr)
+	txn_mgr := access.NewTransactionManager(access.NewLockManager(access.REGULAR, access.DETECTION), log_mgr)
 	txn := txn_mgr.Begin(nil)
 
 	c := catalog.BootstrapCatalog(bpm, log_mgr, access.NewLockManager(access.REGULAR, access.PREVENTION), txn)
@@ -292,7 +292,7 @@ func TestSimpleInsertAndLimitExecutionMultiTable(t *testing.T) {
 	defer diskManager.ShutDown()
 	log_mgr := recovery.NewLogManager(&diskManager)
 	bpm := buffer.NewBufferPoolManager(uint32(32), diskManager, log_mgr)
-	txn_mgr := access.NewTransactionManager(log_mgr)
+	txn_mgr := access.NewTransactionManager(access.NewLockManager(access.REGULAR, access.DETECTION), log_mgr)
 	txn := txn_mgr.Begin(nil)
 
 	c := catalog.BootstrapCatalog(bpm, log_mgr, access.NewLockManager(access.REGULAR, access.PREVENTION), txn)
@@ -434,7 +434,7 @@ func TestHashTableIndex(t *testing.T) {
 	log_mgr := recovery.NewLogManager(&diskManager)
 	bpm := buffer.NewBufferPoolManager(uint32(32), diskManager, log_mgr) //, recovery.NewLogManager(diskManager), access.NewLockManager(access.REGULAR, access.PREVENTION))
 
-	txn_mgr := access.NewTransactionManager(log_mgr)
+	txn_mgr := access.NewTransactionManager(access.NewLockManager(access.REGULAR, access.DETECTION), log_mgr)
 	txn := txn_mgr.Begin(nil)
 
 	c := catalog.BootstrapCatalog(bpm, log_mgr, access.NewLockManager(access.REGULAR, access.PREVENTION), txn)
@@ -569,7 +569,7 @@ func TestSimpleDelete(t *testing.T) {
 	defer diskManager.ShutDown()
 	log_mgr := recovery.NewLogManager(&diskManager)
 	bpm := buffer.NewBufferPoolManager(uint32(32), diskManager, log_mgr)
-	txn_mgr := access.NewTransactionManager(log_mgr)
+	txn_mgr := access.NewTransactionManager(access.NewLockManager(access.REGULAR, access.DETECTION), log_mgr)
 	txn := txn_mgr.Begin(nil)
 
 	c := catalog.BootstrapCatalog(bpm, log_mgr, access.NewLockManager(access.REGULAR, access.PREVENTION), txn)
@@ -661,7 +661,7 @@ func TestDeleteWithSelctInsert(t *testing.T) {
 	defer diskManager.ShutDown()
 	log_mgr := recovery.NewLogManager(&diskManager)
 	bpm := buffer.NewBufferPoolManager(uint32(32), diskManager, log_mgr)
-	txn_mgr := access.NewTransactionManager(log_mgr)
+	txn_mgr := access.NewTransactionManager(access.NewLockManager(access.REGULAR, access.DETECTION), log_mgr)
 	txn := txn_mgr.Begin(nil)
 
 	c := catalog.BootstrapCatalog(bpm, log_mgr, access.NewLockManager(access.REGULAR, access.PREVENTION), txn)
@@ -793,7 +793,7 @@ func TestSimpleInsertAndUpdate(t *testing.T) {
 	defer diskManager.ShutDown()
 	log_mgr := recovery.NewLogManager(&diskManager)
 	bpm := buffer.NewBufferPoolManager(uint32(32), diskManager, log_mgr)
-	txn_mgr := access.NewTransactionManager(log_mgr)
+	txn_mgr := access.NewTransactionManager(access.NewLockManager(access.REGULAR, access.DETECTION), log_mgr)
 	txn := txn_mgr.Begin(nil)
 
 	c := catalog.BootstrapCatalog(bpm, log_mgr, access.NewLockManager(access.REGULAR, access.PREVENTION), txn)
@@ -868,7 +868,7 @@ func TestInsertUpdateMix(t *testing.T) {
 	defer diskManager.ShutDown()
 	log_mgr := recovery.NewLogManager(&diskManager)
 	bpm := buffer.NewBufferPoolManager(uint32(32), diskManager, log_mgr)
-	txn_mgr := access.NewTransactionManager(log_mgr)
+	txn_mgr := access.NewTransactionManager(access.NewLockManager(access.REGULAR, access.DETECTION), log_mgr)
 	txn := txn_mgr.Begin(nil)
 
 	c := catalog.BootstrapCatalog(bpm, log_mgr, access.NewLockManager(access.REGULAR, access.PREVENTION), txn)
@@ -984,7 +984,7 @@ func TestAbortWIthDeleteUpdate(t *testing.T) {
 	defer diskManager.ShutDown()
 	log_mgr := recovery.NewLogManager(&diskManager)
 	bpm := buffer.NewBufferPoolManager(uint32(32), diskManager, log_mgr)
-	txn_mgr := access.NewTransactionManager(log_mgr)
+	txn_mgr := access.NewTransactionManager(access.NewLockManager(access.REGULAR, access.DETECTION), log_mgr)
 	txn := txn_mgr.Begin(nil)
 
 	c := catalog.BootstrapCatalog(bpm, log_mgr, access.NewLockManager(access.REGULAR, access.PREVENTION), txn)
@@ -1240,7 +1240,7 @@ func TestSimpleHashJoin(t *testing.T) {
 	defer diskManager.ShutDown()
 	log_mgr := recovery.NewLogManager(&diskManager)
 	bpm := buffer.NewBufferPoolManager(uint32(32), diskManager, log_mgr)
-	txn_mgr := access.NewTransactionManager(log_mgr)
+	txn_mgr := access.NewTransactionManager(access.NewLockManager(access.REGULAR, access.DETECTION), log_mgr)
 	txn := txn_mgr.Begin(nil)
 	c := catalog.BootstrapCatalog(bpm, log_mgr, access.NewLockManager(access.REGULAR, access.PREVENTION), txn)
 	executorContext := NewExecutorContext(c, bpm, txn)
@@ -1353,7 +1353,7 @@ func TestInsertAndSeqScanWithComplexPredicateComparison(t *testing.T) {
 	defer diskManager.ShutDown()
 	log_mgr := recovery.NewLogManager(&diskManager)
 	bpm := buffer.NewBufferPoolManager(uint32(32), diskManager, log_mgr) //, recovery.NewLogManager(diskManager), access.NewLockManager(access.REGULAR, access.PREVENTION))
-	txn_mgr := access.NewTransactionManager(log_mgr)
+	txn_mgr := access.NewTransactionManager(access.NewLockManager(access.REGULAR, access.DETECTION), log_mgr)
 	txn := txn_mgr.Begin(nil)
 
 	c := catalog.BootstrapCatalog(bpm, log_mgr, access.NewLockManager(access.REGULAR, access.PREVENTION), txn)

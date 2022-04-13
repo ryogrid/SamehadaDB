@@ -3,6 +3,7 @@ package access
 import (
 	"github.com/ryogrid/SamehadaDB/common"
 	"github.com/ryogrid/SamehadaDB/recovery"
+	"github.com/ryogrid/SamehadaDB/storage/page"
 	"github.com/ryogrid/SamehadaDB/types"
 )
 
@@ -11,17 +12,17 @@ import (
  */
 type TransactionManager struct {
 	// TODO: (SDB) must ensure atomicity
-	next_txn_id types.TxnID
-	// lock_manager *LockManager //__attribute__((__unused__))
-	log_manager *recovery.LogManager // __attribute__((__unused__))
+	next_txn_id  types.TxnID
+	lock_manager *LockManager         //__attribute__((__unused__))
+	log_manager  *recovery.LogManager // __attribute__((__unused__))
 	// /** The global transaction latch is used for checkpointing. */
 	global_txn_latch common.ReaderWriterLatch
 }
 
 var txn_map map[types.TxnID]*Transaction = make(map[types.TxnID]*Transaction)
 
-func NewTransactionManager(log_manager *recovery.LogManager) *TransactionManager {
-	return &TransactionManager{0, log_manager, common.NewRWLatch()}
+func NewTransactionManager(lock_manager *LockManager, log_manager *recovery.LogManager) *TransactionManager {
+	return &TransactionManager{0, lock_manager, log_manager, common.NewRWLatch()}
 }
 
 func (transaction_manager *TransactionManager) Begin(txn *Transaction) *Transaction {
@@ -121,17 +122,10 @@ func (transaction_manager *TransactionManager) ResumeTransactions() {
 }
 
 func (transaction_manager *TransactionManager) releaseLocks(txn *Transaction) {
-	// TODO: (SDB) not ported yet
-	/*
-	   	var lock_set : unordered_set<RID>
-	       for (item : *txn.GetExclusiveLockSet()) {
-	         lock_set.emplace(item)
-	       }
-	       for (item : *txn.GetSharedLockSet()) {
-	         lock_set.emplace(item)
-	       }
-	       for (locked_rid : lock_set) {
-	         lock_manager.Unlock(txn, locked_rid)
-	       }
-	*/
+	var lock_set []page.RID
+	lock_set = append(lock_set, txn.GetExclusiveLockSet()...)
+	lock_set = append(lock_set, txn.GetSharedLockSet()...)
+	for _, locked_rid := range lock_set {
+		transaction_manager.lock_manager.Unlock(txn, &locked_rid)
+	}
 }

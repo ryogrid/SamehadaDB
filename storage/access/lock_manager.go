@@ -133,8 +133,10 @@ func (lock_manager *LockManager) Prevention() bool { return lock_manager.deadloc
 * @return true if the lock is granted, false otherwise
  */
 func (lock_manager *LockManager) LockShared(txn *Transaction, rid *page.RID) bool {
-	// TODO: (SDB) not ported yet
 	// txn.GetSharedLockSet().emplace(rid)
+	slock_set := txn.GetSharedLockSet()
+	slock_set = append(slock_set, *rid)
+	txn.SetSharedLockSet(slock_set)
 	return true
 }
 
@@ -145,8 +147,11 @@ func (lock_manager *LockManager) LockShared(txn *Transaction, rid *page.RID) boo
 * @return true if the lock is granted, false otherwise
  */
 func (lock_manager *LockManager) LockExclusive(txn *Transaction, rid *page.RID) bool {
-	// TODO: (SDB) not ported yet
 	// txn.GetExclusiveLockSet().emplace(rid)
+	elock_set := txn.GetExclusiveLockSet()
+	elock_set = append(elock_set, *rid)
+	txn.SetExclusiveLockSet(elock_set)
+
 	return true
 }
 
