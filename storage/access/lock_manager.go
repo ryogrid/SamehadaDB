@@ -137,6 +137,7 @@ func (lock_manager *LockManager) LockShared(txn *Transaction, rid *page.RID) boo
 	slock_set := txn.GetSharedLockSet()
 	slock_set = append(slock_set, *rid)
 	txn.SetSharedLockSet(slock_set)
+
 	return true
 }
 
@@ -155,6 +156,16 @@ func (lock_manager *LockManager) LockExclusive(txn *Transaction, rid *page.RID) 
 	return true
 }
 
+func removeRID(list []page.RID, rid page.RID) []page.RID {
+	for i, r := range list {
+		if r == rid {
+			list = append(list[:i], list[i+1:]...)
+			break
+		}
+	}
+	return list
+}
+
 /**
 * Upgrade a lock from a shared lock to an exclusive access.
 * @param txn the transaction requesting the lock upgrade
@@ -162,9 +173,15 @@ func (lock_manager *LockManager) LockExclusive(txn *Transaction, rid *page.RID) 
 * @return true if the upgrade is successful, false otherwise
  */
 func (lock_manager *LockManager) LockUpgrade(txn *Transaction, rid *page.RID) bool {
-	// TODO: (SDB) not ported yet
 	// txn.GetSharedLockSet().erase(rid)
 	// txn.GetExclusiveLockSet().emplace(rid)
+	slock_set := txn.GetSharedLockSet()
+	slock_set = removeRID(slock_set, *rid)
+	txn.SetSharedLockSet(slock_set)
+	elock_set := txn.GetExclusiveLockSet()
+	elock_set = append(elock_set, *rid)
+	txn.SetExclusiveLockSet(elock_set)
+
 	return true
 }
 
@@ -175,9 +192,15 @@ func (lock_manager *LockManager) LockUpgrade(txn *Transaction, rid *page.RID) bo
 * @return true if the unlock is successful, false otherwise
  */
 func (lock_manager *LockManager) Unlock(txn *Transaction, rid *page.RID) bool {
-	// TODO: (SDB) not ported yet
 	// txn.GetSharedLockSet().erase(rid)
 	// txn.GetExclusiveLockSet().erase(rid)
+	slock_set := txn.GetSharedLockSet()
+	slock_set = removeRID(slock_set, *rid)
+	txn.SetSharedLockSet(slock_set)
+	elock_set := txn.GetExclusiveLockSet()
+	elock_set = removeRID(elock_set, *rid)
+	txn.SetExclusiveLockSet(elock_set)
+
 	return true
 }
 
