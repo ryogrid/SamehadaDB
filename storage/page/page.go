@@ -27,7 +27,6 @@ type Page struct {
 	isDirty  bool                   // the page was modified but not flushed
 	data     *[common.PageSize]byte // bytes stored in disk
 	rwlatch_ common.ReaderWriterLatch
-	// TODO: (SDB) need to use latch at Page
 }
 
 // IncPinCount decrements pin count
