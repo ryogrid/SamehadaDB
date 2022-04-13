@@ -48,6 +48,7 @@ const ErrNoFreeSlot = errors.Error("could not find a free slot")
 //  ----------------------------------------------------------------
 type TablePage struct {
 	page.Page
+	//rwlatch_ common.ReaderWriterLatch
 }
 
 // CastPageAsTablePage casts the abstract Page struct into TablePage
@@ -55,7 +56,10 @@ func CastPageAsTablePage(page *page.Page) *TablePage {
 	if page == nil {
 		return nil
 	}
-	return (*TablePage)(unsafe.Pointer(page))
+
+	ret := (*TablePage)(unsafe.Pointer(page))
+	//ret.rwlatch_ = common.NewRWLatch()
+	return ret
 }
 
 // Inserts a tuple into the table
@@ -455,19 +459,19 @@ func (tp *TablePage) GetNextTupleRID(curRID *page.RID) *page.RID {
 
 // TODO: (SDB) need port WLatch of TablePage
 /** Acquire the page write latch. */
-func (tp *TablePage) WLatch() { /*rwlatch_.WLock()*/ }
+func (tp *TablePage) WLatch() { /*tp.rwlatch_.WLock()*/ }
 
 // TODO: (SDB) need port WUnlatch of TablePage
 /** Release the page write latch. */
-func (tp *TablePage) WUnlatch() { /*rwlatch_.WUnlock()*/ }
+func (tp *TablePage) WUnlatch() { /*tp.rwlatch_.WUnlock()*/ }
 
 // TODO: (SDB) need port RLatch of TablePage
 /** Acquire the page read latch. */
-func (tp *TablePage) RLatch() { /*rwlatch_.RLock()*/ }
+func (tp *TablePage) RLatch() { /*tp.rwlatch_.RLock()*/ }
 
 // TODO: (SDB) need port RLatch of TablePage
 /** Release the page read latch. */
-func (tp *TablePage) RUnlatch() { /*rwlatch_.RUnlock()*/ }
+func (tp *TablePage) RUnlatch() { /*tp.rwlatch_.RUnlock()*/ }
 
 /** @return true if the tuple is deleted or empty */
 func IsDeleted(tuple_size uint32) bool {
