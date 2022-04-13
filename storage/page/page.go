@@ -26,6 +26,7 @@ type Page struct {
 	pinCount uint32                 // counts how many goroutines are acessing it
 	isDirty  bool                   // the page was modified but not flushed
 	data     *[common.PageSize]byte // bytes stored in disk
+	rwlatch_ common.ReaderWriterLatch
 	// TODO: (SDB) need to use latch at Page
 }
 
@@ -73,12 +74,12 @@ func (p *Page) Copy(offset uint32, data []byte) {
 
 // New creates a new page
 func New(id types.PageID, isDirty bool, data *[common.PageSize]byte) *Page {
-	return &Page{id, uint32(1), isDirty, data}
+	return &Page{id, uint32(1), isDirty, data, common.NewRWLatch()}
 }
 
 // New creates a new empty page
 func NewEmpty(id types.PageID) *Page {
-	return &Page{id, uint32(1), false, &[common.PageSize]byte{}}
+	return &Page{id, uint32(1), false, &[common.PageSize]byte{}, common.NewRWLatch()}
 }
 
 // TODO: (SDB) lockking and unlockking latch of Page is not implemented yet
@@ -112,3 +113,15 @@ func (p *Page) GetPageId() types.PageID { return p.id }
 func (p *Page) GetData() *[common.PageSize]byte {
 	return p.data
 }
+
+/** Acquire the page write latch. */
+func (p *Page) WLatch() { p.rwlatch_.WLock() }
+
+/** Release the page write latch. */
+func (p *Page) WUnlatch() { p.rwlatch_.WUnlock() }
+
+/** Acquire the page read latch. */
+func (p *Page) RLatch() { p.rwlatch_.RLock() }
+
+/** Release the page read latch. */
+func (p *Page) RUnlatch() { p.rwlatch_.RUnlock() }

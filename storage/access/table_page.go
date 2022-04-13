@@ -57,9 +57,7 @@ func CastPageAsTablePage(page *page.Page) *TablePage {
 		return nil
 	}
 
-	ret := (*TablePage)(unsafe.Pointer(page))
-	//ret.rwlatch_ = common.NewRWLatch()
-	return ret
+	return (*TablePage)(unsafe.Pointer(page))
 }
 
 // Inserts a tuple into the table
@@ -456,22 +454,6 @@ func (tp *TablePage) GetNextTupleRID(curRID *page.RID) *page.RID {
 	}
 	return nil
 }
-
-// TODO: (SDB) need port WLatch of TablePage
-/** Acquire the page write latch. */
-func (tp *TablePage) WLatch() { /*tp.rwlatch_.WLock()*/ }
-
-// TODO: (SDB) need port WUnlatch of TablePage
-/** Release the page write latch. */
-func (tp *TablePage) WUnlatch() { /*tp.rwlatch_.WUnlock()*/ }
-
-// TODO: (SDB) need port RLatch of TablePage
-/** Acquire the page read latch. */
-func (tp *TablePage) RLatch() { /*tp.rwlatch_.RLock()*/ }
-
-// TODO: (SDB) need port RLatch of TablePage
-/** Release the page read latch. */
-func (tp *TablePage) RUnlatch() { /*tp.rwlatch_.RUnlock()*/ }
 
 /** @return true if the tuple is deleted or empty */
 func IsDeleted(tuple_size uint32) bool {
