@@ -6,6 +6,8 @@ package types
 import (
 	"bytes"
 	"encoding/binary"
+	"sync/atomic"
+	"unsafe"
 )
 
 // TxnID is the type of the transaction identifier
@@ -22,4 +24,9 @@ func (id TxnID) Serialize() []byte {
 func NewTxnIDFromBytes(data []byte) (ret TxnID) {
 	binary.Read(bytes.NewBuffer(data), binary.LittleEndian, &ret)
 	return ret
+}
+
+func (id TxnID) AtomicAdd(val int32) {
+	p := (*int32)(unsafe.Pointer(&id))
+	atomic.AddInt32(p, val)
 }

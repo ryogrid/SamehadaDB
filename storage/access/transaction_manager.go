@@ -11,7 +11,6 @@ import (
  * TransactionManager keeps track of all the transactions running in the system.
  */
 type TransactionManager struct {
-	// TODO: (SDB) must ensure atomicity
 	next_txn_id  types.TxnID
 	lock_manager *LockManager         //__attribute__((__unused__))
 	log_manager  *recovery.LogManager // __attribute__((__unused__))
@@ -31,7 +30,8 @@ func (transaction_manager *TransactionManager) Begin(txn *Transaction) *Transact
 	var txn_ret *Transaction = txn
 
 	if txn_ret == nil {
-		transaction_manager.next_txn_id += 1
+		//transaction_manager.next_txn_id += 1
+		transaction_manager.next_txn_id.AtomicAdd(1)
 		txn_ret = NewTransaction(transaction_manager.next_txn_id)
 		// fmt.Printf("new transactin ID: %d\n", transaction_manager.next_txn_id)
 	}
