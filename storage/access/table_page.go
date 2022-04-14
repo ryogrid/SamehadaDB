@@ -97,12 +97,6 @@ func (tp *TablePage) InsertTuple(tuple *tuple.Tuple, log_manager *recovery.LogMa
 		common.SH_Assert(!txn.IsSharedLocked(rid) && !txn.IsExclusiveLocked(rid), "A new tuple should not be locked.")
 		// Acquire an exclusive lock on the new tuple.
 		locked := lock_manager.LockExclusive(txn, rid)
-		//txn_ := (*Transaction)(unsafe.Pointer(&txn))
-
-		// TODO: (SDB) need to check having lock
-		//locked := LockExclusive(txn, rid)
-		//fmt.Print(locked)
-
 		common.SH_Assert(locked, "Locking a new tuple should always work.")
 		log_record := recovery.NewLogRecordInsertDelete(txn.GetTransactionId(), txn.GetPrevLSN(), recovery.INSERT, *rid, tuple)
 		lsn := log_manager.AppendLogRecord(log_record)
