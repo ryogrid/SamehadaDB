@@ -56,8 +56,6 @@ func (log_manager *LogManager) GetPersistentLSN() types.LSN { return log_manager
 //func (log_manager *LogManager) GetLogBuffer() []byte           { return log_manager.log_buffer }
 
 func (log_manager *LogManager) Flush() {
-	// TODO: (SDB) need use lock and unlock functionalty of log_manager.latch mutex
-	//             cpp impl releases lock automatically using std::unique_lock
 	// TODO: (SDB) need fix to occur buffer swap when already running flushing?
 
 	// For I/O efficiency, ideally flush thread should be used like below

@@ -17,7 +17,8 @@ package access
 //===----------------------------------------------------------------------===//
 
 import (
-	"github.com/ryogrid/SamehadaDB/common"
+	"sync"
+
 	"github.com/ryogrid/SamehadaDB/storage/page"
 	"github.com/ryogrid/SamehadaDB/types"
 )
@@ -75,8 +76,8 @@ type LockManager struct {
 	two_pl_mode   TwoPLMode //__attribute__((__unused__));
 	deadlock_mode DeadlockMode
 
-	latch common.ReaderWriterLatch
-	// TODO: (SDB) need ensure atomicity
+	mutex *sync.Mutex
+	// TODO: (SDB) need ensure atomicity (not needed until implement dealock detection)
 	enable_cycle_detection bool
 	// TODO: (SDB) not poreted yet
 	//cycle_detection_thread *std::thread
@@ -96,6 +97,7 @@ func NewLockManager(two_pl_mode TwoPLMode, deadlock_mode DeadlockMode /*= Deadlo
 	ret := new(LockManager)
 	ret.two_pl_mode = two_pl_mode
 	ret.deadlock_mode = deadlock_mode
+	ret.mutex = new(sync.Mutex)
 	// If Detection() is enabled, we should launch a background cycle detection thread.
 	if ret.Detection() {
 		ret.enable_cycle_detection = true
