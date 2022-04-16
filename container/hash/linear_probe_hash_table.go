@@ -81,7 +81,7 @@ func (ht *LinearProbeHashTable) GetValue(key []byte) []uint32 {
 
 func (ht *LinearProbeHashTable) Insert(key []byte, value uint32) (err error) {
 	ht.table_latch.RLock()
-	defer ht.table_latch.RLock()
+	defer ht.table_latch.RUnlock()
 	hPageData := ht.bpm.FetchPage(ht.headerPageId).Data()
 	headerPage := (*page.HashTableHeaderPage)(unsafe.Pointer(hPageData))
 
@@ -121,7 +121,7 @@ func (ht *LinearProbeHashTable) Insert(key []byte, value uint32) (err error) {
 
 func (ht *LinearProbeHashTable) Remove(key []byte, value uint32) {
 	ht.table_latch.RLock()
-	defer ht.table_latch.RLock()
+	defer ht.table_latch.RUnlock()
 	hPageData := ht.bpm.FetchPage(ht.headerPageId).Data()
 	headerPage := (*page.HashTableHeaderPage)(unsafe.Pointer(hPageData))
 
