@@ -18,15 +18,15 @@ import (
 type LogManager struct {
 	// TODO(students): you may add your own member variables
 
-	// TODO: (SDB) must ensure atomicity if current locking is not enough
+	// TODO: (SDB) must ensure atomicity if current locking becomes not enough
 	offset uint32
-	// TODO: (SDB) must ensure atomicity if current locking is not enough
+	// TODO: (SDB) must ensure atomicity if current locking becomes not enough
 	log_buffer_lsn types.LSN
 	/** The atomic counter which records the next log sequence number. */
-	// TODO: (SDB) must ensure atomicity if current locking is not enough
+	// TODO: (SDB) must ensure atomicity if current locking becomes not enough
 	next_lsn types.LSN
 	/** The log records before and including the persistent lsn have been written to disk. */
-	// TODO: (SDB) must ensure atomicity if current locking is not enough
+	// TODO: (SDB) must ensure atomicity if current locking becomes not enough
 	persistent_lsn types.LSN
 	log_buffer     []byte
 	flush_buffer   []byte

@@ -24,8 +24,11 @@ type TableHeap struct {
 // NewTableHeap creates a table heap without a  (open table)
 func NewTableHeap(bpm *buffer.BufferPoolManager, log_manager *recovery.LogManager, lock_manager *LockManager, txn *Transaction) *TableHeap {
 	p := bpm.NewPage()
+
 	firstPage := CastPageAsTablePage(p)
+	firstPage.WLatch()
 	firstPage.Init(p.ID(), types.InvalidPageID, log_manager, lock_manager, txn)
+	firstPage.WUnlatch()
 	bpm.UnpinPage(p.ID(), true)
 	return &TableHeap{bpm, p.ID(), log_manager, lock_manager}
 }
@@ -50,6 +53,9 @@ func (t *TableHeap) GetFirstPageId() types.PageID {
 func (t *TableHeap) InsertTuple(tuple_ *tuple.Tuple, txn *Transaction) (rid *page.RID, err error) {
 	currentPage := CastPageAsTablePage(t.bpm.FetchPage(t.firstPageId))
 
+	// Insert into the first page with enough space. If no such page exists, create a new page and insert into that.
+	// INVARIANT: currentPage is WLatched if you leave the loop normally.
+	currentPage.WLatch()
 	for {
 		rid, err = currentPage.InsertTuple(tuple_, t.log_manager, t.lock_manager, txn)
 		if err == nil || err == ErrEmptyTuple {
@@ -60,17 +66,22 @@ func (t *TableHeap) InsertTuple(tuple_ *tuple.Tuple, txn *Transaction) (rid *pag
 
 		nextPageId := currentPage.GetNextPageId()
 		if nextPageId.IsValid() {
+			currentPage.WUnlatch()
 			t.bpm.UnpinPage(currentPage.GetTablePageId(), false)
 			currentPage = CastPageAsTablePage(t.bpm.FetchPage(nextPageId))
+			currentPage.WLatch()
 		} else {
 			p := t.bpm.NewPage()
 			newPage := CastPageAsTablePage(p)
+			newPage.WLatch()
 			currentPage.SetNextPageId(p.ID())
 			newPage.Init(p.ID(), currentPage.GetTablePageId(), t.log_manager, t.lock_manager, txn)
+			currentPage.WUnlatch()
 			t.bpm.UnpinPage(currentPage.GetTablePageId(), true)
 			currentPage = newPage
 		}
 	}
+	currentPage.WUnlatch()
 
 	t.bpm.UnpinPage(currentPage.GetTablePageId(), true)
 	// Update the transaction's write set.
@@ -148,7 +159,10 @@ func (t *TableHeap) RollbackDelete(rid *page.RID, txn *Transaction) {
 func (t *TableHeap) GetTuple(rid *page.RID, txn *Transaction) *tuple.Tuple {
 	page := CastPageAsTablePage(t.bpm.FetchPage(rid.GetPageId()))
 	defer t.bpm.UnpinPage(page.ID(), false)
-	return page.GetTuple(rid, t.log_manager, t.lock_manager, txn)
+	page.RLatch()
+	ret := page.GetTuple(rid, t.log_manager, t.lock_manager, txn)
+	page.RUnlatch()
+	return ret
 }
 
 // GetFirstTuple reads the first tuple from the table
