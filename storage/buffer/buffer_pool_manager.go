@@ -193,18 +193,15 @@ func (b *BufferPoolManager) DeletePage(pageID types.PageID) error {
 
 // FlushAllPages flushes all the pages in the buffer pool to disk.
 func (b *BufferPoolManager) FlushAllPages() {
-	PFMap := make(map[types.PageID]FrameID, 0)
+	pageIDs := make([]types.PageID, 0)
 	b.mutex.Lock()
-	for pageID, frameID := range b.pageTable {
-		PFMap[pageID] = frameID
+	for pageID, _ := range b.pageTable {
+		pageIDs = append(pageIDs, pageID)
 	}
 	b.mutex.Unlock()
 
-	for pageID, frameID := range PFMap {
-		page_ := b.pages[frameID]
-		page_.WLatch()
+	for _, pageID := range pageIDs {
 		b.FlushPage(pageID)
-		page_.WUnlatch()
 	}
 
 }
