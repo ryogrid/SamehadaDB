@@ -46,16 +46,20 @@ func (b *BufferPoolManager) FetchPage(pageID types.PageID) *page.Page {
 
 	if !isFromFreeList {
 		// remove page from current frame
+		b.mutex.Lock()
 		currentPage := b.pages[*frameID]
 		if currentPage != nil {
 			if currentPage.IsDirty() {
 				b.log_manager.Flush()
+				//currentPage.WLatch()
 				data := currentPage.Data()
 				b.diskManager.WritePage(currentPage.ID(), data[:])
+				//currentPage.WUnlatch()
 			}
 
 			delete(b.pageTable, currentPage.ID())
 		}
+		b.mutex.Unlock()
 	}
 
 	data := make([]byte, common.PageSize)
@@ -105,11 +109,13 @@ func (b *BufferPoolManager) FlushPage(pageID types.PageID) bool {
 	if frameID, ok := b.pageTable[pageID]; ok {
 		pg := b.pages[frameID]
 		b.mutex.Unlock()
+		pg.WLatch()
 		pg.DecPinCount()
 
 		data := pg.Data()
 		b.diskManager.WritePage(pageID, data[:])
 		pg.SetIsDirty(false)
+		pg.WUnlatch()
 
 		return true
 	}
@@ -120,6 +126,7 @@ func (b *BufferPoolManager) FlushPage(pageID types.PageID) bool {
 // NewPage allocates a new page in the buffer pool with the disk manager help
 func (b *BufferPoolManager) NewPage() *page.Page {
 
+	b.mutex.Lock()
 	frameID, isFromFreeList := b.getFrameID()
 	if frameID == nil {
 		return nil // the buffer is full, it can't find a frame
@@ -143,7 +150,6 @@ func (b *BufferPoolManager) NewPage() *page.Page {
 	pageID := b.diskManager.AllocatePage()
 	pg := page.NewEmpty(pageID)
 
-	b.mutex.Lock()
 	b.pageTable[pageID] = *frameID
 	b.pages[*frameID] = pg
 	b.mutex.Unlock()
@@ -167,19 +173,17 @@ func (b *BufferPoolManager) DeletePage(pageID types.PageID) error {
 	}
 
 	page := b.pages[frameID]
-	b.mutex.Unlock()
+	page.WLatch()
 
 	if page.PinCount() > 0 {
 		return errors.New("Pin count greater than 0")
 	}
 
-	b.mutex.Lock()
 	delete(b.pageTable, page.ID())
-	b.mutex.Unlock()
 	(*b.replacer).Pin(frameID)
 	b.diskManager.DeallocatePage(pageID)
+	page.WUnlatch()
 
-	b.mutex.Lock()
 	b.freeList = append(b.freeList, frameID)
 	b.mutex.Unlock()
 
@@ -188,10 +192,12 @@ func (b *BufferPoolManager) DeletePage(pageID types.PageID) error {
 
 // FlushAllPages flushes all the pages in the buffer pool to disk.
 func (b *BufferPoolManager) FlushAllPages() {
-	//b.mutex.Lock()
-	//defer b.mutex.Unlock()
+	b.mutex.Lock()
+	defer b.mutex.Unlock()
 	for pageID := range b.pageTable {
+		b.pages[pageID].WLatch()
 		b.FlushPage(pageID)
+		b.pages[pageID].WUnlatch()
 	}
 }
 
