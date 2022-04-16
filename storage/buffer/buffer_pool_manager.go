@@ -125,13 +125,12 @@ func (b *BufferPoolManager) FlushPage(pageID types.PageID) bool {
 
 // NewPage allocates a new page in the buffer pool with the disk manager help
 func (b *BufferPoolManager) NewPage() *page.Page {
-
-	b.mutex.Lock()
 	frameID, isFromFreeList := b.getFrameID()
 	if frameID == nil {
 		return nil // the buffer is full, it can't find a frame
 	}
 
+	b.mutex.Lock()
 	if !isFromFreeList {
 		// remove page from current frame
 		currentPage := b.pages[*frameID]
@@ -176,6 +175,8 @@ func (b *BufferPoolManager) DeletePage(pageID types.PageID) error {
 	page.WLatch()
 
 	if page.PinCount() > 0 {
+		page.WUnlatch()
+		b.mutex.Unlock()
 		return errors.New("Pin count greater than 0")
 	}
 
