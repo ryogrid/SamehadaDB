@@ -44,6 +44,8 @@ func NewRWLatch() ReaderWriterLatch {
 }
 
 func (l *readerWriterLatch) WLock() {
+	// TODO: (SDB) Assert are for debug
+	SH_Assert(!l.writerEntered, "Writer is already locked")
 	l.mutex.Lock()
 	defer l.mutex.Unlock()
 
@@ -61,6 +63,8 @@ func (l *readerWriterLatch) WLock() {
 }
 
 func (l *readerWriterLatch) WUnlock() {
+	// TODO: (SDB) Assert are for debug
+	SH_Assert(l.writerEntered, "Writer is not locked")
 	l.mutex.Lock()
 	defer l.mutex.Unlock()
 
@@ -69,6 +73,9 @@ func (l *readerWriterLatch) WUnlock() {
 }
 
 func (l *readerWriterLatch) RLock() {
+	// TODO: (SDB) Asserts are for debug
+	SH_Assert(!l.writerEntered, "Writer is already locked")
+	SH_Assert(l.readerCount == 0, "Reader is already locked")
 	l.mutex.Lock()
 	defer l.mutex.Unlock()
 
@@ -80,6 +87,8 @@ func (l *readerWriterLatch) RLock() {
 }
 
 func (l *readerWriterLatch) RUnlock() {
+	// TODO: (SDB) Asserts are for debug
+	SH_Assert(l.readerCount != 0, "Reader is not locked")
 	l.mutex.Lock()
 	defer l.mutex.Unlock()
 

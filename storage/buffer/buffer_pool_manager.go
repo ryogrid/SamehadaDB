@@ -193,25 +193,33 @@ func (b *BufferPoolManager) DeletePage(pageID types.PageID) error {
 
 // FlushAllPages flushes all the pages in the buffer pool to disk.
 func (b *BufferPoolManager) FlushAllPages() {
+	PFMap := make(map[types.PageID]FrameID, 0)
 	b.mutex.Lock()
-	defer b.mutex.Unlock()
-	for pageID := range b.pageTable {
-		b.pages[pageID].WLatch()
-		b.FlushPage(pageID)
-		b.pages[pageID].WUnlatch()
+	for pageID, frameID := range b.pageTable {
+		PFMap[pageID] = frameID
 	}
+	b.mutex.Unlock()
+
+	for pageID, frameID := range PFMap {
+		page_ := b.pages[frameID]
+		page_.WLatch()
+		b.FlushPage(pageID)
+		page_.WUnlatch()
+	}
+
 }
 
 func (b *BufferPoolManager) getFrameID() (*FrameID, bool) {
 	b.mutex.Lock()
-	defer b.mutex.Unlock()
 	if len(b.freeList) > 0 {
 		frameID, newFreeList := b.freeList[0], b.freeList[1:]
 		b.freeList = newFreeList
 
+		b.mutex.Unlock()
 		return &frameID, true
 	}
 
+	b.mutex.Unlock()
 	return (*b.replacer).Victim(), false
 }
 
@@ -224,7 +232,6 @@ func (b *BufferPoolManager) GetPoolSize() int {
 }
 
 //NewBufferPoolManager returns a empty buffer pool manager
-//func NewBufferPoolManager(poolSize uint32, DiskManager disk.DiskManager, log_manager *recovery.LogManager, lock_manager *access.LockManager) *BufferPoolManager {
 func NewBufferPoolManager(poolSize uint32, DiskManager disk.DiskManager, log_manager *recovery.LogManager) *BufferPoolManager {
 	freeList := make([]FrameID, poolSize)
 	pages := make([]*page.Page, poolSize)
@@ -234,6 +241,5 @@ func NewBufferPoolManager(poolSize uint32, DiskManager disk.DiskManager, log_man
 	}
 
 	replacer := NewClockReplacer(poolSize)
-	//return &BufferPoolManager{DiskManager, pages, replacer, freeList, make(map[types.PageID]FrameID), log_manager, lock_manager}
 	return &BufferPoolManager{DiskManager, pages, replacer, freeList, make(map[types.PageID]FrameID), log_manager, new(sync.Mutex)}
 }
