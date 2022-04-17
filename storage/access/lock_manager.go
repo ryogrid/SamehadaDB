@@ -179,10 +179,12 @@ func (lock_manager *LockManager) LockUpgrade(txn *Transaction, rid *page.RID) bo
 	// txn.GetExclusiveLockSet().emplace(rid)
 	slock_set := txn.GetSharedLockSet()
 	slock_set = removeRID(slock_set, *rid)
-	txn.SetSharedLockSet(slock_set)
 	elock_set := txn.GetExclusiveLockSet()
 	elock_set = append(elock_set, *rid)
+	txn.LockLockSets()
+	txn.SetSharedLockSet(slock_set)
 	txn.SetExclusiveLockSet(elock_set)
+	txn.UnlockLockSets()
 
 	return true
 }
