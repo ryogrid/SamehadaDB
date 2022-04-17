@@ -21,6 +21,7 @@ original codes of go-bustub are [here](https://github.com/brunocalza/go-bustub).
 - [x] LIMIT / OFFSET
 - [x] Varchar
 - [x] Persistent Catalog
+- [ ] Updating of Table Schema 
 - [ ] LRU replacer
 - [ ] Latches
 - [x] Transactions
