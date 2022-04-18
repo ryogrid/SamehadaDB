@@ -82,10 +82,14 @@ type LockManager struct {
 	// TODO: (SDB) not poreted yet
 	//cycle_detection_thread *std::thread
 
-	/** Lock table for lock requests. */
-	lock_table map[page.RID]*LockRequestQueue
-	/** Waits-for graph representation. */
-	waits_for map[types.TxnID][]types.TxnID
+	// /** Lock table for lock requests. */
+	// lock_table map[page.RID]*LockRequestQueue
+	// /** Waits-for graph representation. */
+	// waits_for map[types.TxnID][]types.TxnID
+
+	// TODO: (SDB) temporary simple implementation of strong strict two-phase locking
+	shared_lock_table    map[page.RID][]types.TxnID
+	exclusive_lock_table map[page.RID]types.TxnID
 }
 
 /**
@@ -98,13 +102,15 @@ func NewLockManager(two_pl_mode TwoPLMode, deadlock_mode DeadlockMode /*= Deadlo
 	ret.two_pl_mode = two_pl_mode
 	ret.deadlock_mode = deadlock_mode
 	ret.mutex = new(sync.Mutex)
-	// If Detection() is enabled, we should launch a background cycle detection thread.
-	if ret.Detection() {
-		ret.enable_cycle_detection = true
-		// TODO: (SDB) not ported yet
-		//ret.cycle_detection_thread = new std::thread(&LockManager::RunCycleDetection, this)
-		//LOG_INFO("Cycle detection thread launched")
-	}
+	ret.shared_lock_table = make(map[page.RID][]types.TxnID)
+	ret.exclusive_lock_table = make(map[page.RID]types.TxnID)
+	// // If Detection() is enabled, we should launch a background cycle detection thread.
+	// if ret.Detection() {
+	// 	ret.enable_cycle_detection = true
+	// 	// TODO: (SDB) not ported yet
+	// 	//ret.cycle_detection_thread = new std::thread(&LockManager::RunCycleDetection, this)
+	// 	//LOG_INFO("Cycle detection thread launched")
+	// }
 	return ret
 }
 
@@ -181,10 +187,8 @@ func (lock_manager *LockManager) LockUpgrade(txn *Transaction, rid *page.RID) bo
 	slock_set = removeRID(slock_set, *rid)
 	elock_set := txn.GetExclusiveLockSet()
 	elock_set = append(elock_set, *rid)
-	txn.LockLockSets()
 	txn.SetSharedLockSet(slock_set)
 	txn.SetExclusiveLockSet(elock_set)
-	txn.UnlockLockSets()
 
 	return true
 }

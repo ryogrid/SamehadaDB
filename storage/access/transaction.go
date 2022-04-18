@@ -3,8 +3,6 @@
 package access
 
 import (
-	"sync"
-
 	"github.com/ryogrid/SamehadaDB/common"
 	"github.com/ryogrid/SamehadaDB/storage/page"
 	"github.com/ryogrid/SamehadaDB/storage/tuple"
@@ -90,7 +88,6 @@ type Transaction struct {
 	shared_lock_set []page.RID
 	// /** LockManager: the set of exclusive-locked tuples held by this access. */
 	exclusive_lock_set []page.RID
-	lock_set_mutex     *sync.Mutex
 }
 
 func NewTransaction(txn_id types.TxnID) *Transaction {
@@ -104,7 +101,6 @@ func NewTransaction(txn_id types.TxnID) *Transaction {
 		// unordered_set<PageID>
 		make([]page.RID, 0),
 		make([]page.RID, 0),
-		new(sync.Mutex),
 	}
 }
 
@@ -143,30 +139,18 @@ func (txn *Transaction) AddIntoWriteSet(write_record *WriteRecord) {
 
 // /** @return the set of resources under a shared lock */
 func (txn *Transaction) GetSharedLockSet() []page.RID {
-	txn.lock_set_mutex.Lock()
 	ret := txn.shared_lock_set
-	txn.lock_set_mutex.Unlock()
 	return ret
 }
 
 // /** @return the set of resources under an exclusive lock */
 func (txn *Transaction) GetExclusiveLockSet() []page.RID {
-	txn.lock_set_mutex.Lock()
 	ret := txn.exclusive_lock_set
-	txn.lock_set_mutex.Unlock()
 	return ret
 }
 
 func (txn *Transaction) SetSharedLockSet(set []page.RID)    { txn.shared_lock_set = set }
 func (txn *Transaction) SetExclusiveLockSet(set []page.RID) { txn.exclusive_lock_set = set }
-
-func (txn *Transaction) LockLockSets() {
-	txn.lock_set_mutex.Lock()
-}
-
-func (txn *Transaction) UnlockLockSets() {
-	txn.lock_set_mutex.Unlock()
-}
 
 func isContainsRID(list []page.RID, rid page.RID) bool {
 	for _, v := range list {
@@ -179,17 +163,13 @@ func isContainsRID(list []page.RID, rid page.RID) bool {
 
 /** @return true if rid is shared locked by this transaction */
 func (txn *Transaction) IsSharedLocked(rid *page.RID) bool {
-	txn.lock_set_mutex.Lock()
 	ret := isContainsRID(txn.shared_lock_set, *rid)
-	txn.lock_set_mutex.Unlock()
 	return ret
 }
 
 /** @return true if rid is exclusively locked by this transaction */
 func (txn *Transaction) IsExclusiveLocked(rid *page.RID) bool {
-	txn.lock_set_mutex.Lock()
 	ret := isContainsRID(txn.exclusive_lock_set, *rid)
-	txn.lock_set_mutex.Unlock()
 	return ret
 }
 
