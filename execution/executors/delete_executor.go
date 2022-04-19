@@ -1,6 +1,9 @@
 package executors
 
 import (
+	"errors"
+	"fmt"
+
 	"github.com/ryogrid/SamehadaDB/catalog"
 	"github.com/ryogrid/SamehadaDB/execution/expression"
 	"github.com/ryogrid/SamehadaDB/execution/plans"
@@ -38,13 +41,21 @@ func (e *DeleteExecutor) Next() (*tuple.Tuple, Done, error) {
 
 	// iterates through the table heap trying to select a tuple that matches the predicate
 	for t := e.it.Current(); !e.it.End(); t = e.it.Next() {
+		if t == nil {
+			err := errors.New("e.it.Next returned nil")
+			return nil, false, err
+		}
 		if e.selects(t, e.plan.GetPredicate()) {
 			// change e.it.Current() value for subsequent call
 			if !e.it.End() {
 				defer e.it.Next()
 			}
 			rid := e.it.Current().GetRID()
-			e.tableMetadata.Table().MarkDelete(rid, e.txn)
+			is_marked := e.tableMetadata.Table().MarkDelete(rid, e.txn)
+			if !is_marked {
+				err := errors.New("tuple update failed. PageId:SlotNum = " + string(rid.GetPageId()) + ":" + fmt.Sprint(rid.GetSlotNum()))
+				return nil, false, err
+			}
 
 			colNum := e.tableMetadata.GetColumnNum()
 			for ii := 0; ii < int(colNum); ii++ {

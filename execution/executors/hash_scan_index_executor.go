@@ -66,7 +66,12 @@ func (e *HashScanIndexExecutor) Init() {
 	dummyTuple := tuple.GenTupleForHashIndexSearch(schema_, uint32(indexColNum), comparison.GetRightSideValue(nil, schema_))
 	rids := index_.ScanKey(dummyTuple, e.txn)
 	for _, rid := range rids {
-		e.foundTuples = append(e.foundTuples, e.tableMetadata.Table().GetTuple(&rid, e.txn))
+		tuple_ := e.tableMetadata.Table().GetTuple(&rid, e.txn)
+		if tuple_ == nil {
+			e.foundTuples = make([]*tuple.Tuple, 0)
+			return
+		}
+		e.foundTuples = append(e.foundTuples, tuple_)
 	}
 }
 

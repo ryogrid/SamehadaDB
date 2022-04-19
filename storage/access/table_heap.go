@@ -123,13 +123,13 @@ func (t *TableHeap) MarkDelete(rid *page.RID, txn *Transaction) bool {
 	}
 	// Otherwise, mark the tuple as deleted.
 	page_.WLatch()
-	page_.MarkDelete(rid, txn, t.lock_manager, t.log_manager)
+	is_marked := page_.MarkDelete(rid, txn, t.lock_manager, t.log_manager)
 	page_.WUnlatch()
 	t.bpm.UnpinPage(page_.GetTablePageId(), true)
 	// Update the transaction's write set.
 	txn.AddIntoWriteSet(NewWriteRecord(*rid, DELETE, new(tuple.Tuple), t))
 
-	return true
+	return is_marked
 }
 
 func (t *TableHeap) ApplyDelete(rid *page.RID, txn *Transaction) {

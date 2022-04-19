@@ -116,7 +116,6 @@ func (tp *TablePage) UpdateTuple(new_tuple *tuple.Tuple, old_tuple *tuple.Tuple,
 		if common.EnableLogging {
 			txn.SetState(ABORTED)
 		}
-		// TODO: (SDB) need aborting the transaction afther this method call
 		return false
 	}
 	tuple_size := tp.GetTupleSize(slot_num)
@@ -125,11 +124,13 @@ func (tp *TablePage) UpdateTuple(new_tuple *tuple.Tuple, old_tuple *tuple.Tuple,
 		if common.EnableLogging {
 			txn.SetState(ABORTED)
 		}
-		// TODO: (SDB) need aborting the transaction afther this method call
 		return false
 	}
 	// If there is not enuogh space to update, we need to update via delete followed by an insert (not enough space).
 	if tp.getFreeSpaceRemaining()+tuple_size < new_tuple.Size() {
+		if common.EnableLogging {
+			txn.SetState(ABORTED)
+		}
 		return false
 	}
 
@@ -151,11 +152,11 @@ func (tp *TablePage) UpdateTuple(new_tuple *tuple.Tuple, old_tuple *tuple.Tuple,
 		// Acquire an exclusive lock, upgrading from shared if necessary.
 		if txn.IsSharedLocked(rid) {
 			if !lock_manager.LockUpgrade(txn, rid) {
-				// TODO: (SDB) need abortting the transaction afther this method call
+				txn.SetState(ABORTED)
 				return false
 			}
 		} else if !txn.IsExclusiveLocked(rid) && !lock_manager.LockExclusive(txn, rid) {
-			// TODO: (SDB) need abortting the transaction afther this method call
+			txn.SetState(ABORTED)
 			return false
 		}
 		log_record := recovery.NewLogRecordUpdate(txn.GetTransactionId(), txn.GetPrevLSN(), recovery.UPDATE, *rid, *old_tuple, *new_tuple)
@@ -193,7 +194,6 @@ func (tp *TablePage) MarkDelete(rid *page.RID, txn *Transaction, lock_manager *L
 		if common.EnableLogging {
 			txn.SetState(ABORTED)
 		}
-		// TODO: (SDB) need aborting the transaction afther this method call
 		return false
 	}
 
@@ -203,7 +203,6 @@ func (tp *TablePage) MarkDelete(rid *page.RID, txn *Transaction, lock_manager *L
 		if common.EnableLogging {
 			txn.SetState(ABORTED)
 		}
-		// TODO: (SDB) need aborting the transaction afther this method call
 		return false
 	}
 
@@ -211,11 +210,11 @@ func (tp *TablePage) MarkDelete(rid *page.RID, txn *Transaction, lock_manager *L
 		// Acquire an exclusive lock, upgrading from a shared lock if necessary.
 		if txn.IsSharedLocked(rid) {
 			if !lock_manager.LockUpgrade(txn, rid) {
-				// TODO: (SDB) need aborting the transaction afther this method call
+				txn.SetState(ABORTED)
 				return false
 			}
 		} else if !txn.IsExclusiveLocked(rid) && !lock_manager.LockExclusive(txn, rid) {
-			// TODO: (SDB) need aborting the transaction afther this method call
+			txn.SetState(ABORTED)
 			return false
 		}
 		dummy_tuple := new(tuple.Tuple)
@@ -399,7 +398,6 @@ func (tp *TablePage) GetTuple(rid *page.RID, log_manager *recovery.LogManager, l
 		if common.EnableLogging {
 			txn.SetState(ABORTED)
 		}
-		// TODO: (SDB) need aborting the transaction afther this method call
 		return nil
 	}
 
@@ -412,15 +410,13 @@ func (tp *TablePage) GetTuple(rid *page.RID, log_manager *recovery.LogManager, l
 		if common.EnableLogging {
 			txn.SetState(ABORTED)
 		}
-		// TODO: (SDB) need aborting the transaction afther this method call
 		return nil
 	}
 
 	// Otherwise we have a valid tuple, try to acquire at least a shared access.
 	if common.EnableLogging {
 		if !txn.IsSharedLocked(rid) && !txn.IsExclusiveLocked(rid) && !lock_manager.LockShared(txn, rid) {
-			// TODO: (SDB) this impl is collect? blocking or ARORTED state setting is not needed?
-			// TODO: (SDB) need aborting the transaction afther this method call
+			txn.SetState(ABORTED)
 			return nil
 		}
 	}
