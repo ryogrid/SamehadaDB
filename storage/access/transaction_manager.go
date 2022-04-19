@@ -125,7 +125,8 @@ func (transaction_manager *TransactionManager) releaseLocks(txn *Transaction) {
 	var lock_set []page.RID
 	lock_set = append(lock_set, txn.GetExclusiveLockSet()...)
 	lock_set = append(lock_set, txn.GetSharedLockSet()...)
-	for _, locked_rid := range lock_set {
-		transaction_manager.lock_manager.Unlock(txn, &locked_rid)
-	}
+	transaction_manager.lock_manager.Unlock(txn, lock_set)
+	// for _, locked_rid := range lock_set {
+	// 	transaction_manager.lock_manager.Unlock(txn, &locked_rid)
+	// }
 }

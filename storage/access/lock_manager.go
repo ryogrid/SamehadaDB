@@ -144,6 +144,16 @@ func removeRID(list []page.RID, rid page.RID) []page.RID {
 	return list
 }
 
+func removeTxnID(list []types.TxnID, rid types.TxnID) []types.TxnID {
+	for i, r := range list {
+		if r == rid {
+			list = append(list[:i], list[i+1:]...)
+			break
+		}
+	}
+	return list
+}
+
 func isContainTxnID(list []types.TxnID, txnId types.TxnID) bool {
 	for _, ti := range list {
 		if ti == txnId {
@@ -241,15 +251,30 @@ func (lock_manager *LockManager) LockUpgrade(txn *Transaction, rid *page.RID) bo
 * @param rid the RID that is locked by the transaction
 * @return true if the unlock is successful, false otherwise
  */
-func (lock_manager *LockManager) Unlock(txn *Transaction, rid *page.RID) bool {
+func (lock_manager *LockManager) Unlock(txn *Transaction, rid_list []page.RID) bool {
 	// txn.GetSharedLockSet().erase(rid)
 	// txn.GetExclusiveLockSet().erase(rid)
-	slock_set := txn.GetSharedLockSet()
-	slock_set = removeRID(slock_set, *rid)
-	txn.SetSharedLockSet(slock_set)
-	elock_set := txn.GetExclusiveLockSet()
-	elock_set = removeRID(elock_set, *rid)
-	txn.SetExclusiveLockSet(elock_set)
+	lock_manager.mutex.Lock()
+	defer lock_manager.mutex.Unlock()
+	for _, locked_rid := range rid_list {
+		// slock_set := txn.GetSharedLockSet()
+		// slock_set = removeRID(slock_set, locked_rid)
+		// elock_set := txn.GetExclusiveLockSet()
+		// elock_set = removeRID(elock_set, locked_rid)
+
+		if _, ok := lock_manager.exclusive_lock_table[locked_rid]; ok {
+			if lock_manager.exclusive_lock_table[locked_rid] == txn.GetTransactionId() {
+				delete(lock_manager.exclusive_lock_table, locked_rid)
+			}
+		}
+		if arr, ok := lock_manager.shared_lock_table[locked_rid]; ok {
+			if isContainTxnID(arr, txn.GetTransactionId()) {
+				lock_manager.shared_lock_table[locked_rid] = removeTxnID(arr, txn.GetTransactionId())
+			}
+		}
+	}
+	// txn.SetSharedLockSet(slock_set)
+	// txn.SetExclusiveLockSet(elock_set)
 
 	return true
 }
