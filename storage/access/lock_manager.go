@@ -134,36 +134,6 @@ func (lock_manager *LockManager) Prevention() bool { return lock_manager.deadloc
 *    is responsible for keeping track of its current locks.
  */
 
-/**
-* Acquire a lock on RID in shared mode. See [LOCK_NOTE] in header file.
-* @param txn the transaction requesting the shared lock
-* @param rid the RID to be locked in shared mode
-* @return true if the lock is granted, false otherwise
- */
-func (lock_manager *LockManager) LockShared(txn *Transaction, rid *page.RID) bool {
-	// txn.GetSharedLockSet().emplace(rid)
-	slock_set := txn.GetSharedLockSet()
-	slock_set = append(slock_set, *rid)
-	txn.SetSharedLockSet(slock_set)
-
-	return true
-}
-
-/**
-* Acquire a lock on RID in exclusive mode. See [LOCK_NOTE] in header file.
-* @param txn the transaction requesting the exclusive lock
-* @param rid the RID to be locked in exclusive mode
-* @return true if the lock is granted, false otherwise
- */
-func (lock_manager *LockManager) LockExclusive(txn *Transaction, rid *page.RID) bool {
-	// txn.GetExclusiveLockSet().emplace(rid)
-	elock_set := txn.GetExclusiveLockSet()
-	elock_set = append(elock_set, *rid)
-	txn.SetExclusiveLockSet(elock_set)
-
-	return true
-}
-
 func removeRID(list []page.RID, rid page.RID) []page.RID {
 	for i, r := range list {
 		if r == rid {
@@ -174,6 +144,70 @@ func removeRID(list []page.RID, rid page.RID) []page.RID {
 	return list
 }
 
+func isContainTxnID(list []types.TxnID, txnId types.TxnID) bool {
+	for _, ti := range list {
+		if ti == txnId {
+			return true
+		}
+	}
+	return false
+}
+
+/**
+* Acquire a lock on RID in shared mode. See [LOCK_NOTE] in header file.
+* @param txn the transaction requesting the shared lock
+* @param rid the RID to be locked in shared mode
+* @return true if the lock is granted, false otherwise
+ */
+func (lock_manager *LockManager) LockShared(txn *Transaction, rid *page.RID) bool {
+	lock_manager.mutex.Lock()
+	defer lock_manager.mutex.Unlock()
+	slock_set := txn.GetSharedLockSet()
+	if _, ok := lock_manager.exclusive_lock_table[*rid]; ok {
+		return false
+	} else {
+		if arr, ok := lock_manager.shared_lock_table[*rid]; ok {
+			if isContainTxnID(arr, txn.GetTransactionId()) {
+				return true
+			} else {
+				cur_arr := lock_manager.shared_lock_table[*rid]
+				cur_arr = append(cur_arr, txn.GetTransactionId())
+				lock_manager.shared_lock_table[*rid] = cur_arr
+				slock_set = append(slock_set, *rid)
+				txn.SetSharedLockSet(slock_set)
+				return true
+			}
+		} else {
+			new_arr := make([]types.TxnID, 0)
+			new_arr = append(new_arr, txn.GetTransactionId())
+			lock_manager.shared_lock_table[*rid] = new_arr
+			slock_set = append(slock_set, *rid)
+			txn.SetSharedLockSet(slock_set)
+			return true
+		}
+	}
+}
+
+/**
+* Acquire a lock on RID in exclusive mode. See [LOCK_NOTE] in header file.
+* @param txn the transaction requesting the exclusive lock
+* @param rid the RID to be locked in exclusive mode
+* @return true if the lock is granted, false otherwise
+ */
+func (lock_manager *LockManager) LockExclusive(txn *Transaction, rid *page.RID) bool {
+	lock_manager.mutex.Lock()
+	defer lock_manager.mutex.Unlock()
+	exlock_set := txn.GetExclusiveLockSet()
+	if _, ok := lock_manager.exclusive_lock_table[*rid]; ok {
+		return false
+	} else {
+		lock_manager.exclusive_lock_table[*rid] = txn.GetTransactionId()
+		exlock_set = append(exlock_set, *rid)
+		txn.SetExclusiveLockSet(exlock_set)
+		return true
+	}
+}
+
 /**
 * Upgrade a lock from a shared lock to an exclusive access.
 * @param txn the transaction requesting the lock upgrade
@@ -181,16 +215,24 @@ func removeRID(list []page.RID, rid page.RID) []page.RID {
 * @return true if the upgrade is successful, false otherwise
  */
 func (lock_manager *LockManager) LockUpgrade(txn *Transaction, rid *page.RID) bool {
-	// txn.GetSharedLockSet().erase(rid)
-	// txn.GetExclusiveLockSet().emplace(rid)
+	lock_manager.mutex.Lock()
+	defer lock_manager.mutex.Unlock()
 	slock_set := txn.GetSharedLockSet()
-	slock_set = removeRID(slock_set, *rid)
 	elock_set := txn.GetExclusiveLockSet()
-	elock_set = append(elock_set, *rid)
-	txn.SetSharedLockSet(slock_set)
-	txn.SetExclusiveLockSet(elock_set)
-
-	return true
+	if txn.IsSharedLocked(rid) {
+		if _, ok := lock_manager.exclusive_lock_table[*rid]; ok {
+			return false
+		} else {
+			lock_manager.exclusive_lock_table[*rid] = txn.GetTransactionId()
+			elock_set = append(elock_set, *rid)
+			txn.SetExclusiveLockSet(elock_set)
+			slock_set = removeRID(slock_set, *rid)
+			txn.SetSharedLockSet(slock_set)
+			return true
+		}
+	} else {
+		panic("LockUpgrade: RID is not locked in shared mode")
+	}
 }
 
 /**
