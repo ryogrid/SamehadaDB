@@ -173,8 +173,12 @@ func (lock_manager *LockManager) LockShared(txn *Transaction, rid *page.RID) boo
 	lock_manager.mutex.Lock()
 	defer lock_manager.mutex.Unlock()
 	slock_set := txn.GetSharedLockSet()
-	if _, ok := lock_manager.exclusive_lock_table[*rid]; ok {
-		return false
+	if txnID, ok := lock_manager.exclusive_lock_table[*rid]; ok {
+		if txnID == txn.GetTransactionId() {
+			return true
+		} else {
+			return false
+		}
 	} else {
 		if arr, ok := lock_manager.shared_lock_table[*rid]; ok {
 			if isContainTxnID(arr, txn.GetTransactionId()) {
@@ -208,8 +212,12 @@ func (lock_manager *LockManager) LockExclusive(txn *Transaction, rid *page.RID) 
 	lock_manager.mutex.Lock()
 	defer lock_manager.mutex.Unlock()
 	exlock_set := txn.GetExclusiveLockSet()
-	if _, ok := lock_manager.exclusive_lock_table[*rid]; ok {
-		return false
+	if txnID, ok := lock_manager.exclusive_lock_table[*rid]; ok {
+		if txnID == txn.GetTransactionId() {
+			return true
+		} else {
+			return false
+		}
 	} else {
 		lock_manager.exclusive_lock_table[*rid] = txn.GetTransactionId()
 		exlock_set = append(exlock_set, *rid)
@@ -230,8 +238,12 @@ func (lock_manager *LockManager) LockUpgrade(txn *Transaction, rid *page.RID) bo
 	slock_set := txn.GetSharedLockSet()
 	elock_set := txn.GetExclusiveLockSet()
 	if txn.IsSharedLocked(rid) {
-		if _, ok := lock_manager.exclusive_lock_table[*rid]; ok {
-			return false
+		if txnID, ok := lock_manager.exclusive_lock_table[*rid]; ok {
+			if txnID == txn.GetTransactionId() {
+				return true
+			} else {
+				return false
+			}
 		} else {
 			lock_manager.exclusive_lock_table[*rid] = txn.GetTransactionId()
 			elock_set = append(elock_set, *rid)
