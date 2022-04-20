@@ -12,9 +12,9 @@ import (
  */
 type TransactionManager struct {
 	next_txn_id  types.TxnID
-	lock_manager *LockManager         //__attribute__((__unused__))
-	log_manager  *recovery.LogManager // __attribute__((__unused__))
-	// /** The global transaction latch is used for checkpointing. */
+	lock_manager *LockManager
+	log_manager  *recovery.LogManager
+	/** The global transaction latch is used for checkpointing. */
 	global_txn_latch common.ReaderWriterLatch
 }
 

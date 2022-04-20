@@ -43,7 +43,7 @@ func (e *DeleteExecutor) Next() (*tuple.Tuple, Done, error) {
 	for t := e.it.Current(); !e.it.End(); t = e.it.Next() {
 		if t == nil {
 			err := errors.New("e.it.Next returned nil")
-			return nil, false, err
+			return nil, true, err
 		}
 		if e.selects(t, e.plan.GetPredicate()) {
 			// change e.it.Current() value for subsequent call
