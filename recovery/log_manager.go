@@ -3,6 +3,7 @@ package recovery
 import (
 	"bytes"
 	"encoding/binary"
+	"sync"
 	"unsafe"
 
 	"github.com/ryogrid/SamehadaDB/common"
@@ -31,6 +32,7 @@ type LogManager struct {
 	log_buffer     []byte
 	flush_buffer   []byte
 	latch          common.ReaderWriterLatch
+	wlog_mutex     *sync.Mutex
 	// TODO: (SDB) need implement log flushing with dedicated thread
 	//flush_thread   *thread //__attribute__((__unused__));
 	//cv           condition_variable
@@ -45,6 +47,7 @@ func NewLogManager(disk_manager *disk.DiskManager) *LogManager {
 	ret.log_buffer = make([]byte, common.LogBufferSize)
 	ret.flush_buffer = make([]byte, common.LogBufferSize)
 	ret.latch = common.NewRWLatch()
+	ret.wlog_mutex = new(sync.Mutex)
 	ret.offset = 0
 	return ret
 }
@@ -63,14 +66,12 @@ func (log_manager *LogManager) Flush() {
 	// maybe, blocking can be eliminated because txn must wait for log persistence at commit
 	// https://github.com/astronaut0131/bustub/blob/master/src/concurrency/transaction_manager.cpp#L64
 
-	//std::unique_lock lock(log_manager.latch)
+	log_manager.wlog_mutex.Lock()
 	log_manager.latch.WLock()
 
 	lsn := log_manager.log_buffer_lsn
 	offset := log_manager.offset
 	log_manager.offset = 0
-	//offset = 0
-	//access.unlock()
 
 	// swap address of two buffers
 	//swap(log_manager.log_buffer, log_manager.flush_buffer)
@@ -81,8 +82,9 @@ func (log_manager *LogManager) Flush() {
 	log_manager.latch.WUnlock()
 
 	// fmt.Printf("offset at Flush:%d\n", offset)
-	//(*log_manager.disk_manager).WriteLog(log_manager.flush_buffer, int32(offset))
 	(*log_manager.disk_manager).WriteLog(log_manager.flush_buffer[:offset])
+	log_manager.wlog_mutex.Unlock()
+
 	log_manager.persistent_lsn = lsn
 }
 
