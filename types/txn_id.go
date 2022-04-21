@@ -26,7 +26,7 @@ func NewTxnIDFromBytes(data []byte) (ret TxnID) {
 	return ret
 }
 
-func (id TxnID) AtomicAdd(val int32) {
-	p := (*int32)(unsafe.Pointer(&id))
+func (id *TxnID) AtomicAdd(val int32) {
+	p := (*int32)(unsafe.Pointer(id))
 	atomic.AddInt32(p, val)
 }

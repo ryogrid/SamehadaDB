@@ -1,6 +1,8 @@
 package access
 
 import (
+	"sync"
+
 	"github.com/ryogrid/SamehadaDB/common"
 	"github.com/ryogrid/SamehadaDB/recovery"
 	"github.com/ryogrid/SamehadaDB/storage/page"
@@ -16,12 +18,13 @@ type TransactionManager struct {
 	log_manager  *recovery.LogManager
 	/** The global transaction latch is used for checkpointing. */
 	global_txn_latch common.ReaderWriterLatch
+	mutex            *sync.Mutex
 }
 
 var txn_map map[types.TxnID]*Transaction = make(map[types.TxnID]*Transaction)
 
 func NewTransactionManager(lock_manager *LockManager, log_manager *recovery.LogManager) *TransactionManager {
-	return &TransactionManager{0, lock_manager, log_manager, common.NewRWLatch()}
+	return &TransactionManager{0, lock_manager, log_manager, common.NewRWLatch(), new(sync.Mutex)}
 }
 
 func (transaction_manager *TransactionManager) Begin(txn *Transaction) *Transaction {
@@ -33,7 +36,7 @@ func (transaction_manager *TransactionManager) Begin(txn *Transaction) *Transact
 		//transaction_manager.next_txn_id += 1
 		transaction_manager.next_txn_id.AtomicAdd(1)
 		txn_ret = NewTransaction(transaction_manager.next_txn_id)
-		// fmt.Printf("new transactin ID: %d\n", transaction_manager.next_txn_id)
+		//fmt.Printf("new transactin ID: %d\n", transaction_manager.next_txn_id)
 	}
 
 	if common.EnableLogging {
@@ -42,7 +45,9 @@ func (transaction_manager *TransactionManager) Begin(txn *Transaction) *Transact
 		txn_ret.SetPrevLSN(lsn)
 	}
 
+	transaction_manager.mutex.Lock()
 	txn_map[txn_ret.GetTransactionId()] = txn_ret
+	transaction_manager.mutex.Unlock()
 	return txn_ret
 }
 
@@ -126,7 +131,7 @@ func (transaction_manager *TransactionManager) ResumeTransactions() {
 }
 
 func (transaction_manager *TransactionManager) releaseLocks(txn *Transaction) {
-	var lock_set []page.RID
+	var lock_set []page.RID = make([]page.RID, 0)
 	lock_set = append(lock_set, txn.GetExclusiveLockSet()...)
 	lock_set = append(lock_set, txn.GetSharedLockSet()...)
 	transaction_manager.lock_manager.Unlock(txn, lock_set)

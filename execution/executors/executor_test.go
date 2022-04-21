@@ -1623,27 +1623,27 @@ func TestConcurrentTransactionExecution(t *testing.T) {
 
 	txn_mgr.Commit(txn)
 
-	const PARALLEL_EXEC_CNT int = 1
+	const PARALLEL_EXEC_CNT int = 100
 
 	commited_cnt := int32(0)
 	for i := 0; i < PARALLEL_EXEC_CNT; i++ {
-		// ch1 := make(chan *access.Transaction)
+		ch1 := make(chan *access.Transaction)
 		ch2 := make(chan *access.Transaction)
-		// ch3 := make(chan *access.Transaction)
+		ch3 := make(chan *access.Transaction)
 		ch4 := make(chan *access.Transaction)
-		// go rowInsertTransaction(t, shi, c, tableMetadata, ch1)
 		go selectAllRowTransaction(t, shi, c, tableMetadata, ch2)
-		// go deleteAllRowTransaction(t, shi, c, tableMetadata, ch3)
 		go selectAllRowTransaction(t, shi, c, tableMetadata, ch4)
+		go rowInsertTransaction(t, shi, c, tableMetadata, ch1)
+		go deleteAllRowTransaction(t, shi, c, tableMetadata, ch3)
 
-		// commited_cnt += handleFnishTxn(txn_mgr, <-ch1)
+		commited_cnt += handleFnishTxn(txn_mgr, <-ch1)
 		commited_cnt += handleFnishTxn(txn_mgr, <-ch2)
-		// commited_cnt += handleFnishTxn(txn_mgr, <-ch3)
+		commited_cnt += handleFnishTxn(txn_mgr, <-ch3)
 		commited_cnt += handleFnishTxn(txn_mgr, <-ch4)
-		fmt.Printf("commited_cnt: %d\n", commited_cnt)
+		//fmt.Printf("commited_cnt: %d\n", commited_cnt)
 	}
 
-	// fmt.Printf("final commited_cnt: %d\n", commited_cnt)
+	fmt.Printf("final commited_cnt: %d\n", commited_cnt)
 
 	// remove db file and log file
 	shi.Finalize(true)
