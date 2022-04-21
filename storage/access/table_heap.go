@@ -185,7 +185,7 @@ func (t *TableHeap) GetFirstTuple(txn *Transaction) *tuple.Tuple {
 
 // Iterator returns a iterator for this table heap
 func (t *TableHeap) Iterator(txn *Transaction) *TableHeapIterator {
-	return NewTableHeapIterator(t, txn)
+	return NewTableHeapIterator(t, t.lock_manager, txn)
 }
 
 func (t *TableHeap) GetBufferPoolManager() *buffer.BufferPoolManager {

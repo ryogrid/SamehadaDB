@@ -4,6 +4,7 @@
 package access
 
 import (
+	"github.com/ryogrid/SamehadaDB/common"
 	"github.com/ryogrid/SamehadaDB/storage/tuple"
 )
 
@@ -12,15 +13,17 @@ import (
 // It iterates through a table heap when Next is called
 // The tuple that it is being pointed to can be accessed with the method Current
 type TableHeapIterator struct {
-	tableHeap *TableHeap
-	tuple     *tuple.Tuple
-	txn       *Transaction
+	tableHeap    *TableHeap
+	tuple        *tuple.Tuple
+	lock_manager *LockManager
+	txn          *Transaction
 }
 
 // NewTableHeapIterator creates a new table heap operator for the given table heap
 // It points to the first tuple of the table heap
-func NewTableHeapIterator(tableHeap *TableHeap, txn *Transaction) *TableHeapIterator {
-	return &TableHeapIterator{tableHeap, tableHeap.GetFirstTuple(txn), txn}
+func NewTableHeapIterator(tableHeap *TableHeap, lock_manager *LockManager, txn *Transaction) *TableHeapIterator {
+	// TODO: (SDB) need SharedLock for FirstTupe
+	return &TableHeapIterator{tableHeap, tableHeap.GetFirstTuple(txn), lock_manager, txn}
 }
 
 // Current points to the current tuple
@@ -58,6 +61,14 @@ func (it *TableHeapIterator) Next() *tuple.Tuple {
 	}
 
 	if nextTupleRID != nil && nextTupleRID.GetPageId().IsValid() {
+		if common.EnableLogging {
+			if !it.txn.IsSharedLocked(nextTupleRID) && !it.txn.IsExclusiveLocked(nextTupleRID) && !it.lock_manager.LockShared(it.txn, nextTupleRID) {
+				it.txn.SetState(ABORTED)
+				currentPage.RUnlatch()
+				return nil
+			}
+		}
+
 		it.tuple = it.tableHeap.GetTuple(nextTupleRID, it.txn)
 	} else {
 		it.tuple = nil
