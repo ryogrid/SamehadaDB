@@ -126,8 +126,10 @@ func (t *TableHeap) MarkDelete(rid *page.RID, txn *Transaction) bool {
 	is_marked := page_.MarkDelete(rid, txn, t.lock_manager, t.log_manager)
 	page_.WUnlatch()
 	t.bpm.UnpinPage(page_.GetTablePageId(), true)
-	// Update the transaction's write set.
-	txn.AddIntoWriteSet(NewWriteRecord(*rid, DELETE, new(tuple.Tuple), t))
+	if is_marked {
+		// Update the transaction's write set.
+		txn.AddIntoWriteSet(NewWriteRecord(*rid, DELETE, new(tuple.Tuple), t))
+	}
 
 	return is_marked
 }

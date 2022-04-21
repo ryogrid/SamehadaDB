@@ -59,7 +59,9 @@ func (transaction_manager *TransactionManager) Commit(txn *Transaction) {
 			// Note that this also releases the lock when holding the page latch.
 			pageID := rid.GetPageId()
 			tpage := CastPageAsTablePage(table.bpm.FetchPage(pageID))
+			tpage.WLatch()
 			tpage.ApplyDelete(&item.rid, txn, transaction_manager.log_manager)
+			tpage.WUnlatch()
 		}
 		write_set = write_set[:len(write_set)-1]
 	}
@@ -93,7 +95,9 @@ func (transaction_manager *TransactionManager) Abort(txn *Transaction) {
 			// Note that this also releases the lock when holding the page latch.
 			pageID := rid.GetPageId()
 			tpage := CastPageAsTablePage(table.bpm.FetchPage(pageID))
+			tpage.WLatch()
 			tpage.ApplyDelete(&item.rid, txn, transaction_manager.log_manager)
+			tpage.WUnlatch()
 		} else if item.wtype == UPDATE {
 			table.UpdateTuple(item.tuple, item.rid, txn)
 		}

@@ -145,9 +145,9 @@ func removeRID(list []page.RID, rid page.RID) []page.RID {
 	return list
 }
 
-func removeTxnID(list []types.TxnID, rid types.TxnID) []types.TxnID {
-	for i, r := range list {
-		if r == rid {
+func removeTxnID(list []types.TxnID, txnID types.TxnID) []types.TxnID {
+	for i, t := range list {
+		if t == txnID {
 			list = append(list[:i], list[i+1:]...)
 			break
 		}
@@ -155,9 +155,9 @@ func removeTxnID(list []types.TxnID, rid types.TxnID) []types.TxnID {
 	return list
 }
 
-func isContainTxnID(list []types.TxnID, txnId types.TxnID) bool {
-	for _, ti := range list {
-		if ti == txnId {
+func isContainTxnID(list []types.TxnID, txnID types.TxnID) bool {
+	for _, t := range list {
+		if t == txnID {
 			return true
 		}
 	}

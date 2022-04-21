@@ -1635,9 +1635,10 @@ func TestConcurrentTransactionExecution(t *testing.T) {
 		commited_cnt += handleFnishTxn(txn_mgr, <-ch2)
 		commited_cnt += handleFnishTxn(txn_mgr, <-ch3)
 		commited_cnt += handleFnishTxn(txn_mgr, <-ch4)
+		fmt.Printf("commited_cnt: %d\n", commited_cnt)
 	}
 
-	fmt.Printf("commited_cnt: %d\n", commited_cnt)
+	fmt.Printf("final commited_cnt: %d\n", commited_cnt)
 
 	// remove db file and log file
 	shi.Finalize(true)

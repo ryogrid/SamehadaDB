@@ -153,8 +153,8 @@ func (txn *Transaction) SetSharedLockSet(set []page.RID)    { txn.shared_lock_se
 func (txn *Transaction) SetExclusiveLockSet(set []page.RID) { txn.exclusive_lock_set = set }
 
 func isContainsRID(list []page.RID, rid page.RID) bool {
-	for _, v := range list {
-		if rid == v {
+	for _, r := range list {
+		if rid == r {
 			return true
 		}
 	}
