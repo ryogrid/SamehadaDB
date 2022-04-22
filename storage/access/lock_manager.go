@@ -17,6 +17,7 @@ package access
 //===----------------------------------------------------------------------===//
 
 import (
+	"fmt"
 	"sync"
 
 	"github.com/ryogrid/SamehadaDB/storage/page"
@@ -136,23 +137,25 @@ func (lock_manager *LockManager) Prevention() bool { return lock_manager.deadloc
  */
 
 func removeRID(list []page.RID, rid page.RID) []page.RID {
+	list_ := append(make([]page.RID, 0), list...)
 	for i, r := range list {
 		if r == rid {
-			list = append(list[:i], list[i+1:]...)
+			list_ = append(list[:i], list[i+1:]...)
 			break
 		}
 	}
-	return list
+	return list_
 }
 
 func removeTxnID(list []types.TxnID, txnID types.TxnID) []types.TxnID {
+	list_ := append(make([]types.TxnID, 0), list...)
 	for i, t := range list {
 		if t == txnID {
-			list = append(list[:i], list[i+1:]...)
+			list_ = append(list[:i], list[i+1:]...)
 			break
 		}
 	}
-	return list
+	return list_
 }
 
 func isContainTxnID(list []types.TxnID, txnID types.TxnID) bool {
@@ -171,6 +174,7 @@ func isContainTxnID(list []types.TxnID, txnID types.TxnID) bool {
 * @return true if the lock is granted, false otherwise
  */
 func (lock_manager *LockManager) LockShared(txn *Transaction, rid *page.RID) bool {
+	//fmt.Printf("called LockShared %v\n", rid)
 	lock_manager.mutex.Lock()
 	defer lock_manager.mutex.Unlock()
 	slock_set := txn.GetSharedLockSet()
@@ -210,6 +214,7 @@ func (lock_manager *LockManager) LockShared(txn *Transaction, rid *page.RID) boo
 * @return true if the lock is granted, false otherwise
  */
 func (lock_manager *LockManager) LockExclusive(txn *Transaction, rid *page.RID) bool {
+	//fmt.Printf("called LockExclusive %v\n", rid)
 	lock_manager.mutex.Lock()
 	defer lock_manager.mutex.Unlock()
 	exlock_set := txn.GetExclusiveLockSet()
@@ -234,6 +239,7 @@ func (lock_manager *LockManager) LockExclusive(txn *Transaction, rid *page.RID) 
 * @return true if the upgrade is successful, false otherwise
  */
 func (lock_manager *LockManager) LockUpgrade(txn *Transaction, rid *page.RID) bool {
+	//fmt.Printf("called LockUpgrade %v\n", rid)
 	lock_manager.mutex.Lock()
 	defer lock_manager.mutex.Unlock()
 	slock_set := txn.GetSharedLockSet()
@@ -267,6 +273,8 @@ func (lock_manager *LockManager) LockUpgrade(txn *Transaction, rid *page.RID) bo
 func (lock_manager *LockManager) Unlock(txn *Transaction, rid_list []page.RID) bool {
 	// txn.GetSharedLockSet().erase(rid)
 	// txn.GetExclusiveLockSet().erase(rid)
+	fmt.Printf("len of shared_lock_table at Unlock %d\n", len(lock_manager.shared_lock_table))
+	fmt.Printf("len of exclusive_lock_table at Unlock %d\n", len(lock_manager.exclusive_lock_table))
 	lock_manager.mutex.Lock()
 	defer lock_manager.mutex.Unlock()
 	for _, locked_rid := range rid_list {
@@ -277,11 +285,15 @@ func (lock_manager *LockManager) Unlock(txn *Transaction, rid_list []page.RID) b
 
 		if _, ok := lock_manager.exclusive_lock_table[locked_rid]; ok {
 			if lock_manager.exclusive_lock_table[locked_rid] == txn.GetTransactionId() {
+				// fmt.Println("delete exclusive_lock_table entry")
+				// fmt.Println(locked_rid)
 				delete(lock_manager.exclusive_lock_table, locked_rid)
 			}
 		}
 		if arr, ok := lock_manager.shared_lock_table[locked_rid]; ok {
 			if isContainTxnID(arr, txn.GetTransactionId()) {
+				// fmt.Println("remove txnid from shared_lock_table entry")
+				// fmt.Println(txn.GetTransactionId())
 				lock_manager.shared_lock_table[locked_rid] = removeTxnID(arr, txn.GetTransactionId())
 			}
 		}
@@ -290,6 +302,11 @@ func (lock_manager *LockManager) Unlock(txn *Transaction, rid_list []page.RID) b
 	// txn.SetExclusiveLockSet(elock_set)
 
 	return true
+}
+
+func (lock_manager *LockManager) PrintLockTables() {
+	fmt.Printf("len of shared_lock_table at Unlock %d\n", len(lock_manager.shared_lock_table))
+	fmt.Printf("len of exclusive_lock_table at Unlock %d\n", len(lock_manager.exclusive_lock_table))
 }
 
 /*** Graph API ***/

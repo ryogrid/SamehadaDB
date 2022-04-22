@@ -164,12 +164,14 @@ func isContainsRID(list []page.RID, rid page.RID) bool {
 /** @return true if rid is shared locked by this transaction */
 func (txn *Transaction) IsSharedLocked(rid *page.RID) bool {
 	ret := isContainsRID(txn.shared_lock_set, *rid)
+	//fmt.Printf("called IsSharedLocked: %v\n", ret)
 	return ret
 }
 
 /** @return true if rid is exclusively locked by this transaction */
 func (txn *Transaction) IsExclusiveLocked(rid *page.RID) bool {
 	ret := isContainsRID(txn.exclusive_lock_set, *rid)
+	//fmt.Printf("called IsExclusiveLocked: %v\n", ret)
 	return ret
 }
 

@@ -4,7 +4,6 @@
 package access
 
 import (
-	"github.com/ryogrid/SamehadaDB/common"
 	"github.com/ryogrid/SamehadaDB/storage/tuple"
 )
 
@@ -41,6 +40,13 @@ func (it *TableHeapIterator) End() bool {
 // or it can be in the next page
 func (it *TableHeapIterator) Next() *tuple.Tuple {
 	bpm := it.tableHeap.bpm
+	// if common.EnableLogging {
+	// 	if !it.txn.IsSharedLocked(nextTupleRID) && !it.txn.IsExclusiveLocked(nextTupleRID) && !it.lock_manager.LockShared(it.txn, nextTupleRID) {
+	// 		it.txn.SetState(ABORTED)
+	// 		currentPage.RUnlatch()
+	// 		return nil
+	// 	}
+	// }
 	currentPage := CastPageAsTablePage(bpm.FetchPage(it.tuple.GetRID().GetPageId()))
 	currentPage.RLatch()
 
@@ -61,14 +67,6 @@ func (it *TableHeapIterator) Next() *tuple.Tuple {
 	}
 
 	if nextTupleRID != nil && nextTupleRID.GetPageId().IsValid() {
-		if common.EnableLogging {
-			if !it.txn.IsSharedLocked(nextTupleRID) && !it.txn.IsExclusiveLocked(nextTupleRID) && !it.lock_manager.LockShared(it.txn, nextTupleRID) {
-				it.txn.SetState(ABORTED)
-				currentPage.RUnlatch()
-				return nil
-			}
-		}
-
 		it.tuple = it.tableHeap.GetTuple(nextTupleRID, it.txn)
 	} else {
 		it.tuple = nil
