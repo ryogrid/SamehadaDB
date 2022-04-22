@@ -1566,6 +1566,11 @@ func handleFnishTxn(txn_mgr *access.TransactionManager, txn *access.Transaction)
 	}
 }
 
+func timeoutPanic() {
+	os.Stdout.Sync()
+	panic("timeout reached")
+}
+
 func TestConcurrentTransactionExecution(t *testing.T) {
 	os.Remove("test.db")
 	os.Remove("test.log")
@@ -1627,6 +1632,9 @@ func TestConcurrentTransactionExecution(t *testing.T) {
 	txn_mgr.Commit(txn)
 
 	const PARALLEL_EXEC_CNT int = 5
+
+	// set timeout
+	time.AfterFunc(time.Duration(40)*time.Second, timeoutPanic)
 
 	commited_cnt := int32(0)
 	for i := 0; i < PARALLEL_EXEC_CNT; i++ {
