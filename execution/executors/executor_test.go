@@ -1626,7 +1626,7 @@ func TestConcurrentTransactionExecution(t *testing.T) {
 
 	txn_mgr.Commit(txn)
 
-	const PARALLEL_EXEC_CNT int = 1
+	const PARALLEL_EXEC_CNT int = 5
 
 	commited_cnt := int32(0)
 	for i := 0; i < PARALLEL_EXEC_CNT; i++ {
@@ -1645,6 +1645,7 @@ func TestConcurrentTransactionExecution(t *testing.T) {
 		//commited_cnt += handleFnishTxn(txn_mgr, <-ch4)
 		fmt.Printf("commited_cnt: %d\n", commited_cnt)
 		shi.GetLockManager().PrintLockTables()
+		//shi.GetLockManager().ClearLockTablesForDebug()
 	}
 
 	fmt.Printf("final commited_cnt: %d\n", commited_cnt)

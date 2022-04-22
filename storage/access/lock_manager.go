@@ -309,6 +309,11 @@ func (lock_manager *LockManager) PrintLockTables() {
 	fmt.Printf("len of exclusive_lock_table at Unlock %d\n", len(lock_manager.exclusive_lock_table))
 }
 
+func (lock_manager *LockManager) ClearLockTablesForDebug() {
+	lock_manager.shared_lock_table = make(map[page.RID][]types.TxnID)
+	lock_manager.exclusive_lock_table = make(map[page.RID]types.TxnID)
+}
+
 /*** Graph API ***/
 /**
 * Adds edge t1->t2
