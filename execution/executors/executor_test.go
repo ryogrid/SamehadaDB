@@ -1690,7 +1690,7 @@ func TestConcurrentTransactionExecution(t *testing.T) {
 	const PARALLEL_EXEC_CNT int = 5
 
 	// // set timeout
-	time.AfterFunc(time.Duration(40)*time.Second, timeoutPanic)
+	// time.AfterFunc(time.Duration(40)*time.Second, timeoutPanic)
 
 	commited_cnt := int32(0)
 	for i := 0; i < PARALLEL_EXEC_CNT; i++ {
