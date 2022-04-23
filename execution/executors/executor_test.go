@@ -1696,8 +1696,8 @@ func TestConcurrentTransactionExecution(t *testing.T) {
 	for i := 0; i < PARALLEL_EXEC_CNT; i++ {
 		ch1 := make(chan int32)
 		ch2 := make(chan int32)
-		//ch3 := make(chan *access.Transaction)
-		//ch4 := make(chan *access.Transaction)
+		//ch3 := make(chan int32)
+		//ch4 := make(chan int32)
 		go rowInsertTransaction(t, shi, c, tableMetadata, ch1)
 		go selectAllRowTransaction(t, shi, c, tableMetadata, ch2)
 		//go deleteAllRowTransaction(t, shi, c, tableMetadata, ch3)
@@ -1705,8 +1705,8 @@ func TestConcurrentTransactionExecution(t *testing.T) {
 
 		commited_cnt += <-ch1
 		commited_cnt += <-ch2
-		//commited_cnt += handleFnishTxn(txn_mgr, <-ch3)
-		//commited_cnt += handleFnishTxn(txn_mgr, <-ch4)
+		//commited_cnt += <-ch3
+		//commited_cnt += <-ch4
 		fmt.Printf("commited_cnt: %d\n", commited_cnt)
 		shi.GetLockManager().PrintLockTables()
 		//shi.GetLockManager().ClearLockTablesForDebug()
