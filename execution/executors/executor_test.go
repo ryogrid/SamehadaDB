@@ -8,9 +8,11 @@ import (
 	"math"
 	"math/rand"
 	"os"
+	"runtime"
 	"testing"
 	"time"
 
+	"github.com/devlights/gomy/output"
 	"github.com/ryogrid/SamehadaDB/catalog"
 	"github.com/ryogrid/SamehadaDB/common"
 	"github.com/ryogrid/SamehadaDB/execution/expression"
@@ -1566,7 +1568,61 @@ func handleFnishTxn(txn_mgr *access.TransactionManager, txn *access.Transaction)
 	}
 }
 
+// REFERENCES
+//   - https://pkg.go.dev/runtime#Stack
+//   - https://stackoverflow.com/questions/19094099/how-to-dump-goroutine-stacktraces
+func RuntimeStack() error {
+	// channels
+	var (
+		// chSingle = make(chan []byte, 1)
+		chAll = make(chan []byte, 1)
+	)
+
+	// funcs
+	var (
+		getStack = func(all bool) []byte {
+			// From src/runtime/debug/stack.go
+			var (
+				buf = make([]byte, 1024)
+			)
+
+			for {
+				n := runtime.Stack(buf, all)
+				if n < len(buf) {
+					return buf[:n]
+				}
+				buf = make([]byte, 2*len(buf))
+			}
+		}
+	)
+
+	// current goroutin only
+	// go func(ch chan<- []byte) {
+	// 	defer close(ch)
+	// 	ch <- getStack(false)
+	// }(chSingle)
+
+	// all goroutin
+	go func(ch chan<- []byte) {
+		defer close(ch)
+		ch <- getStack(true)
+	}(chAll)
+
+	// // result of runtime.Stack(false)
+	// for v := range chSingle {
+	// 	output.Stdoutl("=== stack-single", string(v))
+	// }
+
+	// result of runtime.Stack(true)
+	for v := range chAll {
+		output.Stdoutl("=== stack-all   ", string(v))
+	}
+
+	return nil
+}
+
 func timeoutPanic() {
+	RuntimeStack()
 	os.Stdout.Sync()
 	panic("timeout reached")
 }
@@ -1633,7 +1689,7 @@ func TestConcurrentTransactionExecution(t *testing.T) {
 
 	const PARALLEL_EXEC_CNT int = 5
 
-	// set timeout
+	// // set timeout
 	time.AfterFunc(time.Duration(40)*time.Second, timeoutPanic)
 
 	commited_cnt := int32(0)
