@@ -101,13 +101,19 @@ func (p *Page) GetData() *[common.PageSize]byte {
 }
 
 /** Acquire the page write latch. */
-func (p *Page) WLatch() { p.rwlatch_.WLock() }
+func (p *Page) WLatch() {
+	// common.SH_Assert(!p.rwlatch_.IsWriteLocked(), "Page is already write locked")
+	p.rwlatch_.WLock()
+}
 
 /** Release the page write latch. */
 func (p *Page) WUnlatch() { p.rwlatch_.WUnlock() }
 
 /** Acquire the page read latch. */
-func (p *Page) RLatch() { p.rwlatch_.RLock() }
+func (p *Page) RLatch() {
+	//common.SH_Assert(!p.rwlatch_.IsReadLocked(), "Page is already read locked")
+	p.rwlatch_.RLock()
+}
 
 /** Release the page read latch. */
 func (p *Page) RUnlatch() { p.rwlatch_.RUnlock() }

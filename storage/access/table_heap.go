@@ -55,10 +55,12 @@ func (t *TableHeap) InsertTuple(tuple_ *tuple.Tuple, txn *Transaction) (rid *pag
 
 	// Insert into the first page with enough space. If no such page exists, create a new page and insert into that.
 	// INVARIANT: currentPage is WLatched if you leave the loop normally.
-	currentPage.WLatch()
+
 	for {
+		currentPage.WLatch()
 		rid, err = currentPage.InsertTuple(tuple_, t.log_manager, t.lock_manager, txn)
 		if err == nil || err == ErrEmptyTuple {
+			currentPage.WUnlatch()
 			break
 		}
 		// TODO: (SDB) rid setting is SemehadaDB original code. Pay attention.
@@ -66,22 +68,25 @@ func (t *TableHeap) InsertTuple(tuple_ *tuple.Tuple, txn *Transaction) (rid *pag
 
 		nextPageId := currentPage.GetNextPageId()
 		if nextPageId.IsValid() {
-			currentPage.WUnlatch()
 			t.bpm.UnpinPage(currentPage.GetTablePageId(), false)
+			currentPage.WUnlatch()
 			currentPage = CastPageAsTablePage(t.bpm.FetchPage(nextPageId))
-			currentPage.WLatch()
+			//currentPage.WLatch()
 		} else {
 			p := t.bpm.NewPage()
-			newPage := CastPageAsTablePage(p)
-			newPage.WLatch()
 			currentPage.SetNextPageId(p.ID())
-			newPage.Init(p.ID(), currentPage.GetTablePageId(), t.log_manager, t.lock_manager, txn)
 			currentPage.WUnlatch()
+			newPage := CastPageAsTablePage(p)
+			//newPage.WLatch()
+			//currentPage.SetNextPageId(p.ID())
+			currentPage.RLatch()
+			newPage.Init(p.ID(), currentPage.GetTablePageId(), t.log_manager, t.lock_manager, txn)
 			t.bpm.UnpinPage(currentPage.GetTablePageId(), true)
+			currentPage.RUnlatch()
 			currentPage = newPage
 		}
 	}
-	currentPage.WUnlatch()
+	//currentPage.WUnlatch()
 
 	t.bpm.UnpinPage(currentPage.GetTablePageId(), true)
 	// Update the transaction's write set.
