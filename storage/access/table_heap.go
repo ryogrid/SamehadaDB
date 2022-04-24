@@ -178,12 +178,15 @@ func (t *TableHeap) GetFirstTuple(txn *Transaction) *tuple.Tuple {
 	pageId := t.firstPageId
 	for pageId.IsValid() {
 		page := CastPageAsTablePage(t.bpm.FetchPage(pageId))
+		page.RLatch()
 		rid = page.GetTupleFirstRID()
 		t.bpm.UnpinPage(pageId, false)
 		if rid != nil {
+			page.RUnlatch()
 			break
 		}
 		pageId = page.GetNextPageId()
+		page.RUnlatch()
 	}
 	return t.GetTuple(rid, txn)
 }

@@ -33,9 +33,11 @@ func (transaction_manager *TransactionManager) Begin(txn *Transaction) *Transact
 	var txn_ret *Transaction = txn
 
 	if txn_ret == nil {
-		//transaction_manager.next_txn_id += 1
-		transaction_manager.next_txn_id.AtomicAdd(1)
+		transaction_manager.mutex.Lock()
+		transaction_manager.next_txn_id += 1
+		//transaction_manager.next_txn_id.AtomicAdd(1)
 		txn_ret = NewTransaction(transaction_manager.next_txn_id)
+		transaction_manager.mutex.Unlock()
 		//fmt.Printf("new transactin ID: %d\n", transaction_manager.next_txn_id)
 	}
 

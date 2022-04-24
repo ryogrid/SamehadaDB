@@ -21,7 +21,6 @@ type TableHeapIterator struct {
 // NewTableHeapIterator creates a new table heap operator for the given table heap
 // It points to the first tuple of the table heap
 func NewTableHeapIterator(tableHeap *TableHeap, lock_manager *LockManager, txn *Transaction) *TableHeapIterator {
-	// TODO: (SDB) need SharedLock for FirstTupe
 	return &TableHeapIterator{tableHeap, tableHeap.GetFirstTuple(txn), lock_manager, txn}
 }
 
