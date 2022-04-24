@@ -1,6 +1,8 @@
 package executors
 
 import (
+	"errors"
+
 	"github.com/ryogrid/SamehadaDB/common"
 	"github.com/ryogrid/SamehadaDB/container/hash"
 	"github.com/ryogrid/SamehadaDB/execution/expression"
@@ -87,6 +89,9 @@ func (e *HashJoinExecutor) Init() {
 	var tmp_page_id types.PageID = common.InvalidPageID
 	var tmp_tuple hash.TmpTuple
 	for left_tuple, done, _ := e.left_.Next(); !done; left_tuple, done, _ = e.left_.Next() {
+		if left_tuple == nil {
+			return
+		}
 		if tmp_page == nil || !tmp_page.Insert(left_tuple, &tmp_tuple) {
 			// unpin the last full tmp page
 			if tmp_page_id != common.InvalidPageID {
@@ -119,6 +124,11 @@ func (e *HashJoinExecutor) Next() (*tuple.Tuple, Done, error) {
 			var done Done = false
 			var tmp_tuple *tuple.Tuple
 			if tmp_tuple, done, _ = e.right_.Next(); done {
+				if tmp_tuple == nil {
+					err := errors.New("e.right_.Next returned nil")
+					return nil, false, err
+				}
+
 				// hash join finished, delete all the tmp page we created
 				for _, tmp_page_id := range e.tmp_page_ids_ {
 					e.context.GetBufferPoolManager().DeletePage(tmp_page_id)
@@ -157,6 +167,8 @@ func (e *HashJoinExecutor) FetchTupleFromTmpTuplePage(tuple_ *tuple.Tuple, tmp_t
 	if tmp_page == nil {
 		panic("fail to fetch tmp page when doing hash join")
 	}
+	// tmp_page content is copied and accessed from currrent transaction only
+	// so tuple locking is not needed
 	tmp_page.Get(tuple_, tmp_tuple.GetOffset())
 	e.context.GetBufferPoolManager().UnpinPage(tmp_tuple.GetPageId(), false)
 }

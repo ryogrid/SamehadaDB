@@ -48,6 +48,7 @@ const ErrNoFreeSlot = errors.Error("could not find a free slot")
 //  ----------------------------------------------------------------
 type TablePage struct {
 	page.Page
+	//rwlatch_ common.ReaderWriterLatch
 }
 
 // CastPageAsTablePage casts the abstract Page struct into TablePage
@@ -55,6 +56,7 @@ func CastPageAsTablePage(page *page.Page) *TablePage {
 	if page == nil {
 		return nil
 	}
+
 	return (*TablePage)(unsafe.Pointer(page))
 }
 
@@ -81,27 +83,33 @@ func (tp *TablePage) InsertTuple(tuple *tuple.Tuple, log_manager *recovery.LogMa
 		return nil, ErrNoFreeSlot
 	}
 
+	rid := &page.RID{}
+	rid.Set(tp.GetTablePageId(), slot)
+
+	if common.EnableLogging {
+		// Acquire an exclusive lock on the new tuple.
+		locked := lock_manager.LockExclusive(txn, rid)
+		if !locked {
+			txn.SetState(ABORTED)
+			return nil, errors.Error("could not acquire an exclusive lock on the new tuple")
+			// fmt.Printf("Locking a new tuple should always work. rid: %v\n", rid)
+			// lock_manager.PrintLockTables()
+			// os.Stdout.Sync()
+			// panic("")
+		}
+	}
+
 	tp.SetFreeSpacePointer(tp.GetFreeSpacePointer() - tuple.Size())
 	tp.setTuple(slot, tuple)
 
-	rid := &page.RID{}
-	rid.Set(tp.GetTablePageId(), slot)
 	if slot == tp.GetTupleCount() {
 		tp.SetTupleCount(tp.GetTupleCount() + 1)
 	}
 
 	// Write the log record.
 	if common.EnableLogging {
-		// BUSTUB_ASSERT(!txn.IsSharedLocked(*rid) && !txn.IsExclusiveLocked(*rid), "A new tuple should not be locked.");
-		// Acquire an exclusive lock on the new tuple.
-		// bool locked = lock_manager.Exclusive(txn, *rid);
-		//txn_ := (*Transaction)(unsafe.Pointer(&txn))
-
-		// TODO: (SDB) need to check having lock
-		//locked := LockExclusive(txn, rid)
-		//fmt.Print(locked)
-
-		//BUSTUB_ASSERT(locked, "Locking a new tuple should always work.");
+		//common.SH_Assert(!txn.IsSharedLocked(rid) && !txn.IsExclusiveLocked(rid), "A new tuple should not be locked.")
+		//common.SH_Assert(locked, "Locking a new tuple should always work.")
 		log_record := recovery.NewLogRecordInsertDelete(txn.GetTransactionId(), txn.GetPrevLSN(), recovery.INSERT, *rid, tuple)
 		lsn := log_manager.AppendLogRecord(log_record)
 		tp.Page.SetLSN(lsn)
@@ -113,7 +121,7 @@ func (tp *TablePage) InsertTuple(tuple *tuple.Tuple, log_manager *recovery.LogMa
 // TODO: (SDB) need to update selected column only (UpdateTuple of TablePage)
 func (tp *TablePage) UpdateTuple(new_tuple *tuple.Tuple, old_tuple *tuple.Tuple, rid *page.RID, txn *Transaction,
 	lock_manager *LockManager, log_manager *recovery.LogManager) bool {
-	//BUSTUB_ASSERT(new_tuple.size_ > 0, "Cannot have empty tuples.");
+	common.SH_Assert(new_tuple.Size() > 0, "Cannot have empty tuples.")
 	slot_num := rid.GetSlotNum()
 	// If the slot number is invalid, abort the transaction.
 	if slot_num >= tp.GetTupleCount() {
@@ -132,6 +140,9 @@ func (tp *TablePage) UpdateTuple(new_tuple *tuple.Tuple, old_tuple *tuple.Tuple,
 	}
 	// If there is not enuogh space to update, we need to update via delete followed by an insert (not enough space).
 	if tp.getFreeSpaceRemaining()+tuple_size < new_tuple.Size() {
+		if common.EnableLogging {
+			txn.SetState(ABORTED)
+		}
 		return false
 	}
 
@@ -153,9 +164,11 @@ func (tp *TablePage) UpdateTuple(new_tuple *tuple.Tuple, old_tuple *tuple.Tuple,
 		// Acquire an exclusive lock, upgrading from shared if necessary.
 		if txn.IsSharedLocked(rid) {
 			if !lock_manager.LockUpgrade(txn, rid) {
+				txn.SetState(ABORTED)
 				return false
 			}
 		} else if !txn.IsExclusiveLocked(rid) && !lock_manager.LockExclusive(txn, rid) {
+			txn.SetState(ABORTED)
 			return false
 		}
 		log_record := recovery.NewLogRecordUpdate(txn.GetTransactionId(), txn.GetPrevLSN(), recovery.UPDATE, *rid, *old_tuple, *new_tuple)
@@ -166,7 +179,7 @@ func (tp *TablePage) UpdateTuple(new_tuple *tuple.Tuple, old_tuple *tuple.Tuple,
 
 	// Perform the update.
 	free_space_pointer := tp.GetFreeSpacePointer()
-	//BUSTUB_ASSERT(tuple_offset >= free_space_pointer, "Offset should appear after current free space position.");
+	common.SH_Assert(tuple_offset >= free_space_pointer, "Offset should appear after current free space position.")
 
 	//memmove(GetData() + free_space_pointer + tuple_size - new_tuple.size_, GetData() + free_space_pointer, tuple_offset - free_space_pointer);
 	copy(tp.GetData()[free_space_pointer+tuple_size-new_tuple.Size():], tp.GetData()[free_space_pointer:tuple_offset])
@@ -209,9 +222,11 @@ func (tp *TablePage) MarkDelete(rid *page.RID, txn *Transaction, lock_manager *L
 		// Acquire an exclusive lock, upgrading from a shared lock if necessary.
 		if txn.IsSharedLocked(rid) {
 			if !lock_manager.LockUpgrade(txn, rid) {
+				txn.SetState(ABORTED)
 				return false
 			}
 		} else if !txn.IsExclusiveLocked(rid) && !lock_manager.LockExclusive(txn, rid) {
+			txn.SetState(ABORTED)
 			return false
 		}
 		dummy_tuple := new(tuple.Tuple)
@@ -230,7 +245,7 @@ func (tp *TablePage) MarkDelete(rid *page.RID, txn *Transaction, lock_manager *L
 
 func (table_page *TablePage) ApplyDelete(rid *page.RID, txn *Transaction, log_manager *recovery.LogManager) {
 	slot_num := rid.GetSlotNum()
-	//BUSTUB_ASSERT(slot_num < GetTupleCount(), "Cannot have more slots than tuples.")
+	common.SH_Assert(slot_num < table_page.GetTupleCount(), "Cannot have more slots than tuples.")
 
 	tuple_offset := table_page.GetTupleOffsetAtSlot(slot_num)
 	tuple_size := table_page.GetTupleSize(slot_num)
@@ -250,7 +265,7 @@ func (table_page *TablePage) ApplyDelete(rid *page.RID, txn *Transaction, log_ma
 	//delete_tuple.allocated = true
 
 	if common.EnableLogging {
-		//BUSTUB_ASSERT(txn.IsExclusiveLocked(rid), "We must own the exclusive lock!")
+		common.SH_Assert(txn.IsExclusiveLocked(rid), "We must own the exclusive lock!")
 		log_record := recovery.NewLogRecordInsertDelete(txn.GetTransactionId(), txn.GetPrevLSN(), recovery.APPLYDELETE, *rid, delete_tuple)
 		lsn := log_manager.AppendLogRecord(log_record)
 		table_page.SetLSN(lsn)
@@ -258,7 +273,7 @@ func (table_page *TablePage) ApplyDelete(rid *page.RID, txn *Transaction, log_ma
 	}
 
 	free_space_pointer := table_page.GetFreeSpacePointer()
-	//BUSTUB_ASSERT(tuple_offset >= free_space_pointer, "Free space appears before tuples.")
+	common.SH_Assert(tuple_offset >= free_space_pointer, "Free space appears before tuples.")
 
 	// memmove(GetData() + free_space_pointer + tuple_size, GetData() + free_space_pointer,
 	// tuple_offset - free_space_pointer);
@@ -281,7 +296,7 @@ func (table_page *TablePage) ApplyDelete(rid *page.RID, txn *Transaction, log_ma
 func (tp *TablePage) RollbackDelete(rid *page.RID, txn *Transaction, log_manager *recovery.LogManager) {
 	// Log the rollback.
 	if common.EnableLogging {
-		//BUSTUB_ASSERT(txn->IsExclusiveLocked(rid), "We must own an exclusive lock on the RID.");
+		common.SH_Assert(txn.IsExclusiveLocked(rid), "We must own an exclusive lock on the RID.")
 		dummy_tuple := new(tuple.Tuple)
 		log_record := recovery.NewLogRecordInsertDelete(txn.GetTransactionId(), txn.GetPrevLSN(), recovery.ROLLBACKDELETE, *rid, dummy_tuple)
 		lsn := log_manager.AppendLogRecord(log_record)
@@ -290,7 +305,7 @@ func (tp *TablePage) RollbackDelete(rid *page.RID, txn *Transaction, log_manager
 	}
 
 	slot_num := rid.GetSlotNum()
-	//BUSTUB_ASSERT(slot_num < GetTupleCount(), "We can't have more slots than tuples.");
+	common.SH_Assert(slot_num < tp.GetTupleCount(), "We can't have more slots than tuples.")
 	tuple_size := tp.GetTupleSize(slot_num)
 
 	// Unset the deleted flag.
@@ -413,7 +428,7 @@ func (tp *TablePage) GetTuple(rid *page.RID, log_manager *recovery.LogManager, l
 	// Otherwise we have a valid tuple, try to acquire at least a shared access.
 	if common.EnableLogging {
 		if !txn.IsSharedLocked(rid) && !txn.IsExclusiveLocked(rid) && !lock_manager.LockShared(txn, rid) {
-			// TODO: (SDB) this impl is collect? blocking or ARORTED state setting is not needed?
+			txn.SetState(ABORTED)
 			return nil
 		}
 	}
@@ -452,22 +467,6 @@ func (tp *TablePage) GetNextTupleRID(curRID *page.RID) *page.RID {
 	}
 	return nil
 }
-
-// TODO: (SDB) need port WLatch of TablePage
-/** Acquire the page write latch. */
-func (tp *TablePage) WLatch() { /*rwlatch_.WLock()*/ }
-
-// TODO: (SDB) need port WUnlatch of TablePage
-/** Release the page write latch. */
-func (tp *TablePage) WUnlatch() { /*rwlatch_.WUnlock()*/ }
-
-// TODO: (SDB) need port RLatch of TablePage
-/** Acquire the page read latch. */
-func (tp *TablePage) RLatch() { /*rwlatch_.RLock()*/ }
-
-// TODO: (SDB) need port RLatch of TablePage
-/** Release the page read latch. */
-func (tp *TablePage) RUnlatch() { /*rwlatch_.RUnlock()*/ }
 
 /** @return true if the tuple is deleted or empty */
 func IsDeleted(tuple_size uint32) bool {

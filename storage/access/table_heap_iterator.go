@@ -12,15 +12,16 @@ import (
 // It iterates through a table heap when Next is called
 // The tuple that it is being pointed to can be accessed with the method Current
 type TableHeapIterator struct {
-	tableHeap *TableHeap
-	tuple     *tuple.Tuple
-	txn       *Transaction
+	tableHeap    *TableHeap
+	tuple        *tuple.Tuple
+	lock_manager *LockManager
+	txn          *Transaction
 }
 
 // NewTableHeapIterator creates a new table heap operator for the given table heap
 // It points to the first tuple of the table heap
-func NewTableHeapIterator(tableHeap *TableHeap, txn *Transaction) *TableHeapIterator {
-	return &TableHeapIterator{tableHeap, tableHeap.GetFirstTuple(txn), txn}
+func NewTableHeapIterator(tableHeap *TableHeap, lock_manager *LockManager, txn *Transaction) *TableHeapIterator {
+	return &TableHeapIterator{tableHeap, tableHeap.GetFirstTuple(txn), lock_manager, txn}
 }
 
 // Current points to the current tuple
@@ -39,19 +40,24 @@ func (it *TableHeapIterator) End() bool {
 func (it *TableHeapIterator) Next() *tuple.Tuple {
 	bpm := it.tableHeap.bpm
 	currentPage := CastPageAsTablePage(bpm.FetchPage(it.tuple.GetRID().GetPageId()))
+	currentPage.RLatch()
 
 	nextTupleRID := currentPage.GetNextTupleRID(it.tuple.GetRID())
 	if nextTupleRID == nil {
+		// VARIANT: currentPage is always RLatched after loop
 		for currentPage.GetNextPageId().IsValid() {
 			nextPage := CastPageAsTablePage(bpm.FetchPage(currentPage.GetNextPageId()))
+			currentPage.RUnlatch()
 			bpm.UnpinPage(currentPage.GetTablePageId(), false)
 			currentPage = nextPage
+			currentPage.RLatch()
 			nextTupleRID = currentPage.GetNextTupleRID(it.tuple.GetRID())
 			if nextTupleRID != nil {
 				break
 			}
 		}
 	}
+	currentPage.RUnlatch()
 
 	if nextTupleRID != nil && nextTupleRID.GetPageId().IsValid() {
 		it.tuple = it.tableHeap.GetTuple(nextTupleRID, it.txn)

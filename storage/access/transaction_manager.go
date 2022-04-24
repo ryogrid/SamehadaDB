@@ -1,8 +1,11 @@
 package access
 
 import (
+	"sync"
+
 	"github.com/ryogrid/SamehadaDB/common"
 	"github.com/ryogrid/SamehadaDB/recovery"
+	"github.com/ryogrid/SamehadaDB/storage/page"
 	"github.com/ryogrid/SamehadaDB/types"
 )
 
@@ -10,18 +13,18 @@ import (
  * TransactionManager keeps track of all the transactions running in the system.
  */
 type TransactionManager struct {
-	// TODO: (SDB) must ensure atomicity
-	next_txn_id types.TxnID
-	// lock_manager *LockManager //__attribute__((__unused__))
-	log_manager *recovery.LogManager // __attribute__((__unused__))
-	// /** The global transaction latch is used for checkpointing. */
+	next_txn_id  types.TxnID
+	lock_manager *LockManager
+	log_manager  *recovery.LogManager
+	/** The global transaction latch is used for checkpointing. */
 	global_txn_latch common.ReaderWriterLatch
+	mutex            *sync.Mutex
 }
 
 var txn_map map[types.TxnID]*Transaction = make(map[types.TxnID]*Transaction)
 
-func NewTransactionManager(log_manager *recovery.LogManager) *TransactionManager {
-	return &TransactionManager{0, log_manager, common.NewRWLatch()}
+func NewTransactionManager(lock_manager *LockManager, log_manager *recovery.LogManager) *TransactionManager {
+	return &TransactionManager{0, lock_manager, log_manager, common.NewRWLatch(), new(sync.Mutex)}
 }
 
 func (transaction_manager *TransactionManager) Begin(txn *Transaction) *Transaction {
@@ -30,9 +33,12 @@ func (transaction_manager *TransactionManager) Begin(txn *Transaction) *Transact
 	var txn_ret *Transaction = txn
 
 	if txn_ret == nil {
+		transaction_manager.mutex.Lock()
 		transaction_manager.next_txn_id += 1
+		//transaction_manager.next_txn_id.AtomicAdd(1)
 		txn_ret = NewTransaction(transaction_manager.next_txn_id)
-		// fmt.Printf("new transactin ID: %d\n", transaction_manager.next_txn_id)
+		transaction_manager.mutex.Unlock()
+		//fmt.Printf("new transactin ID: %d\n", transaction_manager.next_txn_id)
 	}
 
 	if common.EnableLogging {
@@ -41,7 +47,9 @@ func (transaction_manager *TransactionManager) Begin(txn *Transaction) *Transact
 		txn_ret.SetPrevLSN(lsn)
 	}
 
+	transaction_manager.mutex.Lock()
 	txn_map[txn_ret.GetTransactionId()] = txn_ret
+	transaction_manager.mutex.Unlock()
 	return txn_ret
 }
 
@@ -58,7 +66,9 @@ func (transaction_manager *TransactionManager) Commit(txn *Transaction) {
 			// Note that this also releases the lock when holding the page latch.
 			pageID := rid.GetPageId()
 			tpage := CastPageAsTablePage(table.bpm.FetchPage(pageID))
+			tpage.WLatch()
 			tpage.ApplyDelete(&item.rid, txn, transaction_manager.log_manager)
+			tpage.WUnlatch()
 		}
 		write_set = write_set[:len(write_set)-1]
 	}
@@ -72,7 +82,9 @@ func (transaction_manager *TransactionManager) Commit(txn *Transaction) {
 	}
 
 	// Release all the locks.
+	transaction_manager.mutex.Lock()
 	transaction_manager.releaseLocks(txn)
+	transaction_manager.mutex.Unlock()
 	// Release the global transaction latch.
 	transaction_manager.global_txn_latch.RUnlock()
 }
@@ -92,7 +104,9 @@ func (transaction_manager *TransactionManager) Abort(txn *Transaction) {
 			// Note that this also releases the lock when holding the page latch.
 			pageID := rid.GetPageId()
 			tpage := CastPageAsTablePage(table.bpm.FetchPage(pageID))
+			tpage.WLatch()
 			tpage.ApplyDelete(&item.rid, txn, transaction_manager.log_manager)
+			tpage.WUnlatch()
 		} else if item.wtype == UPDATE {
 			table.UpdateTuple(item.tuple, item.rid, txn)
 		}
@@ -107,7 +121,9 @@ func (transaction_manager *TransactionManager) Abort(txn *Transaction) {
 	}
 
 	// Release all the locks.
+	transaction_manager.mutex.Lock()
 	transaction_manager.releaseLocks(txn)
+	transaction_manager.mutex.Unlock()
 	// Release the global transaction latch.
 	transaction_manager.global_txn_latch.RUnlock()
 }
@@ -121,17 +137,11 @@ func (transaction_manager *TransactionManager) ResumeTransactions() {
 }
 
 func (transaction_manager *TransactionManager) releaseLocks(txn *Transaction) {
-	// TODO: (SDB) not ported yet
-	/*
-	   	var lock_set : unordered_set<RID>
-	       for (item : *txn.GetExclusiveLockSet()) {
-	         lock_set.emplace(item)
-	       }
-	       for (item : *txn.GetSharedLockSet()) {
-	         lock_set.emplace(item)
-	       }
-	       for (locked_rid : lock_set) {
-	         lock_manager.Unlock(txn, locked_rid)
-	       }
-	*/
+	var lock_set []page.RID = make([]page.RID, 0)
+	lock_set = append(lock_set, txn.GetExclusiveLockSet()...)
+	lock_set = append(lock_set, txn.GetSharedLockSet()...)
+	transaction_manager.lock_manager.Unlock(txn, lock_set)
+	// for _, locked_rid := range lock_set {
+	// 	transaction_manager.lock_manager.Unlock(txn, &locked_rid)
+	// }
 }

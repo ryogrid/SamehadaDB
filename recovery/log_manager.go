@@ -3,6 +3,7 @@ package recovery
 import (
 	"bytes"
 	"encoding/binary"
+	"sync"
 	"unsafe"
 
 	"github.com/ryogrid/SamehadaDB/common"
@@ -18,19 +19,20 @@ import (
 type LogManager struct {
 	// TODO(students): you may add your own member variables
 
-	// TODO: (SDB) must ensure atomicity
+	// TODO: (SDB) must ensure atomicity if current locking becomes not enough
 	offset uint32
-	// TODO: (SDB) must ensure atomicity
+	// TODO: (SDB) must ensure atomicity if current locking becomes not enough
 	log_buffer_lsn types.LSN
 	/** The atomic counter which records the next log sequence number. */
-	// TODO: (SDB) must ensure atomicity
+	// TODO: (SDB) must ensure atomicity if current locking becomes not enough
 	next_lsn types.LSN
 	/** The log records before and including the persistent lsn have been written to disk. */
-	// TODO: (SDB) must ensure atomicity
+	// TODO: (SDB) must ensure atomicity if current locking becomes not enough
 	persistent_lsn types.LSN
 	log_buffer     []byte
 	flush_buffer   []byte
 	latch          common.ReaderWriterLatch
+	wlog_mutex     *sync.Mutex
 	// TODO: (SDB) need implement log flushing with dedicated thread
 	//flush_thread   *thread //__attribute__((__unused__));
 	//cv           condition_variable
@@ -45,18 +47,18 @@ func NewLogManager(disk_manager *disk.DiskManager) *LogManager {
 	ret.log_buffer = make([]byte, common.LogBufferSize)
 	ret.flush_buffer = make([]byte, common.LogBufferSize)
 	ret.latch = common.NewRWLatch()
+	ret.wlog_mutex = new(sync.Mutex)
 	ret.offset = 0
 	return ret
 }
 
-func (log_manager *LogManager) GetNextLSN() types.LSN          { return log_manager.next_lsn }
-func (log_manager *LogManager) GetPersistentLSN() types.LSN    { return log_manager.persistent_lsn }
-func (log_manager *LogManager) SetPersistentLSN(lsn types.LSN) { log_manager.persistent_lsn = lsn }
-func (log_manager *LogManager) GetLogBuffer() []byte           { return log_manager.log_buffer }
+func (log_manager *LogManager) GetNextLSN() types.LSN       { return log_manager.next_lsn }
+func (log_manager *LogManager) GetPersistentLSN() types.LSN { return log_manager.persistent_lsn }
+
+//func (log_manager *LogManager) SetPersistentLSN(lsn types.LSN) { log_manager.persistent_lsn = lsn }
+//func (log_manager *LogManager) GetLogBuffer() []byte           { return log_manager.log_buffer }
 
 func (log_manager *LogManager) Flush() {
-	// TODO: (SDB) need use lock and unlock functionalty of log_manager.latch mutex
-	//             cpp impl releases lock automatically using std::unique_lock
 	// TODO: (SDB) need fix to occur buffer swap when already running flushing?
 
 	// For I/O efficiency, ideally flush thread should be used like below
@@ -64,14 +66,12 @@ func (log_manager *LogManager) Flush() {
 	// maybe, blocking can be eliminated because txn must wait for log persistence at commit
 	// https://github.com/astronaut0131/bustub/blob/master/src/concurrency/transaction_manager.cpp#L64
 
-	//std::unique_lock lock(log_manager.latch)
+	log_manager.wlog_mutex.Lock()
 	log_manager.latch.WLock()
 
 	lsn := log_manager.log_buffer_lsn
 	offset := log_manager.offset
 	log_manager.offset = 0
-	//offset = 0
-	//access.unlock()
 
 	// swap address of two buffers
 	//swap(log_manager.log_buffer, log_manager.flush_buffer)
@@ -82,8 +82,9 @@ func (log_manager *LogManager) Flush() {
 	log_manager.latch.WUnlock()
 
 	// fmt.Printf("offset at Flush:%d\n", offset)
-	//(*log_manager.disk_manager).WriteLog(log_manager.flush_buffer, int32(offset))
 	(*log_manager.disk_manager).WriteLog(log_manager.flush_buffer[:offset])
+	log_manager.wlog_mutex.Unlock()
+
 	log_manager.persistent_lsn = lsn
 }
 
@@ -132,6 +133,8 @@ func (log_manager *LogManager) AppendLogRecord(log_record *LogRecord) types.LSN 
 	if common.LogBufferSize-log_manager.offset < HEADER_SIZE {
 		log_manager.Flush()
 	}
+
+	log_manager.latch.WLock()
 	log_record.Lsn = log_manager.next_lsn
 	log_manager.next_lsn += 1
 	//memcpy(log_manager.log_buffer+log_manager.offset, log_record, HEADER_SIZE)
@@ -139,6 +142,7 @@ func (log_manager *LogManager) AppendLogRecord(log_record *LogRecord) types.LSN 
 	copy(log_manager.log_buffer[log_manager.offset:], headerInBytes)
 
 	if common.LogBufferSize-log_manager.offset < log_record.Size {
+		log_manager.latch.WUnlock()
 		log_manager.Flush()
 		// do it again in new buffer
 		//memcpy(log_manager.log_buffer+offset, log_record, HEADER_SIZE)
@@ -146,6 +150,7 @@ func (log_manager *LogManager) AppendLogRecord(log_record *LogRecord) types.LSN 
 		// binary.Write(buf, binary.LittleEndian, *log_record)
 		// headerInBytes := buf.Bytes()
 		// copy(log_manager.log_buffer[log_manager.offset:], headerInBytes[:HEADER_SIZE])
+		log_manager.latch.WLock()
 		copy(log_manager.log_buffer[log_manager.offset:], log_record.GetLogHeaderData())
 	}
 	log_manager.log_buffer_lsn = log_record.Lsn
@@ -192,5 +197,6 @@ func (log_manager *LogManager) AppendLogRecord(log_record *LogRecord) types.LSN 
 		copy(log_manager.log_buffer[pos:], pageIdInBytes)
 	}
 
+	log_manager.latch.WUnlock()
 	return log_record.Lsn
 }

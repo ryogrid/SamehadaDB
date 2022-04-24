@@ -46,10 +46,8 @@ type WriteRecord struct {
 	rid   page.RID
 	wtype WType
 	/** The tuple is only used for the update operation. */
-	//tuple *interfaces.ITuple
 	tuple *tuple.Tuple
 	/** The table heap specifies which table this write record is for. */
-	//table *interfaces.ITableHeap
 	table *TableHeap
 }
 
@@ -87,9 +85,9 @@ type Transaction struct {
 	// deleted_page_set unordered_set<PageID>
 
 	// /** LockManager: the set of shared-locked tuples held by this access. */
-	// shared_lock_set unordered_set<RID>
+	shared_lock_set []page.RID
 	// /** LockManager: the set of exclusive-locked tuples held by this access. */
-	// exclusive_lock_set unordered_set<RID>
+	exclusive_lock_set []page.RID
 }
 
 func NewTransaction(txn_id types.TxnID) *Transaction {
@@ -101,8 +99,8 @@ func NewTransaction(txn_id types.TxnID) *Transaction {
 		common.InvalidLSN,
 		// deque<*Page>,
 		// unordered_set<PageID>
-		// unordered_set<RID>,
-		// unordered_set<RID>,
+		make([]page.RID, 0),
+		make([]page.RID, 0),
 	}
 }
 
@@ -140,21 +138,41 @@ func (txn *Transaction) AddIntoWriteSet(write_record *WriteRecord) {
 // func (txn *Transaction) AddIntoDeletedPageSet(page_id PageID) { txn.deleted_page_set.insert(page_id) }
 
 // /** @return the set of resources under a shared lock */
-// func (txn *Transaction) GetSharedLockSet() unordered_set<RID> { return txn.shared_lock_set }
-
-// /** @return the set of resources under an exclusive lock */
-// func (txn *Transaction) GetExclusiveLockSet() unordered_set<RID> { return txn.exclusive_lock_set }
-
-// TODO: (SDB) not ported yet
-/** @return true if rid is shared locked by this transaction */
-func (txn *Transaction) IsSharedLocked(rid *page.RID) bool {
-	return true /*txn.shared_lock_set.find(rid) != txn.shared_lock_set.end()*/
+func (txn *Transaction) GetSharedLockSet() []page.RID {
+	ret := txn.shared_lock_set
+	return ret
 }
 
-// TODO: (SDB) not ported yet
+// /** @return the set of resources under an exclusive lock */
+func (txn *Transaction) GetExclusiveLockSet() []page.RID {
+	ret := txn.exclusive_lock_set
+	return ret
+}
+
+func (txn *Transaction) SetSharedLockSet(set []page.RID)    { txn.shared_lock_set = set }
+func (txn *Transaction) SetExclusiveLockSet(set []page.RID) { txn.exclusive_lock_set = set }
+
+func isContainsRID(list []page.RID, rid page.RID) bool {
+	for _, r := range list {
+		if rid == r {
+			return true
+		}
+	}
+	return false
+}
+
+/** @return true if rid is shared locked by this transaction */
+func (txn *Transaction) IsSharedLocked(rid *page.RID) bool {
+	ret := isContainsRID(txn.shared_lock_set, *rid)
+	//fmt.Printf("called IsSharedLocked: %v\n", ret)
+	return ret
+}
+
 /** @return true if rid is exclusively locked by this transaction */
 func (txn *Transaction) IsExclusiveLocked(rid *page.RID) bool {
-	return true /*txn.exclusive_lock_set.find(rid) != txn.exclusive_lock_set.end()*/
+	ret := isContainsRID(txn.exclusive_lock_set, *rid)
+	//fmt.Printf("called IsExclusiveLocked: %v\n", ret)
+	return ret
 }
 
 /** @return the current state of the transaction */

@@ -4,6 +4,7 @@
 package access
 
 import (
+	"github.com/ryogrid/SamehadaDB/common"
 	"github.com/ryogrid/SamehadaDB/recovery"
 	"github.com/ryogrid/SamehadaDB/storage/buffer"
 	"github.com/ryogrid/SamehadaDB/storage/page"
@@ -23,8 +24,11 @@ type TableHeap struct {
 // NewTableHeap creates a table heap without a  (open table)
 func NewTableHeap(bpm *buffer.BufferPoolManager, log_manager *recovery.LogManager, lock_manager *LockManager, txn *Transaction) *TableHeap {
 	p := bpm.NewPage()
+
 	firstPage := CastPageAsTablePage(p)
+	firstPage.WLatch()
 	firstPage.Init(p.ID(), types.InvalidPageID, log_manager, lock_manager, txn)
+	firstPage.WUnlatch()
 	bpm.UnpinPage(p.ID(), true)
 	return &TableHeap{bpm, p.ID(), log_manager, lock_manager}
 }
@@ -49,10 +53,19 @@ func (t *TableHeap) GetFirstPageId() types.PageID {
 func (t *TableHeap) InsertTuple(tuple_ *tuple.Tuple, txn *Transaction) (rid *page.RID, err error) {
 	currentPage := CastPageAsTablePage(t.bpm.FetchPage(t.firstPageId))
 
+	// Insert into the first page with enough space. If no such page exists, create a new page and insert into that.
+	// INVARIANT: currentPage is WLatched if you leave the loop normally.
+
 	for {
+		currentPage.WLatch()
 		rid, err = currentPage.InsertTuple(tuple_, t.log_manager, t.lock_manager, txn)
 		if err == nil || err == ErrEmptyTuple {
+			currentPage.WUnlatch()
 			break
+		}
+		if rid == nil {
+			currentPage.WUnlatch()
+			return nil, err
 		}
 		// TODO: (SDB) rid setting is SemehadaDB original code. Pay attention.
 		tuple_.SetRID(rid)
@@ -60,16 +73,24 @@ func (t *TableHeap) InsertTuple(tuple_ *tuple.Tuple, txn *Transaction) (rid *pag
 		nextPageId := currentPage.GetNextPageId()
 		if nextPageId.IsValid() {
 			t.bpm.UnpinPage(currentPage.GetTablePageId(), false)
+			currentPage.WUnlatch()
 			currentPage = CastPageAsTablePage(t.bpm.FetchPage(nextPageId))
+			//currentPage.WLatch()
 		} else {
 			p := t.bpm.NewPage()
-			newPage := CastPageAsTablePage(p)
 			currentPage.SetNextPageId(p.ID())
+			currentPage.WUnlatch()
+			newPage := CastPageAsTablePage(p)
+			//newPage.WLatch()
+			//currentPage.SetNextPageId(p.ID())
+			currentPage.RLatch()
 			newPage.Init(p.ID(), currentPage.GetTablePageId(), t.log_manager, t.lock_manager, txn)
 			t.bpm.UnpinPage(currentPage.GetTablePageId(), true)
+			currentPage.RUnlatch()
 			currentPage = newPage
 		}
 	}
+	//currentPage.WUnlatch()
 
 	t.bpm.UnpinPage(currentPage.GetTablePageId(), true)
 	// Update the transaction's write set.
@@ -111,23 +132,25 @@ func (t *TableHeap) MarkDelete(rid *page.RID, txn *Transaction) bool {
 	}
 	// Otherwise, mark the tuple as deleted.
 	page_.WLatch()
-	page_.MarkDelete(rid, txn, t.lock_manager, t.log_manager)
+	is_marked := page_.MarkDelete(rid, txn, t.lock_manager, t.log_manager)
 	page_.WUnlatch()
 	t.bpm.UnpinPage(page_.GetTablePageId(), true)
-	// Update the transaction's write set.
-	txn.AddIntoWriteSet(NewWriteRecord(*rid, DELETE, new(tuple.Tuple), t))
+	if is_marked {
+		// Update the transaction's write set.
+		txn.AddIntoWriteSet(NewWriteRecord(*rid, DELETE, new(tuple.Tuple), t))
+	}
 
-	return true
+	return is_marked
 }
 
 func (t *TableHeap) ApplyDelete(rid *page.RID, txn *Transaction) {
 	// Find the page which contains the tuple.
 	page_ := CastPageAsTablePage(t.bpm.FetchPage(rid.GetPageId()))
-	//BUSTUB_ASSERT(page != nullptr, "Couldn't find a page containing that RID.");
+	common.SH_Assert(page_ != nil, "Couldn't find a page containing that RID.")
 	// Delete the tuple from the page.
 	page_.WLatch()
 	page_.ApplyDelete(rid, txn, t.log_manager)
-	t.lock_manager.Unlock(txn, rid)
+	//t.lock_manager.Unlock(txn, []page.RID{*rid})
 	page_.WUnlatch()
 	t.bpm.UnpinPage(page_.GetTablePageId(), true)
 }
@@ -135,7 +158,7 @@ func (t *TableHeap) ApplyDelete(rid *page.RID, txn *Transaction) {
 func (t *TableHeap) RollbackDelete(rid *page.RID, txn *Transaction) {
 	// Find the page which contains the tuple.
 	page_ := CastPageAsTablePage(t.bpm.FetchPage(rid.GetPageId()))
-	//BUSTUB_ASSERT(page != nullptr, "Couldn't find a page containing that RID.");
+	common.SH_Assert(page_ != nil, "Couldn't find a page containing that RID.")
 	// Rollback the delete.
 	page_.WLatch()
 	page_.RollbackDelete(rid, txn, t.log_manager)
@@ -145,30 +168,43 @@ func (t *TableHeap) RollbackDelete(rid *page.RID, txn *Transaction) {
 
 // GetTuple reads a tuple from the table
 func (t *TableHeap) GetTuple(rid *page.RID, txn *Transaction) *tuple.Tuple {
+	if !txn.IsSharedLocked(rid) && !txn.IsExclusiveLocked(rid) && !t.lock_manager.LockShared(txn, rid) {
+		txn.SetState(ABORTED)
+		return nil
+	}
 	page := CastPageAsTablePage(t.bpm.FetchPage(rid.GetPageId()))
 	defer t.bpm.UnpinPage(page.ID(), false)
-	return page.GetTuple(rid, t.log_manager, t.lock_manager, txn)
+	page.RLatch()
+	ret := page.GetTuple(rid, t.log_manager, t.lock_manager, txn)
+	page.RUnlatch()
+	return ret
 }
 
 // GetFirstTuple reads the first tuple from the table
 func (t *TableHeap) GetFirstTuple(txn *Transaction) *tuple.Tuple {
-	var rid *page.RID
+	var rid *page.RID = nil
 	pageId := t.firstPageId
 	for pageId.IsValid() {
 		page := CastPageAsTablePage(t.bpm.FetchPage(pageId))
+		page.RLatch()
 		rid = page.GetTupleFirstRID()
 		t.bpm.UnpinPage(pageId, false)
 		if rid != nil {
+			page.RUnlatch()
 			break
 		}
 		pageId = page.GetNextPageId()
+		page.RUnlatch()
+	}
+	if rid == nil {
+		return nil
 	}
 	return t.GetTuple(rid, txn)
 }
 
 // Iterator returns a iterator for this table heap
 func (t *TableHeap) Iterator(txn *Transaction) *TableHeapIterator {
-	return NewTableHeapIterator(t, txn)
+	return NewTableHeapIterator(t, t.lock_manager, txn)
 }
 
 func (t *TableHeap) GetBufferPoolManager() *buffer.BufferPoolManager {

@@ -4,6 +4,8 @@
 package executors
 
 import (
+	"errors"
+
 	"github.com/ryogrid/SamehadaDB/execution/plans"
 	"github.com/ryogrid/SamehadaDB/storage/table/schema"
 	"github.com/ryogrid/SamehadaDB/storage/tuple"
@@ -30,6 +32,10 @@ func (e *LimitExecutor) Next() (*tuple.Tuple, Done, error) {
 	tuple, done, err := e.child.Next()
 	if err != nil {
 		return nil, done, err
+	}
+	if tuple == nil {
+		err := errors.New("e.child.Next returned nil")
+		return nil, true, err
 	}
 
 	if e.skipped < e.plan.GetOffset() {

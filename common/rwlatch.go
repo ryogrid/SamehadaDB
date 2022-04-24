@@ -19,11 +19,7 @@ type ReaderWriterLatch interface {
  * Reader-Writer latch backed by sync.Mutex and sync.Cond
  */
 type readerWriterLatch struct {
-	mutex         *sync.Mutex
-	writer        *sync.Cond
-	reader        *sync.Cond
-	readerCount   uint32
-	writerEntered bool
+	mutex *sync.RWMutex
 }
 
 const (
@@ -32,66 +28,30 @@ const (
 
 func NewRWLatch() ReaderWriterLatch {
 	latch := readerWriterLatch{}
-
-	latch.mutex = new(sync.Mutex)
-	latch.reader = sync.NewCond(latch.mutex)
-	latch.writer = sync.NewCond(latch.mutex)
-
-	latch.readerCount = 0
-	latch.writerEntered = false
+	latch.mutex = new(sync.RWMutex)
 
 	return &latch
 }
 
 func (l *readerWriterLatch) WLock() {
+	//SH_Assert(!l.writerEntered, "Writer is already locked")
+
 	l.mutex.Lock()
-	defer l.mutex.Unlock()
-
-	// only one is allowed to write
-	for l.writerEntered {
-		l.reader.Wait()
-	}
-
-	l.writerEntered = true
-
-	// wait for readers to finish
-	for l.readerCount > 0 {
-		l.writer.Wait()
-	}
 }
 
 func (l *readerWriterLatch) WUnlock() {
-	l.mutex.Lock()
-	defer l.mutex.Unlock()
-
-	l.writerEntered = false
-	l.reader.Broadcast()
+	//SH_Assert(l.writerEntered, "Writer is not locked")
+	l.mutex.Unlock()
 }
 
 func (l *readerWriterLatch) RLock() {
-	l.mutex.Lock()
-	defer l.mutex.Unlock()
-
-	for l.writerEntered || l.readerCount == MaxReaders {
-		l.reader.Wait()
-	}
-
-	l.readerCount++
+	// SH_Assert(!l.writerEntered, "Writer is already locked")
+	// SH_Assert(l.readerCount == 0, "Reader is already locked")
+	l.mutex.RLock()
 }
 
 func (l *readerWriterLatch) RUnlock() {
-	l.mutex.Lock()
-	defer l.mutex.Unlock()
+	// SH_Assert(l.readerCount != 0, "Reader is not locked")
 
-	l.readerCount--
-
-	if l.writerEntered {
-		if l.readerCount == 0 {
-			l.writer.Signal()
-		}
-	} else {
-		if l.readerCount == MaxReaders-1 {
-			l.reader.Signal()
-		}
-	}
+	l.mutex.RUnlock()
 }

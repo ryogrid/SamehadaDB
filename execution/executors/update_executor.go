@@ -41,6 +41,10 @@ func (e *UpdateExecutor) Next() (*tuple.Tuple, Done, error) {
 
 	// iterates through the table heap trying to select a tuple that matches the predicate
 	for t := e.it.Current(); !e.it.End(); t = e.it.Next() {
+		if t == nil {
+			err := errors.New("e.it.Next returned nil")
+			return nil, true, err
+		}
 		if e.selects(t, e.plan.GetPredicate()) {
 			// change e.it.Current() value for subsequent call
 			if !e.it.End() {
@@ -48,6 +52,12 @@ func (e *UpdateExecutor) Next() (*tuple.Tuple, Done, error) {
 			}
 			rid := e.it.Current().GetRID()
 			new_tuple := tuple.NewTupleFromSchema(e.plan.GetRawValues(), e.tableMetadata.Schema())
+
+			is_updated := e.tableMetadata.Table().UpdateTuple(new_tuple, *rid, e.txn)
+			if !is_updated {
+				err := errors.New("tuple update failed. PageId:SlotNum = " + string(rid.GetPageId()) + ":" + fmt.Sprint(rid.GetSlotNum()))
+				return nil, false, err
+			}
 
 			colNum := e.tableMetadata.GetColumnNum()
 			for ii := 0; ii < int(colNum); ii++ {
@@ -61,13 +71,7 @@ func (e *UpdateExecutor) Next() (*tuple.Tuple, Done, error) {
 				}
 			}
 
-			is_updated := e.tableMetadata.Table().UpdateTuple(new_tuple, *rid, e.txn)
-			var err error = nil
-			if !is_updated {
-				err = errors.New("tuple update failed. PageId:SlotNum = " + string(rid.GetPageId()) + ":" + fmt.Sprint(rid.GetSlotNum()))
-			}
-
-			return new_tuple, false, err
+			return new_tuple, false, nil
 		}
 	}
 

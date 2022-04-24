@@ -8,6 +8,7 @@ import (
 	"errors"
 	"unsafe"
 
+	"github.com/ryogrid/SamehadaDB/common"
 	"github.com/ryogrid/SamehadaDB/storage/buffer"
 	"github.com/ryogrid/SamehadaDB/storage/page"
 	"github.com/ryogrid/SamehadaDB/types"
@@ -23,7 +24,7 @@ import (
 type LinearProbeHashTable struct {
 	headerPageId types.PageID
 	bpm          *buffer.BufferPoolManager
-	// TODO: (SDB) need to use latch at LinearProbeHashTable
+	table_latch  common.ReaderWriterLatch
 }
 
 func NewLinearProbeHashTable(bpm *buffer.BufferPoolManager, numBuckets int) *LinearProbeHashTable {
@@ -41,10 +42,12 @@ func NewLinearProbeHashTable(bpm *buffer.BufferPoolManager, numBuckets int) *Lin
 	}
 	bpm.UnpinPage(header.ID(), true)
 
-	return &LinearProbeHashTable{header.ID(), bpm}
+	return &LinearProbeHashTable{header.ID(), bpm, common.NewRWLatch()}
 }
 
 func (ht *LinearProbeHashTable) GetValue(key []byte) []uint32 {
+	ht.table_latch.RLock()
+	defer ht.table_latch.RUnlock()
 	hPageData := ht.bpm.FetchPage(ht.headerPageId).Data()
 	headerPage := (*page.HashTableHeaderPage)(unsafe.Pointer(hPageData))
 
@@ -77,6 +80,8 @@ func (ht *LinearProbeHashTable) GetValue(key []byte) []uint32 {
 }
 
 func (ht *LinearProbeHashTable) Insert(key []byte, value uint32) (err error) {
+	ht.table_latch.WLock()
+	defer ht.table_latch.WUnlock()
 	hPageData := ht.bpm.FetchPage(ht.headerPageId).Data()
 	headerPage := (*page.HashTableHeaderPage)(unsafe.Pointer(hPageData))
 
@@ -115,6 +120,8 @@ func (ht *LinearProbeHashTable) Insert(key []byte, value uint32) (err error) {
 }
 
 func (ht *LinearProbeHashTable) Remove(key []byte, value uint32) {
+	ht.table_latch.WLock()
+	defer ht.table_latch.WUnlock()
 	hPageData := ht.bpm.FetchPage(ht.headerPageId).Data()
 	headerPage := (*page.HashTableHeaderPage)(unsafe.Pointer(hPageData))
 

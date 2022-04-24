@@ -22,8 +22,8 @@ func TestTableHeap(t *testing.T) {
 	defer dm.ShutDown()
 	log_manager := recovery.NewLogManager(&dm)
 	bpm := buffer.NewBufferPoolManager(10, dm, log_manager)
-	lock_manager := NewLockManager(REGULAR, PREVENTION)
-	txn_mgr := NewTransactionManager(log_manager)
+	lock_manager := NewLockManager(STRICT, SS2PL_MODE)
+	txn_mgr := NewTransactionManager(lock_manager, log_manager)
 	//txn := NewTransaction(types.TxnID(0))
 	txn := txn_mgr.Begin(nil)
 

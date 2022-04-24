@@ -6,6 +6,8 @@ package types
 import (
 	"bytes"
 	"encoding/binary"
+	"sync/atomic"
+	"unsafe"
 )
 
 // LSN is the type of the log identifier
@@ -24,4 +26,9 @@ func (lsn LSN) Serialize() []byte {
 func NewLSNFromBytes(data []byte) (ret LSN) {
 	binary.Read(bytes.NewBuffer(data), binary.LittleEndian, &ret)
 	return ret
+}
+
+func (lsn LSN) AtomicAdd(val int32) {
+	p := (*int32)(unsafe.Pointer(&lsn))
+	atomic.AddInt32(p, val)
 }

@@ -4,6 +4,8 @@
 package catalog
 
 import (
+	"sync/atomic"
+
 	"github.com/ryogrid/SamehadaDB/recovery"
 	"github.com/ryogrid/SamehadaDB/storage/access"
 	"github.com/ryogrid/SamehadaDB/storage/buffer"
@@ -26,9 +28,10 @@ const ColumnsCatalogOID = 0
 // Catalog is a non-persistent catalog that is designed for the executor to use.
 // It handles table creation and table lookup
 type Catalog struct {
-	bpm          *buffer.BufferPoolManager
-	tableIds     map[uint32]*TableMetadata
-	tableNames   map[string]*TableMetadata
+	bpm        *buffer.BufferPoolManager
+	tableIds   map[uint32]*TableMetadata
+	tableNames map[string]*TableMetadata
+	// incrementation must be atomic
 	nextTableId  uint32
 	tableHeap    *access.TableHeap
 	Log_manager  *recovery.LogManager
@@ -118,14 +121,14 @@ func (c *Catalog) GetTableByOID(oid uint32) *TableMetadata {
 // CreateTable creates a new table and return its metadata
 func (c *Catalog) CreateTable(name string, schema *schema.Schema, txn *access.Transaction) *TableMetadata {
 	oid := c.nextTableId
-	c.nextTableId++
+	atomic.AddUint32(&c.nextTableId, 1)
 
 	tableHeap := access.NewTableHeap(c.bpm, c.Log_manager, c.Lock_manager, txn)
 	tableMetadata := NewTableMetadata(schema, name, tableHeap, oid)
 
 	c.tableIds[oid] = tableMetadata
 	c.tableNames[name] = tableMetadata
-	c.InsertTable(tableMetadata, txn)
+	c.insertTable(tableMetadata, txn)
 
 	return tableMetadata
 }
@@ -138,7 +141,7 @@ func boolToInt32(val bool) int32 {
 	}
 }
 
-func (c *Catalog) InsertTable(tableMetadata *TableMetadata, txn *access.Transaction) {
+func (c *Catalog) insertTable(tableMetadata *TableMetadata, txn *access.Transaction) {
 	row := make([]types.Value, 0)
 
 	row = append(row, types.NewInteger(int32(tableMetadata.oid)))

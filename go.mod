@@ -3,6 +3,7 @@ module github.com/ryogrid/SamehadaDB
 go 1.14
 
 require (
+	github.com/devlights/gomy v0.4.0 // indirect
 	github.com/goccy/go-graphviz v0.0.9 // indirect
 	github.com/ofabry/go-callvis v0.6.1 // indirect
 	github.com/pkg/browser v0.0.0-20210911075715-681adbf594b8 // indirect

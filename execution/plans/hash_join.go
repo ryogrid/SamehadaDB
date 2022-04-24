@@ -1,6 +1,7 @@
 package plans
 
 import (
+	"github.com/ryogrid/SamehadaDB/common"
 	"github.com/ryogrid/SamehadaDB/execution/expression"
 	"github.com/ryogrid/SamehadaDB/storage/table/schema"
 )
@@ -33,13 +34,13 @@ func (p *HashJoinPlanNode) Predicate() expression.Expression { return p.predicat
 
 /** @return the left plan node of the hash join, by convention this is used to build the table */
 func (p *HashJoinPlanNode) GetLeftPlan() Plan {
-	//BUSTUB_ASSERT(GetChildren().size() == 2, "Hash joins should have exactly two children plans.")
+	common.SH_Assert(len(p.GetChildren()) == 2, "Hash joins should have exactly two children plans.")
 	return p.GetChildAt(0)
 }
 
 /** @return the right plan node of the hash join */
 func (p *HashJoinPlanNode) GetRightPlan() Plan {
-	//BUSTUB_ASSERT(GetChildren().size() == 2, "Hash joins should have exactly two children plans.")
+	common.SH_Assert(len(p.GetChildren()) == 2, "Hash joins should have exactly two children plans.")
 	return p.GetChildAt(1)
 }
 

@@ -8,9 +8,11 @@ import (
 	"math"
 	"math/rand"
 	"os"
+	"runtime"
 	"testing"
 	"time"
 
+	"github.com/devlights/gomy/output"
 	"github.com/ryogrid/SamehadaDB/catalog"
 	"github.com/ryogrid/SamehadaDB/common"
 	"github.com/ryogrid/SamehadaDB/execution/expression"
@@ -22,6 +24,7 @@ import (
 	"github.com/ryogrid/SamehadaDB/storage/table/column"
 	"github.com/ryogrid/SamehadaDB/storage/table/schema"
 	"github.com/ryogrid/SamehadaDB/storage/tuple"
+	"github.com/ryogrid/SamehadaDB/test_util"
 	testingpkg "github.com/ryogrid/SamehadaDB/testing"
 	"github.com/ryogrid/SamehadaDB/types"
 )
@@ -31,7 +34,7 @@ func TestSimpleInsertAndSeqScan(t *testing.T) {
 	defer diskManager.ShutDown()
 	log_mgr := recovery.NewLogManager(&diskManager)
 	bpm := buffer.NewBufferPoolManager(uint32(32), diskManager, log_mgr)
-	txn_mgr := access.NewTransactionManager(log_mgr)
+	txn_mgr := access.NewTransactionManager(access.NewLockManager(access.REGULAR, access.DETECTION), log_mgr)
 	txn := txn_mgr.Begin(nil)
 
 	c := catalog.BootstrapCatalog(bpm, log_mgr, access.NewLockManager(access.REGULAR, access.PREVENTION), txn)
@@ -80,7 +83,7 @@ func TestSimpleInsertAndSeqScanWithPredicateComparison(t *testing.T) {
 	defer diskManager.ShutDown()
 	log_mgr := recovery.NewLogManager(&diskManager)
 	bpm := buffer.NewBufferPoolManager(uint32(32), diskManager, log_mgr) //, recovery.NewLogManager(diskManager), access.NewLockManager(access.REGULAR, access.PREVENTION))
-	txn_mgr := access.NewTransactionManager(log_mgr)
+	txn_mgr := access.NewTransactionManager(access.NewLockManager(access.REGULAR, access.DETECTION), log_mgr)
 	txn := txn_mgr.Begin(nil)
 
 	c := catalog.BootstrapCatalog(bpm, log_mgr, access.NewLockManager(access.REGULAR, access.PREVENTION), txn)
@@ -202,7 +205,7 @@ func TestSimpleInsertAndLimitExecution(t *testing.T) {
 	defer diskManager.ShutDown()
 	log_mgr := recovery.NewLogManager(&diskManager)
 	bpm := buffer.NewBufferPoolManager(uint32(32), diskManager, log_mgr)
-	txn_mgr := access.NewTransactionManager(log_mgr)
+	txn_mgr := access.NewTransactionManager(access.NewLockManager(access.REGULAR, access.DETECTION), log_mgr)
 	txn := txn_mgr.Begin(nil)
 
 	c := catalog.BootstrapCatalog(bpm, log_mgr, access.NewLockManager(access.REGULAR, access.PREVENTION), txn)
@@ -292,7 +295,7 @@ func TestSimpleInsertAndLimitExecutionMultiTable(t *testing.T) {
 	defer diskManager.ShutDown()
 	log_mgr := recovery.NewLogManager(&diskManager)
 	bpm := buffer.NewBufferPoolManager(uint32(32), diskManager, log_mgr)
-	txn_mgr := access.NewTransactionManager(log_mgr)
+	txn_mgr := access.NewTransactionManager(access.NewLockManager(access.REGULAR, access.DETECTION), log_mgr)
 	txn := txn_mgr.Begin(nil)
 
 	c := catalog.BootstrapCatalog(bpm, log_mgr, access.NewLockManager(access.REGULAR, access.PREVENTION), txn)
@@ -434,7 +437,7 @@ func TestHashTableIndex(t *testing.T) {
 	log_mgr := recovery.NewLogManager(&diskManager)
 	bpm := buffer.NewBufferPoolManager(uint32(32), diskManager, log_mgr) //, recovery.NewLogManager(diskManager), access.NewLockManager(access.REGULAR, access.PREVENTION))
 
-	txn_mgr := access.NewTransactionManager(log_mgr)
+	txn_mgr := access.NewTransactionManager(access.NewLockManager(access.REGULAR, access.DETECTION), log_mgr)
 	txn := txn_mgr.Begin(nil)
 
 	c := catalog.BootstrapCatalog(bpm, log_mgr, access.NewLockManager(access.REGULAR, access.PREVENTION), txn)
@@ -569,7 +572,7 @@ func TestSimpleDelete(t *testing.T) {
 	defer diskManager.ShutDown()
 	log_mgr := recovery.NewLogManager(&diskManager)
 	bpm := buffer.NewBufferPoolManager(uint32(32), diskManager, log_mgr)
-	txn_mgr := access.NewTransactionManager(log_mgr)
+	txn_mgr := access.NewTransactionManager(access.NewLockManager(access.REGULAR, access.DETECTION), log_mgr)
 	txn := txn_mgr.Begin(nil)
 
 	c := catalog.BootstrapCatalog(bpm, log_mgr, access.NewLockManager(access.REGULAR, access.PREVENTION), txn)
@@ -661,7 +664,7 @@ func TestDeleteWithSelctInsert(t *testing.T) {
 	defer diskManager.ShutDown()
 	log_mgr := recovery.NewLogManager(&diskManager)
 	bpm := buffer.NewBufferPoolManager(uint32(32), diskManager, log_mgr)
-	txn_mgr := access.NewTransactionManager(log_mgr)
+	txn_mgr := access.NewTransactionManager(access.NewLockManager(access.REGULAR, access.DETECTION), log_mgr)
 	txn := txn_mgr.Begin(nil)
 
 	c := catalog.BootstrapCatalog(bpm, log_mgr, access.NewLockManager(access.REGULAR, access.PREVENTION), txn)
@@ -793,7 +796,7 @@ func TestSimpleInsertAndUpdate(t *testing.T) {
 	defer diskManager.ShutDown()
 	log_mgr := recovery.NewLogManager(&diskManager)
 	bpm := buffer.NewBufferPoolManager(uint32(32), diskManager, log_mgr)
-	txn_mgr := access.NewTransactionManager(log_mgr)
+	txn_mgr := access.NewTransactionManager(access.NewLockManager(access.REGULAR, access.DETECTION), log_mgr)
 	txn := txn_mgr.Begin(nil)
 
 	c := catalog.BootstrapCatalog(bpm, log_mgr, access.NewLockManager(access.REGULAR, access.PREVENTION), txn)
@@ -868,7 +871,7 @@ func TestInsertUpdateMix(t *testing.T) {
 	defer diskManager.ShutDown()
 	log_mgr := recovery.NewLogManager(&diskManager)
 	bpm := buffer.NewBufferPoolManager(uint32(32), diskManager, log_mgr)
-	txn_mgr := access.NewTransactionManager(log_mgr)
+	txn_mgr := access.NewTransactionManager(access.NewLockManager(access.REGULAR, access.DETECTION), log_mgr)
 	txn := txn_mgr.Begin(nil)
 
 	c := catalog.BootstrapCatalog(bpm, log_mgr, access.NewLockManager(access.REGULAR, access.PREVENTION), txn)
@@ -984,7 +987,7 @@ func TestAbortWIthDeleteUpdate(t *testing.T) {
 	defer diskManager.ShutDown()
 	log_mgr := recovery.NewLogManager(&diskManager)
 	bpm := buffer.NewBufferPoolManager(uint32(32), diskManager, log_mgr)
-	txn_mgr := access.NewTransactionManager(log_mgr)
+	txn_mgr := access.NewTransactionManager(access.NewLockManager(access.REGULAR, access.DETECTION), log_mgr)
 	txn := txn_mgr.Begin(nil)
 
 	c := catalog.BootstrapCatalog(bpm, log_mgr, access.NewLockManager(access.REGULAR, access.PREVENTION), txn)
@@ -1240,7 +1243,7 @@ func TestSimpleHashJoin(t *testing.T) {
 	defer diskManager.ShutDown()
 	log_mgr := recovery.NewLogManager(&diskManager)
 	bpm := buffer.NewBufferPoolManager(uint32(32), diskManager, log_mgr)
-	txn_mgr := access.NewTransactionManager(log_mgr)
+	txn_mgr := access.NewTransactionManager(access.NewLockManager(access.REGULAR, access.DETECTION), log_mgr)
 	txn := txn_mgr.Begin(nil)
 	c := catalog.BootstrapCatalog(bpm, log_mgr, access.NewLockManager(access.REGULAR, access.PREVENTION), txn)
 	executorContext := NewExecutorContext(c, bpm, txn)
@@ -1353,7 +1356,7 @@ func TestInsertAndSeqScanWithComplexPredicateComparison(t *testing.T) {
 	defer diskManager.ShutDown()
 	log_mgr := recovery.NewLogManager(&diskManager)
 	bpm := buffer.NewBufferPoolManager(uint32(32), diskManager, log_mgr) //, recovery.NewLogManager(diskManager), access.NewLockManager(access.REGULAR, access.PREVENTION))
-	txn_mgr := access.NewTransactionManager(log_mgr)
+	txn_mgr := access.NewTransactionManager(access.NewLockManager(access.REGULAR, access.DETECTION), log_mgr)
 	txn := txn_mgr.Begin(nil)
 
 	c := catalog.BootstrapCatalog(bpm, log_mgr, access.NewLockManager(access.REGULAR, access.PREVENTION), txn)
@@ -1477,4 +1480,240 @@ func TestInsertAndSeqScanWithComplexPredicateComparison(t *testing.T) {
 			ExecuteSeqScanTestCase(t, test)
 		})
 	}
+}
+
+func rowInsertTransaction(t *testing.T, shi *test_util.SamehadaInstance, c *catalog.Catalog, tm *catalog.TableMetadata, master_ch chan int32) {
+	txn := shi.GetTransactionManager().Begin(nil)
+
+	row1 := make([]types.Value, 0)
+	row1 = append(row1, types.NewInteger(20))
+	row1 = append(row1, types.NewVarchar("hoge"))
+	row1 = append(row1, types.NewInteger(40))
+	row1 = append(row1, types.NewVarchar("hogehoge"))
+
+	row2 := make([]types.Value, 0)
+	row2 = append(row2, types.NewInteger(99))
+	row2 = append(row2, types.NewVarchar("foo"))
+	row2 = append(row2, types.NewInteger(999))
+	row2 = append(row2, types.NewVarchar("foofoo"))
+
+	row3 := make([]types.Value, 0)
+	row3 = append(row3, types.NewInteger(11))
+	row3 = append(row3, types.NewVarchar("bar"))
+	row3 = append(row3, types.NewInteger(17))
+	row3 = append(row3, types.NewVarchar("barbar"))
+
+	row4 := make([]types.Value, 0)
+	row4 = append(row4, types.NewInteger(100))
+	row4 = append(row4, types.NewVarchar("piyo"))
+	row4 = append(row4, types.NewInteger(1000))
+	row4 = append(row4, types.NewVarchar("piyopiyo"))
+
+	rows := make([][]types.Value, 0)
+	rows = append(rows, row1)
+	rows = append(rows, row2)
+	rows = append(rows, row3)
+	rows = append(rows, row4)
+
+	insertPlanNode := plans.NewInsertPlanNode(rows, tm.OID())
+
+	executionEngine := &ExecutionEngine{}
+	executorContext := NewExecutorContext(c, shi.GetBufferPoolManager(), txn)
+	executionEngine.Execute(insertPlanNode, executorContext)
+
+	ret := handleFnishTxn(shi.GetTransactionManager(), txn)
+	master_ch <- ret
+}
+
+func deleteAllRowTransaction(t *testing.T, shi *test_util.SamehadaInstance, c *catalog.Catalog, tm *catalog.TableMetadata, master_ch chan int32) {
+	txn := shi.GetTransactionManager().Begin(nil)
+	deletePlan := plans.NewDeletePlanNode(nil, tm.OID())
+
+	executionEngine := &ExecutionEngine{}
+	executorContext := NewExecutorContext(c, shi.GetBufferPoolManager(), txn)
+	executionEngine.Execute(deletePlan, executorContext)
+
+	ret := handleFnishTxn(shi.GetTransactionManager(), txn)
+	master_ch <- ret
+}
+
+func selectAllRowTransaction(t *testing.T, shi *test_util.SamehadaInstance, c *catalog.Catalog, tm *catalog.TableMetadata, master_ch chan int32) {
+	txn := shi.GetTransactionManager().Begin(nil)
+
+	outColumnA := column.NewColumn("a", types.Integer, false)
+	outSchema := schema.NewSchema([]*column.Column{outColumnA})
+
+	seqPlan := plans.NewSeqScanPlanNode(outSchema, nil, tm.OID())
+	executionEngine := &ExecutionEngine{}
+	executorContext := NewExecutorContext(c, shi.GetBufferPoolManager(), txn)
+
+	executionEngine.Execute(seqPlan, executorContext)
+
+	ret := handleFnishTxn(shi.GetTransactionManager(), txn)
+	master_ch <- ret
+}
+
+func handleFnishTxn(txn_mgr *access.TransactionManager, txn *access.Transaction) int32 {
+	// fmt.Println(txn.GetState())
+	if txn.GetState() == access.ABORTED {
+		// fmt.Println(txn.GetSharedLockSet())
+		// fmt.Println(txn.GetExclusiveLockSet())
+		txn_mgr.Abort(txn)
+		return 0
+	} else {
+		// fmt.Println(txn.GetSharedLockSet())
+		// fmt.Println(txn.GetExclusiveLockSet())
+		txn_mgr.Commit(txn)
+		return 1
+	}
+}
+
+// REFERENCES
+//   - https://pkg.go.dev/runtime#Stack
+//   - https://stackoverflow.com/questions/19094099/how-to-dump-goroutine-stacktraces
+func RuntimeStack() error {
+	// channels
+	var (
+		// chSingle = make(chan []byte, 1)
+		chAll = make(chan []byte, 1)
+	)
+
+	// funcs
+	var (
+		getStack = func(all bool) []byte {
+			// From src/runtime/debug/stack.go
+			var (
+				buf = make([]byte, 1024)
+			)
+
+			for {
+				n := runtime.Stack(buf, all)
+				if n < len(buf) {
+					return buf[:n]
+				}
+				buf = make([]byte, 2*len(buf))
+			}
+		}
+	)
+
+	// current goroutin only
+	// go func(ch chan<- []byte) {
+	// 	defer close(ch)
+	// 	ch <- getStack(false)
+	// }(chSingle)
+
+	// all goroutin
+	go func(ch chan<- []byte) {
+		defer close(ch)
+		ch <- getStack(true)
+	}(chAll)
+
+	// // result of runtime.Stack(false)
+	// for v := range chSingle {
+	// 	output.Stdoutl("=== stack-single", string(v))
+	// }
+
+	// result of runtime.Stack(true)
+	for v := range chAll {
+		output.Stdoutl("=== stack-all   ", string(v))
+	}
+
+	return nil
+}
+
+func timeoutPanic() {
+	RuntimeStack()
+	os.Stdout.Sync()
+	panic("timeout reached")
+}
+
+func TestConcurrentTransactionExecution(t *testing.T) {
+	os.Remove("test.db")
+	os.Remove("test.log")
+
+	shi := test_util.NewSamehadaInstance()
+	shi.GetLogManager().RunFlushThread()
+	testingpkg.Assert(t, common.EnableLogging, "")
+	fmt.Println("System logging is active.")
+
+	txn_mgr := shi.GetTransactionManager()
+	txn := txn_mgr.Begin(nil)
+
+	c := catalog.BootstrapCatalog(shi.GetBufferPoolManager(), shi.GetLogManager(), shi.GetLockManager(), txn)
+
+	columnA := column.NewColumn("a", types.Integer, false)
+	columnB := column.NewColumn("b", types.Varchar, false)
+	columnC := column.NewColumn("c", types.Integer, false)
+	columnD := column.NewColumn("d", types.Varchar, false)
+	schema_ := schema.NewSchema([]*column.Column{columnA, columnB, columnC, columnD})
+
+	tableMetadata := c.CreateTable("test_1", schema_, txn)
+
+	row1 := make([]types.Value, 0)
+	row1 = append(row1, types.NewInteger(20))
+	row1 = append(row1, types.NewVarchar("hoge"))
+	row1 = append(row1, types.NewInteger(40))
+	row1 = append(row1, types.NewVarchar("hogehoge"))
+
+	row2 := make([]types.Value, 0)
+	row2 = append(row2, types.NewInteger(99))
+	row2 = append(row2, types.NewVarchar("foo"))
+	row2 = append(row2, types.NewInteger(999))
+	row2 = append(row2, types.NewVarchar("foofoo"))
+
+	row3 := make([]types.Value, 0)
+	row3 = append(row3, types.NewInteger(11))
+	row3 = append(row3, types.NewVarchar("bar"))
+	row3 = append(row3, types.NewInteger(17))
+	row3 = append(row3, types.NewVarchar("barbar"))
+
+	row4 := make([]types.Value, 0)
+	row4 = append(row4, types.NewInteger(100))
+	row4 = append(row4, types.NewVarchar("piyo"))
+	row4 = append(row4, types.NewInteger(1000))
+	row4 = append(row4, types.NewVarchar("piyopiyo"))
+
+	rows := make([][]types.Value, 0)
+	rows = append(rows, row1)
+	rows = append(rows, row2)
+	rows = append(rows, row3)
+	rows = append(rows, row4)
+
+	insertPlanNode := plans.NewInsertPlanNode(rows, tableMetadata.OID())
+
+	executionEngine := &ExecutionEngine{}
+	executorContext := NewExecutorContext(c, shi.GetBufferPoolManager(), txn)
+	executionEngine.Execute(insertPlanNode, executorContext)
+
+	txn_mgr.Commit(txn)
+
+	const PARALLEL_EXEC_CNT int = 100
+
+	// // set timeout for debugging
+	// time.AfterFunc(time.Duration(40)*time.Second, timeoutPanic)
+
+	commited_cnt := int32(0)
+	for i := 0; i < PARALLEL_EXEC_CNT; i++ {
+		ch1 := make(chan int32)
+		ch2 := make(chan int32)
+		ch3 := make(chan int32)
+		ch4 := make(chan int32)
+		go rowInsertTransaction(t, shi, c, tableMetadata, ch1)
+		go selectAllRowTransaction(t, shi, c, tableMetadata, ch2)
+		go deleteAllRowTransaction(t, shi, c, tableMetadata, ch3)
+		go selectAllRowTransaction(t, shi, c, tableMetadata, ch4)
+
+		commited_cnt += <-ch1
+		commited_cnt += <-ch2
+		commited_cnt += <-ch3
+		commited_cnt += <-ch4
+		//fmt.Printf("commited_cnt: %d\n", commited_cnt)
+		//shi.GetLockManager().PrintLockTables()
+		//shi.GetLockManager().ClearLockTablesForDebug()
+	}
+
+	fmt.Printf("final commited_cnt: %d\n", commited_cnt)
+
+	// remove db file and log file
+	shi.Finalize(true)
 }

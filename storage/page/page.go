@@ -26,7 +26,7 @@ type Page struct {
 	pinCount uint32                 // counts how many goroutines are acessing it
 	isDirty  bool                   // the page was modified but not flushed
 	data     *[common.PageSize]byte // bytes stored in disk
-	// TODO: (SDB) need to use latch at Page
+	rwlatch_ common.ReaderWriterLatch
 }
 
 // IncPinCount decrements pin count
@@ -73,26 +73,13 @@ func (p *Page) Copy(offset uint32, data []byte) {
 
 // New creates a new page
 func New(id types.PageID, isDirty bool, data *[common.PageSize]byte) *Page {
-	return &Page{id, uint32(1), isDirty, data}
+	return &Page{id, uint32(1), isDirty, data, common.NewRWLatch()}
 }
 
 // New creates a new empty page
 func NewEmpty(id types.PageID) *Page {
-	return &Page{id, uint32(1), false, &[common.PageSize]byte{}}
+	return &Page{id, uint32(1), false, &[common.PageSize]byte{}, common.NewRWLatch()}
 }
-
-// TODO: (SDB) lockking and unlockking latch of Page is not implemented yet
-//   /** Acquire the page write latch. */
-//   inline void WLatch() { rwlatch_.WLock(); }
-
-//   /** Release the page write latch. */
-//   inline void WUnlatch() { rwlatch_.WUnlock(); }
-
-//   /** Acquire the page read latch. */
-//   inline void RLatch() { rwlatch_.RLock(); }
-
-//   /** Release the page read latch. */
-//   inline void RUnlatch() { rwlatch_.RUnlock(); }
 
 /** @return the page LSN. */
 func (p *Page) GetLSN() types.LSN {
@@ -111,4 +98,30 @@ func (p *Page) GetPageId() types.PageID { return p.id }
 
 func (p *Page) GetData() *[common.PageSize]byte {
 	return p.data
+}
+
+/** Acquire the page write latch. */
+func (p *Page) WLatch() {
+	// common.SH_Assert(!p.rwlatch_.IsWriteLocked(), "Page is already write locked")
+	// fmt.Printf("Page::WLatch: page address %p\n", p)
+	p.rwlatch_.WLock()
+}
+
+/** Release the page write latch. */
+func (p *Page) WUnlatch() {
+	// fmt.Printf("Page::WUnlatch: page address %p\n", p)
+	p.rwlatch_.WUnlock()
+}
+
+/** Acquire the page read latch. */
+func (p *Page) RLatch() {
+	//common.SH_Assert(!p.rwlatch_.IsReadLocked(), "Page is already read locked")
+	// fmt.Printf("Page::RLatch: page address %p\n", p)
+	p.rwlatch_.RLock()
+}
+
+/** Release the page read latch. */
+func (p *Page) RUnlatch() {
+	// fmt.Printf("Page::RUnlatch: page address %p\n", p)
+	p.rwlatch_.RUnlock()
 }
