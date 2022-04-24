@@ -1689,25 +1689,25 @@ func TestConcurrentTransactionExecution(t *testing.T) {
 
 	const PARALLEL_EXEC_CNT int = 100
 
-	// set timeout
-	time.AfterFunc(time.Duration(40)*time.Second, timeoutPanic)
+	// // set timeout for debugging
+	// time.AfterFunc(time.Duration(40)*time.Second, timeoutPanic)
 
 	commited_cnt := int32(0)
 	for i := 0; i < PARALLEL_EXEC_CNT; i++ {
 		ch1 := make(chan int32)
 		ch2 := make(chan int32)
-		//ch3 := make(chan int32)
-		//ch4 := make(chan int32)
+		ch3 := make(chan int32)
+		ch4 := make(chan int32)
 		go rowInsertTransaction(t, shi, c, tableMetadata, ch1)
 		go selectAllRowTransaction(t, shi, c, tableMetadata, ch2)
-		//go deleteAllRowTransaction(t, shi, c, tableMetadata, ch3)
-		//go selectAllRowTransaction(t, shi, c, tableMetadata, ch4)
+		go deleteAllRowTransaction(t, shi, c, tableMetadata, ch3)
+		go selectAllRowTransaction(t, shi, c, tableMetadata, ch4)
 
 		commited_cnt += <-ch1
 		commited_cnt += <-ch2
-		//commited_cnt += <-ch3
-		//commited_cnt += <-ch4
-		fmt.Printf("commited_cnt: %d\n", commited_cnt)
+		commited_cnt += <-ch3
+		commited_cnt += <-ch4
+		//fmt.Printf("commited_cnt: %d\n", commited_cnt)
 		//shi.GetLockManager().PrintLockTables()
 		//shi.GetLockManager().ClearLockTablesForDebug()
 	}
