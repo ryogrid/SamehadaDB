@@ -174,7 +174,7 @@ func isContainTxnID(list []types.TxnID, txnID types.TxnID) bool {
 * @return true if the lock is granted, false otherwise
  */
 func (lock_manager *LockManager) LockShared(txn *Transaction, rid *page.RID) bool {
-	//fmt.Printf("called LockShared %v\n", rid)
+	fmt.Printf("called LockShared, %v\n", rid)
 	lock_manager.mutex.Lock()
 	defer lock_manager.mutex.Unlock()
 	slock_set := txn.GetSharedLockSet()
@@ -214,7 +214,7 @@ func (lock_manager *LockManager) LockShared(txn *Transaction, rid *page.RID) boo
 * @return true if the lock is granted, false otherwise
  */
 func (lock_manager *LockManager) LockExclusive(txn *Transaction, rid *page.RID) bool {
-	//fmt.Printf("called LockExclusive %v\n", rid)
+	fmt.Printf("called LockExclusive, %v\n", rid)
 	lock_manager.mutex.Lock()
 	defer lock_manager.mutex.Unlock()
 	exlock_set := txn.GetExclusiveLockSet()
@@ -225,6 +225,12 @@ func (lock_manager *LockManager) LockExclusive(txn *Transaction, rid *page.RID) 
 			return false
 		}
 	} else {
+		if arr, ok := lock_manager.shared_lock_table[*rid]; ok {
+			if len(arr) != 0 {
+				return false
+			}
+		}
+
 		lock_manager.exclusive_lock_table[*rid] = txn.GetTransactionId()
 		exlock_set = append(exlock_set, *rid)
 		txn.SetExclusiveLockSet(exlock_set)
