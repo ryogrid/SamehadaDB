@@ -1554,15 +1554,15 @@ func selectAllRowTransaction(t *testing.T, shi *test_util.SamehadaInstance, c *c
 }
 
 func handleFnishTxn(txn_mgr *access.TransactionManager, txn *access.Transaction) int32 {
-	fmt.Println(txn.GetState())
+	// fmt.Println(txn.GetState())
 	if txn.GetState() == access.ABORTED {
-		fmt.Println(txn.GetSharedLockSet())
-		fmt.Println(txn.GetExclusiveLockSet())
+		// fmt.Println(txn.GetSharedLockSet())
+		// fmt.Println(txn.GetExclusiveLockSet())
 		txn_mgr.Abort(txn)
 		return 0
 	} else {
-		fmt.Println(txn.GetSharedLockSet())
-		fmt.Println(txn.GetExclusiveLockSet())
+		// fmt.Println(txn.GetSharedLockSet())
+		// fmt.Println(txn.GetExclusiveLockSet())
 		txn_mgr.Commit(txn)
 		return 1
 	}
@@ -1687,10 +1687,10 @@ func TestConcurrentTransactionExecution(t *testing.T) {
 
 	txn_mgr.Commit(txn)
 
-	const PARALLEL_EXEC_CNT int = 5
+	const PARALLEL_EXEC_CNT int = 100
 
-	// // set timeout
-	// time.AfterFunc(time.Duration(40)*time.Second, timeoutPanic)
+	// set timeout
+	time.AfterFunc(time.Duration(40)*time.Second, timeoutPanic)
 
 	commited_cnt := int32(0)
 	for i := 0; i < PARALLEL_EXEC_CNT; i++ {
@@ -1708,7 +1708,7 @@ func TestConcurrentTransactionExecution(t *testing.T) {
 		//commited_cnt += <-ch3
 		//commited_cnt += <-ch4
 		fmt.Printf("commited_cnt: %d\n", commited_cnt)
-		shi.GetLockManager().PrintLockTables()
+		//shi.GetLockManager().PrintLockTables()
 		//shi.GetLockManager().ClearLockTablesForDebug()
 	}
 
