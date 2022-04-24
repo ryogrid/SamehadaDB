@@ -84,7 +84,6 @@ func (b *BufferPoolManager) UnpinPage(pageID types.PageID, isDirty bool) error {
 
 	if frameID, ok := b.pageTable[pageID]; ok {
 		pg := b.pages[frameID]
-		b.mutex.Unlock()
 		pg.DecPinCount()
 
 		if pg.PinCount() <= 0 {
@@ -97,6 +96,7 @@ func (b *BufferPoolManager) UnpinPage(pageID types.PageID, isDirty bool) error {
 			pg.SetIsDirty(false)
 		}
 
+		b.mutex.Unlock()
 		return nil
 	}
 	b.mutex.Unlock()

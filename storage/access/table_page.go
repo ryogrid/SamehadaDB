@@ -88,6 +88,7 @@ func (tp *TablePage) InsertTuple(tuple *tuple.Tuple, log_manager *recovery.LogMa
 
 	rid := &page.RID{}
 	rid.Set(tp.GetTablePageId(), slot)
+
 	if slot == tp.GetTupleCount() {
 		tp.SetTupleCount(tp.GetTupleCount() + 1)
 	}

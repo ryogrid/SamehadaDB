@@ -271,10 +271,6 @@ func (lock_manager *LockManager) LockUpgrade(txn *Transaction, rid *page.RID) bo
 * @return true if the unlock is successful, false otherwise
  */
 func (lock_manager *LockManager) Unlock(txn *Transaction, rid_list []page.RID) bool {
-	// txn.GetSharedLockSet().erase(rid)
-	// txn.GetExclusiveLockSet().erase(rid)
-	fmt.Printf("len of shared_lock_table at Unlock %d\n", len(lock_manager.shared_lock_table))
-	fmt.Printf("len of exclusive_lock_table at Unlock %d\n", len(lock_manager.exclusive_lock_table))
 	lock_manager.mutex.Lock()
 	defer lock_manager.mutex.Unlock()
 	for _, locked_rid := range rid_list {
