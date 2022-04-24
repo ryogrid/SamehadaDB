@@ -1709,7 +1709,7 @@ func TestConcurrentTransactionExecution(t *testing.T) {
 		commited_cnt += <-ch4
 		//fmt.Printf("commited_cnt: %d\n", commited_cnt)
 		//shi.GetLockManager().PrintLockTables()
-		//shi.GetLockManager().ClearLockTablesForDebug()
+		shi.GetLockManager().ClearLockTablesForDebug()
 	}
 
 	fmt.Printf("final commited_cnt: %d\n", commited_cnt)
