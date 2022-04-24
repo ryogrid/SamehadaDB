@@ -81,13 +81,12 @@ func (transaction_manager *TransactionManager) Commit(txn *Transaction) {
 		transaction_manager.log_manager.Flush()
 	}
 
+	// Release all the locks.
+	transaction_manager.mutex.Lock()
+	transaction_manager.releaseLocks(txn)
+	transaction_manager.mutex.Unlock()
 	// Release the global transaction latch.
 	transaction_manager.global_txn_latch.RUnlock()
-	transaction_manager.global_txn_latch.WLock()
-	// Release all the locks.
-	transaction_manager.releaseLocks(txn)
-	transaction_manager.global_txn_latch.WUnlock()
-	//transaction_manager.global_txn_latch.RUnlock()
 }
 
 func (transaction_manager *TransactionManager) Abort(txn *Transaction) {
@@ -121,13 +120,12 @@ func (transaction_manager *TransactionManager) Abort(txn *Transaction) {
 		txn.SetPrevLSN(lsn)
 	}
 
+	// Release all the locks.
+	transaction_manager.mutex.Lock()
+	transaction_manager.releaseLocks(txn)
+	transaction_manager.mutex.Unlock()
 	// Release the global transaction latch.
 	transaction_manager.global_txn_latch.RUnlock()
-	transaction_manager.global_txn_latch.WLock()
-	// Release all the locks.
-	transaction_manager.releaseLocks(txn)
-	transaction_manager.global_txn_latch.WUnlock()
-	//transaction_manager.global_txn_latch.RUnlock()
 }
 
 func (transaction_manager *TransactionManager) BlockAllTransactions() {

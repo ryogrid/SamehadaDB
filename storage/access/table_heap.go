@@ -63,6 +63,10 @@ func (t *TableHeap) InsertTuple(tuple_ *tuple.Tuple, txn *Transaction) (rid *pag
 			currentPage.WUnlatch()
 			break
 		}
+		if rid == nil {
+			currentPage.WUnlatch()
+			return nil, err
+		}
 		// TODO: (SDB) rid setting is SemehadaDB original code. Pay attention.
 		tuple_.SetRID(rid)
 
@@ -164,6 +168,10 @@ func (t *TableHeap) RollbackDelete(rid *page.RID, txn *Transaction) {
 
 // GetTuple reads a tuple from the table
 func (t *TableHeap) GetTuple(rid *page.RID, txn *Transaction) *tuple.Tuple {
+	if !txn.IsSharedLocked(rid) && !txn.IsExclusiveLocked(rid) && !t.lock_manager.LockShared(txn, rid) {
+		txn.SetState(ABORTED)
+		return nil
+	}
 	page := CastPageAsTablePage(t.bpm.FetchPage(rid.GetPageId()))
 	defer t.bpm.UnpinPage(page.ID(), false)
 	page.RLatch()
@@ -174,7 +182,7 @@ func (t *TableHeap) GetTuple(rid *page.RID, txn *Transaction) *tuple.Tuple {
 
 // GetFirstTuple reads the first tuple from the table
 func (t *TableHeap) GetFirstTuple(txn *Transaction) *tuple.Tuple {
-	var rid *page.RID
+	var rid *page.RID = nil
 	pageId := t.firstPageId
 	for pageId.IsValid() {
 		page := CastPageAsTablePage(t.bpm.FetchPage(pageId))
@@ -187,6 +195,9 @@ func (t *TableHeap) GetFirstTuple(txn *Transaction) *tuple.Tuple {
 		}
 		pageId = page.GetNextPageId()
 		page.RUnlatch()
+	}
+	if rid == nil {
+		return nil
 	}
 	return t.GetTuple(rid, txn)
 }

@@ -83,11 +83,24 @@ func (tp *TablePage) InsertTuple(tuple *tuple.Tuple, log_manager *recovery.LogMa
 		return nil, ErrNoFreeSlot
 	}
 
-	tp.SetFreeSpacePointer(tp.GetFreeSpacePointer() - tuple.Size())
-	tp.setTuple(slot, tuple)
-
 	rid := &page.RID{}
 	rid.Set(tp.GetTablePageId(), slot)
+
+	if common.EnableLogging {
+		// Acquire an exclusive lock on the new tuple.
+		locked := lock_manager.LockExclusive(txn, rid)
+		if !locked {
+			txn.SetState(ABORTED)
+			return nil, errors.Error("could not acquire an exclusive lock on the new tuple")
+			// fmt.Printf("Locking a new tuple should always work. rid: %v\n", rid)
+			// lock_manager.PrintLockTables()
+			// os.Stdout.Sync()
+			// panic("")
+		}
+	}
+
+	tp.SetFreeSpacePointer(tp.GetFreeSpacePointer() - tuple.Size())
+	tp.setTuple(slot, tuple)
 
 	if slot == tp.GetTupleCount() {
 		tp.SetTupleCount(tp.GetTupleCount() + 1)
@@ -95,10 +108,8 @@ func (tp *TablePage) InsertTuple(tuple *tuple.Tuple, log_manager *recovery.LogMa
 
 	// Write the log record.
 	if common.EnableLogging {
-		common.SH_Assert(!txn.IsSharedLocked(rid) && !txn.IsExclusiveLocked(rid), "A new tuple should not be locked.")
-		// Acquire an exclusive lock on the new tuple.
-		locked := lock_manager.LockExclusive(txn, rid)
-		common.SH_Assert(locked, "Locking a new tuple should always work.")
+		//common.SH_Assert(!txn.IsSharedLocked(rid) && !txn.IsExclusiveLocked(rid), "A new tuple should not be locked.")
+		//common.SH_Assert(locked, "Locking a new tuple should always work.")
 		log_record := recovery.NewLogRecordInsertDelete(txn.GetTransactionId(), txn.GetPrevLSN(), recovery.INSERT, *rid, tuple)
 		lsn := log_manager.AppendLogRecord(log_record)
 		tp.Page.SetLSN(lsn)
