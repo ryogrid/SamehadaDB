@@ -63,12 +63,10 @@ func (t *TableHeap) InsertTuple(tuple_ *tuple.Tuple, txn *Transaction) (rid *pag
 			currentPage.WUnlatch()
 			break
 		}
-		if rid == nil {
+		if rid == nil && err != nil && err != ErrEmptyTuple && err != ErrNotEnoughSpace {
 			currentPage.WUnlatch()
 			return nil, err
 		}
-		// TODO: (SDB) rid setting is SemehadaDB original code. Pay attention.
-		tuple_.SetRID(rid)
 
 		nextPageId := currentPage.GetNextPageId()
 		if nextPageId.IsValid() {

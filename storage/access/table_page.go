@@ -99,6 +99,8 @@ func (tp *TablePage) InsertTuple(tuple *tuple.Tuple, log_manager *recovery.LogMa
 		}
 	}
 
+	tuple.SetRID(rid)
+
 	tp.SetFreeSpacePointer(tp.GetFreeSpacePointer() - tuple.Size())
 	tp.setTuple(slot, tuple)
 

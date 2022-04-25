@@ -432,8 +432,11 @@ func TestCheckpoint(t *testing.T) {
 	// insert a ton of tuples
 	txn1 := samehada_instance.GetTransactionManager().Begin(nil)
 	for i := 0; i < 1000; i++ {
-		var rid *page.RID = nil
-		rid, _ = test_table.InsertTuple(tuple_, txn1)
+		//var rid *page.RID = nil
+		rid, err := test_table.InsertTuple(tuple_, txn1)
+		if err != nil {
+			fmt.Println(err)
+		}
 		// TODO: (SDB) insert index entry if needed
 		testingpkg.Assert(t, rid != nil, "")
 	}
