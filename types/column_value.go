@@ -17,18 +17,23 @@ type Value struct {
 	integer   *int32
 	boolean   *bool
 	varchar   *string
+	float     *float32
 }
 
 func NewInteger(value int32) Value {
-	return Value{Integer, &value, nil, nil}
+	return Value{Integer, &value, nil, nil, nil}
+}
+
+func NewFloat(value float32) Value {
+	return Value{Float, nil, nil, nil, &value}
 }
 
 func NewBoolean(value bool) Value {
-	return Value{Boolean, nil, &value, nil}
+	return Value{Boolean, nil, &value, nil, nil}
 }
 
 func NewVarchar(value string) Value {
-	return Value{Varchar, nil, nil, &value}
+	return Value{Varchar, nil, nil, &value, nil}
 }
 
 // NewValueFromBytes is used for deserialization
@@ -39,6 +44,11 @@ func NewValueFromBytes(data []byte, valueType TypeID) (ret *Value) {
 		binary.Read(bytes.NewBuffer(data), binary.LittleEndian, v)
 		vInteger := NewInteger(*v)
 		ret = &vInteger
+	case Float:
+		v := new(float32)
+		binary.Read(bytes.NewBuffer(data), binary.LittleEndian, v)
+		vFloat := NewFloat(*v)
+		ret = &vFloat
 	case Varchar:
 		lengthInBytes := data[0:2]
 		length := new(int16)
@@ -58,6 +68,8 @@ func (v Value) CompareEquals(right Value) bool {
 	switch v.valueType {
 	case Integer:
 		return *v.integer == *right.integer
+	case Float:
+		return *v.float == *right.float
 	case Varchar:
 		return *v.varchar == *right.varchar
 	case Boolean:
@@ -70,6 +82,8 @@ func (v Value) CompareNotEquals(right Value) bool {
 	switch v.valueType {
 	case Integer:
 		return *v.integer != *right.integer
+	case Float:
+		return *v.float != *right.float
 	case Varchar:
 		return *v.varchar != *right.varchar
 	case Boolean:
@@ -82,6 +96,8 @@ func (v Value) CompareGreaterThan(right Value) bool {
 	switch v.valueType {
 	case Integer:
 		return *v.integer > *right.integer
+	case Float:
+		return *v.float > *right.float
 	case Varchar:
 		return *v.varchar > *right.varchar
 	case Boolean:
@@ -94,6 +110,8 @@ func (v Value) CompareGreaterThanOrEqual(right Value) bool {
 	switch v.valueType {
 	case Integer:
 		return *v.integer >= *right.integer
+	case Float:
+		return *v.float >= *right.float
 	case Varchar:
 		return *v.varchar >= *right.varchar
 	case Boolean:
@@ -106,6 +124,8 @@ func (v Value) CompareLessThan(right Value) bool {
 	switch v.valueType {
 	case Integer:
 		return *v.integer < *right.integer
+	case Float:
+		return *v.float < *right.float
 	case Varchar:
 		return *v.varchar < *right.varchar
 	case Boolean:
@@ -118,6 +138,8 @@ func (v Value) CompareLessThanOrEqual(right Value) bool {
 	switch v.valueType {
 	case Integer:
 		return *v.integer <= *right.integer
+	case Float:
+		return *v.float <= *right.float
 	case Varchar:
 		return *v.varchar <= *right.varchar
 	case Boolean:
@@ -131,6 +153,10 @@ func (v Value) Serialize() []byte {
 	case Integer:
 		buf := new(bytes.Buffer)
 		binary.Write(buf, binary.LittleEndian, v.ToInteger())
+		return buf.Bytes()
+	case Float:
+		buf := new(bytes.Buffer)
+		binary.Write(buf, binary.LittleEndian, v.ToFloat())
 		return buf.Bytes()
 	case Varchar:
 		buf := new(bytes.Buffer)
@@ -150,6 +176,8 @@ func (v Value) Size() uint32 {
 	switch v.valueType {
 	case Integer:
 		return 4
+	case Float:
+		return 4
 	case Varchar:
 		return uint32(len(*v.varchar)) + 2 // varchar occupies the size of the string + 2 bytes for length storage
 	case Boolean:
@@ -164,6 +192,10 @@ func (v Value) ToBoolean() bool {
 
 func (v Value) ToInteger() int32 {
 	return *v.integer
+}
+
+func (v Value) ToFloat() float32 {
+	return *v.float
 }
 
 func (v Value) ToVarchar() string {

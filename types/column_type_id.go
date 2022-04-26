@@ -14,6 +14,7 @@ const (
 	Integer
 	BigInt
 	Decimal
+	Float
 	Varchar
 	Timestamp
 	Null
@@ -22,6 +23,8 @@ const (
 func (t TypeID) Size() uint32 {
 	switch t {
 	case Integer:
+		return 4
+	case Float:
 		return 4
 	}
 	return 0

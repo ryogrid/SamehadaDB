@@ -78,6 +78,55 @@ func TestSimpleInsertAndSeqScan(t *testing.T) {
 	testingpkg.Assert(t, types.NewInteger(99).CompareEquals(results[1].GetValue(outSchema, 0)), "value should be 99")
 }
 
+func TestSimpleInsertAndSeqScanFloat(t *testing.T) {
+	diskManager := disk.NewDiskManagerTest()
+	defer diskManager.ShutDown()
+	log_mgr := recovery.NewLogManager(&diskManager)
+	bpm := buffer.NewBufferPoolManager(uint32(32), diskManager, log_mgr)
+	txn_mgr := access.NewTransactionManager(access.NewLockManager(access.REGULAR, access.DETECTION), log_mgr)
+	txn := txn_mgr.Begin(nil)
+
+	c := catalog.BootstrapCatalog(bpm, log_mgr, access.NewLockManager(access.REGULAR, access.PREVENTION), txn)
+
+	columnA := column.NewColumn("a", types.Float, false)
+	columnB := column.NewColumn("b", types.Float, false)
+	schema_ := schema.NewSchema([]*column.Column{columnA, columnB})
+
+	tableMetadata := c.CreateTable("test_1", schema_, txn)
+
+	row1 := make([]types.Value, 0)
+	row1 = append(row1, types.NewFloat(0.5))
+	row1 = append(row1, types.NewFloat(1.5))
+
+	row2 := make([]types.Value, 0)
+	row2 = append(row2, types.NewFloat(0.99))
+	row2 = append(row2, types.NewFloat(0.55))
+
+	rows := make([][]types.Value, 0)
+	rows = append(rows, row1)
+	rows = append(rows, row2)
+
+	insertPlanNode := plans.NewInsertPlanNode(rows, tableMetadata.OID())
+
+	executionEngine := &ExecutionEngine{}
+	executorContext := NewExecutorContext(c, bpm, txn)
+	executionEngine.Execute(insertPlanNode, executorContext)
+
+	bpm.FlushAllPages()
+
+	outColumnA := column.NewColumn("a", types.Float, false)
+	outSchema := schema.NewSchema([]*column.Column{outColumnA})
+
+	seqPlan := plans.NewSeqScanPlanNode(outSchema, nil, tableMetadata.OID())
+
+	results := executionEngine.Execute(seqPlan, executorContext)
+
+	txn_mgr.Commit(txn)
+
+	testingpkg.Assert(t, types.NewFloat(0.5).CompareEquals(results[0].GetValue(outSchema, 0)), "value should be 0.5")
+	testingpkg.Assert(t, types.NewFloat(0.99).CompareEquals(results[1].GetValue(outSchema, 0)), "value should be 0.99")
+}
+
 func TestSimpleInsertAndSeqScanWithPredicateComparison(t *testing.T) {
 	diskManager := disk.NewDiskManagerTest()
 	defer diskManager.ShutDown()
@@ -1190,11 +1239,31 @@ func GenNumericValues(col_meta *ColumnInsertMeta, count uint32) []types.Value {
 	return values
 }
 
+func GenNumericValuesFloat(col_meta *ColumnInsertMeta, count uint32) []types.Value {
+	var values []types.Value
+	if col_meta.dist_ == DistSerial {
+		for i := 0; i < int(count); i++ {
+			values = append(values, types.NewInteger(col_meta.serial_counter_))
+			col_meta.serial_counter_ += 1
+		}
+		return values
+	}
+
+	seed := time.Now().UnixNano()
+	rand.Seed(seed)
+	for i := 0; i < int(count); i++ {
+		values = append(values, types.NewFloat(float32(rand.Int31n(col_meta.max_))/float32(seed)))
+	}
+	return values
+}
+
 func MakeValues(col_meta *ColumnInsertMeta, count uint32) []types.Value {
 	//var values []types.Value
 	switch col_meta.type_ {
 	case types.Integer:
 		return GenNumericValues(col_meta, count)
+	case types.Float:
+		return GenNumericValuesFloat(col_meta, count)
 	default:
 		panic("Not yet implemented")
 	}

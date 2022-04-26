@@ -21,6 +21,9 @@ func HashValue(val *types.Value) uint32 {
 		//raw := static_cast<int64_t>(val.GetAs<int32_t>())
 		raw := val.Serialize()
 		return GenHashMurMur(raw)
+	case types.Float:
+		raw := val.Serialize()
+		return GenHashMurMur(raw)
 	// case types.BIGINT:
 	// 	raw := static_cast<int64_t>(val.GetAs<int64_t>())
 	// 	return Hash<int64_t>(&raw)
