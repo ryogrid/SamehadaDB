@@ -72,6 +72,12 @@ func GenTupleForHashIndexSearch(schema_ *schema.Schema, colIndex uint32, keyVal 
 			} else {
 				values = append(values, types.NewInteger(0))
 			}
+		case types.Float:
+			if idx == int(colIndex) {
+				values = append(values, keyVal)
+			} else {
+				values = append(values, types.NewFloat(0.0))
+			}
 		case types.Varchar:
 			if idx == int(colIndex) {
 				values = append(values, keyVal)
