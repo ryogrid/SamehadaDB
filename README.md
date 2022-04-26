@@ -14,7 +14,7 @@ original codes of go-bustub are [here](https://github.com/brunocalza/go-bustub).
 - [ ] Multiple Condition on Predicate: AND, OR
 - [x] Predicates: <, >, <=, >=
 - [ ] Null
-- [ ] Other inline types (boolean, bigint, smallint, decimal, timestamp)
+- [ ] Other inline types (<del>boolean</del>, <del>float</del>, bigint, smallint, decimal, timestamp, datetime)
 - [x] Delete Tuple
 - [x] Update Tuple (need to pass values of all columns...)
 - [ ] Update Tuple (need to pass values of target colmuns only)
