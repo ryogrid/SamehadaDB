@@ -31,6 +31,12 @@ func (c *ConstantValue) EvaluateJoin(left_tuple *tuple.Tuple, left_schema *schem
 	return c.value
 }
 
+// TODO: (SDB) need to port ConstantValue::EvaluateAggregate method
+
+// Value EvaluateAggregate(const std::vector<Value> &group_bys, const std::vector<Value> &aggregates) const override {
+//     return val_;
+//   }
+
 func (c *ConstantValue) GetChildAt(child_idx uint32) Expression {
 	//return nil
 	//panic("not implemented")

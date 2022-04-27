@@ -92,6 +92,14 @@ func (c *Comparison) EvaluateJoin(left_tuple *tuple.Tuple, left_schema *schema.S
 	return types.NewBoolean(c.performComparison(lhs, rhs))
 }
 
+// TODO: (SDB) need to port Comparison::EvaluateAggregate method
+
+// Value EvaluateAggregate(const std::vector<Value> &group_bys, const std::vector<Value> &aggregates) const override {
+//     Value lhs = GetChildAt(0)->EvaluateAggregate(group_bys, aggregates);
+//     Value rhs = GetChildAt(1)->EvaluateAggregate(group_bys, aggregates);
+//     return ValueFactory::GetBooleanValue(PerformComparison(lhs, rhs));
+//   }
+
 func (c *Comparison) GetChildAt(child_idx uint32) Expression {
 	return c.children[child_idx]
 }
