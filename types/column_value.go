@@ -213,3 +213,18 @@ func (v Value) SetNull() {
 func (v Value) IsNull() bool {
 	return v.valueType == Null
 }
+
+func (v Value) Add(other *Value) *Value {
+	// TODO: (SDB) need to implement Valuee::Add
+	return nil
+}
+
+func (v Value) Max(other *Value) *Value {
+	// TODO: (SDB) need to implement Valuee::Max
+	return nil
+}
+
+func (v Value) Min(other *Value) *Value {
+	// TODO: (SDB) need to implement Valuee::Min
+	return nil
+}

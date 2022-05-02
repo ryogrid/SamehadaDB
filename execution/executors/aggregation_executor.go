@@ -76,7 +76,7 @@ func (it *AggregateHTIterator) IsEnd() bool {
  */
 type SimpleAggregationHashTable struct {
 	/** The hash table is just a map from aggregate keys to aggregate values. */
-	ht map[plans.AggregateKey]*plans.AggregateValue
+	ht map[uint32]*plans.AggregateValue
 	/** The aggregate expressions that we have. */
 	agg_exprs_ []expression.Expression
 	/** The types of aggregations that we have. */
@@ -88,30 +88,38 @@ type SimpleAggregationHashTable struct {
  * @param agg_exprs the aggregation expressions
  * @param agg_types the types of aggregations
  */
-//  SimpleAggregationHashTable(const std::vector<const AbstractExpression *> &agg_exprs,
-// 							const std::vector<AggregationType> &agg_types)
-// 	 : agg_exprs_{agg_exprs}, agg_types_{agg_types} {}
+func NewSimpleAggregationHashTable(agg_exprs []expression.Expression,
+	agg_types []*plans.AggregationType) {
+	ret := new(SimpleAggregationHashTable)
+	ret.ht = make(map[uint32]*plans.AggregateValue)
+	ret.agg_exprs_ = agg_exprs
+	ret.agg_types_ = agg_types
+}
 
 /** @return the initial aggregrate value for this aggregation executor */
 func (ht *SimpleAggregationHashTable) GenerateInitialAggregateValue() *plans.AggregateValue {
-	var values []types.Value
+	var values []*types.Value
 	for _, agg_type := range ht.agg_types_ {
 		switch *agg_type {
 		case plans.COUNT_AGGREGATE:
 			// Count starts at zero.
-			values.emplace_back(types.NewInteger(0))
+			new_elem := types.NewInteger(0)
+			values = append(values, &new_elem)
 		case plans.SUM_AGGREGATE:
 			// Sum starts at zero.
-			values.emplace_back(types.NewInteger(0))
+			new_elem := types.NewInteger(0)
+			values = append(values, &new_elem)
 		case plans.MIN_AGGREGATE:
 			// Min starts at INT_MAX.
-			values.emplace_back(types.NewInteger(math.MaxInt32))
+			new_elem := types.NewInteger(math.MaxInt32)
+			values = append(values, &new_elem)
 		case plans.MAX_AGGREGATE:
 			// Max starts at INT_MIN.
-			values.emplace_back(types.NewInteger(math.MinInt32))
+			new_elem := types.NewInteger(math.MinInt32)
+			values = append(values, &new_elem)
 		}
 	}
-	return values
+	return &plans.AggregateValue{values}
 }
 
 /** Combines the input into the aggregation result. */
@@ -120,7 +128,8 @@ func (ht *SimpleAggregationHashTable) CombineAggregateValues(result *plans.Aggre
 		switch *ht.agg_types_[i] {
 		case plans.COUNT_AGGREGATE:
 			// Count increases by one.
-			result.Aggregates_[i] = result.Aggregates_[i].Add(types.NewInteger(0))
+			add_val := types.NewInteger(0)
+			result.Aggregates_[i] = result.Aggregates_[i].Add(&add_val)
 		case plans.SUM_AGGREGATE:
 			// Sum increases by addition.
 			result.Aggregates_[i] = result.Aggregates_[i].Add(input.Aggregates_[i])
@@ -140,6 +149,8 @@ func (ht *SimpleAggregationHashTable) CombineAggregateValues(result *plans.Aggre
  * @param agg_val the value to be inserted
  */
 func InsertCombine(agg_key plans.AggregateKey, agg_val *plans.AggregateValue) {
+	// TODO: (SDB) neeed implent SimpleAggregationHashTabl::InsertCombine
+
 	//    if ht.count(agg_key) == 0 {
 	// 	 	ht.insert({agg_key, GenerateInitialAggregateValue()})
 	//    }
@@ -147,7 +158,7 @@ func InsertCombine(agg_key plans.AggregateKey, agg_val *plans.AggregateValue) {
 }
 
 /** @return iterator to the start of the hash table */
-func (ht *SimpleAggregateHashTable) Begin() *AggregateHTIterator {
+func (ht *SimpleAggregationHashTable) Begin() *AggregateHTIterator {
 	//return Iterator{ht.cbegin()}
 	return nil
 }
