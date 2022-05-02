@@ -26,19 +26,13 @@ func (c *ConstantValue) Evaluate(tuple *tuple.Tuple, schema *schema.Schema) type
 }
 
 func (c *ConstantValue) EvaluateJoin(left_tuple *tuple.Tuple, left_schema *schema.Schema, right_tuple *tuple.Tuple, right_schema *schema.Schema) types.Value {
-	//return *new(types.Value)
-	//panic("not implemented")
 	return c.value
 }
 
-// TODO: (SDB) need to port ConstantValue::EvaluateAggregate method
-
-// Value EvaluateAggregate(const std::vector<Value> &group_bys, const std::vector<Value> &aggregates) const override {
-//     return val_;
-//   }
+func (c *ConstantValue) EvaluateAggregate(group_bys []*types.Value, aggregates []*types.Value) types.Value {
+	return c.value
+}
 
 func (c *ConstantValue) GetChildAt(child_idx uint32) Expression {
-	//return nil
-	//panic("not implemented")
 	return c.children[child_idx]
 }

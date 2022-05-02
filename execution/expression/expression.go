@@ -17,4 +17,5 @@ type Expression interface {
 	Evaluate(*tuple.Tuple, *schema.Schema) types.Value
 	GetChildAt(uint32) Expression
 	EvaluateJoin(*tuple.Tuple, *schema.Schema, *tuple.Tuple, *schema.Schema) types.Value
+	EvaluateAggregate([]*types.Value, []*types.Value) types.Value
 }

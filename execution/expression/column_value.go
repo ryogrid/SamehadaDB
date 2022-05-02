@@ -44,11 +44,9 @@ func (c *ColumnValue) EvaluateJoin(left_tuple *tuple.Tuple, left_schema *schema.
 	}
 }
 
-// TODO: (SDB) need to port ColumnValue::EvaluateAggregate method
-
-// Value EvaluateAggregate(const std::vector<Value> &group_bys, const std::vector<Value> &aggregates) const override {
-//     BUSTUB_ASSERT(false, "Aggregation should only refer to group-by and aggregates.");
-//   }
+func (c *ColumnValue) EvaluateAggregate(group_bys []*types.Value, aggregates []*types.Value) types.Value {
+	panic("Aggregation should only refer to group-by and aggregates.")
+}
 
 func (c *ColumnValue) GetChildAt(child_idx uint32) Expression {
 	//return nil
