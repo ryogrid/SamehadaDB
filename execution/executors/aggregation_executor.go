@@ -1,6 +1,12 @@
 package executors
 
-import "github.com/ryogrid/SamehadaDB/execution/plans"
+import (
+	"math"
+
+	"github.com/ryogrid/SamehadaDB/execution/expression"
+	"github.com/ryogrid/SamehadaDB/execution/plans"
+	"github.com/ryogrid/SamehadaDB/types"
+)
 
 /**
  * An iterator through the simplified aggregation hash table.
@@ -28,11 +34,21 @@ func (it *AggregateHTIterator) Next() bool {
 }
 
 func (it *AggregateHTIterator) Key() *plans.AggregateKey {
+	if it.index >= int32(len(it.keys)) {
+		return nil
+	}
 	return &it.keys[it.index]
 }
 
 func (it *AggregateHTIterator) Value() *plans.AggregateValue {
+	if it.index >= int32(len(it.values)) {
+		return nil
+	}
 	return &it.values[it.index]
+}
+
+func (it *AggregateHTIterator) IsEnd() bool {
+	return it.index >= int32(len(it.keys))
 }
 
 //    /** @return the key of the iterator */
@@ -55,96 +71,89 @@ func (it *AggregateHTIterator) Value() *plans.AggregateValue {
 
 // TODO: (SDB) need port SimpleAggregateHashTable and AggregationExecutor class
 
-// /**
-//  * A simplified hash table that has all the necessary functionality for aggregations.
-//  */
-//  class SimpleAggregationHashTable {
-// 	public:
-// 	 /**
-// 	  * Create a new simplified aggregation hash table.
-// 	  * @param agg_exprs the aggregation expressions
-// 	  * @param agg_types the types of aggregations
-// 	  */
-// 	 SimpleAggregationHashTable(const std::vector<const AbstractExpression *> &agg_exprs,
-// 								const std::vector<AggregationType> &agg_types)
-// 		 : agg_exprs_{agg_exprs}, agg_types_{agg_types} {}
+/**
+ * A simplified hash table that has all the necessary functionality for aggregations.
+ */
+type SimpleAggregationHashTable struct {
+	/** The hash table is just a map from aggregate keys to aggregate values. */
+	ht map[plans.AggregateKey]*plans.AggregateValue
+	/** The aggregate expressions that we have. */
+	agg_exprs_ []expression.Expression
+	/** The types of aggregations that we have. */
+	agg_types_ []*plans.AggregationType
+}
 
-// 	 /** @return the initial aggregrate value for this aggregation executor */
-// 	 AggregateValue GenerateInitialAggregateValue() {
-// 	   std::vector<Value> values;
-// 	   for (const auto &agg_type : agg_types_) {
-// 		 switch (agg_type) {
-// 		   case AggregationType::CountAggregate:
-// 			 // Count starts at zero.
-// 			 values.emplace_back(ValueFactory::GetIntegerValue(0));
-// 			 break;
-// 		   case AggregationType::SumAggregate:
-// 			 // Sum starts at zero.
-// 			 values.emplace_back(ValueFactory::GetIntegerValue(0));
-// 			 break;
-// 		   case AggregationType::MinAggregate:
-// 			 // Min starts at INT_MAX.
-// 			 values.emplace_back(ValueFactory::GetIntegerValue(BUSTUB_INT32_MAX));
-// 			 break;
-// 		   case AggregationType::MaxAggregate:
-// 			 // Max starts at INT_MIN.
-// 			 values.emplace_back(ValueFactory::GetIntegerValue(BUSTUB_INT32_MIN));
-// 			 break;
-// 		 }
-// 	   }
-// 	   return {values};
-// 	 }
+/**
+ * Create a new simplified aggregation hash table.
+ * @param agg_exprs the aggregation expressions
+ * @param agg_types the types of aggregations
+ */
+//  SimpleAggregationHashTable(const std::vector<const AbstractExpression *> &agg_exprs,
+// 							const std::vector<AggregationType> &agg_types)
+// 	 : agg_exprs_{agg_exprs}, agg_types_{agg_types} {}
 
-// 	 /** Combines the input into the aggregation result. */
-// 	 void CombineAggregateValues(AggregateValue *result, const AggregateValue &input) {
-// 	   for (uint32_t i = 0; i < agg_exprs_.size(); i++) {
-// 		 switch (agg_types_[i]) {
-// 		   case AggregationType::CountAggregate:
-// 			 // Count increases by one.
-// 			 result->aggregates_[i] = result->aggregates_[i].Add(ValueFactory::GetIntegerValue(1));
-// 			 break;
-// 		   case AggregationType::SumAggregate:
-// 			 // Sum increases by addition.
-// 			 result->aggregates_[i] = result->aggregates_[i].Add(input.aggregates_[i]);
-// 			 break;
-// 		   case AggregationType::MinAggregate:
-// 			 // Min is just the min.
-// 			 result->aggregates_[i] = result->aggregates_[i].Min(input.aggregates_[i]);
-// 			 break;
-// 		   case AggregationType::MaxAggregate:
-// 			 // Max is just the max.
-// 			 result->aggregates_[i] = result->aggregates_[i].Max(input.aggregates_[i]);
-// 			 break;
-// 		 }
-// 	   }
-// 	 }
+/** @return the initial aggregrate value for this aggregation executor */
+func GenerateInitialAggregateValue() *plans.AggregateValue {
+	var values []types.Value
+	for agg_type, _ := range agg_types_ {
+		switch agg_type {
+		case plans.COUNT_AGGREGATE:
+			// Count starts at zero.
+			values.emplace_back(types.NewInteger(0))
+		case plans.SUM_AGGREGATE:
+			// Sum starts at zero.
+			values.emplace_back(types.NewInteger(0))
+		case plans.MIN_AGGREGATE:
+			// Min starts at INT_MAX.
+			values.emplace_back(types.NewInteger(math.MaxInt32))
+		case plans.MAX_AGGREGATE:
+			// Max starts at INT_MIN.
+			values.emplace_back(types.NewInteger(math.MinInt32))
+		}
+	}
+	return values
+}
 
-// 	 /**
-// 	  * Inserts a value into the hash table and then combines it with the current aggregation.
-// 	  * @param agg_key the key to be inserted
-// 	  * @param agg_val the value to be inserted
-// 	  */
-// 	 void InsertCombine(const AggregateKey &agg_key, const AggregateValue &agg_val) {
-// 	   if (ht.count(agg_key) == 0) {
-// 		 ht.insert({agg_key, GenerateInitialAggregateValue()});
-// 	   }
-// 	   CombineAggregateValues(&ht[agg_key], agg_val);
-// 	 }
+/** Combines the input into the aggregation result. */
+func CombineAggregateValues(result *plans.AggregateValue, input *plans.AggregateValue) {
+	for i := 0; i < len(agg_exprs_); i++ {
+		switch agg_types_[i] {
+		case plans.COUNT_AGGREGATE:
+			// Count increases by one.
+			result.aggregates_[i] = result.aggregates_[i].Add(types.NewInteger(0))
+		case plans.SUM_AGGREGATE:
+			// Sum increases by addition.
+			result.aggregates_[i] = result.aggregates_[i].Add(input.aggregates_[i])
+		case plans.MIN_AGGREGATE:
+			// Min is just the min.
+			result.aggregates_[i] = result.aggregates_[i].Min(input.aggregates_[i])
+		case plans.MAX_AGGREGATE:
+			// Max is just the max.
+			result.aggregates_[i] = result.aggregates_[i].Max(input.aggregates_[i])
+		}
+	}
+}
 
-// 	 /** @return iterator to the start of the hash table */
-// 	 Iterator Begin() { return Iterator{ht.cbegin()}; }
+/**
+ * Inserts a value into the hash table and then combines it with the current aggregation.
+ * @param agg_key the key to be inserted
+ * @param agg_val the value to be inserted
+ */
+func InsertCombine(agg_key plans.AggregateKey, agg_val *plans.AggregateValue) {
+	//    if ht.count(agg_key) == 0 {
+	// 	 	ht.insert({agg_key, GenerateInitialAggregateValue()})
+	//    }
+	//    CombineAggregateValues(&ht[agg_key], agg_val);
+}
 
-// 	 /** @return iterator to the end of the hash table */
-// 	 Iterator End() { return Iterator{ht.cend()}; }
+/** @return iterator to the start of the hash table */
+func (ht *SimpleAggregateHashTable) Begin() *AggregateHTIterator {
+	//return Iterator{ht.cbegin()}
+	return nil
+}
 
-// 	private:
-// 	 /** The hash table is just a map from aggregate keys to aggregate values. */
-// 	 std::unordered_map<AggregateKey, AggregateValue> ht{};
-// 	 /** The aggregate expressions that we have. */
-// 	 const std::vector<const AbstractExpression *> &agg_exprs_;
-// 	 /** The types of aggregations that we have. */
-// 	 const std::vector<AggregationType> &agg_types_;
-//    };
+//  /** @return iterator to the end of the hash table */
+//  Iterator End() { return Iterator{ht.cend()}; }
 
 //    /**
 // 	* AggregationExecutor executes an aggregation operation (e.g. COUNT, SUM, MIN, MAX) on the tuples of a child executor.

@@ -2,10 +2,18 @@ package plans
 
 import "github.com/ryogrid/SamehadaDB/types"
 
-//TODO: (SDB) need port AggregationPlan class and etc
-
 // /** AggregationType enumerates all the possible aggregation functions in our system. */
-// enum class AggregationType { CountAggregate, SumAggregate, MinAggregate, MaxAggregate };
+type AggregationType int32
+
+/** The type of the log record. */
+const (
+	COUNT_AGGREGATE AggregationType = iota
+	SUM_AGGREGATE
+	MIN_AGGREGATE
+	MAX_AGGREGATE
+)
+
+//TODO: (SDB) need port AggregationPlan class and etc
 
 // /**
 //  * AggregationPlanNode represents the various SQL aggregation functions.
