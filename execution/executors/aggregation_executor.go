@@ -93,10 +93,10 @@ type SimpleAggregationHashTable struct {
 // 	 : agg_exprs_{agg_exprs}, agg_types_{agg_types} {}
 
 /** @return the initial aggregrate value for this aggregation executor */
-func GenerateInitialAggregateValue() *plans.AggregateValue {
+func (ht *SimpleAggregationHashTable) GenerateInitialAggregateValue() *plans.AggregateValue {
 	var values []types.Value
-	for agg_type, _ := range agg_types_ {
-		switch agg_type {
+	for _, agg_type := range ht.agg_types_ {
+		switch *agg_type {
 		case plans.COUNT_AGGREGATE:
 			// Count starts at zero.
 			values.emplace_back(types.NewInteger(0))
@@ -115,21 +115,21 @@ func GenerateInitialAggregateValue() *plans.AggregateValue {
 }
 
 /** Combines the input into the aggregation result. */
-func CombineAggregateValues(result *plans.AggregateValue, input *plans.AggregateValue) {
-	for i := 0; i < len(agg_exprs_); i++ {
-		switch agg_types_[i] {
+func (ht *SimpleAggregationHashTable) CombineAggregateValues(result *plans.AggregateValue, input *plans.AggregateValue) {
+	for i := 0; i < len(ht.agg_exprs_); i++ {
+		switch *ht.agg_types_[i] {
 		case plans.COUNT_AGGREGATE:
 			// Count increases by one.
-			result.aggregates_[i] = result.aggregates_[i].Add(types.NewInteger(0))
+			result.Aggregates_[i] = result.Aggregates_[i].Add(types.NewInteger(0))
 		case plans.SUM_AGGREGATE:
 			// Sum increases by addition.
-			result.aggregates_[i] = result.aggregates_[i].Add(input.aggregates_[i])
+			result.Aggregates_[i] = result.Aggregates_[i].Add(input.Aggregates_[i])
 		case plans.MIN_AGGREGATE:
 			// Min is just the min.
-			result.aggregates_[i] = result.aggregates_[i].Min(input.aggregates_[i])
+			result.Aggregates_[i] = result.Aggregates_[i].Min(input.Aggregates_[i])
 		case plans.MAX_AGGREGATE:
 			// Max is just the max.
-			result.aggregates_[i] = result.aggregates_[i].Max(input.aggregates_[i])
+			result.Aggregates_[i] = result.Aggregates_[i].Max(input.Aggregates_[i])
 		}
 	}
 }
@@ -196,7 +196,7 @@ func (ht *SimpleAggregateHashTable) Begin() *AggregateHTIterator {
 // 	   while (aht_iterator_ != aht_.End()) {
 // 		 if (plan_->GetHaving() != nullptr) {
 // 		   if (!plan_->GetHaving()
-// 					->EvaluateAggregate(aht_iterator_.Key().group_bys_, aht_iterator_.Val().aggregates_)
+// 					->EvaluateAggregate(aht_iterator_.Key().group_bys_, aht_iterator_.Val().Aggregates_)
 // 					.GetAs<bool>()) {
 // 			 aht_iterator_.operator++();
 // 			 continue;
@@ -205,7 +205,7 @@ func (ht *SimpleAggregateHashTable) Begin() *AggregateHTIterator {
 // 		 std::vector<Value> values;
 // 		 for (auto col : plan_->OutputSchema()->GetColumns()) {
 // 		   values.push_back(
-// 			   col.GetExpr()->EvaluateAggregate(aht_iterator_.Key().group_bys_, aht_iterator_.Val().aggregates_));
+// 			   col.GetExpr()->EvaluateAggregate(aht_iterator_.Key().group_bys_, aht_iterator_.Val().Aggregates_));
 // 		 }
 // 		 aht_iterator_.operator++();
 // 		 Tuple tuple1(values, plan_->OutputSchema());

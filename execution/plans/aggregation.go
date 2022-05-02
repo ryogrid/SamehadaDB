@@ -73,8 +73,17 @@ const (
 //   std::vector<AggregationType> agg_types_;
 // };
 
+type ValueHasNoPointer struct {
+	valueType types.TypeID
+	integer   int32
+	boolean   bool
+	varchar   string
+	float     float32
+}
+
 type AggregateKey struct {
-	Group_bys_ []types.Value
+	//Group_bys_ [10]types.Value
+	Group_bys_ [10]ValueHasNoPointer
 }
 
 /**
