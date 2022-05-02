@@ -35,8 +35,6 @@ func (c *ColumnValue) SetColIndex(colIndex uint32) {
 }
 
 func (c *ColumnValue) EvaluateJoin(left_tuple *tuple.Tuple, left_schema *schema.Schema, right_tuple *tuple.Tuple, right_schema *schema.Schema) types.Value {
-	//return *new(types.Value)
-	//panic("not implemented")
 	if c.tupleIndex == 0 {
 		return left_tuple.GetValue(left_schema, c.colIndex)
 	} else {
@@ -49,8 +47,6 @@ func (c *ColumnValue) EvaluateAggregate(group_bys []*types.Value, aggregates []*
 }
 
 func (c *ColumnValue) GetChildAt(child_idx uint32) Expression {
-	//return nil
-	//panic("not implemented")
 	return c.children[child_idx]
 }
 
