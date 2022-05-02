@@ -1,6 +1,59 @@
 package executors
 
-// TODO: (SDB) need port AggregationExecutor class and etc
+import "github.com/ryogrid/SamehadaDB/execution/plans"
+
+/**
+ * An iterator through the simplified aggregation hash table.
+ */
+type AggregateHTIterator struct {
+	/** Aggregates map. */
+	keys   []plans.AggregateKey
+	values []plans.AggregateValue
+	index  int32
+}
+
+/** Creates an iterator for the aggregate map. */
+func NewAggregateHTIteratorIterator(keys []plans.AggregateKey, values []plans.AggregateValue) *AggregateHTIterator {
+	ret := new(AggregateHTIterator)
+	ret.keys = keys
+	ret.values = values
+	ret.index = 0
+	return ret
+}
+
+func (it *AggregateHTIterator) Next() bool {
+	key_len := int32(len(it.keys))
+	it.index++
+	return it.index >= key_len
+}
+
+func (it *AggregateHTIterator) Key() *plans.AggregateKey {
+	return &it.keys[it.index]
+}
+
+func (it *AggregateHTIterator) Value() *plans.AggregateValue {
+	return &it.values[it.index]
+}
+
+//    /** @return the key of the iterator */
+//    const AggregateKey &Key() { return iter_->first; }
+
+//    /** @return the value of the iterator */
+//    const AggregateValue &Val() { return iter_->second; }
+
+//    /** @return the iterator before it is incremented */
+//    Iterator &operator++() {
+// 	 ++iter_;
+// 	 return *this;
+//    }
+
+//    /** @return true if both iterators are identical */
+//    bool operator==(const Iterator &other) { return this->iter_ == other.iter_; }
+
+//    /** @return true if both iterators are different */
+//    bool operator!=(const Iterator &other) { return this->iter_ != other.iter_; }
+
+// TODO: (SDB) need port SimpleAggregateHashTable and AggregationExecutor class
 
 // /**
 //  * A simplified hash table that has all the necessary functionality for aggregations.
@@ -77,37 +130,6 @@ package executors
 // 	   }
 // 	   CombineAggregateValues(&ht[agg_key], agg_val);
 // 	 }
-
-// 	 /**
-// 	  * An iterator through the simplified aggregation hash table.
-// 	  */
-// 	 class Iterator {
-// 	  public:
-// 	   /** Creates an iterator for the aggregate map. */
-// 	   explicit Iterator(std::unordered_map<AggregateKey, AggregateValue>::const_iterator iter) : iter_(iter) {}
-
-// 	   /** @return the key of the iterator */
-// 	   const AggregateKey &Key() { return iter_->first; }
-
-// 	   /** @return the value of the iterator */
-// 	   const AggregateValue &Val() { return iter_->second; }
-
-// 	   /** @return the iterator before it is incremented */
-// 	   Iterator &operator++() {
-// 		 ++iter_;
-// 		 return *this;
-// 	   }
-
-// 	   /** @return true if both iterators are identical */
-// 	   bool operator==(const Iterator &other) { return this->iter_ == other.iter_; }
-
-// 	   /** @return true if both iterators are different */
-// 	   bool operator!=(const Iterator &other) { return this->iter_ != other.iter_; }
-
-// 	  private:
-// 	   /** Aggregates map. */
-// 	   std::unordered_map<AggregateKey, AggregateValue>::const_iterator iter_;
-// 	 };
 
 // 	 /** @return iterator to the start of the hash table */
 // 	 Iterator Begin() { return Iterator{ht.cbegin()}; }
