@@ -3,6 +3,7 @@ package executors
 import (
 	"math"
 
+	"github.com/ryogrid/SamehadaDB/container/hash"
 	"github.com/ryogrid/SamehadaDB/execution/expression"
 	"github.com/ryogrid/SamehadaDB/execution/plans"
 	"github.com/ryogrid/SamehadaDB/types"
@@ -13,13 +14,13 @@ import (
  */
 type AggregateHTIterator struct {
 	/** Aggregates map. */
-	keys   []plans.AggregateKey
-	values []plans.AggregateValue
+	keys   []*plans.AggregateKey
+	values []*plans.AggregateValue
 	index  int32
 }
 
 /** Creates an iterator for the aggregate map. */
-func NewAggregateHTIteratorIterator(keys []plans.AggregateKey, values []plans.AggregateValue) *AggregateHTIterator {
+func NewAggregateHTIteratorIterator(keys []*plans.AggregateKey, values []*plans.AggregateValue) *AggregateHTIterator {
 	ret := new(AggregateHTIterator)
 	ret.keys = keys
 	ret.values = values
@@ -37,14 +38,14 @@ func (it *AggregateHTIterator) Key() *plans.AggregateKey {
 	if it.index >= int32(len(it.keys)) {
 		return nil
 	}
-	return &it.keys[it.index]
+	return it.keys[it.index]
 }
 
 func (it *AggregateHTIterator) Value() *plans.AggregateValue {
 	if it.index >= int32(len(it.values)) {
 		return nil
 	}
-	return &it.values[it.index]
+	return it.values[it.index]
 }
 
 func (it *AggregateHTIterator) IsEnd() bool {
@@ -75,8 +76,10 @@ func (it *AggregateHTIterator) IsEnd() bool {
  * A simplified hash table that has all the necessary functionality for aggregations.
  */
 type SimpleAggregationHashTable struct {
-	/** The hash table is just a map from aggregate keys to aggregate values. */
-	ht map[uint32]*plans.AggregateValue
+	/** The hash table is just a map from hash val of aggregate keys to aggregate values. */
+	ht_val map[uint32]*plans.AggregateValue
+	/** The hash table is just a map from hash val of aggregate keys to aggregate keys. */
+	ht_key map[uint32]*plans.AggregateKey
 	/** The aggregate expressions that we have. */
 	agg_exprs_ []expression.Expression
 	/** The types of aggregations that we have. */
@@ -91,9 +94,19 @@ type SimpleAggregationHashTable struct {
 func NewSimpleAggregationHashTable(agg_exprs []expression.Expression,
 	agg_types []*plans.AggregationType) {
 	ret := new(SimpleAggregationHashTable)
-	ret.ht = make(map[uint32]*plans.AggregateValue)
+	ret.ht_val = make(map[uint32]*plans.AggregateValue)
+	ret.ht_key = make(map[uint32]*plans.AggregateKey)
 	ret.agg_exprs_ = agg_exprs
 	ret.agg_types_ = agg_types
+}
+
+// geneate a hash value from types.Value objs plans.AggregateKey has
+func HashValuesOnAggregateKey(key *plans.AggregateKey) uint32 {
+	input_bytes := make([]byte, 0)
+	for _, val := range key.Group_bys_ {
+		input_bytes = append(input_bytes, val.Serialize()...)
+	}
+	return hash.GenHashMurMur(input_bytes)
 }
 
 /** @return the initial aggregrate value for this aggregation executor */
@@ -119,13 +132,13 @@ func (ht *SimpleAggregationHashTable) GenerateInitialAggregateValue() *plans.Agg
 			values = append(values, &new_elem)
 		}
 	}
-	return &plans.AggregateValue{values}
+	return &plans.AggregateValue{Aggregates_: values}
 }
 
 /** Combines the input into the aggregation result. */
-func (ht *SimpleAggregationHashTable) CombineAggregateValues(result *plans.AggregateValue, input *plans.AggregateValue) {
-	for i := 0; i < len(ht.agg_exprs_); i++ {
-		switch *ht.agg_types_[i] {
+func (aht *SimpleAggregationHashTable) CombineAggregateValues(result *plans.AggregateValue, input *plans.AggregateValue) {
+	for i := 0; i < len(aht.agg_exprs_); i++ {
+		switch *aht.agg_types_[i] {
 		case plans.COUNT_AGGREGATE:
 			// Count increases by one.
 			add_val := types.NewInteger(0)
@@ -148,19 +161,33 @@ func (ht *SimpleAggregationHashTable) CombineAggregateValues(result *plans.Aggre
  * @param agg_key the key to be inserted
  * @param agg_val the value to be inserted
  */
-func InsertCombine(agg_key plans.AggregateKey, agg_val *plans.AggregateValue) {
+func (aht *SimpleAggregationHashTable) InsertCombine(agg_key *plans.AggregateKey, agg_val *plans.AggregateValue) {
 	// TODO: (SDB) neeed implent SimpleAggregationHashTabl::InsertCombine
 
-	//    if ht.count(agg_key) == 0 {
-	// 	 	ht.insert({agg_key, GenerateInitialAggregateValue()})
-	//    }
-	//    CombineAggregateValues(&ht[agg_key], agg_val);
+	hashval_of_aggkey := HashValuesOnAggregateKey(agg_key)
+	if _, ok := aht.ht_val[hashval_of_aggkey]; !ok {
+		aht.ht_val[hashval_of_aggkey] = aht.GenerateInitialAggregateValue()
+		//aht.ht.insert({agg_key, GenerateInitialAggregateValue()})
+	}
+	cur_val := aht.ht_val[hashval_of_aggkey]
+	aht.CombineAggregateValues(cur_val, agg_val)
+
+	// additional data store for realize iterator
+	if _, ok := aht.ht_key[hashval_of_aggkey]; !ok {
+		aht.ht_key[hashval_of_aggkey] = agg_key
+	}
 }
 
 /** @return iterator to the start of the hash table */
-func (ht *SimpleAggregationHashTable) Begin() *AggregateHTIterator {
+func (aht *SimpleAggregationHashTable) Begin() *AggregateHTIterator {
+	var agg_key_list []*plans.AggregateKey = make([]*plans.AggregateKey, 0)
+	var agg_val_list []*plans.AggregateValue = make([]*plans.AggregateValue, 0)
+	for hval, val := range aht.ht_val {
+		agg_key_list = append(agg_key_list, aht.ht_key[hval])
+		agg_val_list = append(agg_val_list, val)
+	}
 	//return Iterator{ht.cbegin()}
-	return nil
+	return NewAggregateHTIteratorIterator(agg_key_list, agg_val_list)
 }
 
 //  /** @return iterator to the end of the hash table */
