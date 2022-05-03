@@ -17,8 +17,6 @@ import (
  * happens. When the thread is awakened, the log buffer's content is written into the disk log file.
  */
 type LogManager struct {
-	// TODO(students): you may add your own member variables
-
 	// TODO: (SDB) must ensure atomicity if current locking becomes not enough
 	offset uint32
 	// TODO: (SDB) must ensure atomicity if current locking becomes not enough
@@ -124,11 +122,6 @@ func (log_manager *LogManager) StopFlushThread() { common.EnableLogging = false 
  */
 func (log_manager *LogManager) AppendLogRecord(log_record *LogRecord) types.LSN {
 	// First, serialize the must have fields(20 bytes in total)
-
-	// TODO: (SDB) need use lock and unlock functionalty of log_manager.latch mutex
-	//             cpp impl releases lock automatically using std::unique_lock
-
-	// std::unique_lock lock(latch_);
 
 	if common.LogBufferSize-log_manager.offset < HEADER_SIZE {
 		log_manager.Flush()

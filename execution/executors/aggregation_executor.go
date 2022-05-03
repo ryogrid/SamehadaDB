@@ -70,8 +70,6 @@ func (it *AggregateHTIterator) IsEnd() bool {
 //    /** @return true if both iterators are different */
 //    bool operator!=(const Iterator &other) { return this->iter_ != other.iter_; }
 
-// TODO: (SDB) need port SimpleAggregateHashTable and AggregationExecutor class
-
 /**
  * A simplified hash table that has all the necessary functionality for aggregations.
  */
@@ -162,8 +160,6 @@ func (aht *SimpleAggregationHashTable) CombineAggregateValues(result *plans.Aggr
  * @param agg_val the value to be inserted
  */
 func (aht *SimpleAggregationHashTable) InsertCombine(agg_key *plans.AggregateKey, agg_val *plans.AggregateValue) {
-	// TODO: (SDB) neeed implent SimpleAggregationHashTabl::InsertCombine
-
 	hashval_of_aggkey := HashValuesOnAggregateKey(agg_key)
 	if _, ok := aht.ht_val[hashval_of_aggkey]; !ok {
 		aht.ht_val[hashval_of_aggkey] = aht.GenerateInitialAggregateValue()
@@ -192,6 +188,8 @@ func (aht *SimpleAggregationHashTable) Begin() *AggregateHTIterator {
 
 //  /** @return iterator to the end of the hash table */
 //  Iterator End() { return Iterator{ht.cend()}; }
+
+// TODO: (SDB) need port AggregationExecutor class
 
 //    /**
 // 	* AggregationExecutor executes an aggregation operation (e.g. COUNT, SUM, MIN, MAX) on the tuples of a child executor.

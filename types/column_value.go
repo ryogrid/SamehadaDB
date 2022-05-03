@@ -215,16 +215,60 @@ func (v Value) IsNull() bool {
 }
 
 func (v Value) Add(other *Value) *Value {
-	// TODO: (SDB) need to implement Valuee::Add
-	return nil
+	switch v.valueType {
+	case Integer:
+		ret := NewInteger(*v.integer + other.ToInteger())
+		return &ret
+	case Float:
+		ret := NewFloat(*v.float + other.ToFloat())
+		return &ret
+	default:
+		panic("Add is implemented to Integer and Float only.")
+	}
 }
 
 func (v Value) Max(other *Value) *Value {
-	// TODO: (SDB) need to implement Valuee::Max
-	return nil
+	switch v.valueType {
+	case Integer:
+		if *v.integer >= *other.integer {
+			ret := NewInteger(*v.integer)
+			return &ret
+		} else {
+			ret := NewInteger(other.ToInteger())
+			return &ret
+		}
+	case Float:
+		if *v.float >= *other.float {
+			ret := NewFloat(*v.float)
+			return &ret
+		} else {
+			ret := NewFloat(other.ToFloat())
+			return &ret
+		}
+	default:
+		panic("Max is implemented to Integer and Float only.")
+	}
 }
 
 func (v Value) Min(other *Value) *Value {
-	// TODO: (SDB) need to implement Valuee::Min
-	return nil
+	switch v.valueType {
+	case Integer:
+		if *v.integer <= *other.integer {
+			ret := NewInteger(*v.integer)
+			return &ret
+		} else {
+			ret := NewInteger(other.ToInteger())
+			return &ret
+		}
+	case Float:
+		if *v.float <= *other.float {
+			ret := NewFloat(*v.float)
+			return &ret
+		} else {
+			ret := NewFloat(other.ToFloat())
+			return &ret
+		}
+	default:
+		panic("Max is implemented to Integer and Float only.")
+	}
 }
