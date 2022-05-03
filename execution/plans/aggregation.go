@@ -1,6 +1,11 @@
 package plans
 
-import "github.com/ryogrid/SamehadaDB/types"
+import (
+	"github.com/ryogrid/SamehadaDB/common"
+	"github.com/ryogrid/SamehadaDB/execution/expression"
+	"github.com/ryogrid/SamehadaDB/storage/table/schema"
+	"github.com/ryogrid/SamehadaDB/types"
+)
 
 // /** AggregationType enumerates all the possible aggregation functions in our system. */
 type AggregationType int32
@@ -13,65 +18,73 @@ const (
 	MAX_AGGREGATE
 )
 
-//TODO: (SDB) need port AggregationPlan class and etc
+/**
+ * AggregationPlanNode represents the various SQL aggregation functions.
+ * For example, COUNT(), SUM(), MIN() and MAX().
+ * To simplfiy this project, AggregationPlanNode must always have exactly one child.
+ */
+type AggregationPlanNode struct {
+	*AbstractPlanNode
+	having_     expression.Expression
+	group_bys_  []expression.Expression
+	aggregates_ []expression.Expression
+	agg_types_  []AggregationType
+}
 
-// /**
-//  * AggregationPlanNode represents the various SQL aggregation functions.
-//  * For example, COUNT(), SUM(), MIN() and MAX().
-//  * To simplfiy this project, AggregationPlanNode must always have exactly one child.
-//  */
-// class AggregationPlanNode : public AbstractPlanNode {
-//  public:
-//   /**
-//    * Creates a new AggregationPlanNode.
-//    * @param output_schema the output format of this plan node
-//    * @param child the child plan to aggregate data over
-//    * @param having the having clause of the aggregation
-//    * @param group_bys the group by clause of the aggregation
-//    * @param aggregates the expressions that we are aggregating
-//    * @param agg_types the types that we are aggregating
-//    */
-//   AggregationPlanNode(const Schema *output_schema, const AbstractPlanNode *child, const AbstractExpression *having,
-//                       std::vector<const AbstractExpression *> &&group_bys,
-//                       std::vector<const AbstractExpression *> &&aggregates, std::vector<AggregationType> &&agg_types)
-//       : AbstractPlanNode(output_schema, {child}),
-//         having_(having),
-//         group_bys_(std::move(group_bys)),
-//         aggregates_(std::move(aggregates)),
-//         agg_types_(std::move(agg_types)) {}
+//: public AbstractPlanNode {
 
-//   PlanType GetType() const override { return PlanType::Aggregation; }
+/**
+ * Creates a new AggregationPlanNode.
+ * @param output_schema the output format of this plan node
+ * @param child the child plan to aggregate data over
+ * @param having the having clause of the aggregation
+ * @param group_bys the group by clause of the aggregation
+ * @param aggregates the expressions that we are aggregating
+ * @param agg_types the types that we are aggregating
+ */
+func NewAggregationPlanNode(output_schema *schema.Schema, child Plan, having expression.Expression,
+	group_bys []expression.Expression,
+	aggregates []expression.Expression, agg_types []AggregationType) *AggregationPlanNode {
+	return &AggregationPlanNode{&AbstractPlanNode{output_schema, []Plan{child}}, having, group_bys, aggregates, agg_types}
+}
 
-//   /** @return the child of this aggregation plan node */
-//   const AbstractPlanNode *GetChildPlan() const {
-//     BUSTUB_ASSERT(GetChildren().size() == 1, "Aggregation expected to only have one child.");
-//     return GetChildAt(0);
-//   }
+func (p *AggregationPlanNode) GetType() PlanType { return Aggregation }
 
-//   /** @return the having clause */
-//   const AbstractExpression *GetHaving() const { return having_; }
+/** @return the child of this aggregation plan node */
+func (p *AggregationPlanNode) GetChildPlan() Plan {
+	common.SH_Assert(len(p.GetChildren()) == 1, "Aggregation expected to only have one child.")
+	return p.GetChildAt(0)
+}
 
-//   /** @return the idx'th group by expression */
-//   const AbstractExpression *GetGroupByAt(uint32_t idx) const { return group_bys_[idx]; }
+func (p *AggregationPlanNode) GetChildAt(childIndex uint32) Plan {
+	return p.children[childIndex]
+}
 
-//   /** @return the group by expressions */
-//   const std::vector<const AbstractExpression *> &GetGroupBys() const { return group_bys_; }
+func (p *AggregationPlanNode) GetChildren() []Plan {
+	return p.children
+}
 
-//   /** @return the idx'th aggregate expression */
-//   const AbstractExpression *GetAggregateAt(uint32_t idx) const { return aggregates_[idx]; }
+/** @return the having clause */
+func (p *AggregationPlanNode) GetHaving() expression.Expression { return p.having_ }
 
-//   /** @return the aggregate expressions */
-//   const std::vector<const AbstractExpression *> &GetAggregates() const { return aggregates_; }
+/** @return the idx'th group by expression */
+func (p *AggregationPlanNode) GetGroupByAt(idx uint32) expression.Expression {
+	return p.group_bys_[idx]
+}
 
-//   /** @return the aggregate types */
-//   const std::vector<AggregationType> &GetAggregateTypes() const { return agg_types_; }
+/** @return the group by expressions */
+func (p *AggregationPlanNode) GetGroupBys() []expression.Expression { return p.group_bys_ }
 
-//  private:
-//   const AbstractExpression *having_;
-//   std::vector<const AbstractExpression *> group_bys_;
-//   std::vector<const AbstractExpression *> aggregates_;
-//   std::vector<AggregationType> agg_types_;
-// };
+/** @return the idx'th aggregate expression */
+func (p *AggregationPlanNode) GetAggregateAt(idx uint32) expression.Expression {
+	return p.aggregates_[idx]
+}
+
+/** @return the aggregate expressions */
+func (p *AggregationPlanNode) GetAggregates() []expression.Expression { return p.aggregates_ }
+
+/** @return the aggregate types */
+func (p *AggregationPlanNode) GetAggregateTypes() []AggregationType { return p.agg_types_ }
 
 type AggregateKey struct {
 	Group_bys_ []types.Value
@@ -94,21 +107,3 @@ type AggregateKey struct {
 type AggregateValue struct {
 	Aggregates_ []*types.Value
 }
-
-// namespace std {
-
-// /**
-//  * Implements std::hash on AggregateKey.
-//  */
-// template <>
-// struct hash<bustub::AggregateKey> {
-//   std::size_t operator()(const bustub::AggregateKey &agg_key) const {
-//     size_t curr_hash = 0;
-//     for (const auto &key : agg_key.group_bys_) {
-//       if (!key.IsNull()) {
-//         curr_hash = bustub::HashUtil::CombineHashes(curr_hash, bustub::HashUtil::HashValue(&key));
-//       }
-//     }
-//     return curr_hash;
-//   }
-// };

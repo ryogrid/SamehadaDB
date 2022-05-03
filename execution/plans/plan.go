@@ -17,6 +17,7 @@ const (
 	Limit
 	HashScanIndex
 	HashJoin
+	Aggregation
 )
 
 type Plan interface {
