@@ -81,7 +81,7 @@ type SimpleAggregationHashTable struct {
 	/** The aggregate expressions that we have. */
 	agg_exprs_ []expression.Expression
 	/** The types of aggregations that we have. */
-	agg_types_ []*plans.AggregationType
+	agg_types_ []plans.AggregationType
 }
 
 /**
@@ -89,13 +89,13 @@ type SimpleAggregationHashTable struct {
  * @param agg_exprs the aggregation expressions
  * @param agg_types the types of aggregations
  */
-func NewSimpleAggregationHashTable(agg_exprs []expression.Expression,
-	agg_types []*plans.AggregationType) {
+func NewSimpleAggregationHashTable(agg_exprs []expression.Expression, agg_types []plans.AggregationType) *SimpleAggregationHashTable {
 	ret := new(SimpleAggregationHashTable)
 	ret.ht_val = make(map[uint32]*plans.AggregateValue)
 	ret.ht_key = make(map[uint32]*plans.AggregateKey)
 	ret.agg_exprs_ = agg_exprs
 	ret.agg_types_ = agg_types
+	return ret
 }
 
 // geneate a hash value from types.Value objs plans.AggregateKey has
@@ -111,7 +111,7 @@ func HashValuesOnAggregateKey(key *plans.AggregateKey) uint32 {
 func (ht *SimpleAggregationHashTable) GenerateInitialAggregateValue() *plans.AggregateValue {
 	var values []*types.Value
 	for _, agg_type := range ht.agg_types_ {
-		switch *agg_type {
+		switch agg_type {
 		case plans.COUNT_AGGREGATE:
 			// Count starts at zero.
 			new_elem := types.NewInteger(0)
@@ -136,7 +136,7 @@ func (ht *SimpleAggregationHashTable) GenerateInitialAggregateValue() *plans.Agg
 /** Combines the input into the aggregation result. */
 func (aht *SimpleAggregationHashTable) CombineAggregateValues(result *plans.AggregateValue, input *plans.AggregateValue) {
 	for i := 0; i < len(aht.agg_exprs_); i++ {
-		switch *aht.agg_types_[i] {
+		switch aht.agg_types_[i] {
 		case plans.COUNT_AGGREGATE:
 			// Count increases by one.
 			add_val := types.NewInteger(0)
@@ -206,22 +206,17 @@ type AggregationExecutor struct {
 	aht_iterator_ *AggregateHTIterator
 }
 
-//  /**
-//   * Creates a new aggregation executor.
-//   * @param exec_ctx the context that the aggregation should be performed in
-//   * @param plan the aggregation plan node
-//   * @param child the child executor
-//   */
-//  func NewAggregationExecutor(exec_ctx *ExecutorContext,  plan *AggregationPlanNode,
-// 					 child Executor) *AggregationExecutor {
-// 		return &AggregationExecutor{exec_ctx, plan, child, NewSimpleAggregationHashTable(plan.)}
-// 						AbstractExecutor(exec_ctx)
-// 	   aht_(plan.GetAggregates()
-// 	   plan.GetAggregateTypes())
-// 	   aht_iterator_(aht_.Begin())
-//    plan_ = plan
-//    child_ = std::move(child)
-//  }
+/**
+ * Creates a new aggregation executor.
+ * @param exec_ctx the context that the aggregation should be performed in
+ * @param plan the aggregation plan node
+ * @param child the child executor
+ */
+func NewAggregationExecutor(exec_ctx *ExecutorContext, plan *plans.AggregationPlanNode,
+	child Executor) *AggregationExecutor {
+	aht := NewSimpleAggregationHashTable(plan.GetAggregates(), plan.GetAggregateTypes())
+	return &AggregationExecutor{exec_ctx, plan, []Executor{child}, aht, nil}
+}
 
 //  /** Do not use or remove this function, otherwise you will get zero points. */
 //   AbstractExecutor *GetChildExecutor()  { return child_.get() }
