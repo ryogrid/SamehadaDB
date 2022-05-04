@@ -31,8 +31,6 @@ type AggregationPlanNode struct {
 	agg_types_  []AggregationType
 }
 
-//: public AbstractPlanNode {
-
 /**
  * Creates a new AggregationPlanNode.
  * @param output_schema the output format of this plan node

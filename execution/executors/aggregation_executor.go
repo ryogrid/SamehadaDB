@@ -53,10 +53,10 @@ func (it *AggregateHTIterator) IsEnd() bool {
 }
 
 //    /** @return the key of the iterator */
-//    const AggregateKey &Key() { return iter_->first; }
+//     AggregateKey &Key() { return iter_.first; }
 
 //    /** @return the value of the iterator */
-//    const AggregateValue &Val() { return iter_->second; }
+//     AggregateValue &Val() { return iter_.second; }
 
 //    /** @return the iterator before it is incremented */
 //    Iterator &operator++() {
@@ -65,10 +65,10 @@ func (it *AggregateHTIterator) IsEnd() bool {
 //    }
 
 //    /** @return true if both iterators are identical */
-//    bool operator==(const Iterator &other) { return this->iter_ == other.iter_; }
+//    bool operator==( Iterator &other) { return this.iter_ == other.iter_; }
 
 //    /** @return true if both iterators are different */
-//    bool operator!=(const Iterator &other) { return this->iter_ != other.iter_; }
+//    bool operator!=( Iterator &other) { return this.iter_ != other.iter_; }
 
 /**
  * A simplified hash table that has all the necessary functionality for aggregations.
@@ -191,91 +191,92 @@ func (aht *SimpleAggregationHashTable) Begin() *AggregateHTIterator {
 
 // TODO: (SDB) need port AggregationExecutor class
 
-//    /**
-// 	* AggregationExecutor executes an aggregation operation (e.g. COUNT, SUM, MIN, MAX) on the tuples of a child executor.
-// 	*/
-//    class AggregationExecutor : public AbstractExecutor {
-// 	public:
-// 	 /**
-// 	  * Creates a new aggregation executor.
-// 	  * @param exec_ctx the context that the aggregation should be performed in
-// 	  * @param plan the aggregation plan node
-// 	  * @param child the child executor
-// 	  */
-// 	 AggregationExecutor(ExecutorContext *exec_ctx, const AggregationPlanNode *plan,
-// 						 std::unique_ptr<AbstractExecutor> &&child)
-// 		 : AbstractExecutor(exec_ctx),
-// 		   aht_(plan->GetAggregates(), plan->GetAggregateTypes()),
-// 		   aht_iterator_(aht_.Begin()) {
-// 	   plan_ = plan;
-// 	   child_ = std::move(child);
-// 	 }
+/**
+* AggregationExecutor executes an aggregation operation (e.g. COUNT, SUM, MIN, MAX) on the tuples of a child executor.
+ */
+type AggregationExecutor struct {
+	context *ExecutorContext
+	/** The aggregation plan node. */
+	plan_ *plans.AggregationPlanNode
+	/** The child executor whose tuples we are aggregating. */
+	child_ []Executor
+	/** Simple aggregation hash table. */
+	aht_ *SimpleAggregationHashTable
+	/** Simple aggregation hash table iterator. */
+	aht_iterator_ *AggregateHTIterator
+}
 
-// 	 /** Do not use or remove this function, otherwise you will get zero points. */
-// 	 const AbstractExecutor *GetChildExecutor() const { return child_.get(); }
+//  /**
+//   * Creates a new aggregation executor.
+//   * @param exec_ctx the context that the aggregation should be performed in
+//   * @param plan the aggregation plan node
+//   * @param child the child executor
+//   */
+//  func NewAggregationExecutor(exec_ctx *ExecutorContext,  plan *AggregationPlanNode,
+// 					 child Executor) *AggregationExecutor {
+// 		return &AggregationExecutor{exec_ctx, plan, child, NewSimpleAggregationHashTable(plan.)}
+// 						AbstractExecutor(exec_ctx)
+// 	   aht_(plan.GetAggregates()
+// 	   plan.GetAggregateTypes())
+// 	   aht_iterator_(aht_.Begin())
+//    plan_ = plan
+//    child_ = std::move(child)
+//  }
 
-// 	 const Schema *GetOutputSchema() override { return plan_->OutputSchema(); }
+//  /** Do not use or remove this function, otherwise you will get zero points. */
+//   AbstractExecutor *GetChildExecutor()  { return child_.get() }
 
-// 	 void Init() override {
-// 	   Tuple tuple;
-// 	   child_->Init();
-// 	   while (child_->Next(&tuple)) {
-// 		 aht_.InsertCombine(MakeKey(&tuple), MakeVal(&tuple));
+//   Schema *GetOutputSchema() override { return plan_.OutputSchema() }
+
+//  void Init() override {
+//    Tuple tuple
+//    child_.Init()
+//    while (child_.Next(&tuple)) {
+// 	 aht_.InsertCombine(MakeKey(&tuple), MakeVal(&tuple))
+//    }
+//    aht_iterator_ = aht_.Begin()
+//  }
+
+//  bool Next(Tuple *tuple) override {
+//    if (aht_iterator_ == aht_.End()) {
+// 	 return false
+//    }
+//    while (aht_iterator_ != aht_.End()) {
+// 	 if (plan_.GetHaving() != nullptr) {
+// 	   if (!plan_.GetHaving()
+// 				.EvaluateAggregate(aht_iterator_.Key().group_bys_, aht_iterator_.Val().Aggregates_)
+// 				.GetAs<bool>()) {
+// 		 aht_iterator_.operator++()
+// 		 continue
 // 	   }
-// 	   aht_iterator_ = aht_.Begin();
 // 	 }
-
-// 	 bool Next(Tuple *tuple) override {
-// 	   if (aht_iterator_ == aht_.End()) {
-// 		 return false;
-// 	   }
-// 	   while (aht_iterator_ != aht_.End()) {
-// 		 if (plan_->GetHaving() != nullptr) {
-// 		   if (!plan_->GetHaving()
-// 					->EvaluateAggregate(aht_iterator_.Key().group_bys_, aht_iterator_.Val().Aggregates_)
-// 					.GetAs<bool>()) {
-// 			 aht_iterator_.operator++();
-// 			 continue;
-// 		   }
-// 		 }
-// 		 std::vector<Value> values;
-// 		 for (auto col : plan_->OutputSchema()->GetColumns()) {
-// 		   values.push_back(
-// 			   col.GetExpr()->EvaluateAggregate(aht_iterator_.Key().group_bys_, aht_iterator_.Val().Aggregates_));
-// 		 }
-// 		 aht_iterator_.operator++();
-// 		 Tuple tuple1(values, plan_->OutputSchema());
-// 		 *tuple = tuple1;
-// 		 return true;
-// 	   }
-// 	   return false;
+// 	 std::vector<Value> values
+// 	 for ( col : plan_.OutputSchema().GetColumns()) {
+// 	   values.push_back(
+// 		   col.GetExpr().EvaluateAggregate(aht_iterator_.Key().group_bys_, aht_iterator_.Val().Aggregates_))
 // 	 }
+// 	 aht_iterator_.operator++()
+// 	 Tuple tuple1(values, plan_.OutputSchema())
+// 	 *tuple = tuple1
+// 	 return true
+//    }
+//    return false
+//  }
 
-// 	 /** @return the tuple as an AggregateKey */
-// 	 AggregateKey MakeKey(const Tuple *tuple) {
-// 	   std::vector<Value> keys;
-// 	   for (const auto &expr : plan_->GetGroupBys()) {
-// 		 keys.emplace_back(expr->Evaluate(tuple, child_->GetOutputSchema()));
-// 	   }
-// 	   return {keys};
-// 	 }
+//  /** @return the tuple as an AggregateKey */
+//  AggregateKey MakeKey( Tuple *tuple) {
+//    std::vector<Value> keys
+//    for (  &expr : plan_.GetGroupBys()) {
+// 	 keys.emplace_back(expr.Evaluate(tuple, child_.GetOutputSchema()))
+//    }
+//    return {keys}
+//  }
 
-// 	 /** @return the tuple as an AggregateValue */
-// 	 AggregateValue MakeVal(const Tuple *tuple) {
-// 	   std::vector<Value> vals;
-// 	   for (const auto &expr : plan_->GetAggregates()) {
-// 		 vals.emplace_back(expr->Evaluate(tuple, child_->GetOutputSchema()));
-// 	   }
-// 	   return {vals};
-// 	 }
-
-// 	private:
-// 	 /** The aggregation plan node. */
-// 	 const AggregationPlanNode *plan_;
-// 	 /** The child executor whose tuples we are aggregating. */
-// 	 std::unique_ptr<AbstractExecutor> child_;
-// 	 /** Simple aggregation hash table. */
-// 	 SimpleAggregationHashTable aht_;
-// 	 /** Simple aggregation hash table iterator. */
-// 	 SimpleAggregationHashTable::Iterator aht_iterator_;
-//    };
+//  /** @return the tuple as an AggregateValue */
+//  AggregateValue MakeVal( Tuple *tuple) {
+//    std::vector<Value> vals
+//    for (  &expr : plan_.GetAggregates()) {
+// 	 vals.emplace_back(expr.Evaluate(tuple, child_.GetOutputSchema()))
+//    }
+//    return {vals}
+//  }
