@@ -1701,27 +1701,30 @@ func TestSimpleAggregation(t *testing.T) {
 				plans.MIN_AGGREGATE, plans.MAX_AGGREGATE})
 	}
 
-	// 	auto executor = ExecutorFactory::CreateExecutor(GetExecutorContext(), agg_plan.get());
-	// 	executor->Init();
-	// 	Tuple tuple;
-	// 	ASSERT_TRUE(executor->Next(&tuple));
-	// 	auto countA_val = tuple.GetValue(agg_schema, agg_schema->GetColIdx("countA")).GetAs<int32_t>();
-	// 	auto sumA_val = tuple.GetValue(agg_schema, agg_schema->GetColIdx("sumA")).GetAs<int32_t>();
-	// 	auto minA_val = tuple.GetValue(agg_schema, agg_schema->GetColIdx("minA")).GetAs<int32_t>();
-	// 	auto maxA_val = tuple.GetValue(agg_schema, agg_schema->GetColIdx("maxA")).GetAs<int32_t>();
-	// 	// Should count all tuples
-	// 	ASSERT_EQ(countA_val, TEST1_SIZE);
-	// 	// Should sum from 0 to TEST1_SIZE
-	// 	ASSERT_EQ(sumA_val, TEST1_SIZE * (TEST1_SIZE - 1) / 2);
-	// 	// Minimum should be 0
-	// 	ASSERT_EQ(minA_val, 0);
-	// 	// Maximum should be TEST1_SIZE - 1
-	// 	ASSERT_EQ(maxA_val, TEST1_SIZE - 1);
-	// 	std::cout << countA_val << std::endl;
-	// 	std::cout << sumA_val << std::endl;
-	// 	std::cout << minA_val << std::endl;
-	// 	std::cout << maxA_val << std::endl;
-	// 	ASSERT_FALSE(executor->Next(&tuple));
+	executionEngine := &ExecutionEngine{}
+	executor := executionEngine.CreateExecutor(agg_plan, exec_ctx)
+	//executor := ExecutorFactory::CreateExecutor(GetExecutorContext(), agg_plan.get())
+	executor.Init()
+	tuple_, _, err := executor.Next()
+	testingpkg.Assert(t, tuple_ != nil && err == nil, "first call of AggregationExecutor.Next() failed")
+	countA_val := tuple_.GetValue(agg_schema, agg_schema.GetColIndex("countA")).ToInteger()
+	sumA_val := tuple_.GetValue(agg_schema, agg_schema.GetColIndex("sumA")).ToInteger()
+	minA_val := tuple_.GetValue(agg_schema, agg_schema.GetColIndex("minA")).ToInteger()
+	maxA_val := tuple_.GetValue(agg_schema, agg_schema.GetColIndex("maxA")).ToInteger()
+	// Should count all tuples
+	testingpkg.Equals(t, countA_val, TEST1_SIZE)
+	// Should sum from 0 to TEST1_SIZE
+	testingpkg.Equals(t, sumA_val, TEST1_SIZE*(TEST1_SIZE-1)/2)
+	// Minimum should be 0
+	testingpkg.Equals(t, minA_val, 0)
+	// Maximum should be TEST1_SIZE - 1
+	testingpkg.Equals(t, maxA_val, TEST1_SIZE-1)
+	fmt.Println(countA_val)
+	fmt.Println(sumA_val)
+	fmt.Println(minA_val)
+	fmt.Println(maxA_val)
+	tuple_, done, err := executor.Next()
+	testingpkg.Assert(t, tuple_ == nil && done == false && err == nil, "second call of AggregationExecutor::Next() failed")
 }
 
 // TODO: (SDB) need to port SimpleGroupByAggregation testcase
