@@ -43,7 +43,7 @@ func (it *AggregateHTIterator) Key() *plans.AggregateKey {
 	return it.keys[it.index]
 }
 
-func (it *AggregateHTIterator) Value() *plans.AggregateValue {
+func (it *AggregateHTIterator) Val() *plans.AggregateValue {
 	if it.index >= int32(len(it.values)) {
 		return nil
 	}
@@ -245,34 +245,31 @@ func (e *AggregationExecutor) Init() {
 }
 
 func (e *AggregationExecutor) Next() (*tuple.Tuple, Done, error) {
-	return nil, false, nil
+	// if e.aht_iterator_.IsEnd() {
+	// 	return nil, true, nil
+	// }
+	// for ; !e.aht_iterator_.IsEnd(); e.aht_iterator_.Next() {
+	// 	if e.plan_.GetHaving() != nil {
+	// 		if !e.plan_.GetHaving().EvaluateAggregate(e.aht_iterator_.Key().Group_bys_, e.aht_iterator_.Val().Aggregates_).ToBoolean() {
+	// 			//.GetAs<bool>()) {
+	// 			//aht_iterator_.operator++()
+	// 			e.aht_iterator_.Next()
+	// 			continue
+	// 		}
+	// 	}
+	// 	var values []*types.Value = make([]*types.Value, 0)
+	// 	for _, col := range e.plan_.OutputSchema().GetColumns() {
+	// 		values = append(values,
+	// 			//col.GetExpr().EvaluateAggregate(aht_iterator_.Key().group_bys_, aht_iterator_.Val().Aggregates_))
+	// 			col.EvaluateAggregate(e.aht_iterator_.Key().Group_bys_, e.aht_iterator_.Val().Aggregates_))
+	// 	}
+	// 	//aht_iterator_.operator++()
+	// 	tuple_ := tuple.NewTupleFromSchema(values, e.plan_.OutputSchema())
+	// 	*tuple = tuple1
+	// 	return tuple1, false, nil
+	// }
+	return nil, true, nil
 }
-
-//  bool Next(Tuple *tuple) override {
-//    if (aht_iterator_ == aht_.End()) {
-// 	 return false
-//    }
-//    while (aht_iterator_ != aht_.End()) {
-// 	 if (plan_.GetHaving() != nullptr) {
-// 	   if (!plan_.GetHaving()
-// 				.EvaluateAggregate(aht_iterator_.Key().group_bys_, aht_iterator_.Val().Aggregates_)
-// 				.GetAs<bool>()) {
-// 		 aht_iterator_.operator++()
-// 		 continue
-// 	   }
-// 	 }
-// 	 std::vector<Value> values
-// 	 for ( col : plan_.OutputSchema().GetColumns()) {
-// 	   values.push_back(
-// 		   col.GetExpr().EvaluateAggregate(aht_iterator_.Key().group_bys_, aht_iterator_.Val().Aggregates_))
-// 	 }
-// 	 aht_iterator_.operator++()
-// 	 Tuple tuple1(values, plan_.OutputSchema())
-// 	 *tuple = tuple1
-// 	 return true
-//    }
-//    return false
-//  }
 
 /** @return the tuple as an AggregateKey */
 func (e *AggregationExecutor) MakeKey(tuple_ *tuple.Tuple) *plans.AggregateKey {

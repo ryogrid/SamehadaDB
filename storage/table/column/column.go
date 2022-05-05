@@ -15,14 +15,18 @@ type Column struct {
 	columnOffset   uint32 // Column offset in the tuple
 	hasIndex       bool   // whether the column has index data
 	isLeft         bool   // when temporal schema, this is used for join
+	// should be pointer of subtype of expression.Expression
+	// this member is used and needed at temporarily created table (schema) on query execution
+	expr_ interface{}
 }
 
-func NewColumn(name string, columnType types.TypeID, hasIndex bool) *Column {
+// expr argument should be pointer of subtype of expression.Expression
+func NewColumn(name string, columnType types.TypeID, hasIndex bool, expr interface{}) *Column {
 	if columnType != types.Varchar {
-		return &Column{name, columnType, columnType.Size(), 0, 0, hasIndex, true}
+		return &Column{name, columnType, columnType.Size(), 0, 0, hasIndex, true, expr}
 	}
 
-	return &Column{name, types.Varchar, 4, 255, 0, hasIndex, true}
+	return &Column{name, types.Varchar, 4, 255, 0, hasIndex, true, expr}
 }
 
 func (c *Column) IsInlined() bool {
@@ -75,4 +79,9 @@ func (c *Column) IsLeft() bool {
 
 func (c *Column) SetIsLeft(isLeft bool) {
 	c.isLeft = isLeft
+}
+
+// returned value should be used with type validation at expression.Expression
+func (c *Column) GetExpr() interface{} {
+	return c.expr_
 }
