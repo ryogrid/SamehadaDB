@@ -71,6 +71,8 @@ func (e *ExecutionEngine) CreateExecutor(plan plans.Plan, context *ExecutorConte
 		return NewUpdateExecutor(context, p)
 		// case *plans.HashJoinPlanNode:
 		// 	return NewHashJoinExecutor(context, p)
+	case *plans.AggregationPlanNode:
+		return NewAggregationExecutor(context, p, e.CreateExecutor(plan.GetChildAt(0), context))
 	}
 	return nil
 }

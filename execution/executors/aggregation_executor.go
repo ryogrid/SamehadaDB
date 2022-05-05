@@ -6,6 +6,7 @@ import (
 	"github.com/ryogrid/SamehadaDB/container/hash"
 	"github.com/ryogrid/SamehadaDB/execution/expression"
 	"github.com/ryogrid/SamehadaDB/execution/plans"
+	"github.com/ryogrid/SamehadaDB/storage/table/schema"
 	"github.com/ryogrid/SamehadaDB/storage/tuple"
 	"github.com/ryogrid/SamehadaDB/types"
 )
@@ -222,7 +223,7 @@ func NewAggregationExecutor(exec_ctx *ExecutorContext, plan *plans.AggregationPl
 //  /** Do not use or remove this function, otherwise you will get zero points. */
 //   AbstractExecutor *GetChildExecutor()  { return child_.get() }
 
-//   Schema *GetOutputSchema() override { return plan_.OutputSchema() }
+func (e *AggregationExecutor) GetOutputSchema() *schema.Schema { return e.plan_.OutputSchema() }
 
 func (e *AggregationExecutor) Init() {
 	//Tuple tuple
@@ -241,6 +242,10 @@ func (e *AggregationExecutor) Init() {
 	}
 
 	e.aht_iterator_ = e.aht_.Begin()
+}
+
+func (e *AggregationExecutor) Next() (*tuple.Tuple, Done, error) {
+	return nil, false, nil
 }
 
 //  bool Next(Tuple *tuple) override {
