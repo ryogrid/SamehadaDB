@@ -1406,10 +1406,7 @@ func TestSimpleHashJoin(t *testing.T) {
 	// 			<< tuple.GetValue(out_final, out_schema2.GetColIdx("col1")).GetAs<int16_t>() << ", "
 	// 			<< tuple.GetValue(out_final, out_schema2.GetColIdx("col2")).GetAs<int32_t>() << std::endl
 	executionEngine := &ExecutionEngine{}
-	left_executor := executionEngine.CreateExecutor(join_plan.GetLeftPlan(), executorContext)
-	right_executor := executionEngine.CreateExecutor(join_plan.GetRightPlan(), executorContext)
-	hashJoinExecutor := NewHashJoinExecutor(executorContext, join_plan, left_executor, right_executor)
-	results := executionEngine.ExecuteExecutor(hashJoinExecutor)
+	results := executionEngine.Execute(join_plan, executorContext)
 
 	num_tuples := len(results)
 	testingpkg.Assert(t, num_tuples == 100, "")

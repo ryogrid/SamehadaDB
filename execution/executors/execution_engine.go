@@ -55,7 +55,6 @@ func (e *ExecutionEngine) ExecuteExecutor(executor Executor) []*tuple.Tuple {
 	return tuples
 }
 
-// TODO: (SDB) need to add arguments of ExecutionEngine::CreateExecutor for support of HashJoinPlanNode type plans
 func (e *ExecutionEngine) CreateExecutor(plan plans.Plan, context *ExecutorContext) Executor {
 	switch p := plan.(type) {
 	case *plans.InsertPlanNode:
@@ -70,8 +69,8 @@ func (e *ExecutionEngine) CreateExecutor(plan plans.Plan, context *ExecutorConte
 		return NewDeleteExecutor(context, p)
 	case *plans.UpdatePlanNode:
 		return NewUpdateExecutor(context, p)
-		// case *plans.HashJoinPlanNode:
-		// 	return NewHashJoinExecutor(context, p)
+	case *plans.HashJoinPlanNode:
+		return NewHashJoinExecutor(context, p, e.CreateExecutor(plan.GetChildAt(0), context), e.CreateExecutor(plan.GetChildAt(1), context))
 	case *plans.AggregationPlanNode:
 		return NewAggregationExecutor(context, p, e.CreateExecutor(plan.GetChildAt(0), context))
 	}
