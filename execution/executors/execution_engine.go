@@ -36,25 +36,6 @@ func (e *ExecutionEngine) Execute(plan plans.Plan, context *ExecutorContext) []*
 	return tuples
 }
 
-func (e *ExecutionEngine) ExecuteExecutor(executor Executor) []*tuple.Tuple {
-	executor.Init()
-
-	tuples := []*tuple.Tuple{}
-	num := 0
-	for {
-		tuple_, done, err := executor.Next()
-		if err != nil || done {
-			break
-		}
-		num++
-		if tuple_ != nil {
-			tuples = append(tuples, tuple_)
-		}
-	}
-
-	return tuples
-}
-
 func (e *ExecutionEngine) CreateExecutor(plan plans.Plan, context *ExecutorContext) Executor {
 	switch p := plan.(type) {
 	case *plans.InsertPlanNode:
