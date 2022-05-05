@@ -6,6 +6,7 @@ import (
 	"github.com/ryogrid/SamehadaDB/container/hash"
 	"github.com/ryogrid/SamehadaDB/execution/expression"
 	"github.com/ryogrid/SamehadaDB/execution/plans"
+	"github.com/ryogrid/SamehadaDB/storage/tuple"
 	"github.com/ryogrid/SamehadaDB/types"
 )
 
@@ -223,14 +224,24 @@ func NewAggregationExecutor(exec_ctx *ExecutorContext, plan *plans.AggregationPl
 
 //   Schema *GetOutputSchema() override { return plan_.OutputSchema() }
 
-//  void Init() override {
-//    Tuple tuple
-//    child_.Init()
-//    while (child_.Next(&tuple)) {
-// 	 aht_.InsertCombine(MakeKey(&tuple), MakeVal(&tuple))
-//    }
-//    aht_iterator_ = aht_.Begin()
-//  }
+func (e *AggregationExecutor) Init() {
+	//Tuple tuple
+	e.child_[0].Init()
+	child_exec := e.child_[0]
+	for {
+		tuple, done, err := child_exec.Next()
+		if err != nil || done {
+			break
+		}
+
+		if tuple != nil {
+			e.aht_.InsertCombine(e.MakeKey(tuple), e.MakeVal(tuple))
+			//tuples = append(tuples, tuple)
+		}
+	}
+
+	e.aht_iterator_ = e.aht_.Begin()
+}
 
 //  bool Next(Tuple *tuple) override {
 //    if (aht_iterator_ == aht_.End()) {
@@ -258,20 +269,23 @@ func NewAggregationExecutor(exec_ctx *ExecutorContext, plan *plans.AggregationPl
 //    return false
 //  }
 
-//  /** @return the tuple as an AggregateKey */
-//  AggregateKey MakeKey( Tuple *tuple) {
-//    std::vector<Value> keys
-//    for (  &expr : plan_.GetGroupBys()) {
-// 	 keys.emplace_back(expr.Evaluate(tuple, child_.GetOutputSchema()))
-//    }
-//    return {keys}
-//  }
+/** @return the tuple as an AggregateKey */
+func (e *AggregationExecutor) MakeKey(tuple_ *tuple.Tuple) *plans.AggregateKey {
+	var keys []*types.Value = make([]*types.Value, 0)
+	for _, expr := range e.plan_.GetGroupBys() {
+		tmp_val := expr.Evaluate(tuple_, e.child_[0].GetOutputSchema())
+		keys = append(keys, &tmp_val)
+	}
+	return &plans.AggregateKey{Group_bys_: keys}
+}
 
-//  /** @return the tuple as an AggregateValue */
-//  AggregateValue MakeVal( Tuple *tuple) {
-//    std::vector<Value> vals
-//    for (  &expr : plan_.GetAggregates()) {
-// 	 vals.emplace_back(expr.Evaluate(tuple, child_.GetOutputSchema()))
-//    }
-//    return {vals}
-//  }
+/** @return the tuple as an AggregateValue */
+func (e *AggregationExecutor) MakeVal(tuple_ *tuple.Tuple) *plans.AggregateValue {
+	var vals []*types.Value = make([]*types.Value, 0)
+	//for (  &ex	pr : plan_.GetAggregates()) {
+	for _, expr := range e.plan_.GetAggregates() {
+		tmp_val := expr.Evaluate(tuple_, e.child_[0].GetOutputSchema())
+		vals = append(vals, &tmp_val)
+	}
+	return &plans.AggregateValue{Aggregates_: vals}
+}

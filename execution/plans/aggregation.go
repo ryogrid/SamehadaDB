@@ -85,7 +85,7 @@ func (p *AggregationPlanNode) GetAggregates() []expression.Expression { return p
 func (p *AggregationPlanNode) GetAggregateTypes() []AggregationType { return p.agg_types_ }
 
 type AggregateKey struct {
-	Group_bys_ []types.Value
+	Group_bys_ []*types.Value
 }
 
 // /**
