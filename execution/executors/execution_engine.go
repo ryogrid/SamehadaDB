@@ -36,7 +36,7 @@ func (e *ExecutionEngine) Execute(plan plans.Plan, context *ExecutorContext) []*
 	return tuples
 }
 
-func (e *ExecutionEngine) ExecuteWithExecutor(executor Executor) []*tuple.Tuple {
+func (e *ExecutionEngine) ExecuteExecutor(executor Executor) []*tuple.Tuple {
 	executor.Init()
 
 	tuples := []*tuple.Tuple{}

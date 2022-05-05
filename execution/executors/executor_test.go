@@ -1409,7 +1409,7 @@ func TestSimpleHashJoin(t *testing.T) {
 	left_executor := executionEngine.CreateExecutor(join_plan.GetLeftPlan(), executorContext)
 	right_executor := executionEngine.CreateExecutor(join_plan.GetRightPlan(), executorContext)
 	hashJoinExecutor := NewHashJoinExecutor(executorContext, join_plan, left_executor, right_executor)
-	results := executionEngine.ExecuteWithExecutor(hashJoinExecutor)
+	results := executionEngine.ExecuteExecutor(hashJoinExecutor)
 
 	num_tuples := len(results)
 	testingpkg.Assert(t, num_tuples == 100, "")
