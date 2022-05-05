@@ -191,8 +191,6 @@ func (aht *SimpleAggregationHashTable) Begin() *AggregateHTIterator {
 //  /** @return iterator to the end of the hash table */
 //  Iterator End() { return Iterator{ht.cend()}; }
 
-// TODO: (SDB) need port AggregationExecutor class
-
 /**
 * AggregationExecutor executes an aggregation operation (e.g. COUNT, SUM, MIN, MAX) on the tuples of a child executor.
  */
@@ -245,29 +243,29 @@ func (e *AggregationExecutor) Init() {
 }
 
 func (e *AggregationExecutor) Next() (*tuple.Tuple, Done, error) {
-	// if e.aht_iterator_.IsEnd() {
-	// 	return nil, true, nil
-	// }
-	// for ; !e.aht_iterator_.IsEnd(); e.aht_iterator_.Next() {
-	// 	if e.plan_.GetHaving() != nil {
-	// 		if !e.plan_.GetHaving().EvaluateAggregate(e.aht_iterator_.Key().Group_bys_, e.aht_iterator_.Val().Aggregates_).ToBoolean() {
-	// 			//.GetAs<bool>()) {
-	// 			//aht_iterator_.operator++()
-	// 			e.aht_iterator_.Next()
-	// 			continue
-	// 		}
-	// 	}
-	// 	var values []*types.Value = make([]*types.Value, 0)
-	// 	for _, col := range e.plan_.OutputSchema().GetColumns() {
-	// 		values = append(values,
-	// 			//col.GetExpr().EvaluateAggregate(aht_iterator_.Key().group_bys_, aht_iterator_.Val().Aggregates_))
-	// 			col.EvaluateAggregate(e.aht_iterator_.Key().Group_bys_, e.aht_iterator_.Val().Aggregates_))
-	// 	}
-	// 	//aht_iterator_.operator++()
-	// 	tuple_ := tuple.NewTupleFromSchema(values, e.plan_.OutputSchema())
-	// 	*tuple = tuple1
-	// 	return tuple1, false, nil
-	// }
+	if e.aht_iterator_.IsEnd() {
+		return nil, true, nil
+	}
+	for ; !e.aht_iterator_.IsEnd(); e.aht_iterator_.Next() {
+		if e.plan_.GetHaving() != nil {
+			if !e.plan_.GetHaving().EvaluateAggregate(e.aht_iterator_.Key().Group_bys_, e.aht_iterator_.Val().Aggregates_).ToBoolean() {
+				//.GetAs<bool>()) {
+				//aht_iterator_.operator++()
+				e.aht_iterator_.Next()
+				continue
+			}
+		}
+		var values []types.Value = make([]types.Value, 0)
+		for _, col := range e.plan_.OutputSchema().GetColumns() {
+			expr := col.GetExpr().(expression.Expression)
+			values = append(values,
+				expr.EvaluateAggregate(e.aht_iterator_.Key().Group_bys_, e.aht_iterator_.Val().Aggregates_))
+			//col.EvaluateAggregate(e.aht_iterator_.Key().Group_bys_, e.aht_iterator_.Val().Aggregates_))
+		}
+		//aht_iterator_.operator++()
+		tuple_ := tuple.NewTupleFromSchema(values, e.plan_.OutputSchema())
+		return tuple_, false, nil
+	}
 	return nil, true, nil
 }
 
