@@ -5,12 +5,9 @@ package executors
 
 import (
 	"fmt"
-	"math"
-	"math/rand"
 	"os"
 	"runtime"
 	"testing"
-	"time"
 
 	"github.com/devlights/gomy/output"
 	"github.com/ryogrid/SamehadaDB/catalog"
@@ -23,7 +20,6 @@ import (
 	"github.com/ryogrid/SamehadaDB/storage/disk"
 	"github.com/ryogrid/SamehadaDB/storage/table/column"
 	"github.com/ryogrid/SamehadaDB/storage/table/schema"
-	"github.com/ryogrid/SamehadaDB/storage/tuple"
 	"github.com/ryogrid/SamehadaDB/test_util"
 	testingpkg "github.com/ryogrid/SamehadaDB/testing"
 	"github.com/ryogrid/SamehadaDB/types"
@@ -1172,140 +1168,6 @@ func TestAbortWIthDeleteUpdate(t *testing.T) {
 	testingpkg.Assert(t, len(results) == 1, "")
 }
 
-type ColumnInsertMeta struct {
-	/**
-	 * Name of the column
-	 */
-	name_ string
-	/**
-	 * Type of the column
-	 */
-	type_ types.TypeID
-	/**
-	 * Whether the column is nullable
-	 */
-	nullable_ bool
-	/**
-	 * Distribution of values
-	 */
-	dist_ int32
-	/**
-	 * Min value of the column
-	 */
-	min_ int32
-	/**
-	 * Max value of the column
-	 */
-	max_ int32
-	/**
-	 * Counter to generate serial data
-	 */
-	serial_counter_ int32
-}
-
-type TableInsertMeta struct {
-	/**
-	 * Name of the table
-	 */
-	name_ string
-	/**
-	 * Number of rows
-	 */
-	num_rows_ uint32
-	/**
-	 * Columns
-	 */
-	col_meta_ []*ColumnInsertMeta
-}
-
-const DistSerial int32 = 0
-const DistUniform int32 = 1
-
-func GenNumericValues(col_meta *ColumnInsertMeta, count uint32) []types.Value {
-	var values []types.Value
-	if col_meta.dist_ == DistSerial {
-		for i := 0; i < int(count); i++ {
-			values = append(values, types.NewInteger(col_meta.serial_counter_))
-			col_meta.serial_counter_ += 1
-		}
-		return values
-	}
-
-	seed := time.Now().UnixNano()
-	rand.Seed(seed)
-	for i := 0; i < int(count); i++ {
-		values = append(values, types.NewInteger(rand.Int31n(col_meta.max_)))
-	}
-	return values
-}
-
-func GenNumericValuesFloat(col_meta *ColumnInsertMeta, count uint32) []types.Value {
-	var values []types.Value
-	if col_meta.dist_ == DistSerial {
-		for i := 0; i < int(count); i++ {
-			values = append(values, types.NewInteger(col_meta.serial_counter_))
-			col_meta.serial_counter_ += 1
-		}
-		return values
-	}
-
-	seed := time.Now().UnixNano()
-	rand.Seed(seed)
-	for i := 0; i < int(count); i++ {
-		values = append(values, types.NewFloat(float32(rand.Int31n(col_meta.max_))/float32(seed)))
-	}
-	return values
-}
-
-func MakeValues(col_meta *ColumnInsertMeta, count uint32) []types.Value {
-	//var values []types.Value
-	switch col_meta.type_ {
-	case types.Integer:
-		return GenNumericValues(col_meta, count)
-	case types.Float:
-		return GenNumericValuesFloat(col_meta, count)
-	default:
-		panic("Not yet implemented")
-	}
-}
-
-func FillTable(info *catalog.TableMetadata, table_meta *TableInsertMeta, txn *access.Transaction) {
-	var num_inserted uint32 = 0
-	var batch_size uint32 = 128
-	for num_inserted < table_meta.num_rows_ {
-		var values [][]types.Value
-		var num_values uint32 = uint32(math.Min(float64(batch_size), float64(table_meta.num_rows_-num_inserted)))
-		for _, col_meta := range table_meta.col_meta_ {
-			values = append(values, MakeValues(col_meta, num_values))
-		}
-
-		for i := 0; i < int(num_values); i++ {
-			var entry []types.Value
-			for idx := range table_meta.col_meta_ {
-				entry = append(entry, values[idx][i])
-			}
-			info.Table().InsertTuple(tuple.NewTupleFromSchema(entry, info.Schema()), txn)
-			num_inserted++
-		}
-	}
-}
-
-func MakeColumnValueExpression(schema_ *schema.Schema, tuple_idx uint32,
-	col_name string) expression.Expression {
-	col_idx := schema_.GetColIndex(col_name)
-	col_type := schema_.GetColumn(col_idx).GetType()
-	col_val := expression.NewColumnValue(tuple_idx, col_idx, col_type)
-	return col_val
-}
-
-func MakeComparisonExpression(lhs expression.Expression, rhs expression.Expression,
-	comp_type expression.ComparisonType) *expression.Expression {
-	casted_lhs := lhs.(*expression.ColumnValue)
-
-	ret_exp := expression.NewComparison(*casted_lhs, rhs, comp_type, types.Boolean)
-	return &ret_exp
-}
-
 func TestSimpleHashJoin(t *testing.T) {
 	os.Stdout.Sync()
 	diskManager := disk.NewDiskManagerTest()
@@ -1786,7 +1648,7 @@ func TestConcurrentTransactionExecution(t *testing.T) {
 
 // TODO: (SDB) need to MakeAggregateValueExpression method in executor_test.go
 
-// const AbstractExpression *MakeAggregateValueExpression(bool is_group_by_term, uint32_t term_idx) {
+// func MakeAggregateValueExpression(is_group_by_term bool, term_idx uint32) *expression.AggregateValueExpression {
 //     allocated_exprs_.emplace_back(
 //         std::make_unique<AggregateValueExpression>(is_group_by_term, term_idx, TypeId::INTEGER));
 //     return allocated_exprs_.back().get();
@@ -1794,57 +1656,73 @@ func TestConcurrentTransactionExecution(t *testing.T) {
 
 // TODO: (SDB) need to port SimpleAggregation testcase
 
-// TEST_F(ExecutorTest, SimpleAggregationTest) {
-// 	// SELECT COUNT(colA), SUM(colA), min(colA), max(colA) from test_1;
-// 	std::unique_ptr<AbstractPlanNode> scan_plan;
-// 	const Schema *scan_schema;
-// 	{
-// 	  auto table_info = GetExecutorContext()->GetCatalog()->GetTable("test_1");
-// 	  auto &schema = table_info->schema_;
-// 	  auto colA = MakeColumnValueExpression(schema, 0, "colA");
-// 	  scan_schema = MakeOutputSchema({{"colA", colA}});
-// 	  scan_plan = std::make_unique<SeqScanPlanNode>(scan_schema, nullptr, table_info->oid_);
-// 	}
+func TestSimpleAggregation(t *testing.T) {
+	// SELECT COUNT(colA), SUM(colA), min(colA), max(colA) from test_1;
+	os.Remove("test.db")
+	os.Remove("test.log")
 
-// 	std::unique_ptr<AbstractPlanNode> agg_plan;
-// 	const Schema *agg_schema;
-// 	{
-// 	  const AbstractExpression *colA = MakeColumnValueExpression(*scan_schema, 0, "colA");
-// 	  const AbstractExpression *countA = MakeAggregateValueExpression(false, 0);
-// 	  const AbstractExpression *sumA = MakeAggregateValueExpression(false, 1);
-// 	  const AbstractExpression *minA = MakeAggregateValueExpression(false, 2);
-// 	  const AbstractExpression *maxA = MakeAggregateValueExpression(false, 3);
+	shi := test_util.NewSamehadaInstance()
+	shi.GetLogManager().RunFlushThread()
+	testingpkg.Assert(t, common.EnableLogging, "")
+	fmt.Println("System logging is active.")
 
-// 	  agg_schema = MakeOutputSchema({{"countA", countA}, {"sumA", sumA}, {"minA", minA}, {"maxA", maxA}});
-// 	  agg_plan = std::make_unique<AggregationPlanNode>(
-// 		  agg_schema, scan_plan.get(), nullptr, std::vector<const AbstractExpression *>{},
-// 		  std::vector<const AbstractExpression *>{colA, colA, colA, colA},
-// 		  std::vector<AggregationType>{AggregationType::CountAggregate, AggregationType::SumAggregate,
-// 									   AggregationType::MinAggregate, AggregationType::MaxAggregate});
-// 	}
+	txn_mgr := shi.GetTransactionManager()
+	txn := txn_mgr.Begin(nil)
 
-// 	auto executor = ExecutorFactory::CreateExecutor(GetExecutorContext(), agg_plan.get());
-// 	executor->Init();
-// 	Tuple tuple;
-// 	ASSERT_TRUE(executor->Next(&tuple));
-// 	auto countA_val = tuple.GetValue(agg_schema, agg_schema->GetColIdx("countA")).GetAs<int32_t>();
-// 	auto sumA_val = tuple.GetValue(agg_schema, agg_schema->GetColIdx("sumA")).GetAs<int32_t>();
-// 	auto minA_val = tuple.GetValue(agg_schema, agg_schema->GetColIdx("minA")).GetAs<int32_t>();
-// 	auto maxA_val = tuple.GetValue(agg_schema, agg_schema->GetColIdx("maxA")).GetAs<int32_t>();
-// 	// Should count all tuples
-// 	ASSERT_EQ(countA_val, TEST1_SIZE);
-// 	// Should sum from 0 to TEST1_SIZE
-// 	ASSERT_EQ(sumA_val, TEST1_SIZE * (TEST1_SIZE - 1) / 2);
-// 	// Minimum should be 0
-// 	ASSERT_EQ(minA_val, 0);
-// 	// Maximum should be TEST1_SIZE - 1
-// 	ASSERT_EQ(maxA_val, TEST1_SIZE - 1);
-// 	std::cout << countA_val << std::endl;
-// 	std::cout << sumA_val << std::endl;
-// 	std::cout << minA_val << std::endl;
-// 	std::cout << maxA_val << std::endl;
-// 	ASSERT_FALSE(executor->Next(&tuple));
-//   }
+	c := catalog.BootstrapCatalog(shi.GetBufferPoolManager(), shi.GetLogManager(), shi.GetLockManager(), txn)
+	exec_ctx := NewExecutorContext(c, shi.GetBufferPoolManager(), txn)
+
+	table_info, _ := GenerateTestTabls(c, exec_ctx, txn)
+
+	var scan_plan *plans.SeqScanPlanNode
+	var scan_schema *schema.Schema
+	{
+		//auto table_info = GetExecutorContext()->GetCatalog()->GetTable("test_1");
+		schema_ := table_info.Schema()
+		colA := MakeColumnValueExpression(schema_, 0, "colA").(*expression.ColumnValue)
+		scan_schema := MakeOutputSchema([]MakeSchemaMeta{{"colA", *colA}})
+		scan_plan = plans.NewSeqScanPlanNode(scan_schema, nil, table_info.OID()).(*plans.SeqScanPlanNode)
+	}
+
+	// 	std::unique_ptr<AbstractPlanNode> agg_plan;
+	// 	const Schema *agg_schema;
+	// 	{
+	// 	  const AbstractExpression *colA = MakeColumnValueExpression(*scan_schema, 0, "colA");
+	// 	  const AbstractExpression *countA = MakeAggregateValueExpression(false, 0);
+	// 	  const AbstractExpression *sumA = MakeAggregateValueExpression(false, 1);
+	// 	  const AbstractExpression *minA = MakeAggregateValueExpression(false, 2);
+	// 	  const AbstractExpression *maxA = MakeAggregateValueExpression(false, 3);
+
+	// 	  agg_schema = MakeOutputSchema({{"countA", countA}, {"sumA", sumA}, {"minA", minA}, {"maxA", maxA}});
+	// 	  agg_plan = std::make_unique<AggregationPlanNode>(
+	// 		  agg_schema, scan_plan.get(), nullptr, std::vector<const AbstractExpression *>{},
+	// 		  std::vector<const AbstractExpression *>{colA, colA, colA, colA},
+	// 		  std::vector<AggregationType>{AggregationType::CountAggregate, AggregationType::SumAggregate,
+	// 									   AggregationType::MinAggregate, AggregationType::MaxAggregate});
+	// 	}
+
+	// 	auto executor = ExecutorFactory::CreateExecutor(GetExecutorContext(), agg_plan.get());
+	// 	executor->Init();
+	// 	Tuple tuple;
+	// 	ASSERT_TRUE(executor->Next(&tuple));
+	// 	auto countA_val = tuple.GetValue(agg_schema, agg_schema->GetColIdx("countA")).GetAs<int32_t>();
+	// 	auto sumA_val = tuple.GetValue(agg_schema, agg_schema->GetColIdx("sumA")).GetAs<int32_t>();
+	// 	auto minA_val = tuple.GetValue(agg_schema, agg_schema->GetColIdx("minA")).GetAs<int32_t>();
+	// 	auto maxA_val = tuple.GetValue(agg_schema, agg_schema->GetColIdx("maxA")).GetAs<int32_t>();
+	// 	// Should count all tuples
+	// 	ASSERT_EQ(countA_val, TEST1_SIZE);
+	// 	// Should sum from 0 to TEST1_SIZE
+	// 	ASSERT_EQ(sumA_val, TEST1_SIZE * (TEST1_SIZE - 1) / 2);
+	// 	// Minimum should be 0
+	// 	ASSERT_EQ(minA_val, 0);
+	// 	// Maximum should be TEST1_SIZE - 1
+	// 	ASSERT_EQ(maxA_val, TEST1_SIZE - 1);
+	// 	std::cout << countA_val << std::endl;
+	// 	std::cout << sumA_val << std::endl;
+	// 	std::cout << minA_val << std::endl;
+	// 	std::cout << maxA_val << std::endl;
+	// 	ASSERT_FALSE(executor->Next(&tuple));
+}
 
 // TODO: (SDB) need to port SimpleGroupByAggregation testcase
 
