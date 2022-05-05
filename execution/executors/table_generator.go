@@ -156,6 +156,10 @@ func MakeComparisonExpression(lhs expression.Expression, rhs expression.Expressi
 	return &ret_exp
 }
 
+func MakeAggregateValueExpression(is_group_by_term bool, col_index uint32) expression.Expression {
+	return expression.NewAggregateValueExpression(is_group_by_term, col_index, types.Integer)
+}
+
 func MakeOutputSchema(exprs []MakeSchemaMeta) *schema.Schema {
 	var cols []*column.Column = make([]*column.Column, 0)
 	for _, input := range exprs {

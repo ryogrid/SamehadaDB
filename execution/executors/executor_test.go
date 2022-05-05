@@ -1684,22 +1684,22 @@ func TestSimpleAggregation(t *testing.T) {
 		scan_plan = plans.NewSeqScanPlanNode(scan_schema, nil, table_info.OID()).(*plans.SeqScanPlanNode)
 	}
 
-	// 	std::unique_ptr<AbstractPlanNode> agg_plan;
-	// 	const Schema *agg_schema;
-	// 	{
-	// 	  const AbstractExpression *colA = MakeColumnValueExpression(*scan_schema, 0, "colA");
-	// 	  const AbstractExpression *countA = MakeAggregateValueExpression(false, 0);
-	// 	  const AbstractExpression *sumA = MakeAggregateValueExpression(false, 1);
-	// 	  const AbstractExpression *minA = MakeAggregateValueExpression(false, 2);
-	// 	  const AbstractExpression *maxA = MakeAggregateValueExpression(false, 3);
+	var agg_plan *plans.AggregationPlanNode
+	var agg_schema *schema.Schema
+	{
+		colA := MakeColumnValueExpression(scan_schema, 0, "colA")
+		countA := *MakeAggregateValueExpression(false, 0).(*expression.ColumnValue)
+		sumA := *MakeAggregateValueExpression(false, 1).(*expression.ColumnValue)
+		minA := *MakeAggregateValueExpression(false, 2).(*expression.ColumnValue)
+		maxA := *MakeAggregateValueExpression(false, 3).(*expression.ColumnValue)
 
-	// 	  agg_schema = MakeOutputSchema({{"countA", countA}, {"sumA", sumA}, {"minA", minA}, {"maxA", maxA}});
-	// 	  agg_plan = std::make_unique<AggregationPlanNode>(
-	// 		  agg_schema, scan_plan.get(), nullptr, std::vector<const AbstractExpression *>{},
-	// 		  std::vector<const AbstractExpression *>{colA, colA, colA, colA},
-	// 		  std::vector<AggregationType>{AggregationType::CountAggregate, AggregationType::SumAggregate,
-	// 									   AggregationType::MinAggregate, AggregationType::MaxAggregate});
-	// 	}
+		agg_schema = MakeOutputSchema([]MakeSchemaMeta{{"countA", countA}, {"sumA", sumA}, {"minA", minA}, {"maxA", maxA}})
+		agg_plan = plans.NewAggregationPlanNode(
+			agg_schema, scan_plan, nil, []expression.Expression{},
+			[]expression.Expression{colA, colA, colA, colA},
+			[]plans.AggregationType{plans.COUNT_AGGREGATE, plans.SUM_AGGREGATE,
+				plans.MIN_AGGREGATE, plans.MAX_AGGREGATE})
+	}
 
 	// 	auto executor = ExecutorFactory::CreateExecutor(GetExecutorContext(), agg_plan.get());
 	// 	executor->Init();
