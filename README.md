@@ -13,7 +13,7 @@ original codes of go-bustub are [here](https://github.com/brunocalza/go-bustub).
 - **There are several unit tests only**
 - procedure described on next section executes all defined unit tests
 
-# Procedure of Executing SamehadaDB
+## Procedure of Executing SamehadaDB
 - Please install golang environment with package system your OS has (apt, yum, brew ...etc)
   - If you use Windows, you can select both Windows native environment and WSL Ubuntu environment
 - If you select Windows native environments or golang environment which is installed with package system can't execute SamehadaDB, you should install official binary directly
