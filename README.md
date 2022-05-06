@@ -8,6 +8,21 @@ original codes of go-bustub are [here](https://github.com/brunocalza/go-bustub).
 - We are proud to call SamehadaDB because the grid produces a pleasant taste and aroma with a nice harmony
 - (The text in this section was contributed by [ujihisa](https://github.com/ujihisa). Thank you ujihisa)
 
+# Current Status
+- **SamehadaDB has no entry point (main function) now**
+- **There are several unit tests only**
+- procedure described on next section executes all defined unit tests
+
+# Procedure of Executing SamehadaDB
+- Please install golang environment with package system your OS has (apt, yum, brew ...etc)
+  - If you use Windows, you can select both Windows native environment and WSL Ubuntu environment
+- If you select Windows native environments or golang environment which is installed with package system can't execute SamehadaDB, you should install official binary directly
+  - Please refer [Download and Install - The Go Programming Language](https://go.dev/doc/install)
+- Executing all unit tests which test several features and components of SamehadaDB
+  - $ git clone https://github.com/ryogrid/SamehadaDB.git
+  - $ cd SamehadaDB
+  - $ go clean -testcache; go test ./... -v
+
 ## Roadmap
 
 - [x] Predicates on Seq Scan
