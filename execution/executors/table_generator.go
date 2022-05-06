@@ -74,7 +74,7 @@ type MakeSchemaMetaAgg struct {
 const DistSerial int32 = 0
 const DistUniform int32 = 1
 
-// TODO: (SDB) when TEST1_SIZE is 1000, TestTestTableGenerator testcase and TestSimpleAggregation testcase fails
+// TODO: (SDB) when TEST1_SIZE is 1000, TestTestTableGenerator testcase and TestSimpleAggregation testcase fails.
 //             maybe, TestTableGeneration func or tuple insertion logic of TableHeap has some bugs...
 const TEST1_SIZE uint32 = 20 //1000
 const TEST2_SIZE uint32 = 100
