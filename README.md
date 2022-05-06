@@ -49,9 +49,9 @@ original codes of go-bustub are [here](https://github.com/brunocalza/go-bustub).
 - [ ] BTree Index
 - [x] Join (Hash Join)
 - [ ] Aggregations (COUNT, MAX, MIN ... on SELECT clause)
-- [ ] GROUP By caluese
+- [ ] GROUP By and Having clusees with Aggregations
 - [ ] Sort (ORDER BY clause) 
-- [ ] Concurrent Execution of Transactions
+- [x] Concurrent Execution of Transactions
 - [ ] Execution Planning from hard coded SQL like method call I/F (like several kind of embeded DB)
 - [ ] Execution Planning from Query Description text (SQL, SQL like description)
 - [ ] Query Optimization
