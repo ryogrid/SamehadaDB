@@ -1712,13 +1712,13 @@ func TestSimpleAggregation(t *testing.T) {
 	minA_val := tuple_.GetValue(agg_schema, agg_schema.GetColIndex("minA")).ToInteger()
 	maxA_val := tuple_.GetValue(agg_schema, agg_schema.GetColIndex("maxA")).ToInteger()
 	// Should count all tuples
-	testingpkg.Equals(t, countA_val, TEST1_SIZE)
+	testingpkg.Equals(t, TEST1_SIZE, countA_val)
 	// Should sum from 0 to TEST1_SIZE
-	testingpkg.Equals(t, sumA_val, TEST1_SIZE*(TEST1_SIZE-1)/2)
+	testingpkg.Equals(t, TEST1_SIZE*(TEST1_SIZE-1)/2, sumA_val)
 	// Minimum should be 0
-	testingpkg.Equals(t, minA_val, 0)
+	testingpkg.Equals(t, 0, minA_val)
 	// Maximum should be TEST1_SIZE - 1
-	testingpkg.Equals(t, maxA_val, TEST1_SIZE-1)
+	testingpkg.Equals(t, TEST1_SIZE-1, maxA_val)
 	fmt.Println(countA_val)
 	fmt.Println(sumA_val)
 	fmt.Println(minA_val)
