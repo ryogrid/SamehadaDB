@@ -1680,7 +1680,7 @@ func TestSimpleAggregation(t *testing.T) {
 		//auto table_info = GetExecutorContext()->GetCatalog()->GetTable("test_1");
 		schema_ := table_info.Schema()
 		colA := MakeColumnValueExpression(schema_, 0, "colA").(*expression.ColumnValue)
-		scan_schema := MakeOutputSchema([]MakeSchemaMeta{{"colA", *colA}})
+		scan_schema = MakeOutputSchema([]MakeSchemaMeta{{"colA", *colA}})
 		scan_plan = plans.NewSeqScanPlanNode(scan_schema, nil, table_info.OID()).(*plans.SeqScanPlanNode)
 	}
 
@@ -1688,12 +1688,12 @@ func TestSimpleAggregation(t *testing.T) {
 	var agg_schema *schema.Schema
 	{
 		colA := MakeColumnValueExpression(scan_schema, 0, "colA")
-		countA := *MakeAggregateValueExpression(false, 0).(*expression.ColumnValue)
-		sumA := *MakeAggregateValueExpression(false, 1).(*expression.ColumnValue)
-		minA := *MakeAggregateValueExpression(false, 2).(*expression.ColumnValue)
-		maxA := *MakeAggregateValueExpression(false, 3).(*expression.ColumnValue)
+		countA := *MakeAggregateValueExpression(false, 0).(*expression.AggregateValueExpression)
+		sumA := *MakeAggregateValueExpression(false, 1).(*expression.AggregateValueExpression)
+		minA := *MakeAggregateValueExpression(false, 2).(*expression.AggregateValueExpression)
+		maxA := *MakeAggregateValueExpression(false, 3).(*expression.AggregateValueExpression)
 
-		agg_schema = MakeOutputSchema([]MakeSchemaMeta{{"countA", countA}, {"sumA", sumA}, {"minA", minA}, {"maxA", maxA}})
+		agg_schema = MakeOutputSchemaAgg([]MakeSchemaMetaAgg{{"countA", countA}, {"sumA", sumA}, {"minA", minA}, {"maxA", maxA}})
 		agg_plan = plans.NewAggregationPlanNode(
 			agg_schema, scan_plan, nil, []expression.Expression{},
 			[]expression.Expression{colA, colA, colA, colA},

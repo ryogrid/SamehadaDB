@@ -65,6 +65,11 @@ type MakeSchemaMeta struct {
 	expr_     expression.ColumnValue
 }
 
+type MakeSchemaMetaAgg struct {
+	col_name_ string
+	expr_     expression.AggregateValueExpression
+}
+
 const DistSerial int32 = 0
 const DistUniform int32 = 1
 const TEST1_SIZE uint32 = 1000
@@ -169,6 +174,14 @@ func MakeOutputSchema(exprs []MakeSchemaMeta) *schema.Schema {
 		// } else {
 		// 	cols = append(cols, column.NewColumn(input[0], input[1].GetReturnType(), MAX_VARCHAR_SIZE, input[1]))
 		// }
+	}
+	return schema.NewSchema(cols)
+}
+
+func MakeOutputSchemaAgg(exprs []MakeSchemaMetaAgg) *schema.Schema {
+	var cols []*column.Column = make([]*column.Column, 0)
+	for _, input := range exprs {
+		cols = append(cols, column.NewColumn(input.col_name_, input.expr_.GetReturnType(), false, input.expr_))
 	}
 	return schema.NewSchema(cols)
 }

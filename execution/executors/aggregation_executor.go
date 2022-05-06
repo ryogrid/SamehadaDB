@@ -257,7 +257,7 @@ func (e *AggregationExecutor) Next() (*tuple.Tuple, Done, error) {
 		}
 		var values []types.Value = make([]types.Value, 0)
 		for _, col := range e.plan_.OutputSchema().GetColumns() {
-			expr := col.GetExpr().(expression.Expression)
+			expr := col.GetExpr().(expression.AggregateValueExpression)
 			values = append(values,
 				expr.EvaluateAggregate(e.aht_iterator_.Key().Group_bys_, e.aht_iterator_.Val().Aggregates_))
 			//col.EvaluateAggregate(e.aht_iterator_.Key().Group_bys_, e.aht_iterator_.Val().Aggregates_))

@@ -45,3 +45,7 @@ func (a *AggregateValueExpression) EvaluateAggregate(group_bys []*types.Value, a
 func (a *AggregateValueExpression) GetChildAt(child_idx uint32) Expression {
 	return a.children[child_idx]
 }
+
+func (a *AggregateValueExpression) GetReturnType() types.TypeID {
+	return a.ret_type
+}
