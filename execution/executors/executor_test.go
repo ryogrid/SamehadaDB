@@ -1654,6 +1654,37 @@ func TestConcurrentTransactionExecution(t *testing.T) {
 //     return allocated_exprs_.back().get();
 //   }
 
+func TestTestTableGenerator(t *testing.T) {
+	os.Remove("test.db")
+	os.Remove("test.log")
+
+	shi := test_util.NewSamehadaInstance()
+	shi.GetLogManager().RunFlushThread()
+	testingpkg.Assert(t, common.EnableLogging, "")
+	fmt.Println("System logging is active.")
+
+	txn_mgr := shi.GetTransactionManager()
+	txn := txn_mgr.Begin(nil)
+
+	c := catalog.BootstrapCatalog(shi.GetBufferPoolManager(), shi.GetLogManager(), shi.GetLockManager(), txn)
+	exec_ctx := NewExecutorContext(c, shi.GetBufferPoolManager(), txn)
+
+	table_info, _ := GenerateTestTabls(c, exec_ctx, txn)
+
+	outColumnA := column.NewColumn("colA", types.Integer, false, nil)
+	outSchema := schema.NewSchema([]*column.Column{outColumnA})
+
+	seqPlan := plans.NewSeqScanPlanNode(outSchema, nil, table_info.OID())
+
+	executionEngine := &ExecutionEngine{}
+
+	results := executionEngine.Execute(seqPlan, exec_ctx)
+	fmt.Printf("len(results) => %d¥n", len(results))
+	testingpkg.Assert(t, len(results) == int(TEST1_SIZE), "generated table or testcase is wrong.")
+
+	txn_mgr.Commit(txn)
+}
+
 // TODO: (SDB) need to port SimpleAggregation testcase
 
 func TestSimpleAggregation(t *testing.T) {
@@ -1714,19 +1745,15 @@ func TestSimpleAggregation(t *testing.T) {
 	// Should count all tuples
 	fmt.Println("")
 	fmt.Printf("%v %v %v %v\n", countA_val, sumA_val, minA_val, maxA_val)
-	testingpkg.Equals(t, TEST1_SIZE, countA_val)
+	testingpkg.Assert(t, countA_val == int32(TEST1_SIZE), "countA_val is not expected value.")
 	// Should sum from 0 to TEST1_SIZE
-	testingpkg.Equals(t, TEST1_SIZE*(TEST1_SIZE-1)/2, sumA_val)
+	testingpkg.Assert(t, sumA_val == int32(TEST1_SIZE*(TEST1_SIZE-1)/2), "sumA_val is not expected value.")
 	// Minimum should be 0
-	testingpkg.Equals(t, 0, minA_val)
+	testingpkg.Assert(t, minA_val == int32(0), "minA_val is not expected value.")
 	// Maximum should be TEST1_SIZE - 1
-	testingpkg.Equals(t, TEST1_SIZE-1, maxA_val)
-	fmt.Println(countA_val)
-	fmt.Println(sumA_val)
-	fmt.Println(minA_val)
-	fmt.Println(maxA_val)
+	testingpkg.Assert(t, maxA_val == int32(TEST1_SIZE-1), "maxA_val is not expected value.")
 	tuple_, done, err := executor.Next()
-	testingpkg.Assert(t, tuple_ == nil && done == false && err == nil, "second call of AggregationExecutor::Next() failed")
+	testingpkg.Assert(t, tuple_ == nil && done == true && err == nil, "second call of AggregationExecutor::Next() failed")
 }
 
 // TODO: (SDB) need to port SimpleGroupByAggregation testcase

@@ -73,7 +73,7 @@ type MakeSchemaMetaAgg struct {
 
 const DistSerial int32 = 0
 const DistUniform int32 = 1
-const TEST1_SIZE uint32 = 1000
+const TEST1_SIZE uint32 = 20 //1000
 const TEST2_SIZE uint32 = 100
 const TEST_VARLEN_SIZE uint32 = 10
 
@@ -140,7 +140,11 @@ func FillTable(info *catalog.TableMetadata, table_meta *TableInsertMeta, txn *ac
 			for idx := range table_meta.col_meta_ {
 				entry = append(entry, values[idx][i])
 			}
-			info.Table().InsertTuple(tuple.NewTupleFromSchema(entry, info.Schema()), txn)
+			rid, err := info.Table().InsertTuple(tuple.NewTupleFromSchema(entry, info.Schema()), txn)
+			if rid == nil || err != nil {
+				fmt.Printf("InsertTuple failed on FillTable rid = %v, err = %v", rid, err)
+				panic("InsertTuple failed on FillTable!")
+			}
 			num_inserted++
 		}
 	}
