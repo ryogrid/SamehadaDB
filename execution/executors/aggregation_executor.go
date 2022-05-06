@@ -1,6 +1,7 @@
 package executors
 
 import (
+	"fmt"
 	"math"
 
 	"github.com/ryogrid/SamehadaDB/container/hash"
@@ -52,6 +53,11 @@ func (it *AggregateHTIterator) Val() *plans.AggregateValue {
 
 func (it *AggregateHTIterator) IsEnd() bool {
 	return it.index >= int32(len(it.keys))
+}
+
+// return whether iterator is End state if Next method is called
+func (it *AggregateHTIterator) IsNextEnd() bool {
+	return it.index+1 >= int32(len(it.keys))
 }
 
 //    /** @return the key of the iterator */
@@ -141,7 +147,7 @@ func (aht *SimpleAggregationHashTable) CombineAggregateValues(result *plans.Aggr
 		switch aht.agg_types_[i] {
 		case plans.COUNT_AGGREGATE:
 			// Count increases by one.
-			add_val := types.NewInteger(0)
+			add_val := types.NewInteger(1)
 			result.Aggregates_[i] = result.Aggregates_[i].Add(&add_val)
 		case plans.SUM_AGGREGATE:
 			// Sum increases by addition.
@@ -163,6 +169,7 @@ func (aht *SimpleAggregationHashTable) CombineAggregateValues(result *plans.Aggr
  */
 func (aht *SimpleAggregationHashTable) InsertCombine(agg_key *plans.AggregateKey, agg_val *plans.AggregateValue) {
 	hashval_of_aggkey := HashValuesOnAggregateKey(agg_key)
+	fmt.Printf("%v ", hashval_of_aggkey)
 	if _, ok := aht.ht_val[hashval_of_aggkey]; !ok {
 		aht.ht_val[hashval_of_aggkey] = aht.GenerateInitialAggregateValue()
 		//aht.ht.insert({agg_key, GenerateInitialAggregateValue()})
@@ -204,6 +211,7 @@ type AggregationExecutor struct {
 	aht_ *SimpleAggregationHashTable
 	/** Simple aggregation hash table iterator. */
 	aht_iterator_ *AggregateHTIterator
+	exprs_        []expression.Expression
 }
 
 /**
@@ -215,7 +223,7 @@ type AggregationExecutor struct {
 func NewAggregationExecutor(exec_ctx *ExecutorContext, plan *plans.AggregationPlanNode,
 	child Executor) *AggregationExecutor {
 	aht := NewSimpleAggregationHashTable(plan.GetAggregates(), plan.GetAggregateTypes())
-	return &AggregationExecutor{exec_ctx, plan, []Executor{child}, aht, nil}
+	return &AggregationExecutor{exec_ctx, plan, []Executor{child}, aht, nil, []expression.Expression{}}
 }
 
 //  /** Do not use or remove this function, otherwise you will get zero points. */
@@ -227,46 +235,72 @@ func (e *AggregationExecutor) Init() {
 	//Tuple tuple
 	e.child_[0].Init()
 	child_exec := e.child_[0]
+	output_column_cnt := int(e.GetOutputSchema().GetColumnCount())
+	for i := 0; i < output_column_cnt; i++ {
+		agg_expr := e.GetOutputSchema().GetColumn(uint32(i)).GetExpr().(expression.AggregateValueExpression)
+		e.exprs_ = append(e.exprs_, &agg_expr)
+	}
+	insert_call_cnt := 0
 	for {
-		tuple, done, err := child_exec.Next()
+		tuple_, done, err := child_exec.Next()
 		if err != nil || done {
+			fmt.Println(err)
 			break
 		}
 
-		if tuple != nil {
-			e.aht_.InsertCombine(e.MakeKey(tuple), e.MakeVal(tuple))
-			//tuples = append(tuples, tuple)
+		if tuple_ != nil {
+			e.aht_.InsertCombine(e.MakeKey(tuple_), e.MakeVal(tuple_))
+			insert_call_cnt++
 		}
 	}
-
+	fmt.Println("")
+	fmt.Printf("insert_call_cnt %d\n", insert_call_cnt)
 	e.aht_iterator_ = e.aht_.Begin()
 }
 
+//func (e *AggregationExecutor) Next() (*tuple.Tuple, Done, error) {
+//	if e.aht_iterator_.IsEnd() {
+//		return nil, true, nil
+//	}
+//	for ; !e.aht_iterator_.IsEnd(); e.aht_iterator_.Next() {
+//		if e.plan_.GetHaving() != nil {
+//			if !e.plan_.GetHaving().EvaluateAggregate(e.aht_iterator_.Key().Group_bys_, e.aht_iterator_.Val().Aggregates_).ToBoolean() {
+//				//.GetAs<bool>()) {
+//				//aht_iterator_.operator++()
+//				e.aht_iterator_.Next()
+//				continue
+//			}
+//		}
+//		var values []types.Value = make([]types.Value, 0)
+//		for _, col := range e.plan_.OutputSchema().GetColumns() {
+//			expr := col.GetExpr().(expression.AggregateValueExpression)
+//			values = append(values,
+//				expr.EvaluateAggregate(e.aht_iterator_.Key().Group_bys_, e.aht_iterator_.Val().Aggregates_))
+//			//col.EvaluateAggregate(e.aht_iterator_.Key().Group_bys_, e.aht_iterator_.Val().Aggregates_))
+//		}
+//		//aht_iterator_.operator++()
+//		tuple_ := tuple.NewTupleFromSchema(values, e.plan_.OutputSchema())
+//		return tuple_, false, nil
+//	}
+//	return nil, true, nil
+//}
+
 func (e *AggregationExecutor) Next() (*tuple.Tuple, Done, error) {
+	for !e.aht_iterator_.IsNextEnd() && e.plan_.GetHaving() != nil && !e.plan_.GetHaving().EvaluateAggregate(e.aht_iterator_.Key().Group_bys_, e.aht_iterator_.Val().Aggregates_).ToBoolean() {
+		//++aht_iterator_;
+		e.aht_iterator_.Next()
+	}
 	if e.aht_iterator_.IsEnd() {
 		return nil, true, nil
 	}
-	for ; !e.aht_iterator_.IsEnd(); e.aht_iterator_.Next() {
-		if e.plan_.GetHaving() != nil {
-			if !e.plan_.GetHaving().EvaluateAggregate(e.aht_iterator_.Key().Group_bys_, e.aht_iterator_.Val().Aggregates_).ToBoolean() {
-				//.GetAs<bool>()) {
-				//aht_iterator_.operator++()
-				e.aht_iterator_.Next()
-				continue
-			}
-		}
-		var values []types.Value = make([]types.Value, 0)
-		for _, col := range e.plan_.OutputSchema().GetColumns() {
-			expr := col.GetExpr().(expression.AggregateValueExpression)
-			values = append(values,
-				expr.EvaluateAggregate(e.aht_iterator_.Key().Group_bys_, e.aht_iterator_.Val().Aggregates_))
-			//col.EvaluateAggregate(e.aht_iterator_.Key().Group_bys_, e.aht_iterator_.Val().Aggregates_))
-		}
-		//aht_iterator_.operator++()
-		tuple_ := tuple.NewTupleFromSchema(values, e.plan_.OutputSchema())
-		return tuple_, false, nil
+	var values []types.Value = make([]types.Value, 0)
+	for i := 0; i < len(e.exprs_); i++ {
+		values = append(values, e.exprs_[i].EvaluateAggregate(e.aht_iterator_.Key().Group_bys_, e.aht_iterator_.Val().Aggregates_))
 	}
-	return nil, true, nil
+	tuple_ := tuple.NewTupleFromSchema(values, e.GetOutputSchema())
+	//++aht_iterator_;
+	e.aht_iterator_.Next()
+	return tuple_, false, nil
 }
 
 /** @return the tuple as an AggregateKey */

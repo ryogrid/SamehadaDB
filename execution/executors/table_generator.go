@@ -1,6 +1,7 @@
 package executors
 
 import (
+	"fmt"
 	"math"
 	"math/rand"
 	"time"
@@ -143,6 +144,7 @@ func FillTable(info *catalog.TableMetadata, table_meta *TableInsertMeta, txn *ac
 			num_inserted++
 		}
 	}
+	fmt.Printf("num_inserted %d\n", num_inserted)
 }
 
 func MakeColumnValueExpression(schema_ *schema.Schema, tuple_idx uint32,
@@ -193,6 +195,7 @@ func GenerateTestTabls(c *catalog.Catalog, exec_ctx *ExecutorContext,
 	columnC := column.NewColumn("colC", types.Integer, false, nil)
 	columnD := column.NewColumn("colD", types.Integer, false, nil)
 	schema_ := schema.NewSchema([]*column.Column{columnA, columnB, columnC, columnD})
+	//columnA.SetExpr(MakeColumnValueExpression(schema_, 0, "colA").(*expression.ColumnValue))
 	tableMetadata1 := c.CreateTable("test_1", schema_, txn)
 
 	column1 := column.NewColumn("col1", types.Integer, false, nil)

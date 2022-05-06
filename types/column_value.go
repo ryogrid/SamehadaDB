@@ -217,10 +217,10 @@ func (v Value) IsNull() bool {
 func (v Value) Add(other *Value) *Value {
 	switch v.valueType {
 	case Integer:
-		ret := NewInteger(*v.integer + other.ToInteger())
+		ret := NewInteger(*v.integer + *other.integer)
 		return &ret
 	case Float:
-		ret := NewFloat(*v.float + other.ToFloat())
+		ret := NewFloat(*v.float + *other.float)
 		return &ret
 	default:
 		panic("Add is implemented to Integer and Float only.")

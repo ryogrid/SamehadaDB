@@ -85,3 +85,7 @@ func (c *Column) SetIsLeft(isLeft bool) {
 func (c *Column) GetExpr() interface{} {
 	return c.expr_
 }
+
+func (c *Column) SetExpr(expr interface{}) {
+	c.expr_ = expr
+}
