@@ -1257,7 +1257,7 @@ func TestSimpleHashJoin(t *testing.T) {
 		predicate := MakeComparisonExpression(colA, col1, expression.Equal)
 		out_final = schema.NewSchema([]*column.Column{colA_c, colB_c, col1_c, col2_c})
 		plans_ := []plans.Plan{scan_plan1, scan_plan2}
-		join_plan = plans.NewHashJoinPlanNode(out_final, plans_, *predicate,
+		join_plan = plans.NewHashJoinPlanNode(out_final, plans_, predicate,
 			left_keys, right_keys)
 	}
 
@@ -1685,8 +1685,6 @@ func TestTestTableGenerator(t *testing.T) {
 	txn_mgr.Commit(txn)
 }
 
-// TODO: (SDB) need to port SimpleAggregation testcase
-
 func TestSimpleAggregation(t *testing.T) {
 	// SELECT COUNT(colA), SUM(colA), min(colA), max(colA) from test_1;
 	os.Remove("test.db")
@@ -1756,7 +1754,81 @@ func TestSimpleAggregation(t *testing.T) {
 	testingpkg.Assert(t, tuple_ == nil && done == true && err == nil, "second call of AggregationExecutor::Next() failed")
 }
 
-// TODO: (SDB) need to port SimpleGroupByAggregation testcase
+func TestSimpleGroupByAggregation(t *testing.T) {
+	// SELECT count(colA), colB, sum(C) FROM test_1 Group By colB HAVING count(colA) > 100
+	os.Remove("test.db")
+	os.Remove("test.log")
+
+	shi := test_util.NewSamehadaInstance()
+	shi.GetLogManager().RunFlushThread()
+	testingpkg.Assert(t, common.EnableLogging, "")
+	fmt.Println("System logging is active.")
+
+	txn_mgr := shi.GetTransactionManager()
+	txn := txn_mgr.Begin(nil)
+
+	c := catalog.BootstrapCatalog(shi.GetBufferPoolManager(), shi.GetLogManager(), shi.GetLockManager(), txn)
+	exec_ctx := NewExecutorContext(c, shi.GetBufferPoolManager(), txn)
+
+	table_info, _ := GenerateTestTabls(c, exec_ctx, txn)
+
+	var scan_plan *plans.SeqScanPlanNode
+	var scan_schema *schema.Schema
+	{
+		//auto table_info = GetExecutorContext()->GetCatalog()->GetTable("test_1");
+		schema_ := table_info.Schema()
+		colA := MakeColumnValueExpression(schema_, 0, "colA").(*expression.ColumnValue)
+		colB := MakeColumnValueExpression(schema_, 0, "colB").(*expression.ColumnValue)
+		colC := MakeColumnValueExpression(schema_, 0, "colC").(*expression.ColumnValue)
+		scan_schema = MakeOutputSchema([]MakeSchemaMeta{{"colA", *colA}, {"colB", *colB}, {"colC", *colC}})
+		scan_plan = plans.NewSeqScanPlanNode(scan_schema, nil, table_info.OID()).(*plans.SeqScanPlanNode)
+	}
+
+	var agg_plan *plans.AggregationPlanNode
+	var agg_schema *schema.Schema
+	{
+		colA := MakeColumnValueExpression(scan_schema, 0, "colA").(*expression.ColumnValue)
+		colB := MakeColumnValueExpression(scan_schema, 0, "colB").(*expression.ColumnValue)
+		colC := MakeColumnValueExpression(scan_schema, 0, "colC").(*expression.ColumnValue)
+		// Make group bye
+		groupbyB := *MakeAggregateValueExpression(true, 0).(*expression.AggregateValueExpression)
+		// Make aggregates
+		countA := *MakeAggregateValueExpression(false, 0).(*expression.AggregateValueExpression)
+		sumC := *MakeAggregateValueExpression(false, 1).(*expression.AggregateValueExpression)
+		// Make having clause
+		pred_const := types.NewInteger(100)
+		having := MakeComparisonExpression(&countA, MakeConstantValueExpression(&pred_const), expression.GreaterThan)
+
+		agg_schema = MakeOutputSchemaAgg([]MakeSchemaMetaAgg{{"countA", countA}, {"colB", groupbyB}, {"sumC", sumC}})
+		agg_plan = plans.NewAggregationPlanNode(
+			agg_schema, scan_plan, having, []expression.Expression{colB},
+			[]expression.Expression{colA, colC},
+			[]plans.AggregationType{plans.COUNT_AGGREGATE, plans.SUM_AGGREGATE})
+	}
+
+	executionEngine := &ExecutionEngine{}
+	executor := executionEngine.CreateExecutor(agg_plan, exec_ctx)
+	executor.Init()
+
+	var encountered map[int32]int32 = make(map[int32]int32, 0)
+	for tuple_, done, _ := executor.Next(); !done; tuple_, done, _ = executor.Next() {
+		// Should have countA > 100
+		countA := tuple_.GetValue(agg_schema, agg_schema.GetColIndex("countA")).ToInteger()
+		testingpkg.Assert(t, countA > 100, "countA result is not greater than 100")
+		// should have unique colBs.
+		colB := tuple_.GetValue(agg_schema, agg_schema.GetColIndex("colB")).ToInteger()
+		_, ok := encountered[colB]
+		testingpkg.Assert(t, !ok, "duplicated colB has been returned")
+		encountered[colB] = colB
+		// Sanity check: ColB should also be within [0, 10).
+		testingpkg.Assert(t, 0 <= colB && colB < 10, "sanity check of colB failed")
+
+		sumC := tuple_.GetValue(agg_schema, agg_schema.GetColIndex("sumC")).ToInteger()
+
+		fmt.Println("")
+		fmt.Printf("%d %d %d\n", countA, colB, sumC)
+	}
+}
 
 //   TEST_F(ExecutorTest, SimpleGroupByAggregation) {
 // 	// SELECT count(colA), colB, sum(C) FROM test_1 Group By colB HAVING count(colA) > 100

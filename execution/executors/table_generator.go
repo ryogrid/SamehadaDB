@@ -163,15 +163,19 @@ func MakeColumnValueExpression(schema_ *schema.Schema, tuple_idx uint32,
 }
 
 func MakeComparisonExpression(lhs expression.Expression, rhs expression.Expression,
-	comp_type expression.ComparisonType) *expression.Expression {
+	comp_type expression.ComparisonType) expression.Expression {
 	casted_lhs := lhs.(*expression.ColumnValue)
 
 	ret_exp := expression.NewComparison(*casted_lhs, rhs, comp_type, types.Boolean)
-	return &ret_exp
+	return ret_exp
 }
 
 func MakeAggregateValueExpression(is_group_by_term bool, col_index uint32) expression.Expression {
 	return expression.NewAggregateValueExpression(is_group_by_term, col_index, types.Integer)
+}
+
+func MakeConstantValueExpression(val *types.Value) expression.Expression {
+	return expression.NewConstantValue(*val, val.ValueType())
 }
 
 func MakeOutputSchema(exprs []MakeSchemaMeta) *schema.Schema {
