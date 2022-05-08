@@ -62,7 +62,6 @@ func (it *TableHeapIterator) Next() *tuple.Tuple {
 				// TODO: (SDB) this block is for debugging at TableHeapIterator::Next()
 				fmt.Println("nextTupleRID == nil!")
 			}
-
 		}
 	}
 	currentPage.RUnlatch()
