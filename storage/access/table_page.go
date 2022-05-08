@@ -456,12 +456,16 @@ func (tp *TablePage) GetTupleFirstRID() *page.RID {
 	return nil
 }
 
-func (tp *TablePage) GetNextTupleRID(curRID *page.RID) *page.RID {
+func (tp *TablePage) GetNextTupleRID(curRID *page.RID, isNextPage bool) *page.RID {
 	nextRID := &page.RID{}
 
 	// Find and return the first valid tuple after our current slot number.
 	tupleCount := tp.GetTupleCount()
-	for ii := curRID.GetSlotNum() + 1; ii < tupleCount; ii++ {
+	var init_val uint32 = 0
+	if !isNextPage {
+		init_val = uint32(curRID.GetSlotNum() + 1)
+	}
+	for ii := init_val; ii < tupleCount; ii++ {
 		if tp.GetTupleSize(ii) > 0 {
 			nextRID.Set(tp.GetTablePageId(), ii)
 			return nextRID

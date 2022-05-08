@@ -4,8 +4,6 @@
 package access
 
 import (
-	"fmt"
-	"github.com/ryogrid/SamehadaDB/storage/page"
 	"github.com/ryogrid/SamehadaDB/storage/tuple"
 )
 
@@ -44,7 +42,7 @@ func (it *TableHeapIterator) Next() *tuple.Tuple {
 	currentPage := CastPageAsTablePage(bpm.FetchPage(it.tuple.GetRID().GetPageId()))
 	currentPage.RLatch()
 
-	nextTupleRID := currentPage.GetNextTupleRID(it.tuple.GetRID())
+	nextTupleRID := currentPage.GetNextTupleRID(it.tuple.GetRID(), false)
 	if nextTupleRID == nil {
 		// VARIANT: currentPage is always RLatched after loop
 		for currentPage.GetNextPageId().IsValid() {
@@ -53,14 +51,10 @@ func (it *TableHeapIterator) Next() *tuple.Tuple {
 			bpm.UnpinPage(currentPage.GetTablePageId(), false)
 			currentPage = nextPage
 			currentPage.RLatch()
-			//nextTupleRID = currentPage.GetNextTupleRID(it.tuple.GetRID())
-			// when move to next page, slot number should be reset
-			nextTupleRID = currentPage.GetNextTupleRID(&page.RID{currentPage.GetPageId(), 0})
+			nextTupleRID = currentPage.GetNextTupleRID(it.tuple.GetRID(), true)
+
 			if nextTupleRID != nil {
 				break
-			} else {
-				// TODO: (SDB) this block is for debugging at TableHeapIterator::Next()
-				fmt.Println("nextTupleRID == nil!")
 			}
 		}
 	}
@@ -68,12 +62,8 @@ func (it *TableHeapIterator) Next() *tuple.Tuple {
 
 	if nextTupleRID != nil && nextTupleRID.GetPageId().IsValid() {
 		it.tuple = it.tableHeap.GetTuple(nextTupleRID, it.txn)
-		if it.tuple == nil {
-			fmt.Println("it.tuple is nil at TableHeapIterator::Next() (1)")
-		}
 	} else {
 		it.tuple = nil
-		fmt.Println("it.tuple is nil at TableHeapIterator::Next() (2)")
 	}
 
 	bpm.UnpinPage(currentPage.GetTablePageId(), false)

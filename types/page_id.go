@@ -6,7 +6,6 @@ package types
 import (
 	"bytes"
 	"encoding/binary"
-	"fmt"
 )
 
 // PageID is the type of the page identifier
@@ -17,10 +16,7 @@ const InvalidPageID = PageID(-1)
 
 // IsValid checks if id is valid
 func (id PageID) IsValid() bool {
-	ret := id != InvalidPageID || id >= 0
-	fmt.Printf("isValid: %v %v", id, ret)
-	fmt.Println("")
-	return ret
+	return id != InvalidPageID || id >= 0
 }
 
 // Serialize casts it to []byte

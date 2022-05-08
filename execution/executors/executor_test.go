@@ -1677,7 +1677,6 @@ func TestTestTableGenerator(t *testing.T) {
 	txn_mgr.Commit(txn)
 }
 
-/*
 func TestSimpleAggregation(t *testing.T) {
 	// SELECT COUNT(colA), SUM(colA), min(colA), max(colA) from test_1;
 	os.Remove("test.db")
@@ -1791,8 +1790,7 @@ func TestSimpleGroupByAggregation(t *testing.T) {
 		countA := *MakeAggregateValueExpression(false, 0).(*expression.AggregateValueExpression)
 		sumC := *MakeAggregateValueExpression(false, 1).(*expression.AggregateValueExpression)
 		// Make having clause
-		// TODO: (SDB) constant value of Having clause is changed from 100 to 0 for debugging (TestSimpleGroupByAggregation)
-		pred_const := types.NewInteger(3)
+		pred_const := types.NewInteger(int32(TEST1_SIZE / 10))
 		//pred_const := types.NewInteger(100)
 		having := MakeComparisonExpression(&countA, MakeConstantValueExpression(&pred_const), expression.GreaterThan)
 
@@ -1817,9 +1815,7 @@ func TestSimpleGroupByAggregation(t *testing.T) {
 		fmt.Println("")
 		fmt.Printf("%d %d %d\n", countA, colB, sumC)
 
-		//TODO: (SDB) need to check validity of countA at TestSimpleGroupByAggregation
-		//            and to know why value must be greater than 100 on TEST1_SIZE is 1000
-		testingpkg.Assert(t, countA > 3, "countA result is not greater than 3")
+		testingpkg.Assert(t, countA > int32(TEST1_SIZE/100), "countA result is not greater than 3")
 
 		// should have unique colBs.
 		_, ok := encountered[colB]
@@ -1831,4 +1827,3 @@ func TestSimpleGroupByAggregation(t *testing.T) {
 
 	txn_mgr.Commit(txn)
 }
-*/
