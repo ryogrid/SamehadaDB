@@ -28,23 +28,24 @@ type Comparison struct {
 	*AbstractExpression
 	comparisonType ComparisonType
 	//children       []Expression
-	children_left  ColumnValue
+	//children_left  ColumnValue
+	children_left  Expression
 	children_right Expression
 }
 
-func NewComparison(left ColumnValue, right Expression, comparisonType ComparisonType, colType types.TypeID) Expression {
+func NewComparison(left Expression, right Expression, comparisonType ComparisonType, colType types.TypeID) Expression {
 	ret := &Comparison{&AbstractExpression{[2]Expression{}, colType}, comparisonType, left, right}
-	ret.SetChildAt(0, &left)
+	ret.SetChildAt(0, left)
 	ret.SetChildAt(1, right)
 	return ret
 }
 
-func NewComparisonAsComparison(left ColumnValue, right Expression, comparisonType ComparisonType, colType types.TypeID) *Comparison {
-	ret := &Comparison{&AbstractExpression{[2]Expression{}, colType}, comparisonType, left, right}
-	ret.SetChildAt(0, &left)
-	ret.SetChildAt(1, right)
-	return ret
-}
+//func NewComparisonAsComparison(left ColumnValue, right Expression, comparisonType ComparisonType, colType types.TypeID) *Comparison {
+//	ret := &Comparison{&AbstractExpression{[2]Expression{}, colType}, comparisonType, left, right}
+//	ret.SetChildAt(0, &left)
+//	ret.SetChildAt(1, right)
+//	return ret
+//}
 
 func (c *Comparison) Evaluate(tuple *tuple.Tuple, schema *schema.Schema) types.Value {
 	lhs := c.children[0].Evaluate(tuple, schema)
@@ -75,7 +76,7 @@ func (c *Comparison) performComparison(lhs types.Value, rhs types.Value) bool {
 // }
 
 func (c *Comparison) GetLeftSideColIdx() uint32 {
-	return c.children_left.colIndex
+	return c.children_left.(*ColumnValue).colIndex
 }
 
 func (c *Comparison) GetRightSideValue(tuple *tuple.Tuple, schema *schema.Schema) types.Value {

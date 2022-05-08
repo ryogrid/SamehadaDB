@@ -164,9 +164,10 @@ func MakeColumnValueExpression(schema_ *schema.Schema, tuple_idx uint32,
 
 func MakeComparisonExpression(lhs expression.Expression, rhs expression.Expression,
 	comp_type expression.ComparisonType) expression.Expression {
-	casted_lhs := lhs.(*expression.ColumnValue)
+	//casted_lhs := lhs.(*expression.ColumnValue)
+	//ret_exp := expression.NewComparison(casted_lhs, rhs, comp_type, types.Boolean)
 
-	ret_exp := expression.NewComparison(*casted_lhs, rhs, comp_type, types.Boolean)
+	ret_exp := expression.NewComparison(lhs, rhs, comp_type, types.Boolean)
 	return ret_exp
 }
 

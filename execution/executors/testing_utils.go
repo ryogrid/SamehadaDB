@@ -65,7 +65,7 @@ func ExecuteSeqScanTestCase(t *testing.T, testCase SeqScanTestCase) {
 	// tmpColVal.SetReturnType(GetValueType(testCase.Predicate.RightColumn))
 	tmpColVal_ := expression.NewColumnValue(0, testCase.TableMetadata.Schema().GetColIndex(testCase.Predicate.LeftColumn), GetValueType(testCase.Predicate.RightColumn))
 	tmpColVal := tmpColVal_.(*expression.ColumnValue)
-	expression := expression.NewComparison(*tmpColVal, expression.NewConstantValue(GetValue(testCase.Predicate.RightColumn), GetValueType(testCase.Predicate.RightColumn)), testCase.Predicate.Operator, types.Boolean)
+	expression := expression.NewComparison(tmpColVal, expression.NewConstantValue(GetValue(testCase.Predicate.RightColumn), GetValueType(testCase.Predicate.RightColumn)), testCase.Predicate.Operator, types.Boolean)
 	seqPlan := plans.NewSeqScanPlanNode(outSchema, &expression, testCase.TableMetadata.OID())
 
 	results := testCase.ExecutionEngine.Execute(seqPlan, testCase.ExecutorContext)
@@ -105,8 +105,9 @@ func ExecuteHashIndexScanTestCase(t *testing.T, testCase HashIndexScanTestCase) 
 	// tmpColVal.SetReturnType(GetValueType(testCase.Predicate.RightColumn))
 	tmpColVal_ := expression.NewColumnValue(0, testCase.TableMetadata.Schema().GetColIndex(testCase.Predicate.LeftColumn), GetValueType(testCase.Predicate.RightColumn))
 	tmpColVal := tmpColVal_.(*expression.ColumnValue)
-	expression := expression.NewComparisonAsComparison(*tmpColVal, expression.NewConstantValue(GetValue(testCase.Predicate.RightColumn), GetValueType(testCase.Predicate.RightColumn)), testCase.Predicate.Operator, types.Boolean)
-	hashIndexScanPlan := plans.NewHashScanIndexPlanNode(outSchema, expression, testCase.TableMetadata.OID())
+	//expression := expression.NewComparisonAsComparison(*tmpColVal, expression.NewConstantValue(GetValue(testCase.Predicate.RightColumn), GetValueType(testCase.Predicate.RightColumn)), testCase.Predicate.Operator, types.Boolean)
+	expression_ := expression.NewComparison(tmpColVal, expression.NewConstantValue(GetValue(testCase.Predicate.RightColumn), GetValueType(testCase.Predicate.RightColumn)), testCase.Predicate.Operator, types.Boolean)
+	hashIndexScanPlan := plans.NewHashScanIndexPlanNode(outSchema, expression_.(*expression.Comparison), testCase.TableMetadata.OID())
 
 	results := testCase.ExecutionEngine.Execute(hashIndexScanPlan, testCase.ExecutorContext)
 
@@ -144,7 +145,7 @@ func ExecuteDeleteTestCase(t *testing.T, testCase DeleteTestCase) {
 	// tmpColVal.SetReturnType(GetValueType(testCase.Predicate.RightColumn))
 	tmpColVal_ := expression.NewColumnValue(0, testCase.TableMetadata.Schema().GetColIndex(testCase.Predicate.LeftColumn), GetValueType(testCase.Predicate.RightColumn))
 	tmpColVal := tmpColVal_.(*expression.ColumnValue)
-	expression := expression.NewComparison(*tmpColVal, expression.NewConstantValue(GetValue(testCase.Predicate.RightColumn), GetValueType(testCase.Predicate.RightColumn)), testCase.Predicate.Operator, types.Boolean)
+	expression := expression.NewComparison(tmpColVal, expression.NewConstantValue(GetValue(testCase.Predicate.RightColumn), GetValueType(testCase.Predicate.RightColumn)), testCase.Predicate.Operator, types.Boolean)
 	hashIndexScanPlan := plans.NewDeletePlanNode(expression, testCase.TableMetadata.OID())
 
 	testCase.ExecutorContext.SetTransaction(txn)
