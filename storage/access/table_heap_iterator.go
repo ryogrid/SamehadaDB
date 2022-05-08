@@ -4,6 +4,7 @@
 package access
 
 import (
+	"fmt"
 	"github.com/ryogrid/SamehadaDB/storage/tuple"
 )
 
@@ -54,15 +55,23 @@ func (it *TableHeapIterator) Next() *tuple.Tuple {
 			nextTupleRID = currentPage.GetNextTupleRID(it.tuple.GetRID())
 			if nextTupleRID != nil {
 				break
+			} else {
+				// TODO: (SDB) this block is for debugging at TableHeapIterator::Next()
+				fmt.Println("nextTupleRID == nil!")
 			}
+
 		}
 	}
 	currentPage.RUnlatch()
 
 	if nextTupleRID != nil && nextTupleRID.GetPageId().IsValid() {
 		it.tuple = it.tableHeap.GetTuple(nextTupleRID, it.txn)
+		if it.tuple == nil {
+			fmt.Println("it.tuple is nil at TableHeapIterator::Next() (1)")
+		}
 	} else {
 		it.tuple = nil
+		fmt.Println("it.tuple is nil at TableHeapIterator::Next() (2)")
 	}
 
 	bpm.UnpinPage(currentPage.GetTablePageId(), false)

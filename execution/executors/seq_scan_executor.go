@@ -5,6 +5,7 @@ package executors
 
 import (
 	"errors"
+	"fmt"
 
 	"github.com/ryogrid/SamehadaDB/catalog"
 	"github.com/ryogrid/SamehadaDB/execution/expression"
@@ -48,6 +49,7 @@ func (e *SeqScanExecutor) Next() (*tuple.Tuple, Done, error) {
 	for t := e.it.Current(); !e.it.End(); t = e.it.Next() {
 		if t == nil {
 			err := errors.New("e.it.Next returned nil")
+			panic("e.it.Next returned nil at SecScanExecutor::Next()")
 			return nil, true, err
 		}
 		if e.selects(t, e.plan.GetPredicate()) {
@@ -61,6 +63,7 @@ func (e *SeqScanExecutor) Next() (*tuple.Tuple, Done, error) {
 		return e.projects(e.it.Current()), false, nil
 	}
 
+	fmt.Println("e.it.End() is true at SecScanExecutor::Next()")
 	return nil, true, nil
 }
 
