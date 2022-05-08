@@ -1738,6 +1738,8 @@ func TestSimpleAggregation(t *testing.T) {
 	testingpkg.Assert(t, maxA_val == int32(TEST1_SIZE-1), "maxA_val is not expected value.")
 	tuple_, done, err := executor.Next()
 	testingpkg.Assert(t, tuple_ == nil && done == true && err == nil, "second call of AggregationExecutor::Next() failed")
+
+	txn_mgr.Commit(txn)
 }
 
 func TestSimpleGroupByAggregation(t *testing.T) {
@@ -1818,6 +1820,7 @@ func TestSimpleGroupByAggregation(t *testing.T) {
 		encountered[colB] = colB
 		// Sanity check: ColB should also be within [0, 10).
 		testingpkg.Assert(t, 0 <= colB && colB < 10, "sanity check of colB failed")
-
 	}
+
+	txn_mgr.Commit(txn)
 }
