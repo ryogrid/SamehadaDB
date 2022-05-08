@@ -1665,12 +1665,14 @@ func TestTestTableGenerator(t *testing.T) {
 	executionEngine := &ExecutionEngine{}
 
 	results := executionEngine.Execute(seqPlan, exec_ctx)
-	fmt.Printf("len(results) => %d¥n", len(results))
+	fmt.Printf("len(results) => %d", len(results))
+	fmt.Println("")
 	testingpkg.Assert(t, len(results) == int(TEST1_SIZE), "generated table or testcase is wrong.")
 
 	txn_mgr.Commit(txn)
 }
 
+/*
 func TestSimpleAggregation(t *testing.T) {
 	// SELECT COUNT(colA), SUM(colA), min(colA), max(colA) from test_1;
 	os.Remove("test.db")
@@ -1824,3 +1826,4 @@ func TestSimpleGroupByAggregation(t *testing.T) {
 
 	txn_mgr.Commit(txn)
 }
+*/
