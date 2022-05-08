@@ -1782,7 +1782,9 @@ func TestSimpleGroupByAggregation(t *testing.T) {
 		countA := *MakeAggregateValueExpression(false, 0).(*expression.AggregateValueExpression)
 		sumC := *MakeAggregateValueExpression(false, 1).(*expression.AggregateValueExpression)
 		// Make having clause
-		pred_const := types.NewInteger(100)
+		// TODO: (SDB) constant value of Having clause is changed from 100 to 0 for debugging (TestSimpleGroupByAggregation)
+		pred_const := types.NewInteger(3)
+		//pred_const := types.NewInteger(100)
 		having := MakeComparisonExpression(&countA, MakeConstantValueExpression(&pred_const), expression.GreaterThan)
 
 		agg_schema = MakeOutputSchemaAgg([]MakeSchemaMetaAgg{{"countA", countA}, {"colB", groupbyB}, {"sumC", sumC}})
@@ -1808,7 +1810,7 @@ func TestSimpleGroupByAggregation(t *testing.T) {
 
 		//TODO: (SDB) need to check validity of countA at TestSimpleGroupByAggregation
 		//            and to know why value must be greater than 100 on TEST1_SIZE is 1000
-		//testingpkg.Assert(t, countA > 100, "countA result is not greater than 100")
+		testingpkg.Assert(t, countA > 3, "countA result is not greater than 3")
 
 		// should have unique colBs.
 		_, ok := encountered[colB]
@@ -1819,62 +1821,3 @@ func TestSimpleGroupByAggregation(t *testing.T) {
 
 	}
 }
-
-//   TEST_F(ExecutorTest, SimpleGroupByAggregation) {
-// 	// SELECT count(colA), colB, sum(C) FROM test_1 Group By colB HAVING count(colA) > 100
-// 	std::unique_ptr<AbstractPlanNode> scan_plan;
-// 	const Schema *scan_schema;
-// 	{
-// 	  auto table_info = GetExecutorContext()->GetCatalog()->GetTable("test_1");
-// 	  auto &schema = table_info->schema_;
-// 	  auto colA = MakeColumnValueExpression(schema, 0, "colA");
-// 	  auto colB = MakeColumnValueExpression(schema, 0, "colB");
-// 	  auto colC = MakeColumnValueExpression(schema, 0, "colC");
-// 	  scan_schema = MakeOutputSchema({{"colA", colA}, {"colB", colB}, {"colC", colC}});
-// 	  scan_plan = std::make_unique<SeqScanPlanNode>(scan_schema, nullptr, table_info->oid_);
-// 	}
-
-// 	std::unique_ptr<AbstractPlanNode> agg_plan;
-// 	const Schema *agg_schema;
-// 	{
-// 	  const AbstractExpression *colA = MakeColumnValueExpression(*scan_schema, 0, "colA");
-// 	  const AbstractExpression *colB = MakeColumnValueExpression(*scan_schema, 0, "colB");
-// 	  const AbstractExpression *colC = MakeColumnValueExpression(*scan_schema, 0, "colC");
-// 	  // Make group bys
-// 	  std::vector<const AbstractExpression *> group_by_cols{colB};
-// 	  const AbstractExpression *groupbyB = MakeAggregateValueExpression(true, 0);
-// 	  // Make aggregates
-// 	  std::vector<const AbstractExpression *> aggregate_cols{colA, colC};
-// 	  std::vector<AggregationType> agg_types{AggregationType::CountAggregate, AggregationType::SumAggregate};
-// 	  const AbstractExpression *countA = MakeAggregateValueExpression(false, 0);
-// 	  const AbstractExpression *sumC = MakeAggregateValueExpression(false, 1);
-// 	  // Make having clause
-// 	  const AbstractExpression *having = MakeComparisonExpression(
-// 		  countA, MakeConstantValueExpression(ValueFactory::GetIntegerValue(100)), ComparisonType::GreaterThan);
-
-// 	  // Create plan
-// 	  agg_schema = MakeOutputSchema({{"countA", countA}, {"colB", groupbyB}, {"sumC", sumC}});
-// 	  agg_plan = std::make_unique<AggregationPlanNode>(agg_schema, scan_plan.get(), having, std::move(group_by_cols),
-// 													   std::move(aggregate_cols), std::move(agg_types));
-// 	}
-// 	auto executor = ExecutorFactory::CreateExecutor(GetExecutorContext(), agg_plan.get());
-// 	executor->Init();
-// 	Tuple tuple;
-
-// 	std::unordered_set<int32_t> encountered;
-// 	std::cout << "countA, colB, sumC" << std::endl;
-// 	while (executor->Next(&tuple)) {
-// 	  // Should have countA > 100
-// 	  ASSERT_GT(tuple.GetValue(agg_schema, agg_schema->GetColIdx("countA")).GetAs<int32_t>(), 100);
-// 	  // Should have unique colBs.
-// 	  auto colB = tuple.GetValue(agg_schema, agg_schema->GetColIdx("colB")).GetAs<int32_t>();
-// 	  ASSERT_EQ(encountered.count(colB), 0);
-// 	  encountered.insert(colB);
-// 	  // Sanity check: ColB should also be within [0, 10).
-// 	  ASSERT_TRUE(0 <= colB && colB < 10);
-
-// 	  std::cout << tuple.GetValue(agg_schema, agg_schema->GetColIdx("countA")).GetAs<int32_t>() << ", "
-// 				<< tuple.GetValue(agg_schema, agg_schema->GetColIdx("colB")).GetAs<int32_t>() << ", "
-// 				<< tuple.GetValue(agg_schema, agg_schema->GetColIdx("sumC")).GetAs<int32_t>() << std::endl;
-// 	}
-//   }
