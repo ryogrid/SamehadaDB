@@ -5,6 +5,7 @@ package access
 
 import (
 	"fmt"
+	"github.com/ryogrid/SamehadaDB/storage/page"
 	"github.com/ryogrid/SamehadaDB/storage/tuple"
 )
 
@@ -52,7 +53,9 @@ func (it *TableHeapIterator) Next() *tuple.Tuple {
 			bpm.UnpinPage(currentPage.GetTablePageId(), false)
 			currentPage = nextPage
 			currentPage.RLatch()
-			nextTupleRID = currentPage.GetNextTupleRID(it.tuple.GetRID())
+			//nextTupleRID = currentPage.GetNextTupleRID(it.tuple.GetRID())
+			// when move to next page, slot number should be reset
+			nextTupleRID = currentPage.GetNextTupleRID(&page.RID{currentPage.GetPageId(), 0})
 			if nextTupleRID != nil {
 				break
 			} else {

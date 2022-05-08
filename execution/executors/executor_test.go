@@ -1657,6 +1657,11 @@ func TestTestTableGenerator(t *testing.T) {
 
 	table_info, _ := GenerateTestTabls(c, exec_ctx, txn)
 
+	//txn_mgr.Commit(txn)
+	//shi.GetBufferPoolManager().FlushAllPages()
+	//txn = txn_mgr.Begin(nil)
+	//exec_ctx.SetTransaction(txn)
+
 	outColumnA := column.NewColumn("colA", types.Integer, false, nil)
 	outSchema := schema.NewSchema([]*column.Column{outColumnA})
 
