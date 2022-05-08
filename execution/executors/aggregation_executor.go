@@ -1,214 +1,325 @@
 package executors
 
-// TODO: (SDB) need port AggregationExecutor class and etc
+import (
+	"fmt"
+	"math"
 
-// /**
-//  * A simplified hash table that has all the necessary functionality for aggregations.
-//  */
-//  class SimpleAggregationHashTable {
-// 	public:
-// 	 /**
-// 	  * Create a new simplified aggregation hash table.
-// 	  * @param agg_exprs the aggregation expressions
-// 	  * @param agg_types the types of aggregations
-// 	  */
-// 	 SimpleAggregationHashTable(const std::vector<const AbstractExpression *> &agg_exprs,
-// 								const std::vector<AggregationType> &agg_types)
-// 		 : agg_exprs_{agg_exprs}, agg_types_{agg_types} {}
+	"github.com/ryogrid/SamehadaDB/container/hash"
+	"github.com/ryogrid/SamehadaDB/execution/expression"
+	"github.com/ryogrid/SamehadaDB/execution/plans"
+	"github.com/ryogrid/SamehadaDB/storage/table/schema"
+	"github.com/ryogrid/SamehadaDB/storage/tuple"
+	"github.com/ryogrid/SamehadaDB/types"
+)
 
-// 	 /** @return the initial aggregrate value for this aggregation executor */
-// 	 AggregateValue GenerateInitialAggregateValue() {
-// 	   std::vector<Value> values;
-// 	   for (const auto &agg_type : agg_types_) {
-// 		 switch (agg_type) {
-// 		   case AggregationType::CountAggregate:
-// 			 // Count starts at zero.
-// 			 values.emplace_back(ValueFactory::GetIntegerValue(0));
-// 			 break;
-// 		   case AggregationType::SumAggregate:
-// 			 // Sum starts at zero.
-// 			 values.emplace_back(ValueFactory::GetIntegerValue(0));
-// 			 break;
-// 		   case AggregationType::MinAggregate:
-// 			 // Min starts at INT_MAX.
-// 			 values.emplace_back(ValueFactory::GetIntegerValue(BUSTUB_INT32_MAX));
-// 			 break;
-// 		   case AggregationType::MaxAggregate:
-// 			 // Max starts at INT_MIN.
-// 			 values.emplace_back(ValueFactory::GetIntegerValue(BUSTUB_INT32_MIN));
-// 			 break;
-// 		 }
-// 	   }
-// 	   return {values};
-// 	 }
+/**
+ * An iterator through the simplified aggregation hash table.
+ */
+type AggregateHTIterator struct {
+	/** Aggregates map. */
+	keys   []*plans.AggregateKey
+	values []*plans.AggregateValue
+	index  int32
+}
 
-// 	 /** Combines the input into the aggregation result. */
-// 	 void CombineAggregateValues(AggregateValue *result, const AggregateValue &input) {
-// 	   for (uint32_t i = 0; i < agg_exprs_.size(); i++) {
-// 		 switch (agg_types_[i]) {
-// 		   case AggregationType::CountAggregate:
-// 			 // Count increases by one.
-// 			 result->aggregates_[i] = result->aggregates_[i].Add(ValueFactory::GetIntegerValue(1));
-// 			 break;
-// 		   case AggregationType::SumAggregate:
-// 			 // Sum increases by addition.
-// 			 result->aggregates_[i] = result->aggregates_[i].Add(input.aggregates_[i]);
-// 			 break;
-// 		   case AggregationType::MinAggregate:
-// 			 // Min is just the min.
-// 			 result->aggregates_[i] = result->aggregates_[i].Min(input.aggregates_[i]);
-// 			 break;
-// 		   case AggregationType::MaxAggregate:
-// 			 // Max is just the max.
-// 			 result->aggregates_[i] = result->aggregates_[i].Max(input.aggregates_[i]);
-// 			 break;
-// 		 }
-// 	   }
-// 	 }
+/** Creates an iterator for the aggregate map. */
+func NewAggregateHTIteratorIterator(keys []*plans.AggregateKey, values []*plans.AggregateValue) *AggregateHTIterator {
+	ret := new(AggregateHTIterator)
+	ret.keys = keys
+	ret.values = values
+	ret.index = 0
+	return ret
+}
 
-// 	 /**
-// 	  * Inserts a value into the hash table and then combines it with the current aggregation.
-// 	  * @param agg_key the key to be inserted
-// 	  * @param agg_val the value to be inserted
-// 	  */
-// 	 void InsertCombine(const AggregateKey &agg_key, const AggregateValue &agg_val) {
-// 	   if (ht.count(agg_key) == 0) {
-// 		 ht.insert({agg_key, GenerateInitialAggregateValue()});
-// 	   }
-// 	   CombineAggregateValues(&ht[agg_key], agg_val);
-// 	 }
+func (it *AggregateHTIterator) Next() bool {
+	key_len := int32(len(it.keys))
+	it.index++
+	return it.index >= key_len
+}
 
-// 	 /**
-// 	  * An iterator through the simplified aggregation hash table.
-// 	  */
-// 	 class Iterator {
-// 	  public:
-// 	   /** Creates an iterator for the aggregate map. */
-// 	   explicit Iterator(std::unordered_map<AggregateKey, AggregateValue>::const_iterator iter) : iter_(iter) {}
+func (it *AggregateHTIterator) Key() *plans.AggregateKey {
+	if it.index >= int32(len(it.keys)) {
+		return nil
+	}
+	return it.keys[it.index]
+}
 
-// 	   /** @return the key of the iterator */
-// 	   const AggregateKey &Key() { return iter_->first; }
+func (it *AggregateHTIterator) Val() *plans.AggregateValue {
+	if it.index >= int32(len(it.values)) {
+		return nil
+	}
+	return it.values[it.index]
+}
 
-// 	   /** @return the value of the iterator */
-// 	   const AggregateValue &Val() { return iter_->second; }
+func (it *AggregateHTIterator) IsEnd() bool {
+	return it.index >= int32(len(it.keys))
+}
 
-// 	   /** @return the iterator before it is incremented */
-// 	   Iterator &operator++() {
-// 		 ++iter_;
-// 		 return *this;
-// 	   }
+// return whether iterator is End state if Next method is called
+func (it *AggregateHTIterator) IsNextEnd() bool {
+	return it.index+1 >= int32(len(it.keys))
+}
 
-// 	   /** @return true if both iterators are identical */
-// 	   bool operator==(const Iterator &other) { return this->iter_ == other.iter_; }
+//    /** @return the key of the iterator */
+//     AggregateKey &Key() { return iter_.first; }
 
-// 	   /** @return true if both iterators are different */
-// 	   bool operator!=(const Iterator &other) { return this->iter_ != other.iter_; }
+//    /** @return the value of the iterator */
+//     AggregateValue &Val() { return iter_.second; }
 
-// 	  private:
-// 	   /** Aggregates map. */
-// 	   std::unordered_map<AggregateKey, AggregateValue>::const_iterator iter_;
-// 	 };
+//    /** @return the iterator before it is incremented */
+//    Iterator &operator++() {
+// 	 ++iter_;
+// 	 return *this;
+//    }
 
-// 	 /** @return iterator to the start of the hash table */
-// 	 Iterator Begin() { return Iterator{ht.cbegin()}; }
+//    /** @return true if both iterators are identical */
+//    bool operator==( Iterator &other) { return this.iter_ == other.iter_; }
 
-// 	 /** @return iterator to the end of the hash table */
-// 	 Iterator End() { return Iterator{ht.cend()}; }
+//    /** @return true if both iterators are different */
+//    bool operator!=( Iterator &other) { return this.iter_ != other.iter_; }
 
-// 	private:
-// 	 /** The hash table is just a map from aggregate keys to aggregate values. */
-// 	 std::unordered_map<AggregateKey, AggregateValue> ht{};
-// 	 /** The aggregate expressions that we have. */
-// 	 const std::vector<const AbstractExpression *> &agg_exprs_;
-// 	 /** The types of aggregations that we have. */
-// 	 const std::vector<AggregationType> &agg_types_;
-//    };
+/**
+ * A simplified hash table that has all the necessary functionality for aggregations.
+ */
+type SimpleAggregationHashTable struct {
+	/** The hash table is just a map from hash val of aggregate keys to aggregate values. */
+	ht_val map[uint32]*plans.AggregateValue
+	/** The hash table is just a map from hash val of aggregate keys to aggregate keys. */
+	ht_key map[uint32]*plans.AggregateKey
+	/** The aggregate expressions that we have. */
+	agg_exprs_ []expression.Expression
+	/** The types of aggregations that we have. */
+	agg_types_ []plans.AggregationType
+}
 
-//    /**
-// 	* AggregationExecutor executes an aggregation operation (e.g. COUNT, SUM, MIN, MAX) on the tuples of a child executor.
-// 	*/
-//    class AggregationExecutor : public AbstractExecutor {
-// 	public:
-// 	 /**
-// 	  * Creates a new aggregation executor.
-// 	  * @param exec_ctx the context that the aggregation should be performed in
-// 	  * @param plan the aggregation plan node
-// 	  * @param child the child executor
-// 	  */
-// 	 AggregationExecutor(ExecutorContext *exec_ctx, const AggregationPlanNode *plan,
-// 						 std::unique_ptr<AbstractExecutor> &&child)
-// 		 : AbstractExecutor(exec_ctx),
-// 		   aht_(plan->GetAggregates(), plan->GetAggregateTypes()),
-// 		   aht_iterator_(aht_.Begin()) {
-// 	   plan_ = plan;
-// 	   child_ = std::move(child);
-// 	 }
+/**
+ * Create a new simplified aggregation hash table.
+ * @param agg_exprs the aggregation expressions
+ * @param agg_types the types of aggregations
+ */
+func NewSimpleAggregationHashTable(agg_exprs []expression.Expression, agg_types []plans.AggregationType) *SimpleAggregationHashTable {
+	ret := new(SimpleAggregationHashTable)
+	ret.ht_val = make(map[uint32]*plans.AggregateValue)
+	ret.ht_key = make(map[uint32]*plans.AggregateKey)
+	ret.agg_exprs_ = agg_exprs
+	ret.agg_types_ = agg_types
+	return ret
+}
 
-// 	 /** Do not use or remove this function, otherwise you will get zero points. */
-// 	 const AbstractExecutor *GetChildExecutor() const { return child_.get(); }
+// geneate a hash value from types.Value objs plans.AggregateKey has
+func HashValuesOnAggregateKey(key *plans.AggregateKey) uint32 {
+	input_bytes := make([]byte, 0)
+	for _, val := range key.Group_bys_ {
+		input_bytes = append(input_bytes, val.Serialize()...)
+	}
+	return hash.GenHashMurMur(input_bytes)
+}
 
-// 	 const Schema *GetOutputSchema() override { return plan_->OutputSchema(); }
+/** @return the initial aggregrate value for this aggregation executor */
+func (ht *SimpleAggregationHashTable) GenerateInitialAggregateValue() *plans.AggregateValue {
+	var values []*types.Value
+	for _, agg_type := range ht.agg_types_ {
+		switch agg_type {
+		case plans.COUNT_AGGREGATE:
+			// Count starts at zero.
+			new_elem := types.NewInteger(0)
+			values = append(values, &new_elem)
+		case plans.SUM_AGGREGATE:
+			// Sum starts at zero.
+			new_elem := types.NewInteger(0)
+			values = append(values, &new_elem)
+		case plans.MIN_AGGREGATE:
+			// Min starts at INT_MAX.
+			new_elem := types.NewInteger(math.MaxInt32)
+			values = append(values, &new_elem)
+		case plans.MAX_AGGREGATE:
+			// Max starts at INT_MIN.
+			new_elem := types.NewInteger(math.MinInt32)
+			values = append(values, &new_elem)
+		}
+	}
+	return &plans.AggregateValue{Aggregates_: values}
+}
 
-// 	 void Init() override {
-// 	   Tuple tuple;
-// 	   child_->Init();
-// 	   while (child_->Next(&tuple)) {
-// 		 aht_.InsertCombine(MakeKey(&tuple), MakeVal(&tuple));
-// 	   }
-// 	   aht_iterator_ = aht_.Begin();
-// 	 }
+/** Combines the input into the aggregation result. */
+func (aht *SimpleAggregationHashTable) CombineAggregateValues(result *plans.AggregateValue, input *plans.AggregateValue) {
+	for i := 0; i < len(aht.agg_exprs_); i++ {
+		switch aht.agg_types_[i] {
+		case plans.COUNT_AGGREGATE:
+			// Count increases by one.
+			add_val := types.NewInteger(1)
+			result.Aggregates_[i] = result.Aggregates_[i].Add(&add_val)
+		case plans.SUM_AGGREGATE:
+			// Sum increases by addition.
+			result.Aggregates_[i] = result.Aggregates_[i].Add(input.Aggregates_[i])
+		case plans.MIN_AGGREGATE:
+			// Min is just the min.
+			result.Aggregates_[i] = result.Aggregates_[i].Min(input.Aggregates_[i])
+		case plans.MAX_AGGREGATE:
+			// Max is just the max.
+			result.Aggregates_[i] = result.Aggregates_[i].Max(input.Aggregates_[i])
+		}
+	}
+}
 
-// 	 bool Next(Tuple *tuple) override {
-// 	   if (aht_iterator_ == aht_.End()) {
-// 		 return false;
-// 	   }
-// 	   while (aht_iterator_ != aht_.End()) {
-// 		 if (plan_->GetHaving() != nullptr) {
-// 		   if (!plan_->GetHaving()
-// 					->EvaluateAggregate(aht_iterator_.Key().group_bys_, aht_iterator_.Val().aggregates_)
-// 					.GetAs<bool>()) {
-// 			 aht_iterator_.operator++();
-// 			 continue;
-// 		   }
-// 		 }
-// 		 std::vector<Value> values;
-// 		 for (auto col : plan_->OutputSchema()->GetColumns()) {
-// 		   values.push_back(
-// 			   col.GetExpr()->EvaluateAggregate(aht_iterator_.Key().group_bys_, aht_iterator_.Val().aggregates_));
-// 		 }
-// 		 aht_iterator_.operator++();
-// 		 Tuple tuple1(values, plan_->OutputSchema());
-// 		 *tuple = tuple1;
-// 		 return true;
-// 	   }
-// 	   return false;
-// 	 }
+/**
+ * Inserts a value into the hash table and then combines it with the current aggregation.
+ * @param agg_key the key to be inserted
+ * @param agg_val the value to be inserted
+ */
+func (aht *SimpleAggregationHashTable) InsertCombine(agg_key *plans.AggregateKey, agg_val *plans.AggregateValue) {
+	hashval_of_aggkey := HashValuesOnAggregateKey(agg_key)
+	fmt.Printf("%v ", hashval_of_aggkey)
+	if _, ok := aht.ht_val[hashval_of_aggkey]; !ok {
+		aht.ht_val[hashval_of_aggkey] = aht.GenerateInitialAggregateValue()
+		//aht.ht.insert({agg_key, GenerateInitialAggregateValue()})
+	}
+	cur_val := aht.ht_val[hashval_of_aggkey]
+	aht.CombineAggregateValues(cur_val, agg_val)
 
-// 	 /** @return the tuple as an AggregateKey */
-// 	 AggregateKey MakeKey(const Tuple *tuple) {
-// 	   std::vector<Value> keys;
-// 	   for (const auto &expr : plan_->GetGroupBys()) {
-// 		 keys.emplace_back(expr->Evaluate(tuple, child_->GetOutputSchema()));
-// 	   }
-// 	   return {keys};
-// 	 }
+	// additional data store for realize iterator
+	if _, ok := aht.ht_key[hashval_of_aggkey]; !ok {
+		aht.ht_key[hashval_of_aggkey] = agg_key
+	}
+}
 
-// 	 /** @return the tuple as an AggregateValue */
-// 	 AggregateValue MakeVal(const Tuple *tuple) {
-// 	   std::vector<Value> vals;
-// 	   for (const auto &expr : plan_->GetAggregates()) {
-// 		 vals.emplace_back(expr->Evaluate(tuple, child_->GetOutputSchema()));
-// 	   }
-// 	   return {vals};
-// 	 }
+/** @return iterator to the start of the hash table */
+func (aht *SimpleAggregationHashTable) Begin() *AggregateHTIterator {
+	var agg_key_list []*plans.AggregateKey = make([]*plans.AggregateKey, 0)
+	var agg_val_list []*plans.AggregateValue = make([]*plans.AggregateValue, 0)
+	for hval, val := range aht.ht_val {
+		agg_key_list = append(agg_key_list, aht.ht_key[hval])
+		agg_val_list = append(agg_val_list, val)
+	}
+	//return Iterator{ht.cbegin()}
+	return NewAggregateHTIteratorIterator(agg_key_list, agg_val_list)
+}
 
-// 	private:
-// 	 /** The aggregation plan node. */
-// 	 const AggregationPlanNode *plan_;
-// 	 /** The child executor whose tuples we are aggregating. */
-// 	 std::unique_ptr<AbstractExecutor> child_;
-// 	 /** Simple aggregation hash table. */
-// 	 SimpleAggregationHashTable aht_;
-// 	 /** Simple aggregation hash table iterator. */
-// 	 SimpleAggregationHashTable::Iterator aht_iterator_;
-//    };
+//  /** @return iterator to the end of the hash table */
+//  Iterator End() { return Iterator{ht.cend()}; }
+
+/**
+* AggregationExecutor executes an aggregation operation (e.g. COUNT, SUM, MIN, MAX) on the tuples of a child executor.
+ */
+type AggregationExecutor struct {
+	context *ExecutorContext
+	/** The aggregation plan node. */
+	plan_ *plans.AggregationPlanNode
+	/** The child executor whose tuples we are aggregating. */
+	child_ []Executor
+	/** Simple aggregation hash table. */
+	aht_ *SimpleAggregationHashTable
+	/** Simple aggregation hash table iterator. */
+	aht_iterator_ *AggregateHTIterator
+	exprs_        []expression.Expression
+}
+
+/**
+ * Creates a new aggregation executor.
+ * @param exec_ctx the context that the aggregation should be performed in
+ * @param plan the aggregation plan node
+ * @param child the child executor
+ */
+func NewAggregationExecutor(exec_ctx *ExecutorContext, plan *plans.AggregationPlanNode,
+	child Executor) *AggregationExecutor {
+	aht := NewSimpleAggregationHashTable(plan.GetAggregates(), plan.GetAggregateTypes())
+	return &AggregationExecutor{exec_ctx, plan, []Executor{child}, aht, nil, []expression.Expression{}}
+}
+
+//  /** Do not use or remove this function, otherwise you will get zero points. */
+//   AbstractExecutor *GetChildExecutor()  { return child_.get() }
+
+func (e *AggregationExecutor) GetOutputSchema() *schema.Schema { return e.plan_.OutputSchema() }
+
+func (e *AggregationExecutor) Init() {
+	//Tuple tuple
+	e.child_[0].Init()
+	child_exec := e.child_[0]
+	output_column_cnt := int(e.GetOutputSchema().GetColumnCount())
+	for i := 0; i < output_column_cnt; i++ {
+		agg_expr := e.GetOutputSchema().GetColumn(uint32(i)).GetExpr().(expression.AggregateValueExpression)
+		e.exprs_ = append(e.exprs_, &agg_expr)
+	}
+	insert_call_cnt := 0
+	for {
+		tuple_, done, err := child_exec.Next()
+		if err != nil || done {
+			fmt.Println(err)
+			break
+		}
+
+		if tuple_ != nil {
+			e.aht_.InsertCombine(e.MakeKey(tuple_), e.MakeVal(tuple_))
+			insert_call_cnt++
+		}
+	}
+	fmt.Println("")
+	fmt.Printf("insert_call_cnt %d\n", insert_call_cnt)
+	e.aht_iterator_ = e.aht_.Begin()
+}
+
+//func (e *AggregationExecutor) Next() (*tuple.Tuple, Done, error) {
+//	if e.aht_iterator_.IsEnd() {
+//		return nil, true, nil
+//	}
+//	for ; !e.aht_iterator_.IsEnd(); e.aht_iterator_.Next() {
+//		if e.plan_.GetHaving() != nil {
+//			if !e.plan_.GetHaving().EvaluateAggregate(e.aht_iterator_.Key().Group_bys_, e.aht_iterator_.Val().Aggregates_).ToBoolean() {
+//				//.GetAs<bool>()) {
+//				//aht_iterator_.operator++()
+//				e.aht_iterator_.Next()
+//				continue
+//			}
+//		}
+//		var values []types.Value = make([]types.Value, 0)
+//		for _, col := range e.plan_.OutputSchema().GetColumns() {
+//			expr := col.GetExpr().(expression.AggregateValueExpression)
+//			values = append(values,
+//				expr.EvaluateAggregate(e.aht_iterator_.Key().Group_bys_, e.aht_iterator_.Val().Aggregates_))
+//			//col.EvaluateAggregate(e.aht_iterator_.Key().Group_bys_, e.aht_iterator_.Val().Aggregates_))
+//		}
+//		//aht_iterator_.operator++()
+//		tuple_ := tuple.NewTupleFromSchema(values, e.plan_.OutputSchema())
+//		return tuple_, false, nil
+//	}
+//	return nil, true, nil
+//}
+
+func (e *AggregationExecutor) Next() (*tuple.Tuple, Done, error) {
+	for !e.aht_iterator_.IsNextEnd() && e.plan_.GetHaving() != nil && !e.plan_.GetHaving().EvaluateAggregate(e.aht_iterator_.Key().Group_bys_, e.aht_iterator_.Val().Aggregates_).ToBoolean() {
+		//++aht_iterator_;
+		e.aht_iterator_.Next()
+	}
+	if e.aht_iterator_.IsEnd() {
+		return nil, true, nil
+	}
+	var values []types.Value = make([]types.Value, 0)
+	for i := 0; i < len(e.exprs_); i++ {
+		values = append(values, e.exprs_[i].EvaluateAggregate(e.aht_iterator_.Key().Group_bys_, e.aht_iterator_.Val().Aggregates_))
+	}
+	tuple_ := tuple.NewTupleFromSchema(values, e.GetOutputSchema())
+	//++aht_iterator_;
+	e.aht_iterator_.Next()
+	return tuple_, false, nil
+}
+
+/** @return the tuple as an AggregateKey */
+func (e *AggregationExecutor) MakeKey(tuple_ *tuple.Tuple) *plans.AggregateKey {
+	var keys []*types.Value = make([]*types.Value, 0)
+	for _, expr := range e.plan_.GetGroupBys() {
+		tmp_val := expr.Evaluate(tuple_, e.child_[0].GetOutputSchema())
+		keys = append(keys, &tmp_val)
+	}
+	return &plans.AggregateKey{Group_bys_: keys}
+}
+
+/** @return the tuple as an AggregateValue */
+func (e *AggregationExecutor) MakeVal(tuple_ *tuple.Tuple) *plans.AggregateValue {
+	var vals []*types.Value = make([]*types.Value, 0)
+	//for (  &ex	pr : plan_.GetAggregates()) {
+	for _, expr := range e.plan_.GetAggregates() {
+		tmp_val := expr.Evaluate(tuple_, e.child_[0].GetOutputSchema())
+		vals = append(vals, &tmp_val)
+	}
+	return &plans.AggregateValue{Aggregates_: vals}
+}

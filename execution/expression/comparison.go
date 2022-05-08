@@ -28,23 +28,24 @@ type Comparison struct {
 	*AbstractExpression
 	comparisonType ComparisonType
 	//children       []Expression
-	children_left  ColumnValue
+	//children_left  ColumnValue
+	children_left  Expression
 	children_right Expression
 }
 
-func NewComparison(left ColumnValue, right Expression, comparisonType ComparisonType, colType types.TypeID) Expression {
+func NewComparison(left Expression, right Expression, comparisonType ComparisonType, colType types.TypeID) Expression {
 	ret := &Comparison{&AbstractExpression{[2]Expression{}, colType}, comparisonType, left, right}
-	ret.SetChildAt(0, &left)
+	ret.SetChildAt(0, left)
 	ret.SetChildAt(1, right)
 	return ret
 }
 
-func NewComparisonAsComparison(left ColumnValue, right Expression, comparisonType ComparisonType, colType types.TypeID) *Comparison {
-	ret := &Comparison{&AbstractExpression{[2]Expression{}, colType}, comparisonType, left, right}
-	ret.SetChildAt(0, &left)
-	ret.SetChildAt(1, right)
-	return ret
-}
+//func NewComparisonAsComparison(left ColumnValue, right Expression, comparisonType ComparisonType, colType types.TypeID) *Comparison {
+//	ret := &Comparison{&AbstractExpression{[2]Expression{}, colType}, comparisonType, left, right}
+//	ret.SetChildAt(0, &left)
+//	ret.SetChildAt(1, right)
+//	return ret
+//}
 
 func (c *Comparison) Evaluate(tuple *tuple.Tuple, schema *schema.Schema) types.Value {
 	lhs := c.children[0].Evaluate(tuple, schema)
@@ -75,7 +76,7 @@ func (c *Comparison) performComparison(lhs types.Value, rhs types.Value) bool {
 // }
 
 func (c *Comparison) GetLeftSideColIdx() uint32 {
-	return c.children_left.colIndex
+	return c.children_left.(*ColumnValue).colIndex
 }
 
 func (c *Comparison) GetRightSideValue(tuple *tuple.Tuple, schema *schema.Schema) types.Value {
@@ -92,13 +93,11 @@ func (c *Comparison) EvaluateJoin(left_tuple *tuple.Tuple, left_schema *schema.S
 	return types.NewBoolean(c.performComparison(lhs, rhs))
 }
 
-// TODO: (SDB) need to port Comparison::EvaluateAggregate method
-
-// Value EvaluateAggregate(const std::vector<Value> &group_bys, const std::vector<Value> &aggregates) const override {
-//     Value lhs = GetChildAt(0)->EvaluateAggregate(group_bys, aggregates);
-//     Value rhs = GetChildAt(1)->EvaluateAggregate(group_bys, aggregates);
-//     return ValueFactory::GetBooleanValue(PerformComparison(lhs, rhs));
-//   }
+func (c *Comparison) EvaluateAggregate(group_bys []*types.Value, aggregates []*types.Value) types.Value {
+	lhs := c.GetChildAt(0).EvaluateAggregate(group_bys, aggregates)
+	rhs := c.GetChildAt(1).EvaluateAggregate(group_bys, aggregates)
+	return types.NewBoolean(c.performComparison(lhs, rhs))
+}
 
 func (c *Comparison) GetChildAt(child_idx uint32) Expression {
 	return c.children[child_idx]

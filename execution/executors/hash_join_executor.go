@@ -113,6 +113,8 @@ func (e *HashJoinExecutor) Init() {
 	}
 }
 
+// TODO: (SDB) need to refactor HashJoinExecutor::Next method to use GetExpr method of Column class
+//             current impl is avoiding the method because it does not exist when this code was wrote
 func (e *HashJoinExecutor) Next() (*tuple.Tuple, Done, error) {
 	inner_next_cnt := 0
 	for {

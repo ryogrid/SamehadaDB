@@ -1,214 +1,107 @@
 package plans
 
-//TODO: (SDB) need port AggregationPlan class and etc
+import (
+	"github.com/ryogrid/SamehadaDB/common"
+	"github.com/ryogrid/SamehadaDB/execution/expression"
+	"github.com/ryogrid/SamehadaDB/storage/table/schema"
+	"github.com/ryogrid/SamehadaDB/types"
+)
+
+// /** AggregationType enumerates all the possible aggregation functions in our system. */
+type AggregationType int32
+
+/** The type of the log record. */
+const (
+	COUNT_AGGREGATE AggregationType = iota
+	SUM_AGGREGATE
+	MIN_AGGREGATE
+	MAX_AGGREGATE
+)
+
+/**
+ * AggregationPlanNode represents the various SQL aggregation functions.
+ * For example, COUNT(), SUM(), MIN() and MAX().
+ * To simplfiy this project, AggregationPlanNode must always have exactly one child.
+ */
+type AggregationPlanNode struct {
+	*AbstractPlanNode
+	having_     expression.Expression
+	group_bys_  []expression.Expression
+	aggregates_ []expression.Expression
+	agg_types_  []AggregationType
+}
+
+/**
+ * Creates a new AggregationPlanNode.
+ * @param output_schema the output format of this plan node
+ * @param child the child plan to aggregate data over
+ * @param having the having clause of the aggregation
+ * @param group_bys the group by clause of the aggregation
+ * @param aggregates the expressions that we are aggregating
+ * @param agg_types the types that we are aggregating
+ */
+func NewAggregationPlanNode(output_schema *schema.Schema, child Plan, having expression.Expression,
+	group_bys []expression.Expression,
+	aggregates []expression.Expression, agg_types []AggregationType) *AggregationPlanNode {
+	return &AggregationPlanNode{&AbstractPlanNode{output_schema, []Plan{child}}, having, group_bys, aggregates, agg_types}
+}
+
+func (p *AggregationPlanNode) GetType() PlanType { return Aggregation }
+
+/** @return the child of this aggregation plan node */
+func (p *AggregationPlanNode) GetChildPlan() Plan {
+	common.SH_Assert(len(p.GetChildren()) == 1, "Aggregation expected to only have one child.")
+	return p.GetChildAt(0)
+}
+
+func (p *AggregationPlanNode) GetChildAt(childIndex uint32) Plan {
+	return p.children[childIndex]
+}
+
+func (p *AggregationPlanNode) GetChildren() []Plan {
+	return p.children
+}
+
+/** @return the having clause */
+func (p *AggregationPlanNode) GetHaving() expression.Expression { return p.having_ }
+
+/** @return the idx'th group by expression */
+func (p *AggregationPlanNode) GetGroupByAt(idx uint32) expression.Expression {
+	return p.group_bys_[idx]
+}
+
+/** @return the group by expressions */
+func (p *AggregationPlanNode) GetGroupBys() []expression.Expression { return p.group_bys_ }
+
+/** @return the idx'th aggregate expression */
+func (p *AggregationPlanNode) GetAggregateAt(idx uint32) expression.Expression {
+	return p.aggregates_[idx]
+}
+
+/** @return the aggregate expressions */
+func (p *AggregationPlanNode) GetAggregates() []expression.Expression { return p.aggregates_ }
+
+/** @return the aggregate types */
+func (p *AggregationPlanNode) GetAggregateTypes() []AggregationType { return p.agg_types_ }
+
+type AggregateKey struct {
+	Group_bys_ []*types.Value
+}
 
 // /**
-//  * A simplified hash table that has all the necessary functionality for aggregations.
+//  * Compares two aggregate keys for equality.
+//  * @param other the other aggregate key to be compared with
+//  * @return true if both aggregate keys have equivalent group-by expressions, false otherwise
 //  */
-//  class SimpleAggregationHashTable {
-// 	public:
-// 	 /**
-// 	  * Create a new simplified aggregation hash table.
-// 	  * @param agg_exprs the aggregation expressions
-// 	  * @param agg_types the types of aggregations
-// 	  */
-// 	 SimpleAggregationHashTable(const std::vector<const AbstractExpression *> &agg_exprs,
-// 								const std::vector<AggregationType> &agg_types)
-// 		 : agg_exprs_{agg_exprs}, agg_types_{agg_types} {}
+// func (key AggregateKey) CompareEquals(other AggregateKey) bool {
+// 	for i := 0; i < len(other.Group_bys_); i++ {
+// 		if !key.Group_bys_[i].CompareEquals(other.Group_bys_[i]) {
+// 			return false
+// 		}
+// 	}
+// 	return true
+// }
 
-// 	 /** @return the initial aggregrate value for this aggregation executor */
-// 	 AggregateValue GenerateInitialAggregateValue() {
-// 	   std::vector<Value> values;
-// 	   for (const auto &agg_type : agg_types_) {
-// 		 switch (agg_type) {
-// 		   case AggregationType::CountAggregate:
-// 			 // Count starts at zero.
-// 			 values.emplace_back(ValueFactory::GetIntegerValue(0));
-// 			 break;
-// 		   case AggregationType::SumAggregate:
-// 			 // Sum starts at zero.
-// 			 values.emplace_back(ValueFactory::GetIntegerValue(0));
-// 			 break;
-// 		   case AggregationType::MinAggregate:
-// 			 // Min starts at INT_MAX.
-// 			 values.emplace_back(ValueFactory::GetIntegerValue(BUSTUB_INT32_MAX));
-// 			 break;
-// 		   case AggregationType::MaxAggregate:
-// 			 // Max starts at INT_MIN.
-// 			 values.emplace_back(ValueFactory::GetIntegerValue(BUSTUB_INT32_MIN));
-// 			 break;
-// 		 }
-// 	   }
-// 	   return {values};
-// 	 }
-
-// 	 /** Combines the input into the aggregation result. */
-// 	 void CombineAggregateValues(AggregateValue *result, const AggregateValue &input) {
-// 	   for (uint32_t i = 0; i < agg_exprs_.size(); i++) {
-// 		 switch (agg_types_[i]) {
-// 		   case AggregationType::CountAggregate:
-// 			 // Count increases by one.
-// 			 result->aggregates_[i] = result->aggregates_[i].Add(ValueFactory::GetIntegerValue(1));
-// 			 break;
-// 		   case AggregationType::SumAggregate:
-// 			 // Sum increases by addition.
-// 			 result->aggregates_[i] = result->aggregates_[i].Add(input.aggregates_[i]);
-// 			 break;
-// 		   case AggregationType::MinAggregate:
-// 			 // Min is just the min.
-// 			 result->aggregates_[i] = result->aggregates_[i].Min(input.aggregates_[i]);
-// 			 break;
-// 		   case AggregationType::MaxAggregate:
-// 			 // Max is just the max.
-// 			 result->aggregates_[i] = result->aggregates_[i].Max(input.aggregates_[i]);
-// 			 break;
-// 		 }
-// 	   }
-// 	 }
-
-// 	 /**
-// 	  * Inserts a value into the hash table and then combines it with the current aggregation.
-// 	  * @param agg_key the key to be inserted
-// 	  * @param agg_val the value to be inserted
-// 	  */
-// 	 void InsertCombine(const AggregateKey &agg_key, const AggregateValue &agg_val) {
-// 	   if (ht.count(agg_key) == 0) {
-// 		 ht.insert({agg_key, GenerateInitialAggregateValue()});
-// 	   }
-// 	   CombineAggregateValues(&ht[agg_key], agg_val);
-// 	 }
-
-// 	 /**
-// 	  * An iterator through the simplified aggregation hash table.
-// 	  */
-// 	 class Iterator {
-// 	  public:
-// 	   /** Creates an iterator for the aggregate map. */
-// 	   explicit Iterator(std::unordered_map<AggregateKey, AggregateValue>::const_iterator iter) : iter_(iter) {}
-
-// 	   /** @return the key of the iterator */
-// 	   const AggregateKey &Key() { return iter_->first; }
-
-// 	   /** @return the value of the iterator */
-// 	   const AggregateValue &Val() { return iter_->second; }
-
-// 	   /** @return the iterator before it is incremented */
-// 	   Iterator &operator++() {
-// 		 ++iter_;
-// 		 return *this;
-// 	   }
-
-// 	   /** @return true if both iterators are identical */
-// 	   bool operator==(const Iterator &other) { return this->iter_ == other.iter_; }
-
-// 	   /** @return true if both iterators are different */
-// 	   bool operator!=(const Iterator &other) { return this->iter_ != other.iter_; }
-
-// 	  private:
-// 	   /** Aggregates map. */
-// 	   std::unordered_map<AggregateKey, AggregateValue>::const_iterator iter_;
-// 	 };
-
-// 	 /** @return iterator to the start of the hash table */
-// 	 Iterator Begin() { return Iterator{ht.cbegin()}; }
-
-// 	 /** @return iterator to the end of the hash table */
-// 	 Iterator End() { return Iterator{ht.cend()}; }
-
-// 	private:
-// 	 /** The hash table is just a map from aggregate keys to aggregate values. */
-// 	 std::unordered_map<AggregateKey, AggregateValue> ht{};
-// 	 /** The aggregate expressions that we have. */
-// 	 const std::vector<const AbstractExpression *> &agg_exprs_;
-// 	 /** The types of aggregations that we have. */
-// 	 const std::vector<AggregationType> &agg_types_;
-//    };
-
-//    /**
-// 	* AggregationExecutor executes an aggregation operation (e.g. COUNT, SUM, MIN, MAX) on the tuples of a child executor.
-// 	*/
-//    class AggregationExecutor : public AbstractExecutor {
-// 	public:
-// 	 /**
-// 	  * Creates a new aggregation executor.
-// 	  * @param exec_ctx the context that the aggregation should be performed in
-// 	  * @param plan the aggregation plan node
-// 	  * @param child the child executor
-// 	  */
-// 	 AggregationExecutor(ExecutorContext *exec_ctx, const AggregationPlanNode *plan,
-// 						 std::unique_ptr<AbstractExecutor> &&child)
-// 		 : AbstractExecutor(exec_ctx),
-// 		   aht_(plan->GetAggregates(), plan->GetAggregateTypes()),
-// 		   aht_iterator_(aht_.Begin()) {
-// 	   plan_ = plan;
-// 	   child_ = std::move(child);
-// 	 }
-
-// 	 /** Do not use or remove this function, otherwise you will get zero points. */
-// 	 const AbstractExecutor *GetChildExecutor() const { return child_.get(); }
-
-// 	 const Schema *GetOutputSchema() override { return plan_->OutputSchema(); }
-
-// 	 void Init() override {
-// 	   Tuple tuple;
-// 	   child_->Init();
-// 	   while (child_->Next(&tuple)) {
-// 		 aht_.InsertCombine(MakeKey(&tuple), MakeVal(&tuple));
-// 	   }
-// 	   aht_iterator_ = aht_.Begin();
-// 	 }
-
-// 	 bool Next(Tuple *tuple) override {
-// 	   if (aht_iterator_ == aht_.End()) {
-// 		 return false;
-// 	   }
-// 	   while (aht_iterator_ != aht_.End()) {
-// 		 if (plan_->GetHaving() != nullptr) {
-// 		   if (!plan_->GetHaving()
-// 					->EvaluateAggregate(aht_iterator_.Key().group_bys_, aht_iterator_.Val().aggregates_)
-// 					.GetAs<bool>()) {
-// 			 aht_iterator_.operator++();
-// 			 continue;
-// 		   }
-// 		 }
-// 		 std::vector<Value> values;
-// 		 for (auto col : plan_->OutputSchema()->GetColumns()) {
-// 		   values.push_back(
-// 			   col.GetExpr()->EvaluateAggregate(aht_iterator_.Key().group_bys_, aht_iterator_.Val().aggregates_));
-// 		 }
-// 		 aht_iterator_.operator++();
-// 		 Tuple tuple1(values, plan_->OutputSchema());
-// 		 *tuple = tuple1;
-// 		 return true;
-// 	   }
-// 	   return false;
-// 	 }
-
-// 	 /** @return the tuple as an AggregateKey */
-// 	 AggregateKey MakeKey(const Tuple *tuple) {
-// 	   std::vector<Value> keys;
-// 	   for (const auto &expr : plan_->GetGroupBys()) {
-// 		 keys.emplace_back(expr->Evaluate(tuple, child_->GetOutputSchema()));
-// 	   }
-// 	   return {keys};
-// 	 }
-
-// 	 /** @return the tuple as an AggregateValue */
-// 	 AggregateValue MakeVal(const Tuple *tuple) {
-// 	   std::vector<Value> vals;
-// 	   for (const auto &expr : plan_->GetAggregates()) {
-// 		 vals.emplace_back(expr->Evaluate(tuple, child_->GetOutputSchema()));
-// 	   }
-// 	   return {vals};
-// 	 }
-
-// 	private:
-// 	 /** The aggregation plan node. */
-// 	 const AggregationPlanNode *plan_;
-// 	 /** The child executor whose tuples we are aggregating. */
-// 	 std::unique_ptr<AbstractExecutor> child_;
-// 	 /** Simple aggregation hash table. */
-// 	 SimpleAggregationHashTable aht_;
-// 	 /** Simple aggregation hash table iterator. */
-// 	 SimpleAggregationHashTable::Iterator aht_iterator_;
-//    };
+type AggregateValue struct {
+	Aggregates_ []*types.Value
+}

@@ -42,7 +42,7 @@ func (it *TableHeapIterator) Next() *tuple.Tuple {
 	currentPage := CastPageAsTablePage(bpm.FetchPage(it.tuple.GetRID().GetPageId()))
 	currentPage.RLatch()
 
-	nextTupleRID := currentPage.GetNextTupleRID(it.tuple.GetRID())
+	nextTupleRID := currentPage.GetNextTupleRID(it.tuple.GetRID(), false)
 	if nextTupleRID == nil {
 		// VARIANT: currentPage is always RLatched after loop
 		for currentPage.GetNextPageId().IsValid() {
@@ -51,7 +51,8 @@ func (it *TableHeapIterator) Next() *tuple.Tuple {
 			bpm.UnpinPage(currentPage.GetTablePageId(), false)
 			currentPage = nextPage
 			currentPage.RLatch()
-			nextTupleRID = currentPage.GetNextTupleRID(it.tuple.GetRID())
+			nextTupleRID = currentPage.GetNextTupleRID(it.tuple.GetRID(), true)
+
 			if nextTupleRID != nil {
 				break
 			}

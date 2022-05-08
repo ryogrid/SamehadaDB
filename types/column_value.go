@@ -213,3 +213,62 @@ func (v Value) SetNull() {
 func (v Value) IsNull() bool {
 	return v.valueType == Null
 }
+
+func (v Value) Add(other *Value) *Value {
+	switch v.valueType {
+	case Integer:
+		ret := NewInteger(*v.integer + *other.integer)
+		return &ret
+	case Float:
+		ret := NewFloat(*v.float + *other.float)
+		return &ret
+	default:
+		panic("Add is implemented to Integer and Float only.")
+	}
+}
+
+func (v Value) Max(other *Value) *Value {
+	switch v.valueType {
+	case Integer:
+		if *v.integer >= *other.integer {
+			ret := NewInteger(*v.integer)
+			return &ret
+		} else {
+			ret := NewInteger(other.ToInteger())
+			return &ret
+		}
+	case Float:
+		if *v.float >= *other.float {
+			ret := NewFloat(*v.float)
+			return &ret
+		} else {
+			ret := NewFloat(other.ToFloat())
+			return &ret
+		}
+	default:
+		panic("Max is implemented to Integer and Float only.")
+	}
+}
+
+func (v Value) Min(other *Value) *Value {
+	switch v.valueType {
+	case Integer:
+		if *v.integer <= *other.integer {
+			ret := NewInteger(*v.integer)
+			return &ret
+		} else {
+			ret := NewInteger(other.ToInteger())
+			return &ret
+		}
+	case Float:
+		if *v.float <= *other.float {
+			ret := NewFloat(*v.float)
+			return &ret
+		} else {
+			ret := NewFloat(other.ToFloat())
+			return &ret
+		}
+	default:
+		panic("Max is implemented to Integer and Float only.")
+	}
+}

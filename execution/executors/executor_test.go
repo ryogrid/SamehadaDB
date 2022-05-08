@@ -5,12 +5,9 @@ package executors
 
 import (
 	"fmt"
-	"math"
-	"math/rand"
 	"os"
 	"runtime"
 	"testing"
-	"time"
 
 	"github.com/devlights/gomy/output"
 	"github.com/ryogrid/SamehadaDB/catalog"
@@ -23,7 +20,6 @@ import (
 	"github.com/ryogrid/SamehadaDB/storage/disk"
 	"github.com/ryogrid/SamehadaDB/storage/table/column"
 	"github.com/ryogrid/SamehadaDB/storage/table/schema"
-	"github.com/ryogrid/SamehadaDB/storage/tuple"
 	"github.com/ryogrid/SamehadaDB/test_util"
 	testingpkg "github.com/ryogrid/SamehadaDB/testing"
 	"github.com/ryogrid/SamehadaDB/types"
@@ -39,8 +35,8 @@ func TestSimpleInsertAndSeqScan(t *testing.T) {
 
 	c := catalog.BootstrapCatalog(bpm, log_mgr, access.NewLockManager(access.REGULAR, access.PREVENTION), txn)
 
-	columnA := column.NewColumn("a", types.Integer, false)
-	columnB := column.NewColumn("b", types.Integer, false)
+	columnA := column.NewColumn("a", types.Integer, false, nil)
+	columnB := column.NewColumn("b", types.Integer, false, nil)
 	schema_ := schema.NewSchema([]*column.Column{columnA, columnB})
 
 	tableMetadata := c.CreateTable("test_1", schema_, txn)
@@ -65,7 +61,7 @@ func TestSimpleInsertAndSeqScan(t *testing.T) {
 
 	bpm.FlushAllPages()
 
-	outColumnA := column.NewColumn("a", types.Integer, false)
+	outColumnA := column.NewColumn("a", types.Integer, false, nil)
 	outSchema := schema.NewSchema([]*column.Column{outColumnA})
 
 	seqPlan := plans.NewSeqScanPlanNode(outSchema, nil, tableMetadata.OID())
@@ -88,8 +84,8 @@ func TestSimpleInsertAndSeqScanFloat(t *testing.T) {
 
 	c := catalog.BootstrapCatalog(bpm, log_mgr, access.NewLockManager(access.REGULAR, access.PREVENTION), txn)
 
-	columnA := column.NewColumn("a", types.Float, false)
-	columnB := column.NewColumn("b", types.Float, false)
+	columnA := column.NewColumn("a", types.Float, false, nil)
+	columnB := column.NewColumn("b", types.Float, false, nil)
 	schema_ := schema.NewSchema([]*column.Column{columnA, columnB})
 
 	tableMetadata := c.CreateTable("test_1", schema_, txn)
@@ -114,7 +110,7 @@ func TestSimpleInsertAndSeqScanFloat(t *testing.T) {
 
 	bpm.FlushAllPages()
 
-	outColumnA := column.NewColumn("a", types.Float, false)
+	outColumnA := column.NewColumn("a", types.Float, false, nil)
 	outSchema := schema.NewSchema([]*column.Column{outColumnA})
 
 	seqPlan := plans.NewSeqScanPlanNode(outSchema, nil, tableMetadata.OID())
@@ -137,9 +133,9 @@ func TestSimpleInsertAndSeqScanWithPredicateComparison(t *testing.T) {
 
 	c := catalog.BootstrapCatalog(bpm, log_mgr, access.NewLockManager(access.REGULAR, access.PREVENTION), txn)
 
-	columnA := column.NewColumn("a", types.Integer, false)
-	columnB := column.NewColumn("b", types.Integer, false)
-	columnC := column.NewColumn("c", types.Varchar, false)
+	columnA := column.NewColumn("a", types.Integer, false, nil)
+	columnB := column.NewColumn("b", types.Integer, false, nil)
+	columnC := column.NewColumn("c", types.Varchar, false, nil)
 	schema_ := schema.NewSchema([]*column.Column{columnA, columnB, columnC})
 
 	tableMetadata := c.CreateTable("test_1", schema_, txn)
@@ -259,8 +255,8 @@ func TestSimpleInsertAndLimitExecution(t *testing.T) {
 
 	c := catalog.BootstrapCatalog(bpm, log_mgr, access.NewLockManager(access.REGULAR, access.PREVENTION), txn)
 
-	columnA := column.NewColumn("a", types.Integer, false)
-	columnB := column.NewColumn("b", types.Integer, false)
+	columnA := column.NewColumn("a", types.Integer, false, nil)
+	columnB := column.NewColumn("b", types.Integer, false, nil)
 	schema_ := schema.NewSchema([]*column.Column{columnA, columnB})
 
 	tableMetadata := c.CreateTable("test_1", schema_, txn)
@@ -299,8 +295,8 @@ func TestSimpleInsertAndLimitExecution(t *testing.T) {
 
 	// TEST 1: select a, b ... LIMIT 1
 	func() {
-		a := column.NewColumn("a", types.Integer, false)
-		b := column.NewColumn("b", types.Integer, false)
+		a := column.NewColumn("a", types.Integer, false, nil)
+		b := column.NewColumn("b", types.Integer, false, nil)
 		outSchema := schema.NewSchema([]*column.Column{a, b})
 		seqPlan := plans.NewSeqScanPlanNode(outSchema, nil, tableMetadata.OID())
 		limitPlan := plans.NewLimitPlanNode(seqPlan, 1, 1)
@@ -314,8 +310,8 @@ func TestSimpleInsertAndLimitExecution(t *testing.T) {
 
 	// TEST 1: select a, b ... LIMIT 2
 	func() {
-		a := column.NewColumn("a", types.Integer, false)
-		b := column.NewColumn("b", types.Integer, false)
+		a := column.NewColumn("a", types.Integer, false, nil)
+		b := column.NewColumn("b", types.Integer, false, nil)
 		outSchema := schema.NewSchema([]*column.Column{a, b})
 		seqPlan := plans.NewSeqScanPlanNode(outSchema, nil, tableMetadata.OID())
 		limitPlan := plans.NewLimitPlanNode(seqPlan, 2, 0)
@@ -327,8 +323,8 @@ func TestSimpleInsertAndLimitExecution(t *testing.T) {
 
 	// TEST 1: select a, b ... LIMIT 3
 	func() {
-		a := column.NewColumn("a", types.Integer, false)
-		b := column.NewColumn("b", types.Integer, false)
+		a := column.NewColumn("a", types.Integer, false, nil)
+		b := column.NewColumn("b", types.Integer, false, nil)
 		outSchema := schema.NewSchema([]*column.Column{a, b})
 		seqPlan := plans.NewSeqScanPlanNode(outSchema, nil, tableMetadata.OID())
 		limitPlan := plans.NewLimitPlanNode(seqPlan, 3, 0)
@@ -349,8 +345,8 @@ func TestSimpleInsertAndLimitExecutionMultiTable(t *testing.T) {
 
 	c := catalog.BootstrapCatalog(bpm, log_mgr, access.NewLockManager(access.REGULAR, access.PREVENTION), txn)
 
-	columnA := column.NewColumn("a", types.Integer, false)
-	columnB := column.NewColumn("b", types.Integer, false)
+	columnA := column.NewColumn("a", types.Integer, false, nil)
+	columnB := column.NewColumn("b", types.Integer, false, nil)
 	schema_ := schema.NewSchema([]*column.Column{columnA, columnB})
 
 	tableMetadata := c.CreateTable("test_1", schema_, txn)
@@ -385,8 +381,8 @@ func TestSimpleInsertAndLimitExecutionMultiTable(t *testing.T) {
 
 	// construct second table
 
-	columnA = column.NewColumn("a", types.Integer, false)
-	columnB = column.NewColumn("b", types.Integer, false)
+	columnA = column.NewColumn("a", types.Integer, false, nil)
+	columnB = column.NewColumn("b", types.Integer, false, nil)
 	schema_ = schema.NewSchema([]*column.Column{columnA, columnB})
 
 	tableMetadata2 := c.CreateTable("test_2", schema_, txn)
@@ -425,8 +421,8 @@ func TestSimpleInsertAndLimitExecutionMultiTable(t *testing.T) {
 
 	// TEST 1: select a, b ... LIMIT 1
 	func() {
-		a := column.NewColumn("a", types.Integer, false)
-		b := column.NewColumn("b", types.Integer, false)
+		a := column.NewColumn("a", types.Integer, false, nil)
+		b := column.NewColumn("b", types.Integer, false, nil)
 		outSchema := schema.NewSchema([]*column.Column{a, b})
 		seqPlan := plans.NewSeqScanPlanNode(outSchema, nil, tableMetadata.OID())
 		limitPlan := plans.NewLimitPlanNode(seqPlan, 1, 1)
@@ -440,8 +436,8 @@ func TestSimpleInsertAndLimitExecutionMultiTable(t *testing.T) {
 
 	// TEST 1: select a, b ... LIMIT 2
 	func() {
-		a := column.NewColumn("a", types.Integer, false)
-		b := column.NewColumn("b", types.Integer, false)
+		a := column.NewColumn("a", types.Integer, false, nil)
+		b := column.NewColumn("b", types.Integer, false, nil)
 		outSchema := schema.NewSchema([]*column.Column{a, b})
 		seqPlan := plans.NewSeqScanPlanNode(outSchema, nil, tableMetadata.OID())
 		limitPlan := plans.NewLimitPlanNode(seqPlan, 2, 0)
@@ -453,8 +449,8 @@ func TestSimpleInsertAndLimitExecutionMultiTable(t *testing.T) {
 
 	// TEST 1: select a, b ... LIMIT 1
 	func() {
-		a := column.NewColumn("a", types.Integer, false)
-		b := column.NewColumn("b", types.Integer, false)
+		a := column.NewColumn("a", types.Integer, false, nil)
+		b := column.NewColumn("b", types.Integer, false, nil)
 		outSchema := schema.NewSchema([]*column.Column{a, b})
 		seqPlan := plans.NewSeqScanPlanNode(outSchema, nil, tableMetadata2.OID())
 		limitPlan := plans.NewLimitPlanNode(seqPlan, 1, 1)
@@ -468,8 +464,8 @@ func TestSimpleInsertAndLimitExecutionMultiTable(t *testing.T) {
 
 	// TEST 1: select a, b ... LIMIT 3
 	func() {
-		a := column.NewColumn("a", types.Integer, false)
-		b := column.NewColumn("b", types.Integer, false)
+		a := column.NewColumn("a", types.Integer, false, nil)
+		b := column.NewColumn("b", types.Integer, false, nil)
 		outSchema := schema.NewSchema([]*column.Column{a, b})
 		seqPlan := plans.NewSeqScanPlanNode(outSchema, nil, tableMetadata2.OID())
 		limitPlan := plans.NewLimitPlanNode(seqPlan, 3, 0)
@@ -491,9 +487,9 @@ func TestHashTableIndex(t *testing.T) {
 
 	c := catalog.BootstrapCatalog(bpm, log_mgr, access.NewLockManager(access.REGULAR, access.PREVENTION), txn)
 
-	columnA := column.NewColumn("a", types.Integer, true)
-	columnB := column.NewColumn("b", types.Integer, true)
-	columnC := column.NewColumn("c", types.Varchar, true)
+	columnA := column.NewColumn("a", types.Integer, true, nil)
+	columnB := column.NewColumn("b", types.Integer, true, nil)
+	columnC := column.NewColumn("c", types.Varchar, true, nil)
 	schema_ := schema.NewSchema([]*column.Column{columnA, columnB, columnC})
 
 	tableMetadata := c.CreateTable("test_1", schema_, txn)
@@ -626,9 +622,9 @@ func TestSimpleDelete(t *testing.T) {
 
 	c := catalog.BootstrapCatalog(bpm, log_mgr, access.NewLockManager(access.REGULAR, access.PREVENTION), txn)
 
-	columnA := column.NewColumn("a", types.Integer, false)
-	columnB := column.NewColumn("b", types.Integer, false)
-	columnC := column.NewColumn("c", types.Varchar, false)
+	columnA := column.NewColumn("a", types.Integer, false, nil)
+	columnB := column.NewColumn("b", types.Integer, false, nil)
+	columnC := column.NewColumn("c", types.Varchar, false, nil)
 	schema_ := schema.NewSchema([]*column.Column{columnA, columnB, columnC})
 
 	tableMetadata := c.CreateTable("test_1", schema_, txn)
@@ -718,9 +714,9 @@ func TestDeleteWithSelctInsert(t *testing.T) {
 
 	c := catalog.BootstrapCatalog(bpm, log_mgr, access.NewLockManager(access.REGULAR, access.PREVENTION), txn)
 
-	columnA := column.NewColumn("a", types.Integer, false)
-	columnB := column.NewColumn("b", types.Integer, false)
-	columnC := column.NewColumn("c", types.Varchar, false)
+	columnA := column.NewColumn("a", types.Integer, false, nil)
+	columnB := column.NewColumn("b", types.Integer, false, nil)
+	columnC := column.NewColumn("c", types.Varchar, false, nil)
 	schema_ := schema.NewSchema([]*column.Column{columnA, columnB, columnC})
 
 	tableMetadata := c.CreateTable("test_1", schema_, txn)
@@ -850,8 +846,8 @@ func TestSimpleInsertAndUpdate(t *testing.T) {
 
 	c := catalog.BootstrapCatalog(bpm, log_mgr, access.NewLockManager(access.REGULAR, access.PREVENTION), txn)
 
-	columnA := column.NewColumn("a", types.Integer, false)
-	columnB := column.NewColumn("b", types.Varchar, false)
+	columnA := column.NewColumn("a", types.Integer, false, nil)
+	columnB := column.NewColumn("b", types.Varchar, false, nil)
 	schema_ := schema.NewSchema([]*column.Column{columnA, columnB})
 
 	tableMetadata := c.CreateTable("test_1", schema_, txn)
@@ -887,7 +883,7 @@ func TestSimpleInsertAndUpdate(t *testing.T) {
 	tmpColVal := new(expression.ColumnValue)
 	tmpColVal.SetTupleIndex(0)
 	tmpColVal.SetColIndex(tableMetadata.Schema().GetColIndex(pred.LeftColumn))
-	expression_ := expression.NewComparison(*tmpColVal, expression.NewConstantValue(GetValue(pred.RightColumn), GetValueType(pred.LeftColumn)), pred.Operator, types.Boolean)
+	expression_ := expression.NewComparison(tmpColVal, expression.NewConstantValue(GetValue(pred.RightColumn), GetValueType(pred.LeftColumn)), pred.Operator, types.Boolean)
 
 	updatePlanNode := plans.NewUpdatePlanNode(row1, &expression_, tableMetadata.OID())
 	executionEngine.Execute(updatePlanNode, executorContext)
@@ -897,14 +893,14 @@ func TestSimpleInsertAndUpdate(t *testing.T) {
 	fmt.Println("select and check value...")
 	txn = txn_mgr.Begin(nil)
 
-	outColumnB := column.NewColumn("b", types.Varchar, false)
+	outColumnB := column.NewColumn("b", types.Varchar, false, nil)
 	outSchema := schema.NewSchema([]*column.Column{outColumnB})
 
 	pred = Predicate{"a", expression.Equal, 99}
 	tmpColVal = new(expression.ColumnValue)
 	tmpColVal.SetTupleIndex(0)
 	tmpColVal.SetColIndex(tableMetadata.Schema().GetColIndex(pred.LeftColumn))
-	expression_ = expression.NewComparison(*tmpColVal, expression.NewConstantValue(GetValue(pred.RightColumn), GetValueType(pred.RightColumn)), pred.Operator, types.Boolean)
+	expression_ = expression.NewComparison(tmpColVal, expression.NewConstantValue(GetValue(pred.RightColumn), GetValueType(pred.RightColumn)), pred.Operator, types.Boolean)
 
 	seqPlan := plans.NewSeqScanPlanNode(outSchema, &expression_, tableMetadata.OID())
 	results := executionEngine.Execute(seqPlan, executorContext)
@@ -925,8 +921,8 @@ func TestInsertUpdateMix(t *testing.T) {
 
 	c := catalog.BootstrapCatalog(bpm, log_mgr, access.NewLockManager(access.REGULAR, access.PREVENTION), txn)
 
-	columnA := column.NewColumn("a", types.Integer, false)
-	columnB := column.NewColumn("b", types.Varchar, false)
+	columnA := column.NewColumn("a", types.Integer, false, nil)
+	columnB := column.NewColumn("b", types.Varchar, false, nil)
 	schema_ := schema.NewSchema([]*column.Column{columnA, columnB})
 
 	tableMetadata := c.CreateTable("test_1", schema_, txn)
@@ -962,7 +958,7 @@ func TestInsertUpdateMix(t *testing.T) {
 	tmpColVal := new(expression.ColumnValue)
 	tmpColVal.SetTupleIndex(0)
 	tmpColVal.SetColIndex(tableMetadata.Schema().GetColIndex(pred.LeftColumn))
-	expression_ := expression.NewComparison(*tmpColVal, expression.NewConstantValue(GetValue(pred.RightColumn), GetValueType(pred.RightColumn)), pred.Operator, types.Boolean)
+	expression_ := expression.NewComparison(tmpColVal, expression.NewConstantValue(GetValue(pred.RightColumn), GetValueType(pred.RightColumn)), pred.Operator, types.Boolean)
 
 	updatePlanNode := plans.NewUpdatePlanNode(row1, &expression_, tableMetadata.OID())
 	executionEngine.Execute(updatePlanNode, executorContext)
@@ -972,14 +968,14 @@ func TestInsertUpdateMix(t *testing.T) {
 	fmt.Println("select and check value...")
 	txn = txn_mgr.Begin(nil)
 
-	outColumnB := column.NewColumn("b", types.Varchar, false)
+	outColumnB := column.NewColumn("b", types.Varchar, false, nil)
 	outSchema := schema.NewSchema([]*column.Column{outColumnB})
 
 	pred = Predicate{"a", expression.Equal, 99}
 	tmpColVal = new(expression.ColumnValue)
 	tmpColVal.SetTupleIndex(0)
 	tmpColVal.SetColIndex(tableMetadata.Schema().GetColIndex(pred.LeftColumn))
-	expression_ = expression.NewComparison(*tmpColVal, expression.NewConstantValue(GetValue(pred.RightColumn), GetValueType(pred.RightColumn)), pred.Operator, types.Boolean)
+	expression_ = expression.NewComparison(tmpColVal, expression.NewConstantValue(GetValue(pred.RightColumn), GetValueType(pred.RightColumn)), pred.Operator, types.Boolean)
 
 	seqPlan := plans.NewSeqScanPlanNode(outSchema, &expression_, tableMetadata.OID())
 	results := executionEngine.Execute(seqPlan, executorContext)
@@ -1013,14 +1009,14 @@ func TestInsertUpdateMix(t *testing.T) {
 	fmt.Println("select inserted row and check value...")
 	txn = txn_mgr.Begin(nil)
 
-	outColumnA := column.NewColumn("a", types.Integer, false)
+	outColumnA := column.NewColumn("a", types.Integer, false, nil)
 	outSchema = schema.NewSchema([]*column.Column{outColumnA})
 
 	pred = Predicate{"b", expression.Equal, "hage"}
 	tmpColVal = new(expression.ColumnValue)
 	tmpColVal.SetTupleIndex(0)
 	tmpColVal.SetColIndex(tableMetadata.Schema().GetColIndex(pred.LeftColumn))
-	expression_ = expression.NewComparison(*tmpColVal, expression.NewConstantValue(GetValue(pred.RightColumn), GetValueType(pred.RightColumn)), pred.Operator, types.Boolean)
+	expression_ = expression.NewComparison(tmpColVal, expression.NewConstantValue(GetValue(pred.RightColumn), GetValueType(pred.RightColumn)), pred.Operator, types.Boolean)
 
 	seqPlan = plans.NewSeqScanPlanNode(outSchema, &expression_, tableMetadata.OID())
 	results = executionEngine.Execute(seqPlan, executorContext)
@@ -1041,8 +1037,8 @@ func TestAbortWIthDeleteUpdate(t *testing.T) {
 
 	c := catalog.BootstrapCatalog(bpm, log_mgr, access.NewLockManager(access.REGULAR, access.PREVENTION), txn)
 
-	columnA := column.NewColumn("a", types.Integer, false)
-	columnB := column.NewColumn("b", types.Varchar, false)
+	columnA := column.NewColumn("a", types.Integer, false, nil)
+	columnB := column.NewColumn("b", types.Varchar, false, nil)
 	schema_ := schema.NewSchema([]*column.Column{columnA, columnB})
 
 	tableMetadata := c.CreateTable("test_1", schema_, txn)
@@ -1085,7 +1081,7 @@ func TestAbortWIthDeleteUpdate(t *testing.T) {
 	tmpColVal := new(expression.ColumnValue)
 	tmpColVal.SetTupleIndex(0)
 	tmpColVal.SetColIndex(tableMetadata.Schema().GetColIndex(pred.LeftColumn))
-	expression_ := expression.NewComparison(*tmpColVal, expression.NewConstantValue(GetValue(pred.RightColumn), GetValueType(pred.RightColumn)), pred.Operator, types.Boolean)
+	expression_ := expression.NewComparison(tmpColVal, expression.NewConstantValue(GetValue(pred.RightColumn), GetValueType(pred.RightColumn)), pred.Operator, types.Boolean)
 
 	updatePlanNode := plans.NewUpdatePlanNode(row1, &expression_, tableMetadata.OID())
 	executionEngine.Execute(updatePlanNode, executorContext)
@@ -1095,7 +1091,7 @@ func TestAbortWIthDeleteUpdate(t *testing.T) {
 	tmpColVal = new(expression.ColumnValue)
 	tmpColVal.SetTupleIndex(0)
 	tmpColVal.SetColIndex(tableMetadata.Schema().GetColIndex(pred.LeftColumn))
-	expression_ = expression.NewComparison(*tmpColVal, expression.NewConstantValue(GetValue(pred.RightColumn), GetValueType(pred.RightColumn)), pred.Operator, types.Boolean)
+	expression_ = expression.NewComparison(tmpColVal, expression.NewConstantValue(GetValue(pred.RightColumn), GetValueType(pred.RightColumn)), pred.Operator, types.Boolean)
 
 	deletePlanNode := plans.NewDeletePlanNode(expression_, tableMetadata.OID())
 	executionEngine.Execute(deletePlanNode, executorContext)
@@ -1105,14 +1101,14 @@ func TestAbortWIthDeleteUpdate(t *testing.T) {
 	fmt.Println("select and check value before Abort...")
 
 	// check updated row
-	outColumnB := column.NewColumn("b", types.Varchar, false)
+	outColumnB := column.NewColumn("b", types.Varchar, false, nil)
 	outSchema := schema.NewSchema([]*column.Column{outColumnB})
 
 	pred = Predicate{"a", expression.Equal, 99}
 	tmpColVal = new(expression.ColumnValue)
 	tmpColVal.SetTupleIndex(0)
 	tmpColVal.SetColIndex(tableMetadata.Schema().GetColIndex(pred.LeftColumn))
-	expression_ = expression.NewComparison(*tmpColVal, expression.NewConstantValue(GetValue(pred.RightColumn), GetValueType(pred.RightColumn)), pred.Operator, types.Boolean)
+	expression_ = expression.NewComparison(tmpColVal, expression.NewConstantValue(GetValue(pred.RightColumn), GetValueType(pred.RightColumn)), pred.Operator, types.Boolean)
 
 	seqPlan := plans.NewSeqScanPlanNode(outSchema, &expression_, tableMetadata.OID())
 	results := executionEngine.Execute(seqPlan, executorContext)
@@ -1120,14 +1116,14 @@ func TestAbortWIthDeleteUpdate(t *testing.T) {
 	testingpkg.Assert(t, types.NewVarchar("updated").CompareEquals(results[0].GetValue(outSchema, 0)), "value should be 'updated'")
 
 	// check deleted row
-	outColumnB = column.NewColumn("b", types.Integer, false)
+	outColumnB = column.NewColumn("b", types.Integer, false, nil)
 	outSchema = schema.NewSchema([]*column.Column{outColumnB})
 
 	pred = Predicate{"b", expression.Equal, "bar"}
 	tmpColVal = new(expression.ColumnValue)
 	tmpColVal.SetTupleIndex(0)
 	tmpColVal.SetColIndex(tableMetadata.Schema().GetColIndex(pred.LeftColumn))
-	expression_ = expression.NewComparison(*tmpColVal, expression.NewConstantValue(GetValue(pred.RightColumn), GetValueType(pred.RightColumn)), pred.Operator, types.Boolean)
+	expression_ = expression.NewComparison(tmpColVal, expression.NewConstantValue(GetValue(pred.RightColumn), GetValueType(pred.RightColumn)), pred.Operator, types.Boolean)
 
 	seqPlan = plans.NewSeqScanPlanNode(outSchema, &expression_, tableMetadata.OID())
 	results = executionEngine.Execute(seqPlan, executorContext)
@@ -1142,14 +1138,14 @@ func TestAbortWIthDeleteUpdate(t *testing.T) {
 	executorContext.SetTransaction(txn)
 
 	// check updated row
-	outColumnB = column.NewColumn("b", types.Varchar, false)
+	outColumnB = column.NewColumn("b", types.Varchar, false, nil)
 	outSchema = schema.NewSchema([]*column.Column{outColumnB})
 
 	pred = Predicate{"a", expression.Equal, 99}
 	tmpColVal = new(expression.ColumnValue)
 	tmpColVal.SetTupleIndex(0)
 	tmpColVal.SetColIndex(tableMetadata.Schema().GetColIndex(pred.LeftColumn))
-	expression_ = expression.NewComparison(*tmpColVal, expression.NewConstantValue(GetValue(pred.RightColumn), GetValueType(pred.RightColumn)), pred.Operator, types.Boolean)
+	expression_ = expression.NewComparison(tmpColVal, expression.NewConstantValue(GetValue(pred.RightColumn), GetValueType(pred.RightColumn)), pred.Operator, types.Boolean)
 
 	seqPlan = plans.NewSeqScanPlanNode(outSchema, &expression_, tableMetadata.OID())
 	results = executionEngine.Execute(seqPlan, executorContext)
@@ -1157,153 +1153,19 @@ func TestAbortWIthDeleteUpdate(t *testing.T) {
 	testingpkg.Assert(t, types.NewVarchar("foo").CompareEquals(results[0].GetValue(outSchema, 0)), "value should be 'foo'")
 
 	// check deleted row
-	outColumnB = column.NewColumn("b", types.Integer, false)
+	outColumnB = column.NewColumn("b", types.Integer, false, nil)
 	outSchema = schema.NewSchema([]*column.Column{outColumnB})
 
 	pred = Predicate{"b", expression.Equal, "bar"}
 	tmpColVal = new(expression.ColumnValue)
 	tmpColVal.SetTupleIndex(0)
 	tmpColVal.SetColIndex(tableMetadata.Schema().GetColIndex(pred.LeftColumn))
-	expression_ = expression.NewComparison(*tmpColVal, expression.NewConstantValue(GetValue(pred.RightColumn), GetValueType(pred.RightColumn)), pred.Operator, types.Boolean)
+	expression_ = expression.NewComparison(tmpColVal, expression.NewConstantValue(GetValue(pred.RightColumn), GetValueType(pred.RightColumn)), pred.Operator, types.Boolean)
 
 	seqPlan = plans.NewSeqScanPlanNode(outSchema, &expression_, tableMetadata.OID())
 	results = executionEngine.Execute(seqPlan, executorContext)
 
 	testingpkg.Assert(t, len(results) == 1, "")
-}
-
-type ColumnInsertMeta struct {
-	/**
-	 * Name of the column
-	 */
-	name_ string
-	/**
-	 * Type of the column
-	 */
-	type_ types.TypeID
-	/**
-	 * Whether the column is nullable
-	 */
-	nullable_ bool
-	/**
-	 * Distribution of values
-	 */
-	dist_ int32
-	/**
-	 * Min value of the column
-	 */
-	min_ int32
-	/**
-	 * Max value of the column
-	 */
-	max_ int32
-	/**
-	 * Counter to generate serial data
-	 */
-	serial_counter_ int32
-}
-
-type TableInsertMeta struct {
-	/**
-	 * Name of the table
-	 */
-	name_ string
-	/**
-	 * Number of rows
-	 */
-	num_rows_ uint32
-	/**
-	 * Columns
-	 */
-	col_meta_ []*ColumnInsertMeta
-}
-
-const DistSerial int32 = 0
-const DistUniform int32 = 1
-
-func GenNumericValues(col_meta *ColumnInsertMeta, count uint32) []types.Value {
-	var values []types.Value
-	if col_meta.dist_ == DistSerial {
-		for i := 0; i < int(count); i++ {
-			values = append(values, types.NewInteger(col_meta.serial_counter_))
-			col_meta.serial_counter_ += 1
-		}
-		return values
-	}
-
-	seed := time.Now().UnixNano()
-	rand.Seed(seed)
-	for i := 0; i < int(count); i++ {
-		values = append(values, types.NewInteger(rand.Int31n(col_meta.max_)))
-	}
-	return values
-}
-
-func GenNumericValuesFloat(col_meta *ColumnInsertMeta, count uint32) []types.Value {
-	var values []types.Value
-	if col_meta.dist_ == DistSerial {
-		for i := 0; i < int(count); i++ {
-			values = append(values, types.NewInteger(col_meta.serial_counter_))
-			col_meta.serial_counter_ += 1
-		}
-		return values
-	}
-
-	seed := time.Now().UnixNano()
-	rand.Seed(seed)
-	for i := 0; i < int(count); i++ {
-		values = append(values, types.NewFloat(float32(rand.Int31n(col_meta.max_))/float32(seed)))
-	}
-	return values
-}
-
-func MakeValues(col_meta *ColumnInsertMeta, count uint32) []types.Value {
-	//var values []types.Value
-	switch col_meta.type_ {
-	case types.Integer:
-		return GenNumericValues(col_meta, count)
-	case types.Float:
-		return GenNumericValuesFloat(col_meta, count)
-	default:
-		panic("Not yet implemented")
-	}
-}
-
-func FillTable(info *catalog.TableMetadata, table_meta *TableInsertMeta, txn *access.Transaction) {
-	var num_inserted uint32 = 0
-	var batch_size uint32 = 128
-	for num_inserted < table_meta.num_rows_ {
-		var values [][]types.Value
-		var num_values uint32 = uint32(math.Min(float64(batch_size), float64(table_meta.num_rows_-num_inserted)))
-		for _, col_meta := range table_meta.col_meta_ {
-			values = append(values, MakeValues(col_meta, num_values))
-		}
-
-		for i := 0; i < int(num_values); i++ {
-			var entry []types.Value
-			for idx := range table_meta.col_meta_ {
-				entry = append(entry, values[idx][i])
-			}
-			info.Table().InsertTuple(tuple.NewTupleFromSchema(entry, info.Schema()), txn)
-			num_inserted++
-		}
-	}
-}
-
-func MakeColumnValueExpression(schema_ *schema.Schema, tuple_idx uint32,
-	col_name string) expression.Expression {
-	col_idx := schema_.GetColIndex(col_name)
-	col_type := schema_.GetColumn(col_idx).GetType()
-	col_val := expression.NewColumnValue(tuple_idx, col_idx, col_type)
-	return col_val
-}
-
-func MakeComparisonExpression(lhs expression.Expression, rhs expression.Expression,
-	comp_type expression.ComparisonType) *expression.Expression {
-	casted_lhs := lhs.(*expression.ColumnValue)
-
-	ret_exp := expression.NewComparison(*casted_lhs, rhs, comp_type, types.Boolean)
-	return &ret_exp
 }
 
 func TestSimpleHashJoin(t *testing.T) {
@@ -1317,17 +1179,17 @@ func TestSimpleHashJoin(t *testing.T) {
 	c := catalog.BootstrapCatalog(bpm, log_mgr, access.NewLockManager(access.REGULAR, access.PREVENTION), txn)
 	executorContext := NewExecutorContext(c, bpm, txn)
 
-	columnA := column.NewColumn("colA", types.Integer, false)
-	columnB := column.NewColumn("colB", types.Integer, false)
-	columnC := column.NewColumn("colC", types.Integer, false)
-	columnD := column.NewColumn("colD", types.Integer, false)
+	columnA := column.NewColumn("colA", types.Integer, false, nil)
+	columnB := column.NewColumn("colB", types.Integer, false, nil)
+	columnC := column.NewColumn("colC", types.Integer, false, nil)
+	columnD := column.NewColumn("colD", types.Integer, false, nil)
 	schema_ := schema.NewSchema([]*column.Column{columnA, columnB, columnC, columnD})
 	tableMetadata1 := c.CreateTable("test_1", schema_, txn)
 
-	column1 := column.NewColumn("col1", types.Integer, false)
-	column2 := column.NewColumn("col2", types.Integer, false)
-	column3 := column.NewColumn("col3", types.Integer, false)
-	column4 := column.NewColumn("col3", types.Integer, false)
+	column1 := column.NewColumn("col1", types.Integer, false, nil)
+	column2 := column.NewColumn("col2", types.Integer, false, nil)
+	column3 := column.NewColumn("col3", types.Integer, false, nil)
+	column4 := column.NewColumn("col3", types.Integer, false, nil)
 	schema_ = schema.NewSchema([]*column.Column{column1, column2, column3, column4})
 	tableMetadata2 := c.CreateTable("test_2", schema_, txn)
 
@@ -1357,8 +1219,8 @@ func TestSimpleHashJoin(t *testing.T) {
 	{
 		table_info := executorContext.GetCatalog().GetTableByName("test_1")
 		//&schema := table_info.schema_
-		colA := column.NewColumn("colA", types.Integer, false)
-		colB := column.NewColumn("colB", types.Integer, false)
+		colA := column.NewColumn("colA", types.Integer, false, nil)
+		colB := column.NewColumn("colB", types.Integer, false, nil)
 		out_schema1 = schema.NewSchema([]*column.Column{colA, colB})
 		scan_plan1 = plans.NewSeqScanPlanNode(out_schema1, nil, table_info.OID())
 	}
@@ -1367,8 +1229,8 @@ func TestSimpleHashJoin(t *testing.T) {
 	{
 		table_info := executorContext.GetCatalog().GetTableByName("test_2")
 		//schema := table_info.schema_
-		col1 := column.NewColumn("col1", types.Integer, false)
-		col2 := column.NewColumn("col2", types.Integer, false)
+		col1 := column.NewColumn("col1", types.Integer, false, nil)
+		col2 := column.NewColumn("col2", types.Integer, false, nil)
 		out_schema2 = schema.NewSchema([]*column.Column{col1, col2})
 		scan_plan2 = plans.NewSeqScanPlanNode(out_schema2, nil, table_info.OID())
 	}
@@ -1378,15 +1240,15 @@ func TestSimpleHashJoin(t *testing.T) {
 		// colA and colB have a tuple index of 0 because they are the left side of the join
 		//var allocated_exprs []*expression.ColumnValue
 		colA := MakeColumnValueExpression(out_schema1, 0, "colA")
-		colA_c := column.NewColumn("colA", types.Integer, false)
+		colA_c := column.NewColumn("colA", types.Integer, false, nil)
 		colA_c.SetIsLeft(true)
-		colB_c := column.NewColumn("colB", types.Integer, false)
+		colB_c := column.NewColumn("colB", types.Integer, false, nil)
 		colB_c.SetIsLeft(true)
 		// col1 and col2 have a tuple index of 1 because they are the right side of the join
 		col1 := MakeColumnValueExpression(out_schema2, 1, "col1")
-		col1_c := column.NewColumn("col1", types.Integer, false)
+		col1_c := column.NewColumn("col1", types.Integer, false, nil)
 		col1_c.SetIsLeft(false)
-		col2_c := column.NewColumn("col2", types.Integer, false)
+		col2_c := column.NewColumn("col2", types.Integer, false, nil)
 		col2_c.SetIsLeft(false)
 		var left_keys []expression.Expression
 		left_keys = append(left_keys, colA)
@@ -1395,21 +1257,12 @@ func TestSimpleHashJoin(t *testing.T) {
 		predicate := MakeComparisonExpression(colA, col1, expression.Equal)
 		out_final = schema.NewSchema([]*column.Column{colA_c, colB_c, col1_c, col2_c})
 		plans_ := []plans.Plan{scan_plan1, scan_plan2}
-		join_plan = plans.NewHashJoinPlanNode(out_final, plans_, *predicate,
+		join_plan = plans.NewHashJoinPlanNode(out_final, plans_, predicate,
 			left_keys, right_keys)
 	}
 
-	// std::cout << "ColA, ColB, Col1, Col2" << std::endl
-	// while (executor.Next(&tuple)) {
-	//   std::cout << tuple.GetValue(out_final, out_schema1.GetColIdx("colA")).GetAs<int32_t>() << ", "
-	// 			<< tuple.GetValue(out_final, out_schema1.GetColIdx("colB")).GetAs<int32_t>() << ", "
-	// 			<< tuple.GetValue(out_final, out_schema2.GetColIdx("col1")).GetAs<int16_t>() << ", "
-	// 			<< tuple.GetValue(out_final, out_schema2.GetColIdx("col2")).GetAs<int32_t>() << std::endl
 	executionEngine := &ExecutionEngine{}
-	left_executor := executionEngine.CreateExecutor(join_plan.GetLeftPlan(), executorContext)
-	right_executor := executionEngine.CreateExecutor(join_plan.GetRightPlan(), executorContext)
-	hashJoinExecutor := NewHashJoinExecutor(executorContext, join_plan, left_executor, right_executor)
-	results := executionEngine.ExecuteWithExecutor(hashJoinExecutor)
+	results := executionEngine.Execute(join_plan, executorContext)
 
 	num_tuples := len(results)
 	testingpkg.Assert(t, num_tuples == 100, "")
@@ -1430,9 +1283,9 @@ func TestInsertAndSeqScanWithComplexPredicateComparison(t *testing.T) {
 
 	c := catalog.BootstrapCatalog(bpm, log_mgr, access.NewLockManager(access.REGULAR, access.PREVENTION), txn)
 
-	columnA := column.NewColumn("a", types.Integer, false)
-	columnB := column.NewColumn("b", types.Integer, false)
-	columnC := column.NewColumn("c", types.Varchar, false)
+	columnA := column.NewColumn("a", types.Integer, false, nil)
+	columnB := column.NewColumn("b", types.Integer, false, nil)
+	columnC := column.NewColumn("c", types.Varchar, false, nil)
 	schema_ := schema.NewSchema([]*column.Column{columnA, columnB, columnC})
 
 	tableMetadata := c.CreateTable("test_1", schema_, txn)
@@ -1609,7 +1462,7 @@ func deleteAllRowTransaction(t *testing.T, shi *test_util.SamehadaInstance, c *c
 func selectAllRowTransaction(t *testing.T, shi *test_util.SamehadaInstance, c *catalog.Catalog, tm *catalog.TableMetadata, master_ch chan int32) {
 	txn := shi.GetTransactionManager().Begin(nil)
 
-	outColumnA := column.NewColumn("a", types.Integer, false)
+	outColumnA := column.NewColumn("a", types.Integer, false, nil)
 	outSchema := schema.NewSchema([]*column.Column{outColumnA})
 
 	seqPlan := plans.NewSeqScanPlanNode(outSchema, nil, tm.OID())
@@ -1710,10 +1563,10 @@ func TestConcurrentTransactionExecution(t *testing.T) {
 
 	c := catalog.BootstrapCatalog(shi.GetBufferPoolManager(), shi.GetLogManager(), shi.GetLockManager(), txn)
 
-	columnA := column.NewColumn("a", types.Integer, false)
-	columnB := column.NewColumn("b", types.Varchar, false)
-	columnC := column.NewColumn("c", types.Integer, false)
-	columnD := column.NewColumn("d", types.Varchar, false)
+	columnA := column.NewColumn("a", types.Integer, false, nil)
+	columnB := column.NewColumn("b", types.Varchar, false, nil)
+	columnC := column.NewColumn("c", types.Integer, false, nil)
+	columnD := column.NewColumn("d", types.Varchar, false, nil)
 	schema_ := schema.NewSchema([]*column.Column{columnA, columnB, columnC, columnD})
 
 	tableMetadata := c.CreateTable("test_1", schema_, txn)
@@ -1787,125 +1640,190 @@ func TestConcurrentTransactionExecution(t *testing.T) {
 	shi.Finalize(true)
 }
 
-// TODO: (SDB) need to MakeAggregateValueExpression method in executor_test.go
+func TestTestTableGenerator(t *testing.T) {
+	os.Remove("test.db")
+	os.Remove("test.log")
 
-// const AbstractExpression *MakeAggregateValueExpression(bool is_group_by_term, uint32_t term_idx) {
-//     allocated_exprs_.emplace_back(
-//         std::make_unique<AggregateValueExpression>(is_group_by_term, term_idx, TypeId::INTEGER));
-//     return allocated_exprs_.back().get();
-//   }
+	shi := test_util.NewSamehadaInstance()
+	shi.GetLogManager().RunFlushThread()
+	testingpkg.Assert(t, common.EnableLogging, "")
+	fmt.Println("System logging is active.")
 
-// TODO: (SDB) need to port SimpleAggregation testcase
+	txn_mgr := shi.GetTransactionManager()
+	txn := txn_mgr.Begin(nil)
 
-// TEST_F(ExecutorTest, SimpleAggregationTest) {
-// 	// SELECT COUNT(colA), SUM(colA), min(colA), max(colA) from test_1;
-// 	std::unique_ptr<AbstractPlanNode> scan_plan;
-// 	const Schema *scan_schema;
-// 	{
-// 	  auto table_info = GetExecutorContext()->GetCatalog()->GetTable("test_1");
-// 	  auto &schema = table_info->schema_;
-// 	  auto colA = MakeColumnValueExpression(schema, 0, "colA");
-// 	  scan_schema = MakeOutputSchema({{"colA", colA}});
-// 	  scan_plan = std::make_unique<SeqScanPlanNode>(scan_schema, nullptr, table_info->oid_);
-// 	}
+	c := catalog.BootstrapCatalog(shi.GetBufferPoolManager(), shi.GetLogManager(), shi.GetLockManager(), txn)
+	exec_ctx := NewExecutorContext(c, shi.GetBufferPoolManager(), txn)
 
-// 	std::unique_ptr<AbstractPlanNode> agg_plan;
-// 	const Schema *agg_schema;
-// 	{
-// 	  const AbstractExpression *colA = MakeColumnValueExpression(*scan_schema, 0, "colA");
-// 	  const AbstractExpression *countA = MakeAggregateValueExpression(false, 0);
-// 	  const AbstractExpression *sumA = MakeAggregateValueExpression(false, 1);
-// 	  const AbstractExpression *minA = MakeAggregateValueExpression(false, 2);
-// 	  const AbstractExpression *maxA = MakeAggregateValueExpression(false, 3);
+	table_info, _ := GenerateTestTabls(c, exec_ctx, txn)
 
-// 	  agg_schema = MakeOutputSchema({{"countA", countA}, {"sumA", sumA}, {"minA", minA}, {"maxA", maxA}});
-// 	  agg_plan = std::make_unique<AggregationPlanNode>(
-// 		  agg_schema, scan_plan.get(), nullptr, std::vector<const AbstractExpression *>{},
-// 		  std::vector<const AbstractExpression *>{colA, colA, colA, colA},
-// 		  std::vector<AggregationType>{AggregationType::CountAggregate, AggregationType::SumAggregate,
-// 									   AggregationType::MinAggregate, AggregationType::MaxAggregate});
-// 	}
+	//txn_mgr.Commit(txn)
+	//shi.GetBufferPoolManager().FlushAllPages()
+	//txn = txn_mgr.Begin(nil)
+	//exec_ctx.SetTransaction(txn)
 
-// 	auto executor = ExecutorFactory::CreateExecutor(GetExecutorContext(), agg_plan.get());
-// 	executor->Init();
-// 	Tuple tuple;
-// 	ASSERT_TRUE(executor->Next(&tuple));
-// 	auto countA_val = tuple.GetValue(agg_schema, agg_schema->GetColIdx("countA")).GetAs<int32_t>();
-// 	auto sumA_val = tuple.GetValue(agg_schema, agg_schema->GetColIdx("sumA")).GetAs<int32_t>();
-// 	auto minA_val = tuple.GetValue(agg_schema, agg_schema->GetColIdx("minA")).GetAs<int32_t>();
-// 	auto maxA_val = tuple.GetValue(agg_schema, agg_schema->GetColIdx("maxA")).GetAs<int32_t>();
-// 	// Should count all tuples
-// 	ASSERT_EQ(countA_val, TEST1_SIZE);
-// 	// Should sum from 0 to TEST1_SIZE
-// 	ASSERT_EQ(sumA_val, TEST1_SIZE * (TEST1_SIZE - 1) / 2);
-// 	// Minimum should be 0
-// 	ASSERT_EQ(minA_val, 0);
-// 	// Maximum should be TEST1_SIZE - 1
-// 	ASSERT_EQ(maxA_val, TEST1_SIZE - 1);
-// 	std::cout << countA_val << std::endl;
-// 	std::cout << sumA_val << std::endl;
-// 	std::cout << minA_val << std::endl;
-// 	std::cout << maxA_val << std::endl;
-// 	ASSERT_FALSE(executor->Next(&tuple));
-//   }
+	outColumnA := column.NewColumn("colA", types.Integer, false, nil)
+	outSchema := schema.NewSchema([]*column.Column{outColumnA})
 
-// TODO: (SDB) need to port SimpleGroupByAggregation testcase
+	seqPlan := plans.NewSeqScanPlanNode(outSchema, nil, table_info.OID())
 
-//   TEST_F(ExecutorTest, SimpleGroupByAggregation) {
-// 	// SELECT count(colA), colB, sum(C) FROM test_1 Group By colB HAVING count(colA) > 100
-// 	std::unique_ptr<AbstractPlanNode> scan_plan;
-// 	const Schema *scan_schema;
-// 	{
-// 	  auto table_info = GetExecutorContext()->GetCatalog()->GetTable("test_1");
-// 	  auto &schema = table_info->schema_;
-// 	  auto colA = MakeColumnValueExpression(schema, 0, "colA");
-// 	  auto colB = MakeColumnValueExpression(schema, 0, "colB");
-// 	  auto colC = MakeColumnValueExpression(schema, 0, "colC");
-// 	  scan_schema = MakeOutputSchema({{"colA", colA}, {"colB", colB}, {"colC", colC}});
-// 	  scan_plan = std::make_unique<SeqScanPlanNode>(scan_schema, nullptr, table_info->oid_);
-// 	}
+	executionEngine := &ExecutionEngine{}
 
-// 	std::unique_ptr<AbstractPlanNode> agg_plan;
-// 	const Schema *agg_schema;
-// 	{
-// 	  const AbstractExpression *colA = MakeColumnValueExpression(*scan_schema, 0, "colA");
-// 	  const AbstractExpression *colB = MakeColumnValueExpression(*scan_schema, 0, "colB");
-// 	  const AbstractExpression *colC = MakeColumnValueExpression(*scan_schema, 0, "colC");
-// 	  // Make group bys
-// 	  std::vector<const AbstractExpression *> group_by_cols{colB};
-// 	  const AbstractExpression *groupbyB = MakeAggregateValueExpression(true, 0);
-// 	  // Make aggregates
-// 	  std::vector<const AbstractExpression *> aggregate_cols{colA, colC};
-// 	  std::vector<AggregationType> agg_types{AggregationType::CountAggregate, AggregationType::SumAggregate};
-// 	  const AbstractExpression *countA = MakeAggregateValueExpression(false, 0);
-// 	  const AbstractExpression *sumC = MakeAggregateValueExpression(false, 1);
-// 	  // Make having clause
-// 	  const AbstractExpression *having = MakeComparisonExpression(
-// 		  countA, MakeConstantValueExpression(ValueFactory::GetIntegerValue(100)), ComparisonType::GreaterThan);
+	results := executionEngine.Execute(seqPlan, exec_ctx)
+	fmt.Printf("len(results) => %d", len(results))
+	fmt.Println("")
+	testingpkg.Assert(t, len(results) == int(TEST1_SIZE), "generated table or testcase is wrong.")
 
-// 	  // Create plan
-// 	  agg_schema = MakeOutputSchema({{"countA", countA}, {"colB", groupbyB}, {"sumC", sumC}});
-// 	  agg_plan = std::make_unique<AggregationPlanNode>(agg_schema, scan_plan.get(), having, std::move(group_by_cols),
-// 													   std::move(aggregate_cols), std::move(agg_types));
-// 	}
-// 	auto executor = ExecutorFactory::CreateExecutor(GetExecutorContext(), agg_plan.get());
-// 	executor->Init();
-// 	Tuple tuple;
+	txn_mgr.Commit(txn)
+}
 
-// 	std::unordered_set<int32_t> encountered;
-// 	std::cout << "countA, colB, sumC" << std::endl;
-// 	while (executor->Next(&tuple)) {
-// 	  // Should have countA > 100
-// 	  ASSERT_GT(tuple.GetValue(agg_schema, agg_schema->GetColIdx("countA")).GetAs<int32_t>(), 100);
-// 	  // Should have unique colBs.
-// 	  auto colB = tuple.GetValue(agg_schema, agg_schema->GetColIdx("colB")).GetAs<int32_t>();
-// 	  ASSERT_EQ(encountered.count(colB), 0);
-// 	  encountered.insert(colB);
-// 	  // Sanity check: ColB should also be within [0, 10).
-// 	  ASSERT_TRUE(0 <= colB && colB < 10);
+func TestSimpleAggregation(t *testing.T) {
+	// SELECT COUNT(colA), SUM(colA), min(colA), max(colA) from test_1;
+	os.Remove("test.db")
+	os.Remove("test.log")
 
-// 	  std::cout << tuple.GetValue(agg_schema, agg_schema->GetColIdx("countA")).GetAs<int32_t>() << ", "
-// 				<< tuple.GetValue(agg_schema, agg_schema->GetColIdx("colB")).GetAs<int32_t>() << ", "
-// 				<< tuple.GetValue(agg_schema, agg_schema->GetColIdx("sumC")).GetAs<int32_t>() << std::endl;
-// 	}
-//   }
+	shi := test_util.NewSamehadaInstance()
+	shi.GetLogManager().RunFlushThread()
+	testingpkg.Assert(t, common.EnableLogging, "")
+	fmt.Println("System logging is active.")
+
+	txn_mgr := shi.GetTransactionManager()
+	txn := txn_mgr.Begin(nil)
+
+	c := catalog.BootstrapCatalog(shi.GetBufferPoolManager(), shi.GetLogManager(), shi.GetLockManager(), txn)
+	exec_ctx := NewExecutorContext(c, shi.GetBufferPoolManager(), txn)
+
+	table_info, _ := GenerateTestTabls(c, exec_ctx, txn)
+
+	var scan_plan *plans.SeqScanPlanNode
+	var scan_schema *schema.Schema
+	{
+		//auto table_info = GetExecutorContext()->GetCatalog()->GetTable("test_1");
+		schema_ := table_info.Schema()
+		colA := MakeColumnValueExpression(schema_, 0, "colA").(*expression.ColumnValue)
+		scan_schema = MakeOutputSchema([]MakeSchemaMeta{{"colA", *colA}})
+		scan_plan = plans.NewSeqScanPlanNode(scan_schema, nil, table_info.OID()).(*plans.SeqScanPlanNode)
+	}
+
+	var agg_plan *plans.AggregationPlanNode
+	var agg_schema *schema.Schema
+	{
+		colA := MakeColumnValueExpression(scan_schema, 0, "colA")
+		countA := *MakeAggregateValueExpression(false, 0).(*expression.AggregateValueExpression)
+		sumA := *MakeAggregateValueExpression(false, 1).(*expression.AggregateValueExpression)
+		minA := *MakeAggregateValueExpression(false, 2).(*expression.AggregateValueExpression)
+		maxA := *MakeAggregateValueExpression(false, 3).(*expression.AggregateValueExpression)
+
+		agg_schema = MakeOutputSchemaAgg([]MakeSchemaMetaAgg{{"countA", countA}, {"sumA", sumA}, {"minA", minA}, {"maxA", maxA}})
+		agg_plan = plans.NewAggregationPlanNode(
+			agg_schema, scan_plan, nil, []expression.Expression{},
+			[]expression.Expression{colA, colA, colA, colA},
+			[]plans.AggregationType{plans.COUNT_AGGREGATE, plans.SUM_AGGREGATE,
+				plans.MIN_AGGREGATE, plans.MAX_AGGREGATE})
+	}
+
+	executionEngine := &ExecutionEngine{}
+	executor := executionEngine.CreateExecutor(agg_plan, exec_ctx)
+	//executor := ExecutorFactory::CreateExecutor(GetExecutorContext(), agg_plan.get())
+	executor.Init()
+	tuple_, _, err := executor.Next()
+	testingpkg.Assert(t, tuple_ != nil && err == nil, "first call of AggregationExecutor.Next() failed")
+	countA_val := tuple_.GetValue(agg_schema, agg_schema.GetColIndex("countA")).ToInteger()
+	sumA_val := tuple_.GetValue(agg_schema, agg_schema.GetColIndex("sumA")).ToInteger()
+	minA_val := tuple_.GetValue(agg_schema, agg_schema.GetColIndex("minA")).ToInteger()
+	maxA_val := tuple_.GetValue(agg_schema, agg_schema.GetColIndex("maxA")).ToInteger()
+	// Should count all tuples
+	fmt.Println("")
+	fmt.Printf("%v %v %v %v\n", countA_val, sumA_val, minA_val, maxA_val)
+	testingpkg.Assert(t, countA_val == int32(TEST1_SIZE), "countA_val is not expected value.")
+	// Should sum from 0 to TEST1_SIZE
+	testingpkg.Assert(t, sumA_val == int32(TEST1_SIZE*(TEST1_SIZE-1)/2), "sumA_val is not expected value.")
+	// Minimum should be 0
+	testingpkg.Assert(t, minA_val == int32(0), "minA_val is not expected value.")
+	// Maximum should be TEST1_SIZE - 1
+	testingpkg.Assert(t, maxA_val == int32(TEST1_SIZE-1), "maxA_val is not expected value.")
+	tuple_, done, err := executor.Next()
+	testingpkg.Assert(t, tuple_ == nil && done == true && err == nil, "second call of AggregationExecutor::Next() failed")
+
+	txn_mgr.Commit(txn)
+}
+
+func TestSimpleGroupByAggregation(t *testing.T) {
+	// SELECT count(colA), colB, sum(C) FROM test_1 Group By colB HAVING count(colA) > 100
+	os.Remove("test.db")
+	os.Remove("test.log")
+
+	shi := test_util.NewSamehadaInstance()
+	shi.GetLogManager().RunFlushThread()
+	testingpkg.Assert(t, common.EnableLogging, "")
+	fmt.Println("System logging is active.")
+
+	txn_mgr := shi.GetTransactionManager()
+	txn := txn_mgr.Begin(nil)
+
+	c := catalog.BootstrapCatalog(shi.GetBufferPoolManager(), shi.GetLogManager(), shi.GetLockManager(), txn)
+	exec_ctx := NewExecutorContext(c, shi.GetBufferPoolManager(), txn)
+
+	table_info, _ := GenerateTestTabls(c, exec_ctx, txn)
+
+	var scan_plan *plans.SeqScanPlanNode
+	var scan_schema *schema.Schema
+	{
+		//auto table_info = GetExecutorContext()->GetCatalog()->GetTable("test_1");
+		schema_ := table_info.Schema()
+		colA := MakeColumnValueExpression(schema_, 0, "colA").(*expression.ColumnValue)
+		colB := MakeColumnValueExpression(schema_, 0, "colB").(*expression.ColumnValue)
+		colC := MakeColumnValueExpression(schema_, 0, "colC").(*expression.ColumnValue)
+		scan_schema = MakeOutputSchema([]MakeSchemaMeta{{"colA", *colA}, {"colB", *colB}, {"colC", *colC}})
+		scan_plan = plans.NewSeqScanPlanNode(scan_schema, nil, table_info.OID()).(*plans.SeqScanPlanNode)
+	}
+
+	var agg_plan *plans.AggregationPlanNode
+	var agg_schema *schema.Schema
+	{
+		colA := MakeColumnValueExpression(scan_schema, 0, "colA").(*expression.ColumnValue)
+		colB := MakeColumnValueExpression(scan_schema, 0, "colB").(*expression.ColumnValue)
+		colC := MakeColumnValueExpression(scan_schema, 0, "colC").(*expression.ColumnValue)
+		// Make group bye
+		groupbyB := *MakeAggregateValueExpression(true, 0).(*expression.AggregateValueExpression)
+		// Make aggregates
+		countA := *MakeAggregateValueExpression(false, 0).(*expression.AggregateValueExpression)
+		sumC := *MakeAggregateValueExpression(false, 1).(*expression.AggregateValueExpression)
+		// Make having clause
+		pred_const := types.NewInteger(int32(TEST1_SIZE / 10))
+		//pred_const := types.NewInteger(100)
+		having := MakeComparisonExpression(&countA, MakeConstantValueExpression(&pred_const), expression.GreaterThan)
+
+		agg_schema = MakeOutputSchemaAgg([]MakeSchemaMetaAgg{{"countA", countA}, {"colB", groupbyB}, {"sumC", sumC}})
+		agg_plan = plans.NewAggregationPlanNode(
+			agg_schema, scan_plan, having, []expression.Expression{colB},
+			[]expression.Expression{colA, colC},
+			[]plans.AggregationType{plans.COUNT_AGGREGATE, plans.SUM_AGGREGATE})
+	}
+
+	executionEngine := &ExecutionEngine{}
+	executor := executionEngine.CreateExecutor(agg_plan, exec_ctx)
+	executor.Init()
+
+	var encountered map[int32]int32 = make(map[int32]int32, 0)
+	for tuple_, done, _ := executor.Next(); !done; tuple_, done, _ = executor.Next() {
+		// Should have countA > 100
+		countA := tuple_.GetValue(agg_schema, agg_schema.GetColIndex("countA")).ToInteger()
+		colB := tuple_.GetValue(agg_schema, agg_schema.GetColIndex("colB")).ToInteger()
+		sumC := tuple_.GetValue(agg_schema, agg_schema.GetColIndex("sumC")).ToInteger()
+
+		fmt.Println("")
+		fmt.Printf("%d %d %d\n", countA, colB, sumC)
+
+		testingpkg.Assert(t, countA > int32(TEST1_SIZE/100), "countA result is not greater than 3")
+
+		// should have unique colBs.
+		_, ok := encountered[colB]
+		testingpkg.Assert(t, !ok, "duplicated colB has been returned")
+		encountered[colB] = colB
+		// Sanity check: ColB should also be within [0, 10).
+		testingpkg.Assert(t, 0 <= colB && colB < 10, "sanity check of colB failed")
+	}
+
+	txn_mgr.Commit(txn)
+}
