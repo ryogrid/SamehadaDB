@@ -52,6 +52,7 @@ func (it *TableHeapIterator) Next() *tuple.Tuple {
 			currentPage = nextPage
 			currentPage.RLatch()
 			nextTupleRID = currentPage.GetNextTupleRID(it.tuple.GetRID(), true)
+			//nextTupleRID = currentPage.GetNextTupleRID(it.tuple.GetRID(), false)
 
 			if nextTupleRID != nil {
 				break
