@@ -37,7 +37,7 @@ original codes of go-bustub are [here](https://github.com/brunocalza/go-bustub).
 - [x] Varchar
 - [x] Persistent Catalog
 - [ ] Updating of Table Schema 
-- <del>[ ] LRU replacer</del>
+- [ ] <del>LRU replacer</del>
 - [x] Latches
 - [x] Transactions
 - [x] Rollback When Abort Occurs
