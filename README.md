@@ -37,8 +37,8 @@ original codes of go-bustub are [here](https://github.com/brunocalza/go-bustub).
 - [x] Varchar
 - [x] Persistent Catalog
 - [ ] Updating of Table Schema 
-- [ ] LRU replacer
-- [ ] Latches
+- <del>[ ] LRU replacer</del>
+- [x] Latches
 - [x] Transactions
 - [x] Rollback When Abort Occurs
 - [x] Logging
@@ -46,7 +46,7 @@ original codes of go-bustub are [here](https://github.com/brunocalza/go-bustub).
 - [ ] Fuzzy Checkpointing (ARIES)
 - [x] Recovery from Logs
 - [x] Hash Index
-- [ ] BTree Index
+- [ ] B+Tree Index
 - [x] Join (Hash Join)
 - [x] Aggregations (COUNT, MAX, MIN ... on SELECT clause including Group by and Having)
 - [ ] Sort (ORDER BY clause) 
