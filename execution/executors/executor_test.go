@@ -902,7 +902,7 @@ func TestSimpleInsertAndUpdate(t *testing.T) {
 	tmpColVal.SetColIndex(tableMetadata.Schema().GetColIndex(pred.LeftColumn))
 	expression_ = expression.NewComparison(tmpColVal, expression.NewConstantValue(GetValue(pred.RightColumn), GetValueType(pred.RightColumn)), pred.Operator, types.Boolean)
 
-	seqPlan := plans.NewSeqScanPlanNode(outSchema, &expression_, tableMetadata.OID())
+	seqPlan := plans.NewSeqScanPlanNode(outSchema, expression_, tableMetadata.OID())
 	results := executionEngine.Execute(seqPlan, executorContext)
 
 	txn_mgr.Commit(txn)
@@ -977,7 +977,7 @@ func TestInsertUpdateMix(t *testing.T) {
 	tmpColVal.SetColIndex(tableMetadata.Schema().GetColIndex(pred.LeftColumn))
 	expression_ = expression.NewComparison(tmpColVal, expression.NewConstantValue(GetValue(pred.RightColumn), GetValueType(pred.RightColumn)), pred.Operator, types.Boolean)
 
-	seqPlan := plans.NewSeqScanPlanNode(outSchema, &expression_, tableMetadata.OID())
+	seqPlan := plans.NewSeqScanPlanNode(outSchema, expression_, tableMetadata.OID())
 	results := executionEngine.Execute(seqPlan, executorContext)
 
 	txn_mgr.Commit(txn)
@@ -1018,7 +1018,7 @@ func TestInsertUpdateMix(t *testing.T) {
 	tmpColVal.SetColIndex(tableMetadata.Schema().GetColIndex(pred.LeftColumn))
 	expression_ = expression.NewComparison(tmpColVal, expression.NewConstantValue(GetValue(pred.RightColumn), GetValueType(pred.RightColumn)), pred.Operator, types.Boolean)
 
-	seqPlan = plans.NewSeqScanPlanNode(outSchema, &expression_, tableMetadata.OID())
+	seqPlan = plans.NewSeqScanPlanNode(outSchema, expression_, tableMetadata.OID())
 	results = executionEngine.Execute(seqPlan, executorContext)
 
 	txn_mgr.Commit(txn)
@@ -1110,7 +1110,7 @@ func TestAbortWIthDeleteUpdate(t *testing.T) {
 	tmpColVal.SetColIndex(tableMetadata.Schema().GetColIndex(pred.LeftColumn))
 	expression_ = expression.NewComparison(tmpColVal, expression.NewConstantValue(GetValue(pred.RightColumn), GetValueType(pred.RightColumn)), pred.Operator, types.Boolean)
 
-	seqPlan := plans.NewSeqScanPlanNode(outSchema, &expression_, tableMetadata.OID())
+	seqPlan := plans.NewSeqScanPlanNode(outSchema, expression_, tableMetadata.OID())
 	results := executionEngine.Execute(seqPlan, executorContext)
 
 	testingpkg.Assert(t, types.NewVarchar("updated").CompareEquals(results[0].GetValue(outSchema, 0)), "value should be 'updated'")
@@ -1125,7 +1125,7 @@ func TestAbortWIthDeleteUpdate(t *testing.T) {
 	tmpColVal.SetColIndex(tableMetadata.Schema().GetColIndex(pred.LeftColumn))
 	expression_ = expression.NewComparison(tmpColVal, expression.NewConstantValue(GetValue(pred.RightColumn), GetValueType(pred.RightColumn)), pred.Operator, types.Boolean)
 
-	seqPlan = plans.NewSeqScanPlanNode(outSchema, &expression_, tableMetadata.OID())
+	seqPlan = plans.NewSeqScanPlanNode(outSchema, expression_, tableMetadata.OID())
 	results = executionEngine.Execute(seqPlan, executorContext)
 
 	testingpkg.Assert(t, len(results) == 0, "")
@@ -1147,7 +1147,7 @@ func TestAbortWIthDeleteUpdate(t *testing.T) {
 	tmpColVal.SetColIndex(tableMetadata.Schema().GetColIndex(pred.LeftColumn))
 	expression_ = expression.NewComparison(tmpColVal, expression.NewConstantValue(GetValue(pred.RightColumn), GetValueType(pred.RightColumn)), pred.Operator, types.Boolean)
 
-	seqPlan = plans.NewSeqScanPlanNode(outSchema, &expression_, tableMetadata.OID())
+	seqPlan = plans.NewSeqScanPlanNode(outSchema, expression_, tableMetadata.OID())
 	results = executionEngine.Execute(seqPlan, executorContext)
 
 	testingpkg.Assert(t, types.NewVarchar("foo").CompareEquals(results[0].GetValue(outSchema, 0)), "value should be 'foo'")
@@ -1162,7 +1162,7 @@ func TestAbortWIthDeleteUpdate(t *testing.T) {
 	tmpColVal.SetColIndex(tableMetadata.Schema().GetColIndex(pred.LeftColumn))
 	expression_ = expression.NewComparison(tmpColVal, expression.NewConstantValue(GetValue(pred.RightColumn), GetValueType(pred.RightColumn)), pred.Operator, types.Boolean)
 
-	seqPlan = plans.NewSeqScanPlanNode(outSchema, &expression_, tableMetadata.OID())
+	seqPlan = plans.NewSeqScanPlanNode(outSchema, expression_, tableMetadata.OID())
 	results = executionEngine.Execute(seqPlan, executorContext)
 
 	testingpkg.Assert(t, len(results) == 1, "")
@@ -1733,7 +1733,6 @@ func TestSimpleAggregation(t *testing.T) {
 	minA_val := tuple_.GetValue(agg_schema, agg_schema.GetColIndex("minA")).ToInteger()
 	maxA_val := tuple_.GetValue(agg_schema, agg_schema.GetColIndex("maxA")).ToInteger()
 	// Should count all tuples
-	fmt.Println("")
 	fmt.Printf("%v %v %v %v\n", countA_val, sumA_val, minA_val, maxA_val)
 	testingpkg.Assert(t, countA_val == int32(TEST1_SIZE), "countA_val is not expected value.")
 	// Should sum from 0 to TEST1_SIZE
@@ -1812,7 +1811,6 @@ func TestSimpleGroupByAggregation(t *testing.T) {
 		colB := tuple_.GetValue(agg_schema, agg_schema.GetColIndex("colB")).ToInteger()
 		sumC := tuple_.GetValue(agg_schema, agg_schema.GetColIndex("sumC")).ToInteger()
 
-		fmt.Println("")
 		fmt.Printf("%d %d %d\n", countA, colB, sumC)
 
 		testingpkg.Assert(t, countA > int32(TEST1_SIZE/100), "countA result is not greater than 3")
@@ -1823,6 +1821,76 @@ func TestSimpleGroupByAggregation(t *testing.T) {
 		encountered[colB] = colB
 		// Sanity check: ColB should also be within [0, 10).
 		testingpkg.Assert(t, 0 <= colB && colB < 10, "sanity check of colB failed")
+	}
+
+	txn_mgr.Commit(txn)
+}
+
+func TestSimpleSeqScanWithMultiItemPredicate(t *testing.T) {
+	// SELECT colA, colB FROM test_1 where (colA > 500 AND colB < 5) OR (NOT colC >= 1000)
+	os.Remove("test.db")
+	os.Remove("test.log")
+
+	shi := test_util.NewSamehadaInstance()
+	shi.GetLogManager().RunFlushThread()
+	testingpkg.Assert(t, common.EnableLogging, "")
+	fmt.Println("System logging is active.")
+
+	txn_mgr := shi.GetTransactionManager()
+	txn := txn_mgr.Begin(nil)
+
+	c := catalog.BootstrapCatalog(shi.GetBufferPoolManager(), shi.GetLogManager(), shi.GetLockManager(), txn)
+	exec_ctx := NewExecutorContext(c, shi.GetBufferPoolManager(), txn)
+
+	table_info, _ := GenerateTestTabls(c, exec_ctx, txn)
+
+	txn = txn_mgr.Begin(nil)
+	exec_ctx.SetTransaction(txn)
+
+	var scan_plan *plans.SeqScanPlanNode
+	var scan_schema *schema.Schema
+	{
+		// setup predicates and a execution plan
+		schema_ := table_info.Schema()
+		colA := MakeColumnValueExpression(schema_, 0, "colA").(*expression.ColumnValue)
+		colB := MakeColumnValueExpression(schema_, 0, "colB").(*expression.ColumnValue)
+		colC := MakeColumnValueExpression(schema_, 0, "colC").(*expression.ColumnValue)
+
+		pred_constA := types.NewInteger(int32(500))
+		comp_predA := MakeComparisonExpression(colA, MakeConstantValueExpression(&pred_constA), expression.GreaterThan)
+
+		pred_constB := types.NewInteger(int32(5))
+		comp_predB := MakeComparisonExpression(colB, MakeConstantValueExpression(&pred_constB), expression.LessThan)
+
+		pred_constC := types.NewInteger(int32(10000))
+		comp_predC := MakeComparisonExpression(colC, MakeConstantValueExpression(&pred_constC), expression.GreaterThanOrEqual)
+
+		// (colA > 500 AND colB < 5)
+		left_side_pred := expression.NewLogicalOp(comp_predA, comp_predB, expression.AND, types.Boolean)
+		// (NOT colC >= 1000)
+		right_side_pred := expression.NewLogicalOp(comp_predC, nil, expression.NOT, types.Boolean)
+
+		// root of predicate
+		// (colA > 500 AND colB < 5) OR (NOT colC >= 1000)
+		root_pred := expression.NewLogicalOp(left_side_pred, right_side_pred, expression.OR, types.Boolean)
+
+		scan_schema = MakeOutputSchema([]MakeSchemaMeta{{"colA", *colA}, {"colB", *colB}, {"colC", *colC}})
+		scan_plan = plans.NewSeqScanPlanNode(scan_schema, root_pred, table_info.OID()).(*plans.SeqScanPlanNode)
+	}
+
+	executionEngine := &ExecutionEngine{}
+	results := executionEngine.Execute(scan_plan, exec_ctx)
+	fmt.Println(len(results))
+
+	for _, tuple_ := range results {
+		colA_val := tuple_.GetValue(scan_schema, scan_schema.GetColIndex("colA")).ToInteger()
+		colB_val := tuple_.GetValue(scan_schema, scan_schema.GetColIndex("colB")).ToInteger()
+		colC_val := tuple_.GetValue(scan_schema, scan_schema.GetColIndex("colC")).ToInteger()
+
+		//fmt.Println("")
+		fmt.Printf("%d %d %d\n", colA_val, colB_val, colC_val)
+
+		testingpkg.Assert(t, (colA_val > 500 && colB_val < 5) || (!(colC_val >= 10000)), "return tuple violates predicate!")
 	}
 
 	txn_mgr.Commit(txn)

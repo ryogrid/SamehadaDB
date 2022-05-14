@@ -151,7 +151,7 @@ func FillTable(info *catalog.TableMetadata, table_meta *TableInsertMeta, txn *ac
 			num_inserted++
 		}
 	}
-	fmt.Printf("num_inserted %d\n", num_inserted)
+	//fmt.Printf("num_inserted %d\n", num_inserted)
 }
 
 func MakeColumnValueExpression(schema_ *schema.Schema, tuple_idx uint32,

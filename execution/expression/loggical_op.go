@@ -17,7 +17,7 @@ const (
 )
 
 /**
- * LogicalOp represents two expressions being evaluated with logical operator.
+ * LogicalOp represents two expressions or one expression being evaluated with logical operator.
  */
 type LogicalOp struct {
 	*AbstractExpression
