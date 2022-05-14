@@ -1896,7 +1896,7 @@ func TestSeqScanWithMultiItemPredicate(t *testing.T) {
 		//fmt.Println("")
 		fmt.Printf("%d %d %d\n", colA_val, colB_val, colC_val)
 
-		//testingpkg.Assert(t, (colA_val > 500 && colB_val < 5) || (!(colC_val >= 10000)), "return tuple violates predicate!")
+		testingpkg.Assert(t, (colA_val > 500 && colB_val < 5) || (colC_val <= 1000), "return tuple violates predicate!")
 	}
 
 	txn_mgr.Commit(txn)
