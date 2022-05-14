@@ -28,7 +28,7 @@ original codes of go-bustub are [here](https://github.com/brunocalza/go-bustub).
 - [x] Predicates on Seq Scan
 - [x] Multiple Item on Predicate: AND, OR
   - current limitation
-    - can not use on operations to table which includes column having index
+    - can not use on query which has predicate about columns which has index
     - can not use on predicate for join operation
 - [x] Predicates: <, >, <=, >=
 - [ ] Null
@@ -48,8 +48,10 @@ original codes of go-bustub are [here](https://github.com/brunocalza/go-bustub).
 - [x] Checkpointing
 - [ ] Fuzzy Checkpointing (ARIES)
 - [x] Recovery from Logs
-- [x] Hash Index
-- [ ] B+Tree Index
+- [ ] Index
+  - [x] Hash Index
+    - Hash index can be used only equal(==) operator is specified to index having columns....
+  - [ ] Tree Based Index
 - [x] Join (Hash Join)
 - [x] Aggregations (COUNT, MAX, MIN ... on SELECT clause including Group by and Having)
 - [ ] Sort (ORDER BY clause) 
