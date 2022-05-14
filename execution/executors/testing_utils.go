@@ -66,7 +66,7 @@ func ExecuteSeqScanTestCase(t *testing.T, testCase SeqScanTestCase) {
 	tmpColVal_ := expression.NewColumnValue(0, testCase.TableMetadata.Schema().GetColIndex(testCase.Predicate.LeftColumn), GetValueType(testCase.Predicate.RightColumn))
 	tmpColVal := tmpColVal_.(*expression.ColumnValue)
 	expression := expression.NewComparison(tmpColVal, expression.NewConstantValue(GetValue(testCase.Predicate.RightColumn), GetValueType(testCase.Predicate.RightColumn)), testCase.Predicate.Operator, types.Boolean)
-	seqPlan := plans.NewSeqScanPlanNode(outSchema, &expression, testCase.TableMetadata.OID())
+	seqPlan := plans.NewSeqScanPlanNode(outSchema, expression, testCase.TableMetadata.OID())
 
 	results := testCase.ExecutionEngine.Execute(seqPlan, testCase.ExecutorContext)
 

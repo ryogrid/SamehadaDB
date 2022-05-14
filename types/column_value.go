@@ -144,8 +144,10 @@ func (v Value) CompareLessThanOrEqual(right Value) bool {
 		return *v.varchar <= *right.varchar
 	case Boolean:
 		return *v.boolean == *right.boolean
+	default:
+		panic("illegal valueType is passed!")
 	}
-	return false
+
 }
 
 func (v Value) Serialize() []byte {

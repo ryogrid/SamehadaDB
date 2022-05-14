@@ -27,29 +27,16 @@ const (
 type Comparison struct {
 	*AbstractExpression
 	comparisonType ComparisonType
-	//children       []Expression
-	//children_left  ColumnValue
-	children_left  Expression
-	children_right Expression
 }
 
 func NewComparison(left Expression, right Expression, comparisonType ComparisonType, colType types.TypeID) Expression {
-	ret := &Comparison{&AbstractExpression{[2]Expression{}, colType}, comparisonType, left, right}
-	ret.SetChildAt(0, left)
-	ret.SetChildAt(1, right)
+	ret := &Comparison{&AbstractExpression{[2]Expression{left, right}, colType}, comparisonType}
 	return ret
 }
 
-//func NewComparisonAsComparison(left ColumnValue, right Expression, comparisonType ComparisonType, colType types.TypeID) *Comparison {
-//	ret := &Comparison{&AbstractExpression{[2]Expression{}, colType}, comparisonType, left, right}
-//	ret.SetChildAt(0, &left)
-//	ret.SetChildAt(1, right)
-//	return ret
-//}
-
-func (c *Comparison) Evaluate(tuple *tuple.Tuple, schema *schema.Schema) types.Value {
-	lhs := c.children[0].Evaluate(tuple, schema)
-	rhs := c.children[1].Evaluate(tuple, schema)
+func (c *Comparison) Evaluate(tuple_ *tuple.Tuple, schema_ *schema.Schema) types.Value {
+	lhs := c.children[0].Evaluate(tuple_, schema_)
+	rhs := c.children[1].Evaluate(tuple_, schema_)
 	return types.NewBoolean(c.performComparison(lhs, rhs))
 }
 
@@ -67,20 +54,18 @@ func (c *Comparison) performComparison(lhs types.Value, rhs types.Value) bool {
 		return lhs.CompareLessThan(rhs)
 	case LessThanOrEqual:
 		return lhs.CompareLessThanOrEqual(rhs)
+	default:
+		panic("illegal comparisonType is passed!")
 	}
-	return false
-}
 
-// func (c *Comparison) GetLeftSideValue(tuple *tuple.Tuple, schema *schema.Schema) types.Value {
-// 	return c.children[0].Evaluate(tuple, schema)
-// }
+}
 
 func (c *Comparison) GetLeftSideColIdx() uint32 {
-	return c.children_left.(*ColumnValue).colIndex
+	return c.children[0].(*ColumnValue).colIndex
 }
 
-func (c *Comparison) GetRightSideValue(tuple *tuple.Tuple, schema *schema.Schema) types.Value {
-	return c.children_right.Evaluate(tuple, schema)
+func (c *Comparison) GetRightSideValue(tuple_ *tuple.Tuple, schema_ *schema.Schema) types.Value {
+	return c.children[1].Evaluate(tuple_, schema_)
 }
 
 func (c *Comparison) GetComparisonType() ComparisonType {
@@ -88,7 +73,7 @@ func (c *Comparison) GetComparisonType() ComparisonType {
 }
 
 func (c *Comparison) EvaluateJoin(left_tuple *tuple.Tuple, left_schema *schema.Schema, right_tuple *tuple.Tuple, right_schema *schema.Schema) types.Value {
-	lhs := c.GetChildAt(0).EvaluateJoin(left_tuple, left_schema, right_tuple, right_schema)
+	lhs := c.GetChildAt(0).EvaluateJoin(left_tuple, left_schema, right_tuple, left_schema)
 	rhs := c.GetChildAt(1).EvaluateJoin(left_tuple, left_schema, right_tuple, right_schema)
 	return types.NewBoolean(c.performComparison(lhs, rhs))
 }

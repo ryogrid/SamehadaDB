@@ -13,15 +13,15 @@ import (
  */
 type SeqScanPlanNode struct {
 	*AbstractPlanNode
-	predicate *expression.Expression
+	predicate expression.Expression
 	tableOID  uint32
 }
 
-func NewSeqScanPlanNode(schema *schema.Schema, predicate *expression.Expression, tableOID uint32) Plan {
+func NewSeqScanPlanNode(schema *schema.Schema, predicate expression.Expression, tableOID uint32) Plan {
 	return &SeqScanPlanNode{&AbstractPlanNode{schema, nil}, predicate, tableOID}
 }
 
-func (p *SeqScanPlanNode) GetPredicate() *expression.Expression {
+func (p *SeqScanPlanNode) GetPredicate() expression.Expression {
 	return p.predicate
 }
 

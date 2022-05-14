@@ -151,14 +151,14 @@ func FillTable(info *catalog.TableMetadata, table_meta *TableInsertMeta, txn *ac
 			num_inserted++
 		}
 	}
-	fmt.Printf("num_inserted %d\n", num_inserted)
+	//fmt.Printf("num_inserted %d\n", num_inserted)
 }
 
-func MakeColumnValueExpression(schema_ *schema.Schema, tuple_idx uint32,
+func MakeColumnValueExpression(schema_ *schema.Schema, tuple_idx_on_join uint32,
 	col_name string) expression.Expression {
 	col_idx := schema_.GetColIndex(col_name)
 	col_type := schema_.GetColumn(col_idx).GetType()
-	col_val := expression.NewColumnValue(tuple_idx, col_idx, col_type)
+	col_val := expression.NewColumnValue(tuple_idx_on_join, col_idx, col_type)
 	return col_val
 }
 
