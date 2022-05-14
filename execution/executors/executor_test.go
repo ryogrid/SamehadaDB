@@ -1872,12 +1872,10 @@ func TestSeqScanWithMultiItemPredicate(t *testing.T) {
 		left_side_pred := expression.NewLogicalOp(comp_predA, comp_predB, expression.AND, types.Boolean)
 		// (NOT colC >= 1000)
 		right_side_pred := expression.NewLogicalOp(comp_predC, nil, expression.NOT, types.Boolean)
-		//right_side_pred := comp_predC
 
 		// root of predicate
 		// (colA > 500 AND colB < 5) OR (NOT colC >= 1000)
 		root_pred := expression.NewLogicalOp(left_side_pred, right_side_pred, expression.OR, types.Boolean)
-		//root_pred := expression.NewLogicalOp(comp_predA, comp_predB, expression.AND, types.Boolean)
 
 		scan_schema = MakeOutputSchema([]MakeSchemaMeta{{"colA", *colA_val}, {"colB", *colB_val}, {"colC", *colC_val}})
 		scan_plan = plans.NewSeqScanPlanNode(scan_schema, root_pred, table_info.OID()).(*plans.SeqScanPlanNode)
