@@ -27,22 +27,20 @@ const (
 type Comparison struct {
 	*AbstractExpression
 	comparisonType ComparisonType
-	//children       []Expression
-	//children_left  ColumnValue
 	children_left  Expression
 	children_right Expression
 }
 
 func NewComparison(left Expression, right Expression, comparisonType ComparisonType, colType types.TypeID) Expression {
-	ret := &Comparison{&AbstractExpression{[2]Expression{}, colType}, comparisonType, left, right}
-	ret.SetChildAt(0, left)
-	ret.SetChildAt(1, right)
+	ret := &Comparison{&AbstractExpression{[2]Expression{left, right}, colType}, comparisonType, left, right}
+	//ret.SetChildAt(0, left)
+	//ret.SetChildAt(1, right)
 	return ret
 }
 
-func (c *Comparison) Evaluate(tuple *tuple.Tuple, schema *schema.Schema) types.Value {
-	lhs := c.children[0].Evaluate(tuple, schema)
-	rhs := c.children[1].Evaluate(tuple, schema)
+func (c *Comparison) Evaluate(tuple_ *tuple.Tuple, schema *schema.Schema) types.Value {
+	lhs := c.children[0].Evaluate(tuple_, schema)
+	rhs := c.children[1].Evaluate(tuple_, schema)
 	return types.NewBoolean(c.performComparison(lhs, rhs))
 }
 
@@ -60,8 +58,10 @@ func (c *Comparison) performComparison(lhs types.Value, rhs types.Value) bool {
 		return lhs.CompareLessThan(rhs)
 	case LessThanOrEqual:
 		return lhs.CompareLessThanOrEqual(rhs)
+	default:
+		panic("illegal comparisonType is passed!")
 	}
-	return false
+
 }
 
 // func (c *Comparison) GetLeftSideValue(tuple *tuple.Tuple, schema *schema.Schema) types.Value {
