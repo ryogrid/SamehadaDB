@@ -1852,18 +1852,18 @@ func TestSimpleSeqScanWithMultiItemPredicate(t *testing.T) {
 	{
 		// setup predicates and a execution plan
 		schema_ := table_info.Schema()
-		colA := MakeColumnValueExpression(schema_, 0, "colA").(*expression.ColumnValue)
-		colB := MakeColumnValueExpression(schema_, 0, "colB").(*expression.ColumnValue)
-		colC := MakeColumnValueExpression(schema_, 0, "colC").(*expression.ColumnValue)
+		colA_val := MakeColumnValueExpression(schema_, 0, "colA").(*expression.ColumnValue)
+		colB_val := MakeColumnValueExpression(schema_, 0, "colB").(*expression.ColumnValue)
+		colC_val := MakeColumnValueExpression(schema_, 0, "colC").(*expression.ColumnValue)
 
 		pred_constA := types.NewInteger(int32(500))
-		comp_predA := MakeComparisonExpression(colA, MakeConstantValueExpression(&pred_constA), expression.GreaterThan)
+		comp_predA := MakeComparisonExpression(colA_val, MakeConstantValueExpression(&pred_constA), expression.GreaterThan)
 
 		pred_constB := types.NewInteger(int32(5))
-		comp_predB := MakeComparisonExpression(colB, MakeConstantValueExpression(&pred_constB), expression.LessThan)
+		comp_predB := MakeComparisonExpression(colB_val, MakeConstantValueExpression(&pred_constB), expression.LessThan)
 
-		pred_constC := types.NewInteger(int32(10000))
-		comp_predC := MakeComparisonExpression(colC, MakeConstantValueExpression(&pred_constC), expression.GreaterThanOrEqual)
+		pred_constC := types.NewInteger(int32(1000))
+		comp_predC := MakeComparisonExpression(colC_val, MakeConstantValueExpression(&pred_constC), expression.GreaterThanOrEqual)
 
 		// (colA > 500 AND colB < 5)
 		left_side_pred := expression.NewLogicalOp(comp_predA, comp_predB, expression.AND, types.Boolean)
@@ -1874,7 +1874,7 @@ func TestSimpleSeqScanWithMultiItemPredicate(t *testing.T) {
 		// (colA > 500 AND colB < 5) OR (NOT colC >= 1000)
 		root_pred := expression.NewLogicalOp(left_side_pred, right_side_pred, expression.OR, types.Boolean)
 
-		scan_schema = MakeOutputSchema([]MakeSchemaMeta{{"colA", *colA}, {"colB", *colB}, {"colC", *colC}})
+		scan_schema = MakeOutputSchema([]MakeSchemaMeta{{"colA", *colA_val}, {"colB", *colB_val}, {"colC", *colC_val}})
 		scan_plan = plans.NewSeqScanPlanNode(scan_schema, root_pred, table_info.OID()).(*plans.SeqScanPlanNode)
 	}
 

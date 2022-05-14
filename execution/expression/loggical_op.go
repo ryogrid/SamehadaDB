@@ -28,16 +28,21 @@ type LogicalOp struct {
 
 // if logicalOpType is "NOT", right value must be nil
 func NewLogicalOp(left Expression, right Expression, logicalOpType LogicalOpType, colType types.TypeID) Expression {
-	ret := &LogicalOp{&AbstractExpression{[2]Expression{}, colType}, logicalOpType, left, right}
+	ret := &LogicalOp{&AbstractExpression{[2]Expression{left, right}, colType}, logicalOpType, left, right}
 	ret.SetChildAt(0, left)
 	ret.SetChildAt(1, right)
 	return ret
 }
 
 func (c *LogicalOp) Evaluate(tuple *tuple.Tuple, schema *schema.Schema) types.Value {
-	lhs := c.children[0].Evaluate(tuple, schema)
-	rhs := c.children[1].Evaluate(tuple, schema)
-	return types.NewBoolean(c.performLogicalOp(lhs, rhs))
+	if c.logicalOpType == NOT {
+		lhs := c.children[0].Evaluate(tuple, schema)
+		return types.NewBoolean(!lhs.ToBoolean())
+	} else {
+		lhs := c.children[0].Evaluate(tuple, schema)
+		rhs := c.children[1].Evaluate(tuple, schema)
+		return types.NewBoolean(c.performLogicalOp(lhs, rhs))
+	}
 }
 
 func (c *LogicalOp) performLogicalOp(lhs types.Value, rhs types.Value) bool {
@@ -47,7 +52,8 @@ func (c *LogicalOp) performLogicalOp(lhs types.Value, rhs types.Value) bool {
 	case OR:
 		return lhs.ToBoolean() || rhs.ToBoolean()
 	case NOT:
-		return !lhs.ToBoolean()
+		fmt.Println(c.logicalOpType)
+		panic("NOT op is not valid!")
 	default:
 		fmt.Println(c.logicalOpType)
 		panic("unknown logicalOpType is passed!")
