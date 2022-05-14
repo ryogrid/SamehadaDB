@@ -61,12 +61,10 @@ func (c *Comparison) performComparison(lhs types.Value, rhs types.Value) bool {
 }
 
 func (c *Comparison) GetLeftSideColIdx() uint32 {
-	//return c.children_left.(*ColumnValue).colIndex
 	return c.children[0].(*ColumnValue).colIndex
 }
 
 func (c *Comparison) GetRightSideValue(tuple_ *tuple.Tuple, schema_ *schema.Schema) types.Value {
-	//return c.children_right.Evaluate(tuple, schema)
 	return c.children[1].Evaluate(tuple_, schema_)
 }
 
