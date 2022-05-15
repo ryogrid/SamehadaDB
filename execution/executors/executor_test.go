@@ -885,7 +885,7 @@ func TestSimpleInsertAndUpdate(t *testing.T) {
 	tmpColVal.SetColIndex(tableMetadata.Schema().GetColIndex(pred.LeftColumn))
 	expression_ := expression.NewComparison(tmpColVal, expression.NewConstantValue(GetValue(pred.RightColumn), GetValueType(pred.LeftColumn)), pred.Operator, types.Boolean)
 
-	updatePlanNode := plans.NewUpdatePlanNode(row1, &expression_, tableMetadata.OID())
+	updatePlanNode := plans.NewUpdatePlanNode(row1, []int{0, 1}, expression_, tableMetadata.OID())
 	executionEngine.Execute(updatePlanNode, executorContext)
 
 	txn_mgr.Commit(txn)
@@ -960,7 +960,7 @@ func TestInsertUpdateMix(t *testing.T) {
 	tmpColVal.SetColIndex(tableMetadata.Schema().GetColIndex(pred.LeftColumn))
 	expression_ := expression.NewComparison(tmpColVal, expression.NewConstantValue(GetValue(pred.RightColumn), GetValueType(pred.RightColumn)), pred.Operator, types.Boolean)
 
-	updatePlanNode := plans.NewUpdatePlanNode(row1, &expression_, tableMetadata.OID())
+	updatePlanNode := plans.NewUpdatePlanNode(row1, []int{0, 1}, expression_, tableMetadata.OID())
 	executionEngine.Execute(updatePlanNode, executorContext)
 
 	txn_mgr.Commit(txn)
@@ -1083,7 +1083,7 @@ func TestAbortWIthDeleteUpdate(t *testing.T) {
 	tmpColVal.SetColIndex(tableMetadata.Schema().GetColIndex(pred.LeftColumn))
 	expression_ := expression.NewComparison(tmpColVal, expression.NewConstantValue(GetValue(pred.RightColumn), GetValueType(pred.RightColumn)), pred.Operator, types.Boolean)
 
-	updatePlanNode := plans.NewUpdatePlanNode(row1, &expression_, tableMetadata.OID())
+	updatePlanNode := plans.NewUpdatePlanNode(row1, []int{0, 1}, expression_, tableMetadata.OID())
 	executionEngine.Execute(updatePlanNode, executorContext)
 
 	// delete

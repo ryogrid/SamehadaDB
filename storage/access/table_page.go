@@ -121,9 +121,10 @@ func (tp *TablePage) InsertTuple(tuple *tuple.Tuple, log_manager *recovery.LogMa
 }
 
 // TODO: (SDB) need to update selected column only (UpdateTuple of TablePage)
-func (tp *TablePage) UpdateTuple(new_tuple *tuple.Tuple, old_tuple *tuple.Tuple, rid *page.RID, txn *Transaction,
+func (tp *TablePage) UpdateTuple(new_tuple *tuple.Tuple, update_col_idxs []int, old_tuple *tuple.Tuple, rid *page.RID, txn *Transaction,
 	lock_manager *LockManager, log_manager *recovery.LogManager) bool {
 	common.SH_Assert(new_tuple.Size() > 0, "Cannot have empty tuples.")
+	common.SH_Assert(update_col_idxs == nil, "updata_col_idxs is nil.")
 	slot_num := rid.GetSlotNum()
 	// If the slot number is invalid, abort the transaction.
 	if slot_num >= tp.GetTupleCount() {

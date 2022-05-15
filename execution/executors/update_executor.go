@@ -53,7 +53,7 @@ func (e *UpdateExecutor) Next() (*tuple.Tuple, Done, error) {
 			rid := e.it.Current().GetRID()
 			new_tuple := tuple.NewTupleFromSchema(e.plan.GetRawValues(), e.tableMetadata.Schema())
 
-			is_updated := e.tableMetadata.Table().UpdateTuple(new_tuple, *rid, e.txn)
+			is_updated := e.tableMetadata.Table().UpdateTuple(new_tuple, e.plan.GetUpdateColIdxs(), *rid, e.txn)
 			if !is_updated {
 				err := errors.New("tuple update failed. PageId:SlotNum = " + string(rid.GetPageId()) + ":" + fmt.Sprint(rid.GetSlotNum()))
 				return nil, false, err
@@ -79,8 +79,8 @@ func (e *UpdateExecutor) Next() (*tuple.Tuple, Done, error) {
 }
 
 // select evaluates an expression on the tuple
-func (e *UpdateExecutor) selects(tuple *tuple.Tuple, predicate *expression.Expression) bool {
-	return predicate == nil || (*predicate).Evaluate(tuple, e.tableMetadata.Schema()).ToBoolean()
+func (e *UpdateExecutor) selects(tuple *tuple.Tuple, predicate expression.Expression) bool {
+	return predicate == nil || predicate.Evaluate(tuple, e.tableMetadata.Schema()).ToBoolean()
 }
 
 func (e *UpdateExecutor) GetOutputSchema() *schema.Schema {
