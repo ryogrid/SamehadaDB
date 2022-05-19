@@ -120,11 +120,13 @@ func (tp *TablePage) InsertTuple(tuple *tuple.Tuple, log_manager *recovery.LogMa
 	return rid, nil
 }
 
-// TODO: (SDB) need to update selected column only (UpdateTuple of TablePage)
-func (tp *TablePage) UpdateTuple(new_tuple *tuple.Tuple, update_col_idxs []int, old_tuple *tuple.Tuple, rid *page.RID, txn *Transaction,
+// TODO: (SDB) need to update selected data part only (UpdateTuple of TablePage)
+// update_ranges contaaims update data ranges x1_old <= data < x2_old to x1_new <= data < x2_new
+func (tp *TablePage) UpdateTuple(new_tuple *tuple.Tuple, update_ranges_new [][2]int, update_ranges_old [][2]int, old_tuple *tuple.Tuple, rid *page.RID, txn *Transaction,
 	lock_manager *LockManager, log_manager *recovery.LogManager) bool {
 	common.SH_Assert(new_tuple.Size() > 0, "Cannot have empty tuples.")
-	common.SH_Assert(update_col_idxs == nil, "updata_col_idxs is nil.")
+	common.SH_Assert(update_ranges_old == nil, "updata_ranges_new is nil.")
+	common.SH_Assert(update_ranges_old == nil, "updata_ranges_old is nil.")
 	slot_num := rid.GetSlotNum()
 	// If the slot number is invalid, abort the transaction.
 	if slot_num >= tp.GetTupleCount() {
@@ -141,6 +143,7 @@ func (tp *TablePage) UpdateTuple(new_tuple *tuple.Tuple, update_col_idxs []int, 
 		}
 		return false
 	}
+
 	// If there is not enuogh space to update, we need to update via delete followed by an insert (not enough space).
 	if tp.getFreeSpaceRemaining()+tuple_size < new_tuple.Size() {
 		if common.EnableLogging {
@@ -159,11 +162,11 @@ func (tp *TablePage) UpdateTuple(new_tuple *tuple.Tuple, update_col_idxs []int, 
 	old_tuple_data := make([]byte, old_tuple.Size())
 	copy(old_tuple_data, tp.GetData()[tuple_offset:tuple_offset+old_tuple.Size()])
 	old_tuple.SetData(old_tuple_data)
-
 	old_tuple.SetRID(rid)
 	//old_tuple->allocated_ = true;
 
 	if common.EnableLogging {
+
 		// Acquire an exclusive lock, upgrading from shared if necessary.
 		if txn.IsSharedLocked(rid) {
 			if !lock_manager.LockUpgrade(txn, rid) {
