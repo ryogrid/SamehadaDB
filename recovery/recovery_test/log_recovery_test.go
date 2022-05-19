@@ -309,7 +309,7 @@ func TestUndo(t *testing.T) {
 	row1 := make([]types.Value, 0)
 	row1 = append(row1, types.NewVarchar("updated"))
 	row1 = append(row1, types.NewInteger(256))
-	test_table.UpdateTuple(tuple.NewTupleFromSchema(row1, schema_), nil, nil, *rid2, txn)
+	test_table.UpdateTuple(tuple.NewTupleFromSchema(row1, schema_), nil, nil, nil, *rid2, txn)
 
 	// tuple insertion (rid3)
 	tuple3 := ConstructTuple(schema_)

@@ -7,6 +7,7 @@ package access
 import (
 	"bytes"
 	"encoding/binary"
+	"github.com/ryogrid/SamehadaDB/storage/table/schema"
 	"unsafe"
 
 	"github.com/ryogrid/SamehadaDB/common"
@@ -121,9 +122,9 @@ func (tp *TablePage) InsertTuple(tuple *tuple.Tuple, log_manager *recovery.LogMa
 }
 
 // TODO: (SDB) need to update selected data part only (UpdateTuple of TablePage)
-// update_ranges_xxxx contaaims update data ranges x1_old <= data < x2_old to x1_new <= data < x2_new
+// update_ranges_new contains update data ranges x1_new <= data < x2_new
 // spesified nil to both, range is ignored and data buffer of new tuple replace existed data on Page
-func (tp *TablePage) UpdateTuple(new_tuple *tuple.Tuple, update_ranges_new [][2]int, update_ranges_old [][2]int, old_tuple *tuple.Tuple, rid *page.RID, txn *Transaction,
+func (tp *TablePage) UpdateTuple(new_tuple *tuple.Tuple, update_ranges_new [][2]int, update_col_idxs []int, schema_ *schema.Schema, old_tuple *tuple.Tuple, rid *page.RID, txn *Transaction,
 	lock_manager *LockManager, log_manager *recovery.LogManager) bool {
 	common.SH_Assert(new_tuple.Size() > 0, "Cannot have empty tuples.")
 
@@ -162,10 +163,8 @@ func (tp *TablePage) UpdateTuple(new_tuple *tuple.Tuple, update_ranges_new [][2]
 	copy(old_tuple_data, tp.GetData()[tuple_offset:tuple_offset+old_tuple.Size()])
 	old_tuple.SetData(old_tuple_data)
 	old_tuple.SetRID(rid)
-	//old_tuple->allocated_ = true;
 
 	if common.EnableLogging {
-
 		// Acquire an exclusive lock, upgrading from shared if necessary.
 		if txn.IsSharedLocked(rid) {
 			if !lock_manager.LockUpgrade(txn, rid) {

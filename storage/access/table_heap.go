@@ -8,6 +8,7 @@ import (
 	"github.com/ryogrid/SamehadaDB/recovery"
 	"github.com/ryogrid/SamehadaDB/storage/buffer"
 	"github.com/ryogrid/SamehadaDB/storage/page"
+	"github.com/ryogrid/SamehadaDB/storage/table/schema"
 	"github.com/ryogrid/SamehadaDB/storage/tuple"
 	"github.com/ryogrid/SamehadaDB/types"
 )
@@ -97,9 +98,9 @@ func (t *TableHeap) InsertTuple(tuple_ *tuple.Tuple, txn *Transaction) (rid *pag
 }
 
 // TODO: (SDB) need to update selected column only (UpdateTuple of TableHeap)
-// update_ranges_xxxx contaaims update data ranges x1_old <= data < x2_old to x1_new <= data < x2_new
-// spesified nil to both, range is ignored and data buffer of new tuple replace existed data on Page
-func (t *TableHeap) UpdateTuple(tuple_ *tuple.Tuple, update_ranges_new [][2]int, update_ranges_old [][2]int, rid page.RID, txn *Transaction) bool {
+// update_ranges_xxxx contains update data ranges x1_new <= data < x2_new
+// spesified nil, range is ignored and data buffer of new tuple replace existed data on Page
+func (t *TableHeap) UpdateTuple(tuple_ *tuple.Tuple, update_ranges_new [][2]int, update_col_idxs []int, schema_ *schema.Schema, rid page.RID, txn *Transaction) bool {
 	// Find the page which contains the tuple.
 	page_ := CastPageAsTablePage(t.bpm.FetchPage(rid.GetPageId()))
 	// If the page could not be found, then abort the transaction.
@@ -112,7 +113,7 @@ func (t *TableHeap) UpdateTuple(tuple_ *tuple.Tuple, update_ranges_new [][2]int,
 	old_tuple.SetRID(new(page.RID))
 	page_.WLatch()
 
-	is_updated := page_.UpdateTuple(tuple_, update_ranges_new, update_ranges_old, old_tuple, &rid, txn, t.lock_manager, t.log_manager)
+	is_updated := page_.UpdateTuple(tuple_, update_ranges_new, update_col_idxs, schema_, old_tuple, &rid, txn, t.lock_manager, t.log_manager)
 	page_.WUnlatch()
 	t.bpm.UnpinPage(page_.GetTablePageId(), is_updated)
 	// Update the transaction's write set.
