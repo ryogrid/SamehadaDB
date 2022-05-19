@@ -121,12 +121,15 @@ func (tp *TablePage) InsertTuple(tuple *tuple.Tuple, log_manager *recovery.LogMa
 }
 
 // TODO: (SDB) need to update selected data part only (UpdateTuple of TablePage)
-// update_ranges contaaims update data ranges x1_old <= data < x2_old to x1_new <= data < x2_new
+// update_ranges_xxxx contaaims update data ranges x1_old <= data < x2_old to x1_new <= data < x2_new
+// spesified nil to both, range is ignored and data buffer of new tuple replace existed data on Page
 func (tp *TablePage) UpdateTuple(new_tuple *tuple.Tuple, update_ranges_new [][2]int, update_ranges_old [][2]int, old_tuple *tuple.Tuple, rid *page.RID, txn *Transaction,
 	lock_manager *LockManager, log_manager *recovery.LogManager) bool {
 	common.SH_Assert(new_tuple.Size() > 0, "Cannot have empty tuples.")
-	common.SH_Assert(update_ranges_old == nil, "updata_ranges_new is nil.")
-	common.SH_Assert(update_ranges_old == nil, "updata_ranges_old is nil.")
+
+	// TODO: (SDB) need to consider route of
+	//              - update_ranges_new and update_ranges_old are nil case
+	//              - these are not nil case
 	slot_num := rid.GetSlotNum()
 	// If the slot number is invalid, abort the transaction.
 	if slot_num >= tp.GetTupleCount() {
@@ -155,10 +158,6 @@ func (tp *TablePage) UpdateTuple(new_tuple *tuple.Tuple, update_ranges_new [][2]
 	// Copy out the old value.
 	tuple_offset := tp.GetTupleOffsetAtSlot(slot_num)
 	old_tuple.SetSize(tuple_size)
-	// if (old_tuple.allocated_) {
-	// 	delete[] old_tuple->data_;
-	// }
-	// old_tuple->data_ = new char[old_tuple->size_];
 	old_tuple_data := make([]byte, old_tuple.Size())
 	copy(old_tuple_data, tp.GetData()[tuple_offset:tuple_offset+old_tuple.Size()])
 	old_tuple.SetData(old_tuple_data)
@@ -177,6 +176,8 @@ func (tp *TablePage) UpdateTuple(new_tuple *tuple.Tuple, update_ranges_new [][2]
 			txn.SetState(ABORTED)
 			return false
 		}
+		// TODO: (SDB) new_tuple need to contain all data of tuple
+		//             so if update_ranges_xxx is specified, need to copy data of not passed column's from old_tuple
 		log_record := recovery.NewLogRecordUpdate(txn.GetTransactionId(), txn.GetPrevLSN(), recovery.UPDATE, *rid, *old_tuple, *new_tuple)
 		lsn := log_manager.AppendLogRecord(log_record)
 		tp.SetLSN(lsn)
@@ -187,10 +188,8 @@ func (tp *TablePage) UpdateTuple(new_tuple *tuple.Tuple, update_ranges_new [][2]
 	free_space_pointer := tp.GetFreeSpacePointer()
 	common.SH_Assert(tuple_offset >= free_space_pointer, "Offset should appear after current free space position.")
 
-	//memmove(GetData() + free_space_pointer + tuple_size - new_tuple.size_, GetData() + free_space_pointer, tuple_offset - free_space_pointer);
 	copy(tp.GetData()[free_space_pointer+tuple_size-new_tuple.Size():], tp.GetData()[free_space_pointer:tuple_offset])
 	tp.SetFreeSpacePointer(free_space_pointer + tuple_size - new_tuple.Size())
-	//memcpy(tp.GetData() + tuple_offset + tuple_size - new_tuple.Size(), new_tuple.data_, new_tuple.Size());
 	copy(tp.GetData()[tuple_offset+tuple_size-new_tuple.Size():], new_tuple.Data()[:new_tuple.Size()])
 	tp.SetTupleSize(slot_num, new_tuple.Size())
 

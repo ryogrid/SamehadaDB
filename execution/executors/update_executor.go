@@ -53,8 +53,14 @@ func (e *UpdateExecutor) Next() (*tuple.Tuple, Done, error) {
 			rid := e.it.Current().GetRID()
 			new_tuple := tuple.NewTupleFromSchema(e.plan.GetRawValues(), e.tableMetadata.Schema())
 
-			// TODO: (SDB) need passing data range list as a argument which is respond to update target columns (UpdateExecuter::Next())
-			is_updated := e.tableMetadata.Table().UpdateTuple(new_tuple, e.plan.GetUpdateColIdxs(), *rid, e.txn)
+			var is_updated bool = false
+			if e.plan.GetUpdateColIdxs() == nil {
+				is_updated = e.tableMetadata.Table().UpdateTuple(new_tuple, nil, nil, *rid, e.txn)
+			} else {
+				// TODO: (SDB) need passing data range list as a argument which is respond to update target columns (UpdateExecuter::Next())
+				is_updated = e.tableMetadata.Table().UpdateTuple(new_tuple, e.plan.GetUpdateColIdxs(), *rid, e.txn)
+			}
+
 			if !is_updated {
 				err := errors.New("tuple update failed. PageId:SlotNum = " + string(rid.GetPageId()) + ":" + fmt.Sprint(rid.GetSlotNum()))
 				return nil, false, err

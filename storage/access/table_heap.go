@@ -97,6 +97,8 @@ func (t *TableHeap) InsertTuple(tuple_ *tuple.Tuple, txn *Transaction) (rid *pag
 }
 
 // TODO: (SDB) need to update selected column only (UpdateTuple of TableHeap)
+// update_ranges_xxxx contaaims update data ranges x1_old <= data < x2_old to x1_new <= data < x2_new
+// spesified nil to both, range is ignored and data buffer of new tuple replace existed data on Page
 func (t *TableHeap) UpdateTuple(tuple_ *tuple.Tuple, update_ranges_new [][2]int, update_ranges_old [][2]int, rid page.RID, txn *Transaction) bool {
 	// Find the page which contains the tuple.
 	page_ := CastPageAsTablePage(t.bpm.FetchPage(rid.GetPageId()))

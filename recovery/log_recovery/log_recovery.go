@@ -167,7 +167,7 @@ func (log_recovery *LogRecovery) Redo() {
 				if page_.GetLSN() < log_record.GetLSN() {
 					// UpdateTuple overwrites Old_tuple argument
 					// but it is no problem because log_record is read from log file again in Undo phase
-					page_.UpdateTuple(&log_record.New_tuple, &log_record.Old_tuple, &log_record.Update_rid, nil, nil, nil)
+					page_.UpdateTuple(&log_record.New_tuple, nil, nil, &log_record.Old_tuple, &log_record.Update_rid, nil, nil, nil)
 					page_.SetLSN(log_record.GetLSN())
 				}
 				log_recovery.buffer_pool_manager.UnpinPage(log_record.Update_rid.GetPageId(), true)
@@ -237,7 +237,7 @@ func (log_recovery *LogRecovery) Undo() {
 			} else if log_record.Log_record_type == recovery.UPDATE {
 				page_ :=
 					access.CastPageAsTablePage(log_recovery.buffer_pool_manager.FetchPage(log_record.Update_rid.GetPageId()))
-				page_.UpdateTuple(&log_record.Old_tuple, &log_record.New_tuple, &log_record.Update_rid, nil, nil, nil)
+				page_.UpdateTuple(&log_record.Old_tuple, nil, nil, &log_record.New_tuple, &log_record.Update_rid, nil, nil, nil)
 				log_recovery.buffer_pool_manager.UnpinPage(log_record.Update_rid.GetPageId(), true)
 			}
 			lsn = log_record.Prev_lsn
