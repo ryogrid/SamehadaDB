@@ -148,7 +148,7 @@ func (tp *TablePage) UpdateTuple(new_tuple *tuple.Tuple, update_ranges_new [][2]
 		return false
 	}
 
-	// If there is not enuogh space to update, we need to update via delete followed by an insert (not enough space).
+	// TODO: (SDB) If there is not enuogh space to update, we need to update via delete followed by an insert (not enough space).
 	if tp.getFreeSpaceRemaining()+tuple_size < new_tuple.Size() {
 		if common.EnableLogging {
 			txn.SetState(ABORTED)

@@ -62,7 +62,7 @@ func (e *UpdateExecutor) Next() (*tuple.Tuple, Done, error) {
 				var data_ranges_new [][2]int = make([][2]int, 0)
 
 				for _, val := range values {
-
+					// TODO: (SDB) need implement ( UpdateExecuter::Next() )
 				}
 
 				is_updated = e.tableMetadata.Table().UpdateTuple(new_tuple, data_ranges_new, e.plan.GetUpdateColIdxs(), e.tableMetadata.Schema(), *rid, e.txn)
