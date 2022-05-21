@@ -144,10 +144,6 @@ func (tp *TablePage) UpdateTuple(new_tuple *tuple.Tuple, update_col_idxs []int, 
 		return false
 	}
 
-	// TODO: (SDB) need to consider route of
-	//              - update_col_idx and schema_ are nil case
-	//              - these are not nil case
-
 	// Copy out the old value.
 	tuple_offset := tp.GetTupleOffsetAtSlot(slot_num)
 	old_tuple.SetSize(tuple_size)
@@ -175,7 +171,7 @@ func (tp *TablePage) UpdateTuple(new_tuple *tuple.Tuple, update_col_idxs []int, 
 		update_tuple = new_tuple
 	}
 
-	// TODO: (SDB) If there is not enuogh space to update, we need to update via delete followed by an insert (not enough space).
+	// TODO: (SDB) If there is not enuogh space to update, we need to update via delete followed by an insert
 	if tp.getFreeSpaceRemaining()+tuple_size < update_tuple.Size() {
 		if common.EnableLogging {
 			txn.SetState(ABORTED)
