@@ -16,6 +16,9 @@ type UpdatePlanNode struct {
 	tableOID        uint32
 }
 
+// if you update all column, you can specify nil to update_col_idxs. then all data of existed tuple is replaced with rawValues
+// if you want update specifed columns only, you should specify columns with update_col_idxs and pass rawValues of all columns defined in schema.
+// but not update target column value can be dummy value!
 func NewUpdatePlanNode(rawValues []types.Value, update_col_idxs []int, predicate expression.Expression, oid uint32) Plan {
 	return &UpdatePlanNode{&AbstractPlanNode{nil, nil}, rawValues, update_col_idxs, predicate, oid}
 }

@@ -56,16 +56,9 @@ func (e *UpdateExecutor) Next() (*tuple.Tuple, Done, error) {
 
 			var is_updated bool = false
 			if e.plan.GetUpdateColIdxs() == nil {
-				is_updated = e.tableMetadata.Table().UpdateTuple(new_tuple, nil, nil, nil, *rid, e.txn)
+				is_updated = e.tableMetadata.Table().UpdateTuple(new_tuple, nil, nil, *rid, e.txn)
 			} else {
-				// TODO: (SDB) need passing data range list as a argument which is respond to update target columns (UpdateExecuter::Next())
-				var data_ranges_new [][2]int = make([][2]int, 0)
-
-				for _, val := range values {
-					// TODO: (SDB) need implement ( UpdateExecuter::Next() )
-				}
-
-				is_updated = e.tableMetadata.Table().UpdateTuple(new_tuple, data_ranges_new, e.plan.GetUpdateColIdxs(), e.tableMetadata.Schema(), *rid, e.txn)
+				is_updated = e.tableMetadata.Table().UpdateTuple(new_tuple, e.plan.GetUpdateColIdxs(), e.tableMetadata.Schema(), *rid, e.txn)
 			}
 
 			if !is_updated {

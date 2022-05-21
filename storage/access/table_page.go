@@ -121,16 +121,12 @@ func (tp *TablePage) InsertTuple(tuple *tuple.Tuple, log_manager *recovery.LogMa
 	return rid, nil
 }
 
-// TODO: (SDB) need to update selected data part only (UpdateTuple of TablePage)
-// update_ranges_new contains update data ranges x1_new <= data < x2_new
-// spesified nil to both, range is ignored and data buffer of new tuple replace existed data on Page
-func (tp *TablePage) UpdateTuple(new_tuple *tuple.Tuple, update_ranges_new [][2]int, update_col_idxs []int, schema_ *schema.Schema, old_tuple *tuple.Tuple, rid *page.RID, txn *Transaction,
+// if specified nil to update_col_idxs and schema_, all data of existed tuple is replaced one of new_tuple
+// if specified not nil, new_tuple also should have all columns defined in schema. but not update target value can be dummy value
+func (tp *TablePage) UpdateTuple(new_tuple *tuple.Tuple, update_col_idxs []int, schema_ *schema.Schema, old_tuple *tuple.Tuple, rid *page.RID, txn *Transaction,
 	lock_manager *LockManager, log_manager *recovery.LogManager) bool {
 	common.SH_Assert(new_tuple.Size() > 0, "Cannot have empty tuples.")
 
-	// TODO: (SDB) need to consider route of
-	//              - update_ranges_new and update_ranges_old are nil case
-	//              - these are not nil case
 	slot_num := rid.GetSlotNum()
 	// If the slot number is invalid, abort the transaction.
 	if slot_num >= tp.GetTupleCount() {
@@ -148,13 +144,9 @@ func (tp *TablePage) UpdateTuple(new_tuple *tuple.Tuple, update_ranges_new [][2]
 		return false
 	}
 
-	// TODO: (SDB) If there is not enuogh space to update, we need to update via delete followed by an insert (not enough space).
-	if tp.getFreeSpaceRemaining()+tuple_size < new_tuple.Size() {
-		if common.EnableLogging {
-			txn.SetState(ABORTED)
-		}
-		return false
-	}
+	// TODO: (SDB) need to consider route of
+	//              - update_col_idx and schema_ are nil case
+	//              - these are not nil case
 
 	// Copy out the old value.
 	tuple_offset := tp.GetTupleOffsetAtSlot(slot_num)
@@ -163,6 +155,33 @@ func (tp *TablePage) UpdateTuple(new_tuple *tuple.Tuple, update_ranges_new [][2]
 	copy(old_tuple_data, tp.GetData()[tuple_offset:tuple_offset+old_tuple.Size()])
 	old_tuple.SetData(old_tuple_data)
 	old_tuple.SetRID(rid)
+
+	var update_tuple *tuple.Tuple = nil
+	if update_col_idxs == nil || schema_ == nil {
+		// update specifed columns only case
+
+		// setup tuple for updating
+		var update_tuple_values []types.Value = make([]types.Value, 0)
+		matched_cnt := int(0)
+		for idx, _ := range schema_.GetColumns() {
+			if matched_cnt < len(update_col_idxs) && idx == update_col_idxs[matched_cnt] {
+				update_tuple_values = append(update_tuple_values, new_tuple.GetValue(schema_, uint32(idx)))
+			} else {
+				update_tuple_values = append(update_tuple_values, old_tuple.GetValue(schema_, uint32(idx)))
+			}
+		}
+		update_tuple = tuple.NewTupleFromSchema(update_tuple_values, schema_)
+	} else {
+		update_tuple = new_tuple
+	}
+
+	// TODO: (SDB) If there is not enuogh space to update, we need to update via delete followed by an insert (not enough space).
+	if tp.getFreeSpaceRemaining()+tuple_size < update_tuple.Size() {
+		if common.EnableLogging {
+			txn.SetState(ABORTED)
+		}
+		return false
+	}
 
 	if common.EnableLogging {
 		// Acquire an exclusive lock, upgrading from shared if necessary.
@@ -175,9 +194,7 @@ func (tp *TablePage) UpdateTuple(new_tuple *tuple.Tuple, update_ranges_new [][2]
 			txn.SetState(ABORTED)
 			return false
 		}
-		// TODO: (SDB) new_tuple need to contain all data of tuple
-		//             so if update_ranges_xxx is specified, need to copy data of not passed column's from old_tuple
-		log_record := recovery.NewLogRecordUpdate(txn.GetTransactionId(), txn.GetPrevLSN(), recovery.UPDATE, *rid, *old_tuple, *new_tuple)
+		log_record := recovery.NewLogRecordUpdate(txn.GetTransactionId(), txn.GetPrevLSN(), recovery.UPDATE, *rid, *old_tuple, *update_tuple)
 		lsn := log_manager.AppendLogRecord(log_record)
 		tp.SetLSN(lsn)
 		txn.SetPrevLSN(lsn)
@@ -187,17 +204,17 @@ func (tp *TablePage) UpdateTuple(new_tuple *tuple.Tuple, update_ranges_new [][2]
 	free_space_pointer := tp.GetFreeSpacePointer()
 	common.SH_Assert(tuple_offset >= free_space_pointer, "Offset should appear after current free space position.")
 
-	copy(tp.GetData()[free_space_pointer+tuple_size-new_tuple.Size():], tp.GetData()[free_space_pointer:tuple_offset])
-	tp.SetFreeSpacePointer(free_space_pointer + tuple_size - new_tuple.Size())
-	copy(tp.GetData()[tuple_offset+tuple_size-new_tuple.Size():], new_tuple.Data()[:new_tuple.Size()])
-	tp.SetTupleSize(slot_num, new_tuple.Size())
+	copy(tp.GetData()[free_space_pointer+tuple_size-update_tuple.Size():], tp.GetData()[free_space_pointer:tuple_offset])
+	tp.SetFreeSpacePointer(free_space_pointer + tuple_size - update_tuple.Size())
+	copy(tp.GetData()[tuple_offset+tuple_size-update_tuple.Size():], new_tuple.Data()[:update_tuple.Size()])
+	tp.SetTupleSize(slot_num, update_tuple.Size())
 
 	// Update all tuple offsets.
 	tuple_cnt := int(tp.GetTupleCount())
 	for ii := 0; ii < tuple_cnt; ii++ {
 		tuple_offset_i := tp.GetTupleOffsetAtSlot(uint32(ii))
 		if tp.GetTupleSize(uint32(ii)) > 0 && tuple_offset_i < tuple_offset+tuple_size {
-			tp.SetTupleOffsetAtSlot(uint32(ii), tuple_offset_i+tuple_size-new_tuple.Size())
+			tp.SetTupleOffsetAtSlot(uint32(ii), tuple_offset_i+tuple_size-update_tuple.Size())
 		}
 	}
 	return true

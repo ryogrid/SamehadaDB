@@ -176,3 +176,14 @@ func (tuple_ *Tuple) DeserializeFrom(storage []byte) {
 	//memcpy(this.data, storage+sizeof(int32_t), this.size)
 	copy(tuple_.data, storage[TupleSizeOffsetInLogrecord:TupleSizeOffsetInLogrecord+int(tuple_.size)])
 }
+
+func (tuple_ *Tuple) GetDeepCopy() *Tuple {
+	ret := new(Tuple)
+	ret.data = make([]byte, 0)
+	tuple_.Copy(0, ret.data)
+	ret.SetSize(tuple_.size)
+	copied_rid := new(page.RID)
+	copied_rid.Set(tuple_.rid.GetPageId(), tuple_.rid.GetSlotNum())
+	ret.rid = copied_rid
+	return ret
+}

@@ -108,7 +108,7 @@ func (transaction_manager *TransactionManager) Abort(txn *Transaction) {
 			tpage.ApplyDelete(&item.rid, txn, transaction_manager.log_manager)
 			tpage.WUnlatch()
 		} else if item.wtype == UPDATE {
-			table.UpdateTuple(item.tuple, nil, nil, nil, item.rid, txn)
+			table.UpdateTuple(item.tuple, nil, nil, item.rid, txn)
 		}
 		write_set = write_set[:len(write_set)-1]
 	}
