@@ -3,7 +3,10 @@
 
 package page
 
-import "github.com/ryogrid/SamehadaDB/types"
+import (
+	"fmt"
+	"github.com/ryogrid/SamehadaDB/types"
+)
 
 // RID is the record identifier for the given page identifier and slot number
 type RID struct {
@@ -25,4 +28,8 @@ func (r *RID) GetPageId() types.PageID {
 // GetSlotNum gets the slot number
 func (r *RID) GetSlotNum() uint32 {
 	return r.SlotNum
+}
+
+func (r *RID) GetAsStr() string {
+	return fmt.Sprintf("%v", *r)
 }

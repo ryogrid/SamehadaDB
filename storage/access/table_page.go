@@ -7,6 +7,7 @@ package access
 import (
 	"bytes"
 	"encoding/binary"
+	"github.com/ryogrid/SamehadaDB/storage/table/schema"
 	"unsafe"
 
 	"github.com/ryogrid/SamehadaDB/common"
@@ -120,10 +121,12 @@ func (tp *TablePage) InsertTuple(tuple *tuple.Tuple, log_manager *recovery.LogMa
 	return rid, nil
 }
 
-// TODO: (SDB) need to update selected column only (UpdateTuple of TablePage)
-func (tp *TablePage) UpdateTuple(new_tuple *tuple.Tuple, old_tuple *tuple.Tuple, rid *page.RID, txn *Transaction,
+// if specified nil to update_col_idxs and schema_, all data of existed tuple is replaced one of new_tuple
+// if specified not nil, new_tuple also should have all columns defined in schema. but not update target value can be dummy value
+func (tp *TablePage) UpdateTuple(new_tuple *tuple.Tuple, update_col_idxs []int, schema_ *schema.Schema, old_tuple *tuple.Tuple, rid *page.RID, txn *Transaction,
 	lock_manager *LockManager, log_manager *recovery.LogManager) bool {
 	common.SH_Assert(new_tuple.Size() > 0, "Cannot have empty tuples.")
+
 	slot_num := rid.GetSlotNum()
 	// If the slot number is invalid, abort the transaction.
 	if slot_num >= tp.GetTupleCount() {
@@ -140,27 +143,42 @@ func (tp *TablePage) UpdateTuple(new_tuple *tuple.Tuple, old_tuple *tuple.Tuple,
 		}
 		return false
 	}
-	// If there is not enuogh space to update, we need to update via delete followed by an insert (not enough space).
-	if tp.getFreeSpaceRemaining()+tuple_size < new_tuple.Size() {
+
+	// Copy out the old value.
+	tuple_offset := tp.GetTupleOffsetAtSlot(slot_num)
+	old_tuple.SetSize(tuple_size)
+	old_tuple_data := make([]byte, old_tuple.Size())
+	copy(old_tuple_data, tp.GetData()[tuple_offset:tuple_offset+old_tuple.Size()])
+	old_tuple.SetData(old_tuple_data)
+	old_tuple.SetRID(rid)
+
+	// setup tuple for updating
+	var update_tuple *tuple.Tuple = nil
+	if update_col_idxs == nil || schema_ == nil {
+		update_tuple = new_tuple
+	} else {
+		// update specifed columns only case
+
+		var update_tuple_values []types.Value = make([]types.Value, 0)
+		matched_cnt := int(0)
+		for idx, _ := range schema_.GetColumns() {
+			if matched_cnt < len(update_col_idxs) && idx == update_col_idxs[matched_cnt] {
+				update_tuple_values = append(update_tuple_values, new_tuple.GetValue(schema_, uint32(idx)))
+				matched_cnt++
+			} else {
+				update_tuple_values = append(update_tuple_values, old_tuple.GetValue(schema_, uint32(idx)))
+			}
+		}
+		update_tuple = tuple.NewTupleFromSchema(update_tuple_values, schema_)
+	}
+
+	// TODO: (SDB) If there is not enuogh space to update, we need to update via delete followed by an insert
+	if tp.getFreeSpaceRemaining()+tuple_size < update_tuple.Size() {
 		if common.EnableLogging {
 			txn.SetState(ABORTED)
 		}
 		return false
 	}
-
-	// Copy out the old value.
-	tuple_offset := tp.GetTupleOffsetAtSlot(slot_num)
-	old_tuple.SetSize(tuple_size)
-	// if (old_tuple.allocated_) {
-	// 	delete[] old_tuple->data_;
-	// }
-	// old_tuple->data_ = new char[old_tuple->size_];
-	old_tuple_data := make([]byte, old_tuple.Size())
-	copy(old_tuple_data, tp.GetData()[tuple_offset:tuple_offset+old_tuple.Size()])
-	old_tuple.SetData(old_tuple_data)
-
-	old_tuple.SetRID(rid)
-	//old_tuple->allocated_ = true;
 
 	if common.EnableLogging {
 		// Acquire an exclusive lock, upgrading from shared if necessary.
@@ -173,7 +191,7 @@ func (tp *TablePage) UpdateTuple(new_tuple *tuple.Tuple, old_tuple *tuple.Tuple,
 			txn.SetState(ABORTED)
 			return false
 		}
-		log_record := recovery.NewLogRecordUpdate(txn.GetTransactionId(), txn.GetPrevLSN(), recovery.UPDATE, *rid, *old_tuple, *new_tuple)
+		log_record := recovery.NewLogRecordUpdate(txn.GetTransactionId(), txn.GetPrevLSN(), recovery.UPDATE, *rid, *old_tuple, *update_tuple)
 		lsn := log_manager.AppendLogRecord(log_record)
 		tp.SetLSN(lsn)
 		txn.SetPrevLSN(lsn)
@@ -183,19 +201,17 @@ func (tp *TablePage) UpdateTuple(new_tuple *tuple.Tuple, old_tuple *tuple.Tuple,
 	free_space_pointer := tp.GetFreeSpacePointer()
 	common.SH_Assert(tuple_offset >= free_space_pointer, "Offset should appear after current free space position.")
 
-	//memmove(GetData() + free_space_pointer + tuple_size - new_tuple.size_, GetData() + free_space_pointer, tuple_offset - free_space_pointer);
-	copy(tp.GetData()[free_space_pointer+tuple_size-new_tuple.Size():], tp.GetData()[free_space_pointer:tuple_offset])
-	tp.SetFreeSpacePointer(free_space_pointer + tuple_size - new_tuple.Size())
-	//memcpy(tp.GetData() + tuple_offset + tuple_size - new_tuple.Size(), new_tuple.data_, new_tuple.Size());
-	copy(tp.GetData()[tuple_offset+tuple_size-new_tuple.Size():], new_tuple.Data()[:new_tuple.Size()])
-	tp.SetTupleSize(slot_num, new_tuple.Size())
+	copy(tp.GetData()[free_space_pointer+tuple_size-update_tuple.Size():], tp.GetData()[free_space_pointer:tuple_offset])
+	tp.SetFreeSpacePointer(free_space_pointer + tuple_size - update_tuple.Size())
+	copy(tp.GetData()[tuple_offset+tuple_size-update_tuple.Size():], update_tuple.Data()[:update_tuple.Size()])
+	tp.SetTupleSize(slot_num, update_tuple.Size())
 
 	// Update all tuple offsets.
 	tuple_cnt := int(tp.GetTupleCount())
 	for ii := 0; ii < tuple_cnt; ii++ {
 		tuple_offset_i := tp.GetTupleOffsetAtSlot(uint32(ii))
 		if tp.GetTupleSize(uint32(ii)) > 0 && tuple_offset_i < tuple_offset+tuple_size {
-			tp.SetTupleOffsetAtSlot(uint32(ii), tuple_offset_i+tuple_size-new_tuple.Size())
+			tp.SetTupleOffsetAtSlot(uint32(ii), tuple_offset_i+tuple_size-update_tuple.Size())
 		}
 	}
 	return true

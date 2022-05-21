@@ -1,20 +1,4 @@
-//package concurrency
-//package lock
-//package transaction
 package access
-
-// TODO: need impl
-//===----------------------------------------------------------------------===//
-//
-//                         BusTub
-//
-// lock_manager.cpp
-//
-// Identification: src/concurrency/lock_manager.cpp
-//
-// Copyright (c) 2015-2019, Carnegie Mellon University Database Group
-//
-//===----------------------------------------------------------------------===//
 
 import (
 	"fmt"
@@ -66,7 +50,6 @@ func NewLockRequest(txn_id types.TxnID, lock_mode LockMode) *LockRequest {
 
 type LockRequestQueue struct {
 	request_queue []*LockRequest
-	// TODO: not ported yet
 	//std::condition_variable cv  // for notifying blocked transactions on this rid
 	upgrading bool
 }
@@ -78,10 +61,8 @@ type LockManager struct {
 	two_pl_mode   TwoPLMode //__attribute__((__unused__));
 	deadlock_mode DeadlockMode
 
-	mutex *sync.Mutex
-	// TODO: (SDB) need ensure atomicity (not needed until implement dealock detection)
+	mutex                  *sync.Mutex
 	enable_cycle_detection bool
-	// TODO: (SDB) not poreted yet
 	//cycle_detection_thread *std::thread
 
 	// /** Lock table for lock requests. */
@@ -89,7 +70,6 @@ type LockManager struct {
 	// /** Waits-for graph representation. */
 	// waits_for map[types.TxnID][]types.TxnID
 
-	// TODO: (SDB) temporary simple implementation of strong strict two-phase locking
 	shared_lock_table    map[page.RID][]types.TxnID
 	exclusive_lock_table map[page.RID]types.TxnID
 }
@@ -109,7 +89,6 @@ func NewLockManager(two_pl_mode TwoPLMode, deadlock_mode DeadlockMode /*= Deadlo
 	// // If Detection() is enabled, we should launch a background cycle detection thread.
 	// if ret.Detection() {
 	// 	ret.enable_cycle_detection = true
-	// 	// TODO: (SDB) not ported yet
 	// 	//ret.cycle_detection_thread = new std::thread(&LockManager::RunCycleDetection, this)
 	// 	//LOG_INFO("Cycle detection thread launched")
 	// }
@@ -312,11 +291,14 @@ func (lock_manager *LockManager) PrintLockTables() {
 	for k, v := range lock_manager.shared_lock_table {
 		fmt.Printf("%v: %v\n", k, v)
 	}
+	for k, v := range lock_manager.exclusive_lock_table {
+		fmt.Printf("%v: %v\n", k, v)
+	}
 }
 
 func (lock_manager *LockManager) ClearLockTablesForDebug() {
-	lock_manager.shared_lock_table = make(map[page.RID][]types.TxnID)
-	lock_manager.exclusive_lock_table = make(map[page.RID]types.TxnID)
+	lock_manager.shared_lock_table = make(map[page.RID][]types.TxnID, 0)
+	lock_manager.exclusive_lock_table = make(map[page.RID]types.TxnID, 0)
 }
 
 /*** Graph API ***/

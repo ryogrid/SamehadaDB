@@ -119,24 +119,6 @@ func (txn *Transaction) AddIntoWriteSet(write_record *WriteRecord) {
 	txn.write_set = append(txn.write_set, write_record)
 }
 
-// /** @return the page set */
-// func (txn *Transaction) GetPageSet() deque<*Page> { return txn.page_set }
-
-// /**
-// * Adds a page into the page set.
-// * @param page page to be added
-// */
-// func (txn *Transaction) AddIntoPageSet(page *Page) { txn.page_set.push_back(page) }
-
-// /** @return the deleted page set */
-// func (txn *Transaction) GetDeletedPageSet() unordered_set<PageID> { return txn.deleted_page_set }
-
-// /**
-// * Adds a page to the deleted page set.
-// * @param page_id id of the page to be marked as deleted
-//  */
-// func (txn *Transaction) AddIntoDeletedPageSet(page_id PageID) { txn.deleted_page_set.insert(page_id) }
-
 // /** @return the set of resources under a shared lock */
 func (txn *Transaction) GetSharedLockSet() []page.RID {
 	ret := txn.shared_lock_set

@@ -885,7 +885,7 @@ func TestSimpleInsertAndUpdate(t *testing.T) {
 	tmpColVal.SetColIndex(tableMetadata.Schema().GetColIndex(pred.LeftColumn))
 	expression_ := expression.NewComparison(tmpColVal, expression.NewConstantValue(GetValue(pred.RightColumn), GetValueType(pred.LeftColumn)), pred.Operator, types.Boolean)
 
-	updatePlanNode := plans.NewUpdatePlanNode(row1, &expression_, tableMetadata.OID())
+	updatePlanNode := plans.NewUpdatePlanNode(row1, []int{0, 1}, expression_, tableMetadata.OID())
 	executionEngine.Execute(updatePlanNode, executorContext)
 
 	txn_mgr.Commit(txn)
@@ -960,7 +960,7 @@ func TestInsertUpdateMix(t *testing.T) {
 	tmpColVal.SetColIndex(tableMetadata.Schema().GetColIndex(pred.LeftColumn))
 	expression_ := expression.NewComparison(tmpColVal, expression.NewConstantValue(GetValue(pred.RightColumn), GetValueType(pred.RightColumn)), pred.Operator, types.Boolean)
 
-	updatePlanNode := plans.NewUpdatePlanNode(row1, &expression_, tableMetadata.OID())
+	updatePlanNode := plans.NewUpdatePlanNode(row1, []int{0, 1}, expression_, tableMetadata.OID())
 	executionEngine.Execute(updatePlanNode, executorContext)
 
 	txn_mgr.Commit(txn)
@@ -1083,7 +1083,7 @@ func TestAbortWIthDeleteUpdate(t *testing.T) {
 	tmpColVal.SetColIndex(tableMetadata.Schema().GetColIndex(pred.LeftColumn))
 	expression_ := expression.NewComparison(tmpColVal, expression.NewConstantValue(GetValue(pred.RightColumn), GetValueType(pred.RightColumn)), pred.Operator, types.Boolean)
 
-	updatePlanNode := plans.NewUpdatePlanNode(row1, &expression_, tableMetadata.OID())
+	updatePlanNode := plans.NewUpdatePlanNode(row1, []int{0, 1}, expression_, tableMetadata.OID())
 	executionEngine.Execute(updatePlanNode, executorContext)
 
 	// delete
@@ -1896,4 +1896,89 @@ func TestSeqScanWithMultiItemPredicate(t *testing.T) {
 	}
 
 	txn_mgr.Commit(txn)
+}
+
+func TestInsertAndSpecifiedColumnUpdate(t *testing.T) {
+	diskManager := disk.NewDiskManagerTest()
+	defer diskManager.ShutDown()
+	log_mgr := recovery.NewLogManager(&diskManager)
+
+	log_mgr.RunFlushThread()
+	testingpkg.Assert(t, common.EnableLogging, "")
+
+	bpm := buffer.NewBufferPoolManager(uint32(32), diskManager, log_mgr)
+	lock_mgr := access.NewLockManager(access.REGULAR, access.SS2PL_MODE)
+	txn_mgr := access.NewTransactionManager(lock_mgr, log_mgr)
+	txn := txn_mgr.Begin(nil)
+
+	c := catalog.BootstrapCatalog(bpm, log_mgr, lock_mgr, txn)
+
+	columnA := column.NewColumn("a", types.Integer, false, nil)
+	columnB := column.NewColumn("b", types.Varchar, false, nil)
+	schema_ := schema.NewSchema([]*column.Column{columnA, columnB})
+
+	tableMetadata := c.CreateTable("test_1", schema_, txn)
+
+	row1 := make([]types.Value, 0)
+	row1 = append(row1, types.NewInteger(20))
+	row1 = append(row1, types.NewVarchar("hoge"))
+
+	row2 := make([]types.Value, 0)
+	row2 = append(row2, types.NewInteger(99))
+	row2 = append(row2, types.NewVarchar("foo"))
+
+	rows := make([][]types.Value, 0)
+	rows = append(rows, row1)
+	rows = append(rows, row2)
+
+	insertPlanNode := plans.NewInsertPlanNode(rows, tableMetadata.OID())
+
+	executionEngine := &ExecutionEngine{}
+	executorContext := NewExecutorContext(c, bpm, txn)
+	executionEngine.Execute(insertPlanNode, executorContext)
+
+	txn_mgr.Commit(txn)
+
+	fmt.Println("update a row...")
+	txn = txn_mgr.Begin(nil)
+	executorContext.SetTransaction(txn)
+
+	row1 = make([]types.Value, 0)
+	row1 = append(row1, types.NewInteger(-1))        // dummy value
+	row1 = append(row1, types.NewVarchar("updated")) //target column
+
+	pred := Predicate{"b", expression.Equal, "foo"}
+	tmpColVal := new(expression.ColumnValue)
+	tmpColVal.SetTupleIndex(0)
+	tmpColVal.SetColIndex(tableMetadata.Schema().GetColIndex(pred.LeftColumn))
+	expression_ := expression.NewComparison(tmpColVal, expression.NewConstantValue(GetValue(pred.RightColumn), GetValueType(pred.LeftColumn)), pred.Operator, types.Boolean)
+
+	updatePlanNode := plans.NewUpdatePlanNode(row1, []int{1}, expression_, tableMetadata.OID())
+	executionEngine.Execute(updatePlanNode, executorContext)
+
+	txn_mgr.Commit(txn)
+
+	fmt.Println("select and check value...")
+	txn = txn_mgr.Begin(nil)
+	executorContext.SetTransaction(txn)
+
+	outColumnA := column.NewColumn("a", types.Integer, false, nil)
+	outColumnB := column.NewColumn("b", types.Varchar, false, nil)
+	outSchema := schema.NewSchema([]*column.Column{outColumnA, outColumnB})
+
+	pred = Predicate{"a", expression.Equal, 99}
+	tmpColVal = new(expression.ColumnValue)
+	tmpColVal.SetTupleIndex(0)
+	tmpColVal.SetColIndex(tableMetadata.Schema().GetColIndex(pred.LeftColumn))
+	expression_ = expression.NewComparison(tmpColVal, expression.NewConstantValue(GetValue(pred.RightColumn), GetValueType(pred.RightColumn)), pred.Operator, types.Boolean)
+
+	seqPlan := plans.NewSeqScanPlanNode(outSchema, expression_, tableMetadata.OID())
+	results := executionEngine.Execute(seqPlan, executorContext)
+
+	lock_mgr.PrintLockTables()
+
+	txn_mgr.Commit(txn)
+
+	testingpkg.Assert(t, types.NewInteger(99).CompareEquals(results[0].GetValue(outSchema, 0)), "value should be 99")
+	testingpkg.Assert(t, types.NewVarchar("updated").CompareEquals(results[0].GetValue(outSchema, 1)), "value should be 'updated'")
 }
