@@ -1907,11 +1907,11 @@ func TestInsertAndSpecifiedColumnUpdate(t *testing.T) {
 	testingpkg.Assert(t, common.EnableLogging, "")
 
 	bpm := buffer.NewBufferPoolManager(uint32(32), diskManager, log_mgr)
-	lock_mgr := access.NewLockManager(access.REGULAR, access.DETECTION)
+	lock_mgr := access.NewLockManager(access.REGULAR, access.SS2PL_MODE)
 	txn_mgr := access.NewTransactionManager(lock_mgr, log_mgr)
 	txn := txn_mgr.Begin(nil)
 
-	c := catalog.BootstrapCatalog(bpm, log_mgr, access.NewLockManager(access.REGULAR, access.PREVENTION), txn)
+	c := catalog.BootstrapCatalog(bpm, log_mgr, lock_mgr, txn)
 
 	columnA := column.NewColumn("a", types.Integer, false, nil)
 	columnB := column.NewColumn("b", types.Varchar, false, nil)
@@ -1942,12 +1942,9 @@ func TestInsertAndSpecifiedColumnUpdate(t *testing.T) {
 	fmt.Println("update a row...")
 	txn = txn_mgr.Begin(nil)
 	executorContext.SetTransaction(txn)
-	//lock_mgr.PrintLockTables()
-	lock_mgr.ClearLockTablesForDebug()
 
 	row1 = make([]types.Value, 0)
-	//row1 = append(row1, types.NewInteger(-1))        // dummy value
-	row1 = append(row1, types.NewInteger(99))        // dummy value
+	row1 = append(row1, types.NewInteger(-1))        // dummy value
 	row1 = append(row1, types.NewVarchar("updated")) //target column
 
 	pred := Predicate{"b", expression.Equal, "foo"}
@@ -1957,8 +1954,6 @@ func TestInsertAndSpecifiedColumnUpdate(t *testing.T) {
 	expression_ := expression.NewComparison(tmpColVal, expression.NewConstantValue(GetValue(pred.RightColumn), GetValueType(pred.LeftColumn)), pred.Operator, types.Boolean)
 
 	updatePlanNode := plans.NewUpdatePlanNode(row1, []int{1}, expression_, tableMetadata.OID())
-	//updatePlanNode := plans.NewUpdatePlanNode(row1, []int{0, 1}, expression_, tableMetadata.OID())
-	//updatePlanNode := plans.NewUpdatePlanNode(row1, nil, expression_, tableMetadata.OID())
 	executionEngine.Execute(updatePlanNode, executorContext)
 
 	txn_mgr.Commit(txn)
@@ -1966,18 +1961,14 @@ func TestInsertAndSpecifiedColumnUpdate(t *testing.T) {
 	fmt.Println("select and check value...")
 	txn = txn_mgr.Begin(nil)
 	executorContext.SetTransaction(txn)
-	lock_mgr.PrintLockTables()
-	//lock_mgr.ClearLockTablesForDebug()
 
 	outColumnA := column.NewColumn("a", types.Integer, false, nil)
 	outColumnB := column.NewColumn("b", types.Varchar, false, nil)
 	outSchema := schema.NewSchema([]*column.Column{outColumnA, outColumnB})
 
 	pred = Predicate{"a", expression.Equal, 99}
-	//pred = Predicate{"b", expression.Equal, "updated"}
 	tmpColVal = new(expression.ColumnValue)
 	tmpColVal.SetTupleIndex(0)
-	//tmpColVal.SetTupleIndex(1)
 	tmpColVal.SetColIndex(tableMetadata.Schema().GetColIndex(pred.LeftColumn))
 	expression_ = expression.NewComparison(tmpColVal, expression.NewConstantValue(GetValue(pred.RightColumn), GetValueType(pred.RightColumn)), pred.Operator, types.Boolean)
 
@@ -1990,5 +1981,4 @@ func TestInsertAndSpecifiedColumnUpdate(t *testing.T) {
 
 	testingpkg.Assert(t, types.NewInteger(99).CompareEquals(results[0].GetValue(outSchema, 0)), "value should be 99")
 	testingpkg.Assert(t, types.NewVarchar("updated").CompareEquals(results[0].GetValue(outSchema, 1)), "value should be 'updated'")
-	//testingpkg.Assert(t, types.NewInteger(99).CompareEquals(results[1].GetValue(outSchema, 0)), "value should be 99")
 }
