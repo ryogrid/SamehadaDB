@@ -32,30 +32,30 @@ func NewTuple(rid *page.RID, size uint32, data []byte) *Tuple {
 }
 
 // NewTupleFromSchema creates a new tuple based on input value
-func NewTupleFromSchema(values []types.Value, schema *schema.Schema) *Tuple {
+func NewTupleFromSchema(values []types.Value, schema_ *schema.Schema) *Tuple {
 	// calculate tuple size considering varchar columns
-	tupleSize := schema.Length()
-	for _, colIndex := range schema.GetUnlinedColumns() {
+	tupleSize := schema_.Length()
+	for _, colIndex := range schema_.GetUnlinedColumns() {
 		tupleSize += values[colIndex].Size()
 	}
-	tuple := &Tuple{}
-	tuple.size = tupleSize
+	tuple_ := &Tuple{}
+	tuple_.size = tupleSize
 
 	// allocate memory
-	tuple.data = make([]byte, tupleSize)
+	tuple_.data = make([]byte, tupleSize)
 
 	// serialize each attribute base on the input value
-	tupleEndOffset := schema.Length()
-	for i := uint32(0); i < schema.GetColumnCount(); i++ {
-		if schema.GetColumn(i).IsInlined() {
-			tuple.Copy((*(schema.GetColumn(i))).GetOffset(), values[i].Serialize())
+	tupleEndOffset := schema_.Length()
+	for i := uint32(0); i < schema_.GetColumnCount(); i++ {
+		if schema_.GetColumn(i).IsInlined() {
+			tuple_.Copy((*(schema_.GetColumn(i))).GetOffset(), values[i].Serialize())
 		} else {
-			tuple.Copy((*(schema.GetColumn(i))).GetOffset(), types.UInt32(tupleEndOffset).Serialize())
-			tuple.Copy(tupleEndOffset, values[i].Serialize())
+			tuple_.Copy((*(schema_.GetColumn(i))).GetOffset(), types.UInt32(tupleEndOffset).Serialize())
+			tuple_.Copy(tupleEndOffset, values[i].Serialize())
 			tupleEndOffset += values[i].Size()
 		}
 	}
-	return tuple
+	return tuple_
 }
 
 // generate tuple obj for hash index search

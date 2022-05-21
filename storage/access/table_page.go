@@ -203,7 +203,7 @@ func (tp *TablePage) UpdateTuple(new_tuple *tuple.Tuple, update_col_idxs []int, 
 
 	copy(tp.GetData()[free_space_pointer+tuple_size-update_tuple.Size():], tp.GetData()[free_space_pointer:tuple_offset])
 	tp.SetFreeSpacePointer(free_space_pointer + tuple_size - update_tuple.Size())
-	copy(tp.GetData()[tuple_offset+tuple_size-update_tuple.Size():], new_tuple.Data()[:update_tuple.Size()])
+	copy(tp.GetData()[tuple_offset+tuple_size-update_tuple.Size():], update_tuple.Data()[:update_tuple.Size()])
 	tp.SetTupleSize(slot_num, update_tuple.Size())
 
 	// Update all tuple offsets.

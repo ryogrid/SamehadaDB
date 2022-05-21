@@ -151,15 +151,15 @@ func (c *Catalog) insertTable(tableMetadata *TableMetadata, txn *access.Transact
 
 	// insert entry to TableCatalogPage (PageId = 0)
 	c.tableHeap.InsertTuple(first_tuple, txn)
-	for _, column := range tableMetadata.schema.GetColumns() {
+	for _, column_ := range tableMetadata.schema.GetColumns() {
 		row := make([]types.Value, 0)
 		row = append(row, types.NewInteger(int32(tableMetadata.oid)))
-		row = append(row, types.NewInteger(int32(column.GetType())))
-		row = append(row, types.NewVarchar(column.GetColumnName()))
-		row = append(row, types.NewInteger(int32(column.FixedLength())))
-		row = append(row, types.NewInteger(int32(column.VariableLength())))
-		row = append(row, types.NewInteger(int32(column.GetOffset())))
-		row = append(row, types.NewInteger(boolToInt32(column.HasIndex())))
+		row = append(row, types.NewInteger(int32(column_.GetType())))
+		row = append(row, types.NewVarchar(column_.GetColumnName()))
+		row = append(row, types.NewInteger(int32(column_.FixedLength())))
+		row = append(row, types.NewInteger(int32(column_.VariableLength())))
+		row = append(row, types.NewInteger(int32(column_.GetOffset())))
+		row = append(row, types.NewInteger(boolToInt32(column_.HasIndex())))
 		new_tuple := tuple.NewTupleFromSchema(row, ColumnsCatalogSchema())
 
 		// insert entry to ColumnsCatalogPage (PageId = 1)
