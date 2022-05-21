@@ -1902,8 +1902,13 @@ func TestInsertAndSpecifiedColumnUpdate(t *testing.T) {
 	diskManager := disk.NewDiskManagerTest()
 	defer diskManager.ShutDown()
 	log_mgr := recovery.NewLogManager(&diskManager)
+
+	log_mgr.RunFlushThread()
+	testingpkg.Assert(t, common.EnableLogging, "")
+
 	bpm := buffer.NewBufferPoolManager(uint32(32), diskManager, log_mgr)
-	txn_mgr := access.NewTransactionManager(access.NewLockManager(access.REGULAR, access.DETECTION), log_mgr)
+	lock_mgr := access.NewLockManager(access.REGULAR, access.DETECTION)
+	txn_mgr := access.NewTransactionManager(lock_mgr, log_mgr)
 	txn := txn_mgr.Begin(nil)
 
 	c := catalog.BootstrapCatalog(bpm, log_mgr, access.NewLockManager(access.REGULAR, access.PREVENTION), txn)
@@ -1936,6 +1941,9 @@ func TestInsertAndSpecifiedColumnUpdate(t *testing.T) {
 
 	fmt.Println("update a row...")
 	txn = txn_mgr.Begin(nil)
+	executorContext.SetTransaction(txn)
+	//lock_mgr.PrintLockTables()
+	lock_mgr.ClearLockTablesForDebug()
 
 	row1 = make([]types.Value, 0)
 	//row1 = append(row1, types.NewInteger(-1))        // dummy value
@@ -1957,7 +1965,9 @@ func TestInsertAndSpecifiedColumnUpdate(t *testing.T) {
 
 	fmt.Println("select and check value...")
 	txn = txn_mgr.Begin(nil)
-	//executorContext.SetTransaction(txn)
+	executorContext.SetTransaction(txn)
+	lock_mgr.PrintLockTables()
+	//lock_mgr.ClearLockTablesForDebug()
 
 	outColumnA := column.NewColumn("a", types.Integer, false, nil)
 	outColumnB := column.NewColumn("b", types.Varchar, false, nil)
@@ -1973,6 +1983,8 @@ func TestInsertAndSpecifiedColumnUpdate(t *testing.T) {
 
 	seqPlan := plans.NewSeqScanPlanNode(outSchema, expression_, tableMetadata.OID())
 	results := executionEngine.Execute(seqPlan, executorContext)
+
+	lock_mgr.PrintLockTables()
 
 	txn_mgr.Commit(txn)
 

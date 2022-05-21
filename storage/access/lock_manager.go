@@ -291,11 +291,14 @@ func (lock_manager *LockManager) PrintLockTables() {
 	for k, v := range lock_manager.shared_lock_table {
 		fmt.Printf("%v: %v\n", k, v)
 	}
+	for k, v := range lock_manager.exclusive_lock_table {
+		fmt.Printf("%v: %v\n", k, v)
+	}
 }
 
 func (lock_manager *LockManager) ClearLockTablesForDebug() {
-	lock_manager.shared_lock_table = make(map[page.RID][]types.TxnID)
-	lock_manager.exclusive_lock_table = make(map[page.RID]types.TxnID)
+	lock_manager.shared_lock_table = make(map[page.RID][]types.TxnID, 0)
+	lock_manager.exclusive_lock_table = make(map[page.RID]types.TxnID, 0)
 }
 
 /*** Graph API ***/
