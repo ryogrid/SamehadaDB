@@ -152,23 +152,24 @@ func (tp *TablePage) UpdateTuple(new_tuple *tuple.Tuple, update_col_idxs []int, 
 	old_tuple.SetData(old_tuple_data)
 	old_tuple.SetRID(rid)
 
+	// setup tuple for updating
 	var update_tuple *tuple.Tuple = nil
 	if update_col_idxs == nil || schema_ == nil {
+		update_tuple = new_tuple
+	} else {
 		// update specifed columns only case
 
-		// setup tuple for updating
 		var update_tuple_values []types.Value = make([]types.Value, 0)
 		matched_cnt := int(0)
 		for idx, _ := range schema_.GetColumns() {
 			if matched_cnt < len(update_col_idxs) && idx == update_col_idxs[matched_cnt] {
 				update_tuple_values = append(update_tuple_values, new_tuple.GetValue(schema_, uint32(idx)))
+				matched_cnt++
 			} else {
 				update_tuple_values = append(update_tuple_values, old_tuple.GetValue(schema_, uint32(idx)))
 			}
 		}
 		update_tuple = tuple.NewTupleFromSchema(update_tuple_values, schema_)
-	} else {
-		update_tuple = new_tuple
 	}
 
 	// TODO: (SDB) If there is not enuogh space to update, we need to update via delete followed by an insert
