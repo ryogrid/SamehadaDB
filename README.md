@@ -34,9 +34,8 @@ original codes of go-bustub are [here](https://github.com/brunocalza/go-bustub).
 - [ ] Null
 - [ ] Other inline types (<del>boolean</del>, <del>float</del>, bigint, smallint, decimal, timestamp, datetime)
 - [x] Delete Tuple
-- [x] Update Tuple (need to pass values of all columns...)
-- [x] Update Tuple (need to pass values of target colmuns only)
-  - RESTRICTION: a condition which update transaction aborts on exists
+- [x] Update Tuple
+  - <del>RESTRICTION: a condition which update transaction aborts on exists</del>
 - [x] LIMIT / OFFSET
 - [x] Varchar
 - [x] Persistent Catalog
