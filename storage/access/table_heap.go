@@ -112,7 +112,29 @@ func (t *TableHeap) UpdateTuple(tuple_ *tuple.Tuple, update_col_idxs []int, sche
 	old_tuple.SetRID(new(page.RID))
 	page_.WLatch()
 
-	is_updated, new_rid := page_.UpdateTuple(tuple_, update_col_idxs, schema_, old_tuple, &rid, txn, t.lock_manager, t.log_manager)
+	is_updated, err, need_follow_tuple := page_.UpdateTuple(tuple_, update_col_idxs, schema_, old_tuple, &rid, txn, t.lock_manager, t.log_manager)
+
+	// TODO: (SDB) need to delete and insert need_follow_tuple (TableHeap::UpdateTuple)
+	if is_updated == false && err == ErrNotEnoughSpace {
+		//// first, delete target tuple (old data)
+		//is_deleted := tp.MarkDelete(rid, txn, lock_manager, log_manager)
+		//if !is_deleted {
+		//	fmt.Println("TablePage::UpdateTuple(): MarkDelete failed")
+		//	txn.SetState(ABORTED)
+		//	return false, nil
+		//}
+		//
+		//new_rid, err := tp.InsertTuple(update_tuple, log_manager, lock_manager, txn)
+		//if err != nil {
+		//	fmt.Println("TablePage::UpdateTuple(): InsertTuple failed")
+		//	txn.SetState(ABORTED)
+		//	return false, nil
+		//} else {
+		//	fmt.Printf("TablePage::UpdateTuple(): new rid = %v\n", new_rid)
+		//	return true, new_rid
+		//}
+	}
+
 	page_.WUnlatch()
 	t.bpm.UnpinPage(page_.GetTablePageId(), is_updated)
 	// Update the transaction's write set.
