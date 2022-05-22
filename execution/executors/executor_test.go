@@ -1984,16 +1984,32 @@ func TestInsertAndSpecifiedColumnUpdate(t *testing.T) {
 }
 
 func TestInsertAndSpecifiedColumnUpdatePageMoveCase(t *testing.T) {
-	diskManager := disk.NewDiskManagerTest()
-	defer diskManager.ShutDown()
-	log_mgr := recovery.NewLogManager(&diskManager)
+	os.Remove("test.db")
+	os.Remove("test.log")
 
-	log_mgr.RunFlushThread()
+	shi := test_util.NewSamehadaInstance()
+	shi.GetLogManager().RunFlushThread()
 	testingpkg.Assert(t, common.EnableLogging, "")
+	fmt.Println("System logging is active.")
 
-	bpm := buffer.NewBufferPoolManager(uint32(32), diskManager, log_mgr)
-	lock_mgr := access.NewLockManager(access.REGULAR, access.SS2PL_MODE)
-	txn_mgr := access.NewTransactionManager(lock_mgr, log_mgr)
+	//c := catalog.BootstrapCatalog(shi.GetBufferPoolManager(), shi.GetLogManager(), shi.GetLockManager(), txn)
+	//exec_ctx := NewExecutorContext(c, shi.GetBufferPoolManager(), txn)
+
+	//diskManager := disk.NewDiskManagerTest()
+	//defer diskManager.ShutDown()
+	//log_mgr := recovery.NewLogManager(&diskManager)
+	//
+	//log_mgr.RunFlushThread()
+	//testingpkg.Assert(t, common.EnableLogging, "")
+
+	log_mgr := shi.GetLogManager()
+	txn_mgr := shi.GetTransactionManager()
+	bpm := shi.GetBufferPoolManager()
+	lock_mgr := shi.GetLockManager()
+
+	//bpm := buffer.NewBufferPoolManager(uint32(32), diskManager, log_mgr)
+	//lock_mgr := access.NewLockManager(access.REGULAR, access.SS2PL_MODE)
+	//txn_mgr := access.NewTransactionManager(lock_mgr, log_mgr)
 	txn := txn_mgr.Begin(nil)
 
 	c := catalog.BootstrapCatalog(bpm, log_mgr, lock_mgr, txn)
@@ -2011,12 +2027,7 @@ func TestInsertAndSpecifiedColumnUpdatePageMoveCase(t *testing.T) {
 		row = append(row, types.NewInteger(int32(ii)))
 		row = append(row, types.NewVarchar("k"))
 
-		//row2 := make([]types.Value, 0)
-		//row2 = append(row2, types.NewInteger(99))
-		//row2 = append(row2, types.NewVarchar("foo"))
-
 		rows = append(rows, row)
-		//rows = append(rows, row2)
 	}
 	executionEngine := &ExecutionEngine{}
 	executorContext := NewExecutorContext(c, bpm, txn)
@@ -2061,9 +2072,9 @@ func TestInsertAndSpecifiedColumnUpdatePageMoveCase(t *testing.T) {
 	seqPlan := plans.NewSeqScanPlanNode(outSchema, expression_, tableMetadata.OID())
 	results := executionEngine.Execute(seqPlan, executorContext)
 
-	//lock_mgr.PrintLockTables()
-
 	txn_mgr.Commit(txn)
+
+	bpm.FlushAllPages()
 
 	testingpkg.Assert(t, types.NewInteger(99).CompareEquals(results[0].GetValue(outSchema, 0)), "value should be 99")
 	testingpkg.Assert(t, types.NewVarchar("updated_xxxxxxxxxxxxxxxxxxxxxxxxx").CompareEquals(results[0].GetValue(outSchema, 1)), "value should be 'updated_xxxxxxxxxxxxxxxxxxxxxxxxx'")

@@ -4,6 +4,7 @@
 package access
 
 import (
+	"fmt"
 	"github.com/ryogrid/SamehadaDB/common"
 	"github.com/ryogrid/SamehadaDB/recovery"
 	"github.com/ryogrid/SamehadaDB/storage/buffer"
@@ -110,33 +111,37 @@ func (t *TableHeap) UpdateTuple(tuple_ *tuple.Tuple, update_col_idxs []int, sche
 	// Update the tuple; but first save the old value for rollbacks.
 	old_tuple := new(tuple.Tuple)
 	old_tuple.SetRID(new(page.RID))
+
 	page_.WLatch()
-
 	is_updated, err, need_follow_tuple := page_.UpdateTuple(tuple_, update_col_idxs, schema_, old_tuple, &rid, txn, t.lock_manager, t.log_manager)
-
-	// TODO: (SDB) need to delete and insert need_follow_tuple (TableHeap::UpdateTuple)
-	if is_updated == false && err == ErrNotEnoughSpace {
-		//// first, delete target tuple (old data)
-		//is_deleted := tp.MarkDelete(rid, txn, lock_manager, log_manager)
-		//if !is_deleted {
-		//	fmt.Println("TablePage::UpdateTuple(): MarkDelete failed")
-		//	txn.SetState(ABORTED)
-		//	return false, nil
-		//}
-		//
-		//new_rid, err := tp.InsertTuple(update_tuple, log_manager, lock_manager, txn)
-		//if err != nil {
-		//	fmt.Println("TablePage::UpdateTuple(): InsertTuple failed")
-		//	txn.SetState(ABORTED)
-		//	return false, nil
-		//} else {
-		//	fmt.Printf("TablePage::UpdateTuple(): new rid = %v\n", new_rid)
-		//	return true, new_rid
-		//}
-	}
-
 	page_.WUnlatch()
 	t.bpm.UnpinPage(page_.GetTablePageId(), is_updated)
+
+	var new_rid *page.RID = nil
+	if is_updated == false && err == ErrNotEnoughSpace {
+		// delete and insert need_follow_tuple as updating
+
+		// first, delete target tuple (old data)
+		is_deleted := t.MarkDelete(&rid, txn)
+		if !is_deleted {
+			fmt.Println("TableHeap::UpdateTuple(): MarkDelete failed")
+			txn.SetState(ABORTED)
+			return false, nil
+		}
+
+		var err error = nil
+		new_rid, err = t.InsertTuple(need_follow_tuple, txn)
+		if err != nil {
+			fmt.Println("TableHeap::UpdateTuple(): InsertTuple failed")
+			txn.SetState(ABORTED)
+			return false, nil
+		}
+
+		fmt.Printf("TableHeap::UpdateTuple(): new rid = %d %d\n", new_rid.PageId, new_rid.SlotNum)
+		// change return flag to success
+		is_updated = true
+	}
+
 	// Update the transaction's write set.
 	if is_updated && txn.GetState() != ABORTED {
 		txn.AddIntoWriteSet(NewWriteRecord(rid, UPDATE, old_tuple, t))
