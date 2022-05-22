@@ -17,6 +17,8 @@ import (
 type ExecutionEngine struct {
 }
 
+// TODO: (SDB) after all Execute method calls are finished, transaction must be routed Commit or Abort according to state of the transaction
+//             (when constructiing database system form is started)
 func (e *ExecutionEngine) Execute(plan plans.Plan, context *ExecutorContext) []*tuple.Tuple {
 	executor := e.CreateExecutor(plan, context)
 	executor.Init()

@@ -341,7 +341,6 @@ func (lock_manager *LockManager) RunCycleDetection() {
 	       std::this_thread::sleep_for(cycle_detection_interval)
 	       {
 	         std::unique_lock<std::mutex> l(latch)
-	         // TODO(student): remove the continue and add your cycle detection and abort code here
 	         continue
 	       }
 	     }

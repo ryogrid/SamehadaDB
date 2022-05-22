@@ -99,27 +99,27 @@ func (t *TableHeap) InsertTuple(tuple_ *tuple.Tuple, txn *Transaction) (rid *pag
 
 // if specified nil to update_col_idxs and schema_, all data of existed tuple is replaced one of new_tuple
 // if specified not nil, new_tuple also should have all columns defined in schema. but not update target value can be dummy value
-func (t *TableHeap) UpdateTuple(tuple_ *tuple.Tuple, update_col_idxs []int, schema_ *schema.Schema, rid page.RID, txn *Transaction) bool {
+func (t *TableHeap) UpdateTuple(tuple_ *tuple.Tuple, update_col_idxs []int, schema_ *schema.Schema, rid page.RID, txn *Transaction) (bool, *page.RID) {
 	// Find the page which contains the tuple.
 	page_ := CastPageAsTablePage(t.bpm.FetchPage(rid.GetPageId()))
 	// If the page could not be found, then abort the transaction.
 	if page_ == nil {
 		txn.SetState(ABORTED)
-		return false
+		return false, nil
 	}
 	// Update the tuple; but first save the old value for rollbacks.
 	old_tuple := new(tuple.Tuple)
 	old_tuple.SetRID(new(page.RID))
 	page_.WLatch()
 
-	is_updated := page_.UpdateTuple(tuple_, update_col_idxs, schema_, old_tuple, &rid, txn, t.lock_manager, t.log_manager)
+	is_updated, new_rid := page_.UpdateTuple(tuple_, update_col_idxs, schema_, old_tuple, &rid, txn, t.lock_manager, t.log_manager)
 	page_.WUnlatch()
 	t.bpm.UnpinPage(page_.GetTablePageId(), is_updated)
 	// Update the transaction's write set.
 	if is_updated && txn.GetState() != ABORTED {
 		txn.AddIntoWriteSet(NewWriteRecord(rid, UPDATE, old_tuple, t))
 	}
-	return is_updated
+	return is_updated, new_rid
 }
 
 func (t *TableHeap) MarkDelete(rid *page.RID, txn *Transaction) bool {

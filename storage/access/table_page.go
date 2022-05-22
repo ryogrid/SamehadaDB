@@ -7,6 +7,7 @@ package access
 import (
 	"bytes"
 	"encoding/binary"
+	"fmt"
 	"github.com/ryogrid/SamehadaDB/storage/table/schema"
 	"unsafe"
 
@@ -123,8 +124,9 @@ func (tp *TablePage) InsertTuple(tuple *tuple.Tuple, log_manager *recovery.LogMa
 
 // if specified nil to update_col_idxs and schema_, all data of existed tuple is replaced one of new_tuple
 // if specified not nil, new_tuple also should have all columns defined in schema. but not update target value can be dummy value
+// return new RID when updated tuple moved new page location and RID is updated, otherwise returned nil
 func (tp *TablePage) UpdateTuple(new_tuple *tuple.Tuple, update_col_idxs []int, schema_ *schema.Schema, old_tuple *tuple.Tuple, rid *page.RID, txn *Transaction,
-	lock_manager *LockManager, log_manager *recovery.LogManager) bool {
+	lock_manager *LockManager, log_manager *recovery.LogManager) (bool, *page.RID) {
 	common.SH_Assert(new_tuple.Size() > 0, "Cannot have empty tuples.")
 
 	slot_num := rid.GetSlotNum()
@@ -133,7 +135,7 @@ func (tp *TablePage) UpdateTuple(new_tuple *tuple.Tuple, update_col_idxs []int, 
 		if common.EnableLogging {
 			txn.SetState(ABORTED)
 		}
-		return false
+		return false, nil
 	}
 	tuple_size := tp.GetTupleSize(slot_num)
 	// If the tuple is deleted, abort the transaction.
@@ -141,7 +143,7 @@ func (tp *TablePage) UpdateTuple(new_tuple *tuple.Tuple, update_col_idxs []int, 
 		if common.EnableLogging {
 			txn.SetState(ABORTED)
 		}
-		return false
+		return false, nil
 	}
 
 	// Copy out the old value.
@@ -174,10 +176,26 @@ func (tp *TablePage) UpdateTuple(new_tuple *tuple.Tuple, update_col_idxs []int, 
 
 	// TODO: (SDB) If there is not enuogh space to update, we need to update via delete followed by an insert
 	if tp.getFreeSpaceRemaining()+tuple_size < update_tuple.Size() {
-		if common.EnableLogging {
+		//if common.EnableLogging {
+		//	txn.SetState(ABORTED)
+		//}
+		//return false
+
+		// first, delete target tuple (old data)
+		is_deleted := tp.MarkDelete(rid, txn, lock_manager, log_manager)
+		if !is_deleted {
 			txn.SetState(ABORTED)
+			return false, nil
 		}
-		return false
+
+		new_rid, err := tp.InsertTuple(update_tuple, log_manager, lock_manager, txn)
+		if err != nil {
+			txn.SetState(ABORTED)
+			return false, nil
+		} else {
+			fmt.Printf("TablePage::UpdateTuple(): new rid = %v\n", new_rid)
+			return true, new_rid
+		}
 	}
 
 	if common.EnableLogging {
@@ -185,11 +203,11 @@ func (tp *TablePage) UpdateTuple(new_tuple *tuple.Tuple, update_col_idxs []int, 
 		if txn.IsSharedLocked(rid) {
 			if !lock_manager.LockUpgrade(txn, rid) {
 				txn.SetState(ABORTED)
-				return false
+				return false, nil
 			}
 		} else if !txn.IsExclusiveLocked(rid) && !lock_manager.LockExclusive(txn, rid) {
 			txn.SetState(ABORTED)
-			return false
+			return false, nil
 		}
 		log_record := recovery.NewLogRecordUpdate(txn.GetTransactionId(), txn.GetPrevLSN(), recovery.UPDATE, *rid, *old_tuple, *update_tuple)
 		lsn := log_manager.AppendLogRecord(log_record)
@@ -214,7 +232,7 @@ func (tp *TablePage) UpdateTuple(new_tuple *tuple.Tuple, update_col_idxs []int, 
 			tp.SetTupleOffsetAtSlot(uint32(ii), tuple_offset_i+tuple_size-update_tuple.Size())
 		}
 	}
-	return true
+	return true, nil
 }
 
 func (tp *TablePage) MarkDelete(rid *page.RID, txn *Transaction, lock_manager *LockManager, log_manager *recovery.LogManager) bool {
