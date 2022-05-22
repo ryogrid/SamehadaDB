@@ -1998,8 +1998,8 @@ func TestInsertAndSpecifiedColumnUpdatePageMoveCase(t *testing.T) {
 
 	c := catalog.BootstrapCatalog(bpm, log_mgr, lock_mgr, txn)
 
-	columnA := column.NewColumn("a", types.Integer, true, nil)
-	columnB := column.NewColumn("b", types.Varchar, true, nil)
+	columnA := column.NewColumn("a", types.Integer, false, nil)
+	columnB := column.NewColumn("b", types.Varchar, false, nil)
 	schema_ := schema.NewSchema([]*column.Column{columnA, columnB})
 
 	tableMetadata := c.CreateTable("test_1", schema_, txn)
