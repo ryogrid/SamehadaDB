@@ -78,6 +78,7 @@ func (e *UpdateExecutor) Next() (*tuple.Tuple, Done, error) {
 					index_.DeleteEntry(e.it.Current(), *rid, e.txn)
 					if new_rid != nil {
 						// when tuple is moved page location on update, RID is changed to new value
+						fmt.Println("UpdateExecuter: index entry insert with new_rid.")
 						index_.InsertEntry(new_tuple, *new_rid, e.txn)
 					} else {
 						index_.InsertEntry(new_tuple, *rid, e.txn)
