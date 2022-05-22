@@ -1992,24 +1992,11 @@ func TestInsertAndSpecifiedColumnUpdatePageMoveCase(t *testing.T) {
 	testingpkg.Assert(t, common.EnableLogging, "")
 	fmt.Println("System logging is active.")
 
-	//c := catalog.BootstrapCatalog(shi.GetBufferPoolManager(), shi.GetLogManager(), shi.GetLockManager(), txn)
-	//exec_ctx := NewExecutorContext(c, shi.GetBufferPoolManager(), txn)
-
-	//diskManager := disk.NewDiskManagerTest()
-	//defer diskManager.ShutDown()
-	//log_mgr := recovery.NewLogManager(&diskManager)
-	//
-	//log_mgr.RunFlushThread()
-	//testingpkg.Assert(t, common.EnableLogging, "")
-
 	log_mgr := shi.GetLogManager()
 	txn_mgr := shi.GetTransactionManager()
 	bpm := shi.GetBufferPoolManager()
 	lock_mgr := shi.GetLockManager()
 
-	//bpm := buffer.NewBufferPoolManager(uint32(32), diskManager, log_mgr)
-	//lock_mgr := access.NewLockManager(access.REGULAR, access.SS2PL_MODE)
-	//txn_mgr := access.NewTransactionManager(lock_mgr, log_mgr)
 	txn := txn_mgr.Begin(nil)
 
 	c := catalog.BootstrapCatalog(bpm, log_mgr, lock_mgr, txn)
