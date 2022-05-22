@@ -212,17 +212,14 @@ func (d *DiskManagerImpl) ReadLog(log_data []byte, offset int32, retReadBytes *u
 	d.log.Seek(int64(offset), io.SeekStart)
 	readBytes, err := d.log.Read(log_data)
 	*retReadBytes = uint32(readBytes)
-	// fmt.Printf("readBytes %d\n", readBytes)
 
-	// if log file ends before reading "size"
-	if readBytes < len(log_data) {
-		// TODO: (SDB) comment-outed for Redo test.
-		//             but this code may be nessesary for what situation...?
-		// d.log.Close()
-		// //memset(log_data+read_count, 0, size-read_count)
-		// log_data[readBytes] = byte(len(log_data) - readBytes)
-		//return false
-	}
+	//// if log file ends before reading "size"
+	//if readBytes < len(log_data) {
+	//	d.log.Close()
+	//	//memset(log_data+read_count, 0, size-read_count)
+	//	log_data[readBytes] = byte(len(log_data) - readBytes)
+	//	return false
+	//}
 
 	if err != nil {
 		fmt.Println("I/O error at log data reading")

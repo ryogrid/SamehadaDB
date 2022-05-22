@@ -3,6 +3,7 @@ package executors
 import (
 	"errors"
 	"fmt"
+	"github.com/ryogrid/SamehadaDB/storage/page"
 
 	"github.com/ryogrid/SamehadaDB/catalog"
 	"github.com/ryogrid/SamehadaDB/execution/expression"
@@ -55,10 +56,11 @@ func (e *UpdateExecutor) Next() (*tuple.Tuple, Done, error) {
 			new_tuple := tuple.NewTupleFromSchema(values, e.tableMetadata.Schema())
 
 			var is_updated bool = false
+			var new_rid *page.RID = nil
 			if e.plan.GetUpdateColIdxs() == nil {
-				is_updated = e.tableMetadata.Table().UpdateTuple(new_tuple, nil, nil, *rid, e.txn)
+				is_updated, new_rid = e.tableMetadata.Table().UpdateTuple(new_tuple, nil, nil, *rid, e.txn)
 			} else {
-				is_updated = e.tableMetadata.Table().UpdateTuple(new_tuple, e.plan.GetUpdateColIdxs(), e.tableMetadata.Schema(), *rid, e.txn)
+				is_updated, new_rid = e.tableMetadata.Table().UpdateTuple(new_tuple, e.plan.GetUpdateColIdxs(), e.tableMetadata.Schema(), *rid, e.txn)
 			}
 
 			if !is_updated {
@@ -74,7 +76,14 @@ func (e *UpdateExecutor) Next() (*tuple.Tuple, Done, error) {
 				} else {
 					index_ := ret
 					index_.DeleteEntry(e.it.Current(), *rid, e.txn)
-					index_.InsertEntry(new_tuple, *rid, e.txn)
+					if new_rid != nil {
+						// when tuple is moved page location on update, RID is changed to new value
+						fmt.Println("UpdateExecuter: index entry insert with new_rid.")
+						index_.InsertEntry(new_tuple, *new_rid, e.txn)
+					} else {
+						index_.InsertEntry(new_tuple, *rid, e.txn)
+					}
+
 				}
 			}
 

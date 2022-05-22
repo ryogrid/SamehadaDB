@@ -1975,10 +1975,94 @@ func TestInsertAndSpecifiedColumnUpdate(t *testing.T) {
 	seqPlan := plans.NewSeqScanPlanNode(outSchema, expression_, tableMetadata.OID())
 	results := executionEngine.Execute(seqPlan, executorContext)
 
-	lock_mgr.PrintLockTables()
+	//lock_mgr.PrintLockTables()
 
 	txn_mgr.Commit(txn)
 
 	testingpkg.Assert(t, types.NewInteger(99).CompareEquals(results[0].GetValue(outSchema, 0)), "value should be 99")
 	testingpkg.Assert(t, types.NewVarchar("updated").CompareEquals(results[0].GetValue(outSchema, 1)), "value should be 'updated'")
+}
+
+func TestInsertAndSpecifiedColumnUpdatePageMoveCase(t *testing.T) {
+	os.Remove("test.db")
+	os.Remove("test.log")
+
+	shi := test_util.NewSamehadaInstance()
+	shi.GetLogManager().RunFlushThread()
+	testingpkg.Assert(t, common.EnableLogging, "")
+	fmt.Println("System logging is active.")
+
+	log_mgr := shi.GetLogManager()
+	txn_mgr := shi.GetTransactionManager()
+	bpm := shi.GetBufferPoolManager()
+	lock_mgr := shi.GetLockManager()
+
+	txn := txn_mgr.Begin(nil)
+
+	c := catalog.BootstrapCatalog(bpm, log_mgr, lock_mgr, txn)
+
+	columnA := column.NewColumn("a", types.Integer, false, nil)
+	columnB := column.NewColumn("b", types.Varchar, true, nil)
+	schema_ := schema.NewSchema([]*column.Column{columnA, columnB})
+
+	tableMetadata := c.CreateTable("test_1", schema_, txn)
+
+	// fill tuples around max amount of a page
+	rows := make([][]types.Value, 0)
+	for ii := 0; ii < 214; ii++ {
+		row := make([]types.Value, 0)
+		row = append(row, types.NewInteger(int32(ii)))
+		row = append(row, types.NewVarchar("k"))
+
+		rows = append(rows, row)
+	}
+	executionEngine := &ExecutionEngine{}
+	executorContext := NewExecutorContext(c, bpm, txn)
+	insertPlanNode := plans.NewInsertPlanNode(rows, tableMetadata.OID())
+	executionEngine.Execute(insertPlanNode, executorContext)
+
+	txn_mgr.Commit(txn)
+
+	fmt.Println("update a row...")
+	txn = txn_mgr.Begin(nil)
+	executorContext.SetTransaction(txn)
+
+	row := make([]types.Value, 0)
+	row = append(row, types.NewInteger(-1))                                  // dummy value
+	row = append(row, types.NewVarchar("updated_xxxxxxxxxxxxxxxxxxxxxxxxx")) //target column
+
+	pred := Predicate{"a", expression.Equal, 99}
+	tmpColVal := new(expression.ColumnValue)
+	tmpColVal.SetTupleIndex(0)
+	tmpColVal.SetColIndex(tableMetadata.Schema().GetColIndex(pred.LeftColumn))
+	expression_ := expression.NewComparison(tmpColVal, expression.NewConstantValue(GetValue(pred.RightColumn), GetValueType(pred.LeftColumn)), pred.Operator, types.Boolean)
+
+	updatePlanNode := plans.NewUpdatePlanNode(row, []int{1}, expression_, tableMetadata.OID())
+	executionEngine.Execute(updatePlanNode, executorContext)
+
+	txn_mgr.Commit(txn)
+
+	fmt.Println("select and check value...")
+	txn = txn_mgr.Begin(nil)
+	executorContext.SetTransaction(txn)
+
+	outColumnA := column.NewColumn("a", types.Integer, false, nil)
+	outColumnB := column.NewColumn("b", types.Varchar, false, nil)
+	outSchema := schema.NewSchema([]*column.Column{outColumnA, outColumnB})
+
+	pred = Predicate{"a", expression.Equal, 99}
+	tmpColVal = new(expression.ColumnValue)
+	tmpColVal.SetTupleIndex(0)
+	tmpColVal.SetColIndex(tableMetadata.Schema().GetColIndex(pred.LeftColumn))
+	expression_ = expression.NewComparison(tmpColVal, expression.NewConstantValue(GetValue(pred.RightColumn), GetValueType(pred.RightColumn)), pred.Operator, types.Boolean)
+
+	seqPlan := plans.NewSeqScanPlanNode(outSchema, expression_, tableMetadata.OID())
+	results := executionEngine.Execute(seqPlan, executorContext)
+
+	txn_mgr.Commit(txn)
+
+	bpm.FlushAllPages()
+
+	testingpkg.Assert(t, types.NewInteger(99).CompareEquals(results[0].GetValue(outSchema, 0)), "value should be 99")
+	testingpkg.Assert(t, types.NewVarchar("updated_xxxxxxxxxxxxxxxxxxxxxxxxx").CompareEquals(results[0].GetValue(outSchema, 1)), "value should be 'updated_xxxxxxxxxxxxxxxxxxxxxxxxx'")
 }
