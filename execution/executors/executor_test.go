@@ -1975,7 +1975,7 @@ func TestInsertAndSpecifiedColumnUpdate(t *testing.T) {
 	seqPlan := plans.NewSeqScanPlanNode(outSchema, expression_, tableMetadata.OID())
 	results := executionEngine.Execute(seqPlan, executorContext)
 
-	lock_mgr.PrintLockTables()
+	//lock_mgr.PrintLockTables()
 
 	txn_mgr.Commit(txn)
 
@@ -1999,7 +1999,7 @@ func TestInsertAndSpecifiedColumnUpdatePageMoveCase(t *testing.T) {
 	c := catalog.BootstrapCatalog(bpm, log_mgr, lock_mgr, txn)
 
 	columnA := column.NewColumn("a", types.Integer, false, nil)
-	columnB := column.NewColumn("b", types.Varchar, false, nil)
+	columnB := column.NewColumn("b", types.Varchar, true, nil)
 	schema_ := schema.NewSchema([]*column.Column{columnA, columnB})
 
 	tableMetadata := c.CreateTable("test_1", schema_, txn)
@@ -2033,7 +2033,7 @@ func TestInsertAndSpecifiedColumnUpdatePageMoveCase(t *testing.T) {
 	row = append(row, types.NewInteger(-1))        // dummy value
 	row = append(row, types.NewVarchar("updated")) //target column
 
-	pred := Predicate{"a", expression.Equal, "99"}
+	pred := Predicate{"a", expression.Equal, 99}
 	tmpColVal := new(expression.ColumnValue)
 	tmpColVal.SetTupleIndex(0)
 	tmpColVal.SetColIndex(tableMetadata.Schema().GetColIndex(pred.LeftColumn))
@@ -2061,7 +2061,7 @@ func TestInsertAndSpecifiedColumnUpdatePageMoveCase(t *testing.T) {
 	seqPlan := plans.NewSeqScanPlanNode(outSchema, expression_, tableMetadata.OID())
 	results := executionEngine.Execute(seqPlan, executorContext)
 
-	lock_mgr.PrintLockTables()
+	//lock_mgr.PrintLockTables()
 
 	txn_mgr.Commit(txn)
 
