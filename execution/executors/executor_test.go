@@ -2006,7 +2006,7 @@ func TestInsertAndSpecifiedColumnUpdatePageMoveCase(t *testing.T) {
 
 	// fill tuples around max amount of a page
 	rows := make([][]types.Value, 0)
-	for ii := 0; ii < 177; ii++ {
+	for ii := 0; ii < 214; ii++ {
 		row := make([]types.Value, 0)
 		row = append(row, types.NewInteger(int32(ii)))
 		row = append(row, types.NewVarchar("k"))
@@ -2030,8 +2030,8 @@ func TestInsertAndSpecifiedColumnUpdatePageMoveCase(t *testing.T) {
 	executorContext.SetTransaction(txn)
 
 	row := make([]types.Value, 0)
-	row = append(row, types.NewInteger(-1))        // dummy value
-	row = append(row, types.NewVarchar("updated")) //target column
+	row = append(row, types.NewInteger(-1))                                  // dummy value
+	row = append(row, types.NewVarchar("updated_xxxxxxxxxxxxxxxxxxxxxxxxx")) //target column
 
 	pred := Predicate{"a", expression.Equal, 99}
 	tmpColVal := new(expression.ColumnValue)
@@ -2066,5 +2066,5 @@ func TestInsertAndSpecifiedColumnUpdatePageMoveCase(t *testing.T) {
 	txn_mgr.Commit(txn)
 
 	testingpkg.Assert(t, types.NewInteger(99).CompareEquals(results[0].GetValue(outSchema, 0)), "value should be 99")
-	testingpkg.Assert(t, types.NewVarchar("updated").CompareEquals(results[0].GetValue(outSchema, 1)), "value should be 'updated'")
+	testingpkg.Assert(t, types.NewVarchar("updated_xxxxxxxxxxxxxxxxxxxxxxxxx").CompareEquals(results[0].GetValue(outSchema, 1)), "value should be 'updated_xxxxxxxxxxxxxxxxxxxxxxxxx'")
 }

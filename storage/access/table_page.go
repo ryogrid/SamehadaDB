@@ -174,7 +174,6 @@ func (tp *TablePage) UpdateTuple(new_tuple *tuple.Tuple, update_col_idxs []int, 
 		update_tuple = tuple.NewTupleFromSchema(update_tuple_values, schema_)
 	}
 
-	// TODO: (SDB) If there is not enuogh space to update, we need to update via delete followed by an insert
 	if tp.getFreeSpaceRemaining()+tuple_size < update_tuple.Size() {
 		//if common.EnableLogging {
 		//	txn.SetState(ABORTED)
@@ -184,12 +183,14 @@ func (tp *TablePage) UpdateTuple(new_tuple *tuple.Tuple, update_col_idxs []int, 
 		// first, delete target tuple (old data)
 		is_deleted := tp.MarkDelete(rid, txn, lock_manager, log_manager)
 		if !is_deleted {
+			fmt.Println("TablePage::UpdateTuple(): MarkDelete failed")
 			txn.SetState(ABORTED)
 			return false, nil
 		}
 
 		new_rid, err := tp.InsertTuple(update_tuple, log_manager, lock_manager, txn)
 		if err != nil {
+			fmt.Println("TablePage::UpdateTuple(): InsertTuple failed")
 			txn.SetState(ABORTED)
 			return false, nil
 		} else {
