@@ -59,6 +59,7 @@ original codes of go-bustub are [here](https://github.com/brunocalza/go-bustub).
 - [x] Concurrent Execution of Transactions
 - [ ] Execution Planning from hard coded SQL like method call I/F (like some kind of embeded DB)
 - [ ] Execution Planning from Query Description text (SQL, SQL like description)
+- [ ] Eliminate duplication (Distinct)
 - [ ] Query Optimization
 - [ ] Nested Query
 - [ ] DB Connector or Other Kind Access Interface
