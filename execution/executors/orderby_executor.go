@@ -2,7 +2,6 @@ package executors
 
 import (
 	"fmt"
-	"github.com/ryogrid/SamehadaDB/execution/expression"
 	"github.com/ryogrid/SamehadaDB/execution/plans"
 	"github.com/ryogrid/SamehadaDB/storage/table/schema"
 	"github.com/ryogrid/SamehadaDB/storage/tuple"
@@ -18,7 +17,7 @@ type OrderbyExecutor struct {
 	plan_ *plans.OrderbyPlanNode
 	/** The child executor whose tuples we are aggregating. */
 	child_ []Executor
-	exprs_ []expression.Expression
+	//exprs_ []expression.Expression
 }
 
 /**
@@ -27,14 +26,10 @@ type OrderbyExecutor struct {
  * @param plan the aggregation plan node
  * @param child the child executor
  */
-func NewOrderbyExecutor(exec_ctx *ExecutorContext, plan *plans.AggregationPlanNode,
+func NewOrderbyExecutor(exec_ctx *ExecutorContext, plan *plans.OrderbyPlanNode,
 	child Executor) *OrderbyExecutor {
-	aht := NewSimpleAggregationHashTable(plan.GetAggregates(), plan.GetAggregateTypes())
-	return &OrderbyExecutor{exec_ctx, plan, []Executor{child}, aht, nil, []expression.Expression{}}
+	return &OrderbyExecutor{exec_ctx, plan, []Executor{child}}
 }
-
-//  /** Do not use or remove this function, otherwise you will get zero points. */
-//   AbstractExecutor *GetChildExecutor()  { return child_.get() }
 
 func (e *OrderbyExecutor) GetOutputSchema() *schema.Schema { return e.plan_.OutputSchema() }
 
@@ -42,11 +37,11 @@ func (e *OrderbyExecutor) Init() {
 	//Tuple tuple
 	e.child_[0].Init()
 	child_exec := e.child_[0]
-	output_column_cnt := int(e.GetOutputSchema().GetColumnCount())
-	for i := 0; i < output_column_cnt; i++ {
-		agg_expr := e.GetOutputSchema().GetColumn(uint32(i)).GetExpr().(expression.AggregateValueExpression)
-		e.exprs_ = append(e.exprs_, &agg_expr)
-	}
+	//output_column_cnt := int(e.GetOutputSchema().GetColumnCount())
+	//for i := 0; i < output_column_cnt; i++ {
+	//	agg_expr := e.GetOutputSchema().GetColumn(uint32(i)).GetExpr().(expression.AggregateValueExpression)
+	//	e.exprs_ = append(e.exprs_, &agg_expr)
+	//}
 	insert_call_cnt := 0
 	for {
 		tuple_, done, err := child_exec.Next()

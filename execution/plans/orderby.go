@@ -2,43 +2,37 @@ package plans
 
 import (
 	"github.com/ryogrid/SamehadaDB/common"
-	"github.com/ryogrid/SamehadaDB/execution/expression"
 	"github.com/ryogrid/SamehadaDB/storage/table/schema"
 )
 
 // /** OrderbyType enumerates all the possible aggregation functions in our system. */
 type OrderbyType int32
 
-/** The type of the log record. */
+/** The type of the sort order. */
 const (
 	ASC OrderbyType = iota
 	DESC
 )
 
 /**
- * AggregationPlanNode represents the various SQL aggregation functions.
- * For example, COUNT(), SUM(), MIN() and MAX().
- * To simplfiy this project, AggregationPlanNode must always have exactly one child.
+ * OrderbyPlanNode represents the ORDER BY clause of SQL.
  */
 type OrderbyPlanNode struct {
 	*AbstractPlanNode
-	order_bys_     []expression.Expression
+	col_idxs_      []int
 	orderby_types_ []OrderbyType
 }
 
 /**
  * Creates a new OrderbyPlanNode.
  * @param output_schema the output format of this plan node
- * @param child the child plan to aggregate data over
- * @param having the having clause of the aggregation
- * @param group_bys the group by clause of the aggregation
- * @param aggregates the expressions that we are aggregating
- * @param agg_types the types that we are aggregating
+ * @param child the child plan to sort data over
+ * @param col_idxs the specified columns idx at ORDER BY clause
+ * @param order_types the order types of sorting with specifed columns
  */
-func NewOrderbyPlanNode(output_schema *schema.Schema, child Plan, having expression.Expression,
-	group_bys []expression.Expression,
-	aggregates []expression.Expression, agg_types []AggregationType) *OrderbyPlanNode {
-	return &OrderbyPlanNode{&AbstractPlanNode{output_schema, []Plan{child}}, having, group_bys, aggregates, agg_types}
+func NewOrderbyPlanNode(output_schema *schema.Schema, child Plan, col_idxs []int,
+	order_types []OrderbyType) *OrderbyPlanNode {
+	return &OrderbyPlanNode{&AbstractPlanNode{output_schema, []Plan{child}}, col_idxs, order_types}
 }
 
 func (p *OrderbyPlanNode) GetType() PlanType { return Orderby }
@@ -58,12 +52,12 @@ func (p *OrderbyPlanNode) GetChildren() []Plan {
 }
 
 /** @return the idx'th group by expression */
-func (p *OrderbyPlanNode) GetOrderByAt(idx uint32) expression.Expression {
-	return p.order_bys_[idx]
+func (p *OrderbyPlanNode) GetColIdxAt(idx uint32) int {
+	return p.col_idxs_[idx]
 }
 
 /** @return the group by expressions */
-func (p *OrderbyPlanNode) GetOrderBys() []expression.Expression { return p.order_bys_ }
+func (p *OrderbyPlanNode) GetColIdxs() []int { return p.col_idxs_ }
 
 /** @return the aggregate types */
-func (p *OrderbyPlanNode) GetAggregateTypes() []OrderbyType { return p.orderby_types_ }
+func (p *OrderbyPlanNode) GetOrderbyTypes() []OrderbyType { return p.orderby_types_ }

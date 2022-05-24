@@ -88,20 +88,6 @@ type AggregateKey struct {
 	Group_bys_ []*types.Value
 }
 
-// /**
-//  * Compares two aggregate keys for equality.
-//  * @param other the other aggregate key to be compared with
-//  * @return true if both aggregate keys have equivalent group-by expressions, false otherwise
-//  */
-// func (key AggregateKey) CompareEquals(other AggregateKey) bool {
-// 	for i := 0; i < len(other.Group_bys_); i++ {
-// 		if !key.Group_bys_[i].CompareEquals(other.Group_bys_[i]) {
-// 			return false
-// 		}
-// 	}
-// 	return true
-// }
-
 type AggregateValue struct {
 	Aggregates_ []*types.Value
 }
