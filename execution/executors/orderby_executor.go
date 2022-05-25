@@ -5,6 +5,8 @@ import (
 	"github.com/ryogrid/SamehadaDB/execution/plans"
 	"github.com/ryogrid/SamehadaDB/storage/table/schema"
 	"github.com/ryogrid/SamehadaDB/storage/tuple"
+	"github.com/ryogrid/SamehadaDB/types"
+	"sort"
 )
 
 /**
@@ -15,8 +17,7 @@ type OrderbyExecutor struct {
 	/** The aggregation plan node. */
 	plan_ *plans.OrderbyPlanNode
 	/** The child executor whose tuples we are aggregating. */
-	child_ []Executor
-	//exprs_ []expression.Expression
+	child_       []Executor
 	sort_tuples_ []*tuple.Tuple
 	cur_idx_     int // target tuple index on Next method
 }
@@ -34,10 +35,14 @@ func NewOrderbyExecutor(exec_ctx *ExecutorContext, plan *plans.OrderbyPlanNode,
 
 func (e *OrderbyExecutor) GetOutputSchema() *schema.Schema { return e.plan_.OutputSchema() }
 
+func (e *OrderbyExecutor) GetChildOutputSchema() *schema.Schema { return e.child_[0].GetOutputSchema() }
+
 func (e *OrderbyExecutor) Init() {
 	e.child_[0].Init()
 	child_exec := e.child_[0]
-	inserted_tuple_cnt := 0
+	child_schema := e.GetChildOutputSchema()
+	sort_values := make([][]*types.Value, 0)
+	inserted_tuple_cnt := int32(0)
 	for {
 		tuple_, done, err := child_exec.Next()
 		if err != nil || done {
@@ -49,26 +54,50 @@ func (e *OrderbyExecutor) Init() {
 
 		if tuple_ != nil {
 			e.sort_tuples_ = append(e.sort_tuples_, tuple_)
-			inserted_tuple_cnt++
+			tmp_row := make([]*types.Value, 0)
+			for _, col_idx := range e.plan_.GetColIdxs() {
+				tmp_val := tuple_.GetValue(child_schema, uint32(col_idx))
+				tmp_row = append(tmp_row, &tmp_val)
+			}
+			// add idx of before sort at end of col vals
+			tmp_val := types.NewInteger(inserted_tuple_cnt)
+			tmp_row = append(tmp_row, &tmp_val)
+			sort_values = append(sort_values, tmp_row)
 		}
+		inserted_tuple_cnt++
 	}
+	// deside tuple order by sort of values on tuples
+	sort.Slice(sort_values, func(i, j int) bool {
+		cols_num := len(e.plan_.GetColIdxs())
+		for idx := 0; idx < cols_num; idx++ {
+			if sort_values[i][idx].CompareEquals(*sort_values[j][idx]) {
+				continue
+			} else if sort_values[i][idx].CompareLessThan(*sort_values[j][idx]) { // i < j
+				return true
+			} else { // i > j
+				return false
+			}
+		}
+		return false
+	})
 	fmt.Printf("inserted_tuple_cnt %d\n", inserted_tuple_cnt)
+	// arrange tuple array (apply sort result)
+	tuple_cnt := len(e.sort_tuples_)
+	var tmp_tuples []*tuple.Tuple = make([]*tuple.Tuple, tuple_cnt)
+	idx_of_orig_idx := len(e.plan_.GetColIdxs()) - 1
+	for idx := 0; idx < tuple_cnt; idx++ {
+		tmp_tuples[idx] = e.sort_tuples_[sort_values[idx][idx_of_orig_idx].ToInteger()]
+	}
+	// set sorted result to field
+	e.sort_tuples_ = tmp_tuples
 }
 
 func (e *OrderbyExecutor) Next() (*tuple.Tuple, Done, error) {
-	//for !e.aht_iterator_.IsNextEnd() && e.plan_.GetHaving() != nil && !e.plan_.GetHaving().EvaluateAggregate(e.aht_iterator_.Key().Group_bys_, e.aht_iterator_.Val().Aggregates_).ToBoolean() {
-	//	//++aht_iterator_;
-	//	e.aht_iterator_.Next()
-	//}
-	//if e.aht_iterator_.IsEnd() {
-	//	return nil, true, nil
-	//}
-	//var values []types.Value = make([]types.Value, 0)
-	//for i := 0; i < len(e.exprs_); i++ {
-	//	values = append(values, e.exprs_[i].EvaluateAggregate(e.aht_iterator_.Key().Group_bys_, e.aht_iterator_.Val().Aggregates_))
-	//}
-	//tuple_ := tuple.NewTupleFromSchema(values, e.GetOutputSchema())
-	////++aht_iterator_;
-	//e.aht_iterator_.Next()
-	return tuple_, false, nil
+	if e.cur_idx_ < len(e.sort_tuples_) {
+		ret := e.sort_tuples_[e.cur_idx_]
+		e.cur_idx_++
+		return ret, false, nil
+	} else {
+		return nil, true, nil
+	}
 }

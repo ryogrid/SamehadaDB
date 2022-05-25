@@ -25,14 +25,14 @@ type OrderbyPlanNode struct {
 
 /**
  * Creates a new OrderbyPlanNode.
- * @param output_schema the output format of this plan node
+ * @param output_schema the output format of this plan node. it is same with output schema of child
  * @param child the child plan to sort data over
  * @param col_idxs the specified columns idx at ORDER BY clause
  * @param order_types the order types of sorting with specifed columns
  */
-func NewOrderbyPlanNode(output_schema *schema.Schema, child Plan, col_idxs []int,
+func NewOrderbyPlanNode(child_schema *schema.Schema, child Plan, col_idxs []int,
 	order_types []OrderbyType) *OrderbyPlanNode {
-	return &OrderbyPlanNode{&AbstractPlanNode{output_schema, []Plan{child}}, col_idxs, order_types}
+	return &OrderbyPlanNode{&AbstractPlanNode{child_schema, []Plan{child}}, col_idxs, order_types}
 }
 
 func (p *OrderbyPlanNode) GetType() PlanType { return Orderby }
@@ -56,8 +56,8 @@ func (p *OrderbyPlanNode) GetColIdxAt(idx uint32) int {
 	return p.col_idxs_[idx]
 }
 
-/** @return the group by expressions */
+/** @return column indexes to deside sort order */
 func (p *OrderbyPlanNode) GetColIdxs() []int { return p.col_idxs_ }
 
-/** @return the aggregate types */
+/** @return the Order type ASC or DESC */
 func (p *OrderbyPlanNode) GetOrderbyTypes() []OrderbyType { return p.orderby_types_ }
