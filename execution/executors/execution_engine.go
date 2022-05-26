@@ -56,6 +56,8 @@ func (e *ExecutionEngine) CreateExecutor(plan plans.Plan, context *ExecutorConte
 		return NewHashJoinExecutor(context, p, e.CreateExecutor(plan.GetChildAt(0), context), e.CreateExecutor(plan.GetChildAt(1), context))
 	case *plans.AggregationPlanNode:
 		return NewAggregationExecutor(context, p, e.CreateExecutor(plan.GetChildAt(0), context))
+	case *plans.OrderbyPlanNode:
+		return NewOrderbyExecutor(context, p, e.CreateExecutor(plan.GetChildAt(0), context))
 	}
 	return nil
 }

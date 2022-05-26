@@ -18,6 +18,7 @@ const (
 	HashScanIndex
 	HashJoin
 	Aggregation
+	Orderby
 )
 
 type Plan interface {

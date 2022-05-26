@@ -177,9 +177,6 @@ func (aht *SimpleAggregationHashTable) Begin() *AggregateHTIterator {
 	return NewAggregateHTIteratorIterator(agg_key_list, agg_val_list)
 }
 
-//  /** @return iterator to the end of the hash table */
-//  Iterator End() { return Iterator{ht.cend()}; }
-
 /**
 * AggregationExecutor executes an aggregation operation (e.g. COUNT, SUM, MIN, MAX) on the tuples of a child executor.
  */
@@ -207,9 +204,6 @@ func NewAggregationExecutor(exec_ctx *ExecutorContext, plan *plans.AggregationPl
 	aht := NewSimpleAggregationHashTable(plan.GetAggregates(), plan.GetAggregateTypes())
 	return &AggregationExecutor{exec_ctx, plan, []Executor{child}, aht, nil, []expression.Expression{}}
 }
-
-//  /** Do not use or remove this function, otherwise you will get zero points. */
-//   AbstractExecutor *GetChildExecutor()  { return child_.get() }
 
 func (e *AggregationExecutor) GetOutputSchema() *schema.Schema { return e.plan_.OutputSchema() }
 
@@ -243,7 +237,6 @@ func (e *AggregationExecutor) Init() {
 
 func (e *AggregationExecutor) Next() (*tuple.Tuple, Done, error) {
 	for !e.aht_iterator_.IsNextEnd() && e.plan_.GetHaving() != nil && !e.plan_.GetHaving().EvaluateAggregate(e.aht_iterator_.Key().Group_bys_, e.aht_iterator_.Val().Aggregates_).ToBoolean() {
-		//++aht_iterator_;
 		e.aht_iterator_.Next()
 	}
 	if e.aht_iterator_.IsEnd() {
@@ -254,7 +247,6 @@ func (e *AggregationExecutor) Next() (*tuple.Tuple, Done, error) {
 		values = append(values, e.exprs_[i].EvaluateAggregate(e.aht_iterator_.Key().Group_bys_, e.aht_iterator_.Val().Aggregates_))
 	}
 	tuple_ := tuple.NewTupleFromSchema(values, e.GetOutputSchema())
-	//++aht_iterator_;
 	e.aht_iterator_.Next()
 	return tuple_, false, nil
 }
