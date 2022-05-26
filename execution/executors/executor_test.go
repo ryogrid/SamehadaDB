@@ -2127,52 +2127,50 @@ func TestSimpleSeqScanAndOrderBy(t *testing.T) {
 		scan_plan = plans.NewSeqScanPlanNode(scan_schema, nil, tableMetadata.OID()).(*plans.SeqScanPlanNode)
 	}
 
-	orderby_schema := scan_schema
 	orderby_plan := plans.NewOrderbyPlanNode(
-		orderby_schema, scan_plan, []int{0, 1},
+		nil, scan_plan, []int{0, 1},
 		[]plans.OrderbyType{plans.ASC, plans.ASC})
 
 	results := executionEngine.Execute(orderby_plan, exec_ctx)
 
-	fmt.Println(results[0].GetValue(orderby_schema, 0).ToInteger())
-	fmt.Println(results[0].GetValue(orderby_schema, 1).ToVarchar())
-	fmt.Println(results[1].GetValue(orderby_schema, 0).ToInteger())
-	fmt.Println(results[1].GetValue(orderby_schema, 1).ToVarchar())
-	fmt.Println(results[2].GetValue(orderby_schema, 0).ToInteger())
-	fmt.Println(results[2].GetValue(orderby_schema, 1).ToVarchar())
+	fmt.Println(results[0].GetValue(scan_schema, 0).ToInteger())
+	fmt.Println(results[0].GetValue(scan_schema, 1).ToVarchar())
+	fmt.Println(results[1].GetValue(scan_schema, 0).ToInteger())
+	fmt.Println(results[1].GetValue(scan_schema, 1).ToVarchar())
+	fmt.Println(results[2].GetValue(scan_schema, 0).ToInteger())
+	fmt.Println(results[2].GetValue(scan_schema, 1).ToVarchar())
 
-	testingpkg.Assert(t, types.NewInteger(10).CompareEquals(results[0].GetValue(orderby_schema, 0)), "value should be 10")
-	testingpkg.Assert(t, types.NewVarchar("daylight").CompareEquals(results[0].GetValue(orderby_schema, 1)), "value should be 'daylight'")
+	testingpkg.Assert(t, types.NewInteger(10).CompareEquals(results[0].GetValue(scan_schema, 0)), "value should be 10")
+	testingpkg.Assert(t, types.NewVarchar("daylight").CompareEquals(results[0].GetValue(scan_schema, 1)), "value should be 'daylight'")
 
-	testingpkg.Assert(t, types.NewInteger(20).CompareEquals(results[1].GetValue(orderby_schema, 0)), "value should be 20")
-	testingpkg.Assert(t, types.NewVarchar("boo").CompareEquals(results[1].GetValue(orderby_schema, 1)), "value should be 'boo'")
+	testingpkg.Assert(t, types.NewInteger(20).CompareEquals(results[1].GetValue(scan_schema, 0)), "value should be 20")
+	testingpkg.Assert(t, types.NewVarchar("boo").CompareEquals(results[1].GetValue(scan_schema, 1)), "value should be 'boo'")
 
-	testingpkg.Assert(t, types.NewInteger(20).CompareEquals(results[2].GetValue(orderby_schema, 0)), "value should be 20")
-	testingpkg.Assert(t, types.NewVarchar("celemony").CompareEquals(results[2].GetValue(orderby_schema, 1)), "value should be 'celemony'")
+	testingpkg.Assert(t, types.NewInteger(20).CompareEquals(results[2].GetValue(scan_schema, 0)), "value should be 20")
+	testingpkg.Assert(t, types.NewVarchar("celemony").CompareEquals(results[2].GetValue(scan_schema, 1)), "value should be 'celemony'")
 
 	// test other order
-	orderby_schema = scan_schema
 	orderby_plan = plans.NewOrderbyPlanNode(
-		orderby_schema, scan_plan, []int{0, 1},
+		nil, scan_plan, []int{0, 1},
 		[]plans.OrderbyType{plans.DESC, plans.DESC})
 
 	results = executionEngine.Execute(orderby_plan, exec_ctx)
 
-	fmt.Println(results[0].GetValue(orderby_schema, 0).ToInteger())
-	fmt.Println(results[0].GetValue(orderby_schema, 1).ToVarchar())
-	fmt.Println(results[1].GetValue(orderby_schema, 0).ToInteger())
-	fmt.Println(results[1].GetValue(orderby_schema, 1).ToVarchar())
-	fmt.Println(results[2].GetValue(orderby_schema, 0).ToInteger())
-	fmt.Println(results[2].GetValue(orderby_schema, 1).ToVarchar())
+	fmt.Println(results[0].GetValue(scan_schema, 0).ToInteger())
+	fmt.Println(results[0].GetValue(scan_schema, 1).ToVarchar())
+	fmt.Println(results[1].GetValue(scan_schema, 0).ToInteger())
+	fmt.Println(results[1].GetValue(scan_schema, 1).ToVarchar())
+	fmt.Println(results[2].GetValue(scan_schema, 0).ToInteger())
+	fmt.Println(results[2].GetValue(scan_schema, 1).ToVarchar())
 
-	testingpkg.Assert(t, types.NewInteger(20).CompareEquals(results[0].GetValue(orderby_schema, 0)), "value should be 20")
-	testingpkg.Assert(t, types.NewVarchar("celemony").CompareEquals(results[0].GetValue(orderby_schema, 1)), "value should be 'celemony'")
+	testingpkg.Assert(t, types.NewInteger(20).CompareEquals(results[0].GetValue(scan_schema, 0)), "value should be 20")
+	testingpkg.Assert(t, types.NewVarchar("celemony").CompareEquals(results[0].GetValue(scan_schema, 1)), "value should be 'celemony'")
 
-	testingpkg.Assert(t, types.NewInteger(20).CompareEquals(results[1].GetValue(orderby_schema, 0)), "value should be 20")
-	testingpkg.Assert(t, types.NewVarchar("boo").CompareEquals(results[1].GetValue(orderby_schema, 1)), "value should be 'boo'")
+	testingpkg.Assert(t, types.NewInteger(20).CompareEquals(results[1].GetValue(scan_schema, 0)), "value should be 20")
+	testingpkg.Assert(t, types.NewVarchar("boo").CompareEquals(results[1].GetValue(scan_schema, 1)), "value should be 'boo'")
 
-	testingpkg.Assert(t, types.NewInteger(10).CompareEquals(results[2].GetValue(orderby_schema, 0)), "value should be 10")
-	testingpkg.Assert(t, types.NewVarchar("daylight").CompareEquals(results[2].GetValue(orderby_schema, 1)), "value should be 'daylight'")
+	testingpkg.Assert(t, types.NewInteger(10).CompareEquals(results[2].GetValue(scan_schema, 0)), "value should be 10")
+	testingpkg.Assert(t, types.NewVarchar("daylight").CompareEquals(results[2].GetValue(scan_schema, 1)), "value should be 'daylight'")
 
 	txn_mgr.Commit(txn)
 }
