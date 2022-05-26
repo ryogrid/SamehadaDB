@@ -66,16 +66,28 @@ func (e *OrderbyExecutor) Init() {
 		}
 		inserted_tuple_cnt++
 	}
-	// deside tuple order by sort of values on tuples
+	// decide tuple order by sort of values on tuples
 	sort.Slice(sort_values, func(i, j int) bool {
+
 		cols_num := len(e.plan_.GetColIdxs())
 		for idx := 0; idx < cols_num; idx++ {
-			if sort_values[i][idx].CompareEquals(*sort_values[j][idx]) {
-				continue
-			} else if sort_values[i][idx].CompareLessThan(*sort_values[j][idx]) { // i < j
-				return true
-			} else { // i > j
-				return false
+			order_type := e.plan_.GetOrderbyTypes()[idx]
+			if order_type == plans.ASC {
+				if sort_values[i][idx].CompareEquals(*sort_values[j][idx]) {
+					continue
+				} else if sort_values[i][idx].CompareLessThan(*sort_values[j][idx]) { // i < j
+					return true
+				} else { // i > j
+					return false
+				}
+			} else { //DESC
+				if sort_values[i][idx].CompareEquals(*sort_values[j][idx]) {
+					continue
+				} else if sort_values[i][idx].CompareLessThan(*sort_values[j][idx]) { // i < j
+					return false
+				} else { // i > j
+					return true
+				}
 			}
 		}
 		return false
@@ -84,7 +96,7 @@ func (e *OrderbyExecutor) Init() {
 	// arrange tuple array (apply sort result)
 	tuple_cnt := len(e.sort_tuples_)
 	var tmp_tuples []*tuple.Tuple = make([]*tuple.Tuple, tuple_cnt)
-	idx_of_orig_idx := len(e.plan_.GetColIdxs()) - 1
+	idx_of_orig_idx := len(e.plan_.GetColIdxs())
 	for idx := 0; idx < tuple_cnt; idx++ {
 		tmp_tuples[idx] = e.sort_tuples_[sort_values[idx][idx_of_orig_idx].ToInteger()]
 	}
