@@ -235,13 +235,16 @@ func (v Value) Size() uint32 {
 	// all type occupies the whether NULL or not + 1 byte for the info storage
 	switch v.valueType {
 	case Integer:
-		return 1 + 4
+		//return 1 + 4
+		return v.valueType.Size()
 	case Float:
-		return 1 + 4
+		//return 1 + 4
+		return v.valueType.Size()
 	case Varchar:
 		return uint32(len(*v.varchar)) + 1 + 2 // varchar occupies the size of the string + 2 bytes for length storage
 	case Boolean:
-		return 1 + 1 //uint32(unsafe.Sizeof(true))
+		//return 1 + 1 //uint32(unsafe.Sizeof(true))
+		return v.valueType.Size()
 	}
 	panic("not implemented")
 }
