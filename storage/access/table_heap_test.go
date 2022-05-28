@@ -36,7 +36,8 @@ func TestTableHeap(t *testing.T) {
 	columnB := column.NewColumn("b", types.Integer, false, nil)
 	schema_ := schema.NewSchema([]*column.Column{columnA, columnB})
 
-	// inserting 1000 tuples, means that we need at least 4 pages to insert all tuples
+	//// inserting 1000 tuples, means that we need at least 4 pages to insert all tuples
+	// inserting 1000 tuples, means that we need at least 5 pages to insert all tuples
 	for i := 0; i < 1000; i++ {
 		row := make([]types.Value, 0)
 		row = append(row, types.NewInteger(int32(i*2)))
@@ -55,14 +56,20 @@ func TestTableHeap(t *testing.T) {
 
 	for i := 0; i < 1000; i++ {
 		rid := &page.RID{}
-		rid.Set(types.PageID(i/254), uint32(i%254))
+		//// (4096 - 24) / (8 + (4 * 2)) => 254.5
+		//rid.Set(types.PageID(i/254), uint32(i%254))
+		// (4096 - 24) / (8 + (5 * 2)) => 226.222...
+		rid.Set(types.PageID(i/226), uint32(i%226))
 		tuple := th.GetTuple(rid, txn)
 		testingpkg.Equals(t, int32(i*2), tuple.GetValue(schema_, 0).ToInteger())
 		testingpkg.Equals(t, int32((i+1)*2), tuple.GetValue(schema_, 1).ToInteger())
 	}
 
-	// 4 pages should have the size of 16384 bytes
-	testingpkg.Equals(t, int64(16384), dm.Size())
+	//// 4 pages should have the size of 16384 bytes
+	//testingpkg.Equals(t, int64(16384), dm.Size())
+
+	// 4 pages should have the size of 4096 * 5 => 20480 bytes
+	testingpkg.Equals(t, int64(20480), dm.Size())
 
 	// let's iterate through the heap using the iterator
 	it := th.Iterator(txn)
@@ -92,8 +99,9 @@ func TestTableHeapFourCol(t *testing.T) {
 
 	th := NewTableHeap(bpm, log_manager, lock_manager, txn)
 
-	// this schema creates a tuple of size 8 bytes
-	// it means that a page can only contains 169 tuples of this schema
+	// this schema creates a tuple of size (4 + 1) * 4 => 20 bytes (when includes metadata at header the value is 28)
+	// it means that a page can only contains 145 tuples of this schema
+	// (4096 - 24) / 28 => 145.4285...
 	columnA := column.NewColumn("a", types.Integer, false, nil)
 	columnB := column.NewColumn("b", types.Integer, false, nil)
 	columnC := column.NewColumn("c", types.Integer, false, nil)
@@ -101,7 +109,8 @@ func TestTableHeapFourCol(t *testing.T) {
 
 	schema_ := schema.NewSchema([]*column.Column{columnA, columnB, columnC, columnD})
 
-	// inserting 1000 tuples, means that we need at least 8 pages to insert all tuples
+	// inserting 1000 tuples, means that we need at least 7 pages to insert all tuples
+	// 1000 / 145 => 6.896...
 	for i := 0; i < 1000; i++ {
 		row := make([]types.Value, 0)
 		row = append(row, types.NewInteger(int32(i*2)))
@@ -124,8 +133,7 @@ func TestTableHeapFourCol(t *testing.T) {
 
 	for i := 0; i < 1000; i++ {
 		rid := &page.RID{}
-		//rid.Set(types.PageID(i/254), uint32(i%254))
-		rid.Set(types.PageID(i/169), uint32(i%169))
+		rid.Set(types.PageID(i/145), uint32(i%145))
 		tuple_ := th.GetTuple(rid, txn)
 		testingpkg.Equals(t, int32(i*2), tuple_.GetValue(schema_, 0).ToInteger())
 		testingpkg.Equals(t, int32((i+1)*2), tuple_.GetValue(schema_, 1).ToInteger())
@@ -133,8 +141,8 @@ func TestTableHeapFourCol(t *testing.T) {
 		testingpkg.Equals(t, int32((i+3)*2), tuple_.GetValue(schema_, 3).ToInteger())
 	}
 
-	//// 8 pages should have the size of 4096 * 6 bytes
-	testingpkg.Equals(t, int64(4096*6), dm.Size())
+	// 7 pages should have the size of 4096 * 7 => 28672 bytes
+	testingpkg.Equals(t, int64(28672), dm.Size())
 
 	// let's iterate through the heap using the iterator
 	it := th.Iterator(txn)
