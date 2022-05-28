@@ -112,17 +112,52 @@ func (t *Tuple) GetValueInBytes(schema *schema.Schema, colIndex uint32) []byte {
 
 	switch column.GetType() {
 	case types.Integer:
+		buf := bytes.NewBuffer(t.data[offset:])
+		isNull := new(bool)
+		binary.Read(buf, binary.LittleEndian, isNull)
 		v := new(int32)
-		binary.Read(bytes.NewBuffer(t.data[offset:]), binary.LittleEndian, v)
+		binary.Read(buf, binary.LittleEndian, v)
 		retBuf := new(bytes.Buffer)
-		binary.Write(retBuf, binary.LittleEndian, v)
+		binary.Write(retBuf, binary.LittleEndian, *isNull)
+		binary.Write(retBuf, binary.LittleEndian, *v)
+		return retBuf.Bytes()
+	case types.Float:
+		buf := bytes.NewBuffer(t.data[offset:])
+		isNull := new(bool)
+		binary.Read(buf, binary.LittleEndian, isNull)
+		v := new(int32)
+		binary.Read(buf, binary.LittleEndian, v)
+		retBuf := new(bytes.Buffer)
+		binary.Write(retBuf, binary.LittleEndian, *isNull)
+		binary.Write(retBuf, binary.LittleEndian, *v)
+		return retBuf.Bytes()
+	case types.Boolean:
+		buf := bytes.NewBuffer(t.data[offset:])
+		isNull := new(bool)
+		binary.Read(buf, binary.LittleEndian, isNull)
+		v := new(bool)
+		binary.Read(buf, binary.LittleEndian, v)
+		retBuf := new(bytes.Buffer)
+		binary.Write(retBuf, binary.LittleEndian, *isNull)
+		binary.Write(retBuf, binary.LittleEndian, *v)
 		return retBuf.Bytes()
 	case types.Varchar:
-		data := t.data[offset:]
-		lengthInBytes := data[0:2]
+		buf := bytes.NewBuffer(t.data[offset:])
+		isNull := new(bool)
+		binary.Read(buf, binary.LittleEndian, isNull)
+		//data := t.data[offset:]
+		//lengthInBytes := data[0:2]
 		length := new(int16)
-		binary.Read(bytes.NewBuffer(lengthInBytes), binary.LittleEndian, length)
-		return data[2:(*length + 2)]
+		binary.Read(buf, binary.LittleEndian, length)
+		//binary.Read(bytes.NewBuffer(lengthInBytes), binary.LittleEndian, length)
+		retBuf := new(bytes.Buffer)
+		binary.Write(retBuf, binary.LittleEndian, *isNull)
+		binary.Write(retBuf, binary.LittleEndian, *length)
+		retArr := make([]byte, 0)
+		retArr = append(retArr, retBuf.Bytes()...)
+		retArr = append(retArr, t.data[offset+(1+2):offset+(uint32(*length)+(1+2))]...)
+		return retArr
+		//return data[2:(*length + 2)]
 	default:
 		panic("illegal type column found in schema")
 	}
