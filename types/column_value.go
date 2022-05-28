@@ -281,18 +281,31 @@ func (v Value) ValueType() TypeID {
 	return v.valueType
 }
 
+// note: a value filed correspoding to value type is initialized to default value
 func (v Value) SetNull() {
-	//v.valueType = Null
 	v.isNull = true
+	switch v.valueType {
+	case Integer:
+		v.integer = new(int32)
+	case Float:
+		v.float = new(float32)
+	case Varchar:
+		v.varchar = new(string)
+	case Boolean:
+		v.boolean = new(bool)
+	}
+	panic("not implemented")
 }
 
 func (v Value) IsNull() bool {
-	//return v.valueType == Null
 	return v.isNull
 }
 
-// TODO: (SDB) need to consider of NULL value
 func (v Value) Add(other *Value) *Value {
+	if other.IsNull() {
+		return &v
+	}
+
 	switch v.valueType {
 	case Integer:
 		ret := NewInteger(*v.integer + *other.integer)
@@ -305,8 +318,11 @@ func (v Value) Add(other *Value) *Value {
 	}
 }
 
-// TODO: (SDB) need to consider of NULL value
 func (v Value) Max(other *Value) *Value {
+	if other.IsNull() {
+		return &v
+	}
+
 	switch v.valueType {
 	case Integer:
 		if *v.integer >= *other.integer {
@@ -329,8 +345,11 @@ func (v Value) Max(other *Value) *Value {
 	}
 }
 
-// TODO: (SDB) need to consider of NULL value
 func (v Value) Min(other *Value) *Value {
+	if other.IsNull() {
+		return &v
+	}
+
 	switch v.valueType {
 	case Integer:
 		if *v.integer <= *other.integer {
