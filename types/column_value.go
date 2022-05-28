@@ -94,7 +94,9 @@ func NewValueFromBytes(data []byte, valueType TypeID) (ret *Value) {
 }
 
 func (v Value) CompareEquals(right Value) bool {
-	if v.IsNull() {
+	if v.IsNull() && right.IsNull() {
+		return true
+	} else if v.IsNull() || right.IsNull() {
 		return false
 	}
 
@@ -112,8 +114,10 @@ func (v Value) CompareEquals(right Value) bool {
 }
 
 func (v Value) CompareNotEquals(right Value) bool {
-	if v.IsNull() {
+	if v.IsNull() && right.IsNull() {
 		return false
+	} else if v.IsNull() || right.IsNull() {
+		return true
 	}
 
 	switch v.valueType {
@@ -148,7 +152,9 @@ func (v Value) CompareGreaterThan(right Value) bool {
 }
 
 func (v Value) CompareGreaterThanOrEqual(right Value) bool {
-	if v.IsNull() {
+	if v.IsNull() && right.IsNull() {
+		return true
+	} else if v.IsNull() || right.IsNull() {
 		return false
 	}
 
@@ -184,7 +190,9 @@ func (v Value) CompareLessThan(right Value) bool {
 }
 
 func (v Value) CompareLessThanOrEqual(right Value) bool {
-	if v.IsNull() {
+	if v.IsNull() && right.IsNull() {
+		return true
+	} else if v.IsNull() || right.IsNull() {
 		return false
 	}
 
@@ -278,7 +286,8 @@ func (v Value) ValueType() TypeID {
 	return v.valueType
 }
 
-// note: a value filed correspoding to value type is initialized to default value
+// note: (need to be) only way to get Value object which has NULL value
+//       a value filed correspoding to value type is initialized to default value
 func (v Value) SetNull() {
 	v.isNull = true
 	switch v.valueType {
