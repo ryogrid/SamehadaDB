@@ -1554,7 +1554,7 @@ func TestConcurrentTransactionExecution(t *testing.T) {
 	os.Remove("test.log")
 
 	shi := test_util.NewSamehadaInstance()
-	shi.GetLogManager().RunFlushThread()
+	shi.GetLogManager().ActivateLogging()
 	testingpkg.Assert(t, common.EnableLogging, "")
 	fmt.Println("System logging is active.")
 
@@ -1645,7 +1645,7 @@ func TestTestTableGenerator(t *testing.T) {
 	os.Remove("test.log")
 
 	shi := test_util.NewSamehadaInstance()
-	shi.GetLogManager().RunFlushThread()
+	shi.GetLogManager().ActivateLogging()
 	testingpkg.Assert(t, common.EnableLogging, "")
 	fmt.Println("System logging is active.")
 
@@ -1683,7 +1683,7 @@ func TestSimpleAggregation(t *testing.T) {
 	os.Remove("test.log")
 
 	shi := test_util.NewSamehadaInstance()
-	shi.GetLogManager().RunFlushThread()
+	shi.GetLogManager().ActivateLogging()
 	testingpkg.Assert(t, common.EnableLogging, "")
 	fmt.Println("System logging is active.")
 
@@ -1753,7 +1753,7 @@ func TestSimpleGroupByAggregation(t *testing.T) {
 	os.Remove("test.log")
 
 	shi := test_util.NewSamehadaInstance()
-	shi.GetLogManager().RunFlushThread()
+	shi.GetLogManager().ActivateLogging()
 	testingpkg.Assert(t, common.EnableLogging, "")
 	fmt.Println("System logging is active.")
 
@@ -1832,7 +1832,7 @@ func TestSeqScanWithMultiItemPredicate(t *testing.T) {
 	os.Remove("test.log")
 
 	shi := test_util.NewSamehadaInstance()
-	shi.GetLogManager().RunFlushThread()
+	shi.GetLogManager().ActivateLogging()
 	testingpkg.Assert(t, common.EnableLogging, "")
 	fmt.Println("System logging is active.")
 
@@ -1903,7 +1903,7 @@ func TestInsertAndSpecifiedColumnUpdate(t *testing.T) {
 	defer diskManager.ShutDown()
 	log_mgr := recovery.NewLogManager(&diskManager)
 
-	log_mgr.RunFlushThread()
+	log_mgr.ActivateLogging()
 	testingpkg.Assert(t, common.EnableLogging, "")
 
 	bpm := buffer.NewBufferPoolManager(uint32(32), diskManager, log_mgr)
@@ -1988,7 +1988,7 @@ func TestInsertAndSpecifiedColumnUpdatePageMoveCase(t *testing.T) {
 	os.Remove("test.log")
 
 	shi := test_util.NewSamehadaInstance()
-	shi.GetLogManager().RunFlushThread()
+	shi.GetLogManager().ActivateLogging()
 	testingpkg.Assert(t, common.EnableLogging, "")
 	fmt.Println("System logging is active.")
 
@@ -2073,7 +2073,7 @@ func TestSimpleSeqScanAndOrderBy(t *testing.T) {
 	os.Remove("test.log")
 
 	shi := test_util.NewSamehadaInstance()
-	shi.GetLogManager().RunFlushThread()
+	shi.GetLogManager().ActivateLogging()
 	testingpkg.Assert(t, common.EnableLogging, "")
 	fmt.Println("System logging is active.")
 

@@ -160,7 +160,7 @@ func TestRedo(t *testing.T) {
 	testingpkg.AssertFalse(t, common.EnableLogging, "")
 	fmt.Println("Skip system recovering...")
 
-	samehada_instance.GetLogManager().RunFlushThread()
+	samehada_instance.GetLogManager().ActivateLogging()
 	testingpkg.Assert(t, common.EnableLogging, "")
 	fmt.Println("System logging thread running...")
 
@@ -200,7 +200,7 @@ func TestRedo(t *testing.T) {
 	fmt.Println("System restart...")
 	samehada_instance = test_util.NewSamehadaInstance()
 
-	samehada_instance.GetLogManager().StopFlushThread()
+	samehada_instance.GetLogManager().DeactivateLogging()
 	testingpkg.AssertFalse(t, common.EnableLogging, "")
 	fmt.Println("Check if tuple is not in table before recovery")
 	txn = samehada_instance.GetTransactionManager().Begin(nil)
@@ -262,7 +262,7 @@ func TestUndo(t *testing.T) {
 	testingpkg.AssertFalse(t, common.EnableLogging, "")
 	fmt.Println("Skip system recovering...")
 
-	samehada_instance.GetLogManager().RunFlushThread()
+	samehada_instance.GetLogManager().ActivateLogging()
 	testingpkg.Assert(t, common.EnableLogging, "")
 	//fmt.Println("System logging thread running...")
 
@@ -360,7 +360,7 @@ func TestUndo(t *testing.T) {
 		samehada_instance.GetDiskManager(),
 		samehada_instance.GetBufferPoolManager())
 
-	samehada_instance.GetLogManager().StopFlushThread()
+	samehada_instance.GetLogManager().DeactivateLogging()
 	testingpkg.AssertFalse(t, common.EnableLogging, "")
 
 	log_recovery.Redo()
@@ -403,7 +403,7 @@ func TestCheckpoint(t *testing.T) {
 	testingpkg.AssertFalse(t, common.EnableLogging, "")
 	fmt.Println("Skip system recovering...")
 
-	samehada_instance.GetLogManager().RunFlushThread()
+	samehada_instance.GetLogManager().ActivateLogging()
 	testingpkg.Assert(t, common.EnableLogging, "")
 	fmt.Println("System logging thread running...")
 
