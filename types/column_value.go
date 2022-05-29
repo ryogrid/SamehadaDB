@@ -284,21 +284,21 @@ func (v Value) ValueType() TypeID {
 
 // note: (need to be) only way to get Value object which has NULL value
 //       a value filed correspoding to value type is initialized to default value
-func (v Value) SetNull() {
+func (v Value) SetNull() *Value {
 	*v.isNull = true
 	switch v.valueType {
 	case Integer:
 		*v.integer = 0
-		return
+		return &v
 	case Float:
 		*v.float = 0
-		return
+		return &v
 	case Varchar:
 		*v.varchar = ""
-		return
+		return &v
 	case Boolean:
 		*v.boolean = false
-		return
+		return &v
 	}
 	panic("not implemented")
 }

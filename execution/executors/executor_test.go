@@ -2326,3 +2326,75 @@ func TestSimpleSetNullToVarchar(t *testing.T) {
 
 	txn_mgr.Commit(txn)
 }
+
+func TestInsertNullValueAndSeqScanWithNullComparison(t *testing.T) {
+	diskManager := disk.NewDiskManagerTest()
+	defer diskManager.ShutDown()
+	log_mgr := recovery.NewLogManager(&diskManager)
+	bpm := buffer.NewBufferPoolManager(uint32(32), diskManager, log_mgr)
+	txn_mgr := access.NewTransactionManager(access.NewLockManager(access.REGULAR, access.DETECTION), log_mgr)
+	txn := txn_mgr.Begin(nil)
+
+	c := catalog.BootstrapCatalog(bpm, log_mgr, access.NewLockManager(access.REGULAR, access.PREVENTION), txn)
+
+	columnA := column.NewColumn("a", types.Integer, false, nil)
+	columnB := column.NewColumn("b", types.Varchar, false, nil)
+	schema_ := schema.NewSchema([]*column.Column{columnA, columnB})
+
+	tableMetadata := c.CreateTable("test_1", schema_, txn)
+
+	row1 := make([]types.Value, 0)
+	row1 = append(row1, types.NewInteger(20))
+	row1_col2 := types.NewVarchar("celemony")
+	row1_col2.SetNull()
+	row1 = append(row1, row1_col2)
+
+	row2 := make([]types.Value, 0)
+	row2 = append(row2, types.NewInteger(10))
+	row2 = append(row2, types.NewVarchar("boo"))
+
+	row3 := make([]types.Value, 0)
+	row3 = append(row3, types.NewInteger(30))
+	row3 = append(row3, types.NewVarchar("daylight"))
+
+	rows := make([][]types.Value, 0)
+	rows = append(rows, row1)
+	rows = append(rows, row2)
+	rows = append(rows, row3)
+
+	insertPlanNode := plans.NewInsertPlanNode(rows, tableMetadata.OID())
+
+	executionEngine := &ExecutionEngine{}
+	executorContext := NewExecutorContext(c, bpm, txn)
+	executionEngine.Execute(insertPlanNode, executorContext)
+
+	bpm.FlushAllPages()
+
+	txn_mgr.Commit(txn)
+
+	cases := []SeqScanTestCase{{
+		"select a, b ... WHERE b = NULL",
+		executionEngine,
+		executorContext,
+		tableMetadata,
+		[]Column{{"a", types.Integer}, {"b", types.Varchar}},
+		Predicate{"b", expression.Equal, types.NewVarchar("").SetNull()},
+		[]Assertion{{"a", 20}},
+		1,
+	}, {
+		"select a, b ... WHERE a = 20",
+		executionEngine,
+		executorContext,
+		tableMetadata,
+		[]Column{{"a", types.Integer}, {"b", types.Varchar}},
+		Predicate{"a", expression.Equal, 20},
+		[]Assertion{{"a", 20}},
+		1,
+	}}
+
+	for _, test := range cases {
+		t.Run(test.Description, func(t *testing.T) {
+			ExecuteSeqScanTestCase(t, test)
+		})
+	}
+}

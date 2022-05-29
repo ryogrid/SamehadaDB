@@ -164,6 +164,9 @@ func GetValue(data interface{}) (value types.Value) {
 		value = types.NewVarchar(v)
 	case bool:
 		value = types.NewBoolean(v)
+	case *types.Value:
+		val := data.(*types.Value)
+		return *val
 	}
 	return
 }
@@ -178,6 +181,9 @@ func GetValueType(data interface{}) (value types.TypeID) {
 		return types.Varchar
 	case bool:
 		return types.Boolean
+	case *types.Value:
+		val := data.(*types.Value)
+		return val.ValueType()
 	}
 	panic("not implemented")
 }
