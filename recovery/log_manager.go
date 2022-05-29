@@ -31,7 +31,6 @@ type LogManager struct {
 	flush_buffer   []byte
 	latch          common.ReaderWriterLatch
 	wlog_mutex     *sync.Mutex
-	// TODO: (SDB) need implement log flushing with dedicated thread
 	//flush_thread   *thread //__attribute__((__unused__));
 	//cv           condition_variable
 	disk_manager *disk.DiskManager //__attribute__((__unused__));
@@ -93,12 +92,12 @@ func (log_manager *LogManager) Flush() {
 * manager wants to force flush (it only happens when the flushed page has a
 * larger LSN than persistent LSN)
  */
-func (log_manager *LogManager) RunFlushThread() { common.EnableLogging = true }
+func (log_manager *LogManager) ActivateLogging() { common.EnableLogging = true }
 
 /*
 * Stop and join the flush thread, set enable_logging = false
  */
-func (log_manager *LogManager) StopFlushThread() { common.EnableLogging = false }
+func (log_manager *LogManager) DeactivateLogging() { common.EnableLogging = false }
 
 /*
 * append a log record into log buffer
@@ -130,29 +129,20 @@ func (log_manager *LogManager) AppendLogRecord(log_record *LogRecord) types.LSN 
 	log_manager.latch.WLock()
 	log_record.Lsn = log_manager.next_lsn
 	log_manager.next_lsn += 1
-	//memcpy(log_manager.log_buffer+log_manager.offset, log_record, HEADER_SIZE)
 	headerInBytes := log_record.GetLogHeaderData()
 	copy(log_manager.log_buffer[log_manager.offset:], headerInBytes)
 
 	if common.LogBufferSize-log_manager.offset < log_record.Size {
 		log_manager.latch.WUnlock()
 		log_manager.Flush()
-		// do it again in new buffer
-		//memcpy(log_manager.log_buffer+offset, log_record, HEADER_SIZE)
-		//buf := new(bytes.Buffer)
-		// binary.Write(buf, binary.LittleEndian, *log_record)
-		// headerInBytes := buf.Bytes()
-		// copy(log_manager.log_buffer[log_manager.offset:], headerInBytes[:HEADER_SIZE])
 		log_manager.latch.WLock()
 		copy(log_manager.log_buffer[log_manager.offset:], log_record.GetLogHeaderData())
 	}
 	log_manager.log_buffer_lsn = log_record.Lsn
 	pos := log_manager.offset + HEADER_SIZE
 	log_manager.offset += log_record.Size
-	// access.unlock();
 
 	if log_record.Log_record_type == INSERT {
-		//memcpy(log_manager.log_buffer+pos, &log_record.insert_rid, sizeof(RID))
 		buf := new(bytes.Buffer)
 		binary.Write(buf, binary.LittleEndian, log_record.Insert_rid)
 		ridInBytes := buf.Bytes()
@@ -163,7 +153,6 @@ func (log_manager *LogManager) AppendLogRecord(log_record *LogRecord) types.LSN 
 	} else if log_record.Log_record_type == APPLYDELETE ||
 		log_record.Log_record_type == MARKDELETE ||
 		log_record.Log_record_type == ROLLBACKDELETE {
-		//memcpy(log_manager.log_buffer+pos, &log_record.delete_rid, sizeof(RID))
 		buf := new(bytes.Buffer)
 		binary.Write(buf, binary.LittleEndian, log_record.Delete_rid)
 		ridInBytes := buf.Bytes()
@@ -172,7 +161,6 @@ func (log_manager *LogManager) AppendLogRecord(log_record *LogRecord) types.LSN 
 		// we have provided serialize function for tuple class
 		log_record.Delete_tuple.SerializeTo(log_manager.log_buffer[pos:])
 	} else if log_record.Log_record_type == UPDATE {
-		//memcpy(log_buffer+pos, &log_record.update_rid, sizeof(RID))
 		buf := new(bytes.Buffer)
 		binary.Write(buf, binary.LittleEndian, log_record.Update_rid)
 		ridInBytes := buf.Bytes()
@@ -183,7 +171,6 @@ func (log_manager *LogManager) AppendLogRecord(log_record *LogRecord) types.LSN 
 		pos += log_record.Old_tuple.Size() + uint32(tuple.TupleSizeOffsetInLogrecord)
 		log_record.New_tuple.SerializeTo(log_manager.log_buffer[pos:])
 	} else if log_record.Log_record_type == NEWPAGE {
-		//memcpy(log_manager.log_buffer+pos, &log_record.prev_page_id, sizeof(PageID))
 		buf := new(bytes.Buffer)
 		binary.Write(buf, binary.LittleEndian, log_record.Prev_page_id)
 		pageIdInBytes := buf.Bytes()

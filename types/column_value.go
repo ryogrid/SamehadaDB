@@ -6,7 +6,7 @@ package types
 import (
 	"bytes"
 	"encoding/binary"
-	"unsafe"
+	"fmt"
 )
 
 // A value is an class that represents a view over SQL data stored in
@@ -14,6 +14,7 @@ import (
 // and implement other type-specific functionality.
 type Value struct {
 	valueType TypeID
+	isNull    *bool
 	integer   *int32
 	boolean   *bool
 	varchar   *string
@@ -21,50 +22,84 @@ type Value struct {
 }
 
 func NewInteger(value int32) Value {
-	return Value{Integer, &value, nil, nil, nil}
+	return Value{Integer, new(bool), &value, nil, nil, nil}
 }
 
 func NewFloat(value float32) Value {
-	return Value{Float, nil, nil, nil, &value}
+	return Value{Float, new(bool), nil, nil, nil, &value}
 }
 
 func NewBoolean(value bool) Value {
-	return Value{Boolean, nil, &value, nil, nil}
+	return Value{Boolean, new(bool), nil, &value, nil, nil}
 }
 
 func NewVarchar(value string) Value {
-	return Value{Varchar, nil, nil, &value, nil}
+	return Value{Varchar, new(bool), nil, nil, &value, nil}
 }
 
 // NewValueFromBytes is used for deserialization
 func NewValueFromBytes(data []byte, valueType TypeID) (ret *Value) {
 	switch valueType {
 	case Integer:
+		buf := bytes.NewBuffer(data)
+		isNull := new(bool)
+		binary.Read(buf, binary.LittleEndian, isNull)
 		v := new(int32)
-		binary.Read(bytes.NewBuffer(data), binary.LittleEndian, v)
+		binary.Read(buf, binary.LittleEndian, v)
 		vInteger := NewInteger(*v)
+		if *isNull {
+			vInteger.SetNull()
+		}
 		ret = &vInteger
 	case Float:
+		buf := bytes.NewBuffer(data)
+		isNull := new(bool)
+		binary.Read(buf, binary.LittleEndian, isNull)
 		v := new(float32)
-		binary.Read(bytes.NewBuffer(data), binary.LittleEndian, v)
+		binary.Read(buf, binary.LittleEndian, v)
 		vFloat := NewFloat(*v)
+		if *isNull {
+			vFloat.SetNull()
+		}
 		ret = &vFloat
 	case Varchar:
-		lengthInBytes := data[0:2]
+		buf := bytes.NewBuffer(data)
+		isNull := new(bool)
+		binary.Read(buf, binary.LittleEndian, isNull)
+		//lengthInBytes := data[0:2]
 		length := new(int16)
-		binary.Read(bytes.NewBuffer(lengthInBytes), binary.LittleEndian, length)
-		varchar := NewVarchar(string(data[2:(*length + 2)]))
+		binary.Read(buf, binary.LittleEndian, length)
+		//binary.Read(bytes.NewBuffer(lengthInBytes), binary.LittleEndian, length)
+		varchar := NewVarchar(string(data[1+2 : (*length + (1 + 2))]))
+		if *isNull {
+			varchar.SetNull()
+		}
 		ret = &varchar
 	case Boolean:
+		buf := bytes.NewBuffer(data)
+		isNull := new(bool)
+		binary.Read(buf, binary.LittleEndian, isNull)
 		v := new(bool)
-		binary.Read(bytes.NewBuffer(data), binary.LittleEndian, v)
+		binary.Read(buf, binary.LittleEndian, v)
 		vBoolean := NewBoolean(*v)
+		if *isNull {
+			vBoolean.SetNull()
+		}
 		ret = &vBoolean
+	default:
+		fmt.Printf("%v is illegal\n", valueType)
+		panic("")
 	}
 	return ret
 }
 
 func (v Value) CompareEquals(right Value) bool {
+	if v.IsNull() && right.IsNull() {
+		return true
+	} else if v.IsNull() || right.IsNull() {
+		return false
+	}
+
 	switch v.valueType {
 	case Integer:
 		return *v.integer == *right.integer
@@ -79,6 +114,12 @@ func (v Value) CompareEquals(right Value) bool {
 }
 
 func (v Value) CompareNotEquals(right Value) bool {
+	if v.IsNull() && right.IsNull() {
+		return false
+	} else if v.IsNull() || right.IsNull() {
+		return true
+	}
+
 	switch v.valueType {
 	case Integer:
 		return *v.integer != *right.integer
@@ -93,6 +134,10 @@ func (v Value) CompareNotEquals(right Value) bool {
 }
 
 func (v Value) CompareGreaterThan(right Value) bool {
+	if v.IsNull() {
+		return false
+	}
+
 	switch v.valueType {
 	case Integer:
 		return *v.integer > *right.integer
@@ -107,6 +152,12 @@ func (v Value) CompareGreaterThan(right Value) bool {
 }
 
 func (v Value) CompareGreaterThanOrEqual(right Value) bool {
+	if v.IsNull() && right.IsNull() {
+		return true
+	} else if v.IsNull() || right.IsNull() {
+		return false
+	}
+
 	switch v.valueType {
 	case Integer:
 		return *v.integer >= *right.integer
@@ -121,6 +172,10 @@ func (v Value) CompareGreaterThanOrEqual(right Value) bool {
 }
 
 func (v Value) CompareLessThan(right Value) bool {
+	if v.IsNull() {
+		return false
+	}
+
 	switch v.valueType {
 	case Integer:
 		return *v.integer < *right.integer
@@ -135,6 +190,12 @@ func (v Value) CompareLessThan(right Value) bool {
 }
 
 func (v Value) CompareLessThanOrEqual(right Value) bool {
+	if v.IsNull() && right.IsNull() {
+		return true
+	} else if v.IsNull() || right.IsNull() {
+		return false
+	}
+
 	switch v.valueType {
 	case Integer:
 		return *v.integer <= *right.integer
@@ -154,19 +215,23 @@ func (v Value) Serialize() []byte {
 	switch v.valueType {
 	case Integer:
 		buf := new(bytes.Buffer)
+		binary.Write(buf, binary.LittleEndian, *v.isNull)
 		binary.Write(buf, binary.LittleEndian, v.ToInteger())
 		return buf.Bytes()
 	case Float:
 		buf := new(bytes.Buffer)
+		binary.Write(buf, binary.LittleEndian, *v.isNull)
 		binary.Write(buf, binary.LittleEndian, v.ToFloat())
 		return buf.Bytes()
 	case Varchar:
 		buf := new(bytes.Buffer)
+		binary.Write(buf, binary.LittleEndian, *v.isNull)
 		binary.Write(buf, binary.LittleEndian, uint16(len(v.ToVarchar())))
-		lengthInBytes := buf.Bytes()
-		return append(lengthInBytes, []byte(v.ToVarchar())...)
+		isNullAndLength := buf.Bytes()
+		return append(isNullAndLength, []byte(v.ToVarchar())...)
 	case Boolean:
 		buf := new(bytes.Buffer)
+		binary.Write(buf, binary.LittleEndian, *v.isNull)
 		binary.Write(buf, binary.LittleEndian, v.ToBoolean())
 		return buf.Bytes()
 	}
@@ -175,31 +240,40 @@ func (v Value) Serialize() []byte {
 
 // Size returns the size in bytes that the type will occupy inside the tuple
 func (v Value) Size() uint32 {
+	// all type occupies the whether NULL or not + 1 byte for the info storage
 	switch v.valueType {
 	case Integer:
-		return 4
+		return v.valueType.Size()
 	case Float:
-		return 4
+		return v.valueType.Size()
 	case Varchar:
-		return uint32(len(*v.varchar)) + 2 // varchar occupies the size of the string + 2 bytes for length storage
+		return uint32(len(*v.varchar)) + 1 + 2 // varchar occupies the size of the string + 2 bytes for length storage
 	case Boolean:
-		return uint32(unsafe.Sizeof(true))
+		return v.valueType.Size()
 	}
 	panic("not implemented")
 }
 
+// if you use this to get column value
+// NULL value check is needed in general
 func (v Value) ToBoolean() bool {
 	return *v.boolean
 }
 
+// if you use this to get column value
+// NULL value check is needed in general
 func (v Value) ToInteger() int32 {
 	return *v.integer
 }
 
+// if you use this to get column value
+// NULL value check is needed in general
 func (v Value) ToFloat() float32 {
 	return *v.float
 }
 
+// if you use this to get column value
+// NULL value check is needed in general
 func (v Value) ToVarchar() string {
 	return *v.varchar
 }
@@ -208,15 +282,36 @@ func (v Value) ValueType() TypeID {
 	return v.valueType
 }
 
-func (v Value) SetNull() {
-	v.valueType = Null
+// note: (need to be) only way to get Value object which has NULL value
+//       a value filed correspoding to value type is initialized to default value
+func (v Value) SetNull() *Value {
+	*v.isNull = true
+	switch v.valueType {
+	case Integer:
+		*v.integer = 0
+		return &v
+	case Float:
+		*v.float = 0
+		return &v
+	case Varchar:
+		*v.varchar = ""
+		return &v
+	case Boolean:
+		*v.boolean = false
+		return &v
+	}
+	panic("not implemented")
 }
 
 func (v Value) IsNull() bool {
-	return v.valueType == Null
+	return *v.isNull
 }
 
 func (v Value) Add(other *Value) *Value {
+	if other.IsNull() {
+		return &v
+	}
+
 	switch v.valueType {
 	case Integer:
 		ret := NewInteger(*v.integer + *other.integer)
@@ -230,6 +325,10 @@ func (v Value) Add(other *Value) *Value {
 }
 
 func (v Value) Max(other *Value) *Value {
+	if other.IsNull() {
+		return &v
+	}
+
 	switch v.valueType {
 	case Integer:
 		if *v.integer >= *other.integer {
@@ -253,6 +352,10 @@ func (v Value) Max(other *Value) *Value {
 }
 
 func (v Value) Min(other *Value) *Value {
+	if other.IsNull() {
+		return &v
+	}
+
 	switch v.valueType {
 	case Integer:
 		if *v.integer <= *other.integer {

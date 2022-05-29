@@ -245,6 +245,74 @@ func TestSimpleInsertAndSeqScanWithPredicateComparison(t *testing.T) {
 	}
 }
 
+func TestInsertBoolAndSeqScanWithComparison(t *testing.T) {
+	diskManager := disk.NewDiskManagerTest()
+	defer diskManager.ShutDown()
+	log_mgr := recovery.NewLogManager(&diskManager)
+	bpm := buffer.NewBufferPoolManager(uint32(32), diskManager, log_mgr) //, recovery.NewLogManager(diskManager), access.NewLockManager(access.REGULAR, access.PREVENTION))
+	txn_mgr := access.NewTransactionManager(access.NewLockManager(access.REGULAR, access.DETECTION), log_mgr)
+	txn := txn_mgr.Begin(nil)
+
+	c := catalog.BootstrapCatalog(bpm, log_mgr, access.NewLockManager(access.REGULAR, access.PREVENTION), txn)
+
+	columnA := column.NewColumn("a", types.Integer, false, nil)
+	columnB := column.NewColumn("b", types.Boolean, false, nil)
+	columnC := column.NewColumn("c", types.Varchar, false, nil)
+	schema_ := schema.NewSchema([]*column.Column{columnA, columnB, columnC})
+
+	tableMetadata := c.CreateTable("test_1", schema_, txn)
+
+	row1 := make([]types.Value, 0)
+	row1 = append(row1, types.NewInteger(20))
+	row1 = append(row1, types.NewBoolean(true))
+	row1 = append(row1, types.NewVarchar("foo"))
+
+	row2 := make([]types.Value, 0)
+	row2 = append(row2, types.NewInteger(99))
+	row2 = append(row2, types.NewBoolean(false))
+	row2 = append(row2, types.NewVarchar("bar"))
+
+	rows := make([][]types.Value, 0)
+	rows = append(rows, row1)
+	rows = append(rows, row2)
+
+	insertPlanNode := plans.NewInsertPlanNode(rows, tableMetadata.OID())
+
+	executionEngine := &ExecutionEngine{}
+	executorContext := NewExecutorContext(c, bpm, txn)
+	executionEngine.Execute(insertPlanNode, executorContext)
+
+	bpm.FlushAllPages()
+
+	txn_mgr.Commit(txn)
+
+	cases := []SeqScanTestCase{{
+		"select a ... WHERE b = true",
+		executionEngine,
+		executorContext,
+		tableMetadata,
+		[]Column{{"a", types.Integer}},
+		Predicate{"b", expression.Equal, true},
+		[]Assertion{{"a", 20}},
+		1,
+	}, {
+		"select c ... WHERE b = false",
+		executionEngine,
+		executorContext,
+		tableMetadata,
+		[]Column{{"c", types.Varchar}},
+		Predicate{"b", expression.Equal, false},
+		[]Assertion{{"c", "bar"}},
+		1,
+	}}
+
+	for _, test := range cases {
+		t.Run(test.Description, func(t *testing.T) {
+			ExecuteSeqScanTestCase(t, test)
+		})
+	}
+}
+
 func TestSimpleInsertAndLimitExecution(t *testing.T) {
 	diskManager := disk.NewDiskManagerTest()
 	defer diskManager.ShutDown()
@@ -1554,7 +1622,7 @@ func TestConcurrentTransactionExecution(t *testing.T) {
 	os.Remove("test.log")
 
 	shi := test_util.NewSamehadaInstance()
-	shi.GetLogManager().RunFlushThread()
+	shi.GetLogManager().ActivateLogging()
 	testingpkg.Assert(t, common.EnableLogging, "")
 	fmt.Println("System logging is active.")
 
@@ -1645,7 +1713,7 @@ func TestTestTableGenerator(t *testing.T) {
 	os.Remove("test.log")
 
 	shi := test_util.NewSamehadaInstance()
-	shi.GetLogManager().RunFlushThread()
+	shi.GetLogManager().ActivateLogging()
 	testingpkg.Assert(t, common.EnableLogging, "")
 	fmt.Println("System logging is active.")
 
@@ -1683,7 +1751,7 @@ func TestSimpleAggregation(t *testing.T) {
 	os.Remove("test.log")
 
 	shi := test_util.NewSamehadaInstance()
-	shi.GetLogManager().RunFlushThread()
+	shi.GetLogManager().ActivateLogging()
 	testingpkg.Assert(t, common.EnableLogging, "")
 	fmt.Println("System logging is active.")
 
@@ -1753,7 +1821,7 @@ func TestSimpleGroupByAggregation(t *testing.T) {
 	os.Remove("test.log")
 
 	shi := test_util.NewSamehadaInstance()
-	shi.GetLogManager().RunFlushThread()
+	shi.GetLogManager().ActivateLogging()
 	testingpkg.Assert(t, common.EnableLogging, "")
 	fmt.Println("System logging is active.")
 
@@ -1832,7 +1900,7 @@ func TestSeqScanWithMultiItemPredicate(t *testing.T) {
 	os.Remove("test.log")
 
 	shi := test_util.NewSamehadaInstance()
-	shi.GetLogManager().RunFlushThread()
+	shi.GetLogManager().ActivateLogging()
 	testingpkg.Assert(t, common.EnableLogging, "")
 	fmt.Println("System logging is active.")
 
@@ -1903,7 +1971,7 @@ func TestInsertAndSpecifiedColumnUpdate(t *testing.T) {
 	defer diskManager.ShutDown()
 	log_mgr := recovery.NewLogManager(&diskManager)
 
-	log_mgr.RunFlushThread()
+	log_mgr.ActivateLogging()
 	testingpkg.Assert(t, common.EnableLogging, "")
 
 	bpm := buffer.NewBufferPoolManager(uint32(32), diskManager, log_mgr)
@@ -1988,7 +2056,7 @@ func TestInsertAndSpecifiedColumnUpdatePageMoveCase(t *testing.T) {
 	os.Remove("test.log")
 
 	shi := test_util.NewSamehadaInstance()
-	shi.GetLogManager().RunFlushThread()
+	shi.GetLogManager().ActivateLogging()
 	testingpkg.Assert(t, common.EnableLogging, "")
 	fmt.Println("System logging is active.")
 
@@ -2073,7 +2141,7 @@ func TestSimpleSeqScanAndOrderBy(t *testing.T) {
 	os.Remove("test.log")
 
 	shi := test_util.NewSamehadaInstance()
-	shi.GetLogManager().RunFlushThread()
+	shi.GetLogManager().ActivateLogging()
 	testingpkg.Assert(t, common.EnableLogging, "")
 	fmt.Println("System logging is active.")
 
@@ -2173,4 +2241,160 @@ func TestSimpleSeqScanAndOrderBy(t *testing.T) {
 	testingpkg.Assert(t, types.NewVarchar("daylight").CompareEquals(results[2].GetValue(scan_schema, 1)), "value should be 'daylight'")
 
 	txn_mgr.Commit(txn)
+}
+
+func TestSimpleSetNullToVarchar(t *testing.T) {
+	os.Remove("test.db")
+	os.Remove("test.log")
+
+	shi := test_util.NewSamehadaInstance()
+	shi.GetLogManager().ActivateLogging()
+	testingpkg.Assert(t, common.EnableLogging, "")
+	fmt.Println("System logging is active.")
+
+	txn_mgr := shi.GetTransactionManager()
+	txn := txn_mgr.Begin(nil)
+
+	c := catalog.BootstrapCatalog(shi.GetBufferPoolManager(), shi.GetLogManager(), shi.GetLockManager(), txn)
+	exec_ctx := NewExecutorContext(c, shi.GetBufferPoolManager(), txn)
+
+	columnA := column.NewColumn("a", types.Integer, false, nil)
+	columnB := column.NewColumn("b", types.Varchar, false, nil)
+	schema_ := schema.NewSchema([]*column.Column{columnA, columnB})
+
+	tableMetadata := c.CreateTable("test_1", schema_, txn)
+
+	row1 := make([]types.Value, 0)
+	row1 = append(row1, types.NewInteger(20))
+	row1_col2 := types.NewVarchar("celemony")
+	row1_col2.SetNull()
+	row1 = append(row1, row1_col2)
+
+	row2 := make([]types.Value, 0)
+	row2 = append(row2, types.NewInteger(20))
+	row2 = append(row2, types.NewVarchar("boo"))
+
+	row3 := make([]types.Value, 0)
+	row3 = append(row3, types.NewInteger(10))
+	row3 = append(row3, types.NewVarchar("daylight"))
+
+	rows := make([][]types.Value, 0)
+	rows = append(rows, row1)
+	rows = append(rows, row2)
+	rows = append(rows, row3)
+
+	insertPlanNode := plans.NewInsertPlanNode(rows, tableMetadata.OID())
+	executionEngine := &ExecutionEngine{}
+	executionEngine.Execute(insertPlanNode, exec_ctx)
+
+	txn_mgr.Commit(txn)
+
+	txn = txn_mgr.Begin(nil)
+	exec_ctx.SetTransaction(txn)
+
+	var scan_plan *plans.SeqScanPlanNode
+	var scan_schema *schema.Schema
+	{
+		//auto table_info = GetExecutorContext()->GetCatalog()->GetTable("test_1");
+		schema_ := tableMetadata.Schema()
+		colA := MakeColumnValueExpression(schema_, 0, "a").(*expression.ColumnValue)
+		colB := MakeColumnValueExpression(schema_, 0, "b").(*expression.ColumnValue)
+		scan_schema = MakeOutputSchema([]MakeSchemaMeta{{"a", *colA}, {"b", *colB}})
+		scan_plan = plans.NewSeqScanPlanNode(scan_schema, nil, tableMetadata.OID()).(*plans.SeqScanPlanNode)
+	}
+
+	results := executionEngine.Execute(scan_plan, exec_ctx)
+
+	fmt.Println(results[0].GetValue(scan_schema, 0).ToInteger())
+	fmt.Println(results[0].GetValue(scan_schema, 1).ToVarchar())
+	fmt.Println(results[1].GetValue(scan_schema, 0).ToInteger())
+	fmt.Println(results[1].GetValue(scan_schema, 1).ToVarchar())
+	fmt.Println(results[2].GetValue(scan_schema, 0).ToInteger())
+	fmt.Println(results[2].GetValue(scan_schema, 1).ToVarchar())
+
+	testingpkg.Assert(t, types.NewInteger(20).CompareEquals(results[0].GetValue(scan_schema, 0)), "value should be 20")
+	//testingpkg.Assert(t, types.NewInteger(0).CompareEquals(results[0].GetValue(scan_schema, 0)), "value should be 0")
+	//testingpkg.Assert(t, results[0].GetValue(scan_schema, 0).IsNull() == true, "IsNull() of colomun at 0 value should be true")
+	testingpkg.Assert(t, types.NewVarchar("").CompareEquals(results[0].GetValue(scan_schema, 1)) == false, "compared result should be false")
+	testingpkg.Assert(t, results[0].GetValue(scan_schema, 1).IsNull() == true, "IsNull() of column at 1 value should be true")
+
+	testingpkg.Assert(t, types.NewInteger(20).CompareEquals(results[1].GetValue(scan_schema, 0)), "value should be 20")
+	testingpkg.Assert(t, types.NewVarchar("boo").CompareEquals(results[1].GetValue(scan_schema, 1)), "value should be 'boo'")
+
+	testingpkg.Assert(t, types.NewInteger(10).CompareEquals(results[2].GetValue(scan_schema, 0)), "value should be 10")
+	testingpkg.Assert(t, types.NewVarchar("daylight").CompareEquals(results[2].GetValue(scan_schema, 1)), "value should be 'daylight'")
+
+	txn_mgr.Commit(txn)
+}
+
+func TestInsertNullValueAndSeqScanWithNullComparison(t *testing.T) {
+	diskManager := disk.NewDiskManagerTest()
+	defer diskManager.ShutDown()
+	log_mgr := recovery.NewLogManager(&diskManager)
+	bpm := buffer.NewBufferPoolManager(uint32(32), diskManager, log_mgr)
+	txn_mgr := access.NewTransactionManager(access.NewLockManager(access.REGULAR, access.DETECTION), log_mgr)
+	txn := txn_mgr.Begin(nil)
+
+	c := catalog.BootstrapCatalog(bpm, log_mgr, access.NewLockManager(access.REGULAR, access.PREVENTION), txn)
+
+	columnA := column.NewColumn("a", types.Integer, false, nil)
+	columnB := column.NewColumn("b", types.Varchar, false, nil)
+	schema_ := schema.NewSchema([]*column.Column{columnA, columnB})
+
+	tableMetadata := c.CreateTable("test_1", schema_, txn)
+
+	row1 := make([]types.Value, 0)
+	row1 = append(row1, types.NewInteger(20))
+	row1_col2 := types.NewVarchar("celemony")
+	row1_col2.SetNull()
+	row1 = append(row1, row1_col2)
+
+	row2 := make([]types.Value, 0)
+	row2 = append(row2, types.NewInteger(10))
+	row2 = append(row2, types.NewVarchar("boo"))
+
+	row3 := make([]types.Value, 0)
+	row3 = append(row3, types.NewInteger(30))
+	row3 = append(row3, types.NewVarchar("daylight"))
+
+	rows := make([][]types.Value, 0)
+	rows = append(rows, row1)
+	rows = append(rows, row2)
+	rows = append(rows, row3)
+
+	insertPlanNode := plans.NewInsertPlanNode(rows, tableMetadata.OID())
+
+	executionEngine := &ExecutionEngine{}
+	executorContext := NewExecutorContext(c, bpm, txn)
+	executionEngine.Execute(insertPlanNode, executorContext)
+
+	bpm.FlushAllPages()
+
+	txn_mgr.Commit(txn)
+
+	cases := []SeqScanTestCase{{
+		"select a, b ... WHERE b = NULL",
+		executionEngine,
+		executorContext,
+		tableMetadata,
+		[]Column{{"a", types.Integer}, {"b", types.Varchar}},
+		Predicate{"b", expression.Equal, types.NewVarchar("").SetNull()},
+		[]Assertion{{"a", 20}},
+		1,
+	}, {
+		"select a, b ... WHERE a = 20",
+		executionEngine,
+		executorContext,
+		tableMetadata,
+		[]Column{{"a", types.Integer}, {"b", types.Varchar}},
+		Predicate{"a", expression.Equal, 20},
+		[]Assertion{{"a", 20}},
+		1,
+	}}
+
+	for _, test := range cases {
+		t.Run(test.Description, func(t *testing.T) {
+			ExecuteSeqScanTestCase(t, test)
+		})
+	}
 }
