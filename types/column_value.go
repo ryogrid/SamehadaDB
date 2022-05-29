@@ -254,31 +254,27 @@ func (v Value) Size() uint32 {
 	panic("not implemented")
 }
 
+// if you use this to get column value
+// NULL value check is needed in general
 func (v Value) ToBoolean() bool {
-	if v.IsNull() {
-		panic("value is NULL.")
-	}
 	return *v.boolean
 }
 
+// if you use this to get column value
+// NULL value check is needed in general
 func (v Value) ToInteger() int32 {
-	if v.IsNull() {
-		panic("value is NULL.")
-	}
 	return *v.integer
 }
 
+// if you use this to get column value
+// NULL value check is needed in general
 func (v Value) ToFloat() float32 {
-	if v.IsNull() {
-		panic("value is NULL.")
-	}
 	return *v.float
 }
 
+// if you use this to get column value
+// NULL value check is needed in general
 func (v Value) ToVarchar() string {
-	if v.IsNull() {
-		panic("value is NULL.")
-	}
 	return *v.varchar
 }
 
