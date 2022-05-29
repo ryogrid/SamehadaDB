@@ -2245,14 +2245,16 @@ func TestSimpleSetNullToVarchar(t *testing.T) {
 	fmt.Println(results[2].GetValue(scan_schema, 1).ToVarchar())
 
 	testingpkg.Assert(t, types.NewInteger(20).CompareEquals(results[0].GetValue(scan_schema, 0)), "value should be 20")
-	testingpkg.Assert(t, types.NewVarchar("").CompareEquals(results[0].GetValue(scan_schema, 1)), "value should be ''")
-	testingpkg.Assert(t, results[0].GetValue(scan_schema, 1).IsNull() == true, "IsNull() value should be true")
+	//testingpkg.Assert(t, types.NewInteger(0).CompareEquals(results[0].GetValue(scan_schema, 0)), "value should be 0")
+	//testingpkg.Assert(t, results[0].GetValue(scan_schema, 0).IsNull() == true, "IsNull() of colomun at 0 value should be true")
+	testingpkg.Assert(t, types.NewVarchar("").CompareEquals(results[0].GetValue(scan_schema, 1)) == false, "compared result should be false")
+	testingpkg.Assert(t, results[0].GetValue(scan_schema, 1).IsNull() == true, "IsNull() of column at 1 value should be true")
 
 	testingpkg.Assert(t, types.NewInteger(20).CompareEquals(results[1].GetValue(scan_schema, 0)), "value should be 20")
 	testingpkg.Assert(t, types.NewVarchar("boo").CompareEquals(results[1].GetValue(scan_schema, 1)), "value should be 'boo'")
 
-	testingpkg.Assert(t, types.NewInteger(20).CompareEquals(results[2].GetValue(scan_schema, 0)), "value should be 20")
-	testingpkg.Assert(t, types.NewVarchar("celemony").CompareEquals(results[2].GetValue(scan_schema, 1)), "value should be 'celemony'")
+	testingpkg.Assert(t, types.NewInteger(10).CompareEquals(results[2].GetValue(scan_schema, 0)), "value should be 10")
+	testingpkg.Assert(t, types.NewVarchar("daylight").CompareEquals(results[2].GetValue(scan_schema, 1)), "value should be 'daylight'")
 
 	txn_mgr.Commit(txn)
 }

@@ -14,7 +14,7 @@ import (
 // and implement other type-specific functionality.
 type Value struct {
 	valueType TypeID
-	isNull    bool
+	isNull    *bool
 	integer   *int32
 	boolean   *bool
 	varchar   *string
@@ -22,19 +22,19 @@ type Value struct {
 }
 
 func NewInteger(value int32) Value {
-	return Value{Integer, false, &value, nil, nil, nil}
+	return Value{Integer, new(bool), &value, nil, nil, nil}
 }
 
 func NewFloat(value float32) Value {
-	return Value{Float, false, nil, nil, nil, &value}
+	return Value{Float, new(bool), nil, nil, nil, &value}
 }
 
 func NewBoolean(value bool) Value {
-	return Value{Boolean, false, nil, &value, nil, nil}
+	return Value{Boolean, new(bool), nil, &value, nil, nil}
 }
 
 func NewVarchar(value string) Value {
-	return Value{Varchar, false, nil, nil, &value, nil}
+	return Value{Varchar, new(bool), nil, nil, &value, nil}
 }
 
 // NewValueFromBytes is used for deserialization
@@ -215,23 +215,23 @@ func (v Value) Serialize() []byte {
 	switch v.valueType {
 	case Integer:
 		buf := new(bytes.Buffer)
-		binary.Write(buf, binary.LittleEndian, v.isNull)
+		binary.Write(buf, binary.LittleEndian, *v.isNull)
 		binary.Write(buf, binary.LittleEndian, v.ToInteger())
 		return buf.Bytes()
 	case Float:
 		buf := new(bytes.Buffer)
-		binary.Write(buf, binary.LittleEndian, v.isNull)
+		binary.Write(buf, binary.LittleEndian, *v.isNull)
 		binary.Write(buf, binary.LittleEndian, v.ToFloat())
 		return buf.Bytes()
 	case Varchar:
 		buf := new(bytes.Buffer)
-		binary.Write(buf, binary.LittleEndian, v.isNull)
+		binary.Write(buf, binary.LittleEndian, *v.isNull)
 		binary.Write(buf, binary.LittleEndian, uint16(len(v.ToVarchar())))
 		isNullAndLength := buf.Bytes()
 		return append(isNullAndLength, []byte(v.ToVarchar())...)
 	case Boolean:
 		buf := new(bytes.Buffer)
-		binary.Write(buf, binary.LittleEndian, v.isNull)
+		binary.Write(buf, binary.LittleEndian, *v.isNull)
 		binary.Write(buf, binary.LittleEndian, v.ToBoolean())
 		return buf.Bytes()
 	}
@@ -285,7 +285,7 @@ func (v Value) ValueType() TypeID {
 // note: (need to be) only way to get Value object which has NULL value
 //       a value filed correspoding to value type is initialized to default value
 func (v Value) SetNull() {
-	v.isNull = true
+	*v.isNull = true
 	switch v.valueType {
 	case Integer:
 		*v.integer = 0
@@ -304,7 +304,7 @@ func (v Value) SetNull() {
 }
 
 func (v Value) IsNull() bool {
-	return v.isNull
+	return *v.isNull
 }
 
 func (v Value) Add(other *Value) *Value {
