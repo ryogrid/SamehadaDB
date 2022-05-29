@@ -2174,3 +2174,85 @@ func TestSimpleSeqScanAndOrderBy(t *testing.T) {
 
 	txn_mgr.Commit(txn)
 }
+
+func TestSimpleSetNullToVarchar(t *testing.T) {
+	os.Remove("test.db")
+	os.Remove("test.log")
+
+	shi := test_util.NewSamehadaInstance()
+	shi.GetLogManager().ActivateLogging()
+	testingpkg.Assert(t, common.EnableLogging, "")
+	fmt.Println("System logging is active.")
+
+	txn_mgr := shi.GetTransactionManager()
+	txn := txn_mgr.Begin(nil)
+
+	c := catalog.BootstrapCatalog(shi.GetBufferPoolManager(), shi.GetLogManager(), shi.GetLockManager(), txn)
+	exec_ctx := NewExecutorContext(c, shi.GetBufferPoolManager(), txn)
+
+	columnA := column.NewColumn("a", types.Integer, false, nil)
+	columnB := column.NewColumn("b", types.Varchar, false, nil)
+	schema_ := schema.NewSchema([]*column.Column{columnA, columnB})
+
+	tableMetadata := c.CreateTable("test_1", schema_, txn)
+
+	row1 := make([]types.Value, 0)
+	row1 = append(row1, types.NewInteger(20))
+	row1_col2 := types.NewVarchar("celemony")
+	row1_col2.SetNull()
+	row1 = append(row1, row1_col2)
+
+	row2 := make([]types.Value, 0)
+	row2 = append(row2, types.NewInteger(20))
+	row2 = append(row2, types.NewVarchar("boo"))
+
+	row3 := make([]types.Value, 0)
+	row3 = append(row3, types.NewInteger(10))
+	row3 = append(row3, types.NewVarchar("daylight"))
+
+	rows := make([][]types.Value, 0)
+	rows = append(rows, row1)
+	rows = append(rows, row2)
+	rows = append(rows, row3)
+
+	insertPlanNode := plans.NewInsertPlanNode(rows, tableMetadata.OID())
+	executionEngine := &ExecutionEngine{}
+	executionEngine.Execute(insertPlanNode, exec_ctx)
+
+	txn_mgr.Commit(txn)
+
+	txn = txn_mgr.Begin(nil)
+	exec_ctx.SetTransaction(txn)
+
+	var scan_plan *plans.SeqScanPlanNode
+	var scan_schema *schema.Schema
+	{
+		//auto table_info = GetExecutorContext()->GetCatalog()->GetTable("test_1");
+		schema_ := tableMetadata.Schema()
+		colA := MakeColumnValueExpression(schema_, 0, "a").(*expression.ColumnValue)
+		colB := MakeColumnValueExpression(schema_, 0, "b").(*expression.ColumnValue)
+		scan_schema = MakeOutputSchema([]MakeSchemaMeta{{"a", *colA}, {"b", *colB}})
+		scan_plan = plans.NewSeqScanPlanNode(scan_schema, nil, tableMetadata.OID()).(*plans.SeqScanPlanNode)
+	}
+
+	results := executionEngine.Execute(scan_plan, exec_ctx)
+
+	fmt.Println(results[0].GetValue(scan_schema, 0).ToInteger())
+	fmt.Println(results[0].GetValue(scan_schema, 1).ToVarchar())
+	fmt.Println(results[1].GetValue(scan_schema, 0).ToInteger())
+	fmt.Println(results[1].GetValue(scan_schema, 1).ToVarchar())
+	fmt.Println(results[2].GetValue(scan_schema, 0).ToInteger())
+	fmt.Println(results[2].GetValue(scan_schema, 1).ToVarchar())
+
+	testingpkg.Assert(t, types.NewInteger(10).CompareEquals(results[0].GetValue(scan_schema, 0)), "value should be 10")
+	testingpkg.Assert(t, types.NewVarchar("").CompareEquals(results[0].GetValue(scan_schema, 1)), "value should be ''")
+	testingpkg.Assert(t, results[0].GetValue(scan_schema, 1).IsNull() == true, "IsNull() value should be true")
+
+	testingpkg.Assert(t, types.NewInteger(20).CompareEquals(results[1].GetValue(scan_schema, 0)), "value should be 20")
+	testingpkg.Assert(t, types.NewVarchar("boo").CompareEquals(results[1].GetValue(scan_schema, 1)), "value should be 'boo'")
+
+	testingpkg.Assert(t, types.NewInteger(20).CompareEquals(results[2].GetValue(scan_schema, 0)), "value should be 20")
+	testingpkg.Assert(t, types.NewVarchar("celemony").CompareEquals(results[2].GetValue(scan_schema, 1)), "value should be 'celemony'")
+
+	txn_mgr.Commit(txn)
+}
