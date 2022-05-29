@@ -288,16 +288,16 @@ func (v Value) SetNull() {
 	v.isNull = true
 	switch v.valueType {
 	case Integer:
-		v.integer = new(int32)
+		*v.integer = 0
 		return
 	case Float:
-		v.float = new(float32)
+		*v.float = 0
 		return
 	case Varchar:
-		v.varchar = new(string)
+		*v.varchar = ""
 		return
 	case Boolean:
-		v.boolean = new(bool)
+		*v.boolean = false
 		return
 	}
 	panic("not implemented")

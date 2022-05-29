@@ -2244,7 +2244,7 @@ func TestSimpleSetNullToVarchar(t *testing.T) {
 	fmt.Println(results[2].GetValue(scan_schema, 0).ToInteger())
 	fmt.Println(results[2].GetValue(scan_schema, 1).ToVarchar())
 
-	testingpkg.Assert(t, types.NewInteger(10).CompareEquals(results[0].GetValue(scan_schema, 0)), "value should be 10")
+	testingpkg.Assert(t, types.NewInteger(20).CompareEquals(results[0].GetValue(scan_schema, 0)), "value should be 20")
 	testingpkg.Assert(t, types.NewVarchar("").CompareEquals(results[0].GetValue(scan_schema, 1)), "value should be ''")
 	testingpkg.Assert(t, results[0].GetValue(scan_schema, 1).IsNull() == true, "IsNull() value should be true")
 
