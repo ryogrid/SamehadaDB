@@ -80,7 +80,7 @@ func NewValueFromBytes(data []byte, valueType TypeID) (ret *Value) {
 		isNull := new(bool)
 		binary.Read(buf, binary.LittleEndian, isNull)
 		v := new(bool)
-		binary.Read(bytes.NewBuffer(data), binary.LittleEndian, v)
+		binary.Read(buf, binary.LittleEndian, v)
 		vBoolean := NewBoolean(*v)
 		if *isNull {
 			vBoolean.SetNull()

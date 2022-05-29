@@ -245,6 +245,74 @@ func TestSimpleInsertAndSeqScanWithPredicateComparison(t *testing.T) {
 	}
 }
 
+func TestInsertBoolAndSeqScanWithComparison(t *testing.T) {
+	diskManager := disk.NewDiskManagerTest()
+	defer diskManager.ShutDown()
+	log_mgr := recovery.NewLogManager(&diskManager)
+	bpm := buffer.NewBufferPoolManager(uint32(32), diskManager, log_mgr) //, recovery.NewLogManager(diskManager), access.NewLockManager(access.REGULAR, access.PREVENTION))
+	txn_mgr := access.NewTransactionManager(access.NewLockManager(access.REGULAR, access.DETECTION), log_mgr)
+	txn := txn_mgr.Begin(nil)
+
+	c := catalog.BootstrapCatalog(bpm, log_mgr, access.NewLockManager(access.REGULAR, access.PREVENTION), txn)
+
+	columnA := column.NewColumn("a", types.Integer, false, nil)
+	columnB := column.NewColumn("b", types.Boolean, false, nil)
+	columnC := column.NewColumn("c", types.Varchar, false, nil)
+	schema_ := schema.NewSchema([]*column.Column{columnA, columnB, columnC})
+
+	tableMetadata := c.CreateTable("test_1", schema_, txn)
+
+	row1 := make([]types.Value, 0)
+	row1 = append(row1, types.NewInteger(20))
+	row1 = append(row1, types.NewBoolean(true))
+	row1 = append(row1, types.NewVarchar("foo"))
+
+	row2 := make([]types.Value, 0)
+	row2 = append(row2, types.NewInteger(99))
+	row2 = append(row2, types.NewBoolean(false))
+	row2 = append(row2, types.NewVarchar("bar"))
+
+	rows := make([][]types.Value, 0)
+	rows = append(rows, row1)
+	rows = append(rows, row2)
+
+	insertPlanNode := plans.NewInsertPlanNode(rows, tableMetadata.OID())
+
+	executionEngine := &ExecutionEngine{}
+	executorContext := NewExecutorContext(c, bpm, txn)
+	executionEngine.Execute(insertPlanNode, executorContext)
+
+	bpm.FlushAllPages()
+
+	txn_mgr.Commit(txn)
+
+	cases := []SeqScanTestCase{{
+		"select a ... WHERE b = true",
+		executionEngine,
+		executorContext,
+		tableMetadata,
+		[]Column{{"a", types.Integer}},
+		Predicate{"b", expression.Equal, true},
+		[]Assertion{{"a", 20}},
+		1,
+	}, {
+		"select c ... WHERE b = false",
+		executionEngine,
+		executorContext,
+		tableMetadata,
+		[]Column{{"c", types.Varchar}},
+		Predicate{"b", expression.Equal, false},
+		[]Assertion{{"c", "bar"}},
+		1,
+	}}
+
+	for _, test := range cases {
+		t.Run(test.Description, func(t *testing.T) {
+			ExecuteSeqScanTestCase(t, test)
+		})
+	}
+}
+
 func TestSimpleInsertAndLimitExecution(t *testing.T) {
 	diskManager := disk.NewDiskManagerTest()
 	defer diskManager.ShutDown()
