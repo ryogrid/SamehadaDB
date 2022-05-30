@@ -5,6 +5,7 @@ import (
 	"github.com/pingcap/parser"
 	"github.com/pingcap/parser/ast"
 	_ "github.com/pingcap/tidb/types/parser_driver"
+	"reflect"
 )
 
 type Visitor interface {
@@ -17,9 +18,11 @@ type colX struct {
 }
 
 func (v *colX) Enter(in ast.Node) (ast.Node, bool) {
-	if name, ok := in.(*ast.ColumnName); ok {
-		v.colNames = append(v.colNames, name.Name.O)
-	}
+	//if name, ok := in.(*ast.ColumnName); ok {
+	//	v.colNames = append(v.colNames, name.Name.O)
+	//}
+	refVal := reflect.ValueOf(in) // ValueOfでreflect.Value型のオブジェクトを取得
+	fmt.Println(refVal.Type())
 	return in, false
 }
 
@@ -57,7 +60,12 @@ func TestParsing() {
 	//	return
 	//}
 	//sql := os.Args[1]
-	sql := "SELECT a, b FROM t WHERE a = daylight"
+	//sql := "SELECT a, b FROM t WHERE a = daylight"
+	//sql := "UPDATE employees SET title = 'Mr.' WHERE gender = 'M'"
+	//sql := "INSERT INTO syain(id,name,romaji) VALUES (1,'鈴木','suzuki');"
+	//sql := "DELETE FROM users WHERE id = 10;"
+	//sql := "SELECT staff.a, staff.b, staff.c, friend.d FROM staff INNER JOIN friend ON staff.c = friend.c WHERE friend.d = 10;"
+	sql := "CREATE TABLE name_age_list(id INT, name VARCHAR(256), age FLOAT);"
 	astNode, err := parse(sql)
 	if err != nil {
 		fmt.Printf("parse error: %v\n", err.Error())
