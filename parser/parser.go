@@ -46,7 +46,8 @@ type QueryInfo struct {
 	QueryType_         *QueryType
 	SelectFields_      []*string
 	SetExpression_     *SetExpression
-	NewTableName_      *string
+	NewTable_          *string
+	TargetTable_       *string
 	ColDefExpressions_ []*ColDefExpression
 	OnExpressions_     []*PredicateExpression
 	FromTable_         *string
@@ -128,6 +129,28 @@ func (v *SimpleSQLVisitor) Enter(in ast.Node) (ast.Node, bool) {
 	case *ast.TableSource:
 	case *ast.TableNameExpr:
 	case *ast.TableName:
+		switch *v.QueryInfo_.QueryType_ {
+		case SELECT:
+			if v.QueryInfo_.FromTable_ == nil {
+				tbname := node.Name.String()
+				v.QueryInfo_.FromTable_ = &tbname
+			} else {
+				tbname := node.Name.String()
+				v.QueryInfo_.JoinTable_ = &tbname
+			}
+		case UPDATE:
+			tbname := node.Name.String()
+			v.QueryInfo_.TargetTable_ = &tbname
+		case INSERT:
+			tbname := node.Name.String()
+			v.QueryInfo_.TargetTable_ = &tbname
+		case DELETE:
+			tbname := node.Name.String()
+			v.QueryInfo_.FromTable_ = &tbname
+		case CREATE_TABLE:
+			tbname := node.Name.String()
+			v.QueryInfo_.NewTable_ = &tbname
+		}
 	case *ast.ColumnDef:
 	case *ast.ColumnNameExpr:
 	case *ast.ColumnName:
