@@ -4,11 +4,14 @@ import (
 	"fmt"
 	"github.com/pingcap/parser"
 	"github.com/pingcap/parser/ast"
+	"github.com/pingcap/parser/opcode"
 	_ "github.com/pingcap/tidb/types/parser_driver"
 	driver "github.com/pingcap/tidb/types/parser_driver"
 	"github.com/ryogrid/SamehadaDB/execution/expression"
 	"github.com/ryogrid/SamehadaDB/types"
 	"reflect"
+	"strconv"
+	"strings"
 )
 
 type QueryType int32
@@ -22,9 +25,9 @@ const (
 )
 
 type PredicateExpression struct {
-	BinaryOperationType_ *expression.ComparisonType
-	LeftVal              *string
-	RightVal             *string
+	CompareOperationType_ expression.ComparisonType
+	LeftVal               *string
+	RightVal              types.Value
 }
 
 type SetExpression struct {
@@ -99,6 +102,23 @@ func NewSimpleSQLVisitor() *SimpleSQLVisitor {
 	return ret
 }
 
+func ValueExprToValue(expr *driver.ValueExpr) types.Value {
+	if expr.Datum.Kind() == 1 {
+		val_str := expr.String()
+		istr := strings.Split(val_str, " ")[1]
+		ival, _ := strconv.Atoi(istr)
+		return types.NewInteger(int32(ival))
+	} else if expr.Datum.Kind() == 8 {
+		val_str := expr.String()
+		fstr := strings.Split(val_str, " ")[1]
+		fval, _ := strconv.ParseFloat(fstr, 32)
+		return types.NewFloat(float32(fval))
+	} else {
+		val_str := expr.String()
+		target_str := strings.Split(val_str, " ")[1]
+		return types.NewVarchar(target_str)
+	}
+}
 func (v *SimpleSQLVisitor) Enter(in ast.Node) (ast.Node, bool) {
 	//if name, ok := in.(*ast.ColumnName); ok {
 	//	v.colNames = append(v.colNames, name.Name.O)
@@ -155,6 +175,36 @@ func (v *SimpleSQLVisitor) Enter(in ast.Node) (ast.Node, bool) {
 	case *ast.ColumnNameExpr:
 	case *ast.ColumnName:
 	case *ast.BinaryOperationExpr:
+		switch node.L.(type) {
+		case *ast.ColumnNameExpr: // predicate is composed of single item
+			pe := new(PredicateExpression)
+			switch node.Op {
+			case opcode.EQ:
+				pe.CompareOperationType_ = expression.Equal
+			case opcode.GT:
+				pe.CompareOperationType_ = expression.GreaterThan
+			case opcode.GE:
+				pe.CompareOperationType_ = expression.GreaterThanOrEqual
+			case opcode.LT:
+				pe.CompareOperationType_ = expression.LessThan
+			case opcode.LE:
+				pe.CompareOperationType_ = expression.LessThanOrEqual
+			case opcode.NE:
+				pe.CompareOperationType_ = expression.NotEqual
+			}
+
+			left_val := node.L.(*ast.ColumnNameExpr).Name.String()
+			pe.LeftVal = &left_val
+
+			right_node := node.R.(*driver.ValueExpr)
+			pe.RightVal = ValueExprToValue(right_node)
+
+			v.QueryInfo_.WhereExpressions_ = append(v.QueryInfo_.WhereExpressions_, pe)
+			//pe.RightVal
+		default:
+			// do nothing
+		}
+
 	case *driver.ValueExpr:
 	default:
 		panic("unknown node for visitor")
@@ -167,7 +217,6 @@ func (v *SimpleSQLVisitor) Leave(in ast.Node) (ast.Node, bool) {
 }
 
 func extract(rootNode *ast.StmtNode) []string {
-	//v := &SimpleSQLVisitor{}
 	v := NewSimpleSQLVisitor()
 	(*rootNode).Accept(v)
 	return v.colNames
@@ -197,7 +246,10 @@ func TestParsing() {
 	//	return
 	//}
 	//sql := os.Args[1]
-	sql := "SELECT a, b FROM t WHERE a = daylight"
+	//sql := "SELECT a, b FROM t WHERE a = 'daylight'"
+	//sql := "SELECT a, b FROM t WHERE a = 10"
+	//sql := "SELECT a, b FROM t WHERE a = TRUE"
+	sql := "SELECT a, b FROM t WHERE a = 10 AND b = 20 AND c != 'daylight';"
 	//sql := "UPDATE employees SET title = 'Mr.' WHERE gender = 'M'"
 	//sql := "INSERT INTO syain(id,name,romaji) VALUES (1,'鈴木','suzuki');"
 	//sql := "DELETE FROM users WHERE id = 10;"
