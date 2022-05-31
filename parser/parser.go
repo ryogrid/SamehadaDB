@@ -42,9 +42,9 @@ type Visitor interface {
 	Leave(n ast.Node) (node ast.Node, ok bool)
 }
 
-type SimpleSQLVisitor struct {
+type QueryInfo struct {
 	QueryType_         *QueryType
-	SelectFields_      []string
+	SelectFields_      []*string
 	SetExpression_     *SetExpression
 	NewTableName_      *string
 	ColDefExpressions_ []*ColDefExpression
@@ -52,8 +52,50 @@ type SimpleSQLVisitor struct {
 	FromTable_         *string
 	JoinTable_         *string
 	WhereExpressions_  []*PredicateExpression
+}
+
+type SelectFieldsVisitor struct {
+	QueryInfo_ *QueryInfo
+}
+
+func (v *SelectFieldsVisitor) Enter(in ast.Node) (ast.Node, bool) {
+	//if name, ok := in.(*ast.ColumnName); ok {
+	//	v.colNames = append(v.colNames, name.Name.O)
+	//}
+	refVal := reflect.ValueOf(in) // ValueOfでreflect.Value型のオブジェクトを取得
+	fmt.Println(refVal.Type())
+	switch node := in.(type) {
+	case *ast.ColumnName:
+		colname := node.Name.String()
+		v.QueryInfo_.SelectFields_ = append(v.QueryInfo_.SelectFields_, &colname)
+		return in, true
+	default:
+	}
+	return in, false
+}
+
+func (v *SelectFieldsVisitor) Leave(in ast.Node) (ast.Node, bool) {
+	return in, true
+}
+
+type SimpleSQLVisitor struct {
+	QueryInfo_ *QueryInfo
 	// member of example code
 	colNames []string
+}
+
+func NewSimpleSQLVisitor() *SimpleSQLVisitor {
+	ret := new(SimpleSQLVisitor)
+	qinfo := new(QueryInfo)
+	qinfo.QueryType_ = new(QueryType)
+	qinfo.SelectFields_ = make([]*string, 0)
+	qinfo.SetExpression_ = new(SetExpression)
+	qinfo.ColDefExpressions_ = make([]*ColDefExpression, 0)
+	qinfo.OnExpressions_ = make([]*PredicateExpression, 0)
+	qinfo.WhereExpressions_ = make([]*PredicateExpression, 0)
+	ret.QueryInfo_ = qinfo
+
+	return ret
 }
 
 func (v *SimpleSQLVisitor) Enter(in ast.Node) (ast.Node, bool) {
@@ -63,15 +105,22 @@ func (v *SimpleSQLVisitor) Enter(in ast.Node) (ast.Node, bool) {
 	refVal := reflect.ValueOf(in) // ValueOfでreflect.Value型のオブジェクトを取得
 	fmt.Println(refVal.Type())
 
-	switch ntype := in.(type) {
+	switch node := in.(type) {
 	case *ast.SelectStmt:
-		ntype.Text()
+		*v.QueryInfo_.QueryType_ = SELECT
 	case *ast.CreateTableStmt:
+		*v.QueryInfo_.QueryType_ = CREATE_TABLE
 	case *ast.InsertStmt:
+		*v.QueryInfo_.QueryType_ = INSERT
 	case *ast.DeleteStmt:
+		*v.QueryInfo_.QueryType_ = DELETE
 	case *ast.UpdateStmt:
+		*v.QueryInfo_.QueryType_ = UPDATE
 	case *ast.FieldList:
 	case *ast.SelectField:
+		sv := &SelectFieldsVisitor{v.QueryInfo_}
+		node.Accept(sv)
+		return in, true
 	case *ast.TableRefsClause:
 	case *ast.Assignment:
 	case *ast.Join:
@@ -84,6 +133,8 @@ func (v *SimpleSQLVisitor) Enter(in ast.Node) (ast.Node, bool) {
 	case *ast.ColumnName:
 	case *ast.BinaryOperationExpr:
 	case *driver.ValueExpr:
+	default:
+		panic("unknown node for visitor")
 	}
 	return in, false
 }
@@ -93,7 +144,8 @@ func (v *SimpleSQLVisitor) Leave(in ast.Node) (ast.Node, bool) {
 }
 
 func extract(rootNode *ast.StmtNode) []string {
-	v := &SimpleSQLVisitor{}
+	//v := &SimpleSQLVisitor{}
+	v := NewSimpleSQLVisitor()
 	(*rootNode).Accept(v)
 	return v.colNames
 }
@@ -122,12 +174,12 @@ func TestParsing() {
 	//	return
 	//}
 	//sql := os.Args[1]
-	//sql := "SELECT a, b FROM t WHERE a = daylight"
+	sql := "SELECT a, b FROM t WHERE a = daylight"
 	//sql := "UPDATE employees SET title = 'Mr.' WHERE gender = 'M'"
 	//sql := "INSERT INTO syain(id,name,romaji) VALUES (1,'鈴木','suzuki');"
 	//sql := "DELETE FROM users WHERE id = 10;"
 	//sql := "SELECT staff.a, staff.b, staff.c, friend.d FROM staff INNER JOIN friend ON staff.c = friend.c WHERE friend.d = 10;"
-	sql := "CREATE TABLE name_age_list(id INT, name VARCHAR(256), age FLOAT);"
+	//sql := "CREATE TABLE name_age_list(id INT, name VARCHAR(256), age FLOAT);"
 	astNode, err := parse(sql)
 	if err != nil {
 		fmt.Printf("parse error: %v\n", err.Error())
