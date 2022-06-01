@@ -63,9 +63,6 @@ type SelectFieldsVisitor struct {
 }
 
 func (v *SelectFieldsVisitor) Enter(in ast.Node) (ast.Node, bool) {
-	//if name, ok := in.(*ast.ColumnName); ok {
-	//	v.colNames = append(v.colNames, name.Name.O)
-	//}
 	refVal := reflect.ValueOf(in) // ValueOfでreflect.Value型のオブジェクトを取得
 	fmt.Println(refVal.Type())
 	switch node := in.(type) {
@@ -172,6 +169,24 @@ func (v *SimpleSQLVisitor) Enter(in ast.Node) (ast.Node, bool) {
 			v.QueryInfo_.NewTable_ = &tbname
 		}
 	case *ast.ColumnDef:
+		if *v.QueryInfo_.QueryType_ == CREATE_TABLE {
+			cdef := new(ColDefExpression)
+			cname := node.Name.String()
+			cdef.ColName_ = &cname
+			col_type := node.Tp.Tp
+			switch col_type {
+			case 1, 3:
+				ctype := types.Integer
+				cdef.ColType_ = &ctype
+			case 4, 8:
+				ctype := types.Float
+				cdef.ColType_ = &ctype
+			default:
+				ctype := types.Varchar
+				cdef.ColType_ = &ctype
+			}
+			v.QueryInfo_.ColDefExpressions_ = append(v.QueryInfo_.ColDefExpressions_, cdef)
+		}
 	case *ast.ColumnNameExpr:
 	case *ast.ColumnName:
 	case *ast.BinaryOperationExpr:
@@ -249,9 +264,9 @@ func TestParsing() {
 	//sql := "SELECT a, b FROM t WHERE a = 'daylight'"
 	//sql := "SELECT a, b FROM t WHERE a = 10"
 	//sql := "SELECT a, b FROM t WHERE a = TRUE"
-	sql := "SELECT a, b FROM t WHERE a = 10 AND b = 20 AND c != 'daylight';"
+	//sql := "SELECT a, b FROM t WHERE a = 10 AND b = 20 AND c != 'daylight';"
 	//sql := "UPDATE employees SET title = 'Mr.' WHERE gender = 'M'"
-	//sql := "INSERT INTO syain(id,name,romaji) VALUES (1,'鈴木','suzuki');"
+	sql := "INSERT INTO syain(id,name,romaji) VALUES (1,'鈴木','suzuki');"
 	//sql := "DELETE FROM users WHERE id = 10;"
 	//sql := "SELECT staff.a, staff.b, staff.c, friend.d FROM staff INNER JOIN friend ON staff.c = friend.c WHERE friend.d = 10;"
 	//sql := "CREATE TABLE name_age_list(id INT, name VARCHAR(256), age FLOAT);"
