@@ -27,7 +27,7 @@ const (
 type PredicateExpression struct {
 	CompareOperationType_ expression.ComparisonType
 	LeftVal               *string
-	RightVal              types.Value
+	RightVal              *types.Value
 }
 
 type SetExpression struct {
@@ -49,11 +49,13 @@ type QueryInfo struct {
 	QueryType_         *QueryType
 	SelectFields_      []*string
 	SetExpression_     *SetExpression
-	NewTable_          *string
-	TargetTable_       *string
+	NewTable_          *string   // for CREATE TABLE
+	TargetTable_       *string   // for INSERT, UPDATE
+	TargetCols_        []*string // for INSERT
 	ColDefExpressions_ []*ColDefExpression
+	Values_            []*types.Value // for INSERT
 	OnExpressions_     []*PredicateExpression
-	FromTable_         *string
+	FromTable_         *string // for SELECT, DELETE
 	JoinTable_         *string
 	WhereExpressions_  []*PredicateExpression
 }
@@ -91,6 +93,7 @@ func NewSimpleSQLVisitor() *SimpleSQLVisitor {
 	qinfo.QueryType_ = new(QueryType)
 	qinfo.SelectFields_ = make([]*string, 0)
 	qinfo.SetExpression_ = new(SetExpression)
+	qinfo.TargetCols_ = make([]*string, 0)
 	qinfo.ColDefExpressions_ = make([]*ColDefExpression, 0)
 	qinfo.OnExpressions_ = make([]*PredicateExpression, 0)
 	qinfo.WhereExpressions_ = make([]*PredicateExpression, 0)
@@ -99,23 +102,28 @@ func NewSimpleSQLVisitor() *SimpleSQLVisitor {
 	return ret
 }
 
-func ValueExprToValue(expr *driver.ValueExpr) types.Value {
-	if expr.Datum.Kind() == 1 {
+func ValueExprToValue(expr *driver.ValueExpr) *types.Value {
+	switch expr.Datum.Kind() {
+	case 1:
 		val_str := expr.String()
 		istr := strings.Split(val_str, " ")[1]
 		ival, _ := strconv.Atoi(istr)
-		return types.NewInteger(int32(ival))
-	} else if expr.Datum.Kind() == 8 {
+		ret := types.NewInteger(int32(ival))
+		return &ret
+	case 8:
 		val_str := expr.String()
 		fstr := strings.Split(val_str, " ")[1]
 		fval, _ := strconv.ParseFloat(fstr, 32)
-		return types.NewFloat(float32(fval))
-	} else {
+		ret := types.NewFloat(float32(fval))
+		return &ret
+	default:
 		val_str := expr.String()
 		target_str := strings.Split(val_str, " ")[1]
-		return types.NewVarchar(target_str)
+		ret := types.NewVarchar(target_str)
+		return &ret
 	}
 }
+
 func (v *SimpleSQLVisitor) Enter(in ast.Node) (ast.Node, bool) {
 	//if name, ok := in.(*ast.ColumnName); ok {
 	//	v.colNames = append(v.colNames, name.Name.O)
@@ -189,6 +197,10 @@ func (v *SimpleSQLVisitor) Enter(in ast.Node) (ast.Node, bool) {
 		}
 	case *ast.ColumnNameExpr:
 	case *ast.ColumnName:
+		if *v.QueryInfo_.QueryType_ == INSERT {
+			cname := node.String()
+			v.QueryInfo_.TargetCols_ = append(v.QueryInfo_.TargetCols_, &cname)
+		}
 	case *ast.BinaryOperationExpr:
 		switch node.L.(type) {
 		case *ast.ColumnNameExpr: // predicate is composed of single item
@@ -221,6 +233,7 @@ func (v *SimpleSQLVisitor) Enter(in ast.Node) (ast.Node, bool) {
 		}
 
 	case *driver.ValueExpr:
+		v.QueryInfo_.Values_ = append(v.QueryInfo_.Values_, ValueExprToValue(node))
 	default:
 		panic("unknown node for visitor")
 	}
