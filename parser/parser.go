@@ -31,12 +31,6 @@ type BinaryOpExpression struct {
 	Right                    interface{}
 }
 
-type ComparisonExpression struct {
-	CompareOperationType_ expression.ComparisonType
-	LeftVal               *string
-	RightVal              *types.Value
-}
-
 type SetExpression struct {
 	ColName_     *string
 	UpdateValue_ *types.Value
