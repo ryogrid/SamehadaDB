@@ -125,14 +125,6 @@ func (v *BinaryOpVisitor) Enter(in ast.Node) (ast.Node, bool) {
 	default:
 	}
 
-	//switch node := in.(type) {
-	//case *ast.ColumnName:
-	//	colname := node.Name.String()
-	//	v.QueryInfo_.SelectFields_ = append(v.QueryInfo_.SelectFields_, &colname)
-	//	return in, true
-	//
-	//default:
-	//}
 	return in, false
 }
 
@@ -315,7 +307,7 @@ func (v *SimpleSQLVisitor) Enter(in ast.Node) (ast.Node, bool) {
 		}
 		return in, true
 	case *driver.ValueExpr:
-		//v.QueryInfo_.Values_ = append(v.QueryInfo_.Values_, ValueExprToValue(node))
+		v.QueryInfo_.Values_ = append(v.QueryInfo_.Values_, ValueExprToValue(node))
 	default:
 		panic("unknown node for visitor")
 	}
@@ -357,12 +349,12 @@ func TestParsing() {
 	//}
 	//sql := os.Args[1]
 	//sql := "SELECT a, b FROM t WHERE a = 'daylight'"
-	sql := "SELECT a, b FROM t WHERE a = 10"
+	//sql := "SELECT a, b FROM t WHERE a = 10"
 	//sql := "SELECT a, b FROM t WHERE a = TRUE"
 	//sql := "SELECT a, b FROM t WHERE a = 10 AND b = 20 AND c != 'daylight';"
 	//sql := "SELECT a, b FROM t WHERE a = 10 AND b = 20 AND c != 'daylight' OR d = 50;"
 	//sql := "UPDATE employees SET title = 'Mr.' WHERE gender = 'M'"
-	//sql := "INSERT INTO syain(id,name,romaji) VALUES (1,'鈴木','suzuki');"
+	sql := "INSERT INTO syain(id,name,romaji) VALUES (1,'鈴木','suzuki');"
 	//sql := "DELETE FROM users WHERE id = 10;"
 	//sql := "SELECT staff.a, staff.b, staff.c, friend.d FROM staff INNER JOIN friend ON staff.c = friend.c WHERE friend.d = 10;"
 	//sql := "CREATE TABLE name_age_list(id INT, name VARCHAR(256), age FLOAT);"
