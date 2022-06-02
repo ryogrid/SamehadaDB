@@ -24,7 +24,14 @@ const (
 	UPDATE
 )
 
-type PredicateExpression struct {
+type BinaryOpExpression struct {
+	LogicalOperationType_    expression.LogicalOpType
+	ComparisonOperationType_ expression.ComparisonType
+	Left                     interface{}
+	Right                    interface{}
+}
+
+type ComparisonExpression struct {
 	CompareOperationType_ expression.ComparisonType
 	LeftVal               *string
 	RightVal              *types.Value
@@ -54,10 +61,89 @@ type QueryInfo struct {
 	TargetCols_        []*string // for INSERT
 	ColDefExpressions_ []*ColDefExpression
 	Values_            []*types.Value // for INSERT
-	OnExpressions_     []*PredicateExpression
+	OnExpressions_     *BinaryOpExpression
 	FromTable_         *string // for SELECT, DELETE
 	JoinTable_         *string
-	WhereExpressions_  []*PredicateExpression
+	//WhereExpressions_  []*ComparisonExpression
+	WhereExpression_ *BinaryOpExpression
+}
+
+type BinaryOpVisitor struct {
+	QueryInfo_          *QueryInfo
+	BinaryOpExpression_ *BinaryOpExpression
+	//ConparisonExpression_ *ComparisonExpression
+}
+
+func (v *BinaryOpVisitor) Enter(in ast.Node) (ast.Node, bool) {
+	refVal := reflect.ValueOf(in) // ValueOfでreflect.Value型のオブジェクトを取得
+	fmt.Println(refVal.Type())
+
+	switch node := in.(type) {
+	case *ast.BinaryOperationExpr:
+		l_visitor := &BinaryOpVisitor{v.QueryInfo_, new(BinaryOpExpression)}
+		node.L.Accept(l_visitor)
+		r_visitor := &BinaryOpVisitor{v.QueryInfo_, new(BinaryOpExpression)}
+		node.R.Accept(r_visitor)
+
+		switch node.Op {
+		case opcode.EQ:
+			v.BinaryOpExpression_.LogicalOperationType_ = -1
+			v.BinaryOpExpression_.ComparisonOperationType_ = expression.Equal
+		case opcode.GT:
+			v.BinaryOpExpression_.LogicalOperationType_ = -1
+			v.BinaryOpExpression_.ComparisonOperationType_ = expression.GreaterThan
+		case opcode.GE:
+			v.BinaryOpExpression_.LogicalOperationType_ = -1
+			v.BinaryOpExpression_.ComparisonOperationType_ = expression.GreaterThanOrEqual
+		case opcode.LT:
+			v.BinaryOpExpression_.LogicalOperationType_ = -1
+			v.BinaryOpExpression_.ComparisonOperationType_ = expression.LessThan
+		case opcode.LE:
+			v.BinaryOpExpression_.LogicalOperationType_ = -1
+			v.BinaryOpExpression_.ComparisonOperationType_ = expression.LessThanOrEqual
+		case opcode.NE:
+			v.BinaryOpExpression_.LogicalOperationType_ = -1
+			v.BinaryOpExpression_.ComparisonOperationType_ = expression.NotEqual
+		case opcode.LogicAnd:
+			v.BinaryOpExpression_.LogicalOperationType_ = expression.AND
+			v.BinaryOpExpression_.ComparisonOperationType_ = -1
+		case opcode.LogicOr:
+			v.BinaryOpExpression_.LogicalOperationType_ = expression.OR
+			v.BinaryOpExpression_.ComparisonOperationType_ = -1
+		default:
+		}
+
+		v.BinaryOpExpression_.Left = l_visitor.BinaryOpExpression_
+		v.BinaryOpExpression_.Right = r_visitor.BinaryOpExpression_
+		return in, true
+
+	case *ast.ColumnNameExpr:
+		v.BinaryOpExpression_.LogicalOperationType_ = -1
+		v.BinaryOpExpression_.ComparisonOperationType_ = -1
+		left_val := node.Name.String()
+		v.BinaryOpExpression_.Left = &left_val
+		return in, true
+	case *driver.ValueExpr:
+		v.BinaryOpExpression_.LogicalOperationType_ = -1
+		v.BinaryOpExpression_.ComparisonOperationType_ = -1
+		v.BinaryOpExpression_.Left = ValueExprToValue(node)
+		return in, true
+	default:
+	}
+
+	//switch node := in.(type) {
+	//case *ast.ColumnName:
+	//	colname := node.Name.String()
+	//	v.QueryInfo_.SelectFields_ = append(v.QueryInfo_.SelectFields_, &colname)
+	//	return in, true
+	//
+	//default:
+	//}
+	return in, false
+}
+
+func (v *BinaryOpVisitor) Leave(in ast.Node) (ast.Node, bool) {
+	return in, true
 }
 
 type SelectFieldsVisitor struct {
@@ -95,8 +181,8 @@ func NewSimpleSQLVisitor() *SimpleSQLVisitor {
 	qinfo.SetExpression_ = new(SetExpression)
 	qinfo.TargetCols_ = make([]*string, 0)
 	qinfo.ColDefExpressions_ = make([]*ColDefExpression, 0)
-	qinfo.OnExpressions_ = make([]*PredicateExpression, 0)
-	qinfo.WhereExpressions_ = make([]*PredicateExpression, 0)
+	qinfo.OnExpressions_ = new(BinaryOpExpression)
+	qinfo.WhereExpression_ = new(BinaryOpExpression)
 	ret.QueryInfo_ = qinfo
 
 	return ret
@@ -202,38 +288,40 @@ func (v *SimpleSQLVisitor) Enter(in ast.Node) (ast.Node, bool) {
 			v.QueryInfo_.TargetCols_ = append(v.QueryInfo_.TargetCols_, &cname)
 		}
 	case *ast.BinaryOperationExpr:
-		switch node.L.(type) {
-		case *ast.ColumnNameExpr: // predicate is composed of single item
-			pe := new(PredicateExpression)
-			switch node.Op {
-			case opcode.EQ:
-				pe.CompareOperationType_ = expression.Equal
-			case opcode.GT:
-				pe.CompareOperationType_ = expression.GreaterThan
-			case opcode.GE:
-				pe.CompareOperationType_ = expression.GreaterThanOrEqual
-			case opcode.LT:
-				pe.CompareOperationType_ = expression.LessThan
-			case opcode.LE:
-				pe.CompareOperationType_ = expression.LessThanOrEqual
-			case opcode.NE:
-				pe.CompareOperationType_ = expression.NotEqual
-			}
-
-			left_val := node.L.(*ast.ColumnNameExpr).Name.String()
-			pe.LeftVal = &left_val
-
-			right_node := node.R.(*driver.ValueExpr)
-			pe.RightVal = ValueExprToValue(right_node)
-
-			v.QueryInfo_.WhereExpressions_ = append(v.QueryInfo_.WhereExpressions_, pe)
-			//pe.RightVal
+		new_visitor := &BinaryOpVisitor{v.QueryInfo_, new(BinaryOpExpression)}
+		node.Accept(new_visitor)
+		// TODO: (SDB) when support Join, context check will be needed
+		v.QueryInfo_.WhereExpression_ = new_visitor.BinaryOpExpression_
+		switch node.Op {
+		case opcode.EQ:
+			v.QueryInfo_.WhereExpression_.LogicalOperationType_ = -1
+			v.QueryInfo_.WhereExpression_.ComparisonOperationType_ = expression.Equal
+		case opcode.GT:
+			v.QueryInfo_.WhereExpression_.LogicalOperationType_ = -1
+			v.QueryInfo_.WhereExpression_.ComparisonOperationType_ = expression.GreaterThan
+		case opcode.GE:
+			v.QueryInfo_.WhereExpression_.LogicalOperationType_ = -1
+			v.QueryInfo_.WhereExpression_.ComparisonOperationType_ = expression.GreaterThanOrEqual
+		case opcode.LT:
+			v.QueryInfo_.WhereExpression_.LogicalOperationType_ = -1
+			v.QueryInfo_.WhereExpression_.ComparisonOperationType_ = expression.LessThan
+		case opcode.LE:
+			v.QueryInfo_.WhereExpression_.LogicalOperationType_ = -1
+			v.QueryInfo_.WhereExpression_.ComparisonOperationType_ = expression.LessThanOrEqual
+		case opcode.NE:
+			v.QueryInfo_.WhereExpression_.LogicalOperationType_ = -1
+			v.QueryInfo_.WhereExpression_.ComparisonOperationType_ = expression.NotEqual
+		case opcode.LogicAnd:
+			v.QueryInfo_.WhereExpression_.LogicalOperationType_ = expression.AND
+			v.QueryInfo_.WhereExpression_.ComparisonOperationType_ = -1
+		case opcode.LogicOr:
+			v.QueryInfo_.WhereExpression_.LogicalOperationType_ = expression.OR
+			v.QueryInfo_.WhereExpression_.ComparisonOperationType_ = -1
 		default:
-			// do nothing
 		}
-
+		return in, true
 	case *driver.ValueExpr:
-		v.QueryInfo_.Values_ = append(v.QueryInfo_.Values_, ValueExprToValue(node))
+		//v.QueryInfo_.Values_ = append(v.QueryInfo_.Values_, ValueExprToValue(node))
 	default:
 		panic("unknown node for visitor")
 	}
@@ -275,11 +363,12 @@ func TestParsing() {
 	//}
 	//sql := os.Args[1]
 	//sql := "SELECT a, b FROM t WHERE a = 'daylight'"
-	//sql := "SELECT a, b FROM t WHERE a = 10"
+	sql := "SELECT a, b FROM t WHERE a = 10"
 	//sql := "SELECT a, b FROM t WHERE a = TRUE"
 	//sql := "SELECT a, b FROM t WHERE a = 10 AND b = 20 AND c != 'daylight';"
+	//sql := "SELECT a, b FROM t WHERE a = 10 AND b = 20 AND c != 'daylight' OR d = 50;"
 	//sql := "UPDATE employees SET title = 'Mr.' WHERE gender = 'M'"
-	sql := "INSERT INTO syain(id,name,romaji) VALUES (1,'鈴木','suzuki');"
+	//sql := "INSERT INTO syain(id,name,romaji) VALUES (1,'鈴木','suzuki');"
 	//sql := "DELETE FROM users WHERE id = 10;"
 	//sql := "SELECT staff.a, staff.b, staff.c, friend.d FROM staff INNER JOIN friend ON staff.c = friend.c WHERE friend.d = 10;"
 	//sql := "CREATE TABLE name_age_list(id INT, name VARCHAR(256), age FLOAT);"
