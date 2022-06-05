@@ -18,6 +18,13 @@ func (v *SelectFieldsVisitor) Enter(in ast.Node) (ast.Node, bool) {
 		colname := node.Name.String()
 		v.QueryInfo_.SelectFields_ = append(v.QueryInfo_.SelectFields_, &colname)
 		return in, true
+	case *ast.SelectField:
+		// when specifed wildcard
+		if node.WildCard != nil {
+			colname := "*"
+			v.QueryInfo_.SelectFields_ = append(v.QueryInfo_.SelectFields_, &colname)
+			return in, true
+		}
 	default:
 	}
 	return in, false
