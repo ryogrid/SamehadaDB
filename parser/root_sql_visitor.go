@@ -10,8 +10,6 @@ import (
 
 type RootSQLVisitor struct {
 	QueryInfo_ *QueryInfo
-	// member of example code
-	colNames []string
 }
 
 func NewRootSQLVisitor() *RootSQLVisitor {
@@ -30,9 +28,6 @@ func NewRootSQLVisitor() *RootSQLVisitor {
 }
 
 func (v *RootSQLVisitor) Enter(in ast.Node) (ast.Node, bool) {
-	//if name, ok := in.(*ast.ColumnName); ok {
-	//	v.colNames = append(v.colNames, name.Name.O)
-	//}
 	refVal := reflect.ValueOf(in)
 	fmt.Println(refVal.Type())
 	//return in, false

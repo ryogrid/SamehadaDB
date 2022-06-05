@@ -5,12 +5,29 @@ import (
 	"github.com/pingcap/parser"
 	"github.com/pingcap/parser/ast"
 	_ "github.com/pingcap/tidb/types/parser_driver"
+	"github.com/ryogrid/SamehadaDB/types"
 )
 
-func extract(rootNode *ast.StmtNode) []string {
+type QueryInfo struct {
+	QueryType_         *QueryType
+	SelectFields_      []*string
+	SetExpressions_    []*SetExpression
+	NewTable_          *string   // for CREATE TABLE
+	TargetTable_       *string   // for INSERT, UPDATE
+	TargetCols_        []*string // for INSERT
+	ColDefExpressions_ []*ColDefExpression
+	Values_            []*types.Value // for INSERT
+	OnExpressions_     *BinaryOpExpression
+	FromTable_         *string // for SELECT, DELETE
+	JoinTable_         *string
+	//WhereExpressions_  []*ComparisonExpression
+	WhereExpression_ *BinaryOpExpression
+}
+
+func extractInfoFromAST(rootNode *ast.StmtNode) *QueryInfo {
 	v := NewRootSQLVisitor()
 	(*rootNode).Accept(v)
-	return v.colNames
+	return v.QueryInfo_
 }
 
 func parse(sql string) (*ast.StmtNode, error) {
@@ -24,7 +41,7 @@ func parse(sql string) (*ast.StmtNode, error) {
 	return &stmtNodes[0], nil
 }
 
-func TestParsing() {
+func ProcessSQLStr() *QueryInfo {
 	//astNode, err := parse("SELECT a, b FROM t WHERE a = daylight")
 	//if err != nil {
 	//	fmt.Printf("parse error: %v\n", err.Error())
@@ -51,7 +68,8 @@ func TestParsing() {
 	astNode, err := parse(sql)
 	if err != nil {
 		fmt.Printf("parse error: %v\n", err.Error())
-		return
+		return nil
 	}
-	fmt.Printf("%v\n", extract(astNode))
+
+	return extractInfoFromAST(astNode)
 }

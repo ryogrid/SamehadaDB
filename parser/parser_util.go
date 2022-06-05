@@ -17,22 +17,6 @@ const (
 	UPDATE
 )
 
-type QueryInfo struct {
-	QueryType_         *QueryType
-	SelectFields_      []*string
-	SetExpressions_    []*SetExpression
-	NewTable_          *string   // for CREATE TABLE
-	TargetTable_       *string   // for INSERT, UPDATE
-	TargetCols_        []*string // for INSERT
-	ColDefExpressions_ []*ColDefExpression
-	Values_            []*types.Value // for INSERT
-	OnExpressions_     *BinaryOpExpression
-	FromTable_         *string // for SELECT, DELETE
-	JoinTable_         *string
-	//WhereExpressions_  []*ComparisonExpression
-	WhereExpression_ *BinaryOpExpression
-}
-
 func ValueExprToValue(expr *driver.ValueExpr) *types.Value {
 	switch expr.Datum.Kind() {
 	case 1:
