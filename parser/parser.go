@@ -49,7 +49,7 @@ type Visitor interface {
 type QueryInfo struct {
 	QueryType_         *QueryType
 	SelectFields_      []*string
-	SetExpression_     *SetExpression
+	SetExpressions_    []*SetExpression
 	NewTable_          *string   // for CREATE TABLE
 	TargetTable_       *string   // for INSERT, UPDATE
 	TargetCols_        []*string // for INSERT
@@ -60,6 +60,34 @@ type QueryInfo struct {
 	JoinTable_         *string
 	//WhereExpressions_  []*ComparisonExpression
 	WhereExpression_ *BinaryOpExpression
+}
+
+type AssignVisitor struct {
+	Colname_ *string
+	Value_   *types.Value
+}
+
+func (v *AssignVisitor) Enter(in ast.Node) (ast.Node, bool) {
+	refVal := reflect.ValueOf(in)
+	fmt.Println(refVal.Type())
+
+	switch node := in.(type) {
+	case *ast.ColumnName:
+		//colname := node.Name.String()
+		colname := node.String()
+		v.Colname_ = &colname
+		return in, true
+	case *driver.ValueExpr:
+		v.Value_ = ValueExprToValue(node)
+		return in, true
+	default:
+	}
+
+	return in, false
+}
+
+func (v *AssignVisitor) Leave(in ast.Node) (ast.Node, bool) {
+	return in, true
 }
 
 type BinaryOpVisitor struct {
@@ -92,7 +120,7 @@ func GetTypesForBOperationExpr(opcode_ opcode.Op) (expression.LogicalOpType, exp
 }
 
 func (v *BinaryOpVisitor) Enter(in ast.Node) (ast.Node, bool) {
-	refVal := reflect.ValueOf(in) // ValueOfでreflect.Value型のオブジェクトを取得
+	refVal := reflect.ValueOf(in)
 	fmt.Println(refVal.Type())
 
 	switch node := in.(type) {
@@ -136,7 +164,7 @@ type SelectFieldsVisitor struct {
 }
 
 func (v *SelectFieldsVisitor) Enter(in ast.Node) (ast.Node, bool) {
-	refVal := reflect.ValueOf(in) // ValueOfでreflect.Value型のオブジェクトを取得
+	refVal := reflect.ValueOf(in)
 	fmt.Println(refVal.Type())
 	switch node := in.(type) {
 	case *ast.ColumnName:
@@ -163,7 +191,7 @@ func NewSimpleSQLVisitor() *SimpleSQLVisitor {
 	qinfo := new(QueryInfo)
 	qinfo.QueryType_ = new(QueryType)
 	qinfo.SelectFields_ = make([]*string, 0)
-	qinfo.SetExpression_ = new(SetExpression)
+	qinfo.SetExpressions_ = make([]*SetExpression, 0)
 	qinfo.TargetCols_ = make([]*string, 0)
 	qinfo.ColDefExpressions_ = make([]*ColDefExpression, 0)
 	qinfo.OnExpressions_ = new(BinaryOpExpression)
@@ -199,8 +227,9 @@ func (v *SimpleSQLVisitor) Enter(in ast.Node) (ast.Node, bool) {
 	//if name, ok := in.(*ast.ColumnName); ok {
 	//	v.colNames = append(v.colNames, name.Name.O)
 	//}
-	refVal := reflect.ValueOf(in) // ValueOfでreflect.Value型のオブジェクトを取得
+	refVal := reflect.ValueOf(in)
 	fmt.Println(refVal.Type())
+	//return in, false
 
 	switch node := in.(type) {
 	case *ast.SelectStmt:
@@ -220,6 +249,14 @@ func (v *SimpleSQLVisitor) Enter(in ast.Node) (ast.Node, bool) {
 		return in, true
 	case *ast.TableRefsClause:
 	case *ast.Assignment:
+		// when UPDATE
+		av := new(AssignVisitor)
+		node.Accept(av)
+		setExp := new(SetExpression)
+		setExp.ColName_ = av.Colname_
+		setExp.UpdateValue_ = av.Value_
+		v.QueryInfo_.SetExpressions_ = append(v.QueryInfo_.SetExpressions_, setExp)
+		return in, true
 	case *ast.Join:
 	case *ast.OnCondition:
 	case *ast.TableSource:
@@ -265,12 +302,14 @@ func (v *SimpleSQLVisitor) Enter(in ast.Node) (ast.Node, bool) {
 				cdef.ColType_ = &ctype
 			}
 			v.QueryInfo_.ColDefExpressions_ = append(v.QueryInfo_.ColDefExpressions_, cdef)
+			return in, true
 		}
 	case *ast.ColumnNameExpr:
 	case *ast.ColumnName:
 		if *v.QueryInfo_.QueryType_ == INSERT {
 			cname := node.String()
 			v.QueryInfo_.TargetCols_ = append(v.QueryInfo_.TargetCols_, &cname)
+			return in, true
 		}
 	case *ast.BinaryOperationExpr:
 		new_visitor := &BinaryOpVisitor{v.QueryInfo_, new(BinaryOpExpression)}
@@ -284,7 +323,9 @@ func (v *SimpleSQLVisitor) Enter(in ast.Node) (ast.Node, bool) {
 
 		return in, true
 	case *driver.ValueExpr:
+		// when INSERT
 		v.QueryInfo_.Values_ = append(v.QueryInfo_.Values_, ValueExprToValue(node))
+		return in, true
 	default:
 		panic("unknown node for visitor")
 	}
@@ -329,8 +370,9 @@ func TestParsing() {
 	//sql := "SELECT a, b FROM t WHERE a = 10"
 	//sql := "SELECT a, b FROM t WHERE a = TRUE"
 	//sql := "SELECT a, b FROM t WHERE a = 10 AND b = 20 AND c != 'daylight';"
-	sql := "SELECT a, b FROM t WHERE a = 10 AND b = 20 AND c != 'daylight' OR d = 50;"
+	//sql := "SELECT a, b FROM t WHERE a = 10 AND b = 20 AND c != 'daylight' OR d = 50;"
 	//sql := "UPDATE employees SET title = 'Mr.' WHERE gender = 'M'"
+	sql := "UPDATE employees SET title = 'Mr.', gflag = 7 WHERE gender = 'M';"
 	//sql := "INSERT INTO syain(id,name,romaji) VALUES (1,'鈴木','suzuki');"
 	//sql := "DELETE FROM users WHERE id = 10;"
 	//sql := "SELECT staff.a, staff.b, staff.c, friend.d FROM staff INNER JOIN friend ON staff.c = friend.c WHERE friend.d = 10;"
