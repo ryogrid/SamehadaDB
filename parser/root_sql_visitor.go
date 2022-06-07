@@ -69,18 +69,18 @@ func (v *RootSQLVisitor) Enter(in ast.Node) (ast.Node, bool) {
 	case *ast.TableNameExpr:
 	case *ast.TableName:
 		switch *v.QueryInfo_.QueryType_ {
-		case SELECT:
-			tbname := node.Name.String()
-			v.QueryInfo_.FromTable_ = &tbname
-		case UPDATE:
-			tbname := node.Name.String()
-			v.QueryInfo_.TargetTable_ = &tbname
-		case INSERT:
-			tbname := node.Name.String()
-			v.QueryInfo_.TargetTable_ = &tbname
-		case DELETE:
-			tbname := node.Name.String()
-			v.QueryInfo_.FromTable_ = &tbname
+		//case SELECT:
+		//	tbname := node.Name.String()
+		//	v.QueryInfo_.FromTable_ = &tbname
+		//case UPDATE:
+		//	tbname := node.Name.String()
+		//	v.QueryInfo_.TargetTable_ = &tbname
+		//case INSERT:
+		//	tbname := node.Name.String()
+		//	v.QueryInfo_.TargetTable_ = &tbname
+		//case DELETE:
+		//	tbname := node.Name.String()
+		//	v.QueryInfo_.FromTable_ = &tbname
 		case CREATE_TABLE:
 			tbname := node.Name.String()
 			v.QueryInfo_.NewTable_ = &tbname
