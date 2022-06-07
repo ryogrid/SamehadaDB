@@ -21,6 +21,7 @@ func NewRootSQLVisitor() *RootSQLVisitor {
 	qinfo.TargetCols_ = make([]*string, 0)
 	qinfo.ColDefExpressions_ = make([]*ColDefExpression, 0)
 	qinfo.OnExpressions_ = new(BinaryOpExpression)
+	qinfo.JoinTables_ = make([]*string, 0)
 	qinfo.WhereExpression_ = new(BinaryOpExpression)
 	ret.QueryInfo_ = qinfo
 
@@ -59,19 +60,18 @@ func (v *RootSQLVisitor) Enter(in ast.Node) (ast.Node, bool) {
 		v.QueryInfo_.SetExpressions_ = append(v.QueryInfo_.SetExpressions_, setExp)
 		return in, true
 	case *ast.Join:
+		jv := new(JoinVisitor)
+		jv.QueryInfo_ = v.QueryInfo_
+		node.Accept(jv)
+		return in, true
 	case *ast.OnCondition:
 	case *ast.TableSource:
 	case *ast.TableNameExpr:
 	case *ast.TableName:
 		switch *v.QueryInfo_.QueryType_ {
 		case SELECT:
-			if v.QueryInfo_.FromTable_ == nil {
-				tbname := node.Name.String()
-				v.QueryInfo_.FromTable_ = &tbname
-			} else {
-				tbname := node.Name.String()
-				v.QueryInfo_.JoinTable_ = &tbname
-			}
+			tbname := node.Name.String()
+			v.QueryInfo_.FromTable_ = &tbname
 		case UPDATE:
 			tbname := node.Name.String()
 			v.QueryInfo_.TargetTable_ = &tbname
@@ -113,9 +113,9 @@ func (v *RootSQLVisitor) Enter(in ast.Node) (ast.Node, bool) {
 			return in, true
 		}
 	case *ast.BinaryOperationExpr:
+		// for WHERE clause. other clauses handles BinaryOperationExpr with self visitor
 		new_visitor := &BinaryOpVisitor{v.QueryInfo_, new(BinaryOpExpression)}
 		node.Accept(new_visitor)
-		// TODO: (SDB) when support Join, context check will be needed
 		v.QueryInfo_.WhereExpression_ = new_visitor.BinaryOpExpression_
 
 		logicType, compType := GetTypesForBOperationExpr(node.Op)
