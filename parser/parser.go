@@ -59,13 +59,13 @@ func ProcessSQLStr() *QueryInfo {
 	//sql := "SELECT a, b FROM t WHERE a = TRUE"
 	//sql := "SELECT a, b FROM t WHERE a = 10 AND b = 20 AND c != 'daylight';"
 	//sql := "SELECT a, b FROM t WHERE a = 10 AND b = 20 AND c != 'daylight' OR d = 50;"
-	sql := "UPDATE employees SET title = 'Mr.' WHERE gender = 'M'"
+	//sql := "UPDATE employees SET title = 'Mr.' WHERE gender = 'M'"
 	//sql := "UPDATE employees SET title = 'Mr.', gflag = 7 WHERE gender = 'M';"
 	//sql := "INSERT INTO syain(id,name,romaji) VALUES (1,'鈴木','suzuki');"
 	//sql := "DELETE FROM users WHERE id = 10;"
 	//sql := "SELECT staff.a, staff.b, staff.c, friend.d FROM staff INNER JOIN friend ON staff.c = friend.c WHERE friend.d = 10;"
 	//sql := "CREATE TABLE name_age_list(id INT, name VARCHAR(256), age FLOAT);"
-	//sql := "SELECT count(*), b FROM t WHERE a = 10"
+	sql := "SELECT count(*),max(b),min(c),sum(d), b FROM t WHERE a = 10"
 	astNode, err := parse(sql)
 	if err != nil {
 		fmt.Printf("parse error: %v\n", err.Error())
