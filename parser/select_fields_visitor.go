@@ -15,14 +15,18 @@ func (v *SelectFieldsVisitor) Enter(in ast.Node) (ast.Node, bool) {
 	fmt.Println(refVal.Type())
 	switch node := in.(type) {
 	case *ast.ColumnName:
+		sfield := new(SelectFieldExpression)
 		colname := node.Name.String()
-		v.QueryInfo_.SelectFields_ = append(v.QueryInfo_.SelectFields_, &colname)
+		sfield.ColName_ = &colname
+		v.QueryInfo_.SelectFields_ = append(v.QueryInfo_.SelectFields_, sfield)
 		return in, true
 	case *ast.SelectField:
 		// when specifed wildcard
 		if node.WildCard != nil {
+			sfield := new(SelectFieldExpression)
 			colname := "*"
-			v.QueryInfo_.SelectFields_ = append(v.QueryInfo_.SelectFields_, &colname)
+			sfield.ColName_ = &colname
+			v.QueryInfo_.SelectFields_ = append(v.QueryInfo_.SelectFields_, sfield)
 			return in, true
 		}
 	default:

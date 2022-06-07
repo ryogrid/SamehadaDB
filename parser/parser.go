@@ -10,7 +10,7 @@ import (
 
 type QueryInfo struct {
 	QueryType_         *QueryType
-	SelectFields_      []*string
+	SelectFields_      []*SelectFieldExpression
 	SetExpressions_    []*SetExpression
 	NewTable_          *string   // for CREATE TABLE
 	TargetTable_       *string   // for INSERT, UPDATE
@@ -54,7 +54,7 @@ func ProcessSQLStr() *QueryInfo {
 	//	return
 	//}
 	//sql := os.Args[1]
-	//sql := "SELECT a, b FROM t WHERE a = 'daylight'"
+	sql := "SELECT a, b FROM t WHERE a = 'daylight'"
 	//sql := "SELECT a, b FROM t WHERE a = 10"
 	//sql := "SELECT * FROM t WHERE a = 10"
 	//sql := "SELECT a, b FROM t WHERE a = TRUE"
@@ -64,8 +64,9 @@ func ProcessSQLStr() *QueryInfo {
 	//sql := "UPDATE employees SET title = 'Mr.', gflag = 7 WHERE gender = 'M';"
 	//sql := "INSERT INTO syain(id,name,romaji) VALUES (1,'鈴木','suzuki');"
 	//sql := "DELETE FROM users WHERE id = 10;"
-	sql := "SELECT staff.a, staff.b, staff.c, friend.d FROM staff INNER JOIN friend ON staff.c = friend.c WHERE friend.d = 10;"
+	//sql := "SELECT staff.a, staff.b, staff.c, friend.d FROM staff INNER JOIN friend ON staff.c = friend.c WHERE friend.d = 10;"
 	//sql := "CREATE TABLE name_age_list(id INT, name VARCHAR(256), age FLOAT);"
+	////sql := "SELECT count(*) FROM t WHERE a = 10"
 	astNode, err := parse(sql)
 	if err != nil {
 		fmt.Printf("parse error: %v\n", err.Error())

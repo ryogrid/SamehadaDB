@@ -16,7 +16,7 @@ func NewRootSQLVisitor() *RootSQLVisitor {
 	ret := new(RootSQLVisitor)
 	qinfo := new(QueryInfo)
 	qinfo.QueryType_ = new(QueryType)
-	qinfo.SelectFields_ = make([]*string, 0)
+	qinfo.SelectFields_ = make([]*SelectFieldExpression, 0)
 	qinfo.SetExpressions_ = make([]*SetExpression, 0)
 	qinfo.TargetCols_ = make([]*string, 0)
 	qinfo.ColDefExpressions_ = make([]*ColDefExpression, 0)

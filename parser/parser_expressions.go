@@ -2,6 +2,7 @@ package parser
 
 import (
 	"github.com/ryogrid/SamehadaDB/execution/expression"
+	"github.com/ryogrid/SamehadaDB/execution/plans"
 	"github.com/ryogrid/SamehadaDB/types"
 )
 
@@ -20,4 +21,10 @@ type SetExpression struct {
 type ColDefExpression struct {
 	ColName_ *string
 	ColType_ *types.TypeID
+}
+
+type SelectFieldExpression struct {
+	IsAgg_   bool
+	AggType_ plans.AggregationType
+	ColName_ *string
 }
