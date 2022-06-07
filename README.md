@@ -54,7 +54,7 @@ original codes of go-bustub are [here](https://github.com/brunocalza/go-bustub).
     - When the system exits in not graceful, reconstruction of index data is needed at reboot of system
   - [ ] Tree Based Index
 - [x] Join (Hash Join)
-- [x] Aggregations (COUNT, MAX, MIN ... on SELECT clause including Group by and Having)
+- [x] Aggregations (COUNT, MAX, MIN, SUM on SELECT clause including Group by and Having)
 - [x] Sort (ORDER BY clause) 
 - [x] Concurrent Execution of Transactions
 - [ ] Execution Planning from hard coded SQL like method call I/F (like some kind of embeded DB)
