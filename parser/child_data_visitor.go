@@ -8,7 +8,7 @@ import (
 )
 
 type ChildDataVisitor struct {
-	ChildData_ interface{}
+	ChildDatas_ []interface{}
 }
 
 func (v *ChildDataVisitor) Enter(in ast.Node) (ast.Node, bool) {
@@ -17,11 +17,11 @@ func (v *ChildDataVisitor) Enter(in ast.Node) (ast.Node, bool) {
 	switch node := in.(type) {
 	case *ast.ColumnName:
 		colname := node.Name.String()
-		v.ChildData_ = &colname
+		v.ChildDatas_ = append(v.ChildDatas_, &colname)
 		return in, true
 	case *driver.ValueExpr:
 		val := ValueExprToValue(node)
-		v.ChildData_ = val
+		v.ChildDatas_ = append(v.ChildDatas_, val)
 		return in, true
 	default:
 	}
