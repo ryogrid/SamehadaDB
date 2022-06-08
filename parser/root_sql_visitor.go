@@ -23,6 +23,7 @@ func NewRootSQLVisitor() *RootSQLVisitor {
 	qinfo.OnExpressions_ = new(BinaryOpExpression)
 	qinfo.JoinTables_ = make([]*string, 0)
 	qinfo.WhereExpression_ = new(BinaryOpExpression)
+	qinfo.LimitNum_ = -1
 	ret.QueryInfo_ = qinfo
 
 	return ret
@@ -126,6 +127,12 @@ func (v *RootSQLVisitor) Enter(in ast.Node) (ast.Node, bool) {
 	case *driver.ValueExpr:
 		// when INSERT
 		v.QueryInfo_.Values_ = append(v.QueryInfo_.Values_, ValueExprToValue(node))
+		return in, true
+	case *ast.Limit:
+		cdv := new(ChildDataVisitor)
+		node.Accept(cdv)
+		val := cdv.ChildData_.(*types.Value)
+		v.QueryInfo_.LimitNum_ = val.ToInteger()
 		return in, true
 	default:
 		panic("unknown node for visitor")

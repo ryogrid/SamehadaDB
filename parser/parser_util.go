@@ -19,7 +19,7 @@ const (
 
 func ValueExprToValue(expr *driver.ValueExpr) *types.Value {
 	switch expr.Datum.Kind() {
-	case 1:
+	case 1, 2:
 		val_str := expr.String()
 		istr := strings.Split(val_str, " ")[1]
 		ival, _ := strconv.Atoi(istr)

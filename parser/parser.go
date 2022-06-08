@@ -21,6 +21,7 @@ type QueryInfo struct {
 	//FromTable_       *string // for SELECT, DELETE
 	JoinTables_      []*string
 	WhereExpression_ *BinaryOpExpression
+	LimitNum_        int32
 }
 
 func extractInfoFromAST(rootNode *ast.StmtNode) *QueryInfo {
@@ -65,7 +66,8 @@ func ProcessSQLStr() *QueryInfo {
 	//sql := "DELETE FROM users WHERE id = 10;"
 	//sql := "SELECT staff.a, staff.b, staff.c, friend.d FROM staff INNER JOIN friend ON staff.c = friend.c WHERE friend.d = 10;"
 	//sql := "CREATE TABLE name_age_list(id INT, name VARCHAR(256), age FLOAT);"
-	sql := "SELECT count(*),max(b),min(c),sum(d), b FROM t WHERE a = 10"
+	//sql := "SELECT count(*),max(b),min(c),sum(d), b FROM t WHERE a = 10"
+	sql := "SELECT a, b FROM t WHERE a = 10 limit 100;"
 	astNode, err := parse(sql)
 	if err != nil {
 		fmt.Printf("parse error: %v\n", err.Error())
