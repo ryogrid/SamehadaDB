@@ -6,6 +6,7 @@ import (
 	"github.com/pingcap/parser/opcode"
 	driver "github.com/pingcap/tidb/types/parser_driver"
 	"github.com/ryogrid/SamehadaDB/execution/expression"
+	"github.com/ryogrid/SamehadaDB/types"
 	"reflect"
 )
 
@@ -33,7 +34,18 @@ func (v *BinaryOpVisitor) Enter(in ast.Node) (ast.Node, bool) {
 		v.BinaryOpExpression_.Left = l_visitor.BinaryOpExpression_
 		v.BinaryOpExpression_.Right = r_visitor.BinaryOpExpression_
 		return in, true
+	case *ast.IsNullExpr:
+		cdv := &ChildDataVisitor{make([]interface{}, 0)}
+		node.Accept(cdv)
 
+		v.BinaryOpExpression_.LogicalOperationType_ = -1
+		if node.Not {
+			v.BinaryOpExpression_.ComparisonOperationType_ = expression.NotEqual
+		} else {
+			v.BinaryOpExpression_.ComparisonOperationType_ = expression.Equal
+		}
+		v.BinaryOpExpression_.Left = cdv.ChildDatas_[0]
+		v.BinaryOpExpression_.Right = types.NewNull()
 	case *ast.ColumnNameExpr:
 		v.BinaryOpExpression_.LogicalOperationType_ = -1
 		v.BinaryOpExpression_.ComparisonOperationType_ = -1

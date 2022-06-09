@@ -70,7 +70,9 @@ func ProcessSQLStr() *QueryInfo {
 	//sql := "CREATE TABLE name_age_list(id INT, name VARCHAR(256), age FLOAT);"
 	//sql := "SELECT count(*),max(b),min(c),sum(d), b FROM t WHERE a = 10"
 	//sql := "SELECT a, b FROM t WHERE a = 10 limit 100 offset 200;"
-	sql := "SELECT a, b FROM t WHERE a = 10 ORDER BY a desc, b;"
+	//sql := "SELECT a, b FROM t WHERE a = 10 ORDER BY a desc, b;"
+	//sql := "SELECT a, b FROM t WHERE a IS NOT NULL and b > 10;"
+	sql := "SELECT a, b FROM t WHERE a IS NULL and b > 10;"
 	astNode, err := parse(sql)
 	if err != nil {
 		fmt.Printf("parse error: %v\n", err.Error())
