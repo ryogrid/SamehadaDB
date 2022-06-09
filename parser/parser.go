@@ -19,10 +19,11 @@ type QueryInfo struct {
 	Values_            []*types.Value // for INSERT
 	OnExpressions_     *BinaryOpExpression
 	//FromTable_       *string // for SELECT, DELETE
-	JoinTables_      []*string
-	WhereExpression_ *BinaryOpExpression
-	LimitNum_        int32
-	OffsetNum_       int32
+	JoinTables_         []*string
+	WhereExpression_    *BinaryOpExpression
+	LimitNum_           int32
+	OffsetNum_          int32
+	OrderByExpressions_ []*OrderByExpression
 }
 
 func extractInfoFromAST(rootNode *ast.StmtNode) *QueryInfo {
@@ -68,7 +69,8 @@ func ProcessSQLStr() *QueryInfo {
 	//sql := "SELECT staff.a, staff.b, staff.c, friend.d FROM staff INNER JOIN friend ON staff.c = friend.c WHERE friend.d = 10;"
 	//sql := "CREATE TABLE name_age_list(id INT, name VARCHAR(256), age FLOAT);"
 	//sql := "SELECT count(*),max(b),min(c),sum(d), b FROM t WHERE a = 10"
-	sql := "SELECT a, b FROM t WHERE a = 10 limit 100 offset 200;"
+	//sql := "SELECT a, b FROM t WHERE a = 10 limit 100 offset 200;"
+	sql := "SELECT a, b FROM t WHERE a = 10 ORDER BY a desc, b;"
 	astNode, err := parse(sql)
 	if err != nil {
 		fmt.Printf("parse error: %v\n", err.Error())

@@ -28,3 +28,8 @@ type SelectFieldExpression struct {
 	AggType_ plans.AggregationType
 	ColName_ *string
 }
+
+type OrderByExpression struct {
+	IsDesc_  bool
+	ColName_ *string
+}

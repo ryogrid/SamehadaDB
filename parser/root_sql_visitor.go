@@ -25,6 +25,7 @@ func NewRootSQLVisitor() *RootSQLVisitor {
 	qinfo.WhereExpression_ = new(BinaryOpExpression)
 	qinfo.LimitNum_ = -1
 	qinfo.OffsetNum_ = -1
+	qinfo.OrderByExpressions_ = make([]*OrderByExpression, 0)
 	ret.QueryInfo_ = qinfo
 
 	return ret
@@ -139,6 +140,15 @@ func (v *RootSQLVisitor) Enter(in ast.Node) (ast.Node, bool) {
 			v.QueryInfo_.OffsetNum_ = cdv.ChildDatas_[1].(*types.Value).ToInteger()
 		}
 
+		return in, true
+	case *ast.OrderByClause:
+	case *ast.ByItem:
+		cdv := &ChildDataVisitor{make([]interface{}, 0)}
+		node.Accept(cdv)
+		obe := new(OrderByExpression)
+		obe.IsDesc_ = node.Desc
+		obe.ColName_ = cdv.ChildDatas_[0].(*string)
+		v.QueryInfo_.OrderByExpressions_ = append(v.QueryInfo_.OrderByExpressions_, obe)
 		return in, true
 	default:
 		panic("unknown node for visitor")
