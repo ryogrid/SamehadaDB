@@ -31,8 +31,8 @@ func (v *BinaryOpVisitor) Enter(in ast.Node) (ast.Node, bool) {
 		v.BinaryOpExpression_.LogicalOperationType_ = logicType
 		v.BinaryOpExpression_.ComparisonOperationType_ = compType
 
-		v.BinaryOpExpression_.Left = l_visitor.BinaryOpExpression_
-		v.BinaryOpExpression_.Right = r_visitor.BinaryOpExpression_
+		v.BinaryOpExpression_.Left_ = l_visitor.BinaryOpExpression_
+		v.BinaryOpExpression_.Right_ = r_visitor.BinaryOpExpression_
 		return in, true
 	case *ast.IsNullExpr:
 		cdv := &ChildDataVisitor{make([]interface{}, 0)}
@@ -44,18 +44,18 @@ func (v *BinaryOpVisitor) Enter(in ast.Node) (ast.Node, bool) {
 		} else {
 			v.BinaryOpExpression_.ComparisonOperationType_ = expression.Equal
 		}
-		v.BinaryOpExpression_.Left = cdv.ChildDatas_[0]
-		v.BinaryOpExpression_.Right = types.NewNull()
+		v.BinaryOpExpression_.Left_ = cdv.ChildDatas_[0]
+		v.BinaryOpExpression_.Right_ = types.NewNull()
 	case *ast.ColumnNameExpr:
 		v.BinaryOpExpression_.LogicalOperationType_ = -1
 		v.BinaryOpExpression_.ComparisonOperationType_ = -1
 		left_val := node.Name.String()
-		v.BinaryOpExpression_.Left = &left_val
+		v.BinaryOpExpression_.Left_ = &left_val
 		return in, true
 	case *driver.ValueExpr:
 		v.BinaryOpExpression_.LogicalOperationType_ = -1
 		v.BinaryOpExpression_.ComparisonOperationType_ = -1
-		v.BinaryOpExpression_.Left = ValueExprToValue(node)
+		v.BinaryOpExpression_.Left_ = ValueExprToValue(node)
 		return in, true
 	default:
 	}

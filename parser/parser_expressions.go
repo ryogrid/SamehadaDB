@@ -9,8 +9,8 @@ import (
 type BinaryOpExpression struct {
 	LogicalOperationType_    expression.LogicalOpType
 	ComparisonOperationType_ expression.ComparisonType
-	Left                     interface{}
-	Right                    interface{}
+	Left_                    interface{}
+	Right_                   interface{}
 }
 
 type SetExpression struct {
@@ -19,8 +19,9 @@ type SetExpression struct {
 }
 
 type ColDefExpression struct {
-	ColName_ *string
-	ColType_ *types.TypeID
+	ColName_   *string
+	ColType_   *types.TypeID
+	HasIndesx_ bool
 }
 
 type SelectFieldExpression struct {
