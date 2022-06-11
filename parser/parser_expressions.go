@@ -19,9 +19,11 @@ type SetExpression struct {
 }
 
 type ColDefExpression struct {
-	ColName_   *string
-	ColType_   *types.TypeID
-	HasIndesx_ bool
+	ColName_ *string
+	ColType_ *types.TypeID
+}
+
+type IndexDefExpression struct {
 }
 
 type SelectFieldExpression struct {
