@@ -7,7 +7,7 @@
 *.md text
 LICENSE text
 
-# Declare files that will always have CRLF line endings on checkout.
+# Declare files that will always have LF line endings on checkout.
 *.mod text eol=lf
 *.sum text eol=lf
 
