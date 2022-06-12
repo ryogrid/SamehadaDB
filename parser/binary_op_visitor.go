@@ -1,24 +1,21 @@
 package parser
 
 import (
-	"fmt"
 	"github.com/pingcap/parser/ast"
 	"github.com/pingcap/parser/opcode"
 	driver "github.com/pingcap/tidb/types/parser_driver"
 	"github.com/ryogrid/SamehadaDB/execution/expression"
 	"github.com/ryogrid/SamehadaDB/types"
-	"reflect"
 )
 
 type BinaryOpVisitor struct {
 	QueryInfo_          *QueryInfo
 	BinaryOpExpression_ *BinaryOpExpression
-	//ConparisonExpression_ *ComparisonExpression
 }
 
 func (v *BinaryOpVisitor) Enter(in ast.Node) (ast.Node, bool) {
-	refVal := reflect.ValueOf(in)
-	fmt.Println(refVal.Type())
+	//refVal := reflect.ValueOf(in)
+	//fmt.Println(refVal.Type())
 
 	switch node := in.(type) {
 	case *ast.BinaryOperationExpr:

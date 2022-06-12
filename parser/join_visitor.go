@@ -1,9 +1,7 @@
 package parser
 
 import (
-	"fmt"
 	"github.com/pingcap/parser/ast"
-	"reflect"
 )
 
 type JoinVisitor struct {
@@ -11,8 +9,9 @@ type JoinVisitor struct {
 }
 
 func (v *JoinVisitor) Enter(in ast.Node) (ast.Node, bool) {
-	refVal := reflect.ValueOf(in)
-	fmt.Println(refVal.Type())
+	//refVal := reflect.ValueOf(in)
+	//fmt.Println(refVal.Type())
+
 	switch node := in.(type) {
 	case *ast.TableName:
 		tblname := node.Name.String()

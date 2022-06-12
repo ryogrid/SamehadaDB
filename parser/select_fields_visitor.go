@@ -1,10 +1,8 @@
 package parser
 
 import (
-	"fmt"
 	"github.com/pingcap/parser/ast"
 	"github.com/ryogrid/SamehadaDB/execution/plans"
-	"reflect"
 )
 
 type SelectFieldsVisitor struct {
@@ -12,8 +10,9 @@ type SelectFieldsVisitor struct {
 }
 
 func (v *SelectFieldsVisitor) Enter(in ast.Node) (ast.Node, bool) {
-	refVal := reflect.ValueOf(in)
-	fmt.Println(refVal.Type())
+	//refVal := reflect.ValueOf(in)
+	//fmt.Println(refVal.Type())
+
 	switch node := in.(type) {
 	case *ast.ColumnName:
 		sfield := new(SelectFieldExpression)

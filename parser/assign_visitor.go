@@ -1,11 +1,9 @@
 package parser
 
 import (
-	"fmt"
 	"github.com/pingcap/parser/ast"
 	driver "github.com/pingcap/tidb/types/parser_driver"
 	"github.com/ryogrid/SamehadaDB/types"
-	"reflect"
 )
 
 type AssignVisitor struct {
@@ -14,8 +12,8 @@ type AssignVisitor struct {
 }
 
 func (v *AssignVisitor) Enter(in ast.Node) (ast.Node, bool) {
-	refVal := reflect.ValueOf(in)
-	fmt.Println(refVal.Type())
+	//refVal := reflect.ValueOf(in)
+	//fmt.Println(refVal.Type())
 
 	switch node := in.(type) {
 	case *ast.ColumnName:

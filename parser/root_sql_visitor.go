@@ -1,11 +1,9 @@
 package parser
 
 import (
-	"fmt"
 	"github.com/pingcap/parser/ast"
 	driver "github.com/pingcap/tidb/types/parser_driver"
 	"github.com/ryogrid/SamehadaDB/types"
-	"reflect"
 )
 
 type RootSQLVisitor struct {
@@ -34,8 +32,8 @@ func NewRootSQLVisitor() *RootSQLVisitor {
 }
 
 func (v *RootSQLVisitor) Enter(in ast.Node) (ast.Node, bool) {
-	refVal := reflect.ValueOf(in)
-	fmt.Println(refVal.Type())
+	//refVal := reflect.ValueOf(in)
+	//fmt.Println(refVal.Type())
 	//return in, false
 
 	switch node := in.(type) {

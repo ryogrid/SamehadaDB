@@ -1,11 +1,9 @@
 package parser
 
 import (
-	"fmt"
 	"github.com/pingcap/parser/ast"
 	driver "github.com/pingcap/tidb/types/parser_driver"
 	"github.com/ryogrid/SamehadaDB/types"
-	"reflect"
 )
 
 type AggFuncVisitor struct {
@@ -13,8 +11,9 @@ type AggFuncVisitor struct {
 }
 
 func (v *AggFuncVisitor) Enter(in ast.Node) (ast.Node, bool) {
-	refVal := reflect.ValueOf(in)
-	fmt.Println(refVal.Type())
+	//refVal := reflect.ValueOf(in)
+	//fmt.Println(refVal.Type())
+
 	switch node := in.(type) {
 	case *ast.ColumnName:
 		colname := node.Name.String()
