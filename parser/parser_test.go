@@ -75,16 +75,16 @@ func TestMultiPredicateSelectQuery(t *testing.T) {
 	testingpkg.SimpleAssert(t, queryInfo.WhereExpression_.Left_.(*BinaryOpExpression).Left_.(*BinaryOpExpression).LogicalOperationType_ == expression.AND)
 
 	// a = 10
-	testingpkg.SimpleAssert(t, queryInfo.WhereExpression_.Left_.(*BinaryOpExpression).Left_.(*BinaryOpExpression).Left_.(*BinaryOpExpression).ComparisonOperationType_ == expression.Equal)
-	testingpkg.SimpleAssert(t, queryInfo.WhereExpression_.Left_.(*BinaryOpExpression).Left_.(*BinaryOpExpression).Left_.(*BinaryOpExpression).LogicalOperationType_ == -1)
 	aEq10 := queryInfo.WhereExpression_.Left_.(*BinaryOpExpression).Left_.(*BinaryOpExpression).Left_.(*BinaryOpExpression)
+	testingpkg.SimpleAssert(t, aEq10.ComparisonOperationType_ == expression.Equal)
+	testingpkg.SimpleAssert(t, aEq10.LogicalOperationType_ == -1)
 	testingpkg.SimpleAssert(t, *aEq10.Left_.(*BinaryOpExpression).Left_.(*string) == "a")
 	testingpkg.SimpleAssert(t, aEq10.Right_.(*BinaryOpExpression).Left_.(*types.Value).ToInteger() == 10)
 
 	// b = 20
-	testingpkg.SimpleAssert(t, queryInfo.WhereExpression_.Left_.(*BinaryOpExpression).Left_.(*BinaryOpExpression).Left_.(*BinaryOpExpression).ComparisonOperationType_ == expression.Equal)
-	testingpkg.SimpleAssert(t, queryInfo.WhereExpression_.Left_.(*BinaryOpExpression).Left_.(*BinaryOpExpression).Left_.(*BinaryOpExpression).LogicalOperationType_ == -1)
 	bEq20 := queryInfo.WhereExpression_.Left_.(*BinaryOpExpression).Left_.(*BinaryOpExpression).Right_.(*BinaryOpExpression)
+	testingpkg.SimpleAssert(t, bEq20.ComparisonOperationType_ == expression.Equal)
+	testingpkg.SimpleAssert(t, bEq20.LogicalOperationType_ == -1)
 	testingpkg.SimpleAssert(t, *bEq20.Left_.(*BinaryOpExpression).Left_.(*string) == "b")
 	testingpkg.SimpleAssert(t, bEq20.Right_.(*BinaryOpExpression).Left_.(*types.Value).ToInteger() == 20)
 
