@@ -51,7 +51,7 @@ func TestMultiPredicateSelectQuery(t *testing.T) {
 	// |      |            |---- BExp -- 20 (*types.Value)
 	// |      |
 	// |      |---- NE -- BExp -- 'c' (*string)
-	// |            |---- BExp -- 'varchar' (*types.Value)
+	// |            |---- BExp -- 'daylight' (*types.Value)
 	// |
 	// |--- EQ -- BExp -- 'd' (*string)
 	//      |---- BExp -- 50 (*types.Value)
@@ -102,7 +102,20 @@ func TestMultiPredicateSelectQuery(t *testing.T) {
 	testingpkg.SimpleAssert(t, *dEq50.Left_.(*BinaryOpExpression).Left_.(*string) == "d")
 	testingpkg.SimpleAssert(t, dEq50.Right_.(*BinaryOpExpression).Left_.(*types.Value).ToInteger() == 50)
 
-	// ((a = 10 AND b = 20) AND (c != 'daylight' OR d = 50))
+	// (a = 10 AND b = 20) AND (c != 'daylight' OR d = 50)
+
+	// AND -- AND -- EQ -- BExp -- 'a' (*string)
+	//  |      |     |---- BExp -- 10 (*types.Value)
+	//  |      |
+	//  |      |---- EQ -- BExp -- 'b' (*string)
+	//  |            |---- BExp -- 20 (*types.Value)
+	//  |
+	//  ------OR --- NE -- BExp -- 'c' (*string)
+	//        |      |---- BExp -- 'daylight' (*types.Value)
+	//        |
+	//        |----- EQ -- BExp -- 'd' (*string)
+	//               |---- BExp -- 50 (*types.Value)
+
 	sqlStr = "SELECT a, b FROM t WHERE a = 10 AND b = 20 AND (c != 'daylight' OR d = 50);"
 	queryInfo = ProcessSQLStr(&sqlStr)
 	testingpkg.SimpleAssert(t, *queryInfo.QueryType_ == SELECT)
@@ -110,8 +123,43 @@ func TestMultiPredicateSelectQuery(t *testing.T) {
 	testingpkg.SimpleAssert(t, *queryInfo.SelectFields_[1].ColName_ == "b")
 	testingpkg.SimpleAssert(t, *queryInfo.JoinTables_[0] == "t")
 
-	//testingpkg.SimpleAssert(t, queryInfo.WhereExpression_.ComparisonOperationType_ == expression.Equal)
-	//testingpkg.SimpleAssert(t, queryInfo.WhereExpression_.LogicalOperationType_ == -1)
-	//testingpkg.SimpleAssert(t, *queryInfo.WhereExpression_.Left_.(*BinaryOpExpression).Left_.(*string) == "a")
-	//testingpkg.SimpleAssert(t, queryInfo.WhereExpression_.Right_.(*BinaryOpExpression).Left_.(*types.Value).ToInteger() == 10)
+	// (a = 10 AND b = 20) *AND* (c != 'daylight' OR d = 50)
+	testingpkg.SimpleAssert(t, queryInfo.WhereExpression_.ComparisonOperationType_ == -1)
+	testingpkg.SimpleAssert(t, queryInfo.WhereExpression_.LogicalOperationType_ == expression.AND)
+
+	// (a = 10 *AND* b = 20)
+	testingpkg.SimpleAssert(t, queryInfo.WhereExpression_.Left_.(*BinaryOpExpression).ComparisonOperationType_ == -1)
+	testingpkg.SimpleAssert(t, queryInfo.WhereExpression_.Left_.(*BinaryOpExpression).LogicalOperationType_ == expression.AND)
+
+	// a = 10
+	aEq10 = queryInfo.WhereExpression_.Left_.(*BinaryOpExpression).Left_.(*BinaryOpExpression)
+	testingpkg.SimpleAssert(t, aEq10.ComparisonOperationType_ == expression.Equal)
+	testingpkg.SimpleAssert(t, aEq10.LogicalOperationType_ == -1)
+	testingpkg.SimpleAssert(t, *aEq10.Left_.(*BinaryOpExpression).Left_.(*string) == "a")
+	testingpkg.SimpleAssert(t, aEq10.Right_.(*BinaryOpExpression).Left_.(*types.Value).ToInteger() == 10)
+
+	// b = 20
+	bEq20 = queryInfo.WhereExpression_.Left_.(*BinaryOpExpression).Right_.(*BinaryOpExpression)
+	testingpkg.SimpleAssert(t, bEq20.ComparisonOperationType_ == expression.Equal)
+	testingpkg.SimpleAssert(t, bEq20.LogicalOperationType_ == -1)
+	testingpkg.SimpleAssert(t, *bEq20.Left_.(*BinaryOpExpression).Left_.(*string) == "b")
+	testingpkg.SimpleAssert(t, bEq20.Right_.(*BinaryOpExpression).Left_.(*types.Value).ToInteger() == 20)
+
+	// (c != 'daylight' *OR* d = 50)
+	testingpkg.SimpleAssert(t, queryInfo.WhereExpression_.Right_.(*BinaryOpExpression).ComparisonOperationType_ == -1)
+	testingpkg.SimpleAssert(t, queryInfo.WhereExpression_.Right_.(*BinaryOpExpression).LogicalOperationType_ == expression.OR)
+
+	// c != 'daylight'
+	cNEDlight = queryInfo.WhereExpression_.Right_.(*BinaryOpExpression).Left_.(*BinaryOpExpression)
+	testingpkg.SimpleAssert(t, cNEDlight.ComparisonOperationType_ == expression.NotEqual)
+	testingpkg.SimpleAssert(t, cNEDlight.LogicalOperationType_ == -1)
+	testingpkg.SimpleAssert(t, *cNEDlight.Left_.(*BinaryOpExpression).Left_.(*string) == "c")
+	testingpkg.SimpleAssert(t, cNEDlight.Right_.(*BinaryOpExpression).Left_.(*types.Value).ToVarchar() == "daylight")
+
+	// d = 50
+	dEq50 = queryInfo.WhereExpression_.Right_.(*BinaryOpExpression).Right_.(*BinaryOpExpression)
+	testingpkg.SimpleAssert(t, dEq50.ComparisonOperationType_ == expression.Equal)
+	testingpkg.SimpleAssert(t, dEq50.LogicalOperationType_ == -1)
+	testingpkg.SimpleAssert(t, *dEq50.Left_.(*BinaryOpExpression).Left_.(*string) == "d")
+	testingpkg.SimpleAssert(t, dEq50.Right_.(*BinaryOpExpression).Left_.(*types.Value).ToInteger() == 50)
 }
