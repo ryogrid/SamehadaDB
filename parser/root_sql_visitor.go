@@ -74,18 +74,6 @@ func (v *RootSQLVisitor) Enter(in ast.Node) (ast.Node, bool) {
 	case *ast.TableNameExpr:
 	case *ast.TableName:
 		switch *v.QueryInfo_.QueryType_ {
-		//case SELECT:
-		//	tbname := node.Name.String()
-		//	v.QueryInfo_.FromTable_ = &tbname
-		//case UPDATE:
-		//	tbname := node.Name.String()
-		//	v.QueryInfo_.TargetTable_ = &tbname
-		//case INSERT:
-		//	tbname := node.Name.String()
-		//	v.QueryInfo_.TargetTable_ = &tbname
-		//case DELETE:
-		//	tbname := node.Name.String()
-		//	v.QueryInfo_.FromTable_ = &tbname
 		case CREATE_TABLE:
 			tbname := node.Name.String()
 			v.QueryInfo_.NewTable_ = &tbname
@@ -108,6 +96,20 @@ func (v *RootSQLVisitor) Enter(in ast.Node) (ast.Node, bool) {
 				cdef.ColType_ = &ctype
 			}
 			v.QueryInfo_.ColDefExpressions_ = append(v.QueryInfo_.ColDefExpressions_, cdef)
+			return in, true
+		}
+	case *ast.Constraint:
+		// Index definition at CREATE TABLE
+		if *v.QueryInfo_.QueryType_ == CREATE_TABLE {
+			// get all specified column
+			cdv := &ChildDataVisitor{make([]interface{}, 0)}
+			node.Accept(cdv)
+			idf := new(IndexDefExpression)
+			idf.IndexName_ = &node.Name
+			for _, colname := range cdv.ChildDatas_ {
+				idf.Colnames_ = append(idf.Colnames_, colname.(*string))
+			}
+			v.QueryInfo_.IndexDefExpressions_ = append(v.QueryInfo_.IndexDefExpressions_, idf)
 			return in, true
 		}
 	case *ast.ColumnNameExpr:
