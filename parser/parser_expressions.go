@@ -24,6 +24,8 @@ type ColDefExpression struct {
 }
 
 type IndexDefExpression struct {
+	IndexName_ *string
+	Colnames_  []*string
 }
 
 type SelectFieldExpression struct {

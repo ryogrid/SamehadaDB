@@ -9,21 +9,20 @@ import (
 )
 
 type QueryInfo struct {
-	QueryType_      *QueryType
-	SelectFields_   []*SelectFieldExpression
-	SetExpressions_ []*SetExpression
-	NewTable_       *string // for CREATE TABLE
-	//TargetTable_       *string   // for INSERT, UPDATE
-	TargetCols_        []*string // for INSERT
-	ColDefExpressions_ []*ColDefExpression
-	Values_            []*types.Value // for INSERT
-	OnExpressions_     *BinaryOpExpression
-	//FromTable_       *string // for SELECT, DELETE
-	JoinTables_         []*string
-	WhereExpression_    *BinaryOpExpression
-	LimitNum_           int32
-	OffsetNum_          int32
-	OrderByExpressions_ []*OrderByExpression
+	QueryType_           *QueryType
+	SelectFields_        []*SelectFieldExpression // SELECT
+	SetExpressions_      []*SetExpression         // UPDATE
+	NewTable_            *string                  // CREATE TABLE
+	ColDefExpressions_   []*ColDefExpression      // CREATE TABLE
+	IndexDefExpressions_ []*IndexDefExpression    // CREATE TABLE
+	TargetCols_          []*string                // INSERT
+	Values_              []*types.Value           // INSERT
+	OnExpressions_       *BinaryOpExpression      // SELECT (with JOIN)
+	JoinTables_          []*string                // SELECT
+	WhereExpression_     *BinaryOpExpression      // SELECT, UPDATE, DELETE
+	LimitNum_            int32                    // SELECT
+	OffsetNum_           int32                    // SELECT
+	OrderByExpressions_  []*OrderByExpression     // SELECT
 }
 
 func extractInfoFromAST(rootNode *ast.StmtNode) *QueryInfo {
