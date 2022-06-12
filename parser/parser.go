@@ -31,10 +31,10 @@ func extractInfoFromAST(rootNode *ast.StmtNode) *QueryInfo {
 	return v.QueryInfo_
 }
 
-func parse(sql string) (*ast.StmtNode, error) {
+func parse(sqlStr *string) (*ast.StmtNode, error) {
 	p := parser.New()
 
-	stmtNodes, _, err := p.Parse(sql, "", "")
+	stmtNodes, _, err := p.Parse(*sqlStr, "", "")
 	if err != nil {
 		return nil, err
 	}
@@ -42,7 +42,18 @@ func parse(sql string) (*ast.StmtNode, error) {
 	return &stmtNodes[0], nil
 }
 
-func ProcessSQLStr() *QueryInfo {
+func ProcessSQLStr(sqlStr *string) *QueryInfo {
+	astNode, err := parse(sqlStr)
+	if err != nil {
+		fmt.Printf("parse error: %v\n", err.Error())
+		return nil
+	}
+
+	return extractInfoFromAST(astNode)
+}
+
+// TODO: (SDB) for developing phase
+func ParserEntryFunc() {
 	//astNode, err := parse("SELECT a, b FROM t WHERE a = daylight")
 	//if err != nil {
 	//	fmt.Printf("parse error: %v\n", err.Error())
@@ -73,11 +84,5 @@ func ProcessSQLStr() *QueryInfo {
 	//sql := "SELECT a, b FROM t WHERE a = 10 ORDER BY a desc, b;"
 	//sql := "SELECT a, b FROM t WHERE a IS NOT NULL and b > 10;"
 	//sql := "SELECT a, b FROM t WHERE a IS NULL and b > 10;"
-	astNode, err := parse(sql)
-	if err != nil {
-		fmt.Printf("parse error: %v\n", err.Error())
-		return nil
-	}
-
-	return extractInfoFromAST(astNode)
+	ProcessSQLStr(&sql)
 }
