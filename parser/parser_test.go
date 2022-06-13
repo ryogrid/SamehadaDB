@@ -163,3 +163,15 @@ func TestMultiPredicateSelectQuery(t *testing.T) {
 	testingpkg.SimpleAssert(t, *dEq50.Left_.(*BinaryOpExpression).Left_.(*string) == "d")
 	testingpkg.SimpleAssert(t, dEq50.Right_.(*BinaryOpExpression).Left_.(*types.Value).ToInteger() == 50)
 }
+
+func TestWildcardSelectQuery(t *testing.T) {
+	sqlStr := "SELECT * FROM t WHERE a = 10;"
+	queryInfo := ProcessSQLStr(&sqlStr)
+	testingpkg.SimpleAssert(t, *queryInfo.QueryType_ == SELECT)
+	testingpkg.SimpleAssert(t, *queryInfo.SelectFields_[0].ColName_ == "*")
+	testingpkg.SimpleAssert(t, *queryInfo.JoinTables_[0] == "t")
+	testingpkg.SimpleAssert(t, queryInfo.WhereExpression_.ComparisonOperationType_ == expression.Equal)
+	testingpkg.SimpleAssert(t, queryInfo.WhereExpression_.LogicalOperationType_ == -1)
+	testingpkg.SimpleAssert(t, *queryInfo.WhereExpression_.Left_.(*BinaryOpExpression).Left_.(*string) == "a")
+	testingpkg.SimpleAssert(t, queryInfo.WhereExpression_.Right_.(*BinaryOpExpression).Left_.(*types.Value).ToInteger() == 10)
+}
