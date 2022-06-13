@@ -44,17 +44,17 @@ func TestSinglePredicateSelectQuery(t *testing.T) {
 func TestMultiPredicateSelectQuery(t *testing.T) {
 	// ((a = 10 AND b = 20) AND c != 'daylight') OR (d = 50)
 
-	// OR -- AND -- AND -- EQ -- BExp -- 'a' (*string)
-	// |      |      |     |---- BExp -- 10 (*types.Value)
-	// |      |      |
-	// |      |      |---- EQ -- BExp -- 'b' (*string)
-	// |      |            |---- BExp -- 20 (*types.Value)
-	// |      |
-	// |      |---- NE -- BExp -- 'c' (*string)
-	// |            |---- BExp -- 'daylight' (*types.Value)
+	// OR -- (L) AND -- AND -- EQ -- BExp -- (L) 'a' (*string)
+	// |         |      |      |---- BExp -- (L) 10 (*types.Value)
+	// |         |      |
+	// |         |      |---- EQ -- BExp -- 'b' (*string)
+	// |         |            |---- BExp -- 20 (*types.Value)
+	// |         |
+	// |         |---- NE -- BExp -- 'c' (*string)
+	// |               |---- BExp -- 'daylight' (*types.Value)
 	// |
-	// |--- EQ -- BExp -- 'd' (*string)
-	//      |---- BExp -- 50 (*types.Value)
+	// |--- (R) EQ -- BExp -- 'd' (*string)
+	//          |---- BExp -- 50 (*types.Value)
 
 	sqlStr := "SELECT a, b FROM t WHERE a = 10 AND b = 20 AND c != 'daylight' OR d = 50;"
 	queryInfo := ProcessSQLStr(&sqlStr)
@@ -104,17 +104,17 @@ func TestMultiPredicateSelectQuery(t *testing.T) {
 
 	// (a = 10 AND b = 20) AND (c != 'daylight' OR d = 50)
 
-	// AND -- AND -- EQ -- BExp -- 'a' (*string)
-	//  |      |     |---- BExp -- 10 (*types.Value)
-	//  |      |
-	//  |      |---- EQ -- BExp -- 'b' (*string)
-	//  |            |---- BExp -- 20 (*types.Value)
+	// AND -- (L) AND -- EQ -- BExp -- (L) 'a' (*string)      L
+	//  |          |     |---- BExp -- (L) 10 (*types.Value)
+	//  |          |
+	//  |          |---- EQ -- BExp -- 'b' (*string)
+	//  |                |---- BExp -- 20 (*types.Value)
 	//  |
-	//  ------OR --- NE -- BExp -- 'c' (*string)
-	//        |      |---- BExp -- 'daylight' (*types.Value)
-	//        |
-	//        |----- EQ -- BExp -- 'd' (*string)
-	//               |---- BExp -- 50 (*types.Value)
+	//  ----- (R) OR --- NE -- BExp -- 'c' (*string)
+	//            |      |---- BExp -- 'daylight' (*types.Value)
+	//            |
+	//            |----- EQ -- BExp -- 'd' (*string)
+	//                   |---- BExp -- 50 (*types.Value)
 
 	sqlStr = "SELECT a, b FROM t WHERE a = 10 AND b = 20 AND (c != 'daylight' OR d = 50);"
 	queryInfo = ProcessSQLStr(&sqlStr)
