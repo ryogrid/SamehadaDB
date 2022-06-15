@@ -255,6 +255,11 @@ func TestIsNullIsNotNullSelectQuery(t *testing.T) {
 	testingpkg.SimpleAssert(t, bGT10.ComparisonOperationType_ == expression.GreaterThan)
 	testingpkg.SimpleAssert(t, bGT10.LogicalOperationType_ == -1)
 
+	testingpkg.SimpleAssert(t, bGT10.Left_.(*BinaryOpExpression).ComparisonOperationType_ == -1)
+	testingpkg.SimpleAssert(t, bGT10.Left_.(*BinaryOpExpression).LogicalOperationType_ == -1)
+	testingpkg.SimpleAssert(t, bGT10.Right_.(*BinaryOpExpression).ComparisonOperationType_ == -1)
+	testingpkg.SimpleAssert(t, bGT10.Right_.(*BinaryOpExpression).LogicalOperationType_ == -1)
+
 	testingpkg.SimpleAssert(t, *bGT10.Left_.(*BinaryOpExpression).Left_.(*string) == "b")
 	testingpkg.SimpleAssert(t, bGT10.Right_.(*BinaryOpExpression).Left_.(*types.Value).ToInteger() == 10)
 
@@ -285,6 +290,11 @@ func TestIsNullIsNotNullSelectQuery(t *testing.T) {
 	// (b *>* 10)
 	testingpkg.SimpleAssert(t, bGT10.ComparisonOperationType_ == expression.GreaterThan)
 	testingpkg.SimpleAssert(t, bGT10.LogicalOperationType_ == -1)
+
+	testingpkg.SimpleAssert(t, bGT10.Left_.(*BinaryOpExpression).ComparisonOperationType_ == -1)
+	testingpkg.SimpleAssert(t, bGT10.Left_.(*BinaryOpExpression).LogicalOperationType_ == -1)
+	testingpkg.SimpleAssert(t, bGT10.Right_.(*BinaryOpExpression).ComparisonOperationType_ == -1)
+	testingpkg.SimpleAssert(t, bGT10.Right_.(*BinaryOpExpression).LogicalOperationType_ == -1)
 
 	testingpkg.SimpleAssert(t, *bGT10.Left_.(*BinaryOpExpression).Left_.(*string) == "b")
 	testingpkg.SimpleAssert(t, bGT10.Right_.(*BinaryOpExpression).Left_.(*types.Value).ToInteger() == 10)
