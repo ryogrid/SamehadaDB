@@ -2,6 +2,7 @@ package parser
 
 import (
 	"github.com/pingcap/parser/ast"
+	"github.com/pingcap/parser/mysql"
 	driver "github.com/pingcap/tidb/types/parser_driver"
 	"github.com/ryogrid/SamehadaDB/types"
 )
@@ -83,10 +84,10 @@ func (v *RootSQLVisitor) Enter(in ast.Node) (ast.Node, bool) {
 			cdef.ColName_ = &cname
 			col_type := node.Tp.Tp
 			switch col_type {
-			case 1, 3:
+			case mysql.TypeTiny, mysql.TypeLong:
 				ctype := types.Integer
 				cdef.ColType_ = &ctype
-			case 4, 8:
+			case mysql.TypeFloat, mysql.TypeLonglong:
 				ctype := types.Float
 				cdef.ColType_ = &ctype
 			default:

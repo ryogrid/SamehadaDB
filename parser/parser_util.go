@@ -1,6 +1,7 @@
 package parser
 
 import (
+	ptypes "github.com/pingcap/tidb/types"
 	driver "github.com/pingcap/tidb/types/parser_driver"
 	"github.com/ryogrid/SamehadaDB/types"
 	"strconv"
@@ -19,13 +20,13 @@ const (
 
 func ValueExprToValue(expr *driver.ValueExpr) *types.Value {
 	switch expr.Datum.Kind() {
-	case 1, 2:
+	case ptypes.KindInt64, ptypes.KindUint64:
 		val_str := expr.String()
 		istr := strings.Split(val_str, " ")[1]
 		ival, _ := strconv.Atoi(istr)
 		ret := types.NewInteger(int32(ival))
 		return &ret
-	case 8:
+	case ptypes.KindMysqlDecimal:
 		val_str := expr.String()
 		fstr := strings.Split(val_str, " ")[1]
 		fval, _ := strconv.ParseFloat(fstr, 32)
