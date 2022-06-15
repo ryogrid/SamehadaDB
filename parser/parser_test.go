@@ -99,7 +99,7 @@ func TestMultiPredicateSelectQuery(t *testing.T) {
 	// (d = 50)
 	dEq50 := queryInfo.WhereExpression_.Right_.(*BinaryOpExpression)
 	testingpkg.SimpleAssert(t, dEq50.ComparisonOperationType_ == expression.Equal)
-	testingpkg.SimpleAssert(t, cNEDlight.LogicalOperationType_ == -1)
+	testingpkg.SimpleAssert(t, dEq50.LogicalOperationType_ == -1)
 	testingpkg.SimpleAssert(t, *dEq50.Left_.(*BinaryOpExpression).Left_.(*string) == "d")
 	testingpkg.SimpleAssert(t, dEq50.Right_.(*BinaryOpExpression).Left_.(*types.Value).ToInteger() == 50)
 
@@ -225,4 +225,67 @@ func TestLimitOffsetSelectQuery(t *testing.T) {
 	queryInfo = ProcessSQLStr(&sqlStr)
 	testingpkg.SimpleAssert(t, queryInfo.LimitNum_ == -1)
 	testingpkg.SimpleAssert(t, queryInfo.OffsetNum_ == -1)
+}
+
+func TestIsNullIsNotNullSelectQuery(t *testing.T) {
+	// (a IS NULL) AND (b > 10)
+	sqlStr := "SELECT a, b FROM t WHERE a IS NULL AND b > 10;"
+	queryInfo := ProcessSQLStr(&sqlStr)
+	testingpkg.SimpleAssert(t, *queryInfo.QueryType_ == SELECT)
+	testingpkg.SimpleAssert(t, *queryInfo.SelectFields_[0].ColName_ == "a")
+	testingpkg.SimpleAssert(t, *queryInfo.SelectFields_[1].ColName_ == "b")
+	testingpkg.SimpleAssert(t, *queryInfo.JoinTables_[0] == "t")
+
+	// (a IS NULL) *AND* (b > 10)
+	testingpkg.SimpleAssert(t, queryInfo.WhereExpression_.ComparisonOperationType_ == -1)
+	testingpkg.SimpleAssert(t, queryInfo.WhereExpression_.LogicalOperationType_ == expression.AND)
+
+	// (a IS NULL)
+	aIsNull := queryInfo.WhereExpression_.Left_.(*BinaryOpExpression)
+	// (a *IS* NULL)
+	testingpkg.SimpleAssert(t, aIsNull.ComparisonOperationType_ == expression.Equal)
+	testingpkg.SimpleAssert(t, aIsNull.LogicalOperationType_ == -1)
+
+	testingpkg.SimpleAssert(t, *aIsNull.Left_.(*BinaryOpExpression).Left_.(*string) == "a")
+	testingpkg.SimpleAssert(t, aIsNull.Right_.(*BinaryOpExpression).Left_.(*types.Value).IsNull() == true)
+
+	// (b > 10)
+	bGT10 := queryInfo.WhereExpression_.Right_.(*BinaryOpExpression)
+	// (b *>* 10)
+	testingpkg.SimpleAssert(t, bGT10.ComparisonOperationType_ == expression.GreaterThan)
+	testingpkg.SimpleAssert(t, bGT10.LogicalOperationType_ == -1)
+
+	testingpkg.SimpleAssert(t, *bGT10.Left_.(*BinaryOpExpression).Left_.(*string) == "b")
+	testingpkg.SimpleAssert(t, bGT10.Right_.(*BinaryOpExpression).Left_.(*types.Value).ToInteger() == 10)
+
+	// (a IS NOT NULL) AND (b > 10)
+	sqlStr = "SELECT a, b FROM t WHERE a IS NOT NULL AND b > 10;"
+	queryInfo = ProcessSQLStr(&sqlStr)
+	testingpkg.SimpleAssert(t, *queryInfo.QueryType_ == SELECT)
+	testingpkg.SimpleAssert(t, *queryInfo.SelectFields_[0].ColName_ == "a")
+	testingpkg.SimpleAssert(t, *queryInfo.SelectFields_[1].ColName_ == "b")
+	testingpkg.SimpleAssert(t, *queryInfo.JoinTables_[0] == "t")
+
+	// (a IS NOT NULL) *AND* (b > 10)
+	testingpkg.SimpleAssert(t, queryInfo.WhereExpression_.ComparisonOperationType_ == -1)
+	testingpkg.SimpleAssert(t, queryInfo.WhereExpression_.LogicalOperationType_ == expression.AND)
+
+	// (a IS NOT NULL)
+	aIsNotNull := queryInfo.WhereExpression_.Left_.(*BinaryOpExpression)
+
+	// (a *IS NOT* NULL)
+	testingpkg.SimpleAssert(t, aIsNotNull.ComparisonOperationType_ == expression.NotEqual)
+	testingpkg.SimpleAssert(t, aIsNotNull.LogicalOperationType_ == -1)
+
+	testingpkg.SimpleAssert(t, *aIsNotNull.Left_.(*BinaryOpExpression).Left_.(*string) == "a")
+	testingpkg.SimpleAssert(t, aIsNotNull.Right_.(*BinaryOpExpression).Left_.(*types.Value).IsNull() == true)
+
+	// (b > 10)
+	bGT10 = queryInfo.WhereExpression_.Right_.(*BinaryOpExpression)
+	// (b *>* 10)
+	testingpkg.SimpleAssert(t, bGT10.ComparisonOperationType_ == expression.GreaterThan)
+	testingpkg.SimpleAssert(t, bGT10.LogicalOperationType_ == -1)
+
+	testingpkg.SimpleAssert(t, *bGT10.Left_.(*BinaryOpExpression).Left_.(*string) == "b")
+	testingpkg.SimpleAssert(t, bGT10.Right_.(*BinaryOpExpression).Left_.(*types.Value).ToInteger() == 10)
 }

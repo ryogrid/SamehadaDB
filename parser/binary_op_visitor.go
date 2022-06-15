@@ -41,8 +41,16 @@ func (v *BinaryOpVisitor) Enter(in ast.Node) (ast.Node, bool) {
 		} else {
 			v.BinaryOpExpression_.ComparisonOperationType_ = expression.Equal
 		}
-		v.BinaryOpExpression_.Left_ = cdv.ChildDatas_[0]
-		v.BinaryOpExpression_.Right_ = types.NewNull()
+
+		// construct structure as same as other operand case
+		l_bexp := &BinaryOpExpression{-1, -1, cdv.ChildDatas_[0], nil}
+		null_val := types.NewNull()
+		r_bexp := &BinaryOpExpression{-1, -1, &null_val, nil}
+		//v.BinaryOpExpression_.Left_ = cdv.ChildDatas_[0]
+		//v.BinaryOpExpression_.Right_ = types.NewNull()
+		v.BinaryOpExpression_.Left_ = l_bexp
+		v.BinaryOpExpression_.Right_ = r_bexp
+		return in, true
 	case *ast.ColumnNameExpr:
 		v.BinaryOpExpression_.LogicalOperationType_ = -1
 		v.BinaryOpExpression_.ComparisonOperationType_ = -1
