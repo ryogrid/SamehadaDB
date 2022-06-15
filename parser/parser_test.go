@@ -16,8 +16,8 @@ func TestSinglePredicateSelectQuery(t *testing.T) {
 	testingpkg.SimpleAssert(t, *queryInfo.JoinTables_[0] == "t")
 	testingpkg.SimpleAssert(t, queryInfo.WhereExpression_.ComparisonOperationType_ == expression.Equal)
 	testingpkg.SimpleAssert(t, queryInfo.WhereExpression_.LogicalOperationType_ == -1)
-	testingpkg.SimpleAssert(t, *queryInfo.WhereExpression_.Left_.(*BinaryOpExpression).Left_.(*string) == "a")
-	testingpkg.SimpleAssert(t, queryInfo.WhereExpression_.Right_.(*BinaryOpExpression).Left_.(*types.Value).ToVarchar() == "daylight")
+	testingpkg.SimpleAssert(t, *queryInfo.WhereExpression_.Left_.(*string) == "a")
+	testingpkg.SimpleAssert(t, queryInfo.WhereExpression_.Right_.(*types.Value).ToVarchar() == "daylight")
 
 	sqlStr = "SELECT a, b FROM t WHERE a = 10;"
 	queryInfo = ProcessSQLStr(&sqlStr)
@@ -27,8 +27,8 @@ func TestSinglePredicateSelectQuery(t *testing.T) {
 	testingpkg.SimpleAssert(t, *queryInfo.JoinTables_[0] == "t")
 	testingpkg.SimpleAssert(t, queryInfo.WhereExpression_.ComparisonOperationType_ == expression.Equal)
 	testingpkg.SimpleAssert(t, queryInfo.WhereExpression_.LogicalOperationType_ == -1)
-	testingpkg.SimpleAssert(t, *queryInfo.WhereExpression_.Left_.(*BinaryOpExpression).Left_.(*string) == "a")
-	testingpkg.SimpleAssert(t, queryInfo.WhereExpression_.Right_.(*BinaryOpExpression).Left_.(*types.Value).ToInteger() == 10)
+	testingpkg.SimpleAssert(t, *queryInfo.WhereExpression_.Left_.(*string) == "a")
+	testingpkg.SimpleAssert(t, queryInfo.WhereExpression_.Right_.(*types.Value).ToInteger() == 10)
 
 	sqlStr = "SELECT a, b FROM t WHERE a > 10.5;"
 	queryInfo = ProcessSQLStr(&sqlStr)
@@ -38,24 +38,24 @@ func TestSinglePredicateSelectQuery(t *testing.T) {
 	testingpkg.SimpleAssert(t, *queryInfo.JoinTables_[0] == "t")
 	testingpkg.SimpleAssert(t, queryInfo.WhereExpression_.ComparisonOperationType_ == expression.GreaterThan)
 	testingpkg.SimpleAssert(t, queryInfo.WhereExpression_.LogicalOperationType_ == -1)
-	testingpkg.SimpleAssert(t, *queryInfo.WhereExpression_.Left_.(*BinaryOpExpression).Left_.(*string) == "a")
-	testingpkg.SimpleAssert(t, queryInfo.WhereExpression_.Right_.(*BinaryOpExpression).Left_.(*types.Value).ToFloat() == 10.5)
+	testingpkg.SimpleAssert(t, *queryInfo.WhereExpression_.Left_.(*string) == "a")
+	testingpkg.SimpleAssert(t, queryInfo.WhereExpression_.Right_.(*types.Value).ToFloat() == 10.5)
 }
 
 func TestMultiPredicateSelectQuery(t *testing.T) {
 	// ((a = 10 AND b = 20) AND c != 'daylight') OR (d = 50)
 
-	// OR -- (L) AND -- AND -- EQ -- BExp -- (L) 'a' (*string)
-	// |         |      |      |---- BExp -- (L) 10 (*types.Value)
+	// OR -- (L) AND -- AND -- EQ -- 'a' (*string)
+	// |         |      |      |---- 10 (*types.Value)
 	// |         |      |
-	// |         |      |---- EQ -- BExp -- 'b' (*string)
-	// |         |            |---- BExp -- 20 (*types.Value)
+	// |         |      |---- EQ -- 'b' (*string)
+	// |         |            |---- 20 (*types.Value)
 	// |         |
-	// |         |---- NE -- BExp -- 'c' (*string)
-	// |               |---- BExp -- 'daylight' (*types.Value)
+	// |         |---- NE -- 'c' (*string)
+	// |               |---- 'daylight' (*types.Value)
 	// |
-	// |--- (R) EQ -- BExp -- 'd' (*string)
-	//          |---- BExp -- 50 (*types.Value)
+	// |--- (R) EQ -- 'd' (*string)
+	//          |---- 50 (*types.Value)
 
 	sqlStr := "SELECT a, b FROM t WHERE a = 10 AND b = 20 AND c != 'daylight' OR d = 50;"
 	queryInfo := ProcessSQLStr(&sqlStr)
@@ -79,43 +79,43 @@ func TestMultiPredicateSelectQuery(t *testing.T) {
 	aEq10 := queryInfo.WhereExpression_.Left_.(*BinaryOpExpression).Left_.(*BinaryOpExpression).Left_.(*BinaryOpExpression)
 	testingpkg.SimpleAssert(t, aEq10.ComparisonOperationType_ == expression.Equal)
 	testingpkg.SimpleAssert(t, aEq10.LogicalOperationType_ == -1)
-	testingpkg.SimpleAssert(t, *aEq10.Left_.(*BinaryOpExpression).Left_.(*string) == "a")
-	testingpkg.SimpleAssert(t, aEq10.Right_.(*BinaryOpExpression).Left_.(*types.Value).ToInteger() == 10)
+	testingpkg.SimpleAssert(t, *aEq10.Left_.(*string) == "a")
+	testingpkg.SimpleAssert(t, aEq10.Right_.(*types.Value).ToInteger() == 10)
 
 	// b = 20
 	bEq20 := queryInfo.WhereExpression_.Left_.(*BinaryOpExpression).Left_.(*BinaryOpExpression).Right_.(*BinaryOpExpression)
 	testingpkg.SimpleAssert(t, bEq20.ComparisonOperationType_ == expression.Equal)
 	testingpkg.SimpleAssert(t, bEq20.LogicalOperationType_ == -1)
-	testingpkg.SimpleAssert(t, *bEq20.Left_.(*BinaryOpExpression).Left_.(*string) == "b")
-	testingpkg.SimpleAssert(t, bEq20.Right_.(*BinaryOpExpression).Left_.(*types.Value).ToInteger() == 20)
+	testingpkg.SimpleAssert(t, *bEq20.Left_.(*string) == "b")
+	testingpkg.SimpleAssert(t, bEq20.Right_.(*types.Value).ToInteger() == 20)
 
 	// c != 'daylight'
 	cNEDlight := queryInfo.WhereExpression_.Left_.(*BinaryOpExpression).Right_.(*BinaryOpExpression)
 	testingpkg.SimpleAssert(t, cNEDlight.ComparisonOperationType_ == expression.NotEqual)
 	testingpkg.SimpleAssert(t, cNEDlight.LogicalOperationType_ == -1)
-	testingpkg.SimpleAssert(t, *cNEDlight.Left_.(*BinaryOpExpression).Left_.(*string) == "c")
-	testingpkg.SimpleAssert(t, cNEDlight.Right_.(*BinaryOpExpression).Left_.(*types.Value).ToVarchar() == "daylight")
+	testingpkg.SimpleAssert(t, *cNEDlight.Left_.(*string) == "c")
+	testingpkg.SimpleAssert(t, cNEDlight.Right_.(*types.Value).ToVarchar() == "daylight")
 
 	// (d = 50)
 	dEq50 := queryInfo.WhereExpression_.Right_.(*BinaryOpExpression)
 	testingpkg.SimpleAssert(t, dEq50.ComparisonOperationType_ == expression.Equal)
 	testingpkg.SimpleAssert(t, dEq50.LogicalOperationType_ == -1)
-	testingpkg.SimpleAssert(t, *dEq50.Left_.(*BinaryOpExpression).Left_.(*string) == "d")
-	testingpkg.SimpleAssert(t, dEq50.Right_.(*BinaryOpExpression).Left_.(*types.Value).ToInteger() == 50)
+	testingpkg.SimpleAssert(t, *dEq50.Left_.(*string) == "d")
+	testingpkg.SimpleAssert(t, dEq50.Right_.(*types.Value).ToInteger() == 50)
 
 	// (a = 10 AND b = 20) AND (c != 'daylight' OR d = 50)
 
-	// AND -- (L) AND -- EQ -- BExp -- (L) 'a' (*string)      L
-	//  |          |     |---- BExp -- (L) 10 (*types.Value)
+	// AND -- (L) AND -- EQ -- 'a' (*string)      L
+	//  |          |     |---- 10 (*types.Value)
 	//  |          |
-	//  |          |---- EQ -- BExp -- 'b' (*string)
-	//  |                |---- BExp -- 20 (*types.Value)
+	//  |          |---- EQ -- 'b' (*string)
+	//  |                |---- 20 (*types.Value)
 	//  |
-	//  ----- (R) OR --- NE -- BExp -- 'c' (*string)
-	//            |      |---- BExp -- 'daylight' (*types.Value)
+	//  ----- (R) OR --- NE -- 'c' (*string)
+	//            |      |---- 'daylight' (*types.Value)
 	//            |
-	//            |----- EQ -- BExp -- 'd' (*string)
-	//                   |---- BExp -- 50 (*types.Value)
+	//            |----- EQ -- 'd' (*string)
+	//                   |---- 50 (*types.Value)
 
 	sqlStr = "SELECT a, b FROM t WHERE a = 10 AND b = 20 AND (c != 'daylight' OR d = 50);"
 	queryInfo = ProcessSQLStr(&sqlStr)
@@ -136,15 +136,15 @@ func TestMultiPredicateSelectQuery(t *testing.T) {
 	aEq10 = queryInfo.WhereExpression_.Left_.(*BinaryOpExpression).Left_.(*BinaryOpExpression)
 	testingpkg.SimpleAssert(t, aEq10.ComparisonOperationType_ == expression.Equal)
 	testingpkg.SimpleAssert(t, aEq10.LogicalOperationType_ == -1)
-	testingpkg.SimpleAssert(t, *aEq10.Left_.(*BinaryOpExpression).Left_.(*string) == "a")
-	testingpkg.SimpleAssert(t, aEq10.Right_.(*BinaryOpExpression).Left_.(*types.Value).ToInteger() == 10)
+	testingpkg.SimpleAssert(t, *aEq10.Left_.(*string) == "a")
+	testingpkg.SimpleAssert(t, aEq10.Right_.(*types.Value).ToInteger() == 10)
 
 	// b = 20
 	bEq20 = queryInfo.WhereExpression_.Left_.(*BinaryOpExpression).Right_.(*BinaryOpExpression)
 	testingpkg.SimpleAssert(t, bEq20.ComparisonOperationType_ == expression.Equal)
 	testingpkg.SimpleAssert(t, bEq20.LogicalOperationType_ == -1)
-	testingpkg.SimpleAssert(t, *bEq20.Left_.(*BinaryOpExpression).Left_.(*string) == "b")
-	testingpkg.SimpleAssert(t, bEq20.Right_.(*BinaryOpExpression).Left_.(*types.Value).ToInteger() == 20)
+	testingpkg.SimpleAssert(t, *bEq20.Left_.(*string) == "b")
+	testingpkg.SimpleAssert(t, bEq20.Right_.(*types.Value).ToInteger() == 20)
 
 	// (c != 'daylight' *OR* d = 50)
 	testingpkg.SimpleAssert(t, queryInfo.WhereExpression_.Right_.(*BinaryOpExpression).ComparisonOperationType_ == -1)
@@ -154,15 +154,15 @@ func TestMultiPredicateSelectQuery(t *testing.T) {
 	cNEDlight = queryInfo.WhereExpression_.Right_.(*BinaryOpExpression).Left_.(*BinaryOpExpression)
 	testingpkg.SimpleAssert(t, cNEDlight.ComparisonOperationType_ == expression.NotEqual)
 	testingpkg.SimpleAssert(t, cNEDlight.LogicalOperationType_ == -1)
-	testingpkg.SimpleAssert(t, *cNEDlight.Left_.(*BinaryOpExpression).Left_.(*string) == "c")
-	testingpkg.SimpleAssert(t, cNEDlight.Right_.(*BinaryOpExpression).Left_.(*types.Value).ToVarchar() == "daylight")
+	testingpkg.SimpleAssert(t, *cNEDlight.Left_.(*string) == "c")
+	testingpkg.SimpleAssert(t, cNEDlight.Right_.(*types.Value).ToVarchar() == "daylight")
 
 	// d = 50
 	dEq50 = queryInfo.WhereExpression_.Right_.(*BinaryOpExpression).Right_.(*BinaryOpExpression)
 	testingpkg.SimpleAssert(t, dEq50.ComparisonOperationType_ == expression.Equal)
 	testingpkg.SimpleAssert(t, dEq50.LogicalOperationType_ == -1)
-	testingpkg.SimpleAssert(t, *dEq50.Left_.(*BinaryOpExpression).Left_.(*string) == "d")
-	testingpkg.SimpleAssert(t, dEq50.Right_.(*BinaryOpExpression).Left_.(*types.Value).ToInteger() == 50)
+	testingpkg.SimpleAssert(t, *dEq50.Left_.(*string) == "d")
+	testingpkg.SimpleAssert(t, dEq50.Right_.(*types.Value).ToInteger() == 50)
 }
 
 func TestWildcardSelectQuery(t *testing.T) {
@@ -173,8 +173,8 @@ func TestWildcardSelectQuery(t *testing.T) {
 	testingpkg.SimpleAssert(t, *queryInfo.JoinTables_[0] == "t")
 	testingpkg.SimpleAssert(t, queryInfo.WhereExpression_.ComparisonOperationType_ == expression.Equal)
 	testingpkg.SimpleAssert(t, queryInfo.WhereExpression_.LogicalOperationType_ == -1)
-	testingpkg.SimpleAssert(t, *queryInfo.WhereExpression_.Left_.(*BinaryOpExpression).Left_.(*string) == "a")
-	testingpkg.SimpleAssert(t, queryInfo.WhereExpression_.Right_.(*BinaryOpExpression).Left_.(*types.Value).ToInteger() == 10)
+	testingpkg.SimpleAssert(t, *queryInfo.WhereExpression_.Left_.(*string) == "a")
+	testingpkg.SimpleAssert(t, queryInfo.WhereExpression_.Right_.(*types.Value).ToInteger() == 10)
 }
 
 func TestAggFuncSelectQuery(t *testing.T) {
@@ -201,8 +201,8 @@ func TestAggFuncSelectQuery(t *testing.T) {
 	testingpkg.SimpleAssert(t, *queryInfo.JoinTables_[0] == "t")
 	testingpkg.SimpleAssert(t, queryInfo.WhereExpression_.ComparisonOperationType_ == expression.Equal)
 	testingpkg.SimpleAssert(t, queryInfo.WhereExpression_.LogicalOperationType_ == -1)
-	testingpkg.SimpleAssert(t, *queryInfo.WhereExpression_.Left_.(*BinaryOpExpression).Left_.(*string) == "a")
-	testingpkg.SimpleAssert(t, queryInfo.WhereExpression_.Right_.(*BinaryOpExpression).Left_.(*types.Value).ToInteger() == 10)
+	testingpkg.SimpleAssert(t, *queryInfo.WhereExpression_.Left_.(*string) == "a")
+	testingpkg.SimpleAssert(t, queryInfo.WhereExpression_.Right_.(*types.Value).ToInteger() == 10)
 }
 
 func TestLimitOffsetSelectQuery(t *testing.T) {
@@ -215,8 +215,8 @@ func TestLimitOffsetSelectQuery(t *testing.T) {
 
 	testingpkg.SimpleAssert(t, queryInfo.WhereExpression_.ComparisonOperationType_ == expression.Equal)
 	testingpkg.SimpleAssert(t, queryInfo.WhereExpression_.LogicalOperationType_ == -1)
-	testingpkg.SimpleAssert(t, *queryInfo.WhereExpression_.Left_.(*BinaryOpExpression).Left_.(*string) == "a")
-	testingpkg.SimpleAssert(t, queryInfo.WhereExpression_.Right_.(*BinaryOpExpression).Left_.(*types.Value).ToInteger() == 10)
+	testingpkg.SimpleAssert(t, *queryInfo.WhereExpression_.Left_.(*string) == "a")
+	testingpkg.SimpleAssert(t, queryInfo.WhereExpression_.Right_.(*types.Value).ToInteger() == 10)
 
 	testingpkg.SimpleAssert(t, queryInfo.LimitNum_ == 100)
 	testingpkg.SimpleAssert(t, queryInfo.OffsetNum_ == 200)
@@ -246,8 +246,8 @@ func TestIsNullIsNotNullSelectQuery(t *testing.T) {
 	testingpkg.SimpleAssert(t, aIsNull.ComparisonOperationType_ == expression.Equal)
 	testingpkg.SimpleAssert(t, aIsNull.LogicalOperationType_ == -1)
 
-	testingpkg.SimpleAssert(t, *aIsNull.Left_.(*BinaryOpExpression).Left_.(*string) == "a")
-	testingpkg.SimpleAssert(t, aIsNull.Right_.(*BinaryOpExpression).Left_.(*types.Value).IsNull() == true)
+	testingpkg.SimpleAssert(t, *aIsNull.Left_.(*string) == "a")
+	testingpkg.SimpleAssert(t, aIsNull.Right_.(*types.Value).IsNull() == true)
 
 	// (b > 10)
 	bGT10 := queryInfo.WhereExpression_.Right_.(*BinaryOpExpression)
@@ -255,13 +255,8 @@ func TestIsNullIsNotNullSelectQuery(t *testing.T) {
 	testingpkg.SimpleAssert(t, bGT10.ComparisonOperationType_ == expression.GreaterThan)
 	testingpkg.SimpleAssert(t, bGT10.LogicalOperationType_ == -1)
 
-	testingpkg.SimpleAssert(t, bGT10.Left_.(*BinaryOpExpression).ComparisonOperationType_ == -1)
-	testingpkg.SimpleAssert(t, bGT10.Left_.(*BinaryOpExpression).LogicalOperationType_ == -1)
-	testingpkg.SimpleAssert(t, bGT10.Right_.(*BinaryOpExpression).ComparisonOperationType_ == -1)
-	testingpkg.SimpleAssert(t, bGT10.Right_.(*BinaryOpExpression).LogicalOperationType_ == -1)
-
-	testingpkg.SimpleAssert(t, *bGT10.Left_.(*BinaryOpExpression).Left_.(*string) == "b")
-	testingpkg.SimpleAssert(t, bGT10.Right_.(*BinaryOpExpression).Left_.(*types.Value).ToInteger() == 10)
+	testingpkg.SimpleAssert(t, *bGT10.Left_.(*string) == "b")
+	testingpkg.SimpleAssert(t, bGT10.Right_.(*types.Value).ToInteger() == 10)
 
 	// (a IS NOT NULL) AND (b > 10)
 	sqlStr = "SELECT a, b FROM t WHERE a IS NOT NULL AND b > 10;"
@@ -282,8 +277,8 @@ func TestIsNullIsNotNullSelectQuery(t *testing.T) {
 	testingpkg.SimpleAssert(t, aIsNotNull.ComparisonOperationType_ == expression.NotEqual)
 	testingpkg.SimpleAssert(t, aIsNotNull.LogicalOperationType_ == -1)
 
-	testingpkg.SimpleAssert(t, *aIsNotNull.Left_.(*BinaryOpExpression).Left_.(*string) == "a")
-	testingpkg.SimpleAssert(t, aIsNotNull.Right_.(*BinaryOpExpression).Left_.(*types.Value).IsNull() == true)
+	testingpkg.SimpleAssert(t, *aIsNotNull.Left_.(*string) == "a")
+	testingpkg.SimpleAssert(t, aIsNotNull.Right_.(*types.Value).IsNull() == true)
 
 	// (b > 10)
 	bGT10 = queryInfo.WhereExpression_.Right_.(*BinaryOpExpression)
@@ -291,11 +286,6 @@ func TestIsNullIsNotNullSelectQuery(t *testing.T) {
 	testingpkg.SimpleAssert(t, bGT10.ComparisonOperationType_ == expression.GreaterThan)
 	testingpkg.SimpleAssert(t, bGT10.LogicalOperationType_ == -1)
 
-	testingpkg.SimpleAssert(t, bGT10.Left_.(*BinaryOpExpression).ComparisonOperationType_ == -1)
-	testingpkg.SimpleAssert(t, bGT10.Left_.(*BinaryOpExpression).LogicalOperationType_ == -1)
-	testingpkg.SimpleAssert(t, bGT10.Right_.(*BinaryOpExpression).ComparisonOperationType_ == -1)
-	testingpkg.SimpleAssert(t, bGT10.Right_.(*BinaryOpExpression).LogicalOperationType_ == -1)
-
-	testingpkg.SimpleAssert(t, *bGT10.Left_.(*BinaryOpExpression).Left_.(*string) == "b")
-	testingpkg.SimpleAssert(t, bGT10.Right_.(*BinaryOpExpression).Left_.(*types.Value).ToInteger() == 10)
+	testingpkg.SimpleAssert(t, *bGT10.Left_.(*string) == "b")
+	testingpkg.SimpleAssert(t, bGT10.Right_.(*types.Value).ToInteger() == 10)
 }
