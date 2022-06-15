@@ -28,8 +28,25 @@ func (v *BinaryOpVisitor) Enter(in ast.Node) (ast.Node, bool) {
 		v.BinaryOpExpression_.LogicalOperationType_ = logicType
 		v.BinaryOpExpression_.ComparisonOperationType_ = compType
 
-		v.BinaryOpExpression_.Left_ = l_visitor.BinaryOpExpression_
-		v.BinaryOpExpression_.Right_ = r_visitor.BinaryOpExpression_
+		if logicType == -1 && compType != -1 {
+			// when expression is comparison case
+			if l_visitor.BinaryOpExpression_.ComparisonOperationType_ == -1 &&
+				l_visitor.BinaryOpExpression_.LogicalOperationType_ == -1 {
+				v.BinaryOpExpression_.Left_ = l_visitor.BinaryOpExpression_.Left_
+			} else {
+				v.BinaryOpExpression_.Left_ = l_visitor.BinaryOpExpression_
+			}
+
+			if r_visitor.BinaryOpExpression_.ComparisonOperationType_ == -1 &&
+				r_visitor.BinaryOpExpression_.LogicalOperationType_ == -1 {
+				v.BinaryOpExpression_.Right_ = r_visitor.BinaryOpExpression_.Left_
+			} else {
+				v.BinaryOpExpression_.Right_ = l_visitor.BinaryOpExpression_
+			}
+		} else {
+			v.BinaryOpExpression_.Left_ = l_visitor.BinaryOpExpression_
+			v.BinaryOpExpression_.Right_ = r_visitor.BinaryOpExpression_
+		}
 		return in, true
 	case *ast.IsNullExpr:
 		cdv := &ChildDataVisitor{make([]interface{}, 0)}
@@ -42,14 +59,9 @@ func (v *BinaryOpVisitor) Enter(in ast.Node) (ast.Node, bool) {
 			v.BinaryOpExpression_.ComparisonOperationType_ = expression.Equal
 		}
 
-		// construct structure as same as other operand case
-		l_bexp := &BinaryOpExpression{-1, -1, cdv.ChildDatas_[0], nil}
 		null_val := types.NewNull()
-		r_bexp := &BinaryOpExpression{-1, -1, &null_val, nil}
-		//v.BinaryOpExpression_.Left_ = cdv.ChildDatas_[0]
-		//v.BinaryOpExpression_.Right_ = types.NewNull()
-		v.BinaryOpExpression_.Left_ = l_bexp
-		v.BinaryOpExpression_.Right_ = r_bexp
+		v.BinaryOpExpression_.Left_ = cdv.ChildDatas_[0]
+		v.BinaryOpExpression_.Right_ = &null_val
 		return in, true
 	case *ast.ColumnNameExpr:
 		v.BinaryOpExpression_.LogicalOperationType_ = -1
