@@ -27,9 +27,6 @@ original codes of go-bustub are [here](https://github.com/brunocalza/go-bustub).
 
 - [x] Predicates on Seq Scan
 - [x] Multiple Item on Predicate: AND, OR
-  - current limitation
-    - can not use on query which has predicate about columns which has index
-    - can not use on predicate for join operation
 - [x] Predicates: <, >, <=, >=
 - [ ] Null
 - [ ] Other inline types (<del>boolean</del>, <del>float</del>, bigint, smallint, decimal, timestamp, datetime)
