@@ -29,9 +29,10 @@ type IndexDefExpression struct {
 }
 
 type SelectFieldExpression struct {
-	IsAgg_   bool
-	AggType_ plans.AggregationType
-	ColName_ *string
+	IsAgg_     bool
+	AggType_   plans.AggregationType
+	TableName_ *string // if specified
+	ColName_   *string
 }
 
 type OrderByExpression struct {

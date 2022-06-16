@@ -289,3 +289,59 @@ func TestIsNullIsNotNullSelectQuery(t *testing.T) {
 	testingpkg.SimpleAssert(t, *bGT10.Left_.(*string) == "b")
 	testingpkg.SimpleAssert(t, bGT10.Right_.(*types.Value).ToInteger() == 10)
 }
+
+func TestSimpleJoinSelectQuery(t *testing.T) {
+	sqlStr := "SELECT staff.a, staff.b, staff.c, friend.d FROM staff INNER JOIN friend ON staff.c = friend.c WHERE friend.d = 10;"
+	queryInfo := ProcessSQLStr(&sqlStr)
+	testingpkg.SimpleAssert(t, *queryInfo.QueryType_ == SELECT)
+
+	testingpkg.SimpleAssert(t, *queryInfo.SelectFields_[0].TableName_ == "staff")
+	testingpkg.SimpleAssert(t, *queryInfo.SelectFields_[0].ColName_ == "a")
+	testingpkg.SimpleAssert(t, *queryInfo.SelectFields_[1].TableName_ == "staff")
+	testingpkg.SimpleAssert(t, *queryInfo.SelectFields_[1].ColName_ == "b")
+	testingpkg.SimpleAssert(t, *queryInfo.SelectFields_[2].TableName_ == "staff")
+	testingpkg.SimpleAssert(t, *queryInfo.SelectFields_[2].ColName_ == "c")
+	testingpkg.SimpleAssert(t, *queryInfo.SelectFields_[3].TableName_ == "friend")
+	testingpkg.SimpleAssert(t, *queryInfo.SelectFields_[3].ColName_ == "d")
+
+	testingpkg.SimpleAssert(t, *queryInfo.JoinTables_[0] == "staff")
+	testingpkg.SimpleAssert(t, *queryInfo.JoinTables_[1] == "friend")
+
+	testingpkg.SimpleAssert(t, queryInfo.OnExpressions_.ComparisonOperationType_ == expression.Equal)
+	testingpkg.SimpleAssert(t, queryInfo.OnExpressions_.LogicalOperationType_ == -1)
+	testingpkg.SimpleAssert(t, *queryInfo.OnExpressions_.Left_.(*string) == "staff.c")
+	testingpkg.SimpleAssert(t, *queryInfo.OnExpressions_.Right_.(*string) == "friend.c")
+
+	testingpkg.SimpleAssert(t, queryInfo.WhereExpression_.ComparisonOperationType_ == expression.Equal)
+	testingpkg.SimpleAssert(t, queryInfo.WhereExpression_.LogicalOperationType_ == -1)
+	testingpkg.SimpleAssert(t, *queryInfo.WhereExpression_.Left_.(*string) == "friend.d")
+	testingpkg.SimpleAssert(t, queryInfo.WhereExpression_.Right_.(*types.Value).ToInteger() == 10)
+
+	sqlStr = "SELECT staff.a, staff.b, staff.c, friend.d, e FROM staff INNER JOIN friend ON staff.c = friend.c WHERE friend.d = 10;"
+	queryInfo = ProcessSQLStr(&sqlStr)
+	testingpkg.SimpleAssert(t, *queryInfo.QueryType_ == SELECT)
+
+	testingpkg.SimpleAssert(t, *queryInfo.SelectFields_[0].TableName_ == "staff")
+	testingpkg.SimpleAssert(t, *queryInfo.SelectFields_[0].ColName_ == "a")
+	testingpkg.SimpleAssert(t, *queryInfo.SelectFields_[1].TableName_ == "staff")
+	testingpkg.SimpleAssert(t, *queryInfo.SelectFields_[1].ColName_ == "b")
+	testingpkg.SimpleAssert(t, *queryInfo.SelectFields_[2].TableName_ == "staff")
+	testingpkg.SimpleAssert(t, *queryInfo.SelectFields_[2].ColName_ == "c")
+	testingpkg.SimpleAssert(t, *queryInfo.SelectFields_[3].TableName_ == "friend")
+	testingpkg.SimpleAssert(t, *queryInfo.SelectFields_[3].ColName_ == "d")
+	testingpkg.SimpleAssert(t, queryInfo.SelectFields_[4].TableName_ == nil)
+	testingpkg.SimpleAssert(t, *queryInfo.SelectFields_[4].ColName_ == "e")
+
+	testingpkg.SimpleAssert(t, *queryInfo.JoinTables_[0] == "staff")
+	testingpkg.SimpleAssert(t, *queryInfo.JoinTables_[1] == "friend")
+
+	testingpkg.SimpleAssert(t, queryInfo.OnExpressions_.ComparisonOperationType_ == expression.Equal)
+	testingpkg.SimpleAssert(t, queryInfo.OnExpressions_.LogicalOperationType_ == -1)
+	testingpkg.SimpleAssert(t, *queryInfo.OnExpressions_.Left_.(*string) == "staff.c")
+	testingpkg.SimpleAssert(t, *queryInfo.OnExpressions_.Right_.(*string) == "friend.c")
+
+	testingpkg.SimpleAssert(t, queryInfo.WhereExpression_.ComparisonOperationType_ == expression.Equal)
+	testingpkg.SimpleAssert(t, queryInfo.WhereExpression_.LogicalOperationType_ == -1)
+	testingpkg.SimpleAssert(t, *queryInfo.WhereExpression_.Left_.(*string) == "friend.d")
+	testingpkg.SimpleAssert(t, queryInfo.WhereExpression_.Right_.(*types.Value).ToInteger() == 10)
+}
