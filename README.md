@@ -45,13 +45,14 @@ original codes of go-bustub are [here](https://github.com/brunocalza/go-bustub).
 - [x] Transactions
 - [x] Rollback When Abort Occurs
 - [x] Logging
-- [x] Checkpointing
-- [ ] Fuzzy Checkpointing (ARIES)
+- [ ] Checkpointing
+  - [x] Simple Checkpointing (all transaction block until finish of checkpointing)
+  - [ ] Fuzzy Checkpointing (ARIES)
 - [x] Recovery from Logs
 - [ ] Index
   - [x] Hash Index
-    - Hash index can be used only equal(==) operator is specified to index having columns....
-    - When the system exits in not graceful, reconstruction of index data is needed at reboot of system
+    - Hash index can be used only equal(==) operator is specified to index having columns
+    - When the system exits in not graceful, reconstruction of index data is needed at reboot of system now
   - [ ] Tree Based Index
 - [ ] JOIN
   - [x] INNER JOIN (Hash Join)
@@ -59,14 +60,16 @@ original codes of go-bustub are [here](https://github.com/brunocalza/go-bustub).
 - [x] Aggregations (COUNT, MAX, MIN ... on SELECT clause including Group by and Having)
 - [x] Sort (ORDER BY clause) 
 - [x] Concurrent Execution of Transactions
-- [ ] Execution Planning from hard coded SQL like method call I/F (like some kind of embeded DB)
+- [ ] <del>Execution Planning from hard coded SQL like method call I/F (like some kind of embeded DB)</del>
 - [ ] Execution Planning from Query Description text (SQL, SQL like description)
+- [ ] Frontend Impl as Embeded DB Library (like SQLite)
 - [ ] Eliminate Duplication (Distinct)
 - [ ] Query Optimization
 - [ ] Nested Query
 - [ ] DB Connector or Other Kind Access Interface
 - [ ] Deallocate and Reuse Page
   - Need tracking page usage by BufferPoolManager or TableHeap and need bitmap in header page corresponding to the tracking
+- [ ] Eliminate Data Processing with Placing All Scanned Tuples on the Memory
 
 ## Advisor
 - [kumagi](https://github.com/kumagi) and more!
