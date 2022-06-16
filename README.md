@@ -53,7 +53,9 @@ original codes of go-bustub are [here](https://github.com/brunocalza/go-bustub).
     - Hash index can be used only equal(==) operator is specified to index having columns....
     - When the system exits in not graceful, reconstruction of index data is needed at reboot of system
   - [ ] Tree Based Index
-- [x] Join (Hash Join)
+- [ ] JOIN
+  - [x] INNER JOIN (Hash Join)
+  - [ ] CROSS JOIN
 - [x] Aggregations (COUNT, MAX, MIN ... on SELECT clause including Group by and Having)
 - [x] Sort (ORDER BY clause) 
 - [x] Concurrent Execution of Transactions
