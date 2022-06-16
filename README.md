@@ -53,6 +53,7 @@ original codes of go-bustub are [here](https://github.com/brunocalza/go-bustub).
   - [ ] Tree Based Index
 - [ ] JOIN
   - [x] INNER JOIN (Hash Join)
+    - Currently, only two tables JOIN is implemented and codition specified at ON clause should be composed of single item  
   - [ ] CROSS JOIN
 - [x] Aggregations (COUNT, MAX, MIN ... on SELECT clause including Group by and Having)
 - [x] Sort (ORDER BY clause) 
@@ -63,6 +64,7 @@ original codes of go-bustub are [here](https://github.com/brunocalza/go-bustub).
 - [ ] Frontend Impl as Embeded DB Library (like SQLite)
 - [ ] Eliminate Duplication (Distinct)
 - [ ] Query Optimization
+- [ ] AS clause
 - [ ] Nested Query
 - [ ] DB Connector (Driver) or Other Kind Access Interface
 - [ ] Deallocate and Reuse Page
