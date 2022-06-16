@@ -59,6 +59,7 @@ original codes of go-bustub are [here](https://github.com/brunocalza/go-bustub).
   - [ ] CROSS JOIN
 - [x] Aggregations (COUNT, MAX, MIN ... on SELECT clause including Group by and Having)
 - [x] Sort (ORDER BY clause) 
+- [x] Tuple Level Locking With Strong Strict 2-Phase Locking (SS2PL) Protcol
 - [x] Concurrent Execution of Transactions
 - [ ] <del>Execution Planning from hard coded SQL like method call I/F (like some kind of embeded DB)</del>
 - [ ] Execution Planning from Query Description text (SQL, SQL like description)
@@ -66,7 +67,7 @@ original codes of go-bustub are [here](https://github.com/brunocalza/go-bustub).
 - [ ] Eliminate Duplication (Distinct)
 - [ ] Query Optimization
 - [ ] Nested Query
-- [ ] DB Connector or Other Kind Access Interface
+- [ ] DB Connector (Driver) or Other Kind Access Interface
 - [ ] Deallocate and Reuse Page
   - Need tracking page usage by BufferPoolManager or TableHeap and need bitmap in header page corresponding to the tracking
 - [ ] Eliminate Data Processing with Placing All Scanned Tuples on the Memory
