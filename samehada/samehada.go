@@ -23,7 +23,7 @@ func NewSamehadaDB(dbName string) *SamehadaDB {
 	c := catalog.BootstrapCatalog(shi.GetBufferPoolManager(), shi.GetLogManager(), shi.GetLockManager(), txn)
 	shi.transaction_manager.Commit(txn)
 	exec_engine := &executors.ExecutionEngine{}
-	pnner := planner.NewSimplePlanner(c, shi)
+	pnner := planner.NewSimplePlanner(c, shi.GetBufferPoolManager())
 	return &SamehadaDB{shi, c, exec_engine, pnner}
 }
 
