@@ -28,8 +28,8 @@ original codes of go-bustub are [here](https://github.com/brunocalza/go-bustub).
 - [x] Predicates on Seq Scan
 - [x] Multiple Item on Predicate: AND, OR
 - [x] Predicates: <, >, <=, >=
-- [ ] Null
-- [ ] Other inline types (<del>boolean</del>, <del>float</del>, bigint, smallint, decimal, timestamp, datetime)
+- [x] Null
+- [ ] Inline types (<del>integer, varchar, float</del>, bigint, smallint, decimal, timestamp, datetime)
 - [x] Delete Tuple
 - [x] Update Tuple
   - <del>RESTRICTION: a condition which update transaction aborts on exists</del>
