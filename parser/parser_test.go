@@ -377,3 +377,28 @@ func TestCreateTableWithIndexDefQuery(t *testing.T) {
 	testingpkg.SimpleAssert(t, *queryInfo.IndexDefExpressions_[1].Colnames_[0] == "name")
 	testingpkg.SimpleAssert(t, *queryInfo.IndexDefExpressions_[1].Colnames_[1] == "age")
 }
+
+func TestINSERTQuery(t *testing.T) {
+	sqlStr := "INSERT INTO syain(name) VALUES ('鈴木');"
+	queryInfo := ProcessSQLStr(&sqlStr)
+	testingpkg.SimpleAssert(t, *queryInfo.QueryType_ == INSERT)
+
+	testingpkg.SimpleAssert(t, *queryInfo.JoinTables_[0] == "syain")
+
+	testingpkg.SimpleAssert(t, *queryInfo.TargetCols_[0] == "name")
+	testingpkg.SimpleAssert(t, queryInfo.Values_[0].ToVarchar() == "鈴木")
+
+	sqlStr = "INSERT INTO syain(id,name,romaji) VALUES (1,'鈴木','suzuki');"
+	queryInfo = ProcessSQLStr(&sqlStr)
+	testingpkg.SimpleAssert(t, *queryInfo.QueryType_ == INSERT)
+
+	testingpkg.SimpleAssert(t, *queryInfo.JoinTables_[0] == "syain")
+
+	testingpkg.SimpleAssert(t, *queryInfo.TargetCols_[0] == "id")
+	testingpkg.SimpleAssert(t, queryInfo.Values_[0].ToInteger() == 1)
+	testingpkg.SimpleAssert(t, *queryInfo.TargetCols_[1] == "name")
+	testingpkg.SimpleAssert(t, queryInfo.Values_[1].ToVarchar() == "鈴木")
+	testingpkg.SimpleAssert(t, *queryInfo.TargetCols_[2] == "romaji")
+	testingpkg.SimpleAssert(t, queryInfo.Values_[2].ToVarchar() == "suzuki")
+
+}
