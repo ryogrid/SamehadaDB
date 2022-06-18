@@ -27,12 +27,9 @@ original codes of go-bustub are [here](https://github.com/brunocalza/go-bustub).
 
 - [x] Predicates on Seq Scan
 - [x] Multiple Item on Predicate: AND, OR
-  - current limitation
-    - can not use on query which has predicate about columns which has index
-    - can not use on predicate for join operation
 - [x] Predicates: <, >, <=, >=
-- [ ] Null
-- [ ] Other inline types (<del>boolean</del>, <del>float</del>, bigint, smallint, decimal, timestamp, datetime)
+- [x] Null
+- [ ] Inline types (<del>integer, varchar, float</del>, bigint, smallint, decimal, timestamp, datetime)
 - [x] Delete Tuple
 - [x] Update Tuple
   - <del>RESTRICTION: a condition which update transaction aborts on exists</del>
@@ -45,26 +42,43 @@ original codes of go-bustub are [here](https://github.com/brunocalza/go-bustub).
 - [x] Transactions
 - [x] Rollback When Abort Occurs
 - [x] Logging
-- [x] Checkpointing
-- [ ] Fuzzy Checkpointing (ARIES)
+- [ ] Checkpointing
+  - [x] Simple Checkpointing (all transaction block until finish of checkpointing)
+  - [ ] Fuzzy Checkpointing (ARIES)
 - [x] Recovery from Logs
 - [ ] Index
   - [x] Hash Index
-    - Hash index can be used only equal(==) operator is specified to index having columns....
-    - When the system exits in not graceful, reconstruction of index data is needed at reboot of system
+    - Hash index can be used only equal(==) operator is specified to index having columns
+    - When the system exits in not graceful, reconstruction of index data is needed at reboot of system now
   - [ ] Tree Based Index
+- [ ] JOIN
+  - [x] INNER JOIN (Hash Join)
+    - Currently, only two tables JOIN is implemented and codition specified at ON clause should be composed of single item  
+  - [ ] CROSS JOIN
+- [x] Aggregations (COUNT, MAX, MIN ... on SELECT clause including Group by and Having)
 - [x] Join (Hash Join)
 - [x] Aggregations (COUNT, MAX, MIN, SUM on SELECT clause including Group by and Having)
 - [x] Sort (ORDER BY clause) 
+- [x] Tuple Level Locking With Strong Strict 2-Phase Locking (SS2PL) Protcol
 - [x] Concurrent Execution of Transactions
-- [ ] Execution Planning from hard coded SQL like method call I/F (like some kind of embeded DB)
+- [ ] <del>Execution Planning from hard coded SQL like method call I/F (like some kind of embeded DB)</del>
 - [ ] Execution Planning from Query Description text (SQL, SQL like description)
+- [ ] Frontend Impl as Embeded DB Library (like SQLite)
 - [ ] Eliminate Duplication (Distinct)
 - [ ] Query Optimization
+- [ ] AS clause
+- [ ] JOIN (more than two tables)
 - [ ] Nested Query
-- [ ] DB Connector or Other Kind Access Interface
+- [ ] DB Connector (Driver) or Other Kind Access Interface
+  - [ ] Original Protcol
+  - [ ] MySQL or PostgreSQL Compatble Protcol
+  - [ ] REST
 - [ ] Deallocate and Reuse Page
   - Need tracking page usage by BufferPoolManager or TableHeap and need bitmap in header page corresponding to the tracking
+- [ ] UNION clause
+- [ ] Eliminate Data Processing with Placing All Scanned Tuples on the Memory
+- [ ] Communication over SSL/TLS
+- [ ] Authentication
 
 ## Advisor
 - [kumagi](https://github.com/kumagi) and more!

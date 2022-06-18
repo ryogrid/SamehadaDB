@@ -13,7 +13,7 @@ import (
 )
 
 /**
-* HashJoinExecutor executes hash join operations.
+* HashJoinExecutor executes hash join operations (inner join).
  */
 type HashJoinExecutor struct {
 	context *ExecutorContext
@@ -109,7 +109,9 @@ func (e *HashJoinExecutor) Init() {
 			tmp_page.Insert(left_tuple, &tmp_tuple)
 		}
 		valueAsKey := e.left_expr_.Evaluate(left_tuple, e.left_.GetOutputSchema())
-		e.jht_.Insert(hash.HashValue(&valueAsKey), &tmp_tuple)
+		if !valueAsKey.IsNull() {
+			e.jht_.Insert(hash.HashValue(&valueAsKey), &tmp_tuple)
+		}
 	}
 }
 
@@ -140,6 +142,9 @@ func (e *HashJoinExecutor) Next() (*tuple.Tuple, Done, error) {
 			inner_next_cnt++
 			e.right_tuple_ = *tmp_tuple
 			value := e.right_expr_.Evaluate(&e.right_tuple_, e.right_.GetOutputSchema())
+			if value.IsNull() {
+				continue
+			}
 			e.tmp_tuples_ = e.jht_.GetValue(hash.HashValue(&value))
 		}
 		// traverse corresponding left tuples stored in the tmp pages util we find one satisfying the predicate with current right tuple

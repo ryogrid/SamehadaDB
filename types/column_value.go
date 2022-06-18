@@ -37,6 +37,13 @@ func NewVarchar(value string) Value {
 	return Value{Varchar, new(bool), nil, nil, &value, nil}
 }
 
+// it can be used only when you can not know value type to be compared or something
+func NewNull() Value {
+	tmpTrue := true
+	tmpVal := int32(0)
+	return Value{Integer, &tmpTrue, &tmpVal, nil, nil, nil}
+}
+
 // NewValueFromBytes is used for deserialization
 func NewValueFromBytes(data []byte, valueType TypeID) (ret *Value) {
 	switch valueType {

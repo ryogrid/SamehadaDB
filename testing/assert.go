@@ -20,6 +20,14 @@ func Assert(tb testing.TB, condition bool, msg string, v ...interface{}) {
 	}
 }
 
+func SimpleAssert(tb testing.TB, condition bool) {
+	if !condition {
+		_, file, line, _ := runtime.Caller(1)
+		fmt.Printf("\033[31m%s:%d: \033[39m\n\n", filepath.Base(file), line)
+		tb.FailNow()
+	}
+}
+
 // Assert fails the test if the condition is false.
 func AssertFalse(tb testing.TB, condition bool, msg string, v ...interface{}) {
 	if condition {
