@@ -356,3 +356,24 @@ func TestSimpleCreateTableQuery(t *testing.T) {
 	testingpkg.SimpleAssert(t, *queryInfo.ColDefExpressions_[1].ColName_ == "age")
 	testingpkg.SimpleAssert(t, *queryInfo.ColDefExpressions_[1].ColType_ == types.Integer)
 }
+
+func TestCreateTableWithIndexDefQuery(t *testing.T) {
+	sqlStr := "CREATE TABLE name_age_list(id INT, name VARCHAR(256), age FLOAT, index id_idx (id), index name_age_idx (name, age));"
+	queryInfo := ProcessSQLStr(&sqlStr)
+	testingpkg.SimpleAssert(t, *queryInfo.QueryType_ == CREATE_TABLE)
+
+	testingpkg.SimpleAssert(t, *queryInfo.NewTable_ == "name_age_list")
+
+	testingpkg.SimpleAssert(t, *queryInfo.ColDefExpressions_[0].ColName_ == "id")
+	testingpkg.SimpleAssert(t, *queryInfo.ColDefExpressions_[0].ColType_ == types.Integer)
+	testingpkg.SimpleAssert(t, *queryInfo.ColDefExpressions_[1].ColName_ == "name")
+	testingpkg.SimpleAssert(t, *queryInfo.ColDefExpressions_[1].ColType_ == types.Varchar)
+	testingpkg.SimpleAssert(t, *queryInfo.ColDefExpressions_[2].ColName_ == "age")
+	testingpkg.SimpleAssert(t, *queryInfo.ColDefExpressions_[2].ColType_ == types.Float)
+
+	testingpkg.SimpleAssert(t, *queryInfo.IndexDefExpressions_[0].IndexName_ == "id_idx")
+	testingpkg.SimpleAssert(t, *queryInfo.IndexDefExpressions_[0].Colnames_[0] == "id")
+	testingpkg.SimpleAssert(t, *queryInfo.IndexDefExpressions_[1].IndexName_ == "name_age_idx")
+	testingpkg.SimpleAssert(t, *queryInfo.IndexDefExpressions_[1].Colnames_[0] == "name")
+	testingpkg.SimpleAssert(t, *queryInfo.IndexDefExpressions_[1].Colnames_[1] == "age")
+}
