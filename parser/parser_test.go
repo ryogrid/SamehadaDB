@@ -378,7 +378,7 @@ func TestCreateTableWithIndexDefQuery(t *testing.T) {
 	testingpkg.SimpleAssert(t, *queryInfo.IndexDefExpressions_[1].Colnames_[1] == "age")
 }
 
-func TestINSERTQuery(t *testing.T) {
+func TestInsertQuery(t *testing.T) {
 	sqlStr := "INSERT INTO syain(name) VALUES ('鈴木');"
 	queryInfo := ProcessSQLStr(&sqlStr)
 	testingpkg.SimpleAssert(t, *queryInfo.QueryType_ == INSERT)
@@ -400,5 +400,17 @@ func TestINSERTQuery(t *testing.T) {
 	testingpkg.SimpleAssert(t, queryInfo.Values_[1].ToVarchar() == "鈴木")
 	testingpkg.SimpleAssert(t, *queryInfo.TargetCols_[2] == "romaji")
 	testingpkg.SimpleAssert(t, queryInfo.Values_[2].ToVarchar() == "suzuki")
+}
 
+func TestSimpleDeleteQuery(t *testing.T) {
+	sqlStr := "DELETE FROM users WHERE id = 10;"
+	queryInfo := ProcessSQLStr(&sqlStr)
+	testingpkg.SimpleAssert(t, *queryInfo.QueryType_ == DELETE)
+
+	testingpkg.SimpleAssert(t, *queryInfo.JoinTables_[0] == "users")
+
+	testingpkg.SimpleAssert(t, queryInfo.WhereExpression_.ComparisonOperationType_ == expression.Equal)
+	testingpkg.SimpleAssert(t, queryInfo.WhereExpression_.LogicalOperationType_ == -1)
+	testingpkg.SimpleAssert(t, *queryInfo.WhereExpression_.Left_.(*string) == "id")
+	testingpkg.SimpleAssert(t, queryInfo.WhereExpression_.Right_.(*types.Value).ToInteger() == 10)
 }
