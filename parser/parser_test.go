@@ -345,3 +345,14 @@ func TestSimpleJoinSelectQuery(t *testing.T) {
 	testingpkg.SimpleAssert(t, *queryInfo.WhereExpression_.Left_.(*string) == "friend.d")
 	testingpkg.SimpleAssert(t, queryInfo.WhereExpression_.Right_.(*types.Value).ToInteger() == 10)
 }
+
+func TestSimpleCreateTableQuery(t *testing.T) {
+	sqlStr := "CREATE TABLE name_age_list(name VARCHAR(256), age INT);"
+	queryInfo := ProcessSQLStr(&sqlStr)
+	testingpkg.SimpleAssert(t, *queryInfo.QueryType_ == CREATE_TABLE)
+	testingpkg.SimpleAssert(t, *queryInfo.NewTable_ == "name_age_list")
+	testingpkg.SimpleAssert(t, *queryInfo.ColDefExpressions_[0].ColName_ == "name")
+	testingpkg.SimpleAssert(t, *queryInfo.ColDefExpressions_[0].ColType_ == types.Varchar)
+	testingpkg.SimpleAssert(t, *queryInfo.ColDefExpressions_[1].ColName_ == "age")
+	testingpkg.SimpleAssert(t, *queryInfo.ColDefExpressions_[1].ColType_ == types.Integer)
+}
