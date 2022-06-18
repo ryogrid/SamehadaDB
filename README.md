@@ -73,7 +73,7 @@ original codes of go-bustub are [here](https://github.com/brunocalza/go-bustub).
   - [ ] REST
 - [ ] Deallocate and Reuse Page
   - Need tracking page usage by BufferPoolManager or TableHeap and need bitmap in header page corresponding to the tracking
-- [ ] UNION clsuse
+- [ ] UNION clause
 - [ ] Eliminate Data Processing with Placing All Scanned Tuples on the Memory
 - [ ] Communicatiin over SSL/TLS
 - [ ] Authentication
