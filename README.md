@@ -65,11 +65,18 @@ original codes of go-bustub are [here](https://github.com/brunocalza/go-bustub).
 - [ ] Eliminate Duplication (Distinct)
 - [ ] Query Optimization
 - [ ] AS clause
+- [ ] JOIN (more than two tables)
 - [ ] Nested Query
 - [ ] DB Connector (Driver) or Other Kind Access Interface
+  - [ ] Original Protcol
+  - [ ] MySQL or PostgreSQL Compatble Protcol
+  - [ ] REST
 - [ ] Deallocate and Reuse Page
   - Need tracking page usage by BufferPoolManager or TableHeap and need bitmap in header page corresponding to the tracking
+- [ ] UNION clsuse
 - [ ] Eliminate Data Processing with Placing All Scanned Tuples on the Memory
+- [ ] Communicatiin over SSL/TLS
+- [ ] Authentication
 
 ## Advisor
 - [kumagi](https://github.com/kumagi) and more!
