@@ -5,13 +5,13 @@ package catalog
 
 import (
 	"fmt"
+	"github.com/ryogrid/SamehadaDB/samehada"
 	"os"
 	"testing"
 
 	"github.com/ryogrid/SamehadaDB/storage/buffer"
 	"github.com/ryogrid/SamehadaDB/storage/table/column"
 	"github.com/ryogrid/SamehadaDB/storage/table/schema"
-	"github.com/ryogrid/SamehadaDB/test_util"
 	testingpkg "github.com/ryogrid/SamehadaDB/testing"
 	"github.com/ryogrid/SamehadaDB/types"
 )
@@ -19,7 +19,7 @@ import (
 // test reloading serialized catalog info in db file at lauching system
 func TestTableCatalogReload(t *testing.T) {
 	os.Remove("test.db")
-	samehada_instance := test_util.NewSamehadaInstance()
+	samehada_instance := samehada.NewSamehadaInstanceForTesting()
 	//diskManager := disk.NewDiskManagerImpl("test.db")
 	//defer diskManager.ShutDown()
 	bpm := buffer.NewBufferPoolManager(uint32(32), samehada_instance.GetDiskManager(), samehada_instance.GetLogManager())
@@ -36,7 +36,7 @@ func TestTableCatalogReload(t *testing.T) {
 
 	fmt.Println("Shutdown system...")
 
-	samehada_instance_new := test_util.NewSamehadaInstance()
+	samehada_instance_new := samehada.NewSamehadaInstanceForTesting()
 	txn_new := samehada_instance_new.GetTransactionManager().Begin(nil)
 	//catalog := GetCatalog(bpm)
 	catalog_recov := RecoveryCatalogFromCatalogPage(samehada_instance_new.GetBufferPoolManager(), samehada_instance_new.GetLogManager(), samehada_instance_new.GetLockManager(), txn_new)

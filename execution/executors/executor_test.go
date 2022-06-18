@@ -5,6 +5,7 @@ package executors
 
 import (
 	"fmt"
+	"github.com/ryogrid/SamehadaDB/samehada"
 	"os"
 	"runtime"
 	"testing"
@@ -20,7 +21,6 @@ import (
 	"github.com/ryogrid/SamehadaDB/storage/disk"
 	"github.com/ryogrid/SamehadaDB/storage/table/column"
 	"github.com/ryogrid/SamehadaDB/storage/table/schema"
-	"github.com/ryogrid/SamehadaDB/test_util"
 	testingpkg "github.com/ryogrid/SamehadaDB/testing"
 	"github.com/ryogrid/SamehadaDB/types"
 )
@@ -1472,7 +1472,7 @@ func TestInsertAndSeqScanWithComplexPredicateComparison(t *testing.T) {
 	}
 }
 
-func rowInsertTransaction(t *testing.T, shi *test_util.SamehadaInstance, c *catalog.Catalog, tm *catalog.TableMetadata, master_ch chan int32) {
+func rowInsertTransaction(t *testing.T, shi *samehada.SamehadaInstance, c *catalog.Catalog, tm *catalog.TableMetadata, master_ch chan int32) {
 	txn := shi.GetTransactionManager().Begin(nil)
 
 	row1 := make([]types.Value, 0)
@@ -1515,7 +1515,7 @@ func rowInsertTransaction(t *testing.T, shi *test_util.SamehadaInstance, c *cata
 	master_ch <- ret
 }
 
-func deleteAllRowTransaction(t *testing.T, shi *test_util.SamehadaInstance, c *catalog.Catalog, tm *catalog.TableMetadata, master_ch chan int32) {
+func deleteAllRowTransaction(t *testing.T, shi *samehada.SamehadaInstance, c *catalog.Catalog, tm *catalog.TableMetadata, master_ch chan int32) {
 	txn := shi.GetTransactionManager().Begin(nil)
 	deletePlan := plans.NewDeletePlanNode(nil, tm.OID())
 
@@ -1527,7 +1527,7 @@ func deleteAllRowTransaction(t *testing.T, shi *test_util.SamehadaInstance, c *c
 	master_ch <- ret
 }
 
-func selectAllRowTransaction(t *testing.T, shi *test_util.SamehadaInstance, c *catalog.Catalog, tm *catalog.TableMetadata, master_ch chan int32) {
+func selectAllRowTransaction(t *testing.T, shi *samehada.SamehadaInstance, c *catalog.Catalog, tm *catalog.TableMetadata, master_ch chan int32) {
 	txn := shi.GetTransactionManager().Begin(nil)
 
 	outColumnA := column.NewColumn("a", types.Integer, false, nil)
@@ -1621,7 +1621,7 @@ func TestConcurrentTransactionExecution(t *testing.T) {
 	os.Remove("test.db")
 	os.Remove("test.log")
 
-	shi := test_util.NewSamehadaInstance()
+	shi := samehada.NewSamehadaInstanceForTesting()
 	shi.GetLogManager().ActivateLogging()
 	testingpkg.Assert(t, common.EnableLogging, "")
 	fmt.Println("System logging is active.")
@@ -1712,7 +1712,7 @@ func TestTestTableGenerator(t *testing.T) {
 	os.Remove("test.db")
 	os.Remove("test.log")
 
-	shi := test_util.NewSamehadaInstance()
+	shi := samehada.NewSamehadaInstanceForTesting()
 	shi.GetLogManager().ActivateLogging()
 	testingpkg.Assert(t, common.EnableLogging, "")
 	fmt.Println("System logging is active.")
@@ -1750,7 +1750,7 @@ func TestSimpleAggregation(t *testing.T) {
 	os.Remove("test.db")
 	os.Remove("test.log")
 
-	shi := test_util.NewSamehadaInstance()
+	shi := samehada.NewSamehadaInstanceForTesting()
 	shi.GetLogManager().ActivateLogging()
 	testingpkg.Assert(t, common.EnableLogging, "")
 	fmt.Println("System logging is active.")
@@ -1820,7 +1820,7 @@ func TestSimpleGroupByAggregation(t *testing.T) {
 	os.Remove("test.db")
 	os.Remove("test.log")
 
-	shi := test_util.NewSamehadaInstance()
+	shi := samehada.NewSamehadaInstanceForTesting()
 	shi.GetLogManager().ActivateLogging()
 	testingpkg.Assert(t, common.EnableLogging, "")
 	fmt.Println("System logging is active.")
@@ -1899,7 +1899,7 @@ func TestSeqScanWithMultiItemPredicate(t *testing.T) {
 	os.Remove("test.db")
 	os.Remove("test.log")
 
-	shi := test_util.NewSamehadaInstance()
+	shi := samehada.NewSamehadaInstanceForTesting()
 	shi.GetLogManager().ActivateLogging()
 	testingpkg.Assert(t, common.EnableLogging, "")
 	fmt.Println("System logging is active.")
@@ -2055,7 +2055,7 @@ func TestInsertAndSpecifiedColumnUpdatePageMoveCase(t *testing.T) {
 	os.Remove("test.db")
 	os.Remove("test.log")
 
-	shi := test_util.NewSamehadaInstance()
+	shi := samehada.NewSamehadaInstanceForTesting()
 	shi.GetLogManager().ActivateLogging()
 	testingpkg.Assert(t, common.EnableLogging, "")
 	fmt.Println("System logging is active.")
@@ -2140,7 +2140,7 @@ func TestSimpleSeqScanAndOrderBy(t *testing.T) {
 	os.Remove("test.db")
 	os.Remove("test.log")
 
-	shi := test_util.NewSamehadaInstance()
+	shi := samehada.NewSamehadaInstanceForTesting()
 	shi.GetLogManager().ActivateLogging()
 	testingpkg.Assert(t, common.EnableLogging, "")
 	fmt.Println("System logging is active.")
@@ -2247,7 +2247,7 @@ func TestSimpleSetNullToVarchar(t *testing.T) {
 	os.Remove("test.db")
 	os.Remove("test.log")
 
-	shi := test_util.NewSamehadaInstance()
+	shi := samehada.NewSamehadaInstanceForTesting()
 	shi.GetLogManager().ActivateLogging()
 	testingpkg.Assert(t, common.EnableLogging, "")
 	fmt.Println("System logging is active.")

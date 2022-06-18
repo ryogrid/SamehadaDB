@@ -1,4 +1,4 @@
-package test_util
+package samehada
 
 import (
 	"github.com/ryogrid/SamehadaDB/common"
@@ -18,17 +18,24 @@ type SamehadaInstance struct {
 	checkpoint_manger   *concurrency.CheckpointManager
 }
 
+func NewSamehadaInstanceForTesting() *SamehadaInstance {
+	ret := NewSamehadaInstance("test")
+	common.EnableLogging = false
+	return ret
+}
+
 // reset program state except for variables on testcase function
 // and db/log file
-func NewSamehadaInstance() *SamehadaInstance {
-	common.EnableLogging = false
+func NewSamehadaInstance(dbName string) *SamehadaInstance {
+	common.EnableLogging = true
 
-	disk_manager := disk.NewDiskManagerImpl("test.db")
+	disk_manager := disk.NewDiskManagerImpl(dbName + ".db")
 	log_manager := recovery.NewLogManager(&disk_manager)
 	bpm := buffer.NewBufferPoolManager(uint32(32), disk_manager, log_manager)
 	lock_manager := access.NewLockManager(access.STRICT, access.SS2PL_MODE)
 	transaction_manager := access.NewTransactionManager(lock_manager, log_manager)
 	checkpoint_manager := concurrency.NewCheckpointManager(transaction_manager, log_manager, bpm)
+
 	return &SamehadaInstance{disk_manager, log_manager, bpm, lock_manager, transaction_manager, checkpoint_manager}
 }
 
