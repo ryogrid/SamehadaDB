@@ -414,3 +414,33 @@ func TestSimpleDeleteQuery(t *testing.T) {
 	testingpkg.SimpleAssert(t, *queryInfo.WhereExpression_.Left_.(*string) == "id")
 	testingpkg.SimpleAssert(t, queryInfo.WhereExpression_.Right_.(*types.Value).ToInteger() == 10)
 }
+
+func TestSimpleUpdateQuery(t *testing.T) {
+	sqlStr := "UPDATE employees SET title = 'Mr.' WHERE gender = 'M';"
+	queryInfo := ProcessSQLStr(&sqlStr)
+	testingpkg.SimpleAssert(t, *queryInfo.QueryType_ == UPDATE)
+
+	testingpkg.SimpleAssert(t, *queryInfo.JoinTables_[0] == "employees")
+	testingpkg.SimpleAssert(t, *queryInfo.SetExpressions_[0].ColName_ == "title")
+	testingpkg.SimpleAssert(t, queryInfo.SetExpressions_[0].UpdateValue_.ToVarchar() == "Mr.")
+
+	testingpkg.SimpleAssert(t, queryInfo.WhereExpression_.ComparisonOperationType_ == expression.Equal)
+	testingpkg.SimpleAssert(t, queryInfo.WhereExpression_.LogicalOperationType_ == -1)
+	testingpkg.SimpleAssert(t, *queryInfo.WhereExpression_.Left_.(*string) == "gender")
+	testingpkg.SimpleAssert(t, queryInfo.WhereExpression_.Right_.(*types.Value).ToVarchar() == "M")
+
+	sqlStr = "UPDATE employees SET title = 'Mr.', gflag = 7 WHERE gender = 'M';"
+	queryInfo = ProcessSQLStr(&sqlStr)
+	testingpkg.SimpleAssert(t, *queryInfo.QueryType_ == UPDATE)
+
+	testingpkg.SimpleAssert(t, *queryInfo.JoinTables_[0] == "employees")
+	testingpkg.SimpleAssert(t, *queryInfo.SetExpressions_[0].ColName_ == "title")
+	testingpkg.SimpleAssert(t, queryInfo.SetExpressions_[0].UpdateValue_.ToVarchar() == "Mr.")
+	testingpkg.SimpleAssert(t, *queryInfo.SetExpressions_[1].ColName_ == "gflag")
+	testingpkg.SimpleAssert(t, queryInfo.SetExpressions_[1].UpdateValue_.ToInteger() == 7)
+
+	testingpkg.SimpleAssert(t, queryInfo.WhereExpression_.ComparisonOperationType_ == expression.Equal)
+	testingpkg.SimpleAssert(t, queryInfo.WhereExpression_.LogicalOperationType_ == -1)
+	testingpkg.SimpleAssert(t, *queryInfo.WhereExpression_.Left_.(*string) == "gender")
+	testingpkg.SimpleAssert(t, queryInfo.WhereExpression_.Right_.(*types.Value).ToVarchar() == "M")
+}
