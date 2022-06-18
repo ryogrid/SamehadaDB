@@ -56,6 +56,8 @@ original codes of go-bustub are [here](https://github.com/brunocalza/go-bustub).
     - Currently, only two tables JOIN is implemented and codition specified at ON clause should be composed of single item  
   - [ ] CROSS JOIN
 - [x] Aggregations (COUNT, MAX, MIN ... on SELECT clause including Group by and Having)
+- [x] Join (Hash Join)
+- [x] Aggregations (COUNT, MAX, MIN, SUM on SELECT clause including Group by and Having)
 - [x] Sort (ORDER BY clause) 
 - [x] Tuple Level Locking With Strong Strict 2-Phase Locking (SS2PL) Protcol
 - [x] Concurrent Execution of Transactions
