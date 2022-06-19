@@ -1,11 +1,14 @@
 package planner
 
 import (
+	"github.com/pkg/errors"
 	"github.com/ryogrid/SamehadaDB/catalog"
 	"github.com/ryogrid/SamehadaDB/execution/plans"
 	"github.com/ryogrid/SamehadaDB/parser"
 	"github.com/ryogrid/SamehadaDB/storage/access"
 	"github.com/ryogrid/SamehadaDB/storage/buffer"
+	"github.com/ryogrid/SamehadaDB/storage/table/column"
+	"github.com/ryogrid/SamehadaDB/storage/table/schema"
 )
 
 type SimplePlanner struct {
@@ -35,7 +38,7 @@ func (pner *SimplePlanner) MakePlan(qi *parser.QueryInfo, txn *access.Transactio
 	case parser.UPDATE:
 		return pner.MakeUpdatePlan()
 	default:
-		panic("unknown quey type")
+		panic("unknown query type")
 	}
 }
 
@@ -44,8 +47,19 @@ func (pner *SimplePlanner) MakeSelectPlan() (error, plans.Plan) {
 	return nil, nil
 }
 
-// TODO: (SDB) need to implement MakeCreateTablePlan method
 func (pner *SimplePlanner) MakeCreateTablePlan() (error, plans.Plan) {
+	if pner.catalog_.GetTableByName(*pner.qi.NewTable_) != nil {
+		return errors.New("already " + *pner.qi.NewTable_ + " exists."), nil
+	}
+
+	columns := make([]*column.Column, 0)
+	for _, cdefExp := range pner.qi.ColDefExpressions_ {
+		columns = append(columns, column.NewColumn(*cdefExp.ColName_, *cdefExp.ColType_, false, nil))
+	}
+	schema_ := schema.NewSchema(columns)
+
+	pner.catalog_.CreateTable(*pner.qi.NewTable_, schema_, pner.txn)
+
 	return nil, nil
 }
 

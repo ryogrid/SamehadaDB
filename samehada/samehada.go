@@ -29,11 +29,18 @@ func NewSamehadaDB(dbName string) *SamehadaDB {
 	return &SamehadaDB{shi, c, exec_engine, pnner}
 }
 
-// TODO: (SDB) need to implement ExecuteSQL of SamehadaDB class
 func (sdb *SamehadaDB) ExecuteSQL(sqlStr string) (error, [][]*types.Value) {
 	qi := parser.ProcessSQLStr(&sqlStr)
 	txn := sdb.shi_.transaction_manager.Begin(nil)
-	_, plan := sdb.planner_.MakePlan(qi, txn)
+	err, plan := sdb.planner_.MakePlan(qi, txn)
+
+	if err == nil && plan == nil {
+		// CREATE_TABLE is scceeded
+		sdb.shi_.GetTransactionManager().Commit(txn)
+		return nil, nil
+	} else if err != nil {
+		return err, nil
+	}
 
 	context := executors.NewExecutorContext(sdb.catalog_, sdb.shi_.GetBufferPoolManager(), txn)
 	result := sdb.exec_engine_.Execute(plan, context)

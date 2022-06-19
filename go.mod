@@ -9,6 +9,7 @@ require (
 	github.com/pingcap/parser v0.0.0-20200623164729-3a18f1e5dceb // indirect
 	github.com/pingcap/tidb v1.1.0-beta.0.20200630082100-328b6d0a955c // indirect
 	github.com/pkg/browser v0.0.0-20210911075715-681adbf594b8 // indirect
+	github.com/pkg/errors v0.9.1 // indirect
 	github.com/spaolacci/murmur3 v1.1.0
 	golang.org/x/image v0.0.0-20211028202545-6944b10bf410 // indirect
 	golang.org/x/mod v0.5.1 // indirect
