@@ -1,7 +1,7 @@
 package planner
 
 import (
-	"github.com/pkg/errors"
+	"errors"
 	"github.com/ryogrid/SamehadaDB/catalog"
 	"github.com/ryogrid/SamehadaDB/execution/plans"
 	"github.com/ryogrid/SamehadaDB/parser"
