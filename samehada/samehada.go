@@ -7,6 +7,8 @@ import (
 	"github.com/ryogrid/SamehadaDB/parser"
 	"github.com/ryogrid/SamehadaDB/planner"
 	"github.com/ryogrid/SamehadaDB/storage/access"
+	"github.com/ryogrid/SamehadaDB/storage/table/schema"
+	"github.com/ryogrid/SamehadaDB/storage/tuple"
 	"github.com/ryogrid/SamehadaDB/types"
 )
 
@@ -28,10 +30,10 @@ func NewSamehadaDB(dbName string) *SamehadaDB {
 }
 
 // TODO: (SDB) need to implement ExecuteSQL of SamehadaDB class
-func (sdb *SamehadaDB) ExecuteSQL(sqlStr string) (error, [][]types.Value) {
+func (sdb *SamehadaDB) ExecuteSQL(sqlStr string) (error, [][]*types.Value) {
 	qi := parser.ProcessSQLStr(&sqlStr)
 	txn := sdb.shi_.transaction_manager.Begin(nil)
-	plan := sdb.planner_.MakePlan(qi, txn)
+	_, plan := sdb.planner_.MakePlan(qi, txn)
 
 	context := executors.NewExecutorContext(sdb.catalog_, sdb.shi_.GetBufferPoolManager(), txn)
 	result := sdb.exec_engine_.Execute(plan, context)
@@ -44,8 +46,22 @@ func (sdb *SamehadaDB) ExecuteSQL(sqlStr string) (error, [][]types.Value) {
 	}
 
 	outSchema := plan.OutputSchema()
-	// TODO: (SDB) need to convert tuple list to 2-dim array of *types.Value
 	fmt.Println(result, outSchema)
+	retVals := ConvTupleListToValues(outSchema, result)
 
-	return nil, nil
+	return nil, retVals
+}
+
+func ConvTupleListToValues(schema_ *schema.Schema, result []*tuple.Tuple) [][]*types.Value {
+	retVals := make([][]*types.Value, 0)
+	for _, tuple_ := range result {
+		rowVals := make([]*types.Value, 0)
+		colNum := int(schema_.GetColumnCount())
+		for idx := 0; idx < colNum; idx++ {
+			val := tuple_.GetValue(schema_, uint32(idx))
+			rowVals = append(rowVals, &val)
+		}
+		retVals = append(retVals, rowVals)
+	}
+	return retVals
 }
