@@ -7,5 +7,5 @@ import (
 )
 
 type Planner interface {
-	MakePlan(*parser.QueryInfo, *access.Transaction) plans.Plan
+	MakePlan(*parser.QueryInfo, *access.Transaction) (error, plans.Plan)
 }

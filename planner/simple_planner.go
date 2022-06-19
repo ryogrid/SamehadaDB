@@ -19,10 +19,46 @@ func NewSimplePlanner(c *catalog.Catalog, bpm *buffer.BufferPoolManager) *Simple
 	return &SimplePlanner{nil, c, bpm, nil}
 }
 
-// TODO: (SDB) need implement MakePlan of Simple Planner
-func (pner *SimplePlanner) MakePlan(qi *parser.QueryInfo, txn *access.Transaction) plans.Plan {
+func (pner *SimplePlanner) MakePlan(qi *parser.QueryInfo, txn *access.Transaction) (error, plans.Plan) {
 	pner.qi = qi
 	pner.txn = txn
 
-	return nil
+	switch *pner.qi.QueryType_ {
+	case parser.SELECT:
+		return pner.MakeSelectPlan()
+	case parser.CREATE_TABLE:
+		return pner.MakeCreateTablePlan()
+	case parser.INSERT:
+		return pner.MakeInsertPlan()
+	case parser.DELETE:
+		return pner.MakeDeletePlan()
+	case parser.UPDATE:
+		return pner.MakeUpdatePlan()
+	default:
+		panic("unknown quey type")
+	}
+}
+
+// TODO: (SDB) need to implement MakeSelectPlan method
+func (pner *SimplePlanner) MakeSelectPlan() (error, plans.Plan) {
+	return nil, nil
+}
+
+// TODO: (SDB) need to implement MakeCreateTablePlan method
+func (pner *SimplePlanner) MakeCreateTablePlan() (error, plans.Plan) {
+	return nil, nil
+}
+
+// TODO: (SDB) need to implement MakeInsertPlan method
+func (pner *SimplePlanner) MakeInsertPlan() (error, plans.Plan) {
+	return nil, nil
+}
+
+// TODO: (SDB) need to implement MakeDeletePlan method
+func (pner *SimplePlanner) MakeDeletePlan() (error, plans.Plan) {
+	return nil, nil
+}
+
+func (pner *SimplePlanner) MakeUpdatePlan() (error, plans.Plan) {
+	return nil, nil
 }
