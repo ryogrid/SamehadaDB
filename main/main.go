@@ -30,4 +30,10 @@ func main() {
 	db.ExecuteSQL("INSERT INTO name_age_list(name, age) VALUES ('木村', 18);")
 	_, results1 := db.ExecuteSQL("SELECT * FROM name_age_list WHERE age >= 20;")
 	PrintExecuteResults(results1)
+	_, results2 := db.ExecuteSQL("SELECT age FROM name_age_list WHERE age >= 20;")
+	PrintExecuteResults(results2)
+	_, results3 := db.ExecuteSQL("SELECT name, age FROM name_age_list WHERE age >= 20;")
+	PrintExecuteResults(results3)
+	_, results4 := db.ExecuteSQL("SELECT name FROM name_age_list WHERE age >= 20;")
+	PrintExecuteResults(results4)
 }
