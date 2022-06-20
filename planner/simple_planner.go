@@ -75,7 +75,6 @@ func (pner *SimplePlanner) MakeSelectPlan() (error, plans.Plan) {
 			for _, existCol := range tgtTblColumns {
 				if existCol.GetColumnName() == *colName {
 					isOk = true
-					//outColDefs = append(outColDefs, existCol)
 					outColDefs = append(outColDefs, column.NewColumn(*colName, existCol.GetType(), false, existCol.GetExpr()))
 					break
 				}
@@ -86,6 +85,7 @@ func (pner *SimplePlanner) MakeSelectPlan() (error, plans.Plan) {
 				return errors.New(msg), nil
 			}
 		}
+		// Attention: this method call modifies passed Column objects
 		outSchema = schema.NewSchema(outColDefs)
 	} else {
 		outSchema = tgtTblSchema
