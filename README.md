@@ -78,6 +78,9 @@ original codes of go-bustub are [here](https://github.com/brunocalza/go-bustub).
 - [ ] Communication over SSL/TLS
 - [ ] Authentication
 
+## More Info
+- [Wiki on this repo](https://github.com/ryogrid/SamehadaDB/wiki)
+
 ## Advisor
 - [kumagi](https://github.com/kumagi) and more!
 ## Past work
