@@ -4,6 +4,7 @@ import (
 	"errors"
 	"fmt"
 	"github.com/ryogrid/SamehadaDB/catalog"
+	"github.com/ryogrid/SamehadaDB/execution/expression"
 	"github.com/ryogrid/SamehadaDB/execution/plans"
 	"github.com/ryogrid/SamehadaDB/parser"
 	"github.com/ryogrid/SamehadaDB/storage/access"
@@ -47,8 +48,53 @@ func (pner *SimplePlanner) MakePlan(qi *parser.QueryInfo, txn *access.Transactio
 
 // TODO: (SDB) need to implement MakeSelectPlan method
 func (pner *SimplePlanner) MakeSelectPlan() (error, plans.Plan) {
+	//columns := []*column.Column{}
+	//for _, c := range testCase.Columns {
+	//	columns = append(columns, column.NewColumn(c.Name, c.Kind, false, nil))
+	//}
+	//outSchema := schema.NewSchema(columns)
+	//
+	//tmpColVal_ := expression.NewColumnValue(0, testCase.TableMetadata.Schema().GetColIndex(testCase.Predicate.LeftColumn), GetValueType(testCase.Predicate.RightColumn))
+	//tmpColVal := tmpColVal_.(*expression.ColumnValue)
+	//expression := expression.NewComparison(tmpColVal, expression.NewConstantValue(GetValue(testCase.Predicate.RightColumn), GetValueType(testCase.Predicate.RightColumn)), testCase.Predicate.Operator, types.Boolean)
+	//seqPlan := plans.NewSeqScanPlanNode(outSchema, expression, testCase.TableMetadata.OID())
 
-	return nil, nil
+	tblName := *pner.qi.JoinTables_[0]
+	tableMetadata := pner.catalog_.GetTableByName(tblName)
+
+	tgtTblSchema := tableMetadata.Schema()
+	tgtTblColumns := tgtTblSchema.GetColumns()
+
+	outColDefs := make([]*column.Column, 0)
+	var outSchema *schema.Schema = nil
+	if !(len(pner.qi.SelectFields_) == 1 && *pner.qi.SelectFields_[0].ColName_ == "*") {
+		// column existance check
+		for _, sfield := range pner.qi.SelectFields_ {
+			colName := sfield.ColName_
+			isOk := false
+			for _, existCol := range tgtTblColumns {
+				if existCol.GetColumnName() == *colName {
+					isOk = true
+					outColDefs = append(outColDefs, existCol)
+					break
+				}
+			}
+			if !isOk {
+				msg := "column " + *colName + " does not exist."
+				fmt.Println(msg)
+				return errors.New(msg), nil
+			}
+		}
+		outSchema = schema.NewSchema(outColDefs)
+	} else {
+		outSchema = tgtTblSchema
+	}
+
+	tmpColIdx := tgtTblSchema.GetColIndex(*pner.qi.WhereExpression_.Left_.(*string))
+	tmpColVal := expression.NewColumnValue(0, tmpColIdx, pner.qi.WhereExpression_.Right_.(*types.Value).ValueType())
+	expression := expression.NewComparison(tmpColVal, expression.NewConstantValue(*pner.qi.WhereExpression_.Right_.(*types.Value), pner.qi.WhereExpression_.Right_.(*types.Value).ValueType()), pner.qi.WhereExpression_.ComparisonOperationType_, types.Boolean)
+
+	return nil, plans.NewSeqScanPlanNode(outSchema, expression, tableMetadata.OID())
 }
 
 func (pner *SimplePlanner) MakeCreateTablePlan() (error, plans.Plan) {
@@ -82,8 +128,8 @@ func (pner *SimplePlanner) MakeInsertPlan() (error, plans.Plan) {
 	insRows := make([][]types.Value, 0)
 	insertRowCnt := 0
 	valCnt := 0
+	row := make([]types.Value, 0)
 	for idx, colName := range pner.qi.TargetCols_ {
-		row := make([]types.Value, 0)
 		val := pner.qi.Values_[idx-(tgtColNum*insertRowCnt)]
 		if schema_.GetColIndex(*colName) == math.MaxUint32 {
 			msg := "data type of " + *colName + " is wrong."

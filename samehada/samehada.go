@@ -1,7 +1,6 @@
 package samehada
 
 import (
-	"fmt"
 	"github.com/ryogrid/SamehadaDB/catalog"
 	"github.com/ryogrid/SamehadaDB/execution/executors"
 	"github.com/ryogrid/SamehadaDB/parser"
@@ -53,7 +52,7 @@ func (sdb *SamehadaDB) ExecuteSQL(sqlStr string) (error, [][]*types.Value) {
 	}
 
 	outSchema := plan.OutputSchema()
-	fmt.Println(result, outSchema)
+	//fmt.Println(result, outSchema)
 	retVals := ConvTupleListToValues(outSchema, result)
 
 	return nil, retVals
