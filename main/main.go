@@ -8,6 +8,7 @@ import (
 )
 
 func PrintExecuteResults(results [][]*types.Value) {
+	fmt.Println("----")
 	for _, valList := range results {
 		for _, val := range valList {
 			fmt.Printf("%s ", val.ToString())
@@ -34,6 +35,8 @@ func main() {
 	PrintExecuteResults(results2)
 	_, results3 := db.ExecuteSQL("SELECT name, age FROM name_age_list WHERE age >= 20;")
 	PrintExecuteResults(results3)
-	_, results4 := db.ExecuteSQL("SELECT name FROM name_age_list WHERE age >= 20;")
+	_, results4 := db.ExecuteSQL("SELECT name, age FROM name_age_list WHERE age <= 23 AND age >= 20;")
 	PrintExecuteResults(results4)
+	_, results5 := db.ExecuteSQL("SELECT * FROM name_age_list WHERE (age = 18 OR age >= 22) AND age < 25;")
+	PrintExecuteResults(results5)
 }
