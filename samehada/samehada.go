@@ -1,6 +1,7 @@
 package samehada
 
 import (
+	"fmt"
 	"github.com/ryogrid/SamehadaDB/catalog"
 	"github.com/ryogrid/SamehadaDB/execution/executors"
 	"github.com/ryogrid/SamehadaDB/parser"
@@ -70,4 +71,14 @@ func ConvTupleListToValues(schema_ *schema.Schema, result []*tuple.Tuple) [][]*t
 		retVals = append(retVals, rowVals)
 	}
 	return retVals
+}
+
+func PrintExecuteResults(results [][]*types.Value) {
+	fmt.Println("----")
+	for _, valList := range results {
+		for _, val := range valList {
+			fmt.Printf("%s ", val.ToString())
+		}
+		fmt.Println("")
+	}
 }
