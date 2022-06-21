@@ -91,11 +91,25 @@ func (pner *SimplePlanner) MakeSelectPlan() (error, plans.Plan) {
 		outSchema = tgtTblSchema
 	}
 
-	tmpColIdx := tgtTblSchema.GetColIndex(*pner.qi.WhereExpression_.Left_.(*string))
-	tmpColVal := expression.NewColumnValue(0, tmpColIdx, pner.qi.WhereExpression_.Right_.(*types.Value).ValueType())
-	expression := expression.NewComparison(tmpColVal, expression.NewConstantValue(*pner.qi.WhereExpression_.Right_.(*types.Value), pner.qi.WhereExpression_.Right_.(*types.Value).ValueType()), pner.qi.WhereExpression_.ComparisonOperationType_, types.Boolean)
+	expression := pner.ConstructPredicate(tgtTblSchema)
 
 	return nil, plans.NewSeqScanPlanNode(outSchema, expression, tableMetadata.OID())
+}
+
+func processPredicateTreeNode(node *parser.BinaryOpExpression, tgtTblSchema *schema.Schema) expression.Expression {
+	if node.LogicalOperationType_ == -1 {
+		tmpColIdx := tgtTblSchema.GetColIndex(*node.Left_.(*string))
+		tmpColVal := expression.NewColumnValue(0, tmpColIdx, node.Right_.(*types.Value).ValueType())
+		return expression.NewComparison(tmpColVal, expression.NewConstantValue(*node.Right_.(*types.Value), node.Right_.(*types.Value).ValueType()), node.ComparisonOperationType_, types.Boolean)
+	} else { // node.ComparisonOperationType == -1
+		left_side_pred := processPredicateTreeNode(node.Right_.(*parser.BinaryOpExpression), tgtTblSchema)
+		right_side_pred := processPredicateTreeNode(node.Right_.(*parser.BinaryOpExpression), tgtTblSchema)
+		return expression.NewLogicalOp(left_side_pred, right_side_pred, node.LogicalOperationType_, types.Boolean)
+	}
+}
+
+func (pner *SimplePlanner) ConstructPredicate(tgtTblSchema *schema.Schema) expression.Expression {
+	return processPredicateTreeNode(pner.qi.WhereExpression_, tgtTblSchema)
 }
 
 func (pner *SimplePlanner) MakeCreateTablePlan() (error, plans.Plan) {
