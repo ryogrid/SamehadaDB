@@ -4,6 +4,7 @@ import (
 	"errors"
 	"fmt"
 	"github.com/ryogrid/SamehadaDB/catalog"
+	"github.com/ryogrid/SamehadaDB/execution/executors"
 	"github.com/ryogrid/SamehadaDB/execution/expression"
 	"github.com/ryogrid/SamehadaDB/execution/plans"
 	"github.com/ryogrid/SamehadaDB/parser"
@@ -13,6 +14,7 @@ import (
 	"github.com/ryogrid/SamehadaDB/storage/table/schema"
 	"github.com/ryogrid/SamehadaDB/types"
 	"math"
+	"strings"
 )
 
 type SimplePlanner struct {
@@ -90,32 +92,12 @@ func (pner *SimplePlanner) MakeSelectPlanWithoutJoin() (error, plans.Plan) {
 		outSchema = tgtTblSchema
 	}
 
-	expression := pner.ConstructPredicate(tgtTblSchema)
+	expression := pner.ConstructPredicate([]*schema.Schema{tgtTblSchema})
 
 	return nil, plans.NewSeqScanPlanNode(outSchema, expression, tableMetadata.OID())
 }
 
 func (pner *SimplePlanner) MakeSelectPlanWithJoin() (error, plans.Plan) {
-	//var scan_plan1 plans.Plan
-	//var out_schema1 *schema.Schema
-	//{
-	//	table_info := executorContext.GetCatalog().GetTableByName("test_1")
-	//	//&schema := table_info.schema_
-	//	colA := column.NewColumn("colA", types.Integer, false, nil)
-	//	colB := column.NewColumn("colB", types.Integer, false, nil)
-	//	out_schema1 = schema.NewSchema([]*column.Column{colA, colB})
-	//	scan_plan1 = plans.NewSeqScanPlanNode(out_schema1, nil, table_info.OID())
-	//}
-	//var scan_plan2 plans.Plan
-	//var out_schema2 *schema.Schema
-	//{
-	//	table_info := executorContext.GetCatalog().GetTableByName("test_2")
-	//	//schema := table_info.schema_
-	//	col1 := column.NewColumn("col1", types.Integer, false, nil)
-	//	col2 := column.NewColumn("col2", types.Integer, false, nil)
-	//	out_schema2 = schema.NewSchema([]*column.Column{col1, col2})
-	//	scan_plan2 = plans.NewSeqScanPlanNode(out_schema2, nil, table_info.OID())
-	//}
 	//var join_plan *plans.HashJoinPlanNode
 	//var out_final *schema.Schema
 	//{
@@ -141,10 +123,74 @@ func (pner *SimplePlanner) MakeSelectPlanWithJoin() (error, plans.Plan) {
 	//	plans_ := []plans.Plan{scan_plan1, scan_plan2}
 	//	join_plan = plans.NewHashJoinPlanNode(out_final, plans_, predicate,
 	//		left_keys, right_keys)
-	//}
-	//
-	//executionEngine := &executors.ExecutionEngine{}
-	//results := executionEngine.Execute(join_plan, executorContext)
+
+	tblNameL := *pner.qi.JoinTables_[0]
+	tableMetadataL := pner.catalog_.GetTableByName(tblNameL)
+	tgtTblSchemaL := tableMetadataL.Schema()
+	tgtTblColumnsL := tgtTblSchemaL.GetColumns()
+
+	tblNameR := *pner.qi.JoinTables_[1]
+	tableMetadataR := pner.catalog_.GetTableByName(tblNameR)
+	tgtTblSchemaR := tableMetadataR.Schema()
+	tgtTblColumnsR := tgtTblSchemaR.GetColumns()
+
+	var outSchemaL *schema.Schema
+	var scanPlanL plans.Plan
+	{
+		var columns []*column.Column = make([]*column.Column, 0)
+		for _, col := range tgtTblColumnsL {
+			columns = append(columns, column.NewColumn(col.GetColumnName(), col.GetType(), false, col.GetExpr()))
+		}
+		outSchemaL = schema.NewSchema(columns)
+		scanPlanL = plans.NewSeqScanPlanNode(outSchemaL, nil, tableMetadataL.OID())
+	}
+
+	var outSchemaR *schema.Schema
+	var scanPlanR plans.Plan
+	{
+		var columns []*column.Column = make([]*column.Column, 0)
+		for _, col := range tgtTblColumnsR {
+			columns = append(columns, column.NewColumn(col.GetColumnName(), col.GetType(), false, col.GetExpr()))
+		}
+		outSchemaR = schema.NewSchema(columns)
+		scanPlanR = plans.NewSeqScanPlanNode(outSchemaR, nil, tableMetadataR.OID())
+	}
+
+	var join_plan *plans.HashJoinPlanNode
+	var out_final *schema.Schema
+	{
+		// new columns have tuple index of 0 because they are the left side of the join
+		colValL := executors.MakeColumnValueExpression(outSchemaL, 0, strings.Split(*pner.qi.OnExpressions_.Left_.(*string), ".")[1])
+
+		colA_c := column.NewColumn("colA", types.Integer, false, nil)
+		colA_c.SetIsLeft(true)
+		colB_c := column.NewColumn("colB", types.Integer, false, nil)
+		colB_c.SetIsLeft(true)
+
+		// new columns have tuple index of 1 because they are the right side of the join
+		colValR := executors.MakeColumnValueExpression(outSchemaR, 1, strings.Split(*pner.qi.OnExpressions_.Right_.(*string), ".")[1])
+
+		col1_c := column.NewColumn("col1", types.Integer, false, nil)
+		col1_c.SetIsLeft(false)
+		col2_c := column.NewColumn("col2", types.Integer, false, nil)
+		col2_c.SetIsLeft(false)
+
+		var left_keys []expression.Expression
+		left_keys = append(left_keys, colValL)
+		var right_keys []expression.Expression
+		right_keys = append(right_keys, colValR)
+		onPredicate := executors.MakeComparisonExpression(colValL, colValR, expression.Equal)
+
+		out_final = schema.NewSchema([]*column.Column{colA_c, colB_c, col1_c, col2_c})
+
+		plans_ := []plans.Plan{scanPlanL, scanPlanR}
+		// TODO: (SDB) need JoinPlan to be able to specify predicate of where clause or to implement
+		//             new filterling (selection) executor
+		join_plan = plans.NewHashJoinPlanNode(out_final, plans_, onPredicate,
+			left_keys, right_keys)
+	}
+
+	whereExp := pner.ConstructPredicate([]*schema.Schema{tgtTblSchemaL, tgtTblSchemaR})
 
 	return nil, nil
 }
@@ -157,20 +203,24 @@ func (pner *SimplePlanner) MakeSelectPlan() (error, plans.Plan) {
 	}
 }
 
-func processPredicateTreeNode(node *parser.BinaryOpExpression, tgtTblSchema *schema.Schema) expression.Expression {
+func processPredicateTreeNode(node *parser.BinaryOpExpression, tgtTblSchemas []*schema.Schema) expression.Expression {
 	if node.LogicalOperationType_ == -1 {
-		tmpColIdx := tgtTblSchema.GetColIndex(*node.Left_.(*string))
-		tmpColVal := expression.NewColumnValue(0, tmpColIdx, node.Right_.(*types.Value).ValueType())
-		return expression.NewComparison(tmpColVal, expression.NewConstantValue(*node.Right_.(*types.Value), node.Right_.(*types.Value).ValueType()), node.ComparisonOperationType_, types.Boolean)
+		if len(tgtTblSchemas) == 1 {
+			tmpColIdx := tgtTblSchemas[0].GetColIndex(*node.Left_.(*string))
+			tmpColVal := expression.NewColumnValue(0, tmpColIdx, node.Right_.(*types.Value).ValueType())
+			return expression.NewComparison(tmpColVal, expression.NewConstantValue(*node.Right_.(*types.Value), node.Right_.(*types.Value).ValueType()), node.ComparisonOperationType_, types.Boolean)
+		} else { // length == 1
+			// TODO: (SDB) need to implent processPredicateTreeNode when query uses JOIN
+		}
 	} else { // node.ComparisonOperationType == -1
-		left_side_pred := processPredicateTreeNode(node.Left_.(*parser.BinaryOpExpression), tgtTblSchema)
-		right_side_pred := processPredicateTreeNode(node.Right_.(*parser.BinaryOpExpression), tgtTblSchema)
+		left_side_pred := processPredicateTreeNode(node.Left_.(*parser.BinaryOpExpression), tgtTblSchemas)
+		right_side_pred := processPredicateTreeNode(node.Right_.(*parser.BinaryOpExpression), tgtTblSchemas)
 		return expression.NewLogicalOp(left_side_pred, right_side_pred, node.LogicalOperationType_, types.Boolean)
 	}
 }
 
-func (pner *SimplePlanner) ConstructPredicate(tgtTblSchema *schema.Schema) expression.Expression {
-	return processPredicateTreeNode(pner.qi.WhereExpression_, tgtTblSchema)
+func (pner *SimplePlanner) ConstructPredicate(tgtTblSchemas []*schema.Schema) expression.Expression {
+	return processPredicateTreeNode(pner.qi.WhereExpression_, tgtTblSchemas)
 }
 
 func (pner *SimplePlanner) MakeCreateTablePlan() (error, plans.Plan) {
