@@ -30,3 +30,26 @@ func TestInsertAndMultiItemPredicateSelect(t *testing.T) {
 	_, results5 := db.ExecuteSQL("SELECT * FROM name_age_list WHERE (age = 18 OR age >= 22) AND age < 25;")
 	samehada.PrintExecuteResults(results5)
 }
+
+// TODO: (SDB) need to check query result (TestHasJoinSelect)
+func TestHasJoinSelect(t *testing.T) {
+	// clear all state of DB
+	os.Remove("example.db")
+	os.Remove("example.log")
+
+	db := samehada.NewSamehadaDB("example")
+	db.ExecuteSQL("CREATE TABLE id_name_list(id INT, name VARCHAR(256));")
+	db.ExecuteSQL("INSERT INTO id_name_list(id, name) VALUES (1, '鈴木');")
+	db.ExecuteSQL("INSERT INTO id_name_list(id, name) VALUES (2, '青木');")
+	db.ExecuteSQL("INSERT INTO id_name_list(id, name) VALUES (3, '山田');")
+	db.ExecuteSQL("INSERT INTO id_name_list(id, name) VALUES (4, '加藤');")
+	db.ExecuteSQL("INSERT INTO id_name_list(id, name) VALUES (5, '木村');")
+	db.ExecuteSQL("CREATE TABLE id_name_list(id INT, buppin VARCHAR(256));")
+	db.ExecuteSQL("INSERT INTO id_buppin_list(id, buppin) VALUES (1, 'Desktop PC');")
+	db.ExecuteSQL("INSERT INTO id_buppin_list(id, buppin) VALUES (1, 'Laptop PC');")
+	db.ExecuteSQL("INSERT INTO id_buppin_list(id, buppin) VALUES (2, '3D Printer');")
+	db.ExecuteSQL("INSERT INTO id_buppin_list(id, buppin) VALUES (4, 'Scanner');")
+	db.ExecuteSQL("INSERT INTO id_buppin_list(id, buppin) VALUES (4, 'Network Switch');")
+	_, results1 := db.ExecuteSQL("SELECT * FROM id_name_list JOIN id_buppin_list ON id_name_list.id = id_buppin_list.id WHERE id_name_list.id < 1;")
+	samehada.PrintExecuteResults(results1)
+}

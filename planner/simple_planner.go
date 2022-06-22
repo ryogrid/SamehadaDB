@@ -46,8 +46,7 @@ func (pner *SimplePlanner) MakePlan(qi *parser.QueryInfo, txn *access.Transactio
 	}
 }
 
-// TODO: (SDB) need to implement MakeSelectPlan method
-func (pner *SimplePlanner) MakeSelectPlan() (error, plans.Plan) {
+func (pner *SimplePlanner) MakeSelectPlanWithoutJoin() (error, plans.Plan) {
 	//columns := []*column.Column{}
 	//for _, c := range testCase.Columns {
 	//	columns = append(columns, column.NewColumn(c.Name, c.Kind, false, nil))
@@ -94,6 +93,68 @@ func (pner *SimplePlanner) MakeSelectPlan() (error, plans.Plan) {
 	expression := pner.ConstructPredicate(tgtTblSchema)
 
 	return nil, plans.NewSeqScanPlanNode(outSchema, expression, tableMetadata.OID())
+}
+
+func (pner *SimplePlanner) MakeSelectPlanWithJoin() (error, plans.Plan) {
+	//var scan_plan1 plans.Plan
+	//var out_schema1 *schema.Schema
+	//{
+	//	table_info := executorContext.GetCatalog().GetTableByName("test_1")
+	//	//&schema := table_info.schema_
+	//	colA := column.NewColumn("colA", types.Integer, false, nil)
+	//	colB := column.NewColumn("colB", types.Integer, false, nil)
+	//	out_schema1 = schema.NewSchema([]*column.Column{colA, colB})
+	//	scan_plan1 = plans.NewSeqScanPlanNode(out_schema1, nil, table_info.OID())
+	//}
+	//var scan_plan2 plans.Plan
+	//var out_schema2 *schema.Schema
+	//{
+	//	table_info := executorContext.GetCatalog().GetTableByName("test_2")
+	//	//schema := table_info.schema_
+	//	col1 := column.NewColumn("col1", types.Integer, false, nil)
+	//	col2 := column.NewColumn("col2", types.Integer, false, nil)
+	//	out_schema2 = schema.NewSchema([]*column.Column{col1, col2})
+	//	scan_plan2 = plans.NewSeqScanPlanNode(out_schema2, nil, table_info.OID())
+	//}
+	//var join_plan *plans.HashJoinPlanNode
+	//var out_final *schema.Schema
+	//{
+	//	// colA and colB have a tuple index of 0 because they are the left side of the join
+	//	//var allocated_exprs []*expression.ColumnValue
+	//	colA := executors.MakeColumnValueExpression(out_schema1, 0, "colA")
+	//	colA_c := column.NewColumn("colA", types.Integer, false, nil)
+	//	colA_c.SetIsLeft(true)
+	//	colB_c := column.NewColumn("colB", types.Integer, false, nil)
+	//	colB_c.SetIsLeft(true)
+	//	// col1 and col2 have a tuple index of 1 because they are the right side of the join
+	//	col1 := executors.MakeColumnValueExpression(out_schema2, 1, "col1")
+	//	col1_c := column.NewColumn("col1", types.Integer, false, nil)
+	//	col1_c.SetIsLeft(false)
+	//	col2_c := column.NewColumn("col2", types.Integer, false, nil)
+	//	col2_c.SetIsLeft(false)
+	//	var left_keys []expression.Expression
+	//	left_keys = append(left_keys, colA)
+	//	var right_keys []expression.Expression
+	//	right_keys = append(right_keys, col1)
+	//	predicate := executors.MakeComparisonExpression(colA, col1, expression.Equal)
+	//	out_final = schema.NewSchema([]*column.Column{colA_c, colB_c, col1_c, col2_c})
+	//	plans_ := []plans.Plan{scan_plan1, scan_plan2}
+	//	join_plan = plans.NewHashJoinPlanNode(out_final, plans_, predicate,
+	//		left_keys, right_keys)
+	//}
+	//
+	//executionEngine := &executors.ExecutionEngine{}
+	//results := executionEngine.Execute(join_plan, executorContext)
+
+	return nil, nil
+}
+
+func (pner *SimplePlanner) MakeSelectPlan() (error, plans.Plan) {
+	if len(pner.qi.JoinTables_) == 1 {
+		return pner.MakeSelectPlanWithoutJoin()
+	} else {
+		return pner.MakeSelectPlanWithJoin()
+	}
 }
 
 func processPredicateTreeNode(node *parser.BinaryOpExpression, tgtTblSchema *schema.Schema) expression.Expression {
