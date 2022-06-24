@@ -163,27 +163,66 @@ func (pner *SimplePlanner) MakeSelectPlanWithJoin() (error, plans.Plan) {
 
 		// new columns have tuple index of 0 because they are the left side of the join
 		colValL := executors.MakeColumnValueExpression(outSchemaL, 0, strings.Split(*pner.qi.OnExpressions_.Left_.(*string), ".")[1])
-		for _, colDef := range tgtTblColumnsL {
-			col := column.NewColumn(tblNameL+"."+colDef.GetColumnName(), colDef.GetType(), false, colDef.GetExpr())
-			col.SetIsLeft(true)
-			finalOutCols = append(finalOutCols, col)
-		}
-
 		// new columns have tuple index of 1 because they are the right side of the join
 		colValR := executors.MakeColumnValueExpression(outSchemaR, 1, strings.Split(*pner.qi.OnExpressions_.Right_.(*string), ".")[1])
-		for _, colDef := range tgtTblColumnsR {
-			col := column.NewColumn(tblNameR+"."+colDef.GetColumnName(), colDef.GetType(), false, colDef.GetExpr())
-			col.SetIsLeft(false)
-			finalOutCols = append(finalOutCols, col)
+
+		if !(len(pner.qi.SelectFields_) == 1 && *pner.qi.SelectFields_[0].ColName_ == "*") {
+			// column existance check
+			for _, sfield := range pner.qi.SelectFields_ {
+				colName := sfield.ColName_
+				tblName := sfield.TableName_
+
+				if *tblName != tblNameL && *tblName != tblNameR {
+					msg := "specified selection " + *tblName + "." + *colName + " is invalid."
+					fmt.Println(msg)
+					return errors.New(msg), nil
+				}
+
+				if pner.catalog_.GetTableByName(*tblName) == nil {
+					msg := "table " + *tblName + " does not exist."
+					fmt.Println(msg)
+					return errors.New(msg), nil
+				}
+
+				tmpSchema := pner.catalog_.GetTableByName(*tblName).Schema()
+				colIdx := tmpSchema.GetColIndex(*colName)
+				if colIdx == math.MaxUint32 {
+					msg := "column " + *colName + " does not exist on " + *tblName + "."
+					fmt.Println(msg)
+					return errors.New(msg), nil
+				}
+
+				colDef := tmpSchema.GetColumn(colIdx)
+				col := column.NewColumn(*tblName+"."+*colName, colDef.GetType(), false, colDef.GetExpr())
+				if *tblName == tblNameL {
+					col.SetIsLeft(true)
+				} else { // Right
+					col.SetIsLeft(false)
+				}
+				// Attention: this method call modifies passed Column objects
+				finalOutCols = append(finalOutCols, col)
+			}
+		} else {
+			for _, colDef := range tgtTblColumnsL {
+				col := column.NewColumn(tblNameL+"."+colDef.GetColumnName(), colDef.GetType(), false, colDef.GetExpr())
+				col.SetIsLeft(true)
+				finalOutCols = append(finalOutCols, col)
+			}
+			for _, colDef := range tgtTblColumnsR {
+				col := column.NewColumn(tblNameR+"."+colDef.GetColumnName(), colDef.GetType(), false, colDef.GetExpr())
+				col.SetIsLeft(false)
+				finalOutCols = append(finalOutCols, col)
+			}
 		}
+
+		outFinal = schema.NewSchema(finalOutCols)
+
+		onPredicate := executors.MakeComparisonExpression(colValL, colValR, expression.Equal)
 
 		var left_keys []expression.Expression
 		left_keys = append(left_keys, colValL)
 		var right_keys []expression.Expression
 		right_keys = append(right_keys, colValR)
-		onPredicate := executors.MakeComparisonExpression(colValL, colValR, expression.Equal)
-
-		outFinal = schema.NewSchema(finalOutCols)
 
 		scanPlans_ := []plans.Plan{scanPlanL, scanPlanR}
 		// TODO: (SDB) need JoinPlan to be able to specify predicate of where clause or to implement
