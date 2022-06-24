@@ -156,24 +156,26 @@ func (pner *SimplePlanner) MakeSelectPlanWithJoin() (error, plans.Plan) {
 		scanPlanR = plans.NewSeqScanPlanNode(outSchemaR, nil, tableMetadataR.OID())
 	}
 
-	var join_plan *plans.HashJoinPlanNode
-	var out_final *schema.Schema
+	var joinPlan *plans.HashJoinPlanNode
+	var outFinal *schema.Schema
 	{
+		finalOutCols := make([]*column.Column, 0)
+
 		// new columns have tuple index of 0 because they are the left side of the join
 		colValL := executors.MakeColumnValueExpression(outSchemaL, 0, strings.Split(*pner.qi.OnExpressions_.Left_.(*string), ".")[1])
-
-		colA_c := column.NewColumn("colA", types.Integer, false, nil)
-		colA_c.SetIsLeft(true)
-		colB_c := column.NewColumn("colB", types.Integer, false, nil)
-		colB_c.SetIsLeft(true)
+		for _, colDef := range tgtTblColumnsL {
+			col := column.NewColumn(tblNameL+"."+colDef.GetColumnName(), colDef.GetType(), false, colDef.GetExpr())
+			col.SetIsLeft(true)
+			finalOutCols = append(finalOutCols, col)
+		}
 
 		// new columns have tuple index of 1 because they are the right side of the join
 		colValR := executors.MakeColumnValueExpression(outSchemaR, 1, strings.Split(*pner.qi.OnExpressions_.Right_.(*string), ".")[1])
-
-		col1_c := column.NewColumn("col1", types.Integer, false, nil)
-		col1_c.SetIsLeft(false)
-		col2_c := column.NewColumn("col2", types.Integer, false, nil)
-		col2_c.SetIsLeft(false)
+		for _, colDef := range tgtTblColumnsR {
+			col := column.NewColumn(tblNameR+"."+colDef.GetColumnName(), colDef.GetType(), false, colDef.GetExpr())
+			col.SetIsLeft(false)
+			finalOutCols = append(finalOutCols, col)
+		}
 
 		var left_keys []expression.Expression
 		left_keys = append(left_keys, colValL)
@@ -181,18 +183,18 @@ func (pner *SimplePlanner) MakeSelectPlanWithJoin() (error, plans.Plan) {
 		right_keys = append(right_keys, colValR)
 		onPredicate := executors.MakeComparisonExpression(colValL, colValR, expression.Equal)
 
-		out_final = schema.NewSchema([]*column.Column{colA_c, colB_c, col1_c, col2_c})
+		outFinal = schema.NewSchema(finalOutCols)
 
-		plans_ := []plans.Plan{scanPlanL, scanPlanR}
+		scanPlans_ := []plans.Plan{scanPlanL, scanPlanR}
 		// TODO: (SDB) need JoinPlan to be able to specify predicate of where clause or to implement
 		//             new filterling (selection) executor
-		join_plan = plans.NewHashJoinPlanNode(out_final, plans_, onPredicate,
+		joinPlan = plans.NewHashJoinPlanNode(outFinal, scanPlans_, onPredicate,
 			left_keys, right_keys)
 	}
 
-	whereExp := pner.ConstructPredicate([]*schema.Schema{tgtTblSchemaL, tgtTblSchemaR})
+	//whereExp := pner.ConstructPredicate([]*schema.Schema{tgtTblSchemaL, tgtTblSchemaR})
 
-	return nil, nil
+	return nil, joinPlan
 }
 
 func (pner *SimplePlanner) MakeSelectPlan() (error, plans.Plan) {
@@ -205,13 +207,14 @@ func (pner *SimplePlanner) MakeSelectPlan() (error, plans.Plan) {
 
 func processPredicateTreeNode(node *parser.BinaryOpExpression, tgtTblSchemas []*schema.Schema) expression.Expression {
 	if node.LogicalOperationType_ == -1 {
-		if len(tgtTblSchemas) == 1 {
-			tmpColIdx := tgtTblSchemas[0].GetColIndex(*node.Left_.(*string))
-			tmpColVal := expression.NewColumnValue(0, tmpColIdx, node.Right_.(*types.Value).ValueType())
-			return expression.NewComparison(tmpColVal, expression.NewConstantValue(*node.Right_.(*types.Value), node.Right_.(*types.Value).ValueType()), node.ComparisonOperationType_, types.Boolean)
-		} else { // length == 1
-			// TODO: (SDB) need to implent processPredicateTreeNode when query uses JOIN
-		}
+		//if len(tgtTblSchemas) == 1 {
+		tmpColIdx := tgtTblSchemas[0].GetColIndex(*node.Left_.(*string))
+		tmpColVal := expression.NewColumnValue(0, tmpColIdx, node.Right_.(*types.Value).ValueType())
+		return expression.NewComparison(tmpColVal, expression.NewConstantValue(*node.Right_.(*types.Value), node.Right_.(*types.Value).ValueType()), node.ComparisonOperationType_, types.Boolean)
+		//} else { // length != 1
+		//	// TODO: (SDB) may need to enhance processPredicateTreeNode for query uses JOIN (= multi table)
+		//	//             with considering table name prefix
+		//}
 	} else { // node.ComparisonOperationType == -1
 		left_side_pred := processPredicateTreeNode(node.Left_.(*parser.BinaryOpExpression), tgtTblSchemas)
 		right_side_pred := processPredicateTreeNode(node.Right_.(*parser.BinaryOpExpression), tgtTblSchemas)
