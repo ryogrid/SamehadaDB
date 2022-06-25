@@ -49,17 +49,6 @@ func (pner *SimplePlanner) MakePlan(qi *parser.QueryInfo, txn *access.Transactio
 }
 
 func (pner *SimplePlanner) MakeSelectPlanWithoutJoin() (error, plans.Plan) {
-	//columns := []*column.Column{}
-	//for _, c := range testCase.Columns {
-	//	columns = append(columns, column.NewColumn(c.Name, c.Kind, false, nil))
-	//}
-	//outSchema := schema.NewSchema(columns)
-	//
-	//tmpColVal_ := expression.NewColumnValue(0, testCase.TableMetadata.Schema().GetColIndex(testCase.OnPredicate.LeftColumn), GetValueType(testCase.OnPredicate.RightColumn))
-	//tmpColVal := tmpColVal_.(*expression.ColumnValue)
-	//expression := expression.NewComparison(tmpColVal, expression.NewConstantValue(GetValue(testCase.OnPredicate.RightColumn), GetValueType(testCase.OnPredicate.RightColumn)), testCase.OnPredicate.Operator, types.Boolean)
-	//seqPlan := plans.NewSeqScanPlanNode(outSchema, expression, testCase.TableMetadata.OID())
-
 	tblName := *pner.qi.JoinTables_[0]
 	tableMetadata := pner.catalog_.GetTableByName(tblName)
 
@@ -90,38 +79,12 @@ func (pner *SimplePlanner) MakeSelectPlanWithoutJoin() (error, plans.Plan) {
 		outSchema = tgtTblSchema
 	}
 
-	expression := pner.ConstructPredicate([]*schema.Schema{tgtTblSchema})
+	expression := pner.ConstructPredicate([]*schema.Schema{tgtTblSchema}, outSchema)
 
 	return nil, plans.NewSeqScanPlanNode(outSchema, expression, tableMetadata.OID())
 }
 
 func (pner *SimplePlanner) MakeSelectPlanWithJoin() (error, plans.Plan) {
-	//var join_plan *plans.HashJoinPlanNode
-	//var out_final *schema.Schema
-	//{
-	//	// colA and colB have a tuple index of 0 because they are the left side of the join
-	//	//var allocated_exprs []*expression.ColumnValue
-	//	colA := executors.MakeColumnValueExpression(out_schema1, 0, "colA")
-	//	colA_c := column.NewColumn("colA", types.Integer, false, nil)
-	//	colA_c.SetIsLeft(true)
-	//	colB_c := column.NewColumn("colB", types.Integer, false, nil)
-	//	colB_c.SetIsLeft(true)
-	//	// col1 and col2 have a tuple index of 1 because they are the right side of the join
-	//	col1 := executors.MakeColumnValueExpression(out_schema2, 1, "col1")
-	//	col1_c := column.NewColumn("col1", types.Integer, false, nil)
-	//	col1_c.SetIsLeft(false)
-	//	col2_c := column.NewColumn("col2", types.Integer, false, nil)
-	//	col2_c.SetIsLeft(false)
-	//	var left_keys []expression.Expression
-	//	left_keys = append(left_keys, colA)
-	//	var right_keys []expression.Expression
-	//	right_keys = append(right_keys, col1)
-	//	predicate := executors.MakeComparisonExpression(colA, col1, expression.Equal)
-	//	out_final = schema.NewSchema([]*column.Column{colA_c, colB_c, col1_c, col2_c})
-	//	plans_ := []plans.Plan{scan_plan1, scan_plan2}
-	//	join_plan = plans.NewHashJoinPlanNode(out_final, plans_, predicate,
-	//		left_keys, right_keys)
-
 	tblNameL := *pner.qi.JoinTables_[0]
 	tableMetadataL := pner.catalog_.GetTableByName(tblNameL)
 	tgtTblSchemaL := tableMetadataL.Schema()
@@ -155,7 +118,7 @@ func (pner *SimplePlanner) MakeSelectPlanWithJoin() (error, plans.Plan) {
 	}
 
 	var joinPlan *plans.HashJoinPlanNode
-	//var outFinal *schema.Schema
+	var outFinal *schema.Schema
 	{
 		finalOutCols := make([]*column.Column, 0)
 
@@ -207,7 +170,7 @@ func (pner *SimplePlanner) MakeSelectPlanWithJoin() (error, plans.Plan) {
 			}
 		}
 
-		outFinal := schema.NewSchema(finalOutCols)
+		outFinal = schema.NewSchema(finalOutCols)
 
 		onPredicate := executors.MakeComparisonExpression(colValL, colValR, expression.Equal)
 
@@ -222,11 +185,12 @@ func (pner *SimplePlanner) MakeSelectPlanWithJoin() (error, plans.Plan) {
 	}
 
 	if pner.qi.WhereExpression_.Left_ != nil && pner.qi.WhereExpression_.Left_ != nil {
-		whereExp := pner.ConstructPredicate([]*schema.Schema{tgtTblSchemaL, tgtTblSchemaR})
+		whereExp := pner.ConstructPredicate([]*schema.Schema{tgtTblSchemaL, tgtTblSchemaR}, outFinal)
 		// filter joined recoreds with predicate which is specified on WHERE clause if needed
 		filterPlan := plans.NewFilterPlanNode(joinPlan, whereExp)
 		return nil, filterPlan
 	} else {
+		// has now WHERE clause
 		return nil, joinPlan
 	}
 }
@@ -239,24 +203,60 @@ func (pner *SimplePlanner) MakeSelectPlan() (error, plans.Plan) {
 	}
 }
 
-func processPredicateTreeNode(node *parser.BinaryOpExpression, tgtTblSchemas []*schema.Schema) expression.Expression {
+func processPredicateTreeNode(node *parser.BinaryOpExpression, tgtTblSchemas []*schema.Schema, outSchema *schema.Schema) expression.Expression {
 	if node.LogicalOperationType_ != -1 { // node of logical operation
-		left_side_pred := processPredicateTreeNode(node.Left_.(*parser.BinaryOpExpression), tgtTblSchemas)
-		right_side_pred := processPredicateTreeNode(node.Right_.(*parser.BinaryOpExpression), tgtTblSchemas)
+		left_side_pred := processPredicateTreeNode(node.Left_.(*parser.BinaryOpExpression), tgtTblSchemas, outSchema)
+		right_side_pred := processPredicateTreeNode(node.Right_.(*parser.BinaryOpExpression), tgtTblSchemas, outSchema)
 		return expression.NewLogicalOp(left_side_pred, right_side_pred, node.LogicalOperationType_, types.Boolean)
 	} else { // node of conpare operation
-		// TODO: (SDB) need to validate specified table name prefix, column name and literal (processPredicateTreeNode of SimplePlanner)
 		colName := *node.Left_.(*string)
-		tmpColIdx := tgtTblSchemas[0].GetColIndex(colName)
-		tmpColVal := expression.NewColumnValue(0, tmpColIdx, node.Right_.(*types.Value).ValueType())
-		constVal := expression.NewConstantValue(*node.Right_.(*types.Value), node.Right_.(*types.Value).ValueType())
+		specfiedVal := node.Right_.(*types.Value)
+
+		// TODO: (SDB) need to validate specified table name prefix, column name and literal (processPredicateTreeNode of SimplePlanner)
+		//             without use of panic function
+
+		//splited := strings.Split(colName, ".")
+		//
+		//var colNamePart *string = nil
+		//if len(splited) > 1 {
+		//	colNamePart = &splited[1]
+		//} else {
+		//	// has no table name prefix
+		//	colNamePart = &colName
+		//}
+
+		//var tmpColIdx uint32 = math.MaxUint32
+		//for _, schema_ := range tgtTblSchemas {
+		//	idx := schema_.GetColIndex(*colNamePart)
+		//	if idx != math.MaxUint32 {
+		//		tmpColIdx = idx
+		//		break
+		//	}
+		//}
+		//if tmpColIdx == math.MaxUint32 {
+		//	panic("in WHERE clause, column name part of " + colName + " is invalid.")
+		//}
+
+		var tmpColIdx uint32
+		if len(tgtTblSchemas) > 1 {
+			// with JOIN case
+			// because FilterExecutor is used, refer outSchema
+			tmpColIdx = outSchema.GetColIndex(colName)
+		} else {
+			// without JOIN case
+			// because SeqScanExecute is used, refer schema of data source table
+			tmpColIdx = tgtTblSchemas[0].GetColIndex(colName)
+		}
+
+		tmpColVal := expression.NewColumnValue(0, tmpColIdx, specfiedVal.ValueType())
+		constVal := expression.NewConstantValue(*specfiedVal, specfiedVal.ValueType())
 
 		return expression.NewComparison(tmpColVal, constVal, node.ComparisonOperationType_, types.Boolean)
 	}
 }
 
-func (pner *SimplePlanner) ConstructPredicate(tgtTblSchemas []*schema.Schema) expression.Expression {
-	return processPredicateTreeNode(pner.qi.WhereExpression_, tgtTblSchemas)
+func (pner *SimplePlanner) ConstructPredicate(tgtTblSchemas []*schema.Schema, outSchema *schema.Schema) expression.Expression {
+	return processPredicateTreeNode(pner.qi.WhereExpression_, tgtTblSchemas, outSchema)
 }
 
 func (pner *SimplePlanner) MakeCreateTablePlan() (error, plans.Plan) {
