@@ -81,9 +81,7 @@ func (pner *SimplePlanner) MakeSelectPlanWithoutJoin() (error, plans.Plan) {
 				}
 			}
 			if !isOk {
-				msg := "column " + *colName + " does not exist."
-				fmt.Println(msg)
-				return errors.New(msg), nil
+				return PrintAndCreateError("column " + *colName + " does not exist.")
 			}
 		}
 		// Attention: this method call modifies passed Column objects
@@ -173,23 +171,17 @@ func (pner *SimplePlanner) MakeSelectPlanWithJoin() (error, plans.Plan) {
 				tblName := sfield.TableName_
 
 				if *tblName != tblNameL && *tblName != tblNameR {
-					msg := "specified selection " + *tblName + "." + *colName + " is invalid."
-					fmt.Println(msg)
-					return errors.New(msg), nil
+					return PrintAndCreateError("specified selection " + *tblName + "." + *colName + " is invalid.")
 				}
 
 				if pner.catalog_.GetTableByName(*tblName) == nil {
-					msg := "table " + *tblName + " does not exist."
-					fmt.Println(msg)
-					return errors.New(msg), nil
+					return PrintAndCreateError("table " + *tblName + " does not exist.")
 				}
 
 				tmpSchema := pner.catalog_.GetTableByName(*tblName).Schema()
 				colIdx := tmpSchema.GetColIndex(*colName)
 				if colIdx == math.MaxUint32 {
-					msg := "column " + *colName + " does not exist on " + *tblName + "."
-					fmt.Println(msg)
-					return errors.New(msg), nil
+					return PrintAndCreateError("column " + *colName + " does not exist on " + *tblName + ".")
 				}
 
 				colDef := tmpSchema.GetColumn(colIdx)
@@ -229,12 +221,14 @@ func (pner *SimplePlanner) MakeSelectPlanWithJoin() (error, plans.Plan) {
 			left_keys, right_keys)
 	}
 
-	whereExp := pner.ConstructPredicate([]*schema.Schema{tgtTblSchemaL, tgtTblSchemaR})
-
-	// filter joined recoreds with predicate which is specified on WHERE clause
-	filterPlan := plans.NewFilterPlanNode(joinPlan, whereExp)
-
-	return nil, filterPlan
+	if pner.qi.WhereExpression_.Left_ != nil && pner.qi.WhereExpression_.Left_ != nil {
+		whereExp := pner.ConstructPredicate([]*schema.Schema{tgtTblSchemaL, tgtTblSchemaR})
+		// filter joined recoreds with predicate which is specified on WHERE clause if needed
+		filterPlan := plans.NewFilterPlanNode(joinPlan, whereExp)
+		return nil, filterPlan
+	} else {
+		return nil, joinPlan
+	}
 }
 
 func (pner *SimplePlanner) MakeSelectPlan() (error, plans.Plan) {
@@ -246,19 +240,18 @@ func (pner *SimplePlanner) MakeSelectPlan() (error, plans.Plan) {
 }
 
 func processPredicateTreeNode(node *parser.BinaryOpExpression, tgtTblSchemas []*schema.Schema) expression.Expression {
-	if node.LogicalOperationType_ == -1 {
-		//if len(tgtTblSchemas) == 1 {
-		tmpColIdx := tgtTblSchemas[0].GetColIndex(*node.Left_.(*string))
-		tmpColVal := expression.NewColumnValue(0, tmpColIdx, node.Right_.(*types.Value).ValueType())
-		return expression.NewComparison(tmpColVal, expression.NewConstantValue(*node.Right_.(*types.Value), node.Right_.(*types.Value).ValueType()), node.ComparisonOperationType_, types.Boolean)
-		//} else { // length != 1
-		//	// TODO: (SDB) may need to enhance processPredicateTreeNode for query uses JOIN (= multi table)
-		//	//             with considering table name prefix
-		//}
-	} else { // node.ComparisonOperationType == -1
+	if node.LogicalOperationType_ != -1 { // node of logical operation
 		left_side_pred := processPredicateTreeNode(node.Left_.(*parser.BinaryOpExpression), tgtTblSchemas)
 		right_side_pred := processPredicateTreeNode(node.Right_.(*parser.BinaryOpExpression), tgtTblSchemas)
 		return expression.NewLogicalOp(left_side_pred, right_side_pred, node.LogicalOperationType_, types.Boolean)
+	} else { // node of conpare operation
+		// TODO: (SDB) need to validate specified table name prefix, column name and literal (processPredicateTreeNode of SimplePlanner)
+		colName := *node.Left_.(*string)
+		tmpColIdx := tgtTblSchemas[0].GetColIndex(colName)
+		tmpColVal := expression.NewColumnValue(0, tmpColIdx, node.Right_.(*types.Value).ValueType())
+		constVal := expression.NewConstantValue(*node.Right_.(*types.Value), node.Right_.(*types.Value).ValueType())
+
+		return expression.NewComparison(tmpColVal, constVal, node.ComparisonOperationType_, types.Boolean)
 	}
 }
 
@@ -268,9 +261,7 @@ func (pner *SimplePlanner) ConstructPredicate(tgtTblSchemas []*schema.Schema) ex
 
 func (pner *SimplePlanner) MakeCreateTablePlan() (error, plans.Plan) {
 	if pner.catalog_.GetTableByName(*pner.qi.NewTable_) != nil {
-		msg := "already " + *pner.qi.NewTable_ + " exists."
-		fmt.Println(msg)
-		return errors.New(msg), nil
+		return PrintAndCreateError("already " + *pner.qi.NewTable_ + " exists.")
 	}
 
 	columns := make([]*column.Column, 0)
@@ -284,12 +275,15 @@ func (pner *SimplePlanner) MakeCreateTablePlan() (error, plans.Plan) {
 	return nil, nil
 }
 
+func PrintAndCreateError(msg string) (error, plans.Plan) {
+	fmt.Println(msg)
+	return errors.New(msg), nil
+}
+
 func (pner *SimplePlanner) MakeInsertPlan() (error, plans.Plan) {
 	tableMetadata := pner.catalog_.GetTableByName(*pner.qi.JoinTables_[0])
 	if tableMetadata == nil {
-		msg := "table " + *pner.qi.JoinTables_[0] + " not found."
-		fmt.Println(msg)
-		return errors.New(msg), nil
+		return PrintAndCreateError("table " + *pner.qi.JoinTables_[0] + " not found.")
 	}
 
 	schema_ := tableMetadata.Schema()
@@ -301,15 +295,11 @@ func (pner *SimplePlanner) MakeInsertPlan() (error, plans.Plan) {
 	for idx, colName := range pner.qi.TargetCols_ {
 		val := pner.qi.Values_[idx-(tgtColNum*insertRowCnt)]
 		if schema_.GetColIndex(*colName) == math.MaxUint32 {
-			msg := "data type of " + *colName + " is wrong."
-			fmt.Println(msg)
-			return errors.New(msg), nil
+			return PrintAndCreateError("data type of " + *colName + " is wrong.")
 		}
 		valType := schema_.GetColumn(schema_.GetColIndex(*colName)).GetType()
 		if val.ValueType() != valType {
-			msg := "data type of " + *colName + " is wrong."
-			fmt.Println(msg)
-			return errors.New(msg), nil
+			return PrintAndCreateError("data type of " + *colName + " is wrong.")
 		}
 		row = append(row, *val)
 		valCnt++
