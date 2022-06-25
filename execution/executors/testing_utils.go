@@ -91,15 +91,9 @@ func ExecuteHashIndexScanTestCase(t *testing.T, testCase HashIndexScanTestCase) 
 	}
 	outSchema := schema.NewSchema(columns)
 
-	//expression := expression.NewComparisonAsComparison(expression.NewColumnValue(0, testCase.TableMetadata.Schema().GetColIndex(testCase.OnPredicate.LeftColumn)), expression.NewConstantValue(getValue(testCase.OnPredicate.RightColumn)), testCase.OnPredicate.Operator)
-	//seqPlan := plans.NewSeqScanPlanNode(outSchema, &expression, testCase.TableMetadata.OID())
-	// tmpColVal := new(expression.ColumnValue)
-	// tmpColVal.SetTupleIndex(0)
-	// tmpColVal.SetColIndex(testCase.TableMetadata.Schema().GetColIndex(testCase.OnPredicate.LeftColumn))
-	// tmpColVal.SetReturnType(GetValueType(testCase.OnPredicate.RightColumn))
 	tmpColVal_ := expression.NewColumnValue(0, testCase.TableMetadata.Schema().GetColIndex(testCase.Predicate.LeftColumn), GetValueType(testCase.Predicate.RightColumn))
 	tmpColVal := tmpColVal_.(*expression.ColumnValue)
-	//expression := expression.NewComparisonAsComparison(*tmpColVal, expression.NewConstantValue(GetValue(testCase.OnPredicate.RightColumn), GetValueType(testCase.OnPredicate.RightColumn)), testCase.OnPredicate.Operator, types.Boolean)
+
 	expression_ := expression.NewComparison(tmpColVal, expression.NewConstantValue(GetValue(testCase.Predicate.RightColumn), GetValueType(testCase.Predicate.RightColumn)), testCase.Predicate.Operator, types.Boolean)
 	hashIndexScanPlan := plans.NewHashScanIndexPlanNode(outSchema, expression_.(*expression.Comparison), testCase.TableMetadata.OID())
 
@@ -133,10 +127,6 @@ func ExecuteDeleteTestCase(t *testing.T, testCase DeleteTestCase) {
 	}
 	outSchema := schema.NewSchema(columns)
 
-	// tmpColVal := new(expression.ColumnValue)
-	// tmpColVal.SetTupleIndex(0)
-	// tmpColVal.SetColIndex(testCase.TableMetadata.Schema().GetColIndex(testCase.OnPredicate.LeftColumn))
-	// tmpColVal.SetReturnType(GetValueType(testCase.OnPredicate.RightColumn))
 	tmpColVal_ := expression.NewColumnValue(0, testCase.TableMetadata.Schema().GetColIndex(testCase.Predicate.LeftColumn), GetValueType(testCase.Predicate.RightColumn))
 	tmpColVal := tmpColVal_.(*expression.ColumnValue)
 	expression := expression.NewComparison(tmpColVal, expression.NewConstantValue(GetValue(testCase.Predicate.RightColumn), GetValueType(testCase.Predicate.RightColumn)), testCase.Predicate.Operator, types.Boolean)
