@@ -55,9 +55,9 @@ func (pner *SimplePlanner) MakeSelectPlanWithoutJoin() (error, plans.Plan) {
 	//}
 	//outSchema := schema.NewSchema(columns)
 	//
-	//tmpColVal_ := expression.NewColumnValue(0, testCase.TableMetadata.Schema().GetColIndex(testCase.Predicate.LeftColumn), GetValueType(testCase.Predicate.RightColumn))
+	//tmpColVal_ := expression.NewColumnValue(0, testCase.TableMetadata.Schema().GetColIndex(testCase.OnPredicate.LeftColumn), GetValueType(testCase.OnPredicate.RightColumn))
 	//tmpColVal := tmpColVal_.(*expression.ColumnValue)
-	//expression := expression.NewComparison(tmpColVal, expression.NewConstantValue(GetValue(testCase.Predicate.RightColumn), GetValueType(testCase.Predicate.RightColumn)), testCase.Predicate.Operator, types.Boolean)
+	//expression := expression.NewComparison(tmpColVal, expression.NewConstantValue(GetValue(testCase.OnPredicate.RightColumn), GetValueType(testCase.OnPredicate.RightColumn)), testCase.OnPredicate.Operator, types.Boolean)
 	//seqPlan := plans.NewSeqScanPlanNode(outSchema, expression, testCase.TableMetadata.OID())
 
 	tblName := *pner.qi.JoinTables_[0]
@@ -157,7 +157,7 @@ func (pner *SimplePlanner) MakeSelectPlanWithJoin() (error, plans.Plan) {
 	}
 
 	var joinPlan *plans.HashJoinPlanNode
-	var outFinal *schema.Schema
+	//var outFinal *schema.Schema
 	{
 		finalOutCols := make([]*column.Column, 0)
 
@@ -215,7 +215,7 @@ func (pner *SimplePlanner) MakeSelectPlanWithJoin() (error, plans.Plan) {
 			}
 		}
 
-		outFinal = schema.NewSchema(finalOutCols)
+		outFinal := schema.NewSchema(finalOutCols)
 
 		onPredicate := executors.MakeComparisonExpression(colValL, colValR, expression.Equal)
 
@@ -225,15 +225,16 @@ func (pner *SimplePlanner) MakeSelectPlanWithJoin() (error, plans.Plan) {
 		right_keys = append(right_keys, colValR)
 
 		scanPlans_ := []plans.Plan{scanPlanL, scanPlanR}
-		// TODO: (SDB) need JoinPlan to be able to specify predicate of where clause or to implement
-		//             new filterling (selection) executor
 		joinPlan = plans.NewHashJoinPlanNode(outFinal, scanPlans_, onPredicate,
 			left_keys, right_keys)
 	}
 
-	//whereExp := pner.ConstructPredicate([]*schema.Schema{tgtTblSchemaL, tgtTblSchemaR})
+	whereExp := pner.ConstructPredicate([]*schema.Schema{tgtTblSchemaL, tgtTblSchemaR})
 
-	return nil, joinPlan
+	// filter joined recoreds with predicate which is specified on WHERE clause
+	filterPlan := plans.NewFilterPlanNode(joinPlan, whereExp)
+
+	return nil, filterPlan
 }
 
 func (pner *SimplePlanner) MakeSelectPlan() (error, plans.Plan) {

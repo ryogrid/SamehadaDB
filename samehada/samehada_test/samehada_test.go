@@ -50,9 +50,11 @@ func TestHasJoinSelect(t *testing.T) {
 	db.ExecuteSQL("INSERT INTO id_buppin_list(id, buppin) VALUES (2, '3D Printer');")
 	db.ExecuteSQL("INSERT INTO id_buppin_list(id, buppin) VALUES (4, 'Scanner');")
 	db.ExecuteSQL("INSERT INTO id_buppin_list(id, buppin) VALUES (4, 'Network Switch');")
-	//_, results1 := db.ExecuteSQL("SELECT * FROM id_name_list JOIN id_buppin_list ON id_name_list.id = id_buppin_list.id WHERE id_name_list.id < 1;")
 	_, results1 := db.ExecuteSQL("SELECT * FROM id_name_list JOIN id_buppin_list ON id_name_list.id = id_buppin_list.id;")
 	samehada.PrintExecuteResults(results1)
 	_, results2 := db.ExecuteSQL("SELECT id_buppin_list.id, id_buppin_list.buppin FROM id_name_list JOIN id_buppin_list ON id_name_list.id = id_buppin_list.id;")
 	samehada.PrintExecuteResults(results2)
+	_, results3 := db.ExecuteSQL("SELECT * FROM id_name_list JOIN id_buppin_list ON id_name_list.id = id_buppin_list.id WHERE id_name_list.id < 1;")
+	samehada.PrintExecuteResults(results3)
+
 }

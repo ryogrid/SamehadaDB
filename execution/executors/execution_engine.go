@@ -58,6 +58,8 @@ func (e *ExecutionEngine) CreateExecutor(plan plans.Plan, context *ExecutorConte
 		return NewAggregationExecutor(context, p, e.CreateExecutor(plan.GetChildAt(0), context))
 	case *plans.OrderbyPlanNode:
 		return NewOrderbyExecutor(context, p, e.CreateExecutor(plan.GetChildAt(0), context))
+	case *plans.FilterPlanNode:
+		return NewFilterExecutor(context, p, e.CreateExecutor(plan.GetChildAt(0), context))
 	}
 	return nil
 }

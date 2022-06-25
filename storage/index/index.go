@@ -82,7 +82,7 @@ func (im *IndexMetadata) GetKeyAttrs() []uint32 { return im.key_attrs }
  * the actual implementation's interface.
  *
  * Index object also handles predicate scan, in addition to simple insert,
- * delete, predicate insert, point query, and full index scan. Predicate scan
+ * delete, predicate insert, point query, and full index scan. OnPredicate scan
  * only supports conjunction, and may or may not be optimized depending on
  * the type of expressions inside the predicate.
  */

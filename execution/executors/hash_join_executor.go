@@ -89,8 +89,8 @@ func (e *HashJoinExecutor) Init() {
 	// build hash table from left
 	e.left_.Init()
 	e.right_.Init()
-	e.left_expr_ = e.plan_.Predicate().GetChildAt(0)
-	e.right_expr_ = e.plan_.Predicate().GetChildAt(1)
+	e.left_expr_ = e.plan_.OnPredicate().GetChildAt(0)
+	e.right_expr_ = e.plan_.OnPredicate().GetChildAt(1)
 	//var left_tuple tuple.Tuple
 	// store all the left tuples in tmp pages in that it can not fit in memory
 	// use tmp tuple as the value of the hash table kv pair
@@ -190,7 +190,7 @@ func (e *HashJoinExecutor) FetchTupleFromTmpTuplePage(tuple_ *tuple.Tuple, tmp_t
 }
 
 func (e *HashJoinExecutor) IsValidCombination(left_tuple *tuple.Tuple, right_tuple *tuple.Tuple) bool {
-	return e.plan_.Predicate().EvaluateJoin(left_tuple, e.left_.GetOutputSchema(), right_tuple, e.right_.GetOutputSchema()).ToBoolean()
+	return e.plan_.OnPredicate().EvaluateJoin(left_tuple, e.left_.GetOutputSchema(), right_tuple, e.right_.GetOutputSchema()).ToBoolean()
 }
 
 func (e *HashJoinExecutor) MakeOutputTuple(left_tuple *tuple.Tuple, right_tuple *tuple.Tuple) *tuple.Tuple {

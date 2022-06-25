@@ -19,6 +19,7 @@ const (
 	HashJoin
 	Aggregation
 	Orderby
+	Filter
 )
 
 type Plan interface {
