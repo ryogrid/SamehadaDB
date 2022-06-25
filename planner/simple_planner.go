@@ -100,7 +100,7 @@ func (pner *SimplePlanner) MakeSelectPlanWithJoin() (error, plans.Plan) {
 	{
 		var columns []*column.Column = make([]*column.Column, 0)
 		for _, col := range tgtTblColumnsL {
-			columns = append(columns, column.NewColumn(col.GetColumnName(), col.GetType(), false, col.GetExpr()))
+			columns = append(columns, column.NewColumn(tblNameL+"."+col.GetColumnName(), col.GetType(), false, col.GetExpr()))
 		}
 		outSchemaL = schema.NewSchema(columns)
 		scanPlanL = plans.NewSeqScanPlanNode(outSchemaL, nil, tableMetadataL.OID())
@@ -111,7 +111,7 @@ func (pner *SimplePlanner) MakeSelectPlanWithJoin() (error, plans.Plan) {
 	{
 		var columns []*column.Column = make([]*column.Column, 0)
 		for _, col := range tgtTblColumnsR {
-			columns = append(columns, column.NewColumn(col.GetColumnName(), col.GetType(), false, col.GetExpr()))
+			columns = append(columns, column.NewColumn(tblNameR+"."+col.GetColumnName(), col.GetType(), false, col.GetExpr()))
 		}
 		outSchemaR = schema.NewSchema(columns)
 		scanPlanR = plans.NewSeqScanPlanNode(outSchemaR, nil, tableMetadataR.OID())
@@ -119,6 +119,7 @@ func (pner *SimplePlanner) MakeSelectPlanWithJoin() (error, plans.Plan) {
 
 	var joinPlan *plans.HashJoinPlanNode
 	var outFinal *schema.Schema
+	var filterOut *schema.Schema
 	{
 		finalOutCols := make([]*column.Column, 0)
 
@@ -127,7 +128,24 @@ func (pner *SimplePlanner) MakeSelectPlanWithJoin() (error, plans.Plan) {
 		// new columns have tuple index of 1 because they are the right side of the join
 		colValR := executors.MakeColumnValueExpression(outSchemaR, 1, strings.Split(*pner.qi.OnExpressions_.Right_.(*string), ".")[1])
 
-		if !(len(pner.qi.SelectFields_) == 1 && *pner.qi.SelectFields_[0].ColName_ == "*") {
+		for _, colDef := range tgtTblColumnsL {
+			col := column.NewColumn(tblNameL+"."+colDef.GetColumnName(), colDef.GetType(), false, colDef.GetExpr())
+			col.SetIsLeft(true)
+			finalOutCols = append(finalOutCols, col)
+		}
+		for _, colDef := range tgtTblColumnsR {
+			col := column.NewColumn(tblNameR+"."+colDef.GetColumnName(), colDef.GetType(), false, colDef.GetExpr())
+			col.SetIsLeft(false)
+			finalOutCols = append(finalOutCols, col)
+		}
+		// output schema of HashJoinExecutor
+		outFinal = schema.NewSchema(finalOutCols)
+
+		if len(pner.qi.SelectFields_) == 1 && *pner.qi.SelectFields_[0].ColName_ == "*" {
+			// both schema includes all columns
+			filterOut = outFinal
+		} else {
+			filterOutCols := make([]*column.Column, 0)
 			// column existance check
 			for _, sfield := range pner.qi.SelectFields_ {
 				colName := sfield.ColName_
@@ -155,22 +173,10 @@ func (pner *SimplePlanner) MakeSelectPlanWithJoin() (error, plans.Plan) {
 					col.SetIsLeft(false)
 				}
 				// Attention: this method call modifies passed Column objects
-				finalOutCols = append(finalOutCols, col)
+				filterOutCols = append(filterOutCols, col)
 			}
-		} else {
-			for _, colDef := range tgtTblColumnsL {
-				col := column.NewColumn(tblNameL+"."+colDef.GetColumnName(), colDef.GetType(), false, colDef.GetExpr())
-				col.SetIsLeft(true)
-				finalOutCols = append(finalOutCols, col)
-			}
-			for _, colDef := range tgtTblColumnsR {
-				col := column.NewColumn(tblNameR+"."+colDef.GetColumnName(), colDef.GetType(), false, colDef.GetExpr())
-				col.SetIsLeft(false)
-				finalOutCols = append(finalOutCols, col)
-			}
+			filterOut = schema.NewSchema(finalOutCols)
 		}
-
-		outFinal = schema.NewSchema(finalOutCols)
 
 		onPredicate := executors.MakeComparisonExpression(colValL, colValR, expression.Equal)
 
@@ -185,9 +191,10 @@ func (pner *SimplePlanner) MakeSelectPlanWithJoin() (error, plans.Plan) {
 	}
 
 	if pner.qi.WhereExpression_.Left_ != nil && pner.qi.WhereExpression_.Left_ != nil {
-		whereExp := pner.ConstructPredicate([]*schema.Schema{tgtTblSchemaL, tgtTblSchemaR}, outFinal)
+		//whereExp := pner.ConstructPredicate([]*schema.Schema{tgtTblSchemaL, tgtTblSchemaR}, outFinal)
+		whereExp := pner.ConstructPredicate([]*schema.Schema{}, outFinal)
 		// filter joined recoreds with predicate which is specified on WHERE clause if needed
-		filterPlan := plans.NewFilterPlanNode(joinPlan, whereExp)
+		filterPlan := plans.NewFilterPlanNode(joinPlan, filterOut, whereExp)
 		return nil, filterPlan
 	} else {
 		// has now WHERE clause
@@ -224,7 +231,7 @@ func processPredicateTreeNode(node *parser.BinaryOpExpression, tgtTblSchemas []*
 		//	// has no table name prefix
 		//	colNamePart = &colName
 		//}
-
+		//
 		//var tmpColIdx uint32 = math.MaxUint32
 		//for _, schema_ := range tgtTblSchemas {
 		//	idx := schema_.GetColIndex(*colNamePart)
@@ -236,17 +243,20 @@ func processPredicateTreeNode(node *parser.BinaryOpExpression, tgtTblSchemas []*
 		//if tmpColIdx == math.MaxUint32 {
 		//	panic("in WHERE clause, column name part of " + colName + " is invalid.")
 		//}
+		//
 
-		var tmpColIdx uint32
-		if len(tgtTblSchemas) > 1 {
-			// with JOIN case
-			// because FilterExecutor is used, refer outSchema
-			tmpColIdx = outSchema.GetColIndex(colName)
-		} else {
-			// without JOIN case
-			// because SeqScanExecute is used, refer schema of data source table
-			tmpColIdx = tgtTblSchemas[0].GetColIndex(colName)
-		}
+		//var tmpColIdx uint32
+		//if len(tgtTblSchemas) > 1 {
+		//	// with JOIN case
+		//	// because FilterExecutor is used, refer outSchema
+		//	tmpColIdx = outSchema.GetColIndex(colName)
+		//} else {
+		//	// without JOIN case
+		//	// because SeqScanExecute is used, refer schema of data source table
+		//	tmpColIdx = tgtTblSchemas[0].GetColIndex(colName)
+		//}
+
+		tmpColIdx := tgtTblSchemas[0].GetColIndex(colName)
 
 		tmpColVal := expression.NewColumnValue(0, tmpColIdx, specfiedVal.ValueType())
 		constVal := expression.NewConstantValue(*specfiedVal, specfiedVal.ValueType())
