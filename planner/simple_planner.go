@@ -125,10 +125,8 @@ func (pner *SimplePlanner) MakeSelectPlanWithJoin() (error, plans.Plan) {
 		finalOutCols := make([]*column.Column, 0)
 
 		// new columns have tuple index of 0 because they are the left side of the join
-		//colValL := executors.MakeColumnValueExpression(outSchemaL, 0, strings.Split(*pner.qi.OnExpressions_.Left_.(*string), ".")[1])
 		colValL := executors.MakeColumnValueExpression(outSchemaL, 0, *pner.qi.OnExpressions_.Left_.(*string))
 		// new columns have tuple index of 1 because they are the right side of the join
-		//colValR := executors.MakeColumnValueExpression(outSchemaR, 1, strings.Split(*pner.qi.OnExpressions_.Right_.(*string), ".")[1])
 		colValR := executors.MakeColumnValueExpression(outSchemaR, 1, *pner.qi.OnExpressions_.Right_.(*string))
 
 		for _, colDef := range tgtTblColumnsL {
@@ -197,7 +195,6 @@ func (pner *SimplePlanner) MakeSelectPlanWithJoin() (error, plans.Plan) {
 	}
 
 	if hasWhere {
-		//whereExp := pner.ConstructPredicate([]*schema.Schema{tgtTblSchemaL, tgtTblSchemaR}, outFinal)
 		whereExp := pner.ConstructPredicate([]*schema.Schema{outFinal}, filterOut)
 		// filter joined recoreds with predicate which is specified on WHERE clause if needed
 		filterPlan := plans.NewFilterPlanNode(joinPlan, filterOut, whereExp)
