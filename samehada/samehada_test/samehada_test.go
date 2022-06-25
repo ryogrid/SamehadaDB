@@ -56,5 +56,7 @@ func TestHasJoinSelect(t *testing.T) {
 	samehada.PrintExecuteResults(results2)
 	_, results3 := db.ExecuteSQL("SELECT * FROM id_name_list JOIN id_buppin_list ON id_name_list.id = id_buppin_list.id WHERE id_name_list.id > 1;")
 	samehada.PrintExecuteResults(results3)
+	_, results4 := db.ExecuteSQL("SELECT * FROM id_name_list JOIN id_buppin_list ON id_name_list.id = id_buppin_list.id WHERE id_name_list.id > 1 AND id_name_list.id < 4;")
+	samehada.PrintExecuteResults(results4)
 
 }
