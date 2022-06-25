@@ -2,8 +2,6 @@ package executors
 
 import (
 	"errors"
-	"strings"
-
 	"github.com/ryogrid/SamehadaDB/common"
 	"github.com/ryogrid/SamehadaDB/container/hash"
 	"github.com/ryogrid/SamehadaDB/execution/expression"
@@ -70,16 +68,16 @@ func (e *HashJoinExecutor) Init() {
 		var colVal expression.Expression
 		if column_.IsLeft() {
 			var colname string = column_.GetColumnName()
-			if strings.Contains(column_.GetColumnName(), ".") {
-				colname = strings.Split(column_.GetColumnName(), ".")[1]
-			}
+			//if strings.Contains(column_.GetColumnName(), ".") {
+			//	colname = strings.Split(column_.GetColumnName(), ".")[1]
+			//}
 			colIndex := e.plan_.GetLeftPlan().OutputSchema().GetColIndex(colname)
 			colVal = expression.NewColumnValue(0, colIndex, types.Invalid)
 		} else {
 			var colname string = column_.GetColumnName()
-			if strings.Contains(column_.GetColumnName(), ".") {
-				colname = strings.Split(column_.GetColumnName(), ".")[1]
-			}
+			//if strings.Contains(column_.GetColumnName(), ".") {
+			//	colname = strings.Split(column_.GetColumnName(), ".")[1]
+			//}
 			colIndex := e.plan_.GetRightPlan().OutputSchema().GetColIndex(colname)
 			colVal = expression.NewColumnValue(1, colIndex, types.Invalid)
 		}

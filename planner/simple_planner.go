@@ -14,7 +14,6 @@ import (
 	"github.com/ryogrid/SamehadaDB/storage/table/schema"
 	"github.com/ryogrid/SamehadaDB/types"
 	"math"
-	"strings"
 )
 
 type SimplePlanner struct {
@@ -95,6 +94,8 @@ func (pner *SimplePlanner) MakeSelectPlanWithJoin() (error, plans.Plan) {
 	tgtTblSchemaR := tableMetadataR.Schema()
 	tgtTblColumnsR := tgtTblSchemaR.GetColumns()
 
+	hasWhere := pner.qi.WhereExpression_.Left_ != nil && pner.qi.WhereExpression_.Left_ != nil
+
 	var outSchemaL *schema.Schema
 	var scanPlanL plans.Plan
 	{
@@ -124,9 +125,11 @@ func (pner *SimplePlanner) MakeSelectPlanWithJoin() (error, plans.Plan) {
 		finalOutCols := make([]*column.Column, 0)
 
 		// new columns have tuple index of 0 because they are the left side of the join
-		colValL := executors.MakeColumnValueExpression(outSchemaL, 0, strings.Split(*pner.qi.OnExpressions_.Left_.(*string), ".")[1])
+		//colValL := executors.MakeColumnValueExpression(outSchemaL, 0, strings.Split(*pner.qi.OnExpressions_.Left_.(*string), ".")[1])
+		colValL := executors.MakeColumnValueExpression(outSchemaL, 0, *pner.qi.OnExpressions_.Left_.(*string))
 		// new columns have tuple index of 1 because they are the right side of the join
-		colValR := executors.MakeColumnValueExpression(outSchemaR, 1, strings.Split(*pner.qi.OnExpressions_.Right_.(*string), ".")[1])
+		//colValR := executors.MakeColumnValueExpression(outSchemaR, 1, strings.Split(*pner.qi.OnExpressions_.Right_.(*string), ".")[1])
+		colValR := executors.MakeColumnValueExpression(outSchemaR, 1, *pner.qi.OnExpressions_.Right_.(*string))
 
 		for _, colDef := range tgtTblColumnsL {
 			col := column.NewColumn(tblNameL+"."+colDef.GetColumnName(), colDef.GetType(), false, colDef.GetExpr())
@@ -141,41 +144,44 @@ func (pner *SimplePlanner) MakeSelectPlanWithJoin() (error, plans.Plan) {
 		// output schema of HashJoinExecutor
 		outFinal = schema.NewSchema(finalOutCols)
 
-		if len(pner.qi.SelectFields_) == 1 && *pner.qi.SelectFields_[0].ColName_ == "*" {
-			// both schema includes all columns
-			filterOut = outFinal
-		} else {
-			filterOutCols := make([]*column.Column, 0)
-			// column existance check
-			for _, sfield := range pner.qi.SelectFields_ {
-				colName := sfield.ColName_
-				tblName := sfield.TableName_
+		if hasWhere {
+			// query has WHERE clause
+			if len(pner.qi.SelectFields_) == 1 && *pner.qi.SelectFields_[0].ColName_ == "*" {
+				// both schema includes all columns
+				filterOut = outFinal
+			} else {
+				filterOutCols := make([]*column.Column, 0)
+				// column existance check
+				for _, sfield := range pner.qi.SelectFields_ {
+					colName := sfield.ColName_
+					tblName := sfield.TableName_
 
-				if *tblName != tblNameL && *tblName != tblNameR {
-					return PrintAndCreateError("specified selection " + *tblName + "." + *colName + " is invalid.")
-				}
+					if *tblName != tblNameL && *tblName != tblNameR {
+						return PrintAndCreateError("specified selection " + *tblName + "." + *colName + " is invalid.")
+					}
 
-				if pner.catalog_.GetTableByName(*tblName) == nil {
-					return PrintAndCreateError("table " + *tblName + " does not exist.")
-				}
+					if pner.catalog_.GetTableByName(*tblName) == nil {
+						return PrintAndCreateError("table " + *tblName + " does not exist.")
+					}
 
-				tmpSchema := pner.catalog_.GetTableByName(*tblName).Schema()
-				colIdx := tmpSchema.GetColIndex(*colName)
-				if colIdx == math.MaxUint32 {
-					return PrintAndCreateError("column " + *colName + " does not exist on " + *tblName + ".")
-				}
+					tmpSchema := pner.catalog_.GetTableByName(*tblName).Schema()
+					colIdx := tmpSchema.GetColIndex(*colName)
+					if colIdx == math.MaxUint32 {
+						return PrintAndCreateError("column " + *colName + " does not exist on " + *tblName + ".")
+					}
 
-				colDef := tmpSchema.GetColumn(colIdx)
-				col := column.NewColumn(*tblName+"."+*colName, colDef.GetType(), false, colDef.GetExpr())
-				if *tblName == tblNameL {
-					col.SetIsLeft(true)
-				} else { // Right
-					col.SetIsLeft(false)
+					colDef := tmpSchema.GetColumn(colIdx)
+					col := column.NewColumn(*tblName+"."+*colName, colDef.GetType(), false, colDef.GetExpr())
+					if *tblName == tblNameL {
+						col.SetIsLeft(true)
+					} else { // Right
+						col.SetIsLeft(false)
+					}
+					// Attention: this method call modifies passed Column objects
+					filterOutCols = append(filterOutCols, col)
 				}
-				// Attention: this method call modifies passed Column objects
-				filterOutCols = append(filterOutCols, col)
+				filterOut = schema.NewSchema(finalOutCols)
 			}
-			filterOut = schema.NewSchema(finalOutCols)
 		}
 
 		onPredicate := executors.MakeComparisonExpression(colValL, colValR, expression.Equal)
@@ -190,14 +196,14 @@ func (pner *SimplePlanner) MakeSelectPlanWithJoin() (error, plans.Plan) {
 			left_keys, right_keys)
 	}
 
-	if pner.qi.WhereExpression_.Left_ != nil && pner.qi.WhereExpression_.Left_ != nil {
+	if hasWhere {
 		//whereExp := pner.ConstructPredicate([]*schema.Schema{tgtTblSchemaL, tgtTblSchemaR}, outFinal)
-		whereExp := pner.ConstructPredicate([]*schema.Schema{}, outFinal)
+		whereExp := pner.ConstructPredicate([]*schema.Schema{outFinal}, filterOut)
 		// filter joined recoreds with predicate which is specified on WHERE clause if needed
 		filterPlan := plans.NewFilterPlanNode(joinPlan, filterOut, whereExp)
 		return nil, filterPlan
 	} else {
-		// has now WHERE clause
+		// has no WHERE clause
 		return nil, joinPlan
 	}
 }
