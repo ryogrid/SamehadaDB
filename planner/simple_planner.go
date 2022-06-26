@@ -346,7 +346,40 @@ func (pner *SimplePlanner) MakeDeletePlan() (error, plans.Plan) {
 	return nil, deletePlan
 }
 
-// TODO: (SDB) need to implement MakeDeletePlan method
 func (pner *SimplePlanner) MakeUpdatePlan() (error, plans.Plan) {
-	return nil, nil
+	tableMetadata := pner.catalog_.GetTableByName(*pner.qi.JoinTables_[0])
+	if tableMetadata == nil {
+		return PrintAndCreateError("table " + *pner.qi.JoinTables_[0] + " not found.")
+	}
+	tgtTblSchema := tableMetadata.Schema()
+	hasWhere := pner.qi.WhereExpression_.Left_ != nil && pner.qi.WhereExpression_.Right_ != nil
+
+	updateColIdxs := make([]int, 0)
+
+	// first, create update column idx list
+	for _, setExp := range pner.qi.SetExpressions_ {
+		colIdx := tgtTblSchema.GetColIndex(*setExp.ColName_)
+		if colIdx == math.MaxUint32 {
+			return PrintAndCreateError("column " + *setExp.ColName_ + " does not exist on " + *pner.qi.JoinTables_[0] + " table.")
+		}
+		updateColIdxs = append(updateColIdxs, int(colIdx))
+	}
+
+	// second, construc values list includes dummy value (not update target)
+	updateVals := make([]types.Value, tgtTblSchema.GetColumnCount())
+	// fill all elems with dummy
+	for idx, _ := range tgtTblSchema.GetColumns() {
+		updateVals[idx] = types.NewNull()
+	}
+	// overwrite elem which is update target
+	for idx, colIdx := range updateColIdxs {
+		updateVals[colIdx] = *pner.qi.SetExpressions_[idx].UpdateValue_
+	}
+
+	var predicate expression.Expression = nil
+	if hasWhere {
+		predicate = pner.ConstructPredicate([]*schema.Schema{tgtTblSchema})
+	}
+
+	return nil, plans.NewUpdatePlanNode(updateVals, updateColIdxs, predicate, tableMetadata.OID())
 }
