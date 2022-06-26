@@ -67,11 +67,11 @@ func (e *HashJoinExecutor) Init() {
 		column_ := e.GetOutputSchema().GetColumn(uint32(i))
 		var colVal expression.Expression
 		if column_.IsLeft() {
-			var colname string = column_.GetColumnName()
+			colname := column_.GetColumnName()
 			colIndex := e.plan_.GetLeftPlan().OutputSchema().GetColIndex(colname)
 			colVal = expression.NewColumnValue(0, colIndex, types.Invalid)
 		} else {
-			var colname string = column_.GetColumnName()
+			colname := column_.GetColumnName()
 			colIndex := e.plan_.GetRightPlan().OutputSchema().GetColIndex(colname)
 			colVal = expression.NewColumnValue(1, colIndex, types.Invalid)
 		}
