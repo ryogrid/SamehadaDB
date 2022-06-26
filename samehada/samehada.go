@@ -53,6 +53,10 @@ func (sdb *SamehadaDB) ExecuteSQL(sqlStr string) (error, [][]*types.Value) {
 	}
 
 	outSchema := plan.OutputSchema()
+	if outSchema == nil { // when DELETE etc...
+		return nil, nil
+	}
+
 	//fmt.Println(result, outSchema)
 	retVals := ConvTupleListToValues(outSchema, result)
 

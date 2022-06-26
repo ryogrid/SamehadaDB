@@ -53,6 +53,7 @@ func (pner *SimplePlanner) MakeSelectPlanWithoutJoin() (error, plans.Plan) {
 
 	tgtTblSchema := tableMetadata.Schema()
 	tgtTblColumns := tgtTblSchema.GetColumns()
+	hasWhere := pner.qi.WhereExpression_.Left_ != nil && pner.qi.WhereExpression_.Right_ != nil
 
 	outColDefs := make([]*column.Column, 0)
 	var outSchema *schema.Schema = nil
@@ -78,9 +79,12 @@ func (pner *SimplePlanner) MakeSelectPlanWithoutJoin() (error, plans.Plan) {
 		outSchema = tgtTblSchema
 	}
 
-	expression := pner.ConstructPredicate([]*schema.Schema{tgtTblSchema}, outSchema)
+	var predicate expression.Expression = nil
+	if hasWhere {
+		predicate = pner.ConstructPredicate([]*schema.Schema{tgtTblSchema})
+	}
 
-	return nil, plans.NewSeqScanPlanNode(outSchema, expression, tableMetadata.OID())
+	return nil, plans.NewSeqScanPlanNode(outSchema, predicate, tableMetadata.OID())
 }
 
 func (pner *SimplePlanner) MakeSelectPlanWithJoin() (error, plans.Plan) {
@@ -94,7 +98,7 @@ func (pner *SimplePlanner) MakeSelectPlanWithJoin() (error, plans.Plan) {
 	tgtTblSchemaR := tableMetadataR.Schema()
 	tgtTblColumnsR := tgtTblSchemaR.GetColumns()
 
-	hasWhere := pner.qi.WhereExpression_.Left_ != nil && pner.qi.WhereExpression_.Left_ != nil
+	hasWhere := pner.qi.WhereExpression_.Left_ != nil && pner.qi.WhereExpression_.Right_ != nil
 
 	var outSchemaL *schema.Schema
 	var scanPlanL plans.Plan
@@ -195,7 +199,7 @@ func (pner *SimplePlanner) MakeSelectPlanWithJoin() (error, plans.Plan) {
 	}
 
 	if hasWhere {
-		whereExp := pner.ConstructPredicate([]*schema.Schema{outFinal}, filterOut)
+		whereExp := pner.ConstructPredicate([]*schema.Schema{outFinal})
 		// filter joined recoreds with predicate which is specified on WHERE clause if needed
 		filterPlan := plans.NewFilterPlanNode(joinPlan, filterOut, whereExp)
 		return nil, filterPlan
@@ -213,10 +217,10 @@ func (pner *SimplePlanner) MakeSelectPlan() (error, plans.Plan) {
 	}
 }
 
-func processPredicateTreeNode(node *parser.BinaryOpExpression, tgtTblSchemas []*schema.Schema, outSchema *schema.Schema) expression.Expression {
+func processPredicateTreeNode(node *parser.BinaryOpExpression, tgtTblSchemas []*schema.Schema) expression.Expression {
 	if node.LogicalOperationType_ != -1 { // node of logical operation
-		left_side_pred := processPredicateTreeNode(node.Left_.(*parser.BinaryOpExpression), tgtTblSchemas, outSchema)
-		right_side_pred := processPredicateTreeNode(node.Right_.(*parser.BinaryOpExpression), tgtTblSchemas, outSchema)
+		left_side_pred := processPredicateTreeNode(node.Left_.(*parser.BinaryOpExpression), tgtTblSchemas)
+		right_side_pred := processPredicateTreeNode(node.Right_.(*parser.BinaryOpExpression), tgtTblSchemas)
 		return expression.NewLogicalOp(left_side_pred, right_side_pred, node.LogicalOperationType_, types.Boolean)
 	} else { // node of conpare operation
 		colName := *node.Left_.(*string)
@@ -268,8 +272,8 @@ func processPredicateTreeNode(node *parser.BinaryOpExpression, tgtTblSchemas []*
 	}
 }
 
-func (pner *SimplePlanner) ConstructPredicate(tgtTblSchemas []*schema.Schema, outSchema *schema.Schema) expression.Expression {
-	return processPredicateTreeNode(pner.qi.WhereExpression_, tgtTblSchemas, outSchema)
+func (pner *SimplePlanner) ConstructPredicate(tgtTblSchemas []*schema.Schema) expression.Expression {
+	return processPredicateTreeNode(pner.qi.WhereExpression_, tgtTblSchemas)
 }
 
 func (pner *SimplePlanner) MakeCreateTablePlan() (error, plans.Plan) {
@@ -328,11 +332,21 @@ func (pner *SimplePlanner) MakeInsertPlan() (error, plans.Plan) {
 	return nil, plans.NewInsertPlanNode(insRows, tableMetadata.OID())
 }
 
-// TODO: (SDB) need to implement MakeDeletePlan method
 func (pner *SimplePlanner) MakeDeletePlan() (error, plans.Plan) {
-	return nil, nil
+	tableMetadata := pner.catalog_.GetTableByName(*pner.qi.JoinTables_[0])
+	if tableMetadata == nil {
+		return PrintAndCreateError("table " + *pner.qi.JoinTables_[0] + " not found.")
+	}
+
+	tgtTblSchema := tableMetadata.Schema()
+
+	expression_ := pner.ConstructPredicate([]*schema.Schema{tgtTblSchema})
+	deletePlan := plans.NewDeletePlanNode(expression_, tableMetadata.OID())
+
+	return nil, deletePlan
 }
 
+// TODO: (SDB) need to implement MakeDeletePlan method
 func (pner *SimplePlanner) MakeUpdatePlan() (error, plans.Plan) {
 	return nil, nil
 }
