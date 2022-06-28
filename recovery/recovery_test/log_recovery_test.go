@@ -3,6 +3,7 @@ package log_recovery
 import (
 	"bytes"
 	"fmt"
+	"github.com/ryogrid/SamehadaDB/samehada"
 	"math"
 	"math/rand"
 	"os"
@@ -16,7 +17,6 @@ import (
 	"github.com/ryogrid/SamehadaDB/storage/table/column"
 	"github.com/ryogrid/SamehadaDB/storage/table/schema"
 	"github.com/ryogrid/SamehadaDB/storage/tuple"
-	"github.com/ryogrid/SamehadaDB/test_util"
 	testingpkg "github.com/ryogrid/SamehadaDB/testing"
 	"github.com/ryogrid/SamehadaDB/types"
 )
@@ -155,7 +155,7 @@ func TestRedo(t *testing.T) {
 	os.Remove("test.db")
 	os.Remove("test.log")
 
-	samehada_instance := test_util.NewSamehadaInstance()
+	samehada_instance := samehada.NewSamehadaInstanceForTesting()
 
 	testingpkg.AssertFalse(t, common.EnableLogging, "")
 	fmt.Println("Skip system recovering...")
@@ -198,7 +198,7 @@ func TestRedo(t *testing.T) {
 	samehada_instance.Finalize(false)
 
 	fmt.Println("System restart...")
-	samehada_instance = test_util.NewSamehadaInstance()
+	samehada_instance = samehada.NewSamehadaInstanceForTesting()
 
 	samehada_instance.GetLogManager().DeactivateLogging()
 	testingpkg.AssertFalse(t, common.EnableLogging, "")
@@ -257,7 +257,7 @@ func TestUndo(t *testing.T) {
 	os.Remove("test.db")
 	os.Remove("test.log")
 
-	samehada_instance := test_util.NewSamehadaInstance()
+	samehada_instance := samehada.NewSamehadaInstanceForTesting()
 
 	testingpkg.AssertFalse(t, common.EnableLogging, "")
 	fmt.Println("Skip system recovering...")
@@ -328,7 +328,7 @@ func TestUndo(t *testing.T) {
 	samehada_instance.Finalize(false)
 
 	fmt.Println("System restarted..")
-	samehada_instance = test_util.NewSamehadaInstance()
+	samehada_instance = samehada.NewSamehadaInstanceForTesting()
 	txn = samehada_instance.GetTransactionManager().Begin(nil)
 
 	test_table = access.NewTableHeap(
@@ -398,7 +398,7 @@ func TestUndo(t *testing.T) {
 func TestCheckpoint(t *testing.T) {
 	os.Remove("test.db")
 	os.Remove("test.log")
-	samehada_instance := test_util.NewSamehadaInstance()
+	samehada_instance := samehada.NewSamehadaInstanceForTesting()
 
 	testingpkg.AssertFalse(t, common.EnableLogging, "")
 	fmt.Println("Skip system recovering...")

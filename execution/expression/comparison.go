@@ -73,7 +73,7 @@ func (c *Comparison) GetComparisonType() ComparisonType {
 }
 
 func (c *Comparison) EvaluateJoin(left_tuple *tuple.Tuple, left_schema *schema.Schema, right_tuple *tuple.Tuple, right_schema *schema.Schema) types.Value {
-	lhs := c.GetChildAt(0).EvaluateJoin(left_tuple, left_schema, right_tuple, left_schema)
+	lhs := c.GetChildAt(0).EvaluateJoin(left_tuple, left_schema, right_tuple, right_schema)
 	rhs := c.GetChildAt(1).EvaluateJoin(left_tuple, left_schema, right_tuple, right_schema)
 	return types.NewBoolean(c.performComparison(lhs, rhs))
 }

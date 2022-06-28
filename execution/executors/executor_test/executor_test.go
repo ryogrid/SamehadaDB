@@ -1,10 +1,12 @@
 // this code is from https://github.com/brunocalza/go-bustub
 // there is license and copyright notice in licenses/go-bustub dir
 
-package executors
+package executor_test
 
 import (
 	"fmt"
+	"github.com/ryogrid/SamehadaDB/execution/executors"
+	"github.com/ryogrid/SamehadaDB/samehada"
 	"os"
 	"runtime"
 	"testing"
@@ -20,7 +22,6 @@ import (
 	"github.com/ryogrid/SamehadaDB/storage/disk"
 	"github.com/ryogrid/SamehadaDB/storage/table/column"
 	"github.com/ryogrid/SamehadaDB/storage/table/schema"
-	"github.com/ryogrid/SamehadaDB/test_util"
 	testingpkg "github.com/ryogrid/SamehadaDB/testing"
 	"github.com/ryogrid/SamehadaDB/types"
 )
@@ -55,8 +56,8 @@ func TestSimpleInsertAndSeqScan(t *testing.T) {
 
 	insertPlanNode := plans.NewInsertPlanNode(rows, tableMetadata.OID())
 
-	executionEngine := &ExecutionEngine{}
-	executorContext := NewExecutorContext(c, bpm, txn)
+	executionEngine := &executors.ExecutionEngine{}
+	executorContext := executors.NewExecutorContext(c, bpm, txn)
 	executionEngine.Execute(insertPlanNode, executorContext)
 
 	bpm.FlushAllPages()
@@ -104,8 +105,8 @@ func TestSimpleInsertAndSeqScanFloat(t *testing.T) {
 
 	insertPlanNode := plans.NewInsertPlanNode(rows, tableMetadata.OID())
 
-	executionEngine := &ExecutionEngine{}
-	executorContext := NewExecutorContext(c, bpm, txn)
+	executionEngine := &executors.ExecutionEngine{}
+	executorContext := executors.NewExecutorContext(c, bpm, txn)
 	executionEngine.Execute(insertPlanNode, executorContext)
 
 	bpm.FlushAllPages()
@@ -156,91 +157,91 @@ func TestSimpleInsertAndSeqScanWithPredicateComparison(t *testing.T) {
 
 	insertPlanNode := plans.NewInsertPlanNode(rows, tableMetadata.OID())
 
-	executionEngine := &ExecutionEngine{}
-	executorContext := NewExecutorContext(c, bpm, txn)
+	executionEngine := &executors.ExecutionEngine{}
+	executorContext := executors.NewExecutorContext(c, bpm, txn)
 	executionEngine.Execute(insertPlanNode, executorContext)
 
 	bpm.FlushAllPages()
 
 	txn_mgr.Commit(txn)
 
-	cases := []SeqScanTestCase{{
+	cases := []executors.SeqScanTestCase{{
 		"select a ... WHERE b = 55",
 		executionEngine,
 		executorContext,
 		tableMetadata,
-		[]Column{{"a", types.Integer}},
-		Predicate{"b", expression.Equal, 55},
-		[]Assertion{{"a", 99}},
+		[]executors.Column{{"a", types.Integer}},
+		executors.Predicate{"b", expression.Equal, 55},
+		[]executors.Assertion{{"a", 99}},
 		1,
 	}, {
 		"select b ... WHERE b = 55",
 		executionEngine,
 		executorContext,
 		tableMetadata,
-		[]Column{{"b", types.Integer}},
-		Predicate{"b", expression.Equal, 55},
-		[]Assertion{{"b", 55}},
+		[]executors.Column{{"b", types.Integer}},
+		executors.Predicate{"b", expression.Equal, 55},
+		[]executors.Assertion{{"b", 55}},
 		1,
 	}, {
 		"select a, b ... WHERE a = 20",
 		executionEngine,
 		executorContext,
 		tableMetadata,
-		[]Column{{"a", types.Integer}, {"b", types.Integer}},
-		Predicate{"a", expression.Equal, 20},
-		[]Assertion{{"a", 20}, {"b", 22}},
+		[]executors.Column{{"a", types.Integer}, {"b", types.Integer}},
+		executors.Predicate{"a", expression.Equal, 20},
+		[]executors.Assertion{{"a", 20}, {"b", 22}},
 		1,
 	}, {
 		"select a, b ... WHERE a = 99",
 		executionEngine,
 		executorContext,
 		tableMetadata,
-		[]Column{{"a", types.Integer}, {"b", types.Integer}},
-		Predicate{"a", expression.Equal, 99},
-		[]Assertion{{"a", 99}, {"b", 55}},
+		[]executors.Column{{"a", types.Integer}, {"b", types.Integer}},
+		executors.Predicate{"a", expression.Equal, 99},
+		[]executors.Assertion{{"a", 99}, {"b", 55}},
 		1,
 	}, {
 		"select a, b ... WHERE a = 100",
 		executionEngine,
 		executorContext,
 		tableMetadata,
-		[]Column{{"a", types.Integer}, {"b", types.Integer}},
-		Predicate{"a", expression.Equal, 100},
-		[]Assertion{},
+		[]executors.Column{{"a", types.Integer}, {"b", types.Integer}},
+		executors.Predicate{"a", expression.Equal, 100},
+		[]executors.Assertion{},
 		0,
 	}, {
 		"select a, b ... WHERE b != 55",
 		executionEngine,
 		executorContext,
 		tableMetadata,
-		[]Column{{"a", types.Integer}, {"b", types.Integer}},
-		Predicate{"b", expression.NotEqual, 55},
-		[]Assertion{{"a", 20}, {"b", 22}},
+		[]executors.Column{{"a", types.Integer}, {"b", types.Integer}},
+		executors.Predicate{"b", expression.NotEqual, 55},
+		[]executors.Assertion{{"a", 20}, {"b", 22}},
 		1,
 	}, {
 		"select a, b, c ... WHERE c = 'foo'",
 		executionEngine,
 		executorContext,
 		tableMetadata,
-		[]Column{{"a", types.Integer}, {"b", types.Integer}, {"c", types.Varchar}},
-		Predicate{"c", expression.Equal, "foo"},
-		[]Assertion{{"a", 20}, {"b", 22}, {"c", "foo"}},
+		[]executors.Column{{"a", types.Integer}, {"b", types.Integer}, {"c", types.Varchar}},
+		executors.Predicate{"c", expression.Equal, "foo"},
+		[]executors.Assertion{{"a", 20}, {"b", 22}, {"c", "foo"}},
 		1,
 	}, {
 		"select a, b, c ... WHERE c != 'foo'",
 		executionEngine,
 		executorContext,
 		tableMetadata,
-		[]Column{{"a", types.Integer}, {"b", types.Integer}, {"c", types.Varchar}},
-		Predicate{"c", expression.NotEqual, "foo"},
-		[]Assertion{{"a", 99}, {"b", 55}, {"c", "bar"}},
+		[]executors.Column{{"a", types.Integer}, {"b", types.Integer}, {"c", types.Varchar}},
+		executors.Predicate{"c", expression.NotEqual, "foo"},
+		[]executors.Assertion{{"a", 99}, {"b", 55}, {"c", "bar"}},
 		1,
 	}}
 
 	for _, test := range cases {
 		t.Run(test.Description, func(t *testing.T) {
-			ExecuteSeqScanTestCase(t, test)
+			executors.ExecuteSeqScanTestCase(t, test)
 		})
 	}
 }
@@ -278,37 +279,37 @@ func TestInsertBoolAndSeqScanWithComparison(t *testing.T) {
 
 	insertPlanNode := plans.NewInsertPlanNode(rows, tableMetadata.OID())
 
-	executionEngine := &ExecutionEngine{}
-	executorContext := NewExecutorContext(c, bpm, txn)
+	executionEngine := &executors.ExecutionEngine{}
+	executorContext := executors.NewExecutorContext(c, bpm, txn)
 	executionEngine.Execute(insertPlanNode, executorContext)
 
 	bpm.FlushAllPages()
 
 	txn_mgr.Commit(txn)
 
-	cases := []SeqScanTestCase{{
+	cases := []executors.SeqScanTestCase{{
 		"select a ... WHERE b = true",
 		executionEngine,
 		executorContext,
 		tableMetadata,
-		[]Column{{"a", types.Integer}},
-		Predicate{"b", expression.Equal, true},
-		[]Assertion{{"a", 20}},
+		[]executors.Column{{"a", types.Integer}},
+		executors.Predicate{"b", expression.Equal, true},
+		[]executors.Assertion{{"a", 20}},
 		1,
 	}, {
 		"select c ... WHERE b = false",
 		executionEngine,
 		executorContext,
 		tableMetadata,
-		[]Column{{"c", types.Varchar}},
-		Predicate{"b", expression.Equal, false},
-		[]Assertion{{"c", "bar"}},
+		[]executors.Column{{"c", types.Varchar}},
+		executors.Predicate{"b", expression.Equal, false},
+		[]executors.Assertion{{"c", "bar"}},
 		1,
 	}}
 
 	for _, test := range cases {
 		t.Run(test.Description, func(t *testing.T) {
-			ExecuteSeqScanTestCase(t, test)
+			executors.ExecuteSeqScanTestCase(t, test)
 		})
 	}
 }
@@ -353,8 +354,8 @@ func TestSimpleInsertAndLimitExecution(t *testing.T) {
 
 	insertPlanNode := plans.NewInsertPlanNode(rows, tableMetadata.OID())
 
-	executionEngine := &ExecutionEngine{}
-	executorContext := NewExecutorContext(c, bpm, txn)
+	executionEngine := &executors.ExecutionEngine{}
+	executorContext := executors.NewExecutorContext(c, bpm, txn)
 	executionEngine.Execute(insertPlanNode, executorContext)
 
 	bpm.FlushAllPages()
@@ -443,8 +444,8 @@ func TestSimpleInsertAndLimitExecutionMultiTable(t *testing.T) {
 
 	insertPlanNode := plans.NewInsertPlanNode(rows, tableMetadata.OID())
 
-	executionEngine := &ExecutionEngine{}
-	executorContext := NewExecutorContext(c, bpm, txn)
+	executionEngine := &executors.ExecutionEngine{}
+	executorContext := executors.NewExecutorContext(c, bpm, txn)
 	executionEngine.Execute(insertPlanNode, executorContext)
 
 	// construct second table
@@ -590,91 +591,91 @@ func TestHashTableIndex(t *testing.T) {
 
 	insertPlanNode := plans.NewInsertPlanNode(rows, tableMetadata.OID())
 
-	executionEngine := &ExecutionEngine{}
-	executorContext := NewExecutorContext(c, bpm, txn)
+	executionEngine := &executors.ExecutionEngine{}
+	executorContext := executors.NewExecutorContext(c, bpm, txn)
 	executionEngine.Execute(insertPlanNode, executorContext)
 
 	bpm.FlushAllPages()
 
 	txn_mgr.Commit(txn)
 
-	cases := []HashIndexScanTestCase{{
+	cases := []executors.HashIndexScanTestCase{{
 		"select a ... WHERE b = 55",
 		executionEngine,
 		executorContext,
 		tableMetadata,
-		[]Column{{"a", types.Integer}},
-		Predicate{"b", expression.Equal, 55},
-		[]Assertion{{"a", 99}},
+		[]executors.Column{{"a", types.Integer}},
+		executors.Predicate{"b", expression.Equal, 55},
+		[]executors.Assertion{{"a", 99}},
 		1,
 	}, {
 		"select b ... WHERE b = 55",
 		executionEngine,
 		executorContext,
 		tableMetadata,
-		[]Column{{"b", types.Integer}},
-		Predicate{"b", expression.Equal, 55},
-		[]Assertion{{"b", 55}},
+		[]executors.Column{{"b", types.Integer}},
+		executors.Predicate{"b", expression.Equal, 55},
+		[]executors.Assertion{{"b", 55}},
 		1,
 	}, {
 		"select a, b ... WHERE a = 20",
 		executionEngine,
 		executorContext,
 		tableMetadata,
-		[]Column{{"a", types.Integer}, {"b", types.Integer}},
-		Predicate{"a", expression.Equal, 20},
-		[]Assertion{{"a", 20}, {"b", 22}},
+		[]executors.Column{{"a", types.Integer}, {"b", types.Integer}},
+		executors.Predicate{"a", expression.Equal, 20},
+		[]executors.Assertion{{"a", 20}, {"b", 22}},
 		1,
 	}, {
 		"select a, b ... WHERE a = 99",
 		executionEngine,
 		executorContext,
 		tableMetadata,
-		[]Column{{"a", types.Integer}, {"b", types.Integer}},
-		Predicate{"a", expression.Equal, 99},
-		[]Assertion{{"a", 99}, {"b", 55}},
+		[]executors.Column{{"a", types.Integer}, {"b", types.Integer}},
+		executors.Predicate{"a", expression.Equal, 99},
+		[]executors.Assertion{{"a", 99}, {"b", 55}},
 		1,
 	}, {
 		"select a, b ... WHERE a = 100",
 		executionEngine,
 		executorContext,
 		tableMetadata,
-		[]Column{{"a", types.Integer}, {"b", types.Integer}},
-		Predicate{"a", expression.Equal, 100},
-		[]Assertion{},
+		[]executors.Column{{"a", types.Integer}, {"b", types.Integer}},
+		executors.Predicate{"a", expression.Equal, 100},
+		[]executors.Assertion{},
 		0,
 	}, {
 		"select a, b ... WHERE b = 55",
 		executionEngine,
 		executorContext,
 		tableMetadata,
-		[]Column{{"a", types.Integer}, {"b", types.Integer}},
-		Predicate{"b", expression.Equal, 55},
-		[]Assertion{{"a", 99}, {"b", 55}},
+		[]executors.Column{{"a", types.Integer}, {"b", types.Integer}},
+		executors.Predicate{"b", expression.Equal, 55},
+		[]executors.Assertion{{"a", 99}, {"b", 55}},
 		1,
 	}, {
 		"select a, b, c ... WHERE c = 'foo'",
 		executionEngine,
 		executorContext,
 		tableMetadata,
-		[]Column{{"a", types.Integer}, {"b", types.Integer}, {"c", types.Varchar}},
-		Predicate{"c", expression.Equal, "foo"},
-		[]Assertion{{"a", 20}, {"b", 22}, {"c", "foo"}},
+		[]executors.Column{{"a", types.Integer}, {"b", types.Integer}, {"c", types.Varchar}},
+		executors.Predicate{"c", expression.Equal, "foo"},
+		[]executors.Assertion{{"a", 20}, {"b", 22}, {"c", "foo"}},
 		1,
 	}, {
 		"select a, b ... WHERE c = 'baz'",
 		executionEngine,
 		executorContext,
 		tableMetadata,
-		[]Column{{"a", types.Integer}, {"b", types.Integer}},
-		Predicate{"c", expression.Equal, "baz"},
-		[]Assertion{{"a", 1225}, {"b", 712}},
+		[]executors.Column{{"a", types.Integer}, {"b", types.Integer}},
+		executors.Predicate{"c", expression.Equal, "baz"},
+		[]executors.Assertion{{"a", 1225}, {"b", 712}},
 		2,
 	}}
 
 	for _, test := range cases {
 		t.Run(test.Description, func(t *testing.T) {
-			ExecuteHashIndexScanTestCase(t, test)
+			executors.ExecuteHashIndexScanTestCase(t, test)
 		})
 	}
 
@@ -725,23 +726,23 @@ func TestSimpleDelete(t *testing.T) {
 
 	insertPlanNode := plans.NewInsertPlanNode(rows, tableMetadata.OID())
 
-	executionEngine := &ExecutionEngine{}
-	executorContext := NewExecutorContext(c, bpm, txn)
+	executionEngine := &executors.ExecutionEngine{}
+	executorContext := executors.NewExecutorContext(c, bpm, txn)
 	executionEngine.Execute(insertPlanNode, executorContext)
 
 	bpm.FlushAllPages()
 
 	txn_mgr.Commit(txn)
 
-	cases := []DeleteTestCase{{
+	cases := []executors.DeleteTestCase{{
 		"delete ... WHERE c = 'baz'",
 		txn_mgr,
 		executionEngine,
 		executorContext,
 		tableMetadata,
-		[]Column{{"a", types.Integer}, {"b", types.Integer}, {"c", types.Varchar}},
-		Predicate{"c", expression.Equal, "baz"},
-		[]Assertion{{"a", 1225}, {"b", 712}, {"c", "baz"}},
+		[]executors.Column{{"a", types.Integer}, {"b", types.Integer}, {"c", types.Varchar}},
+		executors.Predicate{"c", expression.Equal, "baz"},
+		[]executors.Assertion{{"a", 1225}, {"b", 712}, {"c", "baz"}},
 		2,
 	}, {
 		"delete ... WHERE b = 55",
@@ -749,9 +750,9 @@ func TestSimpleDelete(t *testing.T) {
 		executionEngine,
 		executorContext,
 		tableMetadata,
-		[]Column{{"a", types.Integer}, {"b", types.Integer}, {"c", types.Varchar}},
-		Predicate{"b", expression.Equal, 55},
-		[]Assertion{{"a", 99}, {"b", 55}, {"c", "bar"}},
+		[]executors.Column{{"a", types.Integer}, {"b", types.Integer}, {"c", types.Varchar}},
+		executors.Predicate{"b", expression.Equal, 55},
+		[]executors.Assertion{{"a", 99}, {"b", 55}, {"c", "bar"}},
 		1,
 	}, {
 		"delete ... WHERE a = 20",
@@ -759,15 +760,15 @@ func TestSimpleDelete(t *testing.T) {
 		executionEngine,
 		executorContext,
 		tableMetadata,
-		[]Column{{"a", types.Integer}, {"b", types.Integer}, {"c", types.Varchar}},
-		Predicate{"a", expression.Equal, 20},
-		[]Assertion{{"a", 20}, {"b", 22}, {"c", "foo"}},
+		[]executors.Column{{"a", types.Integer}, {"b", types.Integer}, {"c", types.Varchar}},
+		executors.Predicate{"a", expression.Equal, 20},
+		[]executors.Assertion{{"a", 20}, {"b", 22}, {"c", "foo"}},
 		1,
 	}}
 
 	for _, test := range cases {
 		t.Run(test.Description, func(t *testing.T) {
-			ExecuteDeleteTestCase(t, test)
+			executors.ExecuteDeleteTestCase(t, test)
 		})
 	}
 }
@@ -817,55 +818,55 @@ func TestDeleteWithSelctInsert(t *testing.T) {
 
 	insertPlanNode := plans.NewInsertPlanNode(rows, tableMetadata.OID())
 
-	executionEngine := &ExecutionEngine{}
-	executorContext := NewExecutorContext(c, bpm, txn)
+	executionEngine := &executors.ExecutionEngine{}
+	executorContext := executors.NewExecutorContext(c, bpm, txn)
 	executionEngine.Execute(insertPlanNode, executorContext)
 
 	bpm.FlushAllPages()
 
 	txn_mgr.Commit(txn)
 
-	cases := []DeleteTestCase{{
+	cases := []executors.DeleteTestCase{{
 		"delete ... WHERE c = 'baz'",
 		txn_mgr,
 		executionEngine,
 		executorContext,
 		tableMetadata,
-		[]Column{{"a", types.Integer}, {"b", types.Integer}, {"c", types.Varchar}},
-		Predicate{"c", expression.Equal, "baz"},
-		[]Assertion{{"a", 1225}, {"b", 712}, {"c", "baz"}},
+		[]executors.Column{{"a", types.Integer}, {"b", types.Integer}, {"c", types.Varchar}},
+		executors.Predicate{"c", expression.Equal, "baz"},
+		[]executors.Assertion{{"a", 1225}, {"b", 712}, {"c", "baz"}},
 		2,
 	}}
 
 	for _, test := range cases {
 		t.Run(test.Description, func(t *testing.T) {
-			ExecuteDeleteTestCase(t, test)
+			executors.ExecuteDeleteTestCase(t, test)
 		})
 	}
 
-	cases2 := []SeqScanTestCase{{
+	cases2 := []executors.SeqScanTestCase{{
 		"select a ... WHERE c = baz",
 		executionEngine,
 		executorContext,
 		tableMetadata,
-		[]Column{{"a", types.Integer}},
-		Predicate{"c", expression.Equal, "baz"},
-		[]Assertion{{"a", 99}},
+		[]executors.Column{{"a", types.Integer}},
+		executors.Predicate{"c", expression.Equal, "baz"},
+		[]executors.Assertion{{"a", 99}},
 		0,
 	}, {
 		"select b ... WHERE b = 55",
 		executionEngine,
 		executorContext,
 		tableMetadata,
-		[]Column{{"b", types.Integer}},
-		Predicate{"b", expression.Equal, 55},
-		[]Assertion{{"b", 55}},
+		[]executors.Column{{"b", types.Integer}},
+		executors.Predicate{"b", expression.Equal, 55},
+		[]executors.Assertion{{"b", 55}},
 		1,
 	}}
 
 	for _, test := range cases2 {
 		t.Run(test.Description, func(t *testing.T) {
-			ExecuteSeqScanTestCase(t, test)
+			executors.ExecuteSeqScanTestCase(t, test)
 		})
 	}
 
@@ -880,26 +881,26 @@ func TestDeleteWithSelctInsert(t *testing.T) {
 
 	insertPlanNode = plans.NewInsertPlanNode(rows, tableMetadata.OID())
 
-	executionEngine = &ExecutionEngine{}
-	executorContext = NewExecutorContext(c, bpm, txn)
+	executionEngine = &executors.ExecutionEngine{}
+	executorContext = executors.NewExecutorContext(c, bpm, txn)
 	executionEngine.Execute(insertPlanNode, executorContext)
 	bpm.FlushAllPages()
 	txn_mgr.Commit(txn)
 
-	cases3 := []SeqScanTestCase{{
+	cases3 := []executors.SeqScanTestCase{{
 		"select a,c ... WHERE b = 777",
 		executionEngine,
 		executorContext,
 		tableMetadata,
-		[]Column{{"a", types.Integer}, {"c", types.Varchar}},
-		Predicate{"b", expression.Equal, 777},
-		[]Assertion{{"a", 666}, {"c", "fin"}},
+		[]executors.Column{{"a", types.Integer}, {"c", types.Varchar}},
+		executors.Predicate{"b", expression.Equal, 777},
+		[]executors.Assertion{{"a", 666}, {"c", "fin"}},
 		1,
 	}}
 
 	for _, test := range cases3 {
 		t.Run(test.Description, func(t *testing.T) {
-			ExecuteSeqScanTestCase(t, test)
+			executors.ExecuteSeqScanTestCase(t, test)
 		})
 	}
 }
@@ -934,8 +935,8 @@ func TestSimpleInsertAndUpdate(t *testing.T) {
 
 	insertPlanNode := plans.NewInsertPlanNode(rows, tableMetadata.OID())
 
-	executionEngine := &ExecutionEngine{}
-	executorContext := NewExecutorContext(c, bpm, txn)
+	executionEngine := &executors.ExecutionEngine{}
+	executorContext := executors.NewExecutorContext(c, bpm, txn)
 	executionEngine.Execute(insertPlanNode, executorContext)
 
 	txn_mgr.Commit(txn)
@@ -947,11 +948,11 @@ func TestSimpleInsertAndUpdate(t *testing.T) {
 	row1 = append(row1, types.NewInteger(99))
 	row1 = append(row1, types.NewVarchar("updated"))
 
-	pred := Predicate{"b", expression.Equal, "foo"}
+	pred := executors.Predicate{"b", expression.Equal, "foo"}
 	tmpColVal := new(expression.ColumnValue)
 	tmpColVal.SetTupleIndex(0)
 	tmpColVal.SetColIndex(tableMetadata.Schema().GetColIndex(pred.LeftColumn))
-	expression_ := expression.NewComparison(tmpColVal, expression.NewConstantValue(GetValue(pred.RightColumn), GetValueType(pred.LeftColumn)), pred.Operator, types.Boolean)
+	expression_ := expression.NewComparison(tmpColVal, expression.NewConstantValue(executors.GetValue(pred.RightColumn), executors.GetValueType(pred.LeftColumn)), pred.Operator, types.Boolean)
 
 	updatePlanNode := plans.NewUpdatePlanNode(row1, []int{0, 1}, expression_, tableMetadata.OID())
 	executionEngine.Execute(updatePlanNode, executorContext)
@@ -964,11 +965,11 @@ func TestSimpleInsertAndUpdate(t *testing.T) {
 	outColumnB := column.NewColumn("b", types.Varchar, false, nil)
 	outSchema := schema.NewSchema([]*column.Column{outColumnB})
 
-	pred = Predicate{"a", expression.Equal, 99}
+	pred = executors.Predicate{"a", expression.Equal, 99}
 	tmpColVal = new(expression.ColumnValue)
 	tmpColVal.SetTupleIndex(0)
 	tmpColVal.SetColIndex(tableMetadata.Schema().GetColIndex(pred.LeftColumn))
-	expression_ = expression.NewComparison(tmpColVal, expression.NewConstantValue(GetValue(pred.RightColumn), GetValueType(pred.RightColumn)), pred.Operator, types.Boolean)
+	expression_ = expression.NewComparison(tmpColVal, expression.NewConstantValue(executors.GetValue(pred.RightColumn), executors.GetValueType(pred.RightColumn)), pred.Operator, types.Boolean)
 
 	seqPlan := plans.NewSeqScanPlanNode(outSchema, expression_, tableMetadata.OID())
 	results := executionEngine.Execute(seqPlan, executorContext)
@@ -1009,8 +1010,8 @@ func TestInsertUpdateMix(t *testing.T) {
 
 	insertPlanNode := plans.NewInsertPlanNode(rows, tableMetadata.OID())
 
-	executionEngine := &ExecutionEngine{}
-	executorContext := NewExecutorContext(c, bpm, txn)
+	executionEngine := &executors.ExecutionEngine{}
+	executorContext := executors.NewExecutorContext(c, bpm, txn)
 	executionEngine.Execute(insertPlanNode, executorContext)
 
 	txn_mgr.Commit(txn)
@@ -1022,11 +1023,11 @@ func TestInsertUpdateMix(t *testing.T) {
 	row1 = append(row1, types.NewInteger(99))
 	row1 = append(row1, types.NewVarchar("updated"))
 
-	pred := Predicate{"b", expression.Equal, "foo"}
+	pred := executors.Predicate{"b", expression.Equal, "foo"}
 	tmpColVal := new(expression.ColumnValue)
 	tmpColVal.SetTupleIndex(0)
 	tmpColVal.SetColIndex(tableMetadata.Schema().GetColIndex(pred.LeftColumn))
-	expression_ := expression.NewComparison(tmpColVal, expression.NewConstantValue(GetValue(pred.RightColumn), GetValueType(pred.RightColumn)), pred.Operator, types.Boolean)
+	expression_ := expression.NewComparison(tmpColVal, expression.NewConstantValue(executors.GetValue(pred.RightColumn), executors.GetValueType(pred.RightColumn)), pred.Operator, types.Boolean)
 
 	updatePlanNode := plans.NewUpdatePlanNode(row1, []int{0, 1}, expression_, tableMetadata.OID())
 	executionEngine.Execute(updatePlanNode, executorContext)
@@ -1039,11 +1040,11 @@ func TestInsertUpdateMix(t *testing.T) {
 	outColumnB := column.NewColumn("b", types.Varchar, false, nil)
 	outSchema := schema.NewSchema([]*column.Column{outColumnB})
 
-	pred = Predicate{"a", expression.Equal, 99}
+	pred = executors.Predicate{"a", expression.Equal, 99}
 	tmpColVal = new(expression.ColumnValue)
 	tmpColVal.SetTupleIndex(0)
 	tmpColVal.SetColIndex(tableMetadata.Schema().GetColIndex(pred.LeftColumn))
-	expression_ = expression.NewComparison(tmpColVal, expression.NewConstantValue(GetValue(pred.RightColumn), GetValueType(pred.RightColumn)), pred.Operator, types.Boolean)
+	expression_ = expression.NewComparison(tmpColVal, expression.NewConstantValue(executors.GetValue(pred.RightColumn), executors.GetValueType(pred.RightColumn)), pred.Operator, types.Boolean)
 
 	seqPlan := plans.NewSeqScanPlanNode(outSchema, expression_, tableMetadata.OID())
 	results := executionEngine.Execute(seqPlan, executorContext)
@@ -1080,11 +1081,11 @@ func TestInsertUpdateMix(t *testing.T) {
 	outColumnA := column.NewColumn("a", types.Integer, false, nil)
 	outSchema = schema.NewSchema([]*column.Column{outColumnA})
 
-	pred = Predicate{"b", expression.Equal, "hage"}
+	pred = executors.Predicate{"b", expression.Equal, "hage"}
 	tmpColVal = new(expression.ColumnValue)
 	tmpColVal.SetTupleIndex(0)
 	tmpColVal.SetColIndex(tableMetadata.Schema().GetColIndex(pred.LeftColumn))
-	expression_ = expression.NewComparison(tmpColVal, expression.NewConstantValue(GetValue(pred.RightColumn), GetValueType(pred.RightColumn)), pred.Operator, types.Boolean)
+	expression_ = expression.NewComparison(tmpColVal, expression.NewConstantValue(executors.GetValue(pred.RightColumn), executors.GetValueType(pred.RightColumn)), pred.Operator, types.Boolean)
 
 	seqPlan = plans.NewSeqScanPlanNode(outSchema, expression_, tableMetadata.OID())
 	results = executionEngine.Execute(seqPlan, executorContext)
@@ -1130,8 +1131,8 @@ func TestAbortWIthDeleteUpdate(t *testing.T) {
 
 	insertPlanNode := plans.NewInsertPlanNode(rows, tableMetadata.OID())
 
-	executionEngine := &ExecutionEngine{}
-	executorContext := NewExecutorContext(c, bpm, txn)
+	executionEngine := &executors.ExecutionEngine{}
+	executorContext := executors.NewExecutorContext(c, bpm, txn)
 	executionEngine.Execute(insertPlanNode, executorContext)
 
 	txn_mgr.Commit(txn)
@@ -1145,21 +1146,21 @@ func TestAbortWIthDeleteUpdate(t *testing.T) {
 	row1 = append(row1, types.NewInteger(99))
 	row1 = append(row1, types.NewVarchar("updated"))
 
-	pred := Predicate{"b", expression.Equal, "foo"}
+	pred := executors.Predicate{"b", expression.Equal, "foo"}
 	tmpColVal := new(expression.ColumnValue)
 	tmpColVal.SetTupleIndex(0)
 	tmpColVal.SetColIndex(tableMetadata.Schema().GetColIndex(pred.LeftColumn))
-	expression_ := expression.NewComparison(tmpColVal, expression.NewConstantValue(GetValue(pred.RightColumn), GetValueType(pred.RightColumn)), pred.Operator, types.Boolean)
+	expression_ := expression.NewComparison(tmpColVal, expression.NewConstantValue(executors.GetValue(pred.RightColumn), executors.GetValueType(pred.RightColumn)), pred.Operator, types.Boolean)
 
 	updatePlanNode := plans.NewUpdatePlanNode(row1, []int{0, 1}, expression_, tableMetadata.OID())
 	executionEngine.Execute(updatePlanNode, executorContext)
 
 	// delete
-	pred = Predicate{"b", expression.Equal, "bar"}
+	pred = executors.Predicate{"b", expression.Equal, "bar"}
 	tmpColVal = new(expression.ColumnValue)
 	tmpColVal.SetTupleIndex(0)
 	tmpColVal.SetColIndex(tableMetadata.Schema().GetColIndex(pred.LeftColumn))
-	expression_ = expression.NewComparison(tmpColVal, expression.NewConstantValue(GetValue(pred.RightColumn), GetValueType(pred.RightColumn)), pred.Operator, types.Boolean)
+	expression_ = expression.NewComparison(tmpColVal, expression.NewConstantValue(executors.GetValue(pred.RightColumn), executors.GetValueType(pred.RightColumn)), pred.Operator, types.Boolean)
 
 	deletePlanNode := plans.NewDeletePlanNode(expression_, tableMetadata.OID())
 	executionEngine.Execute(deletePlanNode, executorContext)
@@ -1172,11 +1173,11 @@ func TestAbortWIthDeleteUpdate(t *testing.T) {
 	outColumnB := column.NewColumn("b", types.Varchar, false, nil)
 	outSchema := schema.NewSchema([]*column.Column{outColumnB})
 
-	pred = Predicate{"a", expression.Equal, 99}
+	pred = executors.Predicate{"a", expression.Equal, 99}
 	tmpColVal = new(expression.ColumnValue)
 	tmpColVal.SetTupleIndex(0)
 	tmpColVal.SetColIndex(tableMetadata.Schema().GetColIndex(pred.LeftColumn))
-	expression_ = expression.NewComparison(tmpColVal, expression.NewConstantValue(GetValue(pred.RightColumn), GetValueType(pred.RightColumn)), pred.Operator, types.Boolean)
+	expression_ = expression.NewComparison(tmpColVal, expression.NewConstantValue(executors.GetValue(pred.RightColumn), executors.GetValueType(pred.RightColumn)), pred.Operator, types.Boolean)
 
 	seqPlan := plans.NewSeqScanPlanNode(outSchema, expression_, tableMetadata.OID())
 	results := executionEngine.Execute(seqPlan, executorContext)
@@ -1187,11 +1188,11 @@ func TestAbortWIthDeleteUpdate(t *testing.T) {
 	outColumnB = column.NewColumn("b", types.Integer, false, nil)
 	outSchema = schema.NewSchema([]*column.Column{outColumnB})
 
-	pred = Predicate{"b", expression.Equal, "bar"}
+	pred = executors.Predicate{"b", expression.Equal, "bar"}
 	tmpColVal = new(expression.ColumnValue)
 	tmpColVal.SetTupleIndex(0)
 	tmpColVal.SetColIndex(tableMetadata.Schema().GetColIndex(pred.LeftColumn))
-	expression_ = expression.NewComparison(tmpColVal, expression.NewConstantValue(GetValue(pred.RightColumn), GetValueType(pred.RightColumn)), pred.Operator, types.Boolean)
+	expression_ = expression.NewComparison(tmpColVal, expression.NewConstantValue(executors.GetValue(pred.RightColumn), executors.GetValueType(pred.RightColumn)), pred.Operator, types.Boolean)
 
 	seqPlan = plans.NewSeqScanPlanNode(outSchema, expression_, tableMetadata.OID())
 	results = executionEngine.Execute(seqPlan, executorContext)
@@ -1209,11 +1210,11 @@ func TestAbortWIthDeleteUpdate(t *testing.T) {
 	outColumnB = column.NewColumn("b", types.Varchar, false, nil)
 	outSchema = schema.NewSchema([]*column.Column{outColumnB})
 
-	pred = Predicate{"a", expression.Equal, 99}
+	pred = executors.Predicate{"a", expression.Equal, 99}
 	tmpColVal = new(expression.ColumnValue)
 	tmpColVal.SetTupleIndex(0)
 	tmpColVal.SetColIndex(tableMetadata.Schema().GetColIndex(pred.LeftColumn))
-	expression_ = expression.NewComparison(tmpColVal, expression.NewConstantValue(GetValue(pred.RightColumn), GetValueType(pred.RightColumn)), pred.Operator, types.Boolean)
+	expression_ = expression.NewComparison(tmpColVal, expression.NewConstantValue(executors.GetValue(pred.RightColumn), executors.GetValueType(pred.RightColumn)), pred.Operator, types.Boolean)
 
 	seqPlan = plans.NewSeqScanPlanNode(outSchema, expression_, tableMetadata.OID())
 	results = executionEngine.Execute(seqPlan, executorContext)
@@ -1224,11 +1225,11 @@ func TestAbortWIthDeleteUpdate(t *testing.T) {
 	outColumnB = column.NewColumn("b", types.Integer, false, nil)
 	outSchema = schema.NewSchema([]*column.Column{outColumnB})
 
-	pred = Predicate{"b", expression.Equal, "bar"}
+	pred = executors.Predicate{"b", expression.Equal, "bar"}
 	tmpColVal = new(expression.ColumnValue)
 	tmpColVal.SetTupleIndex(0)
 	tmpColVal.SetColIndex(tableMetadata.Schema().GetColIndex(pred.LeftColumn))
-	expression_ = expression.NewComparison(tmpColVal, expression.NewConstantValue(GetValue(pred.RightColumn), GetValueType(pred.RightColumn)), pred.Operator, types.Boolean)
+	expression_ = expression.NewComparison(tmpColVal, expression.NewConstantValue(executors.GetValue(pred.RightColumn), executors.GetValueType(pred.RightColumn)), pred.Operator, types.Boolean)
 
 	seqPlan = plans.NewSeqScanPlanNode(outSchema, expression_, tableMetadata.OID())
 	results = executionEngine.Execute(seqPlan, executorContext)
@@ -1245,7 +1246,7 @@ func TestSimpleHashJoin(t *testing.T) {
 	txn_mgr := access.NewTransactionManager(access.NewLockManager(access.REGULAR, access.DETECTION), log_mgr)
 	txn := txn_mgr.Begin(nil)
 	c := catalog.BootstrapCatalog(bpm, log_mgr, access.NewLockManager(access.REGULAR, access.PREVENTION), txn)
-	executorContext := NewExecutorContext(c, bpm, txn)
+	executorContext := executors.NewExecutorContext(c, bpm, txn)
 
 	columnA := column.NewColumn("colA", types.Integer, false, nil)
 	columnB := column.NewColumn("colB", types.Integer, false, nil)
@@ -1261,24 +1262,24 @@ func TestSimpleHashJoin(t *testing.T) {
 	schema_ = schema.NewSchema([]*column.Column{column1, column2, column3, column4})
 	tableMetadata2 := c.CreateTable("test_2", schema_, txn)
 
-	tableMeta1 := &TableInsertMeta{"test_1",
+	tableMeta1 := &executors.TableInsertMeta{"test_1",
 		100,
-		[]*ColumnInsertMeta{
-			{"colA", types.Integer, false, DistSerial, 0, 0, 0},
-			{"colB", types.Integer, false, DistUniform, 0, 9, 0},
-			{"colC", types.Integer, false, DistUniform, 0, 9999, 0},
-			{"colD", types.Integer, false, DistUniform, 0, 99999, 0},
+		[]*executors.ColumnInsertMeta{
+			{"colA", types.Integer, false, executors.DistSerial, 0, 0, 0},
+			{"colB", types.Integer, false, executors.DistUniform, 0, 9, 0},
+			{"colC", types.Integer, false, executors.DistUniform, 0, 9999, 0},
+			{"colD", types.Integer, false, executors.DistUniform, 0, 99999, 0},
 		}}
-	tableMeta2 := &TableInsertMeta{"test_2",
+	tableMeta2 := &executors.TableInsertMeta{"test_2",
 		1000,
-		[]*ColumnInsertMeta{
-			{"col1", types.Integer, false, DistSerial, 0, 0, 0},
-			{"col2", types.Integer, false, DistUniform, 0, 9, 0},
-			{"col3", types.Integer, false, DistUniform, 0, 1024, 0},
-			{"col4", types.Integer, false, DistUniform, 0, 2048, 0},
+		[]*executors.ColumnInsertMeta{
+			{"col1", types.Integer, false, executors.DistSerial, 0, 0, 0},
+			{"col2", types.Integer, false, executors.DistUniform, 0, 9, 0},
+			{"col3", types.Integer, false, executors.DistUniform, 0, 1024, 0},
+			{"col4", types.Integer, false, executors.DistUniform, 0, 2048, 0},
 		}}
-	FillTable(tableMetadata1, tableMeta1, txn)
-	FillTable(tableMetadata2, tableMeta2, txn)
+	executors.FillTable(tableMetadata1, tableMeta1, txn)
+	executors.FillTable(tableMetadata2, tableMeta2, txn)
 
 	txn_mgr.Commit(txn)
 
@@ -1307,13 +1308,13 @@ func TestSimpleHashJoin(t *testing.T) {
 	{
 		// colA and colB have a tuple index of 0 because they are the left side of the join
 		//var allocated_exprs []*expression.ColumnValue
-		colA := MakeColumnValueExpression(out_schema1, 0, "colA")
+		colA := executors.MakeColumnValueExpression(out_schema1, 0, "colA")
 		colA_c := column.NewColumn("colA", types.Integer, false, nil)
 		colA_c.SetIsLeft(true)
 		colB_c := column.NewColumn("colB", types.Integer, false, nil)
 		colB_c.SetIsLeft(true)
 		// col1 and col2 have a tuple index of 1 because they are the right side of the join
-		col1 := MakeColumnValueExpression(out_schema2, 1, "col1")
+		col1 := executors.MakeColumnValueExpression(out_schema2, 1, "col1")
 		col1_c := column.NewColumn("col1", types.Integer, false, nil)
 		col1_c.SetIsLeft(false)
 		col2_c := column.NewColumn("col2", types.Integer, false, nil)
@@ -1322,14 +1323,14 @@ func TestSimpleHashJoin(t *testing.T) {
 		left_keys = append(left_keys, colA)
 		var right_keys []expression.Expression
 		right_keys = append(right_keys, col1)
-		predicate := MakeComparisonExpression(colA, col1, expression.Equal)
+		predicate := executors.MakeComparisonExpression(colA, col1, expression.Equal)
 		out_final = schema.NewSchema([]*column.Column{colA_c, colB_c, col1_c, col2_c})
 		plans_ := []plans.Plan{scan_plan1, scan_plan2}
 		join_plan = plans.NewHashJoinPlanNode(out_final, plans_, predicate,
 			left_keys, right_keys)
 	}
 
-	executionEngine := &ExecutionEngine{}
+	executionEngine := &executors.ExecutionEngine{}
 	results := executionEngine.Execute(join_plan, executorContext)
 
 	num_tuples := len(results)
@@ -1374,105 +1375,105 @@ func TestInsertAndSeqScanWithComplexPredicateComparison(t *testing.T) {
 
 	insertPlanNode := plans.NewInsertPlanNode(rows, tableMetadata.OID())
 
-	executionEngine := &ExecutionEngine{}
-	executorContext := NewExecutorContext(c, bpm, txn)
+	executionEngine := &executors.ExecutionEngine{}
+	executorContext := executors.NewExecutorContext(c, bpm, txn)
 	executionEngine.Execute(insertPlanNode, executorContext)
 
 	bpm.FlushAllPages()
 
 	txn_mgr.Commit(txn)
 
-	cases := []SeqScanTestCase{{
+	cases := []executors.SeqScanTestCase{{
 		"select a ... WHERE b = 55",
 		executionEngine,
 		executorContext,
 		tableMetadata,
-		[]Column{{"a", types.Integer}},
-		Predicate{"b", expression.Equal, 55},
-		[]Assertion{{"a", 99}},
+		[]executors.Column{{"a", types.Integer}},
+		executors.Predicate{"b", expression.Equal, 55},
+		[]executors.Assertion{{"a", 99}},
 		1,
 	}, {
 		"select b ... WHERE a > 20",
 		executionEngine,
 		executorContext,
 		tableMetadata,
-		[]Column{{"b", types.Integer}},
-		Predicate{"a", expression.GreaterThan, 20},
-		[]Assertion{{"b", 55}},
+		[]executors.Column{{"b", types.Integer}},
+		executors.Predicate{"a", expression.GreaterThan, 20},
+		[]executors.Assertion{{"b", 55}},
 		1,
 	}, {
 		"select b ... WHERE a >= 20",
 		executionEngine,
 		executorContext,
 		tableMetadata,
-		[]Column{{"a", types.Integer}, {"b", types.Integer}},
-		Predicate{"a", expression.GreaterThanOrEqual, 20},
-		[]Assertion{{"a", 20}, {"b", 22}},
+		[]executors.Column{{"a", types.Integer}, {"b", types.Integer}},
+		executors.Predicate{"a", expression.GreaterThanOrEqual, 20},
+		[]executors.Assertion{{"a", 20}, {"b", 22}},
 		2,
 	}, {
 		"select a, b ... WHERE a < 99",
 		executionEngine,
 		executorContext,
 		tableMetadata,
-		[]Column{{"a", types.Integer}, {"b", types.Integer}},
-		Predicate{"a", expression.LessThan, 99},
-		[]Assertion{{"a", 20}, {"b", 22}},
+		[]executors.Column{{"a", types.Integer}, {"b", types.Integer}},
+		executors.Predicate{"a", expression.LessThan, 99},
+		[]executors.Assertion{{"a", 20}, {"b", 22}},
 		1,
 	}, {
 		"select a, b ... WHERE a <= 99",
 		executionEngine,
 		executorContext,
 		tableMetadata,
-		[]Column{{"a", types.Integer}, {"b", types.Integer}},
-		Predicate{"a", expression.LessThanOrEqual, 99},
-		[]Assertion{{"a", 20}, {"b", 22}},
+		[]executors.Column{{"a", types.Integer}, {"b", types.Integer}},
+		executors.Predicate{"a", expression.LessThanOrEqual, 99},
+		[]executors.Assertion{{"a", 20}, {"b", 22}},
 		2,
 	}, {
 		"select a, b ... WHERE b != 55",
 		executionEngine,
 		executorContext,
 		tableMetadata,
-		[]Column{{"a", types.Integer}, {"b", types.Integer}},
-		Predicate{"b", expression.NotEqual, 55},
-		[]Assertion{{"a", 20}, {"b", 22}},
+		[]executors.Column{{"a", types.Integer}, {"b", types.Integer}},
+		executors.Predicate{"b", expression.NotEqual, 55},
+		[]executors.Assertion{{"a", 20}, {"b", 22}},
 		1,
 	}, {
 		"select a, b, c ... WHERE a < 100",
 		executionEngine,
 		executorContext,
 		tableMetadata,
-		[]Column{{"a", types.Integer}, {"b", types.Integer}, {"c", types.Varchar}},
-		Predicate{"a", expression.LessThan, 100},
-		[]Assertion{{"a", 20}, {"b", 22}, {"c", "foo"}},
+		[]executors.Column{{"a", types.Integer}, {"b", types.Integer}, {"c", types.Varchar}},
+		executors.Predicate{"a", expression.LessThan, 100},
+		[]executors.Assertion{{"a", 20}, {"b", 22}, {"c", "foo"}},
 		2,
 	}, {
 		"select a, b, c ... WHERE a <= 100",
 		executionEngine,
 		executorContext,
 		tableMetadata,
-		[]Column{{"a", types.Integer}, {"b", types.Integer}, {"c", types.Varchar}},
-		Predicate{"a", expression.LessThanOrEqual, 100},
-		[]Assertion{{"a", 20}, {"b", 22}, {"c", "foo"}},
+		[]executors.Column{{"a", types.Integer}, {"b", types.Integer}, {"c", types.Varchar}},
+		executors.Predicate{"a", expression.LessThanOrEqual, 100},
+		[]executors.Assertion{{"a", 20}, {"b", 22}, {"c", "foo"}},
 		2,
 	}, {
 		"select a, b, c ... WHERE a >= 10",
 		executionEngine,
 		executorContext,
 		tableMetadata,
-		[]Column{{"a", types.Integer}, {"b", types.Integer}, {"c", types.Varchar}},
-		Predicate{"b", expression.GreaterThanOrEqual, 10},
-		[]Assertion{{"a", 20}, {"b", 22}, {"c", "foo"}},
+		[]executors.Column{{"a", types.Integer}, {"b", types.Integer}, {"c", types.Varchar}},
+		executors.Predicate{"b", expression.GreaterThanOrEqual, 10},
+		[]executors.Assertion{{"a", 20}, {"b", 22}, {"c", "foo"}},
 		2,
 	}}
 
 	for _, test := range cases {
 		t.Run(test.Description, func(t *testing.T) {
-			ExecuteSeqScanTestCase(t, test)
+			executors.ExecuteSeqScanTestCase(t, test)
 		})
 	}
 }
 
-func rowInsertTransaction(t *testing.T, shi *test_util.SamehadaInstance, c *catalog.Catalog, tm *catalog.TableMetadata, master_ch chan int32) {
+func rowInsertTransaction(t *testing.T, shi *samehada.SamehadaInstance, c *catalog.Catalog, tm *catalog.TableMetadata, master_ch chan int32) {
 	txn := shi.GetTransactionManager().Begin(nil)
 
 	row1 := make([]types.Value, 0)
@@ -1507,35 +1508,35 @@ func rowInsertTransaction(t *testing.T, shi *test_util.SamehadaInstance, c *cata
 
 	insertPlanNode := plans.NewInsertPlanNode(rows, tm.OID())
 
-	executionEngine := &ExecutionEngine{}
-	executorContext := NewExecutorContext(c, shi.GetBufferPoolManager(), txn)
+	executionEngine := &executors.ExecutionEngine{}
+	executorContext := executors.NewExecutorContext(c, shi.GetBufferPoolManager(), txn)
 	executionEngine.Execute(insertPlanNode, executorContext)
 
 	ret := handleFnishTxn(shi.GetTransactionManager(), txn)
 	master_ch <- ret
 }
 
-func deleteAllRowTransaction(t *testing.T, shi *test_util.SamehadaInstance, c *catalog.Catalog, tm *catalog.TableMetadata, master_ch chan int32) {
+func deleteAllRowTransaction(t *testing.T, shi *samehada.SamehadaInstance, c *catalog.Catalog, tm *catalog.TableMetadata, master_ch chan int32) {
 	txn := shi.GetTransactionManager().Begin(nil)
 	deletePlan := plans.NewDeletePlanNode(nil, tm.OID())
 
-	executionEngine := &ExecutionEngine{}
-	executorContext := NewExecutorContext(c, shi.GetBufferPoolManager(), txn)
+	executionEngine := &executors.ExecutionEngine{}
+	executorContext := executors.NewExecutorContext(c, shi.GetBufferPoolManager(), txn)
 	executionEngine.Execute(deletePlan, executorContext)
 
 	ret := handleFnishTxn(shi.GetTransactionManager(), txn)
 	master_ch <- ret
 }
 
-func selectAllRowTransaction(t *testing.T, shi *test_util.SamehadaInstance, c *catalog.Catalog, tm *catalog.TableMetadata, master_ch chan int32) {
+func selectAllRowTransaction(t *testing.T, shi *samehada.SamehadaInstance, c *catalog.Catalog, tm *catalog.TableMetadata, master_ch chan int32) {
 	txn := shi.GetTransactionManager().Begin(nil)
 
 	outColumnA := column.NewColumn("a", types.Integer, false, nil)
 	outSchema := schema.NewSchema([]*column.Column{outColumnA})
 
 	seqPlan := plans.NewSeqScanPlanNode(outSchema, nil, tm.OID())
-	executionEngine := &ExecutionEngine{}
-	executorContext := NewExecutorContext(c, shi.GetBufferPoolManager(), txn)
+	executionEngine := &executors.ExecutionEngine{}
+	executorContext := executors.NewExecutorContext(c, shi.GetBufferPoolManager(), txn)
 
 	executionEngine.Execute(seqPlan, executorContext)
 
@@ -1621,7 +1622,7 @@ func TestConcurrentTransactionExecution(t *testing.T) {
 	os.Remove("test.db")
 	os.Remove("test.log")
 
-	shi := test_util.NewSamehadaInstance()
+	shi := samehada.NewSamehadaInstanceForTesting()
 	shi.GetLogManager().ActivateLogging()
 	testingpkg.Assert(t, common.EnableLogging, "")
 	fmt.Println("System logging is active.")
@@ -1671,8 +1672,8 @@ func TestConcurrentTransactionExecution(t *testing.T) {
 
 	insertPlanNode := plans.NewInsertPlanNode(rows, tableMetadata.OID())
 
-	executionEngine := &ExecutionEngine{}
-	executorContext := NewExecutorContext(c, shi.GetBufferPoolManager(), txn)
+	executionEngine := &executors.ExecutionEngine{}
+	executorContext := executors.NewExecutorContext(c, shi.GetBufferPoolManager(), txn)
 	executionEngine.Execute(insertPlanNode, executorContext)
 
 	txn_mgr.Commit(txn)
@@ -1712,7 +1713,7 @@ func TestTestTableGenerator(t *testing.T) {
 	os.Remove("test.db")
 	os.Remove("test.log")
 
-	shi := test_util.NewSamehadaInstance()
+	shi := samehada.NewSamehadaInstanceForTesting()
 	shi.GetLogManager().ActivateLogging()
 	testingpkg.Assert(t, common.EnableLogging, "")
 	fmt.Println("System logging is active.")
@@ -1721,9 +1722,9 @@ func TestTestTableGenerator(t *testing.T) {
 	txn := txn_mgr.Begin(nil)
 
 	c := catalog.BootstrapCatalog(shi.GetBufferPoolManager(), shi.GetLogManager(), shi.GetLockManager(), txn)
-	exec_ctx := NewExecutorContext(c, shi.GetBufferPoolManager(), txn)
+	exec_ctx := executors.NewExecutorContext(c, shi.GetBufferPoolManager(), txn)
 
-	table_info, _ := GenerateTestTabls(c, exec_ctx, txn)
+	table_info, _ := executors.GenerateTestTabls(c, exec_ctx, txn)
 
 	//txn_mgr.Commit(txn)
 	//shi.GetBufferPoolManager().FlushAllPages()
@@ -1735,12 +1736,12 @@ func TestTestTableGenerator(t *testing.T) {
 
 	seqPlan := plans.NewSeqScanPlanNode(outSchema, nil, table_info.OID())
 
-	executionEngine := &ExecutionEngine{}
+	executionEngine := &executors.ExecutionEngine{}
 
 	results := executionEngine.Execute(seqPlan, exec_ctx)
 	fmt.Printf("len(results) => %d", len(results))
 	fmt.Println("")
-	testingpkg.Assert(t, len(results) == int(TEST1_SIZE), "generated table or testcase is wrong.")
+	testingpkg.Assert(t, len(results) == int(executors.TEST1_SIZE), "generated table or testcase is wrong.")
 
 	txn_mgr.Commit(txn)
 }
@@ -1750,7 +1751,7 @@ func TestSimpleAggregation(t *testing.T) {
 	os.Remove("test.db")
 	os.Remove("test.log")
 
-	shi := test_util.NewSamehadaInstance()
+	shi := samehada.NewSamehadaInstanceForTesting()
 	shi.GetLogManager().ActivateLogging()
 	testingpkg.Assert(t, common.EnableLogging, "")
 	fmt.Println("System logging is active.")
@@ -1759,30 +1760,30 @@ func TestSimpleAggregation(t *testing.T) {
 	txn := txn_mgr.Begin(nil)
 
 	c := catalog.BootstrapCatalog(shi.GetBufferPoolManager(), shi.GetLogManager(), shi.GetLockManager(), txn)
-	exec_ctx := NewExecutorContext(c, shi.GetBufferPoolManager(), txn)
+	exec_ctx := executors.NewExecutorContext(c, shi.GetBufferPoolManager(), txn)
 
-	table_info, _ := GenerateTestTabls(c, exec_ctx, txn)
+	table_info, _ := executors.GenerateTestTabls(c, exec_ctx, txn)
 
 	var scan_plan *plans.SeqScanPlanNode
 	var scan_schema *schema.Schema
 	{
 		//auto table_info = GetExecutorContext()->GetCatalog()->GetTable("test_1");
 		schema_ := table_info.Schema()
-		colA := MakeColumnValueExpression(schema_, 0, "colA").(*expression.ColumnValue)
-		scan_schema = MakeOutputSchema([]MakeSchemaMeta{{"colA", *colA}})
+		colA := executors.MakeColumnValueExpression(schema_, 0, "colA").(*expression.ColumnValue)
+		scan_schema = executors.MakeOutputSchema([]executors.MakeSchemaMeta{{"colA", *colA}})
 		scan_plan = plans.NewSeqScanPlanNode(scan_schema, nil, table_info.OID()).(*plans.SeqScanPlanNode)
 	}
 
 	var agg_plan *plans.AggregationPlanNode
 	var agg_schema *schema.Schema
 	{
-		colA := MakeColumnValueExpression(scan_schema, 0, "colA")
-		countA := *MakeAggregateValueExpression(false, 0).(*expression.AggregateValueExpression)
-		sumA := *MakeAggregateValueExpression(false, 1).(*expression.AggregateValueExpression)
-		minA := *MakeAggregateValueExpression(false, 2).(*expression.AggregateValueExpression)
-		maxA := *MakeAggregateValueExpression(false, 3).(*expression.AggregateValueExpression)
+		colA := executors.MakeColumnValueExpression(scan_schema, 0, "colA")
+		countA := *executors.MakeAggregateValueExpression(false, 0).(*expression.AggregateValueExpression)
+		sumA := *executors.MakeAggregateValueExpression(false, 1).(*expression.AggregateValueExpression)
+		minA := *executors.MakeAggregateValueExpression(false, 2).(*expression.AggregateValueExpression)
+		maxA := *executors.MakeAggregateValueExpression(false, 3).(*expression.AggregateValueExpression)
 
-		agg_schema = MakeOutputSchemaAgg([]MakeSchemaMetaAgg{{"countA", countA}, {"sumA", sumA}, {"minA", minA}, {"maxA", maxA}})
+		agg_schema = executors.MakeOutputSchemaAgg([]executors.MakeSchemaMetaAgg{{"countA", countA}, {"sumA", sumA}, {"minA", minA}, {"maxA", maxA}})
 		agg_plan = plans.NewAggregationPlanNode(
 			agg_schema, scan_plan, nil, []expression.Expression{},
 			[]expression.Expression{colA, colA, colA, colA},
@@ -1790,7 +1791,7 @@ func TestSimpleAggregation(t *testing.T) {
 				plans.MIN_AGGREGATE, plans.MAX_AGGREGATE})
 	}
 
-	executionEngine := &ExecutionEngine{}
+	executionEngine := &executors.ExecutionEngine{}
 	executor := executionEngine.CreateExecutor(agg_plan, exec_ctx)
 	//executor := ExecutorFactory::CreateExecutor(GetExecutorContext(), agg_plan.get())
 	executor.Init()
@@ -1802,13 +1803,13 @@ func TestSimpleAggregation(t *testing.T) {
 	maxA_val := tuple_.GetValue(agg_schema, agg_schema.GetColIndex("maxA")).ToInteger()
 	// Should count all tuples
 	fmt.Printf("%v %v %v %v\n", countA_val, sumA_val, minA_val, maxA_val)
-	testingpkg.Assert(t, countA_val == int32(TEST1_SIZE), "countA_val is not expected value.")
+	testingpkg.Assert(t, countA_val == int32(executors.TEST1_SIZE), "countA_val is not expected value.")
 	// Should sum from 0 to TEST1_SIZE
-	testingpkg.Assert(t, sumA_val == int32(TEST1_SIZE*(TEST1_SIZE-1)/2), "sumA_val is not expected value.")
+	testingpkg.Assert(t, sumA_val == int32(executors.TEST1_SIZE*(executors.TEST1_SIZE-1)/2), "sumA_val is not expected value.")
 	// Minimum should be 0
 	testingpkg.Assert(t, minA_val == int32(0), "minA_val is not expected value.")
 	// Maximum should be TEST1_SIZE - 1
-	testingpkg.Assert(t, maxA_val == int32(TEST1_SIZE-1), "maxA_val is not expected value.")
+	testingpkg.Assert(t, maxA_val == int32(executors.TEST1_SIZE-1), "maxA_val is not expected value.")
 	tuple_, done, err := executor.Next()
 	testingpkg.Assert(t, tuple_ == nil && done == true && err == nil, "second call of AggregationExecutor::Next() failed")
 
@@ -1820,7 +1821,7 @@ func TestSimpleGroupByAggregation(t *testing.T) {
 	os.Remove("test.db")
 	os.Remove("test.log")
 
-	shi := test_util.NewSamehadaInstance()
+	shi := samehada.NewSamehadaInstanceForTesting()
 	shi.GetLogManager().ActivateLogging()
 	testingpkg.Assert(t, common.EnableLogging, "")
 	fmt.Println("System logging is active.")
@@ -1829,46 +1830,46 @@ func TestSimpleGroupByAggregation(t *testing.T) {
 	txn := txn_mgr.Begin(nil)
 
 	c := catalog.BootstrapCatalog(shi.GetBufferPoolManager(), shi.GetLogManager(), shi.GetLockManager(), txn)
-	exec_ctx := NewExecutorContext(c, shi.GetBufferPoolManager(), txn)
+	exec_ctx := executors.NewExecutorContext(c, shi.GetBufferPoolManager(), txn)
 
-	table_info, _ := GenerateTestTabls(c, exec_ctx, txn)
+	table_info, _ := executors.GenerateTestTabls(c, exec_ctx, txn)
 
 	var scan_plan *plans.SeqScanPlanNode
 	var scan_schema *schema.Schema
 	{
 		//auto table_info = GetExecutorContext()->GetCatalog()->GetTable("test_1");
 		schema_ := table_info.Schema()
-		colA := MakeColumnValueExpression(schema_, 0, "colA").(*expression.ColumnValue)
-		colB := MakeColumnValueExpression(schema_, 0, "colB").(*expression.ColumnValue)
-		colC := MakeColumnValueExpression(schema_, 0, "colC").(*expression.ColumnValue)
-		scan_schema = MakeOutputSchema([]MakeSchemaMeta{{"colA", *colA}, {"colB", *colB}, {"colC", *colC}})
+		colA := executors.MakeColumnValueExpression(schema_, 0, "colA").(*expression.ColumnValue)
+		colB := executors.MakeColumnValueExpression(schema_, 0, "colB").(*expression.ColumnValue)
+		colC := executors.MakeColumnValueExpression(schema_, 0, "colC").(*expression.ColumnValue)
+		scan_schema = executors.MakeOutputSchema([]executors.MakeSchemaMeta{{"colA", *colA}, {"colB", *colB}, {"colC", *colC}})
 		scan_plan = plans.NewSeqScanPlanNode(scan_schema, nil, table_info.OID()).(*plans.SeqScanPlanNode)
 	}
 
 	var agg_plan *plans.AggregationPlanNode
 	var agg_schema *schema.Schema
 	{
-		colA := MakeColumnValueExpression(scan_schema, 0, "colA").(*expression.ColumnValue)
-		colB := MakeColumnValueExpression(scan_schema, 0, "colB").(*expression.ColumnValue)
-		colC := MakeColumnValueExpression(scan_schema, 0, "colC").(*expression.ColumnValue)
+		colA := executors.MakeColumnValueExpression(scan_schema, 0, "colA").(*expression.ColumnValue)
+		colB := executors.MakeColumnValueExpression(scan_schema, 0, "colB").(*expression.ColumnValue)
+		colC := executors.MakeColumnValueExpression(scan_schema, 0, "colC").(*expression.ColumnValue)
 		// Make group bye
-		groupbyB := *MakeAggregateValueExpression(true, 0).(*expression.AggregateValueExpression)
+		groupbyB := *executors.MakeAggregateValueExpression(true, 0).(*expression.AggregateValueExpression)
 		// Make aggregates
-		countA := *MakeAggregateValueExpression(false, 0).(*expression.AggregateValueExpression)
-		sumC := *MakeAggregateValueExpression(false, 1).(*expression.AggregateValueExpression)
+		countA := *executors.MakeAggregateValueExpression(false, 0).(*expression.AggregateValueExpression)
+		sumC := *executors.MakeAggregateValueExpression(false, 1).(*expression.AggregateValueExpression)
 		// Make having clause
-		pred_const := types.NewInteger(int32(TEST1_SIZE / 10))
+		pred_const := types.NewInteger(int32(executors.TEST1_SIZE / 10))
 		//pred_const := types.NewInteger(100)
-		having := MakeComparisonExpression(&countA, MakeConstantValueExpression(&pred_const), expression.GreaterThan)
+		having := executors.MakeComparisonExpression(&countA, executors.MakeConstantValueExpression(&pred_const), expression.GreaterThan)
 
-		agg_schema = MakeOutputSchemaAgg([]MakeSchemaMetaAgg{{"countA", countA}, {"colB", groupbyB}, {"sumC", sumC}})
+		agg_schema = executors.MakeOutputSchemaAgg([]executors.MakeSchemaMetaAgg{{"countA", countA}, {"colB", groupbyB}, {"sumC", sumC}})
 		agg_plan = plans.NewAggregationPlanNode(
 			agg_schema, scan_plan, having, []expression.Expression{colB},
 			[]expression.Expression{colA, colC},
 			[]plans.AggregationType{plans.COUNT_AGGREGATE, plans.SUM_AGGREGATE})
 	}
 
-	executionEngine := &ExecutionEngine{}
+	executionEngine := &executors.ExecutionEngine{}
 	executor := executionEngine.CreateExecutor(agg_plan, exec_ctx)
 	executor.Init()
 
@@ -1881,7 +1882,7 @@ func TestSimpleGroupByAggregation(t *testing.T) {
 
 		fmt.Printf("%d %d %d\n", countA, colB, sumC)
 
-		testingpkg.Assert(t, countA > int32(TEST1_SIZE/100), "countA result is not greater than 3")
+		testingpkg.Assert(t, countA > int32(executors.TEST1_SIZE/100), "countA result is not greater than 3")
 
 		// should have unique colBs.
 		_, ok := encountered[colB]
@@ -1899,7 +1900,7 @@ func TestSeqScanWithMultiItemPredicate(t *testing.T) {
 	os.Remove("test.db")
 	os.Remove("test.log")
 
-	shi := test_util.NewSamehadaInstance()
+	shi := samehada.NewSamehadaInstanceForTesting()
 	shi.GetLogManager().ActivateLogging()
 	testingpkg.Assert(t, common.EnableLogging, "")
 	fmt.Println("System logging is active.")
@@ -1908,9 +1909,9 @@ func TestSeqScanWithMultiItemPredicate(t *testing.T) {
 	txn := txn_mgr.Begin(nil)
 
 	c := catalog.BootstrapCatalog(shi.GetBufferPoolManager(), shi.GetLogManager(), shi.GetLockManager(), txn)
-	exec_ctx := NewExecutorContext(c, shi.GetBufferPoolManager(), txn)
+	exec_ctx := executors.NewExecutorContext(c, shi.GetBufferPoolManager(), txn)
 
-	table_info, _ := GenerateTestTabls(c, exec_ctx, txn)
+	table_info, _ := executors.GenerateTestTabls(c, exec_ctx, txn)
 
 	txn_mgr.Commit(txn)
 	shi.GetBufferPoolManager().FlushAllPages()
@@ -1923,18 +1924,18 @@ func TestSeqScanWithMultiItemPredicate(t *testing.T) {
 	{
 		// setup predicates and a execution plan
 		schema_ := table_info.Schema()
-		colA_val := MakeColumnValueExpression(schema_, 0, "colA").(*expression.ColumnValue)
-		colB_val := MakeColumnValueExpression(schema_, 0, "colB").(*expression.ColumnValue)
-		colC_val := MakeColumnValueExpression(schema_, 0, "colC").(*expression.ColumnValue)
+		colA_val := executors.MakeColumnValueExpression(schema_, 0, "colA").(*expression.ColumnValue)
+		colB_val := executors.MakeColumnValueExpression(schema_, 0, "colB").(*expression.ColumnValue)
+		colC_val := executors.MakeColumnValueExpression(schema_, 0, "colC").(*expression.ColumnValue)
 
 		pred_constA := types.NewInteger(int32(500))
-		comp_predA := MakeComparisonExpression(colA_val, MakeConstantValueExpression(&pred_constA), expression.GreaterThan)
+		comp_predA := executors.MakeComparisonExpression(colA_val, executors.MakeConstantValueExpression(&pred_constA), expression.GreaterThan)
 
 		pred_constB := types.NewInteger(int32(5))
-		comp_predB := MakeComparisonExpression(colB_val, MakeConstantValueExpression(&pred_constB), expression.LessThan)
+		comp_predB := executors.MakeComparisonExpression(colB_val, executors.MakeConstantValueExpression(&pred_constB), expression.LessThan)
 
 		pred_constC := types.NewInteger(int32(1000))
-		comp_predC := MakeComparisonExpression(colC_val, MakeConstantValueExpression(&pred_constC), expression.GreaterThanOrEqual)
+		comp_predC := executors.MakeComparisonExpression(colC_val, executors.MakeConstantValueExpression(&pred_constC), expression.GreaterThanOrEqual)
 
 		// (colA > 500 AND colB < 5)
 		left_side_pred := expression.NewLogicalOp(comp_predA, comp_predB, expression.AND, types.Boolean)
@@ -1945,11 +1946,11 @@ func TestSeqScanWithMultiItemPredicate(t *testing.T) {
 		// (colA > 500 AND colB < 5) OR (NOT colC >= 1000)
 		root_pred := expression.NewLogicalOp(left_side_pred, right_side_pred, expression.OR, types.Boolean)
 
-		scan_schema = MakeOutputSchema([]MakeSchemaMeta{{"colA", *colA_val}, {"colB", *colB_val}, {"colC", *colC_val}})
+		scan_schema = executors.MakeOutputSchema([]executors.MakeSchemaMeta{{"colA", *colA_val}, {"colB", *colB_val}, {"colC", *colC_val}})
 		scan_plan = plans.NewSeqScanPlanNode(scan_schema, root_pred, table_info.OID()).(*plans.SeqScanPlanNode)
 	}
 
-	executionEngine := &ExecutionEngine{}
+	executionEngine := &executors.ExecutionEngine{}
 	results := executionEngine.Execute(scan_plan, exec_ctx)
 	fmt.Println(len(results))
 
@@ -2001,8 +2002,8 @@ func TestInsertAndSpecifiedColumnUpdate(t *testing.T) {
 
 	insertPlanNode := plans.NewInsertPlanNode(rows, tableMetadata.OID())
 
-	executionEngine := &ExecutionEngine{}
-	executorContext := NewExecutorContext(c, bpm, txn)
+	executionEngine := &executors.ExecutionEngine{}
+	executorContext := executors.NewExecutorContext(c, bpm, txn)
 	executionEngine.Execute(insertPlanNode, executorContext)
 
 	txn_mgr.Commit(txn)
@@ -2015,11 +2016,11 @@ func TestInsertAndSpecifiedColumnUpdate(t *testing.T) {
 	row1 = append(row1, types.NewInteger(-1))        // dummy value
 	row1 = append(row1, types.NewVarchar("updated")) //target column
 
-	pred := Predicate{"b", expression.Equal, "foo"}
+	pred := executors.Predicate{"b", expression.Equal, "foo"}
 	tmpColVal := new(expression.ColumnValue)
 	tmpColVal.SetTupleIndex(0)
 	tmpColVal.SetColIndex(tableMetadata.Schema().GetColIndex(pred.LeftColumn))
-	expression_ := expression.NewComparison(tmpColVal, expression.NewConstantValue(GetValue(pred.RightColumn), GetValueType(pred.LeftColumn)), pred.Operator, types.Boolean)
+	expression_ := expression.NewComparison(tmpColVal, expression.NewConstantValue(executors.GetValue(pred.RightColumn), executors.GetValueType(pred.LeftColumn)), pred.Operator, types.Boolean)
 
 	updatePlanNode := plans.NewUpdatePlanNode(row1, []int{1}, expression_, tableMetadata.OID())
 	executionEngine.Execute(updatePlanNode, executorContext)
@@ -2034,11 +2035,11 @@ func TestInsertAndSpecifiedColumnUpdate(t *testing.T) {
 	outColumnB := column.NewColumn("b", types.Varchar, false, nil)
 	outSchema := schema.NewSchema([]*column.Column{outColumnA, outColumnB})
 
-	pred = Predicate{"a", expression.Equal, 99}
+	pred = executors.Predicate{"a", expression.Equal, 99}
 	tmpColVal = new(expression.ColumnValue)
 	tmpColVal.SetTupleIndex(0)
 	tmpColVal.SetColIndex(tableMetadata.Schema().GetColIndex(pred.LeftColumn))
-	expression_ = expression.NewComparison(tmpColVal, expression.NewConstantValue(GetValue(pred.RightColumn), GetValueType(pred.RightColumn)), pred.Operator, types.Boolean)
+	expression_ = expression.NewComparison(tmpColVal, expression.NewConstantValue(executors.GetValue(pred.RightColumn), executors.GetValueType(pred.RightColumn)), pred.Operator, types.Boolean)
 
 	seqPlan := plans.NewSeqScanPlanNode(outSchema, expression_, tableMetadata.OID())
 	results := executionEngine.Execute(seqPlan, executorContext)
@@ -2055,7 +2056,7 @@ func TestInsertAndSpecifiedColumnUpdatePageMoveCase(t *testing.T) {
 	os.Remove("test.db")
 	os.Remove("test.log")
 
-	shi := test_util.NewSamehadaInstance()
+	shi := samehada.NewSamehadaInstanceForTesting()
 	shi.GetLogManager().ActivateLogging()
 	testingpkg.Assert(t, common.EnableLogging, "")
 	fmt.Println("System logging is active.")
@@ -2084,8 +2085,8 @@ func TestInsertAndSpecifiedColumnUpdatePageMoveCase(t *testing.T) {
 
 		rows = append(rows, row)
 	}
-	executionEngine := &ExecutionEngine{}
-	executorContext := NewExecutorContext(c, bpm, txn)
+	executionEngine := &executors.ExecutionEngine{}
+	executorContext := executors.NewExecutorContext(c, bpm, txn)
 	insertPlanNode := plans.NewInsertPlanNode(rows, tableMetadata.OID())
 	executionEngine.Execute(insertPlanNode, executorContext)
 
@@ -2099,11 +2100,11 @@ func TestInsertAndSpecifiedColumnUpdatePageMoveCase(t *testing.T) {
 	row = append(row, types.NewInteger(-1))                                  // dummy value
 	row = append(row, types.NewVarchar("updated_xxxxxxxxxxxxxxxxxxxxxxxxx")) //target column
 
-	pred := Predicate{"a", expression.Equal, 99}
+	pred := executors.Predicate{"a", expression.Equal, 99}
 	tmpColVal := new(expression.ColumnValue)
 	tmpColVal.SetTupleIndex(0)
 	tmpColVal.SetColIndex(tableMetadata.Schema().GetColIndex(pred.LeftColumn))
-	expression_ := expression.NewComparison(tmpColVal, expression.NewConstantValue(GetValue(pred.RightColumn), GetValueType(pred.LeftColumn)), pred.Operator, types.Boolean)
+	expression_ := expression.NewComparison(tmpColVal, expression.NewConstantValue(executors.GetValue(pred.RightColumn), executors.GetValueType(pred.LeftColumn)), pred.Operator, types.Boolean)
 
 	updatePlanNode := plans.NewUpdatePlanNode(row, []int{1}, expression_, tableMetadata.OID())
 	executionEngine.Execute(updatePlanNode, executorContext)
@@ -2118,11 +2119,11 @@ func TestInsertAndSpecifiedColumnUpdatePageMoveCase(t *testing.T) {
 	outColumnB := column.NewColumn("b", types.Varchar, false, nil)
 	outSchema := schema.NewSchema([]*column.Column{outColumnA, outColumnB})
 
-	pred = Predicate{"a", expression.Equal, 99}
+	pred = executors.Predicate{"a", expression.Equal, 99}
 	tmpColVal = new(expression.ColumnValue)
 	tmpColVal.SetTupleIndex(0)
 	tmpColVal.SetColIndex(tableMetadata.Schema().GetColIndex(pred.LeftColumn))
-	expression_ = expression.NewComparison(tmpColVal, expression.NewConstantValue(GetValue(pred.RightColumn), GetValueType(pred.RightColumn)), pred.Operator, types.Boolean)
+	expression_ = expression.NewComparison(tmpColVal, expression.NewConstantValue(executors.GetValue(pred.RightColumn), executors.GetValueType(pred.RightColumn)), pred.Operator, types.Boolean)
 
 	seqPlan := plans.NewSeqScanPlanNode(outSchema, expression_, tableMetadata.OID())
 	results := executionEngine.Execute(seqPlan, executorContext)
@@ -2140,7 +2141,7 @@ func TestSimpleSeqScanAndOrderBy(t *testing.T) {
 	os.Remove("test.db")
 	os.Remove("test.log")
 
-	shi := test_util.NewSamehadaInstance()
+	shi := samehada.NewSamehadaInstanceForTesting()
 	shi.GetLogManager().ActivateLogging()
 	testingpkg.Assert(t, common.EnableLogging, "")
 	fmt.Println("System logging is active.")
@@ -2149,7 +2150,7 @@ func TestSimpleSeqScanAndOrderBy(t *testing.T) {
 	txn := txn_mgr.Begin(nil)
 
 	c := catalog.BootstrapCatalog(shi.GetBufferPoolManager(), shi.GetLogManager(), shi.GetLockManager(), txn)
-	exec_ctx := NewExecutorContext(c, shi.GetBufferPoolManager(), txn)
+	exec_ctx := executors.NewExecutorContext(c, shi.GetBufferPoolManager(), txn)
 
 	//table_info, _ := GenerateTestTabls(c, exec_ctx, txn)
 	columnA := column.NewColumn("a", types.Integer, false, nil)
@@ -2176,7 +2177,7 @@ func TestSimpleSeqScanAndOrderBy(t *testing.T) {
 	rows = append(rows, row3)
 
 	insertPlanNode := plans.NewInsertPlanNode(rows, tableMetadata.OID())
-	executionEngine := &ExecutionEngine{}
+	executionEngine := &executors.ExecutionEngine{}
 	executionEngine.Execute(insertPlanNode, exec_ctx)
 
 	txn_mgr.Commit(txn)
@@ -2189,9 +2190,9 @@ func TestSimpleSeqScanAndOrderBy(t *testing.T) {
 	{
 		//auto table_info = GetExecutorContext()->GetCatalog()->GetTable("test_1");
 		schema_ := tableMetadata.Schema()
-		colA := MakeColumnValueExpression(schema_, 0, "a").(*expression.ColumnValue)
-		colB := MakeColumnValueExpression(schema_, 0, "b").(*expression.ColumnValue)
-		scan_schema = MakeOutputSchema([]MakeSchemaMeta{{"a", *colA}, {"b", *colB}})
+		colA := executors.MakeColumnValueExpression(schema_, 0, "a").(*expression.ColumnValue)
+		colB := executors.MakeColumnValueExpression(schema_, 0, "b").(*expression.ColumnValue)
+		scan_schema = executors.MakeOutputSchema([]executors.MakeSchemaMeta{{"a", *colA}, {"b", *colB}})
 		scan_plan = plans.NewSeqScanPlanNode(scan_schema, nil, tableMetadata.OID()).(*plans.SeqScanPlanNode)
 	}
 
@@ -2247,7 +2248,7 @@ func TestSimpleSetNullToVarchar(t *testing.T) {
 	os.Remove("test.db")
 	os.Remove("test.log")
 
-	shi := test_util.NewSamehadaInstance()
+	shi := samehada.NewSamehadaInstanceForTesting()
 	shi.GetLogManager().ActivateLogging()
 	testingpkg.Assert(t, common.EnableLogging, "")
 	fmt.Println("System logging is active.")
@@ -2256,7 +2257,7 @@ func TestSimpleSetNullToVarchar(t *testing.T) {
 	txn := txn_mgr.Begin(nil)
 
 	c := catalog.BootstrapCatalog(shi.GetBufferPoolManager(), shi.GetLogManager(), shi.GetLockManager(), txn)
-	exec_ctx := NewExecutorContext(c, shi.GetBufferPoolManager(), txn)
+	exec_ctx := executors.NewExecutorContext(c, shi.GetBufferPoolManager(), txn)
 
 	columnA := column.NewColumn("a", types.Integer, false, nil)
 	columnB := column.NewColumn("b", types.Varchar, false, nil)
@@ -2284,7 +2285,7 @@ func TestSimpleSetNullToVarchar(t *testing.T) {
 	rows = append(rows, row3)
 
 	insertPlanNode := plans.NewInsertPlanNode(rows, tableMetadata.OID())
-	executionEngine := &ExecutionEngine{}
+	executionEngine := &executors.ExecutionEngine{}
 	executionEngine.Execute(insertPlanNode, exec_ctx)
 
 	txn_mgr.Commit(txn)
@@ -2297,9 +2298,9 @@ func TestSimpleSetNullToVarchar(t *testing.T) {
 	{
 		//auto table_info = GetExecutorContext()->GetCatalog()->GetTable("test_1");
 		schema_ := tableMetadata.Schema()
-		colA := MakeColumnValueExpression(schema_, 0, "a").(*expression.ColumnValue)
-		colB := MakeColumnValueExpression(schema_, 0, "b").(*expression.ColumnValue)
-		scan_schema = MakeOutputSchema([]MakeSchemaMeta{{"a", *colA}, {"b", *colB}})
+		colA := executors.MakeColumnValueExpression(schema_, 0, "a").(*expression.ColumnValue)
+		colB := executors.MakeColumnValueExpression(schema_, 0, "b").(*expression.ColumnValue)
+		scan_schema = executors.MakeOutputSchema([]executors.MakeSchemaMeta{{"a", *colA}, {"b", *colB}})
 		scan_plan = plans.NewSeqScanPlanNode(scan_schema, nil, tableMetadata.OID()).(*plans.SeqScanPlanNode)
 	}
 
@@ -2364,37 +2365,37 @@ func TestInsertNullValueAndSeqScanWithNullComparison(t *testing.T) {
 
 	insertPlanNode := plans.NewInsertPlanNode(rows, tableMetadata.OID())
 
-	executionEngine := &ExecutionEngine{}
-	executorContext := NewExecutorContext(c, bpm, txn)
+	executionEngine := &executors.ExecutionEngine{}
+	executorContext := executors.NewExecutorContext(c, bpm, txn)
 	executionEngine.Execute(insertPlanNode, executorContext)
 
 	bpm.FlushAllPages()
 
 	txn_mgr.Commit(txn)
 
-	cases := []SeqScanTestCase{{
+	cases := []executors.SeqScanTestCase{{
 		"select a, b ... WHERE b = NULL",
 		executionEngine,
 		executorContext,
 		tableMetadata,
-		[]Column{{"a", types.Integer}, {"b", types.Varchar}},
-		Predicate{"b", expression.Equal, types.NewVarchar("").SetNull()},
-		[]Assertion{{"a", 20}},
+		[]executors.Column{{"a", types.Integer}, {"b", types.Varchar}},
+		executors.Predicate{"b", expression.Equal, types.NewVarchar("").SetNull()},
+		[]executors.Assertion{{"a", 20}},
 		1,
 	}, {
 		"select a, b ... WHERE a = 20",
 		executionEngine,
 		executorContext,
 		tableMetadata,
-		[]Column{{"a", types.Integer}, {"b", types.Varchar}},
-		Predicate{"a", expression.Equal, 20},
-		[]Assertion{{"a", 20}},
+		[]executors.Column{{"a", types.Integer}, {"b", types.Varchar}},
+		executors.Predicate{"a", expression.Equal, 20},
+		[]executors.Assertion{{"a", 20}},
 		1,
 	}}
 
 	for _, test := range cases {
 		t.Run(test.Description, func(t *testing.T) {
-			ExecuteSeqScanTestCase(t, test)
+			executors.ExecuteSeqScanTestCase(t, test)
 		})
 	}
 }

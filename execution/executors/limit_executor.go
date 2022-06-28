@@ -29,26 +29,29 @@ func (e *LimitExecutor) Init() {
 }
 
 func (e *LimitExecutor) Next() (*tuple.Tuple, Done, error) {
-	tuple, done, err := e.child.Next()
-	if err != nil {
-		return nil, done, err
-	}
-	if tuple == nil {
-		err := errors.New("e.child.Next returned nil")
-		return nil, true, err
+	for t, done, err := e.child.Next(); !done; t, done, err = e.child.Next() {
+		if err != nil {
+			return nil, done, err
+		}
+		if t == nil && done == false {
+			err := errors.New("e.child.Next returned nil unexpectedly.")
+			return nil, true, err
+		}
+
+		if e.skipped < e.plan.GetOffset() {
+			e.skipped++
+			continue
+		}
+
+		e.emitted++
+		if e.emitted > e.plan.GetLimit() {
+			return nil, true, nil
+		}
+
+		return t, false, nil
 	}
 
-	if e.skipped < e.plan.GetOffset() {
-		e.skipped++
-		return nil, false, nil
-	}
-
-	e.emitted++
-	if e.emitted > e.plan.GetLimit() {
-		return nil, true, nil
-	}
-
-	return tuple, false, nil
+	return nil, true, nil
 }
 
 func (e *LimitExecutor) GetOutputSchema() *schema.Schema {

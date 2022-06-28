@@ -3,7 +3,10 @@
 
 package schema
 
-import "github.com/ryogrid/SamehadaDB/storage/table/column"
+import (
+	"github.com/ryogrid/SamehadaDB/storage/table/column"
+	"math"
+)
 
 type Schema struct {
 	length           uint32           // Fixed-length column size, i.e. the number of bytes used by one tuple
@@ -58,7 +61,7 @@ func (s *Schema) GetColIndex(columnName string) uint32 {
 		}
 	}
 
-	panic("unreachable code") // this is not a good way to handle the issue
+	return math.MaxUint32
 }
 
 func (s *Schema) GetColumns() []*column.Column {

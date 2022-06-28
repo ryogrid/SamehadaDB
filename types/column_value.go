@@ -7,6 +7,7 @@ import (
 	"bytes"
 	"encoding/binary"
 	"fmt"
+	"strconv"
 )
 
 // A value is an class that represents a view over SQL data stored in
@@ -257,6 +258,25 @@ func (v Value) Size() uint32 {
 		return uint32(len(*v.varchar)) + 1 + 2 // varchar occupies the size of the string + 2 bytes for length storage
 	case Boolean:
 		return v.valueType.Size()
+	}
+	panic("not implemented")
+}
+
+func (v Value) ToString() string {
+	// all type occupies the whether NULL or not + 1 byte for the info storage
+	switch v.valueType {
+	case Integer:
+		return strconv.Itoa(int(*v.integer))
+	case Float:
+		return strconv.FormatFloat(float64(*v.float), 'f', -1, 64)
+	case Varchar:
+		return *v.varchar
+	case Boolean:
+		if *v.boolean {
+			return "true"
+		} else {
+			return "false"
+		}
 	}
 	panic("not implemented")
 }

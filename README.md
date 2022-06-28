@@ -55,8 +55,6 @@ original codes of go-bustub are [here](https://github.com/brunocalza/go-bustub).
   - [x] INNER JOIN (Hash Join)
     - Currently, only two tables JOIN is implemented and codition specified at ON clause should be composed of single item  
   - [ ] CROSS JOIN
-- [x] Aggregations (COUNT, MAX, MIN ... on SELECT clause including Group by and Having)
-- [x] Join (Hash Join)
 - [x] Aggregations (COUNT, MAX, MIN, SUM on SELECT clause including Group by and Having)
 - [x] Sort (ORDER BY clause) 
 - [x] Tuple Level Locking With Strong Strict 2-Phase Locking (SS2PL) Protcol
@@ -79,6 +77,9 @@ original codes of go-bustub are [here](https://github.com/brunocalza/go-bustub).
 - [ ] Eliminate Data Processing with Placing All Scanned Tuples on the Memory
 - [ ] Communication over SSL/TLS
 - [ ] Authentication
+
+## More Info
+- [Wiki on this repo](https://github.com/ryogrid/SamehadaDB/wiki)
 
 ## Advisor
 - [kumagi](https://github.com/kumagi) and more!

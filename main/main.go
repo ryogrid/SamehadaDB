@@ -1,8 +1,7 @@
 package main
 
-import "github.com/ryogrid/SamehadaDB/parser"
+import "fmt"
 
 func main() {
-	//fmt.Printf("hello world!")
-	parser.ParserEntryFunc()
+	fmt.Println("hello world!")
 }

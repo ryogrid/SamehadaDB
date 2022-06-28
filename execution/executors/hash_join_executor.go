@@ -2,7 +2,6 @@ package executors
 
 import (
 	"errors"
-
 	"github.com/ryogrid/SamehadaDB/common"
 	"github.com/ryogrid/SamehadaDB/container/hash"
 	"github.com/ryogrid/SamehadaDB/execution/expression"
@@ -68,10 +67,12 @@ func (e *HashJoinExecutor) Init() {
 		column_ := e.GetOutputSchema().GetColumn(uint32(i))
 		var colVal expression.Expression
 		if column_.IsLeft() {
-			colIndex := e.plan_.GetLeftPlan().OutputSchema().GetColIndex(column_.GetColumnName())
+			colname := column_.GetColumnName()
+			colIndex := e.plan_.GetLeftPlan().OutputSchema().GetColIndex(colname)
 			colVal = expression.NewColumnValue(0, colIndex, types.Invalid)
 		} else {
-			colIndex := e.plan_.GetRightPlan().OutputSchema().GetColIndex(column_.GetColumnName())
+			colname := column_.GetColumnName()
+			colIndex := e.plan_.GetRightPlan().OutputSchema().GetColIndex(colname)
 			colVal = expression.NewColumnValue(1, colIndex, types.Invalid)
 		}
 
@@ -80,8 +81,8 @@ func (e *HashJoinExecutor) Init() {
 	// build hash table from left
 	e.left_.Init()
 	e.right_.Init()
-	e.left_expr_ = e.plan_.Predicate().GetChildAt(0)
-	e.right_expr_ = e.plan_.Predicate().GetChildAt(1)
+	e.left_expr_ = e.plan_.OnPredicate().GetChildAt(0)
+	e.right_expr_ = e.plan_.OnPredicate().GetChildAt(1)
 	//var left_tuple tuple.Tuple
 	// store all the left tuples in tmp pages in that it can not fit in memory
 	// use tmp tuple as the value of the hash table kv pair
@@ -181,7 +182,7 @@ func (e *HashJoinExecutor) FetchTupleFromTmpTuplePage(tuple_ *tuple.Tuple, tmp_t
 }
 
 func (e *HashJoinExecutor) IsValidCombination(left_tuple *tuple.Tuple, right_tuple *tuple.Tuple) bool {
-	return e.plan_.Predicate().EvaluateJoin(left_tuple, e.left_.GetOutputSchema(), right_tuple, e.right_.GetOutputSchema()).ToBoolean()
+	return e.plan_.OnPredicate().EvaluateJoin(left_tuple, e.left_.GetOutputSchema(), right_tuple, e.right_.GetOutputSchema()).ToBoolean()
 }
 
 func (e *HashJoinExecutor) MakeOutputTuple(left_tuple *tuple.Tuple, right_tuple *tuple.Tuple) *tuple.Tuple {

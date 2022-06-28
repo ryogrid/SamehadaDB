@@ -14,7 +14,7 @@ import (
 type HashJoinPlanNode struct {
 	*AbstractPlanNode
 	/** The hash join predicate. */
-	predicate expression.Expression
+	onPredicate expression.Expression
 	/** The left child's hash keys. */
 	left_hash_keys []expression.Expression
 	/** The right child's hash keys. */
@@ -22,15 +22,15 @@ type HashJoinPlanNode struct {
 }
 
 func NewHashJoinPlanNode(output_schema *schema.Schema, children []Plan,
-	predicate expression.Expression, left_hash_keys []expression.Expression,
+	onPredicate expression.Expression, left_hash_keys []expression.Expression,
 	right_hash_keys []expression.Expression) *HashJoinPlanNode {
-	return &HashJoinPlanNode{&AbstractPlanNode{output_schema, children}, predicate, left_hash_keys, right_hash_keys}
+	return &HashJoinPlanNode{&AbstractPlanNode{output_schema, children}, onPredicate, left_hash_keys, right_hash_keys}
 }
 
 func (p *HashJoinPlanNode) GetType() PlanType { return HashJoin }
 
-/** @return the predicate to be used in the hash join */
-func (p *HashJoinPlanNode) Predicate() expression.Expression { return p.predicate }
+/** @return the onPredicate to be used in the hash join */
+func (p *HashJoinPlanNode) OnPredicate() expression.Expression { return p.onPredicate }
 
 /** @return the left plan node of the hash join, by convention this is used to build the table */
 func (p *HashJoinPlanNode) GetLeftPlan() Plan {

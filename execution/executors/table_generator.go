@@ -19,73 +19,71 @@ type ColumnInsertMeta struct {
 	/**
 	 * Name of the column
 	 */
-	name_ string
+	Name_ string
 	/**
 	 * Type of the column
 	 */
-	type_ types.TypeID
+	Type_ types.TypeID
 	/**
 	 * Whether the column is nullable
 	 */
-	nullable_ bool
+	Nullable_ bool
 	/**
 	 * Distribution of values
 	 */
-	dist_ int32
+	Dist_ int32
 	/**
 	 * Min value of the column
 	 */
-	min_ int32
+	Min_ int32
 	/**
 	 * Max value of the column
 	 */
-	max_ int32
+	Max_ int32
 	/**
 	 * Counter to generate serial data
 	 */
-	serial_counter_ int32
+	Serial_counter_ int32
 }
 
 type TableInsertMeta struct {
 	/**
 	 * Name of the table
 	 */
-	name_ string
+	Name_ string
 	/**
 	 * Number of rows
 	 */
-	num_rows_ uint32
+	Num_rows_ uint32
 	/**
 	 * Columns
 	 */
-	col_meta_ []*ColumnInsertMeta
+	Col_meta_ []*ColumnInsertMeta
 }
 
 type MakeSchemaMeta struct {
-	col_name_ string
-	expr_     expression.ColumnValue
+	Col_name_ string
+	Expr_     expression.ColumnValue
 }
 
 type MakeSchemaMetaAgg struct {
-	col_name_ string
-	expr_     expression.AggregateValueExpression
+	Col_name_ string
+	Expr_     expression.AggregateValueExpression
 }
 
 const DistSerial int32 = 0
 const DistUniform int32 = 1
 
-// TODO: (SDB) when TEST1_SIZE is 1000, TestTestTableGenerator testcase and TestSimpleAggregation testcase fails.
-//             maybe, TestTableGeneration func or tuple insertion logic of TableHeap has some bugs...
-const TEST1_SIZE uint32 = 1000 //100 //20 //1000
+const TEST1_SIZE uint32 = 1000
 const TEST2_SIZE uint32 = 100
 const TEST_VARLEN_SIZE uint32 = 10
 
 func GenNumericValues(col_meta *ColumnInsertMeta, count uint32) []types.Value {
 	var values []types.Value
-	if col_meta.dist_ == DistSerial {
+	if col_meta.Dist_ == DistSerial {
 		for i := 0; i < int(count); i++ {
-			values = append(values, types.NewInteger(col_meta.serial_counter_))
-			col_meta.serial_counter_ += 1
+			values = append(values, types.NewInteger(col_meta.Serial_counter_))
+			col_meta.Serial_counter_ += 1
 		}
 		return values
 	}
@@ -93,17 +91,17 @@ func GenNumericValues(col_meta *ColumnInsertMeta, count uint32) []types.Value {
 	seed := time.Now().UnixNano()
 	rand.Seed(seed)
 	for i := 0; i < int(count); i++ {
-		values = append(values, types.NewInteger(rand.Int31n(col_meta.max_)))
+		values = append(values, types.NewInteger(rand.Int31n(col_meta.Max_)))
 	}
 	return values
 }
 
 func GenNumericValuesFloat(col_meta *ColumnInsertMeta, count uint32) []types.Value {
 	var values []types.Value
-	if col_meta.dist_ == DistSerial {
+	if col_meta.Dist_ == DistSerial {
 		for i := 0; i < int(count); i++ {
-			values = append(values, types.NewInteger(col_meta.serial_counter_))
-			col_meta.serial_counter_ += 1
+			values = append(values, types.NewInteger(col_meta.Serial_counter_))
+			col_meta.Serial_counter_ += 1
 		}
 		return values
 	}
@@ -111,14 +109,14 @@ func GenNumericValuesFloat(col_meta *ColumnInsertMeta, count uint32) []types.Val
 	seed := time.Now().UnixNano()
 	rand.Seed(seed)
 	for i := 0; i < int(count); i++ {
-		values = append(values, types.NewFloat(float32(rand.Int31n(col_meta.max_))/float32(seed)))
+		values = append(values, types.NewFloat(float32(rand.Int31n(col_meta.Max_))/float32(seed)))
 	}
 	return values
 }
 
 func MakeValues(col_meta *ColumnInsertMeta, count uint32) []types.Value {
 	//var values []types.Value
-	switch col_meta.type_ {
+	switch col_meta.Type_ {
 	case types.Integer:
 		return GenNumericValues(col_meta, count)
 	case types.Float:
@@ -131,16 +129,16 @@ func MakeValues(col_meta *ColumnInsertMeta, count uint32) []types.Value {
 func FillTable(info *catalog.TableMetadata, table_meta *TableInsertMeta, txn *access.Transaction) {
 	var num_inserted uint32 = 0
 	var batch_size uint32 = 128
-	for num_inserted < table_meta.num_rows_ {
+	for num_inserted < table_meta.Num_rows_ {
 		var values [][]types.Value
-		var num_values uint32 = uint32(math.Min(float64(batch_size), float64(table_meta.num_rows_-num_inserted)))
-		for _, col_meta := range table_meta.col_meta_ {
+		var num_values uint32 = uint32(math.Min(float64(batch_size), float64(table_meta.Num_rows_-num_inserted)))
+		for _, col_meta := range table_meta.Col_meta_ {
 			values = append(values, MakeValues(col_meta, num_values))
 		}
 
 		for i := 0; i < int(num_values); i++ {
 			var entry []types.Value
-			for idx := range table_meta.col_meta_ {
+			for idx := range table_meta.Col_meta_ {
 				entry = append(entry, values[idx][i])
 			}
 			rid, err := info.Table().InsertTuple(tuple.NewTupleFromSchema(entry, info.Schema()), txn)
@@ -182,9 +180,9 @@ func MakeConstantValueExpression(val *types.Value) expression.Expression {
 func MakeOutputSchema(exprs []MakeSchemaMeta) *schema.Schema {
 	var cols []*column.Column = make([]*column.Column, 0)
 	for _, input := range exprs {
-		cols = append(cols, column.NewColumn(input.col_name_, input.expr_.GetReturnType(), false, input.expr_))
-		// if input.expr_.GetReturnType() != types.Varchar {
-		// 	cols = append(cols, *column.NewColumn(input.col_name_, input.expr_.GetReturnType(), false, input.expr_))
+		cols = append(cols, column.NewColumn(input.Col_name_, input.Expr_.GetReturnType(), false, input.Expr_))
+		// if input.Expr_.GetReturnType() != types.Varchar {
+		// 	cols = append(cols, *column.NewColumn(input.Col_name_, input.Expr_.GetReturnType(), false, input.Expr_))
 		// } else {
 		// 	cols = append(cols, column.NewColumn(input[0], input[1].GetReturnType(), MAX_VARCHAR_SIZE, input[1]))
 		// }
@@ -195,7 +193,7 @@ func MakeOutputSchema(exprs []MakeSchemaMeta) *schema.Schema {
 func MakeOutputSchemaAgg(exprs []MakeSchemaMetaAgg) *schema.Schema {
 	var cols []*column.Column = make([]*column.Column, 0)
 	for _, input := range exprs {
-		cols = append(cols, column.NewColumn(input.col_name_, input.expr_.GetReturnType(), false, input.expr_))
+		cols = append(cols, column.NewColumn(input.Col_name_, input.Expr_.GetReturnType(), false, input.Expr_))
 	}
 	return schema.NewSchema(cols)
 }
