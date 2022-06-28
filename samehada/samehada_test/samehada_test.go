@@ -97,3 +97,22 @@ func TestSimpleUpdate(t *testing.T) {
 	samehada.PrintExecuteResults(results1)
 	testingpkg.SimpleAssert(t, len(results1) == 3)
 }
+
+func TestRebootWithSnapshotAndRecovery(t *testing.T) {
+	// clear all state of DB
+	os.Remove("example.db")
+	os.Remove("example.log")
+
+	db := samehada.NewSamehadaDB("example")
+	db.ExecuteSQL("CREATE TABLE name_age_list(name VARCHAR(256), age INT);")
+	db.ExecuteSQL("INSERT INTO name_age_list(name, age) VALUES ('鈴木', 20);")
+	db.ExecuteSQL("INSERT INTO name_age_list(name, age) VALUES ('青木', 22);")
+	db.ExecuteSQL("INSERT INTO name_age_list(name, age) VALUES ('山田', 25);")
+	db.ExecuteSQL("INSERT INTO name_age_list(name, age) VALUES ('加藤', 18);")
+	db.ExecuteSQL("INSERT INTO name_age_list(name, age) VALUES ('木村', 18);")
+
+	db.ExecuteSQL("UPDATE name_age_list SET name = '鮫肌' WHERE age <= 20;")
+	_, results1 := db.ExecuteSQL("SELECT * FROM name_age_list WHERE name = '鮫肌';")
+	samehada.PrintExecuteResults(results1)
+	testingpkg.SimpleAssert(t, len(results1) == 3)
+}

@@ -19,13 +19,25 @@ type SamehadaDB struct {
 	planner_     planner.Planner
 }
 
+// TODO: (SDB) need to add argument which tells usable memory amount for DB
+//             and set max frame num to BufferPoolManager for the amount info
 func NewSamehadaDB(dbName string) *SamehadaDB {
+	// TODO: (SDB) check existance of db file corresponding dbName and set result to flag variable
+
 	shi := NewSamehadaInstance(dbName)
 	txn := shi.GetTransactionManager().Begin(nil)
+
+	// TODO: (SDB) if db has db file when calling NewSamehadaDB func, Rede/Undo process should be done here
+
+	// TODO: (SDB) if db has db file when calling NewSamehadaDB func, get Catalog object with calling catalog.RecoveryCatalogFromCatalogPage
 	c := catalog.BootstrapCatalog(shi.GetBufferPoolManager(), shi.GetLogManager(), shi.GetLockManager(), txn)
+
 	shi.transaction_manager.Commit(txn)
 	exec_engine := &executors.ExecutionEngine{}
 	pnner := planner.NewSimplePlanner(c, shi.GetBufferPoolManager())
+
+	// TODO: (SDB) need to spawn thread which do snapshot periodically
+
 	return &SamehadaDB{shi, c, exec_engine, pnner}
 }
 

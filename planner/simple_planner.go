@@ -312,7 +312,7 @@ func (pner *SimplePlanner) MakeInsertPlan() (error, plans.Plan) {
 	for idx, colName := range pner.qi.TargetCols_ {
 		val := pner.qi.Values_[idx-(tgtColNum*insertRowCnt)]
 		if schema_.GetColIndex(*colName) == math.MaxUint32 {
-			return PrintAndCreateError("data type of " + *colName + " is wrong.")
+			return PrintAndCreateError("specified column name " + *colName + " does not exist on table " + *pner.qi.JoinTables_[0] + ".")
 		}
 		valType := schema_.GetColumn(schema_.GetColIndex(*colName)).GetType()
 		if val.ValueType() != valType {
@@ -360,7 +360,7 @@ func (pner *SimplePlanner) MakeUpdatePlan() (error, plans.Plan) {
 	for _, setExp := range pner.qi.SetExpressions_ {
 		colIdx := tgtTblSchema.GetColIndex(*setExp.ColName_)
 		if colIdx == math.MaxUint32 {
-			return PrintAndCreateError("column " + *setExp.ColName_ + " does not exist on " + *pner.qi.JoinTables_[0] + " table.")
+			return PrintAndCreateError("column " + *setExp.ColName_ + " does not exist on table " + *pner.qi.JoinTables_[0] + ".")
 		}
 		updateColIdxs = append(updateColIdxs, int(colIdx))
 	}
