@@ -73,6 +73,8 @@ func NewSamehadaDB(dbName string, memKBytes int) *SamehadaDB {
 	return &SamehadaDB{shi, c, exec_engine, pnner}
 }
 
+// TODO: (SDB) need to implment func which returns 2-div array of interface{} for embed DB form
+//             maybe, other func is needed and this func name should be changed
 func (sdb *SamehadaDB) ExecuteSQL(sqlStr string) (error, [][]*types.Value) {
 	qi := parser.ProcessSQLStr(&sqlStr)
 	txn := sdb.shi_.transaction_manager.Begin(nil)
