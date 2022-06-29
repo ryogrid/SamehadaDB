@@ -53,7 +53,7 @@ func NewSamehadaDB(dbName string, memKBytes int) *SamehadaDB {
 		log_recovery.Undo()
 
 		dman := shi.GetDiskManager().(*disk.DiskManagerImpl)
-		dman.ResetLogFile()
+		dman.GCLogFile()
 		shi.GetLogManager().SetNextLSN(greatestLSN + 1)
 	}
 
