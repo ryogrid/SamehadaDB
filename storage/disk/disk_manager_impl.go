@@ -158,7 +158,7 @@ func (d *DiskManagerImpl) RemoveLogFile() {
 	os.Remove(d.fileName_log)
 }
 
-// reset log file (use this when db recovery is done or snapshot is done)
+// reset log file (use this when db recovery finishes or snapshot finishes)
 // file content becomes empty
 func (d *DiskManagerImpl) ResetLogFile() error {
 	d.log.Close()
