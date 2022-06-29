@@ -102,9 +102,10 @@ func (log_recovery *LogRecovery) DeserializeLogRecord(data []byte, log_record *r
  */
 
 // TODO: (SDB) need to return max lsn, and caller should set the lsn + 1 to LogManager::next_lsn
-func (log_recovery *LogRecovery) Redo() {
+func (log_recovery *LogRecovery) Redo() types.LSN {
 	// readLogLoopCnt := 0
 	// deserializeLoopCnt := 0
+	greatestLSN := 0
 	log_recovery.log_buffer = make([]byte, common.LogBufferSize)
 	var file_offset uint32 = 0
 	var readBytes uint32
@@ -128,6 +129,9 @@ func (log_recovery *LogRecovery) Redo() {
 			// 	fmt.Println(log_record)
 			// 	panic("deserializeLoopCnt is illegal")
 			// }
+			if int(log_record.Lsn) > greatestLSN {
+				greatestLSN = int(log_record.Lsn)
+			}
 			log_recovery.active_txn[log_record.Txn_id] = log_record.Lsn
 			log_recovery.lsn_mapping[log_record.Lsn] = int(file_offset + buffer_offset)
 			if log_record.Log_record_type == recovery.INSERT {
@@ -194,6 +198,7 @@ func (log_recovery *LogRecovery) Redo() {
 		// fmt.Printf("buffer_offset %d\n", buffer_offset)
 		file_offset += buffer_offset
 	}
+	return types.LSN(greatestLSN)
 }
 
 /*

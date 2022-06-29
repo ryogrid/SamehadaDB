@@ -3,13 +3,20 @@ package samehada
 import (
 	"fmt"
 	"github.com/ryogrid/SamehadaDB/catalog"
+	"github.com/ryogrid/SamehadaDB/common"
+	"github.com/ryogrid/SamehadaDB/concurrency"
 	"github.com/ryogrid/SamehadaDB/execution/executors"
 	"github.com/ryogrid/SamehadaDB/parser"
 	"github.com/ryogrid/SamehadaDB/planner"
+	"github.com/ryogrid/SamehadaDB/recovery/log_recovery"
+	"github.com/ryogrid/SamehadaDB/samehada/samehada_util"
 	"github.com/ryogrid/SamehadaDB/storage/access"
+	"github.com/ryogrid/SamehadaDB/storage/disk"
 	"github.com/ryogrid/SamehadaDB/storage/table/schema"
 	"github.com/ryogrid/SamehadaDB/storage/tuple"
 	"github.com/ryogrid/SamehadaDB/types"
+	"math"
+	"time"
 )
 
 type SamehadaDB struct {
@@ -19,24 +26,49 @@ type SamehadaDB struct {
 	planner_     planner.Planner
 }
 
-// TODO: (SDB) need to add argument which tells usable memory amount for DB
-//             and set max frame num to BufferPoolManager for the amount info
-func NewSamehadaDB(dbName string) *SamehadaDB {
-	// TODO: (SDB) check existance of db file corresponding dbName and set result to flag variable
+func StartCheckpointThread(cpMngr *concurrency.CheckpointManager) {
+	go func() {
+		for {
+			time.Sleep(time.Minute * 5)
+			cpMngr.BeginCheckpoint()
+			cpMngr.EndCheckpoint()
+		}
+	}()
+}
 
-	shi := NewSamehadaInstance(dbName)
+func NewSamehadaDB(dbName string, memKBytes int) *SamehadaDB {
+	isNewDB := samehada_util.FileExists(dbName + ".db")
+
+	bpoolSize := math.Floor(float64(memKBytes) / float64(common.PageSize))
+	shi := NewSamehadaInstance(dbName, int(bpoolSize))
 	txn := shi.GetTransactionManager().Begin(nil)
 
-	// TODO: (SDB) if db has db file when calling NewSamehadaDB func, Rede/Undo process should be done here
+	if !isNewDB {
+		log_recovery := log_recovery.NewLogRecovery(
+			shi.GetDiskManager(),
+			shi.GetBufferPoolManager())
+		shi.GetLogManager().DeactivateLogging()
+		greatestLSN := log_recovery.Redo()
+		log_recovery.Undo()
+		shi.GetLogManager().ActivateLogging()
 
-	// TODO: (SDB) if db has db file when calling NewSamehadaDB func, get Catalog object with calling catalog.RecoveryCatalogFromCatalogPage
-	c := catalog.BootstrapCatalog(shi.GetBufferPoolManager(), shi.GetLogManager(), shi.GetLockManager(), txn)
+		dman := shi.GetDiskManager().(*disk.DiskManagerImpl)
+		dman.ResetLogFile()
+		shi.GetLogManager().SetNextLSN(greatestLSN + 1)
+	}
+
+	var c *catalog.Catalog
+	if isNewDB {
+		c = catalog.RecoveryCatalogFromCatalogPage(shi.GetBufferPoolManager(), shi.GetLogManager(), shi.GetLockManager(), txn)
+	} else {
+		c = catalog.BootstrapCatalog(shi.GetBufferPoolManager(), shi.GetLogManager(), shi.GetLockManager(), txn)
+	}
 
 	shi.transaction_manager.Commit(txn)
 	exec_engine := &executors.ExecutionEngine{}
 	pnner := planner.NewSimplePlanner(c, shi.GetBufferPoolManager())
 
-	// TODO: (SDB) need to spawn thread which do snapshot periodically
+	StartCheckpointThread(concurrency.NewCheckpointManager(shi.GetTransactionManager(), shi.GetLogManager(), shi.GetBufferPoolManager()))
 
 	return &SamehadaDB{shi, c, exec_engine, pnner}
 }
