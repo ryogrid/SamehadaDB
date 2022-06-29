@@ -39,7 +39,7 @@ func StartCheckpointThread(cpMngr *concurrency.CheckpointManager) {
 func NewSamehadaDB(dbName string, memKBytes int) *SamehadaDB {
 	isNewDB := samehada_util.FileExists(dbName + ".db")
 
-	bpoolSize := math.Floor(float64(memKBytes) / float64(common.PageSize))
+	bpoolSize := math.Floor(float64(memKBytes*1024) / float64(common.PageSize))
 	shi := NewSamehadaInstance(dbName, int(bpoolSize))
 	txn := shi.GetTransactionManager().Begin(nil)
 

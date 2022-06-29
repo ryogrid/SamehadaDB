@@ -13,7 +13,7 @@ func TestInsertAndMultiItemPredicateSelect(t *testing.T) {
 	os.Remove("example.db")
 	os.Remove("example.log")
 
-	db := samehada.NewSamehadaDB("example")
+	db := samehada.NewSamehadaDB("example", 200)
 	db.ExecuteSQL("CREATE TABLE name_age_list(name VARCHAR(256), age INT);")
 	db.ExecuteSQL("INSERT INTO name_age_list(name, age) VALUES ('鈴木', 20);")
 	db.ExecuteSQL("INSERT INTO name_age_list(name, age) VALUES ('青木', 22);")
@@ -38,7 +38,7 @@ func TestHasJoinSelect(t *testing.T) {
 	os.Remove("example.db")
 	os.Remove("example.log")
 
-	db := samehada.NewSamehadaDB("example")
+	db := samehada.NewSamehadaDB("example", 200)
 	db.ExecuteSQL("CREATE TABLE id_name_list(id INT, name VARCHAR(256));")
 	db.ExecuteSQL("INSERT INTO id_name_list(id, name) VALUES (1, '鈴木');")
 	db.ExecuteSQL("INSERT INTO id_name_list(id, name) VALUES (2, '青木');")
@@ -66,7 +66,7 @@ func TestSimpleDelete(t *testing.T) {
 	os.Remove("example.db")
 	os.Remove("example.log")
 
-	db := samehada.NewSamehadaDB("example")
+	db := samehada.NewSamehadaDB("example", 200)
 	db.ExecuteSQL("CREATE TABLE name_age_list(name VARCHAR(256), age INT);")
 	db.ExecuteSQL("INSERT INTO name_age_list(name, age) VALUES ('鈴木', 20);")
 	db.ExecuteSQL("INSERT INTO name_age_list(name, age) VALUES ('青木', 22);")
@@ -84,7 +84,7 @@ func TestSimpleUpdate(t *testing.T) {
 	os.Remove("example.db")
 	os.Remove("example.log")
 
-	db := samehada.NewSamehadaDB("example")
+	db := samehada.NewSamehadaDB("example", 200)
 	db.ExecuteSQL("CREATE TABLE name_age_list(name VARCHAR(256), age INT);")
 	db.ExecuteSQL("INSERT INTO name_age_list(name, age) VALUES ('鈴木', 20);")
 	db.ExecuteSQL("INSERT INTO name_age_list(name, age) VALUES ('青木', 22);")
@@ -98,12 +98,13 @@ func TestSimpleUpdate(t *testing.T) {
 	testingpkg.SimpleAssert(t, len(results1) == 3)
 }
 
+// TODO: (SDB) need to test embed DB form lauch (new DB case, using existing DB case)
 func TestRebootWithSnapshotAndRecovery(t *testing.T) {
 	// clear all state of DB
 	os.Remove("example.db")
 	os.Remove("example.log")
 
-	db := samehada.NewSamehadaDB("example")
+	db := samehada.NewSamehadaDB("example", 200)
 	db.ExecuteSQL("CREATE TABLE name_age_list(name VARCHAR(256), age INT);")
 	db.ExecuteSQL("INSERT INTO name_age_list(name, age) VALUES ('鈴木', 20);")
 	db.ExecuteSQL("INSERT INTO name_age_list(name, age) VALUES ('青木', 22);")
