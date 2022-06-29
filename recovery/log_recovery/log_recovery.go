@@ -190,6 +190,7 @@ func (log_recovery *LogRecovery) Redo() types.LSN {
 				page_id = new_page.GetPageId()
 				// fmt.Printf("page_id: %d\n", page_id)
 				new_page.Init(page_id, log_record.Prev_page_id, nil, nil, nil)
+				//log_recovery.buffer_pool_manager.FlushPage(page_id)
 				log_recovery.buffer_pool_manager.UnpinPage(page_id, true)
 			}
 			buffer_offset += log_record.Size

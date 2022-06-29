@@ -37,20 +37,20 @@ func StartCheckpointThread(cpMngr *concurrency.CheckpointManager) {
 }
 
 func NewSamehadaDB(dbName string, memKBytes int) *SamehadaDB {
-	isNewDB := samehada_util.FileExists(dbName + ".db")
+	isExisitingDB := samehada_util.FileExists(dbName + ".db")
 
 	bpoolSize := math.Floor(float64(memKBytes*1024) / float64(common.PageSize))
 	shi := NewSamehadaInstance(dbName, int(bpoolSize))
 	txn := shi.GetTransactionManager().Begin(nil)
 
-	if !isNewDB {
+	shi.GetLogManager().DeactivateLogging()
+
+	if isExisitingDB {
 		log_recovery := log_recovery.NewLogRecovery(
 			shi.GetDiskManager(),
 			shi.GetBufferPoolManager())
-		shi.GetLogManager().DeactivateLogging()
 		greatestLSN := log_recovery.Redo()
 		log_recovery.Undo()
-		shi.GetLogManager().ActivateLogging()
 
 		dman := shi.GetDiskManager().(*disk.DiskManagerImpl)
 		dman.ResetLogFile()
@@ -58,13 +58,16 @@ func NewSamehadaDB(dbName string, memKBytes int) *SamehadaDB {
 	}
 
 	var c *catalog.Catalog
-	if isNewDB {
+	if isExisitingDB {
 		c = catalog.RecoveryCatalogFromCatalogPage(shi.GetBufferPoolManager(), shi.GetLogManager(), shi.GetLockManager(), txn)
 	} else {
 		c = catalog.BootstrapCatalog(shi.GetBufferPoolManager(), shi.GetLogManager(), shi.GetLockManager(), txn)
 	}
 
 	shi.transaction_manager.Commit(txn)
+
+	shi.GetLogManager().ActivateLogging()
+
 	exec_engine := &executors.ExecutionEngine{}
 	pnner := planner.NewSimplePlanner(c, shi.GetBufferPoolManager())
 
@@ -73,8 +76,8 @@ func NewSamehadaDB(dbName string, memKBytes int) *SamehadaDB {
 	return &SamehadaDB{shi, c, exec_engine, pnner}
 }
 
-// TODO: (SDB) need to implment func which returns 2-div array of interface{} for embed DB form
-//             maybe, other func is needed and this func name should be changed
+// TODO: (SDB) need to implment func which returns 2-dim array of interface{} for embed DB form
+//             maybe, another func is needed and this func name should be changed
 func (sdb *SamehadaDB) ExecuteSQL(sqlStr string) (error, [][]*types.Value) {
 	qi := parser.ProcessSQLStr(&sqlStr)
 	txn := sdb.shi_.transaction_manager.Begin(nil)
@@ -107,6 +110,11 @@ func (sdb *SamehadaDB) ExecuteSQL(sqlStr string) (error, [][]*types.Value) {
 	retVals := ConvTupleListToValues(outSchema, result)
 
 	return nil, retVals
+}
+
+func (sdb *SamehadaDB) Finalize() {
+	//sdb.shi_.GetBufferPoolManager().FlushAllPages()
+	sdb.shi_.Finalize(false)
 }
 
 func ConvTupleListToValues(schema_ *schema.Schema, result []*tuple.Tuple) [][]*types.Value {

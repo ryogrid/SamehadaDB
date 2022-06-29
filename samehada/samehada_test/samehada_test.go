@@ -30,6 +30,8 @@ func TestInsertAndMultiItemPredicateSelect(t *testing.T) {
 	samehada.PrintExecuteResults(results4)
 	_, results5 := db.ExecuteSQL("SELECT * FROM name_age_list WHERE (age = 18 OR age >= 22) AND age < 25;")
 	samehada.PrintExecuteResults(results5)
+
+	db.Finalize()
 }
 
 // TODO: (SDB) need to check query result (TestHasJoinSelect)
@@ -59,6 +61,8 @@ func TestHasJoinSelect(t *testing.T) {
 	samehada.PrintExecuteResults(results3)
 	_, results4 := db.ExecuteSQL("SELECT id_name_list.id, id_buppin_list.buppin FROM id_name_list JOIN id_buppin_list ON id_name_list.id = id_buppin_list.id WHERE id_name_list.id > 1 AND id_buppin_list.id < 4;")
 	samehada.PrintExecuteResults(results4)
+
+	db.Finalize()
 }
 
 func TestSimpleDelete(t *testing.T) {
@@ -77,6 +81,8 @@ func TestSimpleDelete(t *testing.T) {
 	db.ExecuteSQL("DELETE FROM name_age_list WHERE age > 20;")
 	_, results1 := db.ExecuteSQL("SELECT * FROM name_age_list;")
 	testingpkg.SimpleAssert(t, len(results1) == 3)
+
+	db.Finalize()
 }
 
 func TestSimpleUpdate(t *testing.T) {
@@ -96,15 +102,16 @@ func TestSimpleUpdate(t *testing.T) {
 	_, results1 := db.ExecuteSQL("SELECT * FROM name_age_list WHERE name = '鮫肌';")
 	samehada.PrintExecuteResults(results1)
 	testingpkg.SimpleAssert(t, len(results1) == 3)
+
+	db.Finalize()
 }
 
-// TODO: (SDB) need to test embed DB form lauch (new DB case, using existing DB case)
 func TestRebootWithSnapshotAndRecovery(t *testing.T) {
 	// clear all state of DB
-	os.Remove("example.db")
-	os.Remove("example.log")
+	os.Remove("/tmp/todo.db")
+	os.Remove("/tmp/todo.log")
 
-	db := samehada.NewSamehadaDB("example", 200)
+	db := samehada.NewSamehadaDB("/tmp/todo", 200)
 	db.ExecuteSQL("CREATE TABLE name_age_list(name VARCHAR(256), age INT);")
 	db.ExecuteSQL("INSERT INTO name_age_list(name, age) VALUES ('鈴木', 20);")
 	db.ExecuteSQL("INSERT INTO name_age_list(name, age) VALUES ('青木', 22);")
@@ -116,4 +123,13 @@ func TestRebootWithSnapshotAndRecovery(t *testing.T) {
 	_, results1 := db.ExecuteSQL("SELECT * FROM name_age_list WHERE name = '鮫肌';")
 	samehada.PrintExecuteResults(results1)
 	testingpkg.SimpleAssert(t, len(results1) == 3)
+
+	db.Finalize()
+
+	db2 := samehada.NewSamehadaDB("/tmp/todo", 200)
+	_, results2 := db2.ExecuteSQL("SELECT * FROM name_age_list WHERE name = '鮫肌';")
+	samehada.PrintExecuteResults(results2)
+	testingpkg.SimpleAssert(t, len(results2) == 3)
+
+	db2.Finalize()
 }

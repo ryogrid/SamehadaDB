@@ -151,6 +151,7 @@ func (b *BufferPoolManager) NewPage() *page.Page {
 
 	b.pageTable[pageID] = *frameID
 	b.pages[*frameID] = pg
+
 	b.mutex.Unlock()
 
 	return pg
