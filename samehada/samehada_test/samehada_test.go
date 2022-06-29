@@ -124,12 +124,23 @@ func TestRebootWithSnapshotAndRecovery(t *testing.T) {
 	samehada.PrintExecuteResults(results1)
 	testingpkg.SimpleAssert(t, len(results1) == 3)
 
+	// close db and log file
 	db.Finalize()
 
+	// relaunch using /tmp/todo.db and /tmp/todo.log files
+	// load of db file and redo/undo process runs
+	// and removed needless log data
 	db2 := samehada.NewSamehadaDB("/tmp/todo", 200)
 	_, results2 := db2.ExecuteSQL("SELECT * FROM name_age_list WHERE name = '鮫肌';")
 	samehada.PrintExecuteResults(results2)
 	testingpkg.SimpleAssert(t, len(results2) == 3)
 
+	// close db and log file
 	db2.Finalize()
+
+	db3 := samehada.NewSamehadaDB("/tmp/todo", 200)
+	db3.ExecuteSQL("INSERT INTO name_age_list(name, age) VALUES ('鮫肌', 18);")
+	_, results3 := db3.ExecuteSQL("SELECT * FROM name_age_list WHERE name = '鮫肌';")
+	samehada.PrintExecuteResults(results3)
+	testingpkg.SimpleAssert(t, len(results3) == 4)
 }
