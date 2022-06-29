@@ -76,9 +76,12 @@ func NewSamehadaDB(dbName string, memKBytes int) *SamehadaDB {
 	return &SamehadaDB{shi, c, exec_engine, pnner}
 }
 
-// TODO: (SDB) need to implment func which returns 2-dim array of interface{} for embed DB form
-//             maybe, another func is needed and this func name should be changed
-func (sdb *SamehadaDB) ExecuteSQL(sqlStr string) (error, [][]*types.Value) {
+func (sdb *SamehadaDB) ExecuteSQL(sqlStr string) (error, [][]interface{}) {
+	err, results := sdb.ExecuteSQLRetValues(sqlStr)
+	return err, ConvValueListToIFs(results)
+}
+
+func (sdb *SamehadaDB) ExecuteSQLRetValues(sqlStr string) (error, [][]*types.Value) {
 	qi := parser.ProcessSQLStr(&sqlStr)
 	txn := sdb.shi_.transaction_manager.Begin(nil)
 	err, plan := sdb.planner_.MakePlan(qi, txn)
@@ -127,6 +130,31 @@ func ConvTupleListToValues(schema_ *schema.Schema, result []*tuple.Tuple) [][]*t
 			rowVals = append(rowVals, &val)
 		}
 		retVals = append(retVals, rowVals)
+	}
+	return retVals
+}
+
+func ConvValueListToIFs(vals [][]*types.Value) [][]interface{} {
+	retVals := make([][]interface{}, 0)
+	for _, valsRow := range vals {
+		ifsList := make([]interface{}, 0)
+		for _, val := range valsRow {
+			if val.IsNull() {
+				ifsList = append(ifsList, nil)
+			} else {
+				switch val.ValueType() {
+				case types.Integer:
+					ifsList = append(ifsList, val.ToInteger())
+				case types.Float:
+					ifsList = append(ifsList, val.ToFloat())
+				case types.Varchar:
+					ifsList = append(ifsList, val.ToString())
+				default:
+					panic("not supported Value object")
+				}
+			}
+		}
+		retVals = append(retVals, ifsList)
 	}
 	return retVals
 }
