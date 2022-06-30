@@ -31,6 +31,8 @@ func NewTableHeap(bpm *buffer.BufferPoolManager, log_manager *recovery.LogManage
 	firstPage.WLatch()
 	firstPage.Init(p.ID(), types.InvalidPageID, log_manager, lock_manager, txn)
 	firstPage.WUnlatch()
+	// flush page for recovery process works...
+	bpm.FlushPage(p.ID())
 	bpm.UnpinPage(p.ID(), true)
 	return &TableHeap{bpm, p.ID(), log_manager, lock_manager}
 }
@@ -85,6 +87,8 @@ func (t *TableHeap) InsertTuple(tuple_ *tuple.Tuple, txn *Transaction) (rid *pag
 			//currentPage.SetNextPageId(p.ID())
 			currentPage.RLatch()
 			newPage.Init(p.ID(), currentPage.GetTablePageId(), t.log_manager, t.lock_manager, txn)
+			// flush page for recovery process works...
+			t.bpm.FlushPage(newPage.GetPageId())
 			t.bpm.UnpinPage(currentPage.GetTablePageId(), true)
 			currentPage.RUnlatch()
 			currentPage = newPage

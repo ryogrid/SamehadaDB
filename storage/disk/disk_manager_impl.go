@@ -158,6 +158,30 @@ func (d *DiskManagerImpl) RemoveLogFile() {
 	os.Remove(d.fileName_log)
 }
 
+// erase needless data from log file (use this when db recovery finishes or snapshot finishes)
+// file content becomes empty
+func (d *DiskManagerImpl) GCLogFile() error {
+	d.log.Close()
+	d.RemoveLogFile()
+
+	logfname := d.fileName_log
+	file_, err := os.OpenFile(logfname, os.O_RDWR|os.O_CREATE, 0666)
+	if err != nil {
+		log.Fatalln("can't open log file")
+		return err
+	}
+
+	_, err = file_.Stat()
+	if err != nil {
+		log.Fatalln("file info error")
+		return err
+	}
+
+	d.log = file_
+
+	return nil
+}
+
 /**
  * Write the contents of the log into disk file
  * Only return when sync is done, and only perform sequence write

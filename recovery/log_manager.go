@@ -50,6 +50,7 @@ func NewLogManager(disk_manager *disk.DiskManager) *LogManager {
 }
 
 func (log_manager *LogManager) GetNextLSN() types.LSN       { return log_manager.next_lsn }
+func (log_manager *LogManager) SetNextLSN(lsnVal types.LSN) { log_manager.next_lsn = lsnVal }
 func (log_manager *LogManager) GetPersistentLSN() types.LSN { return log_manager.persistent_lsn }
 
 //func (log_manager *LogManager) SetPersistentLSN(lsn types.LSN) { log_manager.persistent_lsn = lsn }

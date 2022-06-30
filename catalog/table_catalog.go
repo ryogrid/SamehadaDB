@@ -54,7 +54,6 @@ func BootstrapCatalog(bpm *buffer.BufferPoolManager, log_manager *recovery.LogMa
 	return tableCatalog
 }
 
-// TODO: (SDB) need call RecoveryCatalogFromCatalogPage when recovery or database re-launch
 // RecoveryCatalogFromCatalogPage get all information about tables and columns from disk and put it on memory
 func RecoveryCatalogFromCatalogPage(bpm *buffer.BufferPoolManager, log_manager *recovery.LogManager, lock_manager *access.LockManager, txn *access.Transaction) *Catalog {
 	tableCatalogHeapIt := access.InitTableHeap(bpm, TableCatalogPageId, log_manager, lock_manager).Iterator(txn)

@@ -3,13 +3,20 @@ package samehada
 import (
 	"fmt"
 	"github.com/ryogrid/SamehadaDB/catalog"
+	"github.com/ryogrid/SamehadaDB/common"
+	"github.com/ryogrid/SamehadaDB/concurrency"
 	"github.com/ryogrid/SamehadaDB/execution/executors"
 	"github.com/ryogrid/SamehadaDB/parser"
 	"github.com/ryogrid/SamehadaDB/planner"
+	"github.com/ryogrid/SamehadaDB/recovery/log_recovery"
+	"github.com/ryogrid/SamehadaDB/samehada/samehada_util"
 	"github.com/ryogrid/SamehadaDB/storage/access"
+	"github.com/ryogrid/SamehadaDB/storage/disk"
 	"github.com/ryogrid/SamehadaDB/storage/table/schema"
 	"github.com/ryogrid/SamehadaDB/storage/tuple"
 	"github.com/ryogrid/SamehadaDB/types"
+	"math"
+	"time"
 )
 
 type SamehadaDB struct {
@@ -19,17 +26,62 @@ type SamehadaDB struct {
 	planner_     planner.Planner
 }
 
-func NewSamehadaDB(dbName string) *SamehadaDB {
-	shi := NewSamehadaInstance(dbName)
+func StartCheckpointThread(cpMngr *concurrency.CheckpointManager) {
+	go func() {
+		for {
+			time.Sleep(time.Minute * 5)
+			cpMngr.BeginCheckpoint()
+			cpMngr.EndCheckpoint()
+		}
+	}()
+}
+
+func NewSamehadaDB(dbName string, memKBytes int) *SamehadaDB {
+	isExisitingDB := samehada_util.FileExists(dbName + ".db")
+
+	bpoolSize := math.Floor(float64(memKBytes*1024) / float64(common.PageSize))
+	shi := NewSamehadaInstance(dbName, int(bpoolSize))
 	txn := shi.GetTransactionManager().Begin(nil)
-	c := catalog.BootstrapCatalog(shi.GetBufferPoolManager(), shi.GetLogManager(), shi.GetLockManager(), txn)
+
+	shi.GetLogManager().DeactivateLogging()
+
+	if isExisitingDB {
+		log_recovery := log_recovery.NewLogRecovery(
+			shi.GetDiskManager(),
+			shi.GetBufferPoolManager())
+		greatestLSN := log_recovery.Redo()
+		log_recovery.Undo()
+
+		dman := shi.GetDiskManager().(*disk.DiskManagerImpl)
+		dman.GCLogFile()
+		shi.GetLogManager().SetNextLSN(greatestLSN + 1)
+	}
+
+	var c *catalog.Catalog
+	if isExisitingDB {
+		c = catalog.RecoveryCatalogFromCatalogPage(shi.GetBufferPoolManager(), shi.GetLogManager(), shi.GetLockManager(), txn)
+	} else {
+		c = catalog.BootstrapCatalog(shi.GetBufferPoolManager(), shi.GetLogManager(), shi.GetLockManager(), txn)
+	}
+
 	shi.transaction_manager.Commit(txn)
+
+	shi.GetLogManager().ActivateLogging()
+
 	exec_engine := &executors.ExecutionEngine{}
 	pnner := planner.NewSimplePlanner(c, shi.GetBufferPoolManager())
+
+	StartCheckpointThread(concurrency.NewCheckpointManager(shi.GetTransactionManager(), shi.GetLogManager(), shi.GetBufferPoolManager()))
+
 	return &SamehadaDB{shi, c, exec_engine, pnner}
 }
 
-func (sdb *SamehadaDB) ExecuteSQL(sqlStr string) (error, [][]*types.Value) {
+func (sdb *SamehadaDB) ExecuteSQL(sqlStr string) (error, [][]interface{}) {
+	err, results := sdb.ExecuteSQLRetValues(sqlStr)
+	return err, ConvValueListToIFs(results)
+}
+
+func (sdb *SamehadaDB) ExecuteSQLRetValues(sqlStr string) (error, [][]*types.Value) {
 	qi := parser.ProcessSQLStr(&sqlStr)
 	txn := sdb.shi_.transaction_manager.Begin(nil)
 	err, plan := sdb.planner_.MakePlan(qi, txn)
@@ -63,6 +115,11 @@ func (sdb *SamehadaDB) ExecuteSQL(sqlStr string) (error, [][]*types.Value) {
 	return nil, retVals
 }
 
+func (sdb *SamehadaDB) Finalize() {
+	//sdb.shi_.GetBufferPoolManager().FlushAllPages()
+	sdb.shi_.Finalize(false)
+}
+
 func ConvTupleListToValues(schema_ *schema.Schema, result []*tuple.Tuple) [][]*types.Value {
 	retVals := make([][]*types.Value, 0)
 	for _, tuple_ := range result {
@@ -73,6 +130,31 @@ func ConvTupleListToValues(schema_ *schema.Schema, result []*tuple.Tuple) [][]*t
 			rowVals = append(rowVals, &val)
 		}
 		retVals = append(retVals, rowVals)
+	}
+	return retVals
+}
+
+func ConvValueListToIFs(vals [][]*types.Value) [][]interface{} {
+	retVals := make([][]interface{}, 0)
+	for _, valsRow := range vals {
+		ifsList := make([]interface{}, 0)
+		for _, val := range valsRow {
+			if val.IsNull() {
+				ifsList = append(ifsList, nil)
+			} else {
+				switch val.ValueType() {
+				case types.Integer:
+					ifsList = append(ifsList, val.ToInteger())
+				case types.Float:
+					ifsList = append(ifsList, val.ToFloat())
+				case types.Varchar:
+					ifsList = append(ifsList, val.ToString())
+				default:
+					panic("not supported Value object")
+				}
+			}
+		}
+		retVals = append(retVals, ifsList)
 	}
 	return retVals
 }

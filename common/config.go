@@ -24,9 +24,9 @@ const (
 	// size of a data page in byte
 	PageSize = 4096
 	// size of buffer pool
-	BufferPoolSize = 10
+	LogBufferPoolSize = 32
 	// size of a log buffer in byte
-	LogBufferSize = ((BufferPoolSize + 1) * PageSize)
+	LogBufferSize = ((LogBufferPoolSize + 1) * PageSize)
 	// size of extendible hash bucket
 	BucketSize = 50
 )
