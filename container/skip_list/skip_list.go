@@ -5,6 +5,7 @@ package skip_list
 import (
 	"encoding/binary"
 	"errors"
+	"github.com/cznic/mathutil"
 	"github.com/ryogrid/SamehadaDB/storage/page/skip_list_page"
 	"unsafe"
 
@@ -24,6 +25,7 @@ type SkipListOnMem struct {
 	headerPageId types.PageID
 	bpm          *buffer.BufferPoolManager
 	list_latch   common.ReaderWriterLatch
+	curMaxLevel *int32
 }
 
 type SkipList struct {
@@ -285,4 +287,13 @@ func hash(key []byte) uint32 {
 	hash := h.Sum(nil)
 
 	return binary.LittleEndian.Uint32(hash)
+}
+
+func GetNodeLevel(p int32) int32 {
+//random() returns a random value in [0..1)
+var retLevel int32 = 1
+for random() < p { // no MaxLevel check
+	retLevel++;
+	return mathutil.MinInt32(retLevel, ) min(newLevel, list.MaxLevel); // efficiency!
+}
 }
