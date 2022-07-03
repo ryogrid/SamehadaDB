@@ -9,11 +9,15 @@ original codes of go-bustub are [here](https://github.com/brunocalza/go-bustub).
 - (The text in this section was contributed by [ujihisa](https://github.com/ujihisa). Thanks ujihisa)
 
 # Current Status
-- **SamehadaDB has no entry point (main function) now**
-- **There are several unit tests only**
-- procedure described on next section executes all defined unit tests
+- SamehadaDB can be used as simple embeded DB (library form)
+  - [Simple Single Page Application Demo (TODO App)](https://golang-todo-with-samehada.herokuapp.com/todo/)
+  - Above demo uses SamehadaDB on backend API server
+    - [Modification for migration from postgreSQL to SamehadaDB I did](https://github.com/ryogrid/TODO-Fullstack-App-Go-Gin-Postgres-React/commit/48e7a9f25570e15e29a279ebc24396698bf1d80a)
+    - [All app codes](https://github.com/ryogrid/TODO-Fullstack-App-Go-Gin-Postgres-React)
+- **ATTENTION: SamehadaDB is not developed for productional use! There are no waranties!**
+- By the way, procedure described on next section executes all defined unit tests
 
-## Procedure of Executing SamehadaDB
+## Procedure of Executing SamehadaDB (unit tests is executed)
 - Please install golang environment with package system your OS has (apt, yum, brew ...etc)
   - If you use Windows, you can select both Windows native environment and WSL Ubuntu environment
 - If you select Windows native environments or golang environment which is installed with package system can't execute SamehadaDB, you should install official binary directly
@@ -60,8 +64,9 @@ original codes of go-bustub are [here](https://github.com/brunocalza/go-bustub).
 - [x] Tuple Level Locking With Strong Strict 2-Phase Locking (SS2PL) Protcol
 - [x] Concurrent Execution of Transactions
 - [ ] <del>Execution Planning from hard coded SQL like method call I/F (like some kind of embeded DB)</del>
-- [ ] Execution Planning from Query Description text (SQL, SQL like description)
-- [ ] Frontend Impl as Embeded DB Library (like SQLite)
+- [x] Execution Planning from Query Description text (SQL)
+- [x] Frontend Impl as Embeded DB Library (like SQLite)
+  - Currently, functions of the library are not thread safe and cuncurrent transaction is not supported
 - [ ] Eliminate Duplication (Distinct)
 - [ ] Query Optimization
 - [ ] AS clause
