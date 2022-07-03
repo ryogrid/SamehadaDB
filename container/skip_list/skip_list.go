@@ -1,12 +1,13 @@
 // this code is from https://github.com/brunocalza/go-bustub
 // there is license and copyright notice in licenses/go-bustub dir
 
-package hash
+// TODO: (SDB) not implemented yet skip_list.go
+
+package skip_list
 
 import (
 	"encoding/binary"
 	"errors"
-	"github.com/ryogrid/SamehadaDB/storage/page"
 	"github.com/ryogrid/SamehadaDB/storage/page/skip_list_page"
 	"unsafe"
 
@@ -21,17 +22,16 @@ import (
  * manager. Non-unique keys are supported. Supports insert and delete. The
  * table dynamically grows once full.
  */
-// TODO: (SDB) LinearProbeHashTable does not dynamically grows...
-type LinearProbeHashTable struct {
+type SkipList struct {
 	headerPageId types.PageID
 	bpm          *buffer.BufferPoolManager
 	table_latch  common.ReaderWriterLatch
 }
 
-func NewLinearProbeHashTable(bpm *buffer.BufferPoolManager, numBuckets int) *LinearProbeHashTable {
+func NewSkipList(bpm *buffer.BufferPoolManager, numBuckets int) *SkipList {
 	header := bpm.NewPage()
 	headerData := header.Data()
-	headerPage := (*page.HashTableHeaderPage)(unsafe.Pointer(headerData))
+	headerPage := (*skip_list_page.SkipListHeaderPage)(unsafe.Pointer(headerData))
 
 	headerPage.SetPageId(header.ID())
 	headerPage.SetSize(numBuckets * skip_list_page.BlockArraySize)
@@ -43,21 +43,21 @@ func NewLinearProbeHashTable(bpm *buffer.BufferPoolManager, numBuckets int) *Lin
 	}
 	bpm.UnpinPage(header.ID(), true)
 
-	return &LinearProbeHashTable{header.ID(), bpm, common.NewRWLatch()}
+	return &SkipList{header.ID(), bpm, common.NewRWLatch()}
 }
 
-func (ht *LinearProbeHashTable) GetValue(key []byte) []uint32 {
-	ht.table_latch.RLock()
-	defer ht.table_latch.RUnlock()
-	hPageData := ht.bpm.FetchPage(ht.headerPageId).Data()
-	headerPage := (*page.HashTableHeaderPage)(unsafe.Pointer(hPageData))
+func (sl *SkipList) GetValue(key []byte) []uint32 {
+	sl.table_latch.RLock()
+	defer sl.table_latch.RUnlock()
+	hPageData := sl.bpm.FetchPage(sl.headerPageId).Data()
+	headerPage := (*skip_list_page.SkipListHeaderPage)(unsafe.Pointer(hPageData))
 
-	hash := ht.hash(key)
+	hash := sl.hash(key)
 
 	originalBucketIndex := hash % headerPage.NumBlocks()
-	originalBucketOffset := hash % page.BlockArraySize
+	originalBucketOffset := hash % skip_list_page.BlockArraySize
 
-	iterator := newHashTableIterator(ht.bpm, headerPage, originalBucketIndex, originalBucketOffset)
+	iterator := newSkipListIterator(sl.bpm, headerPage, originalBucketIndex, originalBucketOffset)
 
 	result := []uint32{}
 	blockPage, offset := iterator.blockPage, iterator.offset
@@ -74,24 +74,24 @@ func (ht *LinearProbeHashTable) GetValue(key []byte) []uint32 {
 		}
 	}
 
-	ht.bpm.UnpinPage(iterator.blockId, true)
-	ht.bpm.UnpinPage(ht.headerPageId, false)
+	sl.bpm.UnpinPage(iterator.blockId, true)
+	sl.bpm.UnpinPage(sl.headerPageId, false)
 
 	return result
 }
 
-func (ht *LinearProbeHashTable) Insert(key []byte, value uint32) (err error) {
-	ht.table_latch.WLock()
-	defer ht.table_latch.WUnlock()
-	hPageData := ht.bpm.FetchPage(ht.headerPageId).Data()
-	headerPage := (*page.HashTableHeaderPage)(unsafe.Pointer(hPageData))
+func (sl *SkipList) Insert(key []byte, value uint32) (err error) {
+	sl.table_latch.WLock()
+	defer sl.table_latch.WUnlock()
+	hPageData := sl.bpm.FetchPage(sl.headerPageId).Data()
+	headerPage := (*skip_list_page.SkipListHeaderPage)(unsafe.Pointer(hPageData))
 
-	hash := ht.hash(key)
+	hash := sl.hash(key)
 
 	originalBucketIndex := hash % headerPage.NumBlocks()
 	originalBucketOffset := hash % skip_list_page.BlockArraySize
 
-	iterator := newHashTableIterator(ht.bpm, headerPage, originalBucketIndex, originalBucketOffset)
+	iterator := newSkipListIterator(sl.bpm, headerPage, originalBucketIndex, originalBucketOffset)
 
 	blockPage, offset := iterator.blockPage, iterator.offset
 	var bucket uint32
@@ -114,24 +114,24 @@ func (ht *LinearProbeHashTable) Insert(key []byte, value uint32) (err error) {
 		}
 	}
 
-	ht.bpm.UnpinPage(iterator.blockId, true)
-	ht.bpm.UnpinPage(ht.headerPageId, false)
+	sl.bpm.UnpinPage(iterator.blockId, true)
+	sl.bpm.UnpinPage(sl.headerPageId, false)
 
 	return
 }
 
-func (ht *LinearProbeHashTable) Remove(key []byte, value uint32) {
-	ht.table_latch.WLock()
-	defer ht.table_latch.WUnlock()
-	hPageData := ht.bpm.FetchPage(ht.headerPageId).Data()
-	headerPage := (*page.HashTableHeaderPage)(unsafe.Pointer(hPageData))
+func (sl *SkipList) Remove(key []byte, value uint32) {
+	sl.table_latch.WLock()
+	defer sl.table_latch.WUnlock()
+	hPageData := sl.bpm.FetchPage(sl.headerPageId).Data()
+	headerPage := (*skip_list_page.SkipListHeaderPage)(unsafe.Pointer(hPageData))
 
-	hash := ht.hash(key)
+	hash := sl.hash(key)
 
 	originalBucketIndex := hash % headerPage.NumBlocks()
-	originalBucketOffset := hash % page.BlockArraySize
+	originalBucketOffset := hash % skip_list_page.BlockArraySize
 
-	iterator := newHashTableIterator(ht.bpm, headerPage, originalBucketIndex, originalBucketOffset)
+	iterator := newSkipListIterator(sl.bpm, headerPage, originalBucketIndex, originalBucketOffset)
 
 	blockPage, offset := iterator.blockPage, iterator.offset
 	var bucket uint32
@@ -147,12 +147,11 @@ func (ht *LinearProbeHashTable) Remove(key []byte, value uint32) {
 		}
 	}
 
-	ht.bpm.UnpinPage(iterator.blockId, true)
-	ht.bpm.UnpinPage(ht.headerPageId, false)
+	sl.bpm.UnpinPage(iterator.blockId, true)
+	sl.bpm.UnpinPage(sl.headerPageId, false)
 }
 
-//func (ht *LinearProbeHashTable) hash(key int) int {
-func (ht *LinearProbeHashTable) hash(key []byte) uint32 {
+func (sl *SkipList) hash(key []byte) uint32 {
 	h := murmur3.New128()
 	//bs := make([]byte, 4)
 	//binary.LittleEndian.PutUint32(bs, uint32(key))

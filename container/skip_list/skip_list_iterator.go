@@ -1,10 +1,11 @@
 // this code is from https://github.com/brunocalza/go-bustub
 // there is license and copyright notice in licenses/go-bustub dir
 
-package hash
+// TODO: (SDB) not implemented yet skip_list_iterator.go
+
+package skip_list
 
 import (
-	"github.com/ryogrid/SamehadaDB/storage/page"
 	"github.com/ryogrid/SamehadaDB/storage/page/skip_list_page"
 	"unsafe"
 
@@ -14,18 +15,18 @@ import (
 
 type hashTableIterator struct {
 	bpm        *buffer.BufferPoolManager
-	headerPage *page.HashTableHeaderPage
+	headerPage *skip_list_page.SkipListHeaderPage
 	bucket     uint32
 	offset     uint32
 	blockId    types.PageID
-	blockPage  *page.HashTableBlockPage
+	blockPage  *skip_list_page.SkipListBlockPage
 }
 
-func newHashTableIterator(bpm *buffer.BufferPoolManager, header *page.HashTableHeaderPage, bucket uint32, offset uint32) *hashTableIterator {
+func newSkipListIterator(bpm *buffer.BufferPoolManager, header *skip_list_page.SkipListHeaderPage, bucket uint32, offset uint32) *hashTableIterator {
 	blockPageId := header.GetBlockPageId(bucket)
 
 	bPageData := bpm.FetchPage(blockPageId).Data()
-	blockPage := (*page.HashTableBlockPage)(unsafe.Pointer(bPageData))
+	blockPage := (*skip_list_page.SkipListBlockPage)(unsafe.Pointer(bPageData))
 
 	return &hashTableIterator{bpm, header, bucket, offset, blockPageId, blockPage}
 }
@@ -46,6 +47,6 @@ func (itr *hashTableIterator) next() {
 		itr.blockId = itr.headerPage.GetBlockPageId(itr.bucket)
 
 		bPageData := itr.bpm.FetchPage(itr.blockId).Data()
-		itr.blockPage = (*page.HashTableBlockPage)(unsafe.Pointer(bPageData))
+		itr.blockPage = (*skip_list_page.SkipListBlockPage)(unsafe.Pointer(bPageData))
 	}
 }
