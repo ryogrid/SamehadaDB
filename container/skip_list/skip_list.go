@@ -21,6 +21,9 @@ import (
  */
 
 type SkipListOnMem struct {
+	headerPageId types.PageID
+	bpm          *buffer.BufferPoolManager
+	list_latch   common.ReaderWriterLatch
 }
 
 type SkipList struct {
@@ -65,13 +68,13 @@ func NewSkipList(bpm *buffer.BufferPoolManager, numBuckets int) *SkipList {
 	return &SkipList{header.ID(), bpm, common.NewRWLatch()}
 }
 
-func (sl *SkipListOnMem) GetValueOnMem(key []byte) []uint32 {
+func (sl *SkipListOnMem) GetValueOnMem(key *types.Value) []uint32 {
 	sl.list_latch.RLock()
 	defer sl.list_latch.RUnlock()
 	hPageData := sl.bpm.FetchPage(sl.headerPageId).Data()
 	headerPage := (*skip_list_page.SkipListHeaderPage)(unsafe.Pointer(hPageData))
 
-	hash := sl.hash(key)
+	hash := hash(nil)
 
 	originalBucketIndex := hash % headerPage.NumBlocks()
 	originalBucketOffset := hash % skip_list_page.BlockArraySize
@@ -82,7 +85,7 @@ func (sl *SkipListOnMem) GetValueOnMem(key []byte) []uint32 {
 	blockPage, offset := iterator.blockPage, iterator.offset
 	var bucket uint32
 	for blockPage.IsOccupied(offset) { // stop the search and we find an empty spot
-		if blockPage.IsReadable(offset) && blockPage.KeyAt(offset) == hash {
+		if blockPage.IsReadable(offset) && blockPage.KeyAt(offset).CompareEquals(*key) {
 			result = append(result, blockPage.ValueAt(offset))
 		}
 
@@ -105,7 +108,7 @@ func (sl *SkipList) GetValue(key []byte) []uint32 {
 	hPageData := sl.bpm.FetchPage(sl.headerPageId).Data()
 	headerPage := (*skip_list_page.SkipListHeaderPage)(unsafe.Pointer(hPageData))
 
-	hash := sl.hash(key)
+	hash := hash(key)
 
 	originalBucketIndex := hash % headerPage.NumBlocks()
 	originalBucketOffset := hash % skip_list_page.BlockArraySize
@@ -116,7 +119,7 @@ func (sl *SkipList) GetValue(key []byte) []uint32 {
 	blockPage, offset := iterator.blockPage, iterator.offset
 	var bucket uint32
 	for blockPage.IsOccupied(offset) { // stop the search and we find an empty spot
-		if blockPage.IsReadable(offset) && blockPage.KeyAt(offset) == hash {
+		if blockPage.IsReadable(offset) && blockPage.KeyAt(offset).CompareEquals(*types.NewValueFromBytes(key, types.Integer)) {
 			result = append(result, blockPage.ValueAt(offset))
 		}
 
@@ -133,13 +136,13 @@ func (sl *SkipList) GetValue(key []byte) []uint32 {
 	return result
 }
 
-func (sl *SkipListOnMem) InsertOnMem(key []byte, value uint32) (err error) {
+func (sl *SkipListOnMem) InsertOnMem(key *types.Value, value uint32) (err error) {
 	sl.list_latch.WLock()
 	defer sl.list_latch.WUnlock()
 	hPageData := sl.bpm.FetchPage(sl.headerPageId).Data()
 	headerPage := (*skip_list_page.SkipListHeaderPage)(unsafe.Pointer(hPageData))
 
-	hash := sl.hash(key)
+	hash := hash(nil)
 
 	originalBucketIndex := hash % headerPage.NumBlocks()
 	originalBucketOffset := hash % skip_list_page.BlockArraySize
@@ -179,7 +182,7 @@ func (sl *SkipList) Insert(key []byte, value uint32) (err error) {
 	hPageData := sl.bpm.FetchPage(sl.headerPageId).Data()
 	headerPage := (*skip_list_page.SkipListHeaderPage)(unsafe.Pointer(hPageData))
 
-	hash := sl.hash(key)
+	hash := hash(key)
 
 	originalBucketIndex := hash % headerPage.NumBlocks()
 	originalBucketOffset := hash % skip_list_page.BlockArraySize
@@ -213,13 +216,13 @@ func (sl *SkipList) Insert(key []byte, value uint32) (err error) {
 	return
 }
 
-func (sl *SkipListOnMem) RemoveOnMem(key []byte, value uint32) {
+func (sl *SkipListOnMem) RemoveOnMem(key *types.Value, value uint32) {
 	sl.list_latch.WLock()
 	defer sl.list_latch.WUnlock()
 	hPageData := sl.bpm.FetchPage(sl.headerPageId).Data()
 	headerPage := (*skip_list_page.SkipListHeaderPage)(unsafe.Pointer(hPageData))
 
-	hash := sl.hash(key)
+	hash := hash(nil)
 
 	originalBucketIndex := hash % headerPage.NumBlocks()
 	originalBucketOffset := hash % skip_list_page.BlockArraySize
@@ -229,7 +232,7 @@ func (sl *SkipListOnMem) RemoveOnMem(key []byte, value uint32) {
 	blockPage, offset := iterator.blockPage, iterator.offset
 	var bucket uint32
 	for blockPage.IsOccupied(offset) { // stop the search and we find an empty spot
-		if blockPage.IsOccupied(offset) && blockPage.KeyAt(offset) == hash && blockPage.ValueAt(offset) == value {
+		if blockPage.IsOccupied(offset) && blockPage.KeyAt(offset).CompareEquals(*key) && blockPage.ValueAt(offset) == value {
 			blockPage.Remove(offset)
 		}
 
@@ -250,7 +253,7 @@ func (sl *SkipList) Remove(key []byte, value uint32) {
 	hPageData := sl.bpm.FetchPage(sl.headerPageId).Data()
 	headerPage := (*skip_list_page.SkipListHeaderPage)(unsafe.Pointer(hPageData))
 
-	hash := sl.hash(key)
+	hash := hash(key)
 
 	originalBucketIndex := hash % headerPage.NumBlocks()
 	originalBucketOffset := hash % skip_list_page.BlockArraySize
@@ -260,7 +263,7 @@ func (sl *SkipList) Remove(key []byte, value uint32) {
 	blockPage, offset := iterator.blockPage, iterator.offset
 	var bucket uint32
 	for blockPage.IsOccupied(offset) { // stop the search and we find an empty spot
-		if blockPage.IsOccupied(offset) && blockPage.KeyAt(offset) == hash && blockPage.ValueAt(offset) == value {
+		if blockPage.IsOccupied(offset) && blockPage.KeyAt(offset).CompareEquals(*types.NewValueFromBytes(key, types.Integer)) && blockPage.ValueAt(offset) == value {
 			blockPage.Remove(offset)
 		}
 
@@ -275,7 +278,7 @@ func (sl *SkipList) Remove(key []byte, value uint32) {
 	sl.bpm.UnpinPage(sl.headerPageId, false)
 }
 
-func (sl *SkipList) hash(key []byte) uint32 {
+func hash(key []byte) uint32 {
 	h := murmur3.New128()
 
 	h.Write(key)

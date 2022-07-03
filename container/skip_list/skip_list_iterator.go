@@ -28,7 +28,7 @@ type skipListIterator struct {
 	blockPage  *skip_list_page.SkipListBlockPage
 }
 
-func NewSkipListIteratorOnMem(bpm *buffer.BufferPoolManager, header *skip_list_page.SkipListHeaderPage, bucket uint32, offset uint32) *skipListIteratorOnMem {
+func NewSkipListIteratorOnMem(bpm *buffer.BufferPoolManager, header *skip_list_page.SkipListHeaderPage, bucket uint32, offset uint32) *SkipListIteratorOnMem {
 	blockPageId := header.GetBlockPageId(bucket)
 
 	bPageData := bpm.FetchPage(blockPageId).Data()

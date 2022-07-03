@@ -75,9 +75,9 @@ func (slidx *SkipListIndex) GetKeyAttrs() []uint32 { return slidx.metadata.GetKe
 
 func (slidx *SkipListIndexOnMem) InsertEntry(key *tuple.Tuple, rid page.RID, transaction *access.Transaction) {
 	tupleSchema_ := slidx.GetTupleSchema()
-	keyDataInBytes := key.GetValueInBytes(tupleSchema_, slidx.col_idx)
+	keyVal := key.GetValue(tupleSchema_, slidx.col_idx)
 
-	slidx.container.InsertOnMem(keyDataInBytes, PackRIDtoUint32(&rid))
+	slidx.container.InsertOnMem(&keyVal, PackRIDtoUint32(&rid))
 }
 
 func (slidx *SkipListIndex) InsertEntry(key *tuple.Tuple, rid page.RID, transaction *access.Transaction) {
@@ -89,9 +89,9 @@ func (slidx *SkipListIndex) InsertEntry(key *tuple.Tuple, rid page.RID, transact
 
 func (slidx *SkipListIndexOnMem) DeleteEntry(key *tuple.Tuple, rid page.RID, transaction *access.Transaction) {
 	tupleSchema_ := slidx.GetTupleSchema()
-	keyDataInBytes := key.GetValueInBytes(tupleSchema_, slidx.col_idx)
+	keyVal := key.GetValue(tupleSchema_, slidx.col_idx)
 
-	slidx.container.RemoveOnMem(keyDataInBytes, PackRIDtoUint32(&rid))
+	slidx.container.RemoveOnMem(&keyVal, PackRIDtoUint32(&rid))
 }
 
 func (slidx *SkipListIndex) DeleteEntry(key *tuple.Tuple, rid page.RID, transaction *access.Transaction) {
@@ -103,26 +103,14 @@ func (slidx *SkipListIndex) DeleteEntry(key *tuple.Tuple, rid page.RID, transact
 
 func (slidx *SkipListIndexOnMem) ScanKey(key *tuple.Tuple, transaction *access.Transaction) []page.RID {
 	tupleSchema_ := slidx.GetTupleSchema()
-	keyDataInBytes := key.GetValueInBytes(tupleSchema_, slidx.col_idx)
+	keyVal := key.GetValue(tupleSchema_, slidx.col_idx)
 
-	packed_values := slidx.container.GetValueOnMem(keyDataInBytes)
+	packed_values := slidx.container.GetValueOnMem(&keyVal)
 	var ret_arr []page.RID
 	for _, packed_val := range packed_values {
 		ret_arr = append(ret_arr, UnpackUint32toRID(packed_val))
 	}
 	return ret_arr
-}
-
-func (slidx *SkipListIndexOnMem) Iterator(start_key *tuple.Tuple, end_key *tuple.Tuple, transaction *access.Transaction) *skip_list.SkipListIteratorOnMem {
-	tupleSchema_ := slidx.GetTupleSchema()
-	keyDataInBytes := key.GetValueInBytes(tupleSchema_, slidx.col_idx)
-
-	packed_values := slidx.container.GetValueOnMem(keyDataInBytes)
-	var ret_arr []page.RID
-	for _, packed_val := range packed_values {
-		ret_arr = append(ret_arr, UnpackUint32toRID(packed_val))
-	}
-	return nil
 }
 
 func (slidx *SkipListIndex) ScanKey(key *tuple.Tuple, transaction *access.Transaction) []page.RID {
@@ -135,6 +123,21 @@ func (slidx *SkipListIndex) ScanKey(key *tuple.Tuple, transaction *access.Transa
 		ret_arr = append(ret_arr, UnpackUint32toRID(packed_val))
 	}
 	return ret_arr
+}
+
+// get iterator which iterates entry in key sorted order
+// and iterates specified key range.
+// when start_key arg is nil , start point is head of entry list. when end_key, end point is tail of the list
+func (slidx *SkipListIndexOnMem) Iterator(start_key *tuple.Tuple, end_key *tuple.Tuple, transaction *access.Transaction) *skip_list.SkipListIteratorOnMem {
+	//tupleSchema_ := slidx.GetTupleSchema()
+	//keyDataInBytes := key.GetValueInBytes(tupleSchema_, slidx.col_idx)
+	//
+	//packed_values := slidx.container.GetValueOnMem(keyDataInBytes)
+	//var ret_arr []page.RID
+	//for _, packed_val := range packed_values {
+	//	ret_arr = append(ret_arr, UnpackUint32toRID(packed_val))
+	//}
+	return nil
 }
 
 //func PackRIDtoUint32(value *page.RID) uint32 {

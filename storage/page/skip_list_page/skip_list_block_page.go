@@ -1,5 +1,7 @@
 package skip_list_page
 
+import "github.com/ryogrid/SamehadaDB/types"
+
 type SkipListPair struct {
 	key   uint32
 	value uint32
@@ -28,7 +30,7 @@ type SkipListBlockPageOnMem struct {
 	//occuppied [(BlockArraySize-1)/8 + 1]byte // 256 bits
 	//readable  [(BlockArraySize-1)/8 + 1]byte // 256 bits
 	//array     [BlockArraySize]SkipListPair   // 252 * 16 bits
-	key   uint32
+	key   []byte
 	value uint32
 }
 
@@ -39,8 +41,9 @@ type SkipListBlockPage struct {
 }
 
 // Gets the key at an index in the block
-func (page_ *SkipListBlockPage) KeyAt(index uint32) uint32 {
-	return page_.array[index].key
+func (page_ *SkipListBlockPage) KeyAt(index uint32) *types.Value {
+	//return page_.array[index].key
+	return nil
 }
 
 // Gets the value at an index in the block
