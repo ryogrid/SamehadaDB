@@ -3,7 +3,7 @@ package index
 // TODO: (SDB) not implemented yet skip_list_index.go
 
 import (
-	hash "github.com/ryogrid/SamehadaDB/container/hash"
+	"github.com/ryogrid/SamehadaDB/container/skip_list"
 	"github.com/ryogrid/SamehadaDB/storage/access"
 	"github.com/ryogrid/SamehadaDB/storage/buffer"
 	"github.com/ryogrid/SamehadaDB/storage/page"
@@ -11,24 +11,52 @@ import (
 	"github.com/ryogrid/SamehadaDB/storage/tuple"
 )
 
-type SkipListIndex struct {
-	// comparator for key
-	//KeyComparator comparator_;
-	// container
-	container hash.LinearProbeHashTable
+type SkipListIndexOnMem struct {
+	container skip_list.SkipListOnMem
 	metadata  *IndexMetadata
 	// idx of target column on table
 	col_idx uint32
+}
+
+type SkipListIndex struct {
+	container skip_list.SkipList
+	metadata  *IndexMetadata
+	// idx of target column on table
+	col_idx uint32
+}
+
+func NewSkiplistIndexOnMem(metadata *IndexMetadata, buffer_pool_manager *buffer.BufferPoolManager, col_idx uint32,
+	num_buckets int) *SkipListIndexOnMem {
+	ret := new(SkipListIndexOnMem)
+	ret.metadata = metadata
+	ret.container = *skip_list.NewSkipListOnMem(buffer_pool_manager, num_buckets)
+	ret.col_idx = col_idx
+	return ret
 }
 
 func NewSkiplistIndex(metadata *IndexMetadata, buffer_pool_manager *buffer.BufferPoolManager, col_idx uint32,
 	num_buckets int) *SkipListIndex {
 	ret := new(SkipListIndex)
 	ret.metadata = metadata
-	ret.container = *hash.NewLinearProbeHashTable(buffer_pool_manager, num_buckets)
+	ret.container = *skip_list.NewSkipList(buffer_pool_manager, num_buckets)
 	ret.col_idx = col_idx
 	return ret
 }
+
+// Return the metadata object associated with the index
+func (slidx *SkipListIndexOnMem) GetMetadata() *IndexMetadata { return slidx.metadata }
+
+func (slidx *SkipListIndexOnMem) GetIndexColumnCount() uint32 {
+	return slidx.metadata.GetIndexColumnCount()
+}
+
+func (slidx *SkipListIndexOnMem) GetName() *string { return slidx.metadata.GetName() }
+
+func (slidx *SkipListIndexOnMem) GetTupleSchema() *schema.Schema {
+	return slidx.metadata.GetTupleSchema()
+}
+
+func (slidx *SkipListIndexOnMem) GetKeyAttrs() []uint32 { return slidx.metadata.GetKeyAttrs() }
 
 // Return the metadata object associated with the index
 func (slidx *SkipListIndex) GetMetadata() *IndexMetadata { return slidx.metadata }
@@ -36,11 +64,21 @@ func (slidx *SkipListIndex) GetMetadata() *IndexMetadata { return slidx.metadata
 func (slidx *SkipListIndex) GetIndexColumnCount() uint32 {
 	return slidx.metadata.GetIndexColumnCount()
 }
+
 func (slidx *SkipListIndex) GetName() *string { return slidx.metadata.GetName() }
+
 func (slidx *SkipListIndex) GetTupleSchema() *schema.Schema {
 	return slidx.metadata.GetTupleSchema()
 }
+
 func (slidx *SkipListIndex) GetKeyAttrs() []uint32 { return slidx.metadata.GetKeyAttrs() }
+
+func (slidx *SkipListIndexOnMem) InsertEntry(key *tuple.Tuple, rid page.RID, transaction *access.Transaction) {
+	tupleSchema_ := slidx.GetTupleSchema()
+	keyDataInBytes := key.GetValueInBytes(tupleSchema_, slidx.col_idx)
+
+	slidx.container.InsertOnMem(keyDataInBytes, PackRIDtoUint32(&rid))
+}
 
 func (slidx *SkipListIndex) InsertEntry(key *tuple.Tuple, rid page.RID, transaction *access.Transaction) {
 	tupleSchema_ := slidx.GetTupleSchema()
@@ -49,11 +87,42 @@ func (slidx *SkipListIndex) InsertEntry(key *tuple.Tuple, rid page.RID, transact
 	slidx.container.Insert(keyDataInBytes, PackRIDtoUint32(&rid))
 }
 
+func (slidx *SkipListIndexOnMem) DeleteEntry(key *tuple.Tuple, rid page.RID, transaction *access.Transaction) {
+	tupleSchema_ := slidx.GetTupleSchema()
+	keyDataInBytes := key.GetValueInBytes(tupleSchema_, slidx.col_idx)
+
+	slidx.container.RemoveOnMem(keyDataInBytes, PackRIDtoUint32(&rid))
+}
+
 func (slidx *SkipListIndex) DeleteEntry(key *tuple.Tuple, rid page.RID, transaction *access.Transaction) {
 	tupleSchema_ := slidx.GetTupleSchema()
 	keyDataInBytes := key.GetValueInBytes(tupleSchema_, slidx.col_idx)
 
 	slidx.container.Remove(keyDataInBytes, PackRIDtoUint32(&rid))
+}
+
+func (slidx *SkipListIndexOnMem) ScanKey(key *tuple.Tuple, transaction *access.Transaction) []page.RID {
+	tupleSchema_ := slidx.GetTupleSchema()
+	keyDataInBytes := key.GetValueInBytes(tupleSchema_, slidx.col_idx)
+
+	packed_values := slidx.container.GetValueOnMem(keyDataInBytes)
+	var ret_arr []page.RID
+	for _, packed_val := range packed_values {
+		ret_arr = append(ret_arr, UnpackUint32toRID(packed_val))
+	}
+	return ret_arr
+}
+
+func (slidx *SkipListIndexOnMem) Iterator(start_key *tuple.Tuple, end_key *tuple.Tuple, transaction *access.Transaction) *skip_list.SkipListIteratorOnMem {
+	tupleSchema_ := slidx.GetTupleSchema()
+	keyDataInBytes := key.GetValueInBytes(tupleSchema_, slidx.col_idx)
+
+	packed_values := slidx.container.GetValueOnMem(keyDataInBytes)
+	var ret_arr []page.RID
+	for _, packed_val := range packed_values {
+		ret_arr = append(ret_arr, UnpackUint32toRID(packed_val))
+	}
+	return nil
 }
 
 func (slidx *SkipListIndex) ScanKey(key *tuple.Tuple, transaction *access.Transaction) []page.RID {

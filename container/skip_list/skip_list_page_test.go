@@ -1,6 +1,3 @@
-// this code is from https://github.com/brunocalza/go-bustub
-// there is license and copyright notice in licenses/go-bustub dir
-
 package skip_list
 
 // TODO: (SDB) not implemented yet skip_list_page_test.go

@@ -1,6 +1,3 @@
-// this code is from https://github.com/brunocalza/go-bustub
-// there is license and copyright notice in licenses/go-bustub dir
-
 package skip_list_page
 
 import "github.com/ryogrid/SamehadaDB/types"
@@ -16,6 +13,15 @@ import "github.com/ryogrid/SamehadaDB/types"
  * | LSN (4) | Size (4) | PageId(4) | NextBlockIndex(4)
  * -------------------------------------------------------------
  */
+
+type SkipListHeaderPageOnMem struct {
+	pageId       types.PageID
+	lsn          int    // log sequence number
+	nextIndex    uint32 // the next index to add a new entry to blockPageIds
+	size         int    // the number of key/value pairs the hash table can hold
+	blockPageIds [1020]types.PageID
+}
+
 type SkipListHeaderPage struct {
 	pageId       types.PageID
 	lsn          int    // log sequence number

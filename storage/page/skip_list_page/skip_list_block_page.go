@@ -1,9 +1,6 @@
-// this code is from https://github.com/brunocalza/go-bustub
-// there is license and copyright notice in licenses/go-bustub dir
-
 package skip_list_page
 
-type HashTablePair struct {
+type SkipListPair struct {
 	key   uint32
 	value uint32
 }
@@ -11,6 +8,7 @@ type HashTablePair struct {
 const sizeOfHashTablePair = 16
 const BlockArraySize = 4 * 4096 / (4*sizeOfHashTablePair + 1)
 
+// TODO: (SDB) SkipList should be able to be store variable length size key data
 /**
  * Store indexed key and value together within block page. Supports
  * non-unique keys.
@@ -26,10 +24,18 @@ const BlockArraySize = 4 * 4096 / (4*sizeOfHashTablePair + 1)
 
 // TODO: (SDB) not implemented yet skip_list_block_page.go
 
+type SkipListBlockPageOnMem struct {
+	//occuppied [(BlockArraySize-1)/8 + 1]byte // 256 bits
+	//readable  [(BlockArraySize-1)/8 + 1]byte // 256 bits
+	//array     [BlockArraySize]SkipListPair   // 252 * 16 bits
+	key   uint32
+	value uint32
+}
+
 type SkipListBlockPage struct {
 	occuppied [(BlockArraySize-1)/8 + 1]byte // 256 bits
 	readable  [(BlockArraySize-1)/8 + 1]byte // 256 bits
-	array     [BlockArraySize]HashTablePair  // 252 * 16 bits
+	array     [BlockArraySize]SkipListPair   // 252 * 16 bits
 }
 
 // Gets the key at an index in the block
@@ -48,7 +54,7 @@ func (page_ *SkipListBlockPage) Insert(index uint32, key uint32, value uint32) b
 		return false
 	}
 
-	page_.array[index] = HashTablePair{key, value}
+	page_.array[index] = SkipListPair{key, value}
 	page_.occuppied[index/8] |= (1 << (index % 8))
 	page_.readable[index/8] |= (1 << (index % 8))
 	return true
