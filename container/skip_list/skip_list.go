@@ -5,7 +5,6 @@ package skip_list
 import (
 	"encoding/binary"
 	"errors"
-	"github.com/cznic/mathutil"
 	"github.com/ryogrid/SamehadaDB/storage/page/skip_list_page"
 	"math"
 	"math/rand"
@@ -142,13 +141,13 @@ func (sl *SkipListOnMem) GetValueOnMem(key *types.Value) uint32 {
 
 	x := sl
 	// loop invariant: x.key < searchKey
-	for i := x.CurMaxLevel; i >= 1; i-- {
+	for i := (x.CurMaxLevel - 1); i >= 0; i-- {
 		for x.Forward[i].Key.CompareLessThan(*key) {
 			x = x.Forward[i]
 		}
 	}
-	// x.key < searchKey <= x.forward[1].key
-	x = x.Forward[1]
+	// x.key < searchKey <= x.forward[0].key
+	x = x.Forward[0]
 	if x.Key.CompareEquals(*key) {
 		return x.Val
 	} else {
@@ -234,14 +233,14 @@ func (sl *SkipListOnMem) InsertOnMem(key *types.Value, value uint32) (err error)
 	// predecessors of the new element.
 	var update []*SkipListOnMem = make([]*SkipListOnMem, sl.CurMaxLevel+1)
 	x := sl
-	for ii := sl.CurMaxLevel; ii >= 1; ii-- {
+	for ii := (sl.CurMaxLevel - 1); ii >= 0; ii-- {
 		for x.Forward[ii].Key.CompareLessThan(*key) {
 			x = x.Forward[ii]
 		}
-		//note: x.key < searchKey <= x.forward[i].key
+		//note: x.key < searchKey <= x.forward[ii].key
 		update[ii] = x
 	}
-	x = x.Forward[1]
+	x = x.Forward[0]
 	if x.Key.CompareEquals(*key) {
 		x.Val = value
 		return nil
@@ -259,7 +258,7 @@ func (sl *SkipListOnMem) InsertOnMem(key *types.Value, value uint32) (err error)
 			update[newLevel] = sl
 		}
 		x := NewSkipListOnMem(newLevel, key, value, false)
-		for ii := int32(1); ii <= newLevel; ii++ {
+		for ii := int32(0); ii < newLevel; ii++ {
 			x.Forward[ii] = update[ii].Forward[ii]
 			update[ii].Forward[ii] = x
 		}
@@ -341,16 +340,16 @@ func (sl *SkipListOnMem) RemoveOnMem(key *types.Value, value uint32) {
 	// predecessors of the element to be deleted.
 	var update []*SkipListOnMem = make([]*SkipListOnMem, sl.CurMaxLevel)
 	x := sl
-	for ii := sl.CurMaxLevel; ii >= 1; ii-- {
+	for ii := (sl.CurMaxLevel - 1); ii >= 0; ii-- {
 		for x.Forward[ii].Key.CompareLessThan(*key) {
 			x = x.Forward[ii]
 		}
 		update[ii] = x
 	}
-	x = x.Forward[1]
+	x = x.Forward[0]
 	if x.Key.CompareEquals(*key) {
 		// go delete ...
-		for ii := int32(1); ii <= sl.CurMaxLevel; ii++ {
+		for ii := int32(0); ii < sl.CurMaxLevel; ii++ {
 			if update[ii].Forward[ii] != x {
 				break //(**)
 			}
@@ -360,7 +359,7 @@ func (sl *SkipListOnMem) RemoveOnMem(key *types.Value, value uint32) {
 		/* if deleting the element causes some of the
 		   highest level list to become empty, decrease the
 		   list level until a non-empty list is encountered.*/
-		for (sl.CurMaxLevel > 1) && (sl.Forward[sl.CurMaxLevel] == sl) {
+		for (sl.CurMaxLevel > 1) && (sl.Forward[sl.CurMaxLevel-1] == sl) {
 			sl.CurMaxLevel--
 		}
 	}
@@ -412,5 +411,5 @@ func (sl *SkipListOnMem) GetNodeLevel() int32 {
 	for rand.Float32() < common.SkipListProb { // no MaxLevel check
 		retLevel++
 	}
-	return mathutil.MinInt32(retLevel, sl.CurMaxLevel)
+	return int32(math.Min(float64(retLevel), float64(sl.CurMaxLevel)))
 }
