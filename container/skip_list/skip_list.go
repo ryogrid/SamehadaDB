@@ -141,11 +141,19 @@ func (sl *SkipListOnMem) GetValueOnMem(key *types.Value) uint32 {
 
 	x := sl
 	// loop invariant: x.key < searchKey
+	//fmt.Println("---")
+	//fmt.Println(key.ToInteger())
+	//moveCnt := 0
 	for i := (x.CurMaxLevel - 1); i >= 0; i-- {
+		//fmt.Printf("level %d\n", i)
 		for x.Forward[i].Key.CompareLessThan(*key) {
 			x = x.Forward[i]
+			//fmt.Printf("%d ", x.Key.ToInteger())
+			//moveCnt++
 		}
+		//fmt.Println("")
 	}
+	//fmt.Println(moveCnt)
 	// x.key < searchKey <= x.forward[0].key
 	x = x.Forward[0]
 	if x.Key.CompareEquals(*key) {
@@ -252,10 +260,10 @@ func (sl *SkipListOnMem) InsertOnMem(key *types.Value, value uint32) (err error)
 		   one level more than the current level of the list.
 		   In other words, we will increase the level of the
 		   list by at most one on each insertion. */
-		if newLevel > sl.CurMaxLevel {
+		if newLevel >= sl.CurMaxLevel {
 			newLevel = sl.CurMaxLevel + 1
 			sl.CurMaxLevel = newLevel
-			update[newLevel] = sl
+			update[newLevel-1] = sl
 		}
 		x := NewSkipListOnMem(newLevel, key, value, false)
 		for ii := int32(0); ii < newLevel; ii++ {
@@ -406,7 +414,7 @@ func hash(key []byte) uint32 {
 }
 
 func (sl *SkipListOnMem) GetNodeLevel() int32 {
-	//random() returns a random value in [0..1)
+	//rand.Float32() returns a random value in [0..1)
 	var retLevel int32 = 1
 	for rand.Float32() < common.SkipListProb { // no MaxLevel check
 		retLevel++
