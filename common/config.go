@@ -29,6 +29,8 @@ const (
 	LogBufferSize = ((LogBufferPoolSize + 1) * PageSize)
 	// size of extendible hash bucket
 	BucketSize = 50
+	// probability used for determin node level on SkipList
+	SkipListProb = 0.25
 )
 
 //type FrameID int32 // frame id type

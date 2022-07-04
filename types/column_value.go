@@ -7,6 +7,7 @@ import (
 	"bytes"
 	"encoding/binary"
 	"fmt"
+	"math"
 	"strconv"
 )
 
@@ -107,6 +108,9 @@ func (v Value) CompareEquals(right Value) bool {
 	} else if v.IsNull() || right.IsNull() {
 		return false
 	}
+	if v.IsInf() == true && right.IsInf() == true {
+		return true
+	}
 
 	switch v.valueType {
 	case Integer:
@@ -127,6 +131,11 @@ func (v Value) CompareNotEquals(right Value) bool {
 	} else if v.IsNull() || right.IsNull() {
 		return true
 	}
+	if v.IsInf() && right.IsInf() {
+		return false
+	} else if v.IsInf() || right.IsInf() {
+		return true
+	}
 
 	switch v.valueType {
 	case Integer:
@@ -143,6 +152,13 @@ func (v Value) CompareNotEquals(right Value) bool {
 
 func (v Value) CompareGreaterThan(right Value) bool {
 	if v.IsNull() {
+		return false
+	}
+	if v.IsInf() && right.IsInf() {
+		return false
+	} else if v.IsInf() {
+		return true
+	} else if right.IsInf() {
 		return false
 	}
 
@@ -165,6 +181,13 @@ func (v Value) CompareGreaterThanOrEqual(right Value) bool {
 	} else if v.IsNull() || right.IsNull() {
 		return false
 	}
+	if v.IsInf() && right.IsInf() {
+		return true
+	} else if v.IsInf() {
+		return true
+	} else if right.IsInf() {
+		return false
+	}
 
 	switch v.valueType {
 	case Integer:
@@ -182,6 +205,13 @@ func (v Value) CompareGreaterThanOrEqual(right Value) bool {
 func (v Value) CompareLessThan(right Value) bool {
 	if v.IsNull() {
 		return false
+	}
+	if v.IsInf() && right.IsInf() {
+		return false
+	} else if v.IsInf() {
+		return false
+	} else if right.IsInf() {
+		return true
 	}
 
 	switch v.valueType {
@@ -203,6 +233,13 @@ func (v Value) CompareLessThanOrEqual(right Value) bool {
 	} else if v.IsNull() || right.IsNull() {
 		return false
 	}
+	if v.IsInf() && right.IsInf() {
+		return true
+	} else if v.IsInf() {
+		return false
+	} else if right.IsInf() {
+		return true
+	}
 
 	switch v.valueType {
 	case Integer:
@@ -216,7 +253,6 @@ func (v Value) CompareLessThanOrEqual(right Value) bool {
 	default:
 		panic("illegal valueType is passed!")
 	}
-
 }
 
 func (v Value) Serialize() []byte {
@@ -332,6 +368,38 @@ func (v Value) SetNull() *Value {
 
 func (v Value) IsNull() bool {
 	return *v.isNull
+}
+
+func (v Value) SetInf() *Value {
+	switch v.valueType {
+	case Integer:
+		*v.integer = math.MaxInt32
+		return &v
+	case Float:
+		*v.float = math.MaxFloat32
+		return &v
+	case Varchar:
+		*v.varchar = "SamehadaDBInfValue"
+		return &v
+	case Boolean:
+		*v.boolean = true
+		return &v
+	}
+	panic("not implemented")
+}
+
+func (v Value) IsInf() bool {
+	switch v.valueType {
+	case Integer:
+		return *v.integer == math.MaxInt32
+	case Float:
+		return *v.float == math.MaxFloat32
+	case Varchar:
+		return *v.varchar == "SamehadaDBInfValue"
+	case Boolean:
+		return *v.boolean == true
+	}
+	panic("not implemented")
 }
 
 func (v Value) Add(other *Value) *Value {
