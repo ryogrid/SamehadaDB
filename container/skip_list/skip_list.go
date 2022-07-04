@@ -25,15 +25,15 @@ import (
  */
 
 type SkipListOnMem struct {
-	headerPageId types.PageID
-	bpm          *buffer.BufferPoolManager
-	list_latch   common.ReaderWriterLatch
-	IsHeader     bool
-	Key          *types.Value
-	Val          uint32
-	Level        int32
-	CurMaxLevel  int32
-	Forward      []*SkipListOnMem
+	//headerPageId types.PageID
+	//bpm          *buffer.BufferPoolManager
+	//list_latch   common.ReaderWriterLatch
+	IsHeader    bool
+	Key         *types.Value
+	Val         uint32
+	Level       int32
+	CurMaxLevel int32
+	Forward     []*SkipListOnMem
 }
 
 type SkipList struct {
@@ -48,7 +48,7 @@ func NewSkipListOnMem(level int32, key *types.Value, value uint32, isHeader bool
 	ret := new(SkipListOnMem)
 	ret.Level = level
 	ret.CurMaxLevel = level
-	ret.Forward = make([]*SkipListOnMem, 0)
+	ret.Forward = make([]*SkipListOnMem, 20)
 	ret.Val = value
 	ret.Key = key
 	if isHeader {
@@ -232,7 +232,7 @@ func (sl *SkipListOnMem) InsertOnMem(key *types.Value, value uint32) (err error)
 	// Utilise update which is a (vertical) array
 	// of pointers to the elements which will be
 	// predecessors of the new element.
-	var update []*SkipListOnMem = make([]*SkipListOnMem, 20)
+	var update []*SkipListOnMem = make([]*SkipListOnMem, sl.CurMaxLevel+1)
 	x := sl
 	for ii := sl.CurMaxLevel; ii >= 1; ii-- {
 		for x.Forward[ii].Key.CompareLessThan(*key) {
@@ -308,34 +308,62 @@ func (sl *SkipList) Insert(key []byte, value uint32) (err error) {
 }
 
 func (sl *SkipListOnMem) RemoveOnMem(key *types.Value, value uint32) {
-	sl.list_latch.WLock()
-	defer sl.list_latch.WUnlock()
-	hPageData := sl.bpm.FetchPage(sl.headerPageId).Data()
-	headerPage := (*skip_list_page.SkipListHeaderPage)(unsafe.Pointer(hPageData))
+	//sl.list_latch.WLock()
+	//defer sl.list_latch.WUnlock()
+	//hPageData := sl.bpm.FetchPage(sl.headerPageId).Data()
+	//headerPage := (*skip_list_page.SkipListHeaderPage)(unsafe.Pointer(hPageData))
+	//
+	//hash := hash(nil)
+	//
+	//originalBucketIndex := hash % headerPage.NumBlocks()
+	//originalBucketOffset := hash % skip_list_page.BlockArraySize
+	//
+	//iterator := newSkipListIterator(sl.bpm, headerPage, originalBucketIndex, originalBucketOffset)
+	//
+	//blockPage, offset := iterator.blockPage, iterator.offset
+	//var bucket uint32
+	//for blockPage.IsOccupied(offset) { // stop the search and we find an empty spot
+	//	if blockPage.IsOccupied(offset) && blockPage.KeyAt(offset).CompareEquals(*key) && blockPage.ValueAt(offset) == value {
+	//		blockPage.Remove(offset)
+	//	}
+	//
+	//	iterator.next()
+	//	blockPage, bucket, offset = iterator.blockPage, iterator.bucket, iterator.offset
+	//	if bucket == originalBucketIndex && offset == originalBucketOffset {
+	//		break
+	//	}
+	//}
+	//
+	//sl.bpm.UnpinPage(iterator.blockId, true)
+	//sl.bpm.UnpinPage(sl.headerPageId, false)
 
-	hash := hash(nil)
-
-	originalBucketIndex := hash % headerPage.NumBlocks()
-	originalBucketOffset := hash % skip_list_page.BlockArraySize
-
-	iterator := newSkipListIterator(sl.bpm, headerPage, originalBucketIndex, originalBucketOffset)
-
-	blockPage, offset := iterator.blockPage, iterator.offset
-	var bucket uint32
-	for blockPage.IsOccupied(offset) { // stop the search and we find an empty spot
-		if blockPage.IsOccupied(offset) && blockPage.KeyAt(offset).CompareEquals(*key) && blockPage.ValueAt(offset) == value {
-			blockPage.Remove(offset)
+	// update is an array of pointers to the
+	// predecessors of the element to be deleted.
+	var update []*SkipListOnMem = make([]*SkipListOnMem, sl.CurMaxLevel)
+	x := sl
+	for ii := sl.CurMaxLevel; ii >= 1; ii-- {
+		for x.Forward[ii].Key.CompareLessThan(*key) {
+			x = x.Forward[ii]
 		}
-
-		iterator.next()
-		blockPage, bucket, offset = iterator.blockPage, iterator.bucket, iterator.offset
-		if bucket == originalBucketIndex && offset == originalBucketOffset {
-			break
+		update[ii] = x
+	}
+	x = x.Forward[1]
+	if x.Key.CompareEquals(*key) {
+		// go delete ...
+		for ii := int32(1); ii <= sl.CurMaxLevel; ii++ {
+			if update[ii].Forward[ii] != x {
+				break //(**)
+			}
+			update[ii].Forward[ii] = x.Forward[ii]
+		}
+		//destroy_remove(x)
+		/* if deleting the element causes some of the
+		   highest level list to become empty, decrease the
+		   list level until a non-empty list is encountered.*/
+		for (sl.CurMaxLevel > 1) && (sl.Forward[sl.CurMaxLevel] == sl) {
+			sl.CurMaxLevel--
 		}
 	}
-
-	sl.bpm.UnpinPage(iterator.blockId, true)
-	sl.bpm.UnpinPage(sl.headerPageId, false)
 }
 
 func (sl *SkipList) Remove(key []byte, value uint32) {
