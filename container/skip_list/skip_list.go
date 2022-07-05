@@ -5,6 +5,7 @@ package skip_list
 import (
 	"encoding/binary"
 	"errors"
+	"fmt"
 	"github.com/ryogrid/SamehadaDB/storage/page/skip_list_page"
 	"math"
 	"math/rand"
@@ -91,7 +92,7 @@ func NewSkipList(bpm *buffer.BufferPoolManager, numBuckets int) *SkipList {
 	return &SkipList{header.ID(), bpm, common.NewRWLatch()}
 }
 
-func (sl *SkipListOnMem) GetValueOnMem(key *types.Value) uint32 {
+func (sl *SkipListOnMem) getValueOnMemInner(key *types.Value) *SkipListOnMem {
 	x := sl
 	// loop invariant: x.key < searchKey
 	//fmt.Println("---")
@@ -107,13 +108,23 @@ func (sl *SkipListOnMem) GetValueOnMem(key *types.Value) uint32 {
 		//fmt.Println("")
 	}
 	//fmt.Println(moveCnt)
+	return x
+}
+
+func (sl *SkipListOnMem) GetValueOnMem(key *types.Value) uint32 {
+	x := sl.getValueOnMemInner(key)
+	xf := x.Forward[0]
 	// x.key < searchKey <= x.forward[0].key
-	x = x.Forward[0]
-	if x.Key.CompareEquals(*key) {
-		return x.Val
+	if xf.Key.CompareEquals(*key) {
+		return xf.Val
 	} else {
 		return math.MaxUint32
 	}
+}
+
+func (sl *SkipListOnMem) GetEqualOrNearestSmallerNodeOnMem(key *types.Value) *SkipListOnMem {
+	x := sl.getValueOnMemInner(key)
+	return x
 }
 
 func (sl *SkipList) GetValue(key []byte) []uint32 {
@@ -186,6 +197,14 @@ func (sl *SkipListOnMem) InsertOnMem(key *types.Value, value uint32) (err error)
 			update[ii].Forward[ii] = x
 		}
 		return nil
+	}
+}
+
+// for Debug
+func (sl *SkipListOnMem) CheckElemListOnMem() {
+	x := sl
+	for x = x.Forward[0]; !x.Key.IsInf(); x = x.Forward[0] {
+		fmt.Println(x.Key.ToInteger())
 	}
 }
 
@@ -287,6 +306,19 @@ func (sl *SkipList) Remove(key []byte, value uint32) {
 
 	sl.bpm.UnpinPage(iterator.blockId, true)
 	sl.bpm.UnpinPage(sl.headerPageId, false)
+}
+
+func (sl *SkipListOnMem) IteratorOnMem(rangeStartKey *types.Value, rangeEndKey *types.Value) *SkipListIteratorOnMem {
+	ret := new(SkipListIteratorOnMem)
+	ret.curNode = sl
+	ret.rangeStartKey = rangeStartKey
+	ret.rangeEndKey = rangeEndKey
+
+	if rangeStartKey != nil {
+		ret.curNode = ret.curNode.GetEqualOrNearestSmallerNodeOnMem(rangeStartKey)
+	}
+
+	return ret
 }
 
 func hash(key []byte) uint32 {
