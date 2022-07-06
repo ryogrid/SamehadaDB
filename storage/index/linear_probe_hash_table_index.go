@@ -1,8 +1,7 @@
 package index
 
 import (
-	"bytes"
-	"encoding/binary"
+	"github.com/ryogrid/SamehadaDB/samehada/samehada_util"
 
 	hash "github.com/ryogrid/SamehadaDB/container/hash"
 	"github.com/ryogrid/SamehadaDB/storage/access"
@@ -10,7 +9,6 @@ import (
 	"github.com/ryogrid/SamehadaDB/storage/page"
 	"github.com/ryogrid/SamehadaDB/storage/table/schema"
 	"github.com/ryogrid/SamehadaDB/storage/tuple"
-	"github.com/ryogrid/SamehadaDB/types"
 )
 
 type LinearProbeHashTableIndex struct {
@@ -48,14 +46,14 @@ func (htidx *LinearProbeHashTableIndex) InsertEntry(key *tuple.Tuple, rid page.R
 	tupleSchema_ := htidx.GetTupleSchema()
 	keyDataInBytes := key.GetValueInBytes(tupleSchema_, htidx.col_idx)
 
-	htidx.container.Insert(keyDataInBytes, PackRIDtoUint32(&rid))
+	htidx.container.Insert(keyDataInBytes, samehada_util.PackRIDtoUint32(&rid))
 }
 
 func (htidx *LinearProbeHashTableIndex) DeleteEntry(key *tuple.Tuple, rid page.RID, transaction *access.Transaction) {
 	tupleSchema_ := htidx.GetTupleSchema()
 	keyDataInBytes := key.GetValueInBytes(tupleSchema_, htidx.col_idx)
 
-	htidx.container.Remove(keyDataInBytes, PackRIDtoUint32(&rid))
+	htidx.container.Remove(keyDataInBytes, samehada_util.PackRIDtoUint32(&rid))
 }
 
 func (htidx *LinearProbeHashTableIndex) ScanKey(key *tuple.Tuple, transaction *access.Transaction) []page.RID {
@@ -65,37 +63,7 @@ func (htidx *LinearProbeHashTableIndex) ScanKey(key *tuple.Tuple, transaction *a
 	packed_values := htidx.container.GetValue(keyDataInBytes)
 	var ret_arr []page.RID
 	for _, packed_val := range packed_values {
-		ret_arr = append(ret_arr, UnpackUint32toRID(packed_val))
+		ret_arr = append(ret_arr, samehada_util.UnpackUint32toRID(packed_val))
 	}
 	return ret_arr
-}
-
-func PackRIDtoUint32(value *page.RID) uint32 {
-	buf1 := new(bytes.Buffer)
-	buf2 := new(bytes.Buffer)
-	pack_buf := make([]byte, 4)
-	binary.Write(buf1, binary.LittleEndian, value.PageId)
-	binary.Write(buf2, binary.LittleEndian, value.SlotNum)
-	pageIdInBytes := buf1.Bytes()
-	slotNumInBytes := buf2.Bytes()
-	copy(pack_buf[:2], pageIdInBytes[:2])
-	copy(pack_buf[2:], slotNumInBytes[:2])
-	return binary.LittleEndian.Uint32(pack_buf)
-}
-
-func UnpackUint32toRID(value uint32) page.RID {
-	packed_buf := new(bytes.Buffer)
-	binary.Write(packed_buf, binary.LittleEndian, value)
-	packedDataInBytes := packed_buf.Bytes()
-	var PageId types.PageID
-	var SlotNum uint32
-	buf := make([]byte, 4)
-	copy(buf[:2], packedDataInBytes[:2])
-	PageId = types.PageID(binary.LittleEndian.Uint32(buf))
-	copy(buf[:2], packedDataInBytes[2:])
-	SlotNum = binary.LittleEndian.Uint32(buf)
-	ret := new(page.RID)
-	ret.PageId = PageId
-	ret.SlotNum = SlotNum
-	return *ret
 }

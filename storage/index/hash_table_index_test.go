@@ -2,6 +2,7 @@ package index
 
 import (
 	"fmt"
+	"github.com/ryogrid/SamehadaDB/samehada/samehada_util"
 	"testing"
 
 	"github.com/ryogrid/SamehadaDB/storage/page"
@@ -13,9 +14,9 @@ func TestPackAndUnpackRID(t *testing.T) {
 	rid.PageId = 55
 	rid.SlotNum = 1027
 
-	packed_val := PackRIDtoUint32(rid)
+	packed_val := samehada_util.PackRIDtoUint32(rid)
 	fmt.Println(packed_val)
-	unpacked_val := UnpackUint32toRID(packed_val)
+	unpacked_val := samehada_util.UnpackUint32toRID(packed_val)
 
 	testingpkg.Assert(t, unpacked_val.PageId == 55, "")
 	testingpkg.Assert(t, unpacked_val.SlotNum == 1027, "")

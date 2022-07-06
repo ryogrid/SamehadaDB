@@ -4,11 +4,14 @@ package index
 
 import (
 	"github.com/ryogrid/SamehadaDB/container/skip_list"
+	"github.com/ryogrid/SamehadaDB/samehada/samehada_util"
 	"github.com/ryogrid/SamehadaDB/storage/access"
 	"github.com/ryogrid/SamehadaDB/storage/buffer"
 	"github.com/ryogrid/SamehadaDB/storage/page"
 	"github.com/ryogrid/SamehadaDB/storage/table/schema"
 	"github.com/ryogrid/SamehadaDB/storage/tuple"
+	"github.com/ryogrid/SamehadaDB/types"
+	"math"
 )
 
 type SkipListIndexOnMem struct {
@@ -25,11 +28,11 @@ type SkipListIndex struct {
 	col_idx uint32
 }
 
-func NewSkiplistIndexOnMem(metadata *IndexMetadata, buffer_pool_manager *buffer.BufferPoolManager, col_idx uint32,
-	num_buckets int) *SkipListIndexOnMem {
+func NewSkiplistIndexOnMem(metadata *IndexMetadata, col_idx uint32) *SkipListIndexOnMem {
 	ret := new(SkipListIndexOnMem)
 	ret.metadata = metadata
-	ret.container = *skip_list.NewSkipListOnMem(buffer_pool_manager, num_buckets)
+	val := types.NewInteger(0)
+	ret.container = *skip_list.NewSkipListOnMem(1, &val, math.MaxUint32, true)
 	ret.col_idx = col_idx
 	return ret
 }
@@ -44,19 +47,19 @@ func NewSkiplistIndex(metadata *IndexMetadata, buffer_pool_manager *buffer.Buffe
 }
 
 // Return the metadata object associated with the index
-func (slidx *SkipListIndexOnMem) GetMetadata() *IndexMetadata { return slidx.metadata }
+func (slidx *SkipListIndexOnMem) GetMetadata() *IndexMetadata { return nil }
 
 func (slidx *SkipListIndexOnMem) GetIndexColumnCount() uint32 {
-	return slidx.metadata.GetIndexColumnCount()
+	return math.MaxUint32
 }
 
 func (slidx *SkipListIndexOnMem) GetName() *string { return slidx.metadata.GetName() }
 
 func (slidx *SkipListIndexOnMem) GetTupleSchema() *schema.Schema {
-	return slidx.metadata.GetTupleSchema()
+	return nil
 }
 
-func (slidx *SkipListIndexOnMem) GetKeyAttrs() []uint32 { return slidx.metadata.GetKeyAttrs() }
+func (slidx *SkipListIndexOnMem) GetKeyAttrs() []uint32 { return nil }
 
 // Return the metadata object associated with the index
 func (slidx *SkipListIndex) GetMetadata() *IndexMetadata { return slidx.metadata }
@@ -77,39 +80,37 @@ func (slidx *SkipListIndexOnMem) InsertEntry(key *tuple.Tuple, rid page.RID, tra
 	tupleSchema_ := slidx.GetTupleSchema()
 	keyVal := key.GetValue(tupleSchema_, slidx.col_idx)
 
-	slidx.container.InsertOnMem(&keyVal, PackRIDtoUint32(&rid))
+	slidx.container.InsertOnMem(&keyVal, samehada_util.PackRIDtoUint32(&rid))
 }
 
 func (slidx *SkipListIndex) InsertEntry(key *tuple.Tuple, rid page.RID, transaction *access.Transaction) {
 	tupleSchema_ := slidx.GetTupleSchema()
 	keyDataInBytes := key.GetValueInBytes(tupleSchema_, slidx.col_idx)
 
-	slidx.container.Insert(keyDataInBytes, PackRIDtoUint32(&rid))
+	slidx.container.Insert(keyDataInBytes, samehada_util.PackRIDtoUint32(&rid))
 }
 
 func (slidx *SkipListIndexOnMem) DeleteEntry(key *tuple.Tuple, rid page.RID, transaction *access.Transaction) {
 	tupleSchema_ := slidx.GetTupleSchema()
 	keyVal := key.GetValue(tupleSchema_, slidx.col_idx)
 
-	slidx.container.RemoveOnMem(&keyVal, PackRIDtoUint32(&rid))
+	slidx.container.RemoveOnMem(&keyVal, samehada_util.PackRIDtoUint32(&rid))
 }
 
 func (slidx *SkipListIndex) DeleteEntry(key *tuple.Tuple, rid page.RID, transaction *access.Transaction) {
 	tupleSchema_ := slidx.GetTupleSchema()
 	keyDataInBytes := key.GetValueInBytes(tupleSchema_, slidx.col_idx)
 
-	slidx.container.Remove(keyDataInBytes, PackRIDtoUint32(&rid))
+	slidx.container.Remove(keyDataInBytes, samehada_util.PackRIDtoUint32(&rid))
 }
 
 func (slidx *SkipListIndexOnMem) ScanKey(key *tuple.Tuple, transaction *access.Transaction) []page.RID {
 	tupleSchema_ := slidx.GetTupleSchema()
 	keyVal := key.GetValue(tupleSchema_, slidx.col_idx)
 
-	packed_values := slidx.container.GetValueOnMem(&keyVal)
+	packed_value := slidx.container.GetValueOnMem(&keyVal)
 	var ret_arr []page.RID
-	for _, packed_val := range packed_values {
-		ret_arr = append(ret_arr, UnpackUint32toRID(packed_val))
-	}
+	ret_arr = append(ret_arr, samehada_util.UnpackUint32toRID(packed_value))
 	return ret_arr
 }
 
@@ -120,7 +121,7 @@ func (slidx *SkipListIndex) ScanKey(key *tuple.Tuple, transaction *access.Transa
 	packed_values := slidx.container.GetValue(keyDataInBytes)
 	var ret_arr []page.RID
 	for _, packed_val := range packed_values {
-		ret_arr = append(ret_arr, UnpackUint32toRID(packed_val))
+		ret_arr = append(ret_arr, samehada_util.UnpackUint32toRID(packed_val))
 	}
 	return ret_arr
 }
@@ -129,43 +130,16 @@ func (slidx *SkipListIndex) ScanKey(key *tuple.Tuple, transaction *access.Transa
 // and iterates specified key range.
 // when start_key arg is nil , start point is head of entry list. when end_key, end point is tail of the list
 func (slidx *SkipListIndexOnMem) Iterator(start_key *tuple.Tuple, end_key *tuple.Tuple, transaction *access.Transaction) *skip_list.SkipListIteratorOnMem {
-	//tupleSchema_ := slidx.GetTupleSchema()
-	//keyDataInBytes := key.GetValueInBytes(tupleSchema_, slidx.col_idx)
-	//
-	//packed_values := slidx.container.GetValueOnMem(keyDataInBytes)
-	//var ret_arr []page.RID
-	//for _, packed_val := range packed_values {
-	//	ret_arr = append(ret_arr, UnpackUint32toRID(packed_val))
-	//}
-	return nil
-}
+	tupleSchema_ := slidx.GetTupleSchema()
+	var start_val *types.Value = nil
+	if start_key != nil {
+		start_val = samehada_util.GetPonterOfValue(start_key.GetValue(tupleSchema_, slidx.col_idx))
+	}
 
-//func PackRIDtoUint32(value *page.RID) uint32 {
-//	buf1 := new(bytes.Buffer)
-//	buf2 := new(bytes.Buffer)
-//	pack_buf := make([]byte, 4)
-//	binary.Write(buf1, binary.LittleEndian, value.PageId)
-//	binary.Write(buf2, binary.LittleEndian, value.SlotNum)
-//	pageIdInBytes := buf1.Bytes()
-//	slotNumInBytes := buf2.Bytes()
-//	copy(pack_buf[:2], pageIdInBytes[:2])
-//	copy(pack_buf[2:], slotNumInBytes[:2])
-//	return binary.LittleEndian.Uint32(pack_buf)
-//}
-//
-//func UnpackUint32toRID(value uint32) page.RID {
-//	packed_buf := new(bytes.Buffer)
-//	binary.Write(packed_buf, binary.LittleEndian, value)
-//	packedDataInBytes := packed_buf.Bytes()
-//	var PageId types.PageID
-//	var SlotNum uint32
-//	buf := make([]byte, 4)
-//	copy(buf[:2], packedDataInBytes[:2])
-//	PageId = types.PageID(binary.LittleEndian.Uint32(buf))
-//	copy(buf[:2], packedDataInBytes[2:])
-//	SlotNum = binary.LittleEndian.Uint32(buf)
-//	ret := new(page.RID)
-//	ret.PageId = PageId
-//	ret.SlotNum = SlotNum
-//	return *ret
-//}
+	var end_val *types.Value = nil
+	if end_key != nil {
+		end_val = samehada_util.GetPonterOfValue(end_key.GetValue(tupleSchema_, slidx.col_idx))
+	}
+
+	return slidx.container.IteratorOnMem(start_val, end_val)
+}
