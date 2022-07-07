@@ -1,6 +1,10 @@
 package skip_list_page
 
-import "github.com/ryogrid/SamehadaDB/types"
+import (
+	"github.com/ryogrid/SamehadaDB/common"
+	"github.com/ryogrid/SamehadaDB/storage/page"
+	"github.com/ryogrid/SamehadaDB/types"
+)
 
 // TODO: (SDB) not implemented yet skip_list_header_page.go
 
@@ -14,6 +18,13 @@ import "github.com/ryogrid/SamehadaDB/types"
  * -------------------------------------------------------------
  */
 
+type SkipListNodeBase struct {
+	Level       int32
+	SmallestKey *types.Value
+	Forward     []types.PageID
+	node_latch  common.ReaderWriterLatch
+}
+
 type SkipListHeaderPageOnMem struct {
 	pageId       types.PageID
 	lsn          int    // log sequence number
@@ -23,11 +34,19 @@ type SkipListHeaderPageOnMem struct {
 }
 
 type SkipListHeaderPage struct {
-	pageId       types.PageID
-	lsn          int    // log sequence number
-	nextIndex    uint32 // the next index to add a new entry to blockPageIds
-	size         int    // the number of key/value pairs the hash table can hold
-	blockPageIds [1020]types.PageID
+	page.Page
+	SmallestKey *types.Value
+	Forward     []types.PageID
+	CurMaxLevel int32
+	lsn         int // log sequence number
+}
+
+func DeserializeSkipListHeaderPage(data []byte) *SkipListHeaderPage {
+	return nil
+}
+
+func (page_ *SkipListHeaderPage) SerializeSkipListHeaderPage() []byte {
+	return nil
 }
 
 func (page_ *SkipListHeaderPage) GetBlockPageId(index uint32) types.PageID {

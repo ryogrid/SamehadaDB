@@ -1,28 +1,29 @@
 package skip_list_page
 
-import "github.com/ryogrid/SamehadaDB/types"
+import (
+	"github.com/ryogrid/SamehadaDB/storage/page"
+	"github.com/ryogrid/SamehadaDB/types"
+)
 
 type SkipListPair struct {
-	key   uint32
-	value uint32
+	Key   *types.Value
+	Value uint32
 }
 
-const sizeOfHashTablePair = 16
-const BlockArraySize = 4 * 4096 / (4*sizeOfHashTablePair + 1)
-
-// TODO: (SDB) SkipList should be able to be store variable length size key data
-/**
- * Store indexed key and value together within block page. Supports
- * non-unique keys.
- *
- * Block page format (keys are stored in order):
- *  ----------------------------------------------------------------
- * | KEY(1) + VALUE(1) | KEY(2) + VALUE(2) | ... | KEY(n) + VALUE(n)
- *  ----------------------------------------------------------------
- *
- *  Here '+' means concatenation.
- *
- */
+// TODO: (SDB) modify data layout described below
+// Slotted page format:
+//  ---------------------------------------------------------
+//  | HEADER | ... FREE SPACE ... | ... INSERTED TUPLES ... |
+//  ---------------------------------------------------------
+//                                ^
+//                                free space pointer
+//  Header format (size in bytes):
+//  ----------------------------------------------------------------------------
+//  | PageId (4)| LSN (4)| PrevPageId (4)| NextPageId (4)| FreeSpacePointer(4) |
+//  ----------------------------------------------------------------------------
+//  ----------------------------------------------------------------
+//  | TupleCount (4) | Tuple_1 offset (4) | Tuple_1 size (4) | ... |
+//  ----------------------------------------------------------------
 
 // TODO: (SDB) not implemented yet skip_list_block_page.go
 
@@ -35,9 +36,14 @@ type SkipListBlockPageOnMem struct {
 }
 
 type SkipListBlockPage struct {
-	occuppied [(BlockArraySize-1)/8 + 1]byte // 256 bits
-	readable  [(BlockArraySize-1)/8 + 1]byte // 256 bits
-	array     [BlockArraySize]SkipListPair   // 252 * 16 bits
+	page.Page
+	Level       int32
+	SmallestKey *types.Value
+	Forward     []types.PageID
+	lsn         int // log sequence number
+	//occuppied [(BlockArraySize-1)/8 + 1]byte // 256 bits
+	//readable  [(BlockArraySize-1)/8 + 1]byte // 256 bits
+	//array     [BlockArraySize]SkipListPair   // 252 * 16 bits
 }
 
 // Gets the key at an index in the block

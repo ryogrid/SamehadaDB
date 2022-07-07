@@ -25,11 +25,10 @@ import (
  */
 
 type SkipListOnMem struct {
-	IsHeader    bool
+	CurMaxLevel int32
+	Level       int32
 	Key         *types.Value
 	Val         uint32
-	Level       int32
-	CurMaxLevel int32
 	Forward     []*SkipListOnMem
 }
 
