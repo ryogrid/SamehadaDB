@@ -3,19 +3,13 @@
 package skip_list
 
 import (
-	"encoding/binary"
-	"errors"
 	"fmt"
-	"github.com/ryogrid/SamehadaDB/storage/page/skip_list_page"
-	"math"
-	"math/rand"
-	"time"
-	"unsafe"
-
 	"github.com/ryogrid/SamehadaDB/common"
 	"github.com/ryogrid/SamehadaDB/storage/buffer"
 	"github.com/ryogrid/SamehadaDB/types"
-	"github.com/spaolacci/murmur3"
+	"math"
+	"math/rand"
+	"time"
 )
 
 /**
@@ -74,21 +68,22 @@ func NewSkipListOnMem(level int32, key *types.Value, value uint32, isHeader bool
 }
 
 func NewSkipList(bpm *buffer.BufferPoolManager, numBuckets int) *SkipList {
-	header := bpm.NewPage()
-	headerData := header.Data()
-	headerPage := (*skip_list_page.SkipListHeaderPage)(unsafe.Pointer(headerData))
-
-	headerPage.SetPageId(header.ID())
-	headerPage.SetSize(numBuckets * skip_list_page.BlockArraySize)
-
-	for i := 0; i < numBuckets; i++ {
-		np := bpm.NewPage()
-		headerPage.AddBlockPageId(np.ID())
-		bpm.UnpinPage(np.ID(), true)
-	}
-	bpm.UnpinPage(header.ID(), true)
-
-	return &SkipList{header.ID(), bpm, common.NewRWLatch()}
+	//header := bpm.NewPage()
+	//headerData := header.Data()
+	//headerPage := (*skip_list_page.SkipListHeaderPage)(unsafe.Pointer(headerData))
+	//
+	//headerPage.SetPageId(header.ID())
+	//headerPage.SetSize(numBuckets * skip_list_page.BlockArraySize)
+	//
+	//for i := 0; i < numBuckets; i++ {
+	//	np := bpm.NewPage()
+	//	headerPage.AddBlockPageId(np.ID())
+	//	bpm.UnpinPage(np.ID(), true)
+	//}
+	//bpm.UnpinPage(header.ID(), true)
+	//
+	//return &SkipList{header.ID(), bpm, common.NewRWLatch()}
+	return nil
 }
 
 func (sl *SkipListOnMem) getValueOnMemInner(key *types.Value) *SkipListOnMem {
@@ -127,37 +122,38 @@ func (sl *SkipListOnMem) GetEqualOrNearestSmallerNodeOnMem(key *types.Value) *Sk
 }
 
 func (sl *SkipList) GetValue(key []byte) []uint32 {
-	sl.list_latch.RLock()
-	defer sl.list_latch.RUnlock()
-	hPageData := sl.bpm.FetchPage(sl.headerPageId).Data()
-	headerPage := (*skip_list_page.SkipListHeaderPage)(unsafe.Pointer(hPageData))
-
-	hash := hash(key)
-
-	originalBucketIndex := hash % headerPage.NumBlocks()
-	originalBucketOffset := hash % skip_list_page.BlockArraySize
-
-	iterator := newSkipListIterator(sl.bpm, headerPage, originalBucketIndex, originalBucketOffset)
-
-	result := []uint32{}
-	blockPage, offset := iterator.blockPage, iterator.offset
-	var bucket uint32
-	for blockPage.IsOccupied(offset) { // stop the search and we find an empty spot
-		if blockPage.IsReadable(offset) && blockPage.KeyAt(offset).CompareEquals(*types.NewValueFromBytes(key, types.Integer)) {
-			result = append(result, blockPage.ValueAt(offset))
-		}
-
-		iterator.next()
-		blockPage, bucket, offset = iterator.blockPage, iterator.bucket, iterator.offset
-		if bucket == originalBucketIndex && offset == originalBucketOffset {
-			break
-		}
-	}
-
-	sl.bpm.UnpinPage(iterator.blockId, true)
-	sl.bpm.UnpinPage(sl.headerPageId, false)
-
-	return result
+	//sl.list_latch.RLock()
+	//defer sl.list_latch.RUnlock()
+	//hPageData := sl.bpm.FetchPage(sl.headerPageId).Data()
+	//headerPage := (*skip_list_page.SkipListHeaderPage)(unsafe.Pointer(hPageData))
+	//
+	//hash := hash(key)
+	//
+	//originalBucketIndex := hash % headerPage.NumBlocks()
+	//originalBucketOffset := hash % skip_list_page.BlockArraySize
+	//
+	//iterator := newSkipListIterator(sl.bpm, headerPage, originalBucketIndex, originalBucketOffset)
+	//
+	//result := []uint32{}
+	//blockPage, offset := iterator.blockPage, iterator.offset
+	//var bucket uint32
+	//for blockPage.IsOccupied(offset) { // stop the search and we find an empty spot
+	//	if blockPage.IsReadable(offset) && blockPage.KeyAt(offset).CompareEquals(*types.NewValueFromBytes(key, types.Integer)) {
+	//		result = append(result, blockPage.ValueAt(offset))
+	//	}
+	//
+	//	iterator.next()
+	//	blockPage, bucket, offset = iterator.blockPage, iterator.bucket, iterator.offset
+	//	if bucket == originalBucketIndex && offset == originalBucketOffset {
+	//		break
+	//	}
+	//}
+	//
+	//sl.bpm.UnpinPage(iterator.blockId, true)
+	//sl.bpm.UnpinPage(sl.headerPageId, false)
+	//
+	//return result
+	return nil
 }
 
 func (sl *SkipListOnMem) InsertOnMem(key *types.Value, value uint32) (err error) {
@@ -208,43 +204,44 @@ func (sl *SkipListOnMem) CheckElemListOnMem() {
 }
 
 func (sl *SkipList) Insert(key []byte, value uint32) (err error) {
-	sl.list_latch.WLock()
-	defer sl.list_latch.WUnlock()
-	hPageData := sl.bpm.FetchPage(sl.headerPageId).Data()
-	headerPage := (*skip_list_page.SkipListHeaderPage)(unsafe.Pointer(hPageData))
-
-	hash := hash(key)
-
-	originalBucketIndex := hash % headerPage.NumBlocks()
-	originalBucketOffset := hash % skip_list_page.BlockArraySize
-
-	iterator := newSkipListIterator(sl.bpm, headerPage, originalBucketIndex, originalBucketOffset)
-
-	blockPage, offset := iterator.blockPage, iterator.offset
-	var bucket uint32
-	for {
-		if blockPage.IsOccupied(offset) && blockPage.ValueAt(offset) == value {
-			err = errors.New("duplicated values on the same key are not allowed")
-			break
-		}
-
-		if !blockPage.IsOccupied(offset) {
-			blockPage.Insert(offset, hash, value)
-			err = nil
-			break
-		}
-		iterator.next()
-
-		blockPage, bucket, offset = iterator.blockPage, iterator.bucket, iterator.offset
-		if bucket == originalBucketIndex && offset == originalBucketOffset {
-			break
-		}
-	}
-
-	sl.bpm.UnpinPage(iterator.blockId, true)
-	sl.bpm.UnpinPage(sl.headerPageId, false)
-
-	return
+	//sl.list_latch.WLock()
+	//defer sl.list_latch.WUnlock()
+	//hPageData := sl.bpm.FetchPage(sl.headerPageId).Data()
+	//headerPage := (*skip_list_page.SkipListHeaderPage)(unsafe.Pointer(hPageData))
+	//
+	//hash := hash(key)
+	//
+	//originalBucketIndex := hash % headerPage.NumBlocks()
+	//originalBucketOffset := hash % skip_list_page.BlockArraySize
+	//
+	//iterator := newSkipListIterator(sl.bpm, headerPage, originalBucketIndex, originalBucketOffset)
+	//
+	//blockPage, offset := iterator.blockPage, iterator.offset
+	//var bucket uint32
+	//for {
+	//	if blockPage.IsOccupied(offset) && blockPage.ValueAt(offset) == value {
+	//		err = errors.New("duplicated values on the same key are not allowed")
+	//		break
+	//	}
+	//
+	//	if !blockPage.IsOccupied(offset) {
+	//		blockPage.Insert(offset, hash, value)
+	//		err = nil
+	//		break
+	//	}
+	//	iterator.next()
+	//
+	//	blockPage, bucket, offset = iterator.blockPage, iterator.bucket, iterator.offset
+	//	if bucket == originalBucketIndex && offset == originalBucketOffset {
+	//		break
+	//	}
+	//}
+	//
+	//sl.bpm.UnpinPage(iterator.blockId, true)
+	//sl.bpm.UnpinPage(sl.headerPageId, false)
+	//
+	//return
+	return nil
 }
 
 func (sl *SkipListOnMem) RemoveOnMem(key *types.Value, value uint32) {
@@ -277,34 +274,34 @@ func (sl *SkipListOnMem) RemoveOnMem(key *types.Value, value uint32) {
 }
 
 func (sl *SkipList) Remove(key []byte, value uint32) {
-	sl.list_latch.WLock()
-	defer sl.list_latch.WUnlock()
-	hPageData := sl.bpm.FetchPage(sl.headerPageId).Data()
-	headerPage := (*skip_list_page.SkipListHeaderPage)(unsafe.Pointer(hPageData))
-
-	hash := hash(key)
-
-	originalBucketIndex := hash % headerPage.NumBlocks()
-	originalBucketOffset := hash % skip_list_page.BlockArraySize
-
-	iterator := newSkipListIterator(sl.bpm, headerPage, originalBucketIndex, originalBucketOffset)
-
-	blockPage, offset := iterator.blockPage, iterator.offset
-	var bucket uint32
-	for blockPage.IsOccupied(offset) { // stop the search and we find an empty spot
-		if blockPage.IsOccupied(offset) && blockPage.KeyAt(offset).CompareEquals(*types.NewValueFromBytes(key, types.Integer)) && blockPage.ValueAt(offset) == value {
-			blockPage.Remove(offset)
-		}
-
-		iterator.next()
-		blockPage, bucket, offset = iterator.blockPage, iterator.bucket, iterator.offset
-		if bucket == originalBucketIndex && offset == originalBucketOffset {
-			break
-		}
-	}
-
-	sl.bpm.UnpinPage(iterator.blockId, true)
-	sl.bpm.UnpinPage(sl.headerPageId, false)
+	//sl.list_latch.WLock()
+	//defer sl.list_latch.WUnlock()
+	//hPageData := sl.bpm.FetchPage(sl.headerPageId).Data()
+	//headerPage := (*skip_list_page.SkipListHeaderPage)(unsafe.Pointer(hPageData))
+	//
+	//hash := hash(key)
+	//
+	//originalBucketIndex := hash % headerPage.NumBlocks()
+	//originalBucketOffset := hash % skip_list_page.BlockArraySize
+	//
+	//iterator := newSkipListIterator(sl.bpm, headerPage, originalBucketIndex, originalBucketOffset)
+	//
+	//blockPage, offset := iterator.blockPage, iterator.offset
+	//var bucket uint32
+	//for blockPage.IsOccupied(offset) { // stop the search and we find an empty spot
+	//	if blockPage.IsOccupied(offset) && blockPage.KeyAt(offset).CompareEquals(*types.NewValueFromBytes(key, types.Integer)) && blockPage.ValueAt(offset) == value {
+	//		blockPage.Remove(offset)
+	//	}
+	//
+	//	iterator.next()
+	//	blockPage, bucket, offset = iterator.blockPage, iterator.bucket, iterator.offset
+	//	if bucket == originalBucketIndex && offset == originalBucketOffset {
+	//		break
+	//	}
+	//}
+	//
+	//sl.bpm.UnpinPage(iterator.blockId, true)
+	//sl.bpm.UnpinPage(sl.headerPageId, false)
 }
 
 func (sl *SkipListOnMem) IteratorOnMem(rangeStartKey *types.Value, rangeEndKey *types.Value) *SkipListIteratorOnMem {
@@ -320,14 +317,28 @@ func (sl *SkipListOnMem) IteratorOnMem(rangeStartKey *types.Value, rangeEndKey *
 	return ret
 }
 
-func hash(key []byte) uint32 {
-	h := murmur3.New128()
-
-	h.Write(key)
-	hash := h.Sum(nil)
-
-	return binary.LittleEndian.Uint32(hash)
+func (sl *SkipListOnMem) IteratorO(rangeStartKey *types.Value, rangeEndKey *types.Value) *SkipListIterator {
+	//ret := new(SkipListIteratorOnMem)
+	//ret.curNode = sl
+	//ret.rangeStartKey = rangeStartKey
+	//ret.rangeEndKey = rangeEndKey
+	//
+	//if rangeStartKey != nil {
+	//	ret.curNode = ret.curNode.GetEqualOrNearestSmallerNodeOnMem(rangeStartKey)
+	//}
+	//
+	//return ret
+	return nil
 }
+
+//func hash(key []byte) uint32 {
+//	h := murmur3.New128()
+//
+//	h.Write(key)
+//	hash := h.Sum(nil)
+//
+//	return binary.LittleEndian.Uint32(hash)
+//}
 
 func (sl *SkipListOnMem) GetNodeLevel() int32 {
 	//rand.Float32() returns a random value in [0..1)
@@ -336,4 +347,14 @@ func (sl *SkipListOnMem) GetNodeLevel() int32 {
 		retLevel++
 	}
 	return int32(math.Min(float64(retLevel), float64(sl.CurMaxLevel)))
+}
+
+func (sl *SkipList) GetNodeLevel() int32 {
+	//rand.Float32() returns a random value in [0..1)
+	var retLevel int32 = 1
+	for rand.Float32() < common.SkipListProb { // no MaxLevel check
+		retLevel++
+	}
+	//return int32(math.Min(float64(retLevel), float64(sl.CurMaxLevel)))
+	return -1
 }

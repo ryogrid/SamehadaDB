@@ -43,6 +43,13 @@ type SkipListBlockPage struct {
 	//array     [BlockArraySize]SkipListPair   // 252 * 16 bits
 }
 
+// if not found, returns info of nearest smaller key
+// binary search is used for search
+func (page_ *SkipListBlockPage) FindEntryByKey(key *types.Value) (found bool, entry *SkipListPair, index uint32) {
+	//return page_.array[index].key
+	return false, nil, 0
+}
+
 // Gets the key at an index in the block
 func (page_ *SkipListBlockPage) KeyAt(index uint32) *types.Value {
 	//return page_.array[index].key
@@ -51,35 +58,46 @@ func (page_ *SkipListBlockPage) KeyAt(index uint32) *types.Value {
 
 // Gets the value at an index in the block
 func (page_ *SkipListBlockPage) ValueAt(index uint32) uint32 {
-	return page_.array[index].value
+	//return page_.array[index].value
+	return 0
 }
 
 // Attempts to insert a key and value into an index in the baccess.
 func (page_ *SkipListBlockPage) Insert(index uint32, key uint32, value uint32) bool {
-	if page_.IsOccupied(index) {
-		return false
-	}
-
-	page_.array[index] = SkipListPair{key, value}
-	page_.occuppied[index/8] |= (1 << (index % 8))
-	page_.readable[index/8] |= (1 << (index % 8))
+	//if page_.IsOccupied(index) {
+	//	return false
+	//}
+	//
+	//page_.array[index] = SkipListPair{key, value}
+	//page_.occuppied[index/8] |= (1 << (index % 8))
+	//page_.readable[index/8] |= (1 << (index % 8))
 	return true
 }
 
 func (page_ *SkipListBlockPage) Remove(index uint32) {
-	if !page_.IsReadable(index) {
-		return
-	}
-
-	page_.readable[index/8] &= ^(1 << (index % 8))
+	//if !page_.IsReadable(index) {
+	//	return
+	//}
+	//
+	//page_.readable[index/8] &= ^(1 << (index % 8))
 }
 
-// Returns whether or not an index is occuppied (valid key/value pair)
-func (page_ *SkipListBlockPage) IsOccupied(index uint32) bool {
-	return (page_.occuppied[index/8] & (1 << (index % 8))) != 0
+// split entries of page_ at index
+// new node contains entries after entry specified by index
+func (page_ *SkipListBlockPage) SplitNode(index uint32) {
+	//if !page_.IsReadable(index) {
+	//	return
+	//}
+	//
+	//page_.readable[index/8] &= ^(1 << (index % 8))
 }
 
-// Returns whether or not an index is readable (valid key/value pair)
-func (page_ *SkipListBlockPage) IsReadable(index uint32) bool {
-	return (page_.readable[index/8] & (1 << (index % 8))) != 0
-}
+//// Returns whether or not an index is occuppied (valid key/value pair)
+//func (page_ *SkipListBlockPage) IsOccupied(index uint32) bool {
+//	return (page_.occuppied[index/8] & (1 << (index % 8))) != 0
+//}
+//
+//// Returns whether or not an index is readable (valid key/value pair)
+//func (page_ *SkipListBlockPage) IsReadable(index uint32) bool {
+//	return (page_.readable[index/8] & (1 << (index % 8))) != 0
+//}
