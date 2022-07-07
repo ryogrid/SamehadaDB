@@ -5,11 +5,6 @@ import (
 	"github.com/ryogrid/SamehadaDB/types"
 )
 
-type SkipListPair struct {
-	Key   *types.Value
-	Value uint32
-}
-
 // TODO: (SDB) modify data layout described below
 // Slotted page format:
 //  ---------------------------------------------------------
@@ -40,7 +35,9 @@ type SkipListBlockPage struct {
 	Level       int32
 	SmallestKey *types.Value
 	Forward     []types.PageID
-	lsn         int // log sequence number
+	EntryCnt    int32
+	MaxEntry    int32
+	Entries     []*SkipListPair
 	//occuppied [(BlockArraySize-1)/8 + 1]byte // 256 bits
 	//readable  [(BlockArraySize-1)/8 + 1]byte // 256 bits
 	//array     [BlockArraySize]SkipListPair   // 252 * 16 bits
