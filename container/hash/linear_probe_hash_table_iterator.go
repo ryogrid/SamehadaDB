@@ -5,7 +5,6 @@ package hash
 
 import (
 	"github.com/ryogrid/SamehadaDB/storage/page"
-	"github.com/ryogrid/SamehadaDB/storage/page/skip_list_page"
 	"unsafe"
 
 	"github.com/ryogrid/SamehadaDB/storage/buffer"
@@ -33,7 +32,7 @@ func newHashTableIterator(bpm *buffer.BufferPoolManager, header *page.HashTableH
 func (itr *hashTableIterator) next() {
 	itr.offset++
 	// the current block page is full, we need to go to the next one
-	if itr.offset >= skip_list_page.BlockArraySize {
+	if itr.offset >= page.BlockArraySize {
 		itr.bucket += 1
 		itr.offset = 0
 

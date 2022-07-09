@@ -4,7 +4,7 @@
 package hash
 
 import (
-	"github.com/ryogrid/SamehadaDB/storage/page/skip_list_page"
+	"github.com/ryogrid/SamehadaDB/storage/page"
 	"os"
 	"testing"
 	"unsafe"
@@ -16,7 +16,7 @@ import (
 	"github.com/ryogrid/SamehadaDB/types"
 )
 
-func TestSkipListHeaderPage(t *testing.T) {
+func TestHashTableHeaderPage(t *testing.T) {
 	diskManager := disk.NewDiskManagerImpl("test.db")
 	//bpm := buffer.NewBufferPoolManager(diskManager, buffer.NewClockReplacer(5))
 	bpm := buffer.NewBufferPoolManager(uint32(10), diskManager, recovery.NewLogManager(&diskManager))
@@ -24,7 +24,7 @@ func TestSkipListHeaderPage(t *testing.T) {
 	newPage := bpm.NewPage()
 	newPageData := newPage.Data()
 
-	headerPage := (*skip_list_page.SkipListHeaderPage)(unsafe.Pointer(newPageData))
+	headerPage := (*page.HashTableHeaderPage)(unsafe.Pointer(newPageData))
 
 	for i := 0; i < 11; i++ {
 		headerPage.SetSize(i)
@@ -65,7 +65,7 @@ func TestSkipListHeaderPage(t *testing.T) {
 	os.Remove("test.db")
 }
 
-func TestSkipListBlockPage(t *testing.T) {
+func HashTableBlockPage(t *testing.T) {
 	diskManager := disk.NewDiskManagerImpl("test.db")
 	//bpm := buffer.NewBufferPoolManager(diskManager, buffer.NewClockReplacer(5))
 	bpm := buffer.NewBufferPoolManager(uint32(32), diskManager, recovery.NewLogManager(&diskManager))
@@ -73,7 +73,7 @@ func TestSkipListBlockPage(t *testing.T) {
 	newPage := bpm.NewPage()
 	newPageData := newPage.Data()
 
-	blockPage := (*skip_list_page.SkipListBlockPage)(unsafe.Pointer(newPageData))
+	blockPage := (*page.HashTableBlockPage)(unsafe.Pointer(newPageData))
 
 	for i := 0; i < 10; i++ {
 		blockPage.Insert(uint32(i), uint32(i), uint32(i))

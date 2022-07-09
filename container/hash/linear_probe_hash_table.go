@@ -7,7 +7,6 @@ import (
 	"encoding/binary"
 	"errors"
 	"github.com/ryogrid/SamehadaDB/storage/page"
-	"github.com/ryogrid/SamehadaDB/storage/page/skip_list_page"
 	"unsafe"
 
 	"github.com/ryogrid/SamehadaDB/common"
@@ -34,7 +33,7 @@ func NewLinearProbeHashTable(bpm *buffer.BufferPoolManager, numBuckets int) *Lin
 	headerPage := (*page.HashTableHeaderPage)(unsafe.Pointer(headerData))
 
 	headerPage.SetPageId(header.ID())
-	headerPage.SetSize(numBuckets * skip_list_page.BlockArraySize)
+	headerPage.SetSize(numBuckets * page.BlockArraySize)
 
 	for i := 0; i < numBuckets; i++ {
 		np := bpm.NewPage()
@@ -89,7 +88,7 @@ func (ht *LinearProbeHashTable) Insert(key []byte, value uint32) (err error) {
 	hash := ht.hash(key)
 
 	originalBucketIndex := hash % headerPage.NumBlocks()
-	originalBucketOffset := hash % skip_list_page.BlockArraySize
+	originalBucketOffset := hash % page.BlockArraySize
 
 	iterator := newHashTableIterator(ht.bpm, headerPage, originalBucketIndex, originalBucketOffset)
 
