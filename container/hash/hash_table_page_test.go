@@ -65,7 +65,7 @@ func TestHashTableHeaderPage(t *testing.T) {
 	os.Remove("test.db")
 }
 
-func HashTableBlockPage(t *testing.T) {
+func TestHashTableBlockPage(t *testing.T) {
 	diskManager := disk.NewDiskManagerImpl("test.db")
 	//bpm := buffer.NewBufferPoolManager(diskManager, buffer.NewClockReplacer(5))
 	bpm := buffer.NewBufferPoolManager(uint32(32), diskManager, recovery.NewLogManager(&diskManager))
