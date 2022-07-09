@@ -100,8 +100,6 @@ func (log_recovery *LogRecovery) DeserializeLogRecord(data []byte, log_record *r
 *LSN with log_record's sequence number, and also build active_txn table &
 *lsn_mapping table
  */
-
-// TODO: (SDB) need to return max lsn, and caller should set the lsn + 1 to LogManager::next_lsn
 func (log_recovery *LogRecovery) Redo() types.LSN {
 	// readLogLoopCnt := 0
 	// deserializeLoopCnt := 0

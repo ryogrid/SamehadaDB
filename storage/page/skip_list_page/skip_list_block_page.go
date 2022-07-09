@@ -7,7 +7,7 @@ import (
 	"unsafe"
 )
 
-// TODO: (SDB) modify data layout described below
+// TODO: (SDB) need to modify data layout figure
 // Slotted page format:
 //  ---------------------------------------------------------
 //  | HEADER | ... FREE SPACE ... | ... INSERTED TUPLES ... |
@@ -22,7 +22,6 @@ import (
 //  | TupleCount (4) | Tuple_1 offset (4) | Tuple_1 size (4) | ... |
 //  ----------------------------------------------------------------
 
-// TODO: (SDB) not implemented yet skip_list_block_page.go
 const (
 	DUMMY_MAX_ENTRY = 50
 )
@@ -63,6 +62,8 @@ func NewSkipListBlockPage(bpm *buffer.BufferPoolManager, level int32, smallestLi
 	return ret
 }
 
+// TODO: (SDB) not implemented (FindEntryByKey)
+
 // if not found, returns info of nearest smaller key
 // binary search is used for search
 func (page_ *SkipListBlockPage) FindEntryByKey(key *types.Value) (found bool, entry *SkipListPair, index uint32) {
@@ -70,17 +71,31 @@ func (page_ *SkipListBlockPage) FindEntryByKey(key *types.Value) (found bool, en
 	return false, nil, 0
 }
 
-// Gets the key at an index in the block
+// TODO: (SDB) not implemented (EntryAt)
+
+// Gets the entry at index in this node
+func (page_ *SkipListBlockPage) EntryAt(index uint32) *SkipListPair {
+	//return page_.array[index].key
+	return nil
+}
+
+// TODO: (SDB) not implemented (KeyAt)
+
+// Gets the key at index in this node
 func (page_ *SkipListBlockPage) KeyAt(index uint32) *types.Value {
 	//return page_.array[index].key
 	return nil
 }
 
-// Gets the value at an index in the block
+// TODO: (SDB) not implemented (ValueAt)
+
+// Gets the value at an index in this node
 func (page_ *SkipListBlockPage) ValueAt(index uint32) uint32 {
 	//return page_.array[index].value
 	return 0
 }
+
+// TODO: (SDB) not implemented (Insert)
 
 // Attempts to insert a key and value into an index in the baccess.
 func (page_ *SkipListBlockPage) Insert(index uint32, key uint32, value uint32) bool {
@@ -94,6 +109,7 @@ func (page_ *SkipListBlockPage) Insert(index uint32, key uint32, value uint32) b
 	return true
 }
 
+// TODO: (SDB) not implemented (Remove)
 func (page_ *SkipListBlockPage) Remove(index uint32) {
 	//if !page_.IsReadable(index) {
 	//	return
@@ -101,6 +117,8 @@ func (page_ *SkipListBlockPage) Remove(index uint32) {
 	//
 	//page_.readable[index/8] &= ^(1 << (index % 8))
 }
+
+// TODO: (SDB) not implemented (SplitNode)
 
 // split entries of page_ at index
 // new node contains entries after entry specified by index
@@ -111,13 +129,3 @@ func (page_ *SkipListBlockPage) SplitNode(index uint32) {
 	//
 	//page_.readable[index/8] &= ^(1 << (index % 8))
 }
-
-//// Returns whether or not an index is occuppied (valid key/value pair)
-//func (page_ *SkipListBlockPage) IsOccupied(index uint32) bool {
-//	return (page_.occuppied[index/8] & (1 << (index % 8))) != 0
-//}
-//
-//// Returns whether or not an index is readable (valid key/value pair)
-//func (page_ *SkipListBlockPage) IsReadable(index uint32) bool {
-//	return (page_.readable[index/8] & (1 << (index % 8))) != 0
-//}

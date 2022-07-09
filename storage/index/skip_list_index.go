@@ -1,7 +1,5 @@
 package index
 
-// TODO: (SDB) not implemented yet skip_list_index.go
-
 import (
 	"github.com/ryogrid/SamehadaDB/container/skip_list"
 	"github.com/ryogrid/SamehadaDB/samehada/samehada_util"
@@ -37,11 +35,11 @@ func NewSkiplistIndexOnMem(metadata *IndexMetadata, col_idx uint32) *SkipListInd
 	return ret
 }
 
-func NewSkiplistIndex(metadata *IndexMetadata, buffer_pool_manager *buffer.BufferPoolManager, col_idx uint32,
+func NewSkipListIndex(metadata *IndexMetadata, buffer_pool_manager *buffer.BufferPoolManager, col_idx uint32,
 	num_buckets int) *SkipListIndex {
 	ret := new(SkipListIndex)
 	ret.metadata = metadata
-	ret.container = *skip_list.NewSkipList(buffer_pool_manager, num_buckets)
+	ret.container = *skip_list.NewSkipList(buffer_pool_manager, ret.metadata.GetTupleSchema().GetColumn(0).GetType())
 	ret.col_idx = col_idx
 	return ret
 }
@@ -85,9 +83,9 @@ func (slidx *SkipListIndexOnMem) InsertEntry(key *tuple.Tuple, rid page.RID, tra
 
 func (slidx *SkipListIndex) InsertEntry(key *tuple.Tuple, rid page.RID, transaction *access.Transaction) {
 	tupleSchema_ := slidx.GetTupleSchema()
-	keyDataInBytes := key.GetValueInBytes(tupleSchema_, slidx.col_idx)
+	keyVal := key.GetValue(tupleSchema_, slidx.col_idx)
 
-	slidx.container.Insert(keyDataInBytes, samehada_util.PackRIDtoUint32(&rid))
+	slidx.container.Insert(&keyVal, samehada_util.PackRIDtoUint32(&rid))
 }
 
 func (slidx *SkipListIndexOnMem) DeleteEntry(key *tuple.Tuple, rid page.RID, transaction *access.Transaction) {
@@ -99,9 +97,9 @@ func (slidx *SkipListIndexOnMem) DeleteEntry(key *tuple.Tuple, rid page.RID, tra
 
 func (slidx *SkipListIndex) DeleteEntry(key *tuple.Tuple, rid page.RID, transaction *access.Transaction) {
 	tupleSchema_ := slidx.GetTupleSchema()
-	keyDataInBytes := key.GetValueInBytes(tupleSchema_, slidx.col_idx)
+	keyVal := key.GetValue(tupleSchema_, slidx.col_idx)
 
-	slidx.container.Remove(keyDataInBytes, samehada_util.PackRIDtoUint32(&rid))
+	slidx.container.Remove(&keyVal, samehada_util.PackRIDtoUint32(&rid))
 }
 
 func (slidx *SkipListIndexOnMem) ScanKey(key *tuple.Tuple, transaction *access.Transaction) []page.RID {
@@ -116,20 +114,18 @@ func (slidx *SkipListIndexOnMem) ScanKey(key *tuple.Tuple, transaction *access.T
 
 func (slidx *SkipListIndex) ScanKey(key *tuple.Tuple, transaction *access.Transaction) []page.RID {
 	tupleSchema_ := slidx.GetTupleSchema()
-	keyDataInBytes := key.GetValueInBytes(tupleSchema_, slidx.col_idx)
+	keyVal := key.GetValue(tupleSchema_, slidx.col_idx)
 
-	packed_values := slidx.container.GetValue(keyDataInBytes)
+	packed_value := slidx.container.GetValue(&keyVal)
 	var ret_arr []page.RID
-	for _, packed_val := range packed_values {
-		ret_arr = append(ret_arr, samehada_util.UnpackUint32toRID(packed_val))
-	}
+	ret_arr = append(ret_arr, samehada_util.UnpackUint32toRID(packed_value))
 	return ret_arr
 }
 
 // get iterator which iterates entry in key sorted order
 // and iterates specified key range.
 // when start_key arg is nil , start point is head of entry list. when end_key, end point is tail of the list
-func (slidx *SkipListIndexOnMem) Iterator(start_key *tuple.Tuple, end_key *tuple.Tuple, transaction *access.Transaction) *skip_list.SkipListIteratorOnMem {
+func (slidx *SkipListIndexOnMem) IteratorOnMem(start_key *tuple.Tuple, end_key *tuple.Tuple, transaction *access.Transaction) *skip_list.SkipListIteratorOnMem {
 	tupleSchema_ := slidx.GetTupleSchema()
 	var start_val *types.Value = nil
 	if start_key != nil {
@@ -142,4 +138,22 @@ func (slidx *SkipListIndexOnMem) Iterator(start_key *tuple.Tuple, end_key *tuple
 	}
 
 	return slidx.container.IteratorOnMem(start_val, end_val)
+}
+
+// get iterator which iterates entry in key sorted order
+// and iterates specified key range.
+// when start_key arg is nil , start point is head of entry list. when end_key, end point is tail of the list
+func (slidx *SkipListIndex) Iterator(start_key *tuple.Tuple, end_key *tuple.Tuple, transaction *access.Transaction) *skip_list.SkipListIterator {
+	tupleSchema_ := slidx.GetTupleSchema()
+	var start_val *types.Value = nil
+	if start_key != nil {
+		start_val = samehada_util.GetPonterOfValue(start_key.GetValue(tupleSchema_, slidx.col_idx))
+	}
+
+	var end_val *types.Value = nil
+	if end_key != nil {
+		end_val = samehada_util.GetPonterOfValue(end_key.GetValue(tupleSchema_, slidx.col_idx))
+	}
+
+	return slidx.container.Iterator(start_val, end_val)
 }

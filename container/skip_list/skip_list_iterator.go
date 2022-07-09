@@ -3,7 +3,6 @@
 package skip_list
 
 import (
-	"github.com/ryogrid/SamehadaDB/storage/buffer"
 	"github.com/ryogrid/SamehadaDB/storage/page/skip_list_page"
 	"github.com/ryogrid/SamehadaDB/types"
 	"math"
@@ -22,22 +21,16 @@ type SkipListIteratorOnMem struct {
 }
 
 type SkipListIterator struct {
-	bpm        *buffer.BufferPoolManager
-	headerPage *skip_list_page.SkipListHeaderPage
-	bucket     uint32
-	offset     uint32
-	blockId    types.PageID
-	blockPage  *skip_list_page.SkipListBlockPage
-}
-
-func NewSkipListIterator(bpm *buffer.BufferPoolManager, header *skip_list_page.SkipListHeaderPage, bucket uint32, offset uint32) *SkipListIterator {
-	//blockPageId := header.GetBlockPageId(bucket)
-	//
-	//bPageData := bpm.FetchPage(blockPageId).Data()
-	//blockPage := (*skip_list_page.SkipListBlockPage)(unsafe.Pointer(bPageData))
-	//
-	//return &SkipListIterator{bpm, header, bucket, offset, blockPageId, blockPage}
-	return nil
+	//bpm        *buffer.BufferPoolManager
+	//headerPage *skip_list_page.SkipListHeaderPage
+	//bucket     uint32
+	//offset     uint32
+	//blockId    types.PageID
+	//blockPage  *skip_list_page.SkipListBlockPage
+	curNode       *skip_list_page.SkipListBlockPage
+	curEntry      *skip_list_page.SkipListPair
+	rangeStartKey *types.Value
+	rangeEndKey   *types.Value
 }
 
 func (itr *SkipListIteratorOnMem) Next() (done bool, err error, key *types.Value, val uint32) {

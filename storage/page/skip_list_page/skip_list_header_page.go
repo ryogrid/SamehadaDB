@@ -7,8 +7,6 @@ import (
 	"unsafe"
 )
 
-// TODO: (SDB) not implemented yet skip_list_header_page.go
-
 /**
  *
  * Header Page for linear probing hash table.
@@ -94,40 +92,3 @@ func NewSkipListHeaderPage(bpm *buffer.BufferPoolManager, keyType types.TypeID) 
 
 	return headerPage
 }
-
-//func (page_ *SkipListHeaderPage) GetBlockPageId(index uint32) types.PageID {
-//	return page_.blockPageIds[index]
-//}
-
-//func (page_ *SkipListHeaderPage) GetPageId() types.PageID {
-//	return page_.pageId
-//}
-//
-//func (page_ *SkipListHeaderPage) SetPageId(pageId types.PageID) {
-//	page_.pageId = pageId
-//}
-
-//func (page_ *SkipListHeaderPage) GetLSN() int {
-//	return page_.lsn
-//}
-//
-//func (page_ *SkipListHeaderPage) SetLSN(lsn int) {
-//	page_.lsn = lsn
-//}
-
-//func (page_ *SkipListHeaderPage) AddBlockPageId(pageId types.PageID) {
-//	page_.blockPageIds[page_.nextIndex] = pageId
-//	page_.nextIndex++
-//}
-
-//func (page_ *SkipListHeaderPage) NumBlocks() uint32 {
-//	return page_.nextIndex
-//}
-//
-//func (page_ *SkipListHeaderPage) SetSize(size int) {
-//	page_.size = size
-//}
-//
-//func (page_ *SkipListHeaderPage) GetSize() int {
-//	return page_.size
-//}
