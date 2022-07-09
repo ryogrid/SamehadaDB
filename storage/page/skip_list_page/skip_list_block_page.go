@@ -48,20 +48,19 @@ type SkipListBlockPage struct {
 	//array     [BlockArraySize]SkipListPair   // 252 * 16 bits
 }
 
-func NewSkipListBlockPage(bpm *buffer.BufferPoolManager, keyType types.TypeID, smallestKey types.Value, isStart bool) *SkipListBlockPage {
+func NewSkipListBlockPage(bpm *buffer.BufferPoolManager, level int32, smallestListPair *SkipListPair) *SkipListBlockPage {
 	page_ := bpm.NewPage()
 	if page_ == nil {
 		return nil
 	}
 
 	ret := (*SkipListBlockPage)(unsafe.Pointer(page_))
+	ret.Entries[0] = smallestListPair
+	ret.EntryCnt = 1
+	ret.MaxEntry = DUMMY_MAX_ENTRY
+	ret.Forward = make([]*SkipListBlockPage, level)
 
-	if isStart {
-		ret.Level = 1
-		ret.Forward = make([]*SkipListBlockPage, 20)
-		ret.Val = value
-		ret.Key = key
-	}
+	return ret
 }
 
 // if not found, returns info of nearest smaller key

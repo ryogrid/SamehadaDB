@@ -1,8 +1,10 @@
 package skip_list_page
 
 import (
+	"github.com/ryogrid/SamehadaDB/common"
 	"github.com/ryogrid/SamehadaDB/storage/buffer"
 	"github.com/ryogrid/SamehadaDB/types"
+	"unsafe"
 )
 
 // TODO: (SDB) not implemented yet skip_list_header_page.go
@@ -17,8 +19,12 @@ import (
  * -------------------------------------------------------------
  */
 
+const (
+	MAX_FOWARD_LIST_LEN = 20
+)
+
 type SkipListPair struct {
-	Key   *types.Value
+	Key   types.Value
 	Value uint32
 }
 
@@ -36,11 +42,57 @@ type SkipListHeaderPage struct {
 	// and header does'nt have no entry
 	ListStartPage *SkipListBlockPage //types.PageID
 	CurMaxLevel   int32
-	KeyType       types.TypeID
+	KeyType       types.TypeID // used when load list datas from disk
+	rwlatch_      common.ReaderWriterLatch
 }
 
-func NewSkipListHeaderPage(bpm *buffer.BufferPoolManager) *SkipListHeaderPage {
+func NewSkipListStartBlockPage(bpm *buffer.BufferPoolManager, keyType types.TypeID) *SkipListBlockPage {
+	//startPage.ID()
+	var startNode *SkipListBlockPage = nil
+	switch keyType {
+	case types.Integer:
+		startNode = NewSkipListBlockPage(bpm, MAX_FOWARD_LIST_LEN, &SkipListPair{types.NewInteger(0), 0})
+	case types.Float:
+		startNode = NewSkipListBlockPage(bpm, MAX_FOWARD_LIST_LEN, &SkipListPair{types.NewFloat(0), 0})
+	case types.Varchar:
+		startNode = NewSkipListBlockPage(bpm, MAX_FOWARD_LIST_LEN, &SkipListPair{types.NewVarchar(""), 0})
+	}
 
+	var sentinelNode *SkipListBlockPage = nil
+	switch keyType {
+	case types.Integer:
+		pl := &SkipListPair{types.NewInteger(0), 0}
+		pl.Key.SetInf()
+		sentinelNode = NewSkipListBlockPage(bpm, MAX_FOWARD_LIST_LEN, pl)
+	case types.Float:
+		pl := &SkipListPair{types.NewFloat(0), 0}
+		pl.Key.SetInf()
+		sentinelNode = NewSkipListBlockPage(bpm, MAX_FOWARD_LIST_LEN, pl)
+	case types.Varchar:
+		pl := &SkipListPair{types.NewVarchar(""), 0}
+		pl.Key.SetInf()
+		sentinelNode = NewSkipListBlockPage(bpm, MAX_FOWARD_LIST_LEN, pl)
+	}
+
+	startNode.Level = 1
+	startNode.Forward = make([]*SkipListBlockPage, MAX_FOWARD_LIST_LEN)
+	// set sentinel node at end of list
+	for ii := 0; ii < MAX_FOWARD_LIST_LEN; ii++ {
+		startNode.Forward[ii] = sentinelNode
+	}
+
+	return startNode
+}
+
+func NewSkipListHeaderPage(bpm *buffer.BufferPoolManager, keyType types.TypeID) *SkipListHeaderPage {
+	page_ := bpm.NewPage()
+	headerData := page_.Data()
+	headerPage := (*SkipListHeaderPage)(unsafe.Pointer(headerData))
+
+	headerPage.ListStartPage = NewSkipListStartBlockPage(bpm, keyType)
+	headerPage.CurMaxLevel = 1
+
+	return headerPage
 }
 
 //func (page_ *SkipListHeaderPage) GetBlockPageId(index uint32) types.PageID {

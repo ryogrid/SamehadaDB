@@ -11,7 +11,6 @@ import (
 	"math"
 	"math/rand"
 	"time"
-	"unsafe"
 )
 
 /**
@@ -29,7 +28,7 @@ type SkipListOnMem struct {
 }
 
 type SkipList struct {
-	headerPageId types.PageID
+	headerPageId *skip_list_page.SkipListHeaderPage //types.PageID
 	bpm          *buffer.BufferPoolManager
 	list_latch   common.ReaderWriterLatch
 }
@@ -69,23 +68,19 @@ func NewSkipListOnMem(level int32, key *types.Value, value uint32, isHeader bool
 	return ret
 }
 
-func NewSkipList(bpm *buffer.BufferPoolManager) *SkipList {
+func NewSkipList(bpm *buffer.BufferPoolManager, keyType types.TypeID) *SkipList {
 	rand.Seed(time.Now().UnixNano())
-
-	header := bpm.NewPage()
-	headerData := header.Data()
-	headerPage := (*skip_list_page.SkipListHeaderPage)(unsafe.Pointer(headerData))
 
 	ret := new(SkipList)
 	ret.bpm = bpm
-	ret.headerPageId = header.ID()
+	ret.headerPageId = skip_list_page.NewSkipListHeaderPage(bpm, keyType) //header.ID()
 
 	//startPage := bpm.NewPage()
-	headerPage.ListStartPage = NewSkipListBlockPage() //startPage.ID()
+
 	//headerPage.SetPageId(header.ID())
 	//headerPage.SetSize(numBuckets * skip_list_page.BlockArraySize)
 
-	return nil
+	return ret
 }
 
 func (sl *SkipListOnMem) getValueOnMemInner(key *types.Value) *SkipListOnMem {
