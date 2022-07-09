@@ -1,7 +1,7 @@
 package skip_list_page
 
 import (
-	"github.com/ryogrid/SamehadaDB/storage/page"
+	"github.com/ryogrid/SamehadaDB/storage/buffer"
 	"github.com/ryogrid/SamehadaDB/types"
 )
 
@@ -31,11 +31,16 @@ type SkipListHeaderPageOnMem struct {
 }
 
 type SkipListHeaderPage struct {
-	page.Page
+	//page.Page
 	// Header's successor node has all level path
 	// and header does'nt have no entry
-	ListStartPage types.PageID
+	ListStartPage *SkipListBlockPage //types.PageID
 	CurMaxLevel   int32
+	KeyType       types.TypeID
+}
+
+func NewSkipListHeaderPage(bpm *buffer.BufferPoolManager) *SkipListHeaderPage {
+
 }
 
 //func (page_ *SkipListHeaderPage) GetBlockPageId(index uint32) types.PageID {

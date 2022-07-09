@@ -1,8 +1,10 @@
 package skip_list_page
 
 import (
+	"github.com/ryogrid/SamehadaDB/storage/buffer"
 	"github.com/ryogrid/SamehadaDB/storage/page"
 	"github.com/ryogrid/SamehadaDB/types"
+	"unsafe"
 )
 
 // TODO: (SDB) modify data layout described below
@@ -21,6 +23,9 @@ import (
 //  ----------------------------------------------------------------
 
 // TODO: (SDB) not implemented yet skip_list_block_page.go
+const (
+	DUMMY_MAX_ENTRY = 50
+)
 
 type SkipListBlockPageOnMem struct {
 	//occuppied [(BlockArraySize-1)/8 + 1]byte // 256 bits
@@ -33,14 +38,30 @@ type SkipListBlockPageOnMem struct {
 type SkipListBlockPage struct {
 	page.Page
 	Level       int32
-	SmallestKey *types.Value
-	Forward     []types.PageID
+	SmallestKey types.Value
+	Forward     []*SkipListBlockPage //[]types.PageID
 	EntryCnt    int32
 	MaxEntry    int32
 	Entries     []*SkipListPair
 	//occuppied [(BlockArraySize-1)/8 + 1]byte // 256 bits
 	//readable  [(BlockArraySize-1)/8 + 1]byte // 256 bits
 	//array     [BlockArraySize]SkipListPair   // 252 * 16 bits
+}
+
+func NewSkipListBlockPage(bpm *buffer.BufferPoolManager, keyType types.TypeID, smallestKey types.Value, isStart bool) *SkipListBlockPage {
+	page_ := bpm.NewPage()
+	if page_ == nil {
+		return nil
+	}
+
+	ret := (*SkipListBlockPage)(unsafe.Pointer(page_))
+
+	if isStart {
+		ret.Level = 1
+		ret.Forward = make([]*SkipListBlockPage, 20)
+		ret.Val = value
+		ret.Key = key
+	}
 }
 
 // if not found, returns info of nearest smaller key

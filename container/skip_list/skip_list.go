@@ -6,10 +6,12 @@ import (
 	"fmt"
 	"github.com/ryogrid/SamehadaDB/common"
 	"github.com/ryogrid/SamehadaDB/storage/buffer"
+	"github.com/ryogrid/SamehadaDB/storage/page/skip_list_page"
 	"github.com/ryogrid/SamehadaDB/types"
 	"math"
 	"math/rand"
 	"time"
+	"unsafe"
 )
 
 /**
@@ -67,22 +69,22 @@ func NewSkipListOnMem(level int32, key *types.Value, value uint32, isHeader bool
 	return ret
 }
 
-func NewSkipList(bpm *buffer.BufferPoolManager, numBuckets int) *SkipList {
-	//header := bpm.NewPage()
-	//headerData := header.Data()
-	//headerPage := (*skip_list_page.SkipListHeaderPage)(unsafe.Pointer(headerData))
-	//
+func NewSkipList(bpm *buffer.BufferPoolManager) *SkipList {
+	rand.Seed(time.Now().UnixNano())
+
+	header := bpm.NewPage()
+	headerData := header.Data()
+	headerPage := (*skip_list_page.SkipListHeaderPage)(unsafe.Pointer(headerData))
+
+	ret := new(SkipList)
+	ret.bpm = bpm
+	ret.headerPageId = header.ID()
+
+	//startPage := bpm.NewPage()
+	headerPage.ListStartPage = NewSkipListBlockPage() //startPage.ID()
 	//headerPage.SetPageId(header.ID())
 	//headerPage.SetSize(numBuckets * skip_list_page.BlockArraySize)
-	//
-	//for i := 0; i < numBuckets; i++ {
-	//	np := bpm.NewPage()
-	//	headerPage.AddBlockPageId(np.ID())
-	//	bpm.UnpinPage(np.ID(), true)
-	//}
-	//bpm.UnpinPage(header.ID(), true)
-	//
-	//return &SkipList{header.ID(), bpm, common.NewRWLatch()}
+
 	return nil
 }
 
