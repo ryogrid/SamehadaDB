@@ -65,7 +65,7 @@ func NewSkipListBlockPage(bpm *buffer.BufferPoolManager, level int32, smallestLi
 // TODO: (SDB) not implemented (EntryAt)
 
 // Gets the entry at index in this node
-func (page_ *SkipListBlockPage) EntryAt(idx int32) *SkipListPair {
+func (node *SkipListBlockPage) EntryAt(idx int32) *SkipListPair {
 	//return page_.array[index].key
 	return nil
 }
@@ -73,7 +73,7 @@ func (page_ *SkipListBlockPage) EntryAt(idx int32) *SkipListPair {
 // TODO: (SDB) not implemented (KeyAt)
 
 // Gets the key at index in this node
-func (page_ *SkipListBlockPage) KeyAt(idx int32) *types.Value {
+func (node *SkipListBlockPage) KeyAt(idx int32) *types.Value {
 	//return page_.array[index].key
 	return nil
 }
@@ -81,21 +81,21 @@ func (page_ *SkipListBlockPage) KeyAt(idx int32) *types.Value {
 // TODO: (SDB) not implemented (ValueAt)
 
 // Gets the value at an index in this node
-func (page_ *SkipListBlockPage) ValueAt(idx int32) uint32 {
+func (node *SkipListBlockPage) ValueAt(idx int32) uint32 {
 	//return page_.array[index].value
 	return 0
 }
 
 // if not found, returns info of nearest smaller key
 // binary search is used for search
-func (page_ *SkipListBlockPage) FindEntryByKey(key *types.Value) (found bool, entry *SkipListPair, index int32) {
+func (node *SkipListBlockPage) FindEntryByKey(key *types.Value) (found bool, entry *SkipListPair, index int32) {
 	leftIdx := int32(-1)
-	rightIdx := page_.EntryCnt
+	rightIdx := node.EntryCnt
 	curIdx := int32(-1)
 	var curEntry *SkipListPair
 	for 1 < rightIdx-leftIdx {
 		curIdx := (leftIdx + rightIdx) / 2
-		curEntry := page_.EntryAt(curIdx)
+		curEntry := node.EntryAt(curIdx)
 		if curEntry.Key.CompareLessThan(*key) {
 			leftIdx = curIdx
 		} else {
@@ -109,7 +109,7 @@ func (page_ *SkipListBlockPage) FindEntryByKey(key *types.Value) (found bool, en
 		if curEntry.Key.CompareLessThan(*key) {
 			return false, curEntry, curIdx
 		} else {
-			return false, page_.EntryAt(curIdx - 1), curIdx - 1
+			return false, node.EntryAt(curIdx - 1), curIdx - 1
 		}
 	}
 }
@@ -117,7 +117,7 @@ func (page_ *SkipListBlockPage) FindEntryByKey(key *types.Value) (found bool, en
 // TODO: (SDB) not implemented (Insert)
 
 // Attempts to insert a key and value into an index in the baccess.
-func (page_ *SkipListBlockPage) Insert(key *types.Value, value uint32) bool {
+func (node *SkipListBlockPage) Insert(key *types.Value, value uint32) bool {
 	//if page_.IsOccupied(index) {
 	//	return false
 	//}
@@ -128,26 +128,45 @@ func (page_ *SkipListBlockPage) Insert(key *types.Value, value uint32) bool {
 	return true
 }
 
-// TODO: (SDB) not implemented (Remove)
-func (page_ *SkipListBlockPage) Remove(key *types.Value) {
-	//found, entry, idx := page_.FindEntryByKey(key)
-	//if found && (page_.EntryCnt == 1) {
-	//	// when there are no enry without target entry
-	//	smallestKey
-	//}
-	//math.MinInt32
-	////if !page_.IsReadable(index) {
-	////	return
-	////}
-	////
-	////page_.readable[index/8] &= ^(1 << (index % 8))
+func (node *SkipListBlockPage) Remove(key *types.Value) {
+	found, _, foundIdx := node.FindEntryByKey(key)
+	if found && (node.EntryCnt == 1) {
+		// when there are no enry without target entry
+		// this node keep reft with no entry (but new entry can be stored)
+
+		// delete specified entry
+		node.Entries[0] = nil
+
+		var smallestKey types.Value
+		switch key.ValueType() {
+		case types.Integer:
+			smallestKey = types.NewInteger(0)
+			smallestKey.SetInfMin()
+		case types.Float:
+			smallestKey = types.NewFloat(0)
+			smallestKey.SetInfMin()
+		case types.Varchar:
+			smallestKey = types.NewVarchar("")
+			smallestKey.SetInfMin()
+		case types.Boolean:
+			smallestKey = types.NewBoolean(false)
+			smallestKey.SetInfMin()
+		default:
+			panic("not implemented")
+		}
+		node.SmallestKey = smallestKey
+	} else if found {
+		node.Entries = append(node.Entries[:foundIdx], node.Entries[foundIdx+1:]...)
+	} else { // found == false
+		// do nothing
+	}
 }
 
 // TODO: (SDB) not implemented (SplitNode)
 
 // split entries of page_ at index
 // new node contains entries after entry specified by index
-func (page_ *SkipListBlockPage) SplitNode(index uint32) {
+func (node *SkipListBlockPage) SplitNode(index uint32) {
 	//if !page_.IsReadable(index) {
 	//	return
 	//}
