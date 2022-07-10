@@ -3,14 +3,17 @@ package skip_list
 // TODO: (SDB) not implemented yet skip_list_page_test.go
 
 import (
+	"github.com/ryogrid/SamehadaDB/recovery"
+	"github.com/ryogrid/SamehadaDB/storage/buffer"
+	"github.com/ryogrid/SamehadaDB/storage/disk"
 	"testing"
 )
 
 func TestSkipListHeaderPage(t *testing.T) {
-	//diskManager := disk.NewDiskManagerImpl("test.db")
-	////bpm := buffer.NewBufferPoolManager(diskManager, buffer.NewClockReplacer(5))
-	//bpm := buffer.NewBufferPoolManager(uint32(10), diskManager, recovery.NewLogManager(&diskManager))
-	//
+	diskManager := disk.NewDiskManagerImpl("test.db")
+	//bpm := buffer.NewBufferPoolManager(diskManager, buffer.NewClockReplacer(5))
+	bpm := buffer.NewBufferPoolManager(uint32(10), diskManager, recovery.NewLogManager(&diskManager))
+
 	//newPage := bpm.NewPage()
 	//newPageData := newPage.Data()
 	//
