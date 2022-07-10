@@ -76,7 +76,7 @@ func NewSkipList(bpm *buffer.BufferPoolManager, keyType types.TypeID) *SkipList 
 	return ret
 }
 
-func (sl *SkipList) GetValueInner(key *types.Value) *skip_list_page.SkipListBlockPage {
+func (sl *SkipList) FindNode(key *types.Value) *skip_list_page.SkipListBlockPage {
 	node := sl.headerPageId.ListStartPage
 	// loop invariant: node.key < searchKey
 	//fmt.Println("---")
@@ -93,6 +93,13 @@ func (sl *SkipList) GetValueInner(key *types.Value) *skip_list_page.SkipListBloc
 	}
 	//fmt.Println(moveCnt)
 	return node
+}
+
+func (sl *SkipList) FindNodeWithEntryIdxForIterator(key *types.Value) (*skip_list_page.SkipListBlockPage, int32) {
+	node := sl.FindNode(key)
+	// get idx of target entry or one of nearest smaller entry
+	_, _, idx := node.FindEntryByKey(key)
+	return node, idx
 }
 
 func (sl *SkipListOnMem) getValueOnMemInner(key *types.Value) *SkipListOnMem {
@@ -163,7 +170,7 @@ func (sl *SkipList) GetValue(key *types.Value) uint32 {
 	//
 	//return result
 
-	node := sl.GetValueInner(key)
+	node := sl.FindNode(key)
 	//xf := node.Forward[0]
 	//// node.SmallestKey < searchKey <= node.forward[0].SmallestKey
 	//if xf.SmallestKey.CompareEquals(*key) {
@@ -429,19 +436,21 @@ func (sl *SkipList) Iterator(rangeStartKey *types.Value, rangeEndKey *types.Valu
 	//
 	//return ret
 
-	/*
-		ret := new(SkipListIterator)
-		ret.curNode = sl.headerPageId.ListStartPage
-		ret.rangeStartKey = rangeStartKey
-		ret.rangeEndKey = rangeEndKey
+	ret := new(SkipListIterator)
+	if len(sl.headerPageId.ListStartPage.Entries) == 1 {
+		// there are no entry corresponding user record
 
-		if rangeStartKey != nil {
-			_, ret.curNode, _ = sl.GetEqualOrNearestSmallerEntry(rangeStartKey)
-		}
+	}
+	ret.curNode = sl.headerPageId.ListStartPage
+	ret.curIdx = 0
+	ret.rangeStartKey = rangeStartKey
+	ret.rangeEndKey = rangeEndKey
 
-		return ret
-	*/
-	return nil
+	if rangeStartKey != nil {
+		ret.curNode, ret.curIdx = sl.FindNodeWithEntryIdxForIterator(rangeStartKey)
+	}
+
+	return ret
 
 }
 

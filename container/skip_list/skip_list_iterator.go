@@ -29,6 +29,7 @@ type SkipListIterator struct {
 	//blockPage  *skip_list_page.SkipListBlockPage
 	curNode       *skip_list_page.SkipListBlockPage
 	curEntry      *skip_list_page.SkipListPair
+	curIdx        int32
 	rangeStartKey *types.Value
 	rangeEndKey   *types.Value
 }
@@ -42,7 +43,7 @@ func (itr *SkipListIteratorOnMem) Next() (done bool, err error, key *types.Value
 	return false, nil, itr.curNode.Key, itr.curNode.Val
 }
 
-func (itr *SkipListIterator) Next() {
+func (itr *SkipListIterator) Next() (done bool, err error, key *types.Value, val uint32) {
 	//itr.offset++
 	//// the current block page is full, we need to go to the next one
 	//if itr.offset >= skip_list_page.BlockArraySize {
@@ -60,4 +61,17 @@ func (itr *SkipListIterator) Next() {
 	//	bPageData := itr.bpm.FetchPage(itr.blockId).Data()
 	//	itr.blockPage = (*skip_list_page.SkipListBlockPage)(unsafe.Pointer(bPageData))
 	//}
+
+	if itr.curIdx+1 <= itr.curNode.EntryCnt {
+		itr.curNode = itr.curNode.Forward[0]
+		itr.curIdx = -1
+	}
+
+	itr.curIdx++
+	if (itr.rangeEndKey != nil && itr.curNode.Entries[itr.curIdx].Key.CompareGreaterThan(*itr.rangeEndKey)) || itr.curNode.SmallestKey.IsInfMax() {
+		return true, nil, nil, math.MaxUint32
+	}
+
+	tmpKey := itr.curNode.Entries[itr.curIdx].Key
+	return false, nil, &tmpKey, itr.curNode.Entries[itr.curIdx].Value
 }
