@@ -62,19 +62,10 @@ func NewSkipListBlockPage(bpm *buffer.BufferPoolManager, level int32, smallestLi
 	return ret
 }
 
-// TODO: (SDB) not implemented (FindEntryByKey)
-
-// if not found, returns info of nearest smaller key
-// binary search is used for search
-func (page_ *SkipListBlockPage) FindEntryByKey(key *types.Value) (found bool, entry *SkipListPair, index uint32) {
-	//return page_.array[index].key
-	return false, nil, 0
-}
-
 // TODO: (SDB) not implemented (EntryAt)
 
 // Gets the entry at index in this node
-func (page_ *SkipListBlockPage) EntryAt(index uint32) *SkipListPair {
+func (page_ *SkipListBlockPage) EntryAt(idx int32) *SkipListPair {
 	//return page_.array[index].key
 	return nil
 }
@@ -82,7 +73,7 @@ func (page_ *SkipListBlockPage) EntryAt(index uint32) *SkipListPair {
 // TODO: (SDB) not implemented (KeyAt)
 
 // Gets the key at index in this node
-func (page_ *SkipListBlockPage) KeyAt(index uint32) *types.Value {
+func (page_ *SkipListBlockPage) KeyAt(idx int32) *types.Value {
 	//return page_.array[index].key
 	return nil
 }
@@ -90,15 +81,43 @@ func (page_ *SkipListBlockPage) KeyAt(index uint32) *types.Value {
 // TODO: (SDB) not implemented (ValueAt)
 
 // Gets the value at an index in this node
-func (page_ *SkipListBlockPage) ValueAt(index uint32) uint32 {
+func (page_ *SkipListBlockPage) ValueAt(idx int32) uint32 {
 	//return page_.array[index].value
 	return 0
+}
+
+// if not found, returns info of nearest smaller key
+// binary search is used for search
+func (page_ *SkipListBlockPage) FindEntryByKey(key *types.Value) (found bool, entry *SkipListPair, index int32) {
+	leftIdx := int32(-1)
+	rightIdx := page_.EntryCnt
+	curIdx := int32(-1)
+	var curEntry *SkipListPair
+	for 1 < rightIdx-leftIdx {
+		curIdx := (leftIdx + rightIdx) / 2
+		curEntry := page_.EntryAt(curIdx)
+		if curEntry.Key.CompareLessThan(*key) {
+			leftIdx = curIdx
+		} else {
+			rightIdx = curIdx
+		}
+	}
+	//return right
+	if leftIdx == rightIdx {
+		return true, curEntry, curIdx
+	} else {
+		if curEntry.Key.CompareLessThan(*key) {
+			return false, curEntry, curIdx
+		} else {
+			return false, page_.EntryAt(curIdx - 1), curIdx - 1
+		}
+	}
 }
 
 // TODO: (SDB) not implemented (Insert)
 
 // Attempts to insert a key and value into an index in the baccess.
-func (page_ *SkipListBlockPage) Insert(index uint32, key uint32, value uint32) bool {
+func (page_ *SkipListBlockPage) Insert(key *types.Value, value uint32) bool {
 	//if page_.IsOccupied(index) {
 	//	return false
 	//}
@@ -110,12 +129,18 @@ func (page_ *SkipListBlockPage) Insert(index uint32, key uint32, value uint32) b
 }
 
 // TODO: (SDB) not implemented (Remove)
-func (page_ *SkipListBlockPage) Remove(index uint32) {
-	//if !page_.IsReadable(index) {
-	//	return
+func (page_ *SkipListBlockPage) Remove(key *types.Value) {
+	//found, entry, idx := page_.FindEntryByKey(key)
+	//if found && (page_.EntryCnt == 1) {
+	//	// when there are no enry without target entry
+	//	smallestKey
 	//}
-	//
-	//page_.readable[index/8] &= ^(1 << (index % 8))
+	//math.MinInt32
+	////if !page_.IsReadable(index) {
+	////	return
+	////}
+	////
+	////page_.readable[index/8] &= ^(1 << (index % 8))
 }
 
 // TODO: (SDB) not implemented (SplitNode)

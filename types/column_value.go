@@ -108,7 +108,7 @@ func (v Value) CompareEquals(right Value) bool {
 	} else if v.IsNull() || right.IsNull() {
 		return false
 	}
-	if v.IsInf() == true && right.IsInf() == true {
+	if v.IsInfMax() == true && right.IsInfMax() == true {
 		return true
 	}
 
@@ -131,9 +131,9 @@ func (v Value) CompareNotEquals(right Value) bool {
 	} else if v.IsNull() || right.IsNull() {
 		return true
 	}
-	if v.IsInf() && right.IsInf() {
+	if v.IsInfMax() && right.IsInfMax() {
 		return false
-	} else if v.IsInf() || right.IsInf() {
+	} else if v.IsInfMax() || right.IsInfMax() {
 		return true
 	}
 
@@ -154,11 +154,11 @@ func (v Value) CompareGreaterThan(right Value) bool {
 	if v.IsNull() {
 		return false
 	}
-	if v.IsInf() && right.IsInf() {
+	if v.IsInfMax() && right.IsInfMax() {
 		return false
-	} else if v.IsInf() {
+	} else if v.IsInfMax() {
 		return true
-	} else if right.IsInf() {
+	} else if right.IsInfMax() {
 		return false
 	}
 
@@ -170,7 +170,7 @@ func (v Value) CompareGreaterThan(right Value) bool {
 	case Varchar:
 		return *v.varchar > *right.varchar
 	case Boolean:
-		return false
+		return *v.boolean == true && *right.boolean == false
 	}
 	return false
 }
@@ -181,11 +181,11 @@ func (v Value) CompareGreaterThanOrEqual(right Value) bool {
 	} else if v.IsNull() || right.IsNull() {
 		return false
 	}
-	if v.IsInf() && right.IsInf() {
+	if v.IsInfMax() && right.IsInfMax() {
 		return true
-	} else if v.IsInf() {
+	} else if v.IsInfMax() {
 		return true
-	} else if right.IsInf() {
+	} else if right.IsInfMax() {
 		return false
 	}
 
@@ -197,7 +197,7 @@ func (v Value) CompareGreaterThanOrEqual(right Value) bool {
 	case Varchar:
 		return *v.varchar >= *right.varchar
 	case Boolean:
-		return *v.boolean == *right.boolean
+		return *v.boolean == *right.boolean || (*v.boolean == true && *right.boolean == false)
 	}
 	return false
 }
@@ -206,11 +206,11 @@ func (v Value) CompareLessThan(right Value) bool {
 	if v.IsNull() {
 		return false
 	}
-	if v.IsInf() && right.IsInf() {
+	if v.IsInfMax() && right.IsInfMax() {
 		return false
-	} else if v.IsInf() {
+	} else if v.IsInfMax() {
 		return false
-	} else if right.IsInf() {
+	} else if right.IsInfMax() {
 		return true
 	}
 
@@ -222,7 +222,7 @@ func (v Value) CompareLessThan(right Value) bool {
 	case Varchar:
 		return *v.varchar < *right.varchar
 	case Boolean:
-		return false
+		return *v.boolean == false && *right.boolean == true
 	}
 	return false
 }
@@ -233,11 +233,11 @@ func (v Value) CompareLessThanOrEqual(right Value) bool {
 	} else if v.IsNull() || right.IsNull() {
 		return false
 	}
-	if v.IsInf() && right.IsInf() {
+	if v.IsInfMax() && right.IsInfMax() {
 		return true
-	} else if v.IsInf() {
+	} else if v.IsInfMax() {
 		return false
-	} else if right.IsInf() {
+	} else if right.IsInfMax() {
 		return true
 	}
 
@@ -249,7 +249,7 @@ func (v Value) CompareLessThanOrEqual(right Value) bool {
 	case Varchar:
 		return *v.varchar <= *right.varchar
 	case Boolean:
-		return *v.boolean == *right.boolean
+		return *v.boolean == *right.boolean || (*v.boolean == false && *right.boolean == true)
 	default:
 		panic("illegal valueType is passed!")
 	}
@@ -370,7 +370,7 @@ func (v Value) IsNull() bool {
 	return *v.isNull
 }
 
-func (v Value) SetInf() *Value {
+func (v Value) SetInfMax() *Value {
 	switch v.valueType {
 	case Integer:
 		*v.integer = math.MaxInt32
@@ -379,7 +379,7 @@ func (v Value) SetInf() *Value {
 		*v.float = math.MaxFloat32
 		return &v
 	case Varchar:
-		*v.varchar = "SamehadaDBInfValue"
+		*v.varchar = "SamehadaDBInfMaxValue"
 		return &v
 	case Boolean:
 		*v.boolean = true
@@ -388,16 +388,48 @@ func (v Value) SetInf() *Value {
 	panic("not implemented")
 }
 
-func (v Value) IsInf() bool {
+func (v Value) SetInfMin() *Value {
+	switch v.valueType {
+	case Integer:
+		*v.integer = math.MinInt32
+		return &v
+	case Float:
+		*v.float = math.SmallestNonzeroFloat32
+		return &v
+	case Varchar:
+		*v.varchar = ""
+		return &v
+	case Boolean:
+		*v.boolean = false
+		return &v
+	}
+	panic("not implemented")
+}
+
+func (v Value) IsInfMax() bool {
 	switch v.valueType {
 	case Integer:
 		return *v.integer == math.MaxInt32
 	case Float:
 		return *v.float == math.MaxFloat32
 	case Varchar:
-		return *v.varchar == "SamehadaDBInfValue"
+		return *v.varchar == "SamehadaDBInfMaxValue"
 	case Boolean:
 		return *v.boolean == true
+	}
+	panic("not implemented")
+}
+
+func (v Value) IsInfMin() bool {
+	switch v.valueType {
+	case Integer:
+		return *v.integer == math.MinInt32
+	case Float:
+		return *v.float == math.SmallestNonzeroFloat32
+	case Varchar:
+		return *v.varchar == ""
+	case Boolean:
+		return *v.boolean == false
 	}
 	panic("not implemented")
 }

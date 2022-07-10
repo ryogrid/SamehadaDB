@@ -1,5 +1,3 @@
-// TODO: (SDB) not implemented yet skip_list_test.go
-
 package skip_list
 
 import (
@@ -115,4 +113,12 @@ func TestSkipListItrOnMem(t *testing.T) {
 	}
 
 	testingpkg.SimpleAssert(t, nodeCnt == 250)
+}
+
+// TODO: (SDB) not implemented yet (TestSkipListPageBackedOnMem)
+func TestSkipLisPageBackedOnMem(t *testing.T) {
+}
+
+// TODO: (SDB) not implemented yet (TestSkipListItrPageBackedOnMem)
+func TestSkipListItrPageBackedOnMem(t *testing.T) {
 }

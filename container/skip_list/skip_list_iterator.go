@@ -35,7 +35,7 @@ type SkipListIterator struct {
 
 func (itr *SkipListIteratorOnMem) Next() (done bool, err error, key *types.Value, val uint32) {
 	itr.curNode = itr.curNode.Forward[0]
-	if (itr.rangeEndKey != nil && itr.curNode.Key.CompareGreaterThan(*itr.rangeEndKey)) || itr.curNode.Key.IsInf() {
+	if (itr.rangeEndKey != nil && itr.curNode.Key.CompareGreaterThan(*itr.rangeEndKey)) || itr.curNode.Key.IsInfMax() {
 		return true, nil, nil, math.MaxUint32
 	}
 

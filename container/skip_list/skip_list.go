@@ -46,15 +46,15 @@ func NewSkipListOnMem(level int32, key *types.Value, value uint32, isHeader bool
 		switch key.ValueType() {
 		case types.Integer:
 			infVal := types.NewInteger(0)
-			infVal.SetInf()
+			infVal.SetInfMax()
 			sentinel.Key = &infVal
 		case types.Float:
 			infVal := types.NewFloat(0)
-			infVal.SetInf()
+			infVal.SetInfMax()
 			sentinel.Key = &infVal
 		case types.Varchar:
 			infVal := types.NewVarchar("")
-			infVal.SetInf()
+			infVal.SetInfMax()
 			sentinel.Key = &infVal
 		}
 		// set sentinel node at (meybe) all level
@@ -234,7 +234,7 @@ func (sl *SkipListOnMem) InsertOnMem(key *types.Value, value uint32) (err error)
 // for Debug
 func (sl *SkipListOnMem) CheckElemListOnMem() {
 	x := sl
-	for x = x.Forward[0]; !x.Key.IsInf(); x = x.Forward[0] {
+	for x = x.Forward[0]; !x.Key.IsInfMax(); x = x.Forward[0] {
 		fmt.Println(x.Key.ToInteger())
 	}
 }
