@@ -107,13 +107,16 @@ func (node *SkipListBlockPage) FindEntryByKey(key *types.Value) (found bool, ent
 	}
 }
 
-// Attempts to insert a key and value into an index in the baccess.
-func (node *SkipListBlockPage) Insert(key *types.Value, value uint32) {
+// Attempts to insert a key and value into an index in the baccess
+// return value is whether newNode is created or not
+func (node *SkipListBlockPage) Insert(key *types.Value, value uint32, bpm *buffer.BufferPoolManager, skipPathList []*SkipListBlockPage,
+	level int32, startNode *SkipListBlockPage) bool {
 	found, _, foundIdx := node.FindEntryByKey(key)
+	isMadeNewNode := false
 	if found {
 		// over write exsiting entry
 		node.Entries[foundIdx] = &SkipListPair{*key, value}
-		return
+		return isMadeNewNode
 	} else if !found {
 		if node.EntryCnt+1 > node.MaxEntry {
 			// this node is full. so node split is needed
@@ -121,7 +124,10 @@ func (node *SkipListBlockPage) Insert(key *types.Value, value uint32) {
 			// first, split this node at center of entry list
 			// half of entries are moved to new node
 			splitIdx := node.MaxEntry / 2
-			node.SplitNode(splitIdx)
+			// update with this node
+			skipPathList[0] = node
+			node.SplitNode(splitIdx, bpm, skipPathList, level, startNode)
+			isMadeNewNode = true
 
 			if foundIdx > splitIdx {
 				// insert to new node
@@ -130,7 +136,7 @@ func (node *SkipListBlockPage) Insert(key *types.Value, value uint32) {
 				newNode.Entries = append(newNode.Entries[:newSmallerIdx+1+1], newNode.Entries[newSmallerIdx+1:]...)
 				newNode.Entries[newSmallerIdx+1] = &SkipListPair{*key, value}
 
-				return
+				return isMadeNewNode
 			} // else => insert to this node
 		}
 		// insert to this node
@@ -142,6 +148,7 @@ func (node *SkipListBlockPage) Insert(key *types.Value, value uint32) {
 			node.SmallestKey = *key
 		}
 	}
+	return isMadeNewNode
 }
 
 func (node *SkipListBlockPage) Remove(key *types.Value) {
@@ -180,13 +187,20 @@ func (node *SkipListBlockPage) Remove(key *types.Value) {
 
 // TODO: (SDB) not implemented (SplitNode)
 
-// split entries of page_ at index
-// new node contains entries after entry specified by idx arg
+// split entries of node at entry specified with idx arg
+// new node contains entries node.Entries[idx+1:]
 // (new node does not include entry node.Entries[idx])
-func (node *SkipListBlockPage) SplitNode(idx int32) {
-	//if !page_.IsReadable(index) {
-	//	return
-	//}
-	//
-	//page_.readable[index/8] &= ^(1 << (index % 8))
+func (node *SkipListBlockPage) SplitNode(idx int32, bpm *buffer.BufferPoolManager, skipPathList []*SkipListBlockPage,
+	level int32, startNode *SkipListBlockPage) {
+
+	newNode := NewSkipListBlockPage(bpm, level, nil)
+	newNode.Entries = node.Entries[idx+1:]
+	newNode.SmallestKey = newNode.Entries[0].Key
+	newNode.EntryCnt = int32(len(newNode.Entries))
+
+	skipPathList[level-1] = startNode
+	for ii := int32(0); ii < level; ii++ {
+		newNode.Forward[ii] = skipPathList[ii].Forward[ii]
+		skipPathList[ii].Forward[ii] = newNode
+	}
 }

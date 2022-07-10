@@ -76,6 +76,25 @@ func NewSkipList(bpm *buffer.BufferPoolManager, keyType types.TypeID) *SkipList 
 	return ret
 }
 
+func (sl *SkipList) GetValueInner(key *types.Value) *skip_list_page.SkipListBlockPage {
+	node := sl.headerPageId.ListStartPage
+	// loop invariant: node.key < searchKey
+	//fmt.Println("---")
+	//fmt.Println(key.ToInteger())
+	//moveCnt := 0
+	for i := (sl.headerPageId.CurMaxLevel - 1); i >= 0; i-- {
+		//fmt.Printf("level %d\n", i)
+		for node.Forward[i].SmallestKey.CompareLessThanOrEqual(*key) {
+			node = node.Forward[i]
+			//fmt.Printf("%d ", node.Key.ToInteger())
+			//moveCnt++
+		}
+		//fmt.Println("")
+	}
+	//fmt.Println(moveCnt)
+	return node
+}
+
 func (sl *SkipListOnMem) getValueOnMemInner(key *types.Value) *SkipListOnMem {
 	x := sl
 	// loop invariant: x.key < searchKey
@@ -111,39 +130,6 @@ func (sl *SkipListOnMem) GetEqualOrNearestSmallerNodeOnMem(key *types.Value) *Sk
 	return x
 }
 
-// TODO: (SDB) not implemented yet (GetEqualOrNearestSmallerEntry)
-func (sl *SkipList) GetEqualOrNearestSmallerEntry(key *types.Value) (pair *skip_list_page.SkipListPair, node *skip_list_page.SkipListBlockPage, idxOnNode int32) {
-	/*
-		x := sl.GetValue(key)
-		return x
-	*/
-	return nil, nil, 0
-}
-
-// TODO: (SDB) not implemented yet (GetValueInner)
-func (sl *SkipList) GetValueInner(key *types.Value) (pair *skip_list_page.SkipListPair, node *skip_list_page.SkipListBlockPage, idxOnNode int32) {
-	/*
-		x := sl
-		// loop invariant: x.key < searchKey
-		//fmt.Println("---")
-		//fmt.Println(key.ToInteger())
-		//moveCnt := 0
-		for i := (x.CurMaxLevel - 1); i >= 0; i-- {
-			//fmt.Printf("level %d\n", i)
-			for x.Forward[i].Key.CompareLessThan(*key) {
-				x = x.Forward[i]
-				//fmt.Printf("%d ", x.Key.ToInteger())
-				//moveCnt++
-			}
-			//fmt.Println("")
-		}
-		//fmt.Println(moveCnt)
-		return x
-	*/
-	return nil, nil, 0
-}
-
-// TODO: (SDB) not implemented yet (GetValue)
 func (sl *SkipList) GetValue(key *types.Value) uint32 {
 	//sl.list_latch.RLock()
 	//defer sl.list_latch.RUnlock()
@@ -177,19 +163,21 @@ func (sl *SkipList) GetValue(key *types.Value) uint32 {
 	//
 	//return result
 
-	/*
-		x := sl.GetValueInner(key)
-		xf := x.Forward[0]
-		// x.key < searchKey <= x.forward[0].key
-		if xf.Key.CompareEquals(*key) {
-			return xf.Val
-		} else {
-			return math.MaxUint32
-		}
+	node := sl.GetValueInner(key)
+	//xf := node.Forward[0]
+	//// node.SmallestKey < searchKey <= node.forward[0].SmallestKey
+	//if xf.SmallestKey.CompareEquals(*key) {
+	//	return xf.Val
+	//} else {
+	//	return math.MaxUint32
+	//}
+	found, entry, _ := node.FindEntryByKey(key)
+	if found {
+		return entry.Value
+	} else {
+		return math.MaxUint32
+	}
 
-		return nil
-	*/
-	return 0
 }
 
 func (sl *SkipListOnMem) InsertOnMem(key *types.Value, value uint32) (err error) {
@@ -239,7 +227,6 @@ func (sl *SkipListOnMem) CheckElemListOnMem() {
 	}
 }
 
-// TODO: (SDB) not implemented yet (Insert)
 func (sl *SkipList) Insert(key *types.Value, value uint32) (err error) {
 	//sl.list_latch.WLock()
 	//defer sl.list_latch.WUnlock()
@@ -279,44 +266,51 @@ func (sl *SkipList) Insert(key *types.Value, value uint32) (err error) {
 	//
 	//return
 
-	/*
-		// Utilise update which is a (vertical) array
-		// of pointers to the elements which will be
-		// predecessors of the new element.
-		var update []*SkipListOnMem = make([]*SkipListOnMem, sl.CurMaxLevel+1)
-		x := sl
-		for ii := (sl.CurMaxLevel - 1); ii >= 0; ii-- {
-			for x.Forward[ii].Key.CompareLessThan(*key) {
-				x = x.Forward[ii]
-			}
-			//note: x.key < searchKey <= x.forward[ii].key
-			update[ii] = x
+	// Utilise skipPathList which is a (vertical) array
+	// of pointers to the elements which will be
+	// predecessors of the new element.
+	var skipPathList []*skip_list_page.SkipListBlockPage = make([]*skip_list_page.SkipListBlockPage, sl.headerPageId.CurMaxLevel+1)
+	node := sl.headerPageId.ListStartPage
+	for ii := (sl.headerPageId.CurMaxLevel - 1); ii >= 0; ii-- {
+		for node.Forward[ii].SmallestKey.CompareLessThanOrEqual(*key) {
+			node = node.Forward[ii]
 		}
-		x = x.Forward[0]
-		if x.Key.CompareEquals(*key) {
-			x.Val = value
-			return nil
-		} else {
-			// key not found, do insertion here:
-			newLevel := sl.GetNodeLevel()
-			// If the newLevel is greater than the current level
-			// of the list, knock newLevel down so that it is only
-			// one level more than the current level of the list.
-			// In other words, we will increase the level of the
-			// list by at most one on each insertion.
-			if newLevel >= sl.CurMaxLevel {
-				newLevel = sl.CurMaxLevel + 1
-				sl.CurMaxLevel = newLevel
-				update[newLevel-1] = sl
-			}
-			x := NewSkipListOnMem(newLevel, key, value, false)
-			for ii := int32(0); ii < newLevel; ii++ {
-				x.Forward[ii] = update[ii].Forward[ii]
-				update[ii].Forward[ii] = x
-			}
-			return nil
-		}
-	*/
+		//note: node.SmallestKey <= searchKey < node.forward[ii].SmallestKey
+		skipPathList[ii] = node
+	}
+	//node = node.Forward[0]
+	//if node.Key.CompareEquals(*key) {
+	//	node.Val = value
+	//	return nil
+	//} else {
+	//	// key not found, do insertion here:
+	//	newLevel := sl.GetNodeLevel()
+	//	// If the newLevel is greater than the current levelWhenNodeSplitOccur
+	//	// of the list, knock newLevel down so that it is only
+	//	// one levelWhenNodeSplitOccur more than the current levelWhenNodeSplitOccur of the list.
+	//	// In other words, we will increase the levelWhenNodeSplitOccur of the
+	//	// list by at most one on each insertion.
+	//	if newLevel >= sl.CurMaxLevel {
+	//		newLevel = sl.CurMaxLevel + 1
+	//		sl.CurMaxLevel = newLevel
+	//		skipPathList[newLevel-1] = sl
+	//	}
+	//	node := NewSkipListOnMem(newLevel, key, value, false)
+	//	for ii := int32(0); ii < newLevel; ii++ {
+	//		node.Forward[ii] = skipPathList[ii].Forward[ii]
+	//		skipPathList[ii].Forward[ii] = node
+	//	}
+	//	return nil
+	//}
+	levelWhenNodeSplitOccur := sl.GetNodeLevel()
+	if levelWhenNodeSplitOccur == sl.headerPageId.CurMaxLevel {
+		levelWhenNodeSplitOccur++
+	}
+	isNewNodeCreated := node.Insert(key, value, sl.bpm, skipPathList, levelWhenNodeSplitOccur, sl.headerPageId.ListStartPage)
+	if isNewNodeCreated && levelWhenNodeSplitOccur > sl.headerPageId.CurMaxLevel {
+		sl.headerPageId.CurMaxLevel = levelWhenNodeSplitOccur
+	}
+
 	return nil
 }
 
@@ -379,35 +373,33 @@ func (sl *SkipList) Remove(key *types.Value, value uint32) {
 	//
 	//sl.bpm.UnpinPage(iterator.blockId, true)
 	//sl.bpm.UnpinPage(sl.headerPageId, false)
-
-	// update is an array of pointers to the
-	// predecessors of the element to be deleted.
-
 	/*
-		var update []*SkipListOnMem = make([]*SkipListOnMem, sl.CurMaxLevel)
-		x := sl
-		for ii := (sl.CurMaxLevel - 1); ii >= 0; ii-- {
-			for x.Forward[ii].Key.CompareLessThan(*key) {
-				x = x.Forward[ii]
-			}
-			update[ii] = x
-		}
-		x = x.Forward[0]
-		if x.Key.CompareEquals(*key) {
-			// go delete ...
-			for ii := int32(0); ii < sl.CurMaxLevel; ii++ {
-				if update[ii].Forward[ii] != x {
-					break //(**)
+		// update is an array of pointers to the
+		// predecessors of the element to be deleted.
+			var update []*skip_list_page.SkipListBlockPage = make([]*skip_list_page.SkipListBlockPage, sl.headerPageId.CurMaxLevel+1)
+			x := sl.headerPageId.ListStartPage
+			for ii := (sl.CurMaxLevel - 1); ii >= 0; ii-- {
+				for x.Forward[ii].Key.CompareLessThan(*key) {
+					x = x.Forward[ii]
 				}
-				update[ii].Forward[ii] = x.Forward[ii]
+				update[ii] = x
 			}
-			// if deleting the element causes some of the
-			// highest level list to become empty, decrease the
-			// list level until a non-empty list is encountered.
-			for (sl.CurMaxLevel > 1) && (sl.Forward[sl.CurMaxLevel-1] == sl) {
-				sl.CurMaxLevel--
+			x = x.Forward[0]
+			if x.Key.CompareEquals(*key) {
+				// go delete ...
+				for ii := int32(0); ii < sl.CurMaxLevel; ii++ {
+					if update[ii].Forward[ii] != x {
+						break //(**)
+					}
+					update[ii].Forward[ii] = x.Forward[ii]
+				}
+				// if deleting the element causes some of the
+				// highest level list to become empty, decrease the
+				// list level until a non-empty list is encountered.
+				for (sl.CurMaxLevel > 1) && (sl.Forward[sl.CurMaxLevel-1] == sl) {
+					sl.CurMaxLevel--
+				}
 			}
-		}
 	*/
 }
 
@@ -437,27 +429,21 @@ func (sl *SkipList) Iterator(rangeStartKey *types.Value, rangeEndKey *types.Valu
 	//
 	//return ret
 
-	ret := new(SkipListIterator)
-	ret.curNode = sl.headerPageId.ListStartPage
-	ret.rangeStartKey = rangeStartKey
-	ret.rangeEndKey = rangeEndKey
+	/*
+		ret := new(SkipListIterator)
+		ret.curNode = sl.headerPageId.ListStartPage
+		ret.rangeStartKey = rangeStartKey
+		ret.rangeEndKey = rangeEndKey
 
-	if rangeStartKey != nil {
-		_, ret.curNode, _ = sl.GetEqualOrNearestSmallerEntry(rangeStartKey)
-	}
+		if rangeStartKey != nil {
+			_, ret.curNode, _ = sl.GetEqualOrNearestSmallerEntry(rangeStartKey)
+		}
 
-	return ret
+		return ret
+	*/
+	return nil
 
 }
-
-//func hash(key []byte) uint32 {
-//	h := murmur3.New128()
-//
-//	h.Write(key)
-//	hash := h.Sum(nil)
-//
-//	return binary.LittleEndian.Uint32(hash)
-//}
 
 func (sl *SkipListOnMem) GetNodeLevel() int32 {
 	//rand.Float32() returns a random value in [0..1)
@@ -474,6 +460,5 @@ func (sl *SkipList) GetNodeLevel() int32 {
 	for rand.Float32() < common.SkipListProb { // no MaxLevel check
 		retLevel++
 	}
-	//return int32(math.Min(float64(retLevel), float64(sl.CurMaxLevel)))
-	return -1
+	return int32(math.Min(float64(retLevel), float64(sl.headerPageId.CurMaxLevel)))
 }
