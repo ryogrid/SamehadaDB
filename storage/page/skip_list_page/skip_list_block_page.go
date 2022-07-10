@@ -54,7 +54,7 @@ func NewSkipListBlockPage(bpm *buffer.BufferPoolManager, level int32, smallestLi
 	}
 
 	ret := (*SkipListBlockPage)(unsafe.Pointer(page_))
-	ret.Entries[0] = smallestListPair
+	ret.Entries = append(ret.Entries, smallestListPair)
 	ret.EntryCnt = 1
 	ret.MaxEntry = DUMMY_MAX_ENTRY
 	ret.Forward = make([]*SkipListBlockPage, level)
