@@ -1,6 +1,7 @@
-package skip_list
+package skip_list_test
 
 import (
+	"github.com/ryogrid/SamehadaDB/container/skip_list"
 	"github.com/ryogrid/SamehadaDB/samehada"
 	"github.com/ryogrid/SamehadaDB/samehada/samehada_util"
 	"github.com/ryogrid/SamehadaDB/types"
@@ -14,7 +15,7 @@ import (
 
 func TestSkipListOnMem(t *testing.T) {
 	val := types.NewInteger(0)
-	sl := NewSkipListOnMem(1, &val, math.MaxUint32, true)
+	sl := skip_list.NewSkipListOnMem(1, &val, math.MaxUint32, true)
 
 	insVals := make([]int32, 0)
 	for i := 0; i < 250; i++ {
@@ -48,7 +49,7 @@ func TestSkipListOnMem(t *testing.T) {
 
 func TestSkipListItrOnMem(t *testing.T) {
 	val := types.NewInteger(0)
-	sl := NewSkipListOnMem(1, &val, math.MaxUint32, true)
+	sl := skip_list.NewSkipListOnMem(1, &val, math.MaxUint32, true)
 
 	insVals := make([]int32, 0)
 	for i := 0; i < 250; i++ {
@@ -122,7 +123,7 @@ func TestSkipLisPageBackedOnMem(t *testing.T) {
 	os.Remove("test.log")
 
 	shi := samehada.NewSamehadaInstanceForTesting()
-	sl := NewSkipList(shi.GetBufferPoolManager(), types.Integer)
+	sl := skip_list.NewSkipList(shi.GetBufferPoolManager(), types.Integer)
 
 	insVals := make([]int32, 0)
 	for i := 0; i < 250; i++ {
@@ -159,7 +160,7 @@ func TestSkipListItrPageBackedOnMem(t *testing.T) {
 	os.Remove("test.log")
 
 	shi := samehada.NewSamehadaInstanceForTesting()
-	sl := NewSkipList(shi.GetBufferPoolManager(), types.Integer)
+	sl := skip_list.NewSkipList(shi.GetBufferPoolManager(), types.Integer)
 
 	insVals := make([]int32, 0)
 	for i := 0; i < 250; i++ {
