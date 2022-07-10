@@ -423,7 +423,6 @@ func (sl *SkipListOnMem) IteratorOnMem(rangeStartKey *types.Value, rangeEndKey *
 	return ret
 }
 
-// TODO: (SDB) not implemented yet (Iterator)
 func (sl *SkipList) Iterator(rangeStartKey *types.Value, rangeEndKey *types.Value) *SkipListIterator {
 	//ret := new(SkipListIteratorOnMem)
 	//ret.curNode = sl
