@@ -343,7 +343,6 @@ func (sl *SkipListOnMem) RemoveOnMem(key *types.Value, value uint32) {
 	}
 }
 
-// TODO: (SDB) not implemented yet (Remove)
 func (sl *SkipList) Remove(key *types.Value, value uint32) {
 	//sl.list_latch.WLock()
 	//defer sl.list_latch.WUnlock()
@@ -373,34 +372,35 @@ func (sl *SkipList) Remove(key *types.Value, value uint32) {
 	//
 	//sl.bpm.UnpinPage(iterator.blockId, true)
 	//sl.bpm.UnpinPage(sl.headerPageId, false)
-	/*
-		// update is an array of pointers to the
-		// predecessors of the element to be deleted.
-			var update []*skip_list_page.SkipListBlockPage = make([]*skip_list_page.SkipListBlockPage, sl.headerPageId.CurMaxLevel+1)
-			x := sl.headerPageId.ListStartPage
-			for ii := (sl.CurMaxLevel - 1); ii >= 0; ii-- {
-				for x.Forward[ii].Key.CompareLessThan(*key) {
-					x = x.Forward[ii]
-				}
-				update[ii] = x
-			}
-			x = x.Forward[0]
-			if x.Key.CompareEquals(*key) {
-				// go delete ...
-				for ii := int32(0); ii < sl.CurMaxLevel; ii++ {
-					if update[ii].Forward[ii] != x {
-						break //(**)
-					}
-					update[ii].Forward[ii] = x.Forward[ii]
-				}
-				// if deleting the element causes some of the
-				// highest level list to become empty, decrease the
-				// list level until a non-empty list is encountered.
-				for (sl.CurMaxLevel > 1) && (sl.Forward[sl.CurMaxLevel-1] == sl) {
-					sl.CurMaxLevel--
-				}
-			}
-	*/
+
+	// update is an array of pointers to the
+	// predecessors of the element to be deleted.
+	node := sl.headerPageId.ListStartPage
+	for ii := (sl.headerPageId.CurMaxLevel - 1); ii >= 0; ii-- {
+		for node.Forward[ii].SmallestKey.CompareLessThanOrEqual(*key) {
+			node = node.Forward[ii]
+		}
+	}
+	//node = node.Forward[0]
+
+	//if node.Key.CompareEquals(*key) {
+	//	// go delete ...
+	//	for ii := int32(0); ii < sl.CurMaxLevel; ii++ {
+	//		if update[ii].Forward[ii] != node {
+	//			break //(**)
+	//		}
+	//		update[ii].Forward[ii] = node.Forward[ii]
+	//	}
+	//	// if deleting the element causes some of the
+	//	// highest level list to become empty, decrease the
+	//	// list level until a non-empty list is encountered.
+	//	for (sl.CurMaxLevel > 1) && (sl.Forward[sl.CurMaxLevel-1] == sl) {
+	//		sl.CurMaxLevel--
+	//	}
+	//}
+
+	// remove specified entry from found node
+	node.Remove(key)
 }
 
 func (sl *SkipListOnMem) IteratorOnMem(rangeStartKey *types.Value, rangeEndKey *types.Value) *SkipListIteratorOnMem {
