@@ -62,28 +62,21 @@ func NewSkipListBlockPage(bpm *buffer.BufferPoolManager, level int32, smallestLi
 	return ret
 }
 
-// TODO: (SDB) not implemented (EntryAt)
-
 // Gets the entry at index in this node
 func (node *SkipListBlockPage) EntryAt(idx int32) *SkipListPair {
-	//return page_.array[index].key
-	return nil
+	return node.Entries[idx]
 }
-
-// TODO: (SDB) not implemented (KeyAt)
 
 // Gets the key at index in this node
 func (node *SkipListBlockPage) KeyAt(idx int32) *types.Value {
-	//return page_.array[index].key
-	return nil
+	key := node.Entries[idx].Key
+	return &key
 }
-
-// TODO: (SDB) not implemented (ValueAt)
 
 // Gets the value at an index in this node
 func (node *SkipListBlockPage) ValueAt(idx int32) uint32 {
-	//return page_.array[index].value
-	return 0
+	val := node.Entries[idx].Value
+	return val
 }
 
 // if not found, returns info of nearest smaller key
@@ -114,18 +107,41 @@ func (node *SkipListBlockPage) FindEntryByKey(key *types.Value) (found bool, ent
 	}
 }
 
-// TODO: (SDB) not implemented (Insert)
-
 // Attempts to insert a key and value into an index in the baccess.
-func (node *SkipListBlockPage) Insert(key *types.Value, value uint32) bool {
-	//if page_.IsOccupied(index) {
-	//	return false
-	//}
-	//
-	//page_.array[index] = SkipListPair{key, value}
-	//page_.occuppied[index/8] |= (1 << (index % 8))
-	//page_.readable[index/8] |= (1 << (index % 8))
-	return true
+func (node *SkipListBlockPage) Insert(key *types.Value, value uint32) {
+	found, _, foundIdx := node.FindEntryByKey(key)
+	if found {
+		// over write exsiting entry
+		node.Entries[foundIdx] = &SkipListPair{*key, value}
+		return
+	} else if !found {
+		if node.EntryCnt+1 > node.MaxEntry {
+			// this node is full. so node split is needed
+
+			// first, split this node at center of entry list
+			// half of entries are moved to new node
+			splitIdx := node.MaxEntry / 2
+			node.SplitNode(splitIdx)
+
+			if foundIdx > splitIdx {
+				// insert to new node
+				newSmallerIdx := foundIdx - splitIdx
+				newNode := node.Forward[0]
+				newNode.Entries = append(newNode.Entries[:newSmallerIdx+1+1], newNode.Entries[newSmallerIdx+1:]...)
+				newNode.Entries[newSmallerIdx+1] = &SkipListPair{*key, value}
+
+				return
+			} // else => insert to this node
+		}
+		// insert to this node
+		// foundIdx is index of nearlest smaller key entry
+		// new entry is inserted next of nearlest smaller key entry
+		node.Entries = append(node.Entries[:foundIdx+1+1], node.Entries[foundIdx+1:]...)
+		node.Entries[foundIdx+1] = &SkipListPair{*key, value}
+		if foundIdx == -1 {
+			node.SmallestKey = *key
+		}
+	}
 }
 
 func (node *SkipListBlockPage) Remove(key *types.Value) {
@@ -165,8 +181,9 @@ func (node *SkipListBlockPage) Remove(key *types.Value) {
 // TODO: (SDB) not implemented (SplitNode)
 
 // split entries of page_ at index
-// new node contains entries after entry specified by index
-func (node *SkipListBlockPage) SplitNode(index uint32) {
+// new node contains entries after entry specified by idx arg
+// (new node does not include entry node.Entries[idx])
+func (node *SkipListBlockPage) SplitNode(idx int32) {
 	//if !page_.IsReadable(index) {
 	//	return
 	//}
