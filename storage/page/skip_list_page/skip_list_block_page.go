@@ -105,14 +105,14 @@ func (node *SkipListBlockPage) FindEntryByKey(key *types.Value) (found bool, ent
 			}
 		}
 		//return right
-		if key.CompareEquals(curEntry.Key) {
-			return true, curEntry, curIdx
+		if rightIdx >= node.EntryCnt {
+			rightIdx--
+		}
+		rightEntry := node.EntryAt(rightIdx)
+		if key.CompareEquals(rightEntry.Key) {
+			return true, rightEntry, rightIdx
 		} else {
-			if curEntry.Key.CompareLessThan(*key) {
-				return false, curEntry, curIdx
-			} else {
-				return false, node.EntryAt(curIdx - 1), curIdx - 1
-			}
+			return false, node.EntryAt(rightIdx - 1), rightIdx - 1
 		}
 	}
 
