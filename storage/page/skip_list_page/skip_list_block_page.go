@@ -1,6 +1,7 @@
 package skip_list_page
 
 import (
+	"fmt"
 	"github.com/ryogrid/SamehadaDB/storage/buffer"
 	"github.com/ryogrid/SamehadaDB/storage/page"
 	"github.com/ryogrid/SamehadaDB/types"
@@ -54,7 +55,9 @@ func NewSkipListBlockPage(bpm *buffer.BufferPoolManager, level int32, smallestLi
 	}
 
 	ret := (*SkipListBlockPage)(unsafe.Pointer(page_))
+	ret.Entries = make([]*SkipListPair, 0)
 	ret.Entries = append(ret.Entries, smallestListPair)
+	ret.SmallestKey = smallestListPair.Key
 	ret.EntryCnt = 1
 	ret.MaxEntry = DUMMY_MAX_ENTRY
 	ret.Forward = make([]*SkipListBlockPage, level)
@@ -111,6 +114,8 @@ func (node *SkipListBlockPage) FindEntryByKey(key *types.Value) (found bool, ent
 // return value is whether newNode is created or not
 func (node *SkipListBlockPage) Insert(key *types.Value, value uint32, bpm *buffer.BufferPoolManager, skipPathList []*SkipListBlockPage,
 	level int32, startNode *SkipListBlockPage) bool {
+	fmt.Printf("Insert of SkipListBlockPage called! : page=%v key=%d\n", node.ID(), key.ToInteger())
+
 	found, _, foundIdx := node.FindEntryByKey(key)
 	isMadeNewNode := false
 	if found {
@@ -185,13 +190,12 @@ func (node *SkipListBlockPage) Remove(key *types.Value) {
 	}
 }
 
-// TODO: (SDB) not implemented (SplitNode)
-
 // split entries of node at entry specified with idx arg
 // new node contains entries node.Entries[idx+1:]
 // (new node does not include entry node.Entries[idx])
 func (node *SkipListBlockPage) SplitNode(idx int32, bpm *buffer.BufferPoolManager, skipPathList []*SkipListBlockPage,
 	level int32, startNode *SkipListBlockPage) {
+	fmt.Println("SplitNode called!")
 
 	newNode := NewSkipListBlockPage(bpm, level, nil)
 	newNode.Entries = node.Entries[idx+1:]

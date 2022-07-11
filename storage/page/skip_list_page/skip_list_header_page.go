@@ -79,6 +79,8 @@ func NewSkipListStartBlockPage(bpm *buffer.BufferPoolManager, keyType types.Type
 		sentinelNode = NewSkipListBlockPage(bpm, MAX_FOWARD_LIST_LEN, pl)
 	}
 
+	// TODO: (SDB) contents of startNode is broken here!
+
 	startNode.Level = 1
 	startNode.Forward = make([]*SkipListBlockPage, MAX_FOWARD_LIST_LEN)
 	// set sentinel node at end of list

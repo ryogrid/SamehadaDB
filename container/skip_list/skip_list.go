@@ -276,9 +276,12 @@ func (sl *SkipList) Insert(key *types.Value, value uint32) (err error) {
 	// Utilise skipPathList which is a (vertical) array
 	// of pointers to the elements which will be
 	// predecessors of the new element.
+
+	fmt.Println("Insert of SkipList called!")
 	var skipPathList []*skip_list_page.SkipListBlockPage = make([]*skip_list_page.SkipListBlockPage, sl.headerPageId.CurMaxLevel+1)
 	node := sl.headerPageId.ListStartPage
 	for ii := (sl.headerPageId.CurMaxLevel - 1); ii >= 0; ii-- {
+		fmt.Printf("At Insert of SkipList: ii = %d, node = %v\n", ii, *node)
 		for node.Forward[ii].SmallestKey.CompareLessThanOrEqual(*key) {
 			node = node.Forward[ii]
 		}

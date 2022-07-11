@@ -24,19 +24,23 @@ type Value struct {
 }
 
 func NewInteger(value int32) Value {
-	return Value{Integer, new(bool), &value, nil, nil, nil}
+	tmpBool := false
+	return Value{Integer, &tmpBool, &value, nil, nil, nil}
 }
 
 func NewFloat(value float32) Value {
-	return Value{Float, new(bool), nil, nil, nil, &value}
+	tmpBool := false
+	return Value{Float, &tmpBool, nil, nil, nil, &value}
 }
 
 func NewBoolean(value bool) Value {
-	return Value{Boolean, new(bool), nil, &value, nil, nil}
+	tmpBool := false
+	return Value{Boolean, &tmpBool, nil, &value, nil, nil}
 }
 
 func NewVarchar(value string) Value {
-	return Value{Varchar, new(bool), nil, nil, &value, nil}
+	tmpBool := false
+	return Value{Varchar, &tmpBool, nil, nil, &value, nil}
 }
 
 // it can be used only when you can not know value type to be compared or something
