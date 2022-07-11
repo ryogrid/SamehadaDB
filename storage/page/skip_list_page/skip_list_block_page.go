@@ -5,7 +5,6 @@ import (
 	"github.com/ryogrid/SamehadaDB/storage/buffer"
 	"github.com/ryogrid/SamehadaDB/storage/page"
 	"github.com/ryogrid/SamehadaDB/types"
-	"unsafe"
 )
 
 // TODO: (SDB) need to modify data layout figure
@@ -54,7 +53,9 @@ func NewSkipListBlockPage(bpm *buffer.BufferPoolManager, level int32, smallestLi
 		return nil
 	}
 
-	ret := (*SkipListBlockPage)(unsafe.Pointer(page_))
+	ret := new(SkipListBlockPage)
+	ret.Page = *page_
+	//(*SkipListBlockPage)(unsafe.Pointer(page_))
 	ret.Entries = make([]*SkipListPair, 0)
 	ret.Entries = append(ret.Entries, smallestListPair)
 	ret.SmallestKey = smallestListPair.Key

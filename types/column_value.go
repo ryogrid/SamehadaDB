@@ -24,23 +24,33 @@ type Value struct {
 }
 
 func NewInteger(value int32) Value {
-	tmpBool := false
-	return Value{Integer, &tmpBool, &value, nil, nil, nil}
+	tmpBool := new(bool)
+	*tmpBool = false
+	tmpValue := new(int32)
+	*tmpValue = value
+	return Value{Integer, tmpBool, tmpValue, nil, nil, nil}
 }
 
 func NewFloat(value float32) Value {
-	tmpBool := false
-	return Value{Float, &tmpBool, nil, nil, nil, &value}
+	tmpBool := new(bool)
+	*tmpBool = false
+	tmpValue := new(float32)
+	*tmpValue = value
+	return Value{Float, tmpBool, nil, nil, nil, tmpValue}
 }
 
 func NewBoolean(value bool) Value {
-	tmpBool := false
-	return Value{Boolean, &tmpBool, nil, &value, nil, nil}
+	tmpBool := new(bool)
+	*tmpBool = false
+	tmpValue := new(bool)
+	*tmpValue = value
+	return Value{Boolean, tmpBool, nil, tmpValue, nil, nil}
 }
 
 func NewVarchar(value string) Value {
-	tmpBool := false
-	return Value{Varchar, &tmpBool, nil, nil, &value, nil}
+	tmpBool := new(bool)
+	*tmpBool = false
+	return Value{Varchar, tmpBool, nil, nil, &value, nil}
 }
 
 // it can be used only when you can not know value type to be compared or something
