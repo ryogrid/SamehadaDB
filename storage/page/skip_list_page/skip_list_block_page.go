@@ -56,7 +56,7 @@ func NewSkipListBlockPage(bpm *buffer.BufferPoolManager, level int32, smallestLi
 	ret := new(SkipListBlockPage)
 	ret.Page = *page_
 	//(*SkipListBlockPage)(unsafe.Pointer(page_))
-	ret.Entries = make([]*SkipListPair, 0)
+	ret.Entries = make([]*SkipListPair, 0) // for first insert works
 	ret.Entries = append(ret.Entries, smallestListPair)
 	ret.SmallestKey = smallestListPair.Key
 	ret.EntryCnt = 1
@@ -86,29 +86,36 @@ func (node *SkipListBlockPage) ValueAt(idx int32) uint32 {
 // if not found, returns info of nearest smaller key
 // binary search is used for search
 func (node *SkipListBlockPage) FindEntryByKey(key *types.Value) (found bool, entry *SkipListPair, index int32) {
-	leftIdx := int32(-1)
-	rightIdx := node.EntryCnt
-	curIdx := int32(-1)
 	var curEntry *SkipListPair
-	for 1 < rightIdx-leftIdx {
-		curIdx := (leftIdx + rightIdx) / 2
-		curEntry := node.EntryAt(curIdx)
-		if curEntry.Key.CompareLessThan(*key) {
-			leftIdx = curIdx
-		} else {
-			rightIdx = curIdx
-		}
-	}
-	//return right
-	if leftIdx == rightIdx {
-		return true, curEntry, curIdx
+	if node.EntryCnt == 1 {
+		// when first entry at start node
+		return false, node.Entries[0], 0
 	} else {
-		if curEntry.Key.CompareLessThan(*key) {
-			return false, curEntry, curIdx
+		leftIdx := int32(-1)
+		rightIdx := node.EntryCnt
+		curIdx := int32(-1)
+
+		for 1 < rightIdx-leftIdx {
+			curIdx = (leftIdx + rightIdx) / 2
+			curEntry = node.EntryAt(curIdx)
+			if curEntry.Key.CompareLessThan(*key) {
+				leftIdx = curIdx
+			} else {
+				rightIdx = curIdx
+			}
+		}
+		//return right
+		if leftIdx == rightIdx {
+			return true, curEntry, curIdx
 		} else {
-			return false, node.EntryAt(curIdx - 1), curIdx - 1
+			if curEntry.Key.CompareLessThan(*key) {
+				return false, curEntry, curIdx
+			} else {
+				return false, node.EntryAt(curIdx - 1), curIdx - 1
+			}
 		}
 	}
+
 }
 
 // Attempts to insert a key and value into an index in the baccess
@@ -141,6 +148,7 @@ func (node *SkipListBlockPage) Insert(key *types.Value, value uint32, bpm *buffe
 				newNode := node.Forward[0]
 				newNode.Entries = append(newNode.Entries[:newSmallerIdx+1+1], newNode.Entries[newSmallerIdx+1:]...)
 				newNode.Entries[newSmallerIdx+1] = &SkipListPair{*key, value}
+				newNode.EntryCnt = int32(len(newNode.Entries))
 
 				return isMadeNewNode
 			} // else => insert to this node
@@ -148,10 +156,43 @@ func (node *SkipListBlockPage) Insert(key *types.Value, value uint32, bpm *buffe
 		// insert to this node
 		// foundIdx is index of nearlest smaller key entry
 		// new entry is inserted next of nearlest smaller key entry
-		node.Entries = append(node.Entries[:foundIdx+1+1], node.Entries[foundIdx+1:]...)
-		node.Entries[foundIdx+1] = &SkipListPair{*key, value}
-		if foundIdx == -1 {
-			node.SmallestKey = *key
+		if node.EntryCnt == 1 {
+			if node.Entries[0].Key.CompareLessThan(*key) {
+				node.Entries = append(node.Entries, &SkipListPair{*key, value})
+			} else {
+				tmpEntry := node.Entries[0]
+				node.Entries[0] = &SkipListPair{*key, value}
+				node.Entries = append(node.Entries, tmpEntry)
+			}
+			node.EntryCnt = int32(len(node.Entries))
+		} else if node.EntryCnt == 2 {
+			if foundIdx == 0 {
+				tmpEntry0 := node.Entries[0]
+				tmpEntry1 := node.Entries[1]
+				node.Entries = make([]*SkipListPair, 3)
+				node.Entries[0] = tmpEntry0
+				node.Entries[1] = &SkipListPair{*key, value}
+				node.Entries[2] = tmpEntry1
+			} else { // 1
+				tmpEntry0 := node.Entries[0]
+				tmpEntry1 := node.Entries[1]
+				node.Entries = make([]*SkipListPair, 3)
+				node.Entries[0] = tmpEntry0
+				node.Entries[1] = tmpEntry1
+				node.Entries[2] = &SkipListPair{*key, value}
+			}
+			node.Entries[foundIdx+1] = &SkipListPair{*key, value}
+			node.EntryCnt = int32(len(node.Entries))
+			if foundIdx == -1 {
+				node.SmallestKey = *key
+			}
+		} else {
+			node.Entries = append(node.Entries[:foundIdx+1+1], node.Entries[foundIdx+1:]...)
+			node.Entries[foundIdx+1] = &SkipListPair{*key, value}
+			node.EntryCnt = int32(len(node.Entries))
+			if foundIdx == -1 {
+				node.SmallestKey = *key
+			}
 		}
 	}
 	return isMadeNewNode
