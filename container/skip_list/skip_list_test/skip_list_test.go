@@ -1,6 +1,7 @@
 package skip_list_test
 
 import (
+	"fmt"
 	"github.com/ryogrid/SamehadaDB/container/skip_list"
 	"github.com/ryogrid/SamehadaDB/samehada"
 	"github.com/ryogrid/SamehadaDB/samehada/samehada_util"
@@ -131,8 +132,10 @@ func TestSkipLisPageBackedOnMem(t *testing.T) {
 	}
 	// shuffle value list for inserting
 	rand.Shuffle(len(insVals), func(i, j int) { insVals[i], insVals[j] = insVals[j], insVals[i] })
+	insCnt := 0
 	for _, insVal := range insVals {
-		//fmt.Println(insVal)
+		fmt.Printf("insCnt: %d\n", insCnt)
+		insCnt++
 		sl.Insert(samehada_util.GetPonterOfValue(types.NewInteger(int32(insVal))), uint32(insVal))
 		res := sl.GetValue(samehada_util.GetPonterOfValue(types.NewInteger(int32(insVal))))
 		if res == math.MaxUint32 {

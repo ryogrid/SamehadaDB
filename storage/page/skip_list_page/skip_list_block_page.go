@@ -105,7 +105,7 @@ func (node *SkipListBlockPage) FindEntryByKey(key *types.Value) (found bool, ent
 			}
 		}
 		//return right
-		if leftIdx == rightIdx {
+		if key.CompareEquals(curEntry.Key) {
 			return true, curEntry, curIdx
 		} else {
 			if curEntry.Key.CompareLessThan(*key) {
@@ -146,8 +146,14 @@ func (node *SkipListBlockPage) Insert(key *types.Value, value uint32, bpm *buffe
 				// insert to new node
 				newSmallerIdx := foundIdx - splitIdx
 				newNode := node.Forward[0]
-				newNode.Entries = append(newNode.Entries[:newSmallerIdx+1+1], newNode.Entries[newSmallerIdx+1:]...)
-				newNode.Entries[newSmallerIdx+1] = &SkipListPair{*key, value}
+				if (newSmallerIdx + 1 + 1) >= int32(len(newNode.Entries)) {
+					newNode.Entries = append(node.Entries[:newSmallerIdx+1], &SkipListPair{*key, value})
+				} else {
+					newNode.Entries = append(node.Entries[:newSmallerIdx+1+1], node.Entries[newSmallerIdx+1:]...)
+					newNode.Entries[newSmallerIdx+1] = &SkipListPair{*key, value}
+				}
+				//newNode.Entries = append(newNode.Entries[:newSmallerIdx+1+1], newNode.Entries[newSmallerIdx+1:]...)
+				//newNode.Entries[newSmallerIdx+1] = &SkipListPair{*key, value}
 				newNode.EntryCnt = int32(len(newNode.Entries))
 
 				return isMadeNewNode
@@ -156,44 +162,49 @@ func (node *SkipListBlockPage) Insert(key *types.Value, value uint32, bpm *buffe
 		// insert to this node
 		// foundIdx is index of nearlest smaller key entry
 		// new entry is inserted next of nearlest smaller key entry
-		if node.EntryCnt == 1 {
-			if node.Entries[0].Key.CompareLessThan(*key) {
-				node.Entries = append(node.Entries, &SkipListPair{*key, value})
-			} else {
-				tmpEntry := node.Entries[0]
-				node.Entries[0] = &SkipListPair{*key, value}
-				node.Entries = append(node.Entries, tmpEntry)
-			}
-			node.EntryCnt = int32(len(node.Entries))
-		} else if node.EntryCnt == 2 {
-			if foundIdx == 0 {
-				tmpEntry0 := node.Entries[0]
-				tmpEntry1 := node.Entries[1]
-				node.Entries = make([]*SkipListPair, 3)
-				node.Entries[0] = tmpEntry0
-				node.Entries[1] = &SkipListPair{*key, value}
-				node.Entries[2] = tmpEntry1
-			} else { // 1
-				tmpEntry0 := node.Entries[0]
-				tmpEntry1 := node.Entries[1]
-				node.Entries = make([]*SkipListPair, 3)
-				node.Entries[0] = tmpEntry0
-				node.Entries[1] = tmpEntry1
-				node.Entries[2] = &SkipListPair{*key, value}
-			}
-			node.Entries[foundIdx+1] = &SkipListPair{*key, value}
-			node.EntryCnt = int32(len(node.Entries))
-			if foundIdx == -1 {
-				node.SmallestKey = *key
-			}
+
+		//if node.EntryCnt == 1 {
+		//	if node.Entries[0].Key.CompareLessThan(*key) {
+		//		node.Entries = append(node.Entries, &SkipListPair{*key, value})
+		//	} else {
+		//		tmpEntry := node.Entries[0]
+		//		node.Entries[0] = &SkipListPair{*key, value}
+		//		node.Entries = append(node.Entries, tmpEntry)
+		//	}
+		//	node.EntryCnt = int32(len(node.Entries))
+		//} else if node.EntryCnt == 2 {
+		//	if foundIdx == 0 {
+		//		tmpEntry0 := node.Entries[0]
+		//		tmpEntry1 := node.Entries[1]
+		//		node.Entries = make([]*SkipListPair, 3)
+		//		node.Entries[0] = tmpEntry0
+		//		node.Entries[1] = &SkipListPair{*key, value}
+		//		node.Entries[2] = tmpEntry1
+		//	} else { // 1
+		//		tmpEntry0 := node.Entries[0]
+		//		tmpEntry1 := node.Entries[1]
+		//		node.Entries = make([]*SkipListPair, 3)
+		//		node.Entries[0] = tmpEntry0
+		//		node.Entries[1] = tmpEntry1
+		//		node.Entries[2] = &SkipListPair{*key, value}
+		//	}
+		//	node.Entries[foundIdx+1] = &SkipListPair{*key, value}
+		//	node.EntryCnt = int32(len(node.Entries))
+		//	if foundIdx == -1 {
+		//		node.SmallestKey = *key
+		//	}
+		//} else {
+		if (foundIdx + 1 + 1) >= int32(len(node.Entries)) {
+			node.Entries = append(node.Entries[:foundIdx+1], &SkipListPair{*key, value})
 		} else {
 			node.Entries = append(node.Entries[:foundIdx+1+1], node.Entries[foundIdx+1:]...)
 			node.Entries[foundIdx+1] = &SkipListPair{*key, value}
-			node.EntryCnt = int32(len(node.Entries))
-			if foundIdx == -1 {
-				node.SmallestKey = *key
-			}
 		}
+		node.EntryCnt = int32(len(node.Entries))
+		//	if foundIdx == -1 {
+		//		node.SmallestKey = *key
+		//	}
+		//}
 	}
 	return isMadeNewNode
 }
@@ -239,8 +250,10 @@ func (node *SkipListBlockPage) SplitNode(idx int32, bpm *buffer.BufferPoolManage
 	level int32, startNode *SkipListBlockPage) {
 	fmt.Println("SplitNode called!")
 
-	newNode := NewSkipListBlockPage(bpm, level, nil)
+	newNode := NewSkipListBlockPage(bpm, level, node.Entries[idx+1])
 	newNode.Entries = node.Entries[idx+1:]
+	node.Entries = node.Entries[:idx+1]
+	node.EntryCnt = int32(len(node.Entries))
 	newNode.SmallestKey = newNode.Entries[0].Key
 	newNode.EntryCnt = int32(len(newNode.Entries))
 
