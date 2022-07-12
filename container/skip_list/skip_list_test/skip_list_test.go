@@ -1,17 +1,12 @@
 package skip_list_test
 
 import (
-	"fmt"
-	"github.com/ryogrid/SamehadaDB/container/skip_list"
 	"github.com/ryogrid/SamehadaDB/samehada"
-	"github.com/ryogrid/SamehadaDB/samehada/samehada_util"
+	"github.com/ryogrid/SamehadaDB/storage/page/skip_list_page"
+	testingpkg "github.com/ryogrid/SamehadaDB/testing"
 	"github.com/ryogrid/SamehadaDB/types"
-	"math"
-	"math/rand"
 	"os"
 	"testing"
-
-	testingpkg "github.com/ryogrid/SamehadaDB/testing"
 )
 
 //func TestSkipListOnMem(t *testing.T) {
@@ -119,51 +114,109 @@ import (
 //	testingpkg.SimpleAssert(t, nodeCnt == 250)
 //}
 
-func TestSkipLisPageBackedOnMem(t *testing.T) {
+func TestBSearchOfSkipLisBlockPageBackedOnMem(t *testing.T) {
 	os.Remove("test.db")
 	os.Remove("test.log")
-
 	shi := samehada.NewSamehadaInstanceForTesting()
-	sl := skip_list.NewSkipList(shi.GetBufferPoolManager(), types.Integer)
+	bpm := shi.GetBufferPoolManager()
 
-	insVals := make([]int32, 0)
-	for i := 0; i < 250; i++ {
-		insVals = append(insVals, int32(i*11))
+	bpage := skip_list_page.NewSkipListBlockPage(bpm, 1, &skip_list_page.SkipListPair{
+		Key:   types.NewInteger(-1),
+		Value: 0,
+	})
+
+	// ------- when element num is even number -----
+	bpage.Entries = make([]*skip_list_page.SkipListPair, 0)
+	bpage.Entries = append(bpage.Entries, &skip_list_page.SkipListPair{
+		Key:   types.NewInteger(-1),
+		Value: 0,
+	})
+	// set entries
+	for ii := 1; ii < 50; ii++ {
+		bpage.Entries = append(bpage.Entries, &skip_list_page.SkipListPair{types.NewInteger(int32(ii * 10)), uint32(ii * 10)})
 	}
-	// shuffle value list for inserting
-	rand.Shuffle(len(insVals), func(i, j int) { insVals[i], insVals[j] = insVals[j], insVals[i] })
+	bpage.EntryCnt = int32(len(bpage.Entries))
 
-	// Insert entries
-	insCnt := 0
-	for _, insVal := range insVals {
-		fmt.Printf("insCnt: %d\n", insCnt)
-		insCnt++
-		sl.Insert(samehada_util.GetPonterOfValue(types.NewInteger(int32(insVal))), uint32(insVal))
-	}
-
-	// Get entries
-	for i := 0; i < 250; i++ {
-		fmt.Printf("get entry i=%d key=%d\n", i, i*11)
-		res := sl.GetValue(samehada_util.GetPonterOfValue(types.NewInteger(int32(i * 11))))
-		if res == math.MaxUint32 {
-			t.Errorf("result should not be nil")
+	for ii := 1; ii < 100; ii++ {
+		key := types.NewInteger(int32(ii * 5))
+		found, entry, idx := bpage.FindEntryByKey(&key)
+		//fmt.Println(ii)
+		if ii%2 == 0 {
+			testingpkg.SimpleAssert(t, found == true && entry.Value == uint32(key.ToInteger()))
 		} else {
-			testingpkg.SimpleAssert(t, uint32(i*11) == res)
+			testingpkg.SimpleAssert(t, found == false && uint32(key.ToInteger())-bpage.ValueAt(idx) == 5)
 		}
 	}
 
-	//// delete some values
-	//for i := 0; i < 100; i++ {
-	//	// check existance before delete
-	//	res := sl.GetValue(samehada_util.GetPonterOfValue(types.NewInteger(int32(i * 11))))
-	//	testingpkg.SimpleAssert(t, res == uint32(i*11))
-	//
-	//	// check no existance after delete
-	//	sl.Remove(samehada_util.GetPonterOfValue(types.NewInteger(int32(i*11))), uint32(i*11))
-	//	res = sl.GetValue(samehada_util.GetPonterOfValue(types.NewInteger(int32(i * 11))))
-	//	testingpkg.SimpleAssert(t, math.MaxUint32 == res)
-	//}
+	// ------- when element num is even number -----
+	bpage.Entries = make([]*skip_list_page.SkipListPair, 0)
+	bpage.Entries = append(bpage.Entries, &skip_list_page.SkipListPair{
+		Key:   types.NewInteger(-1),
+		Value: 0,
+	})
+	// set entries
+	for ii := 1; ii < 51; ii++ {
+		bpage.Entries = append(bpage.Entries, &skip_list_page.SkipListPair{types.NewInteger(int32(ii * 10)), uint32(ii * 10)})
+	}
+	bpage.EntryCnt = int32(len(bpage.Entries))
+
+	for ii := 1; ii < 102; ii++ {
+		key := types.NewInteger(int32(ii * 5))
+		found, entry, idx := bpage.FindEntryByKey(&key)
+		//fmt.Println(ii)
+		if ii%2 == 0 {
+			testingpkg.SimpleAssert(t, found == true && entry.Value == uint32(key.ToInteger()))
+		} else {
+			testingpkg.SimpleAssert(t, found == false && uint32(key.ToInteger())-bpage.ValueAt(idx) == 5)
+		}
+	}
 }
+
+//func TestSkipLisPageBackedOnMem(t *testing.T) {
+//	os.Remove("test.db")
+//	os.Remove("test.log")
+//
+//	shi := samehada.NewSamehadaInstanceForTesting()
+//	sl := skip_list.NewSkipList(shi.GetBufferPoolManager(), types.Integer)
+//
+//	insVals := make([]int32, 0)
+//	for i := 0; i < 250; i++ {
+//		insVals = append(insVals, int32(i*11))
+//	}
+//	// shuffle value list for inserting
+//	rand.Shuffle(len(insVals), func(i, j int) { insVals[i], insVals[j] = insVals[j], insVals[i] })
+//
+//	// Insert entries
+//	insCnt := 0
+//	for _, insVal := range insVals {
+//		fmt.Printf("insCnt: %d\n", insCnt)
+//		insCnt++
+//		sl.Insert(samehada_util.GetPonterOfValue(types.NewInteger(int32(insVal))), uint32(insVal))
+//	}
+//
+//	// Get entries
+//	for i := 0; i < 250; i++ {
+//		fmt.Printf("get entry i=%d key=%d\n", i, i*11)
+//		res := sl.GetValue(samehada_util.GetPonterOfValue(types.NewInteger(int32(i * 11))))
+//		if res == math.MaxUint32 {
+//			t.Errorf("result should not be nil")
+//		} else {
+//			testingpkg.SimpleAssert(t, uint32(i*11) == res)
+//		}
+//	}
+//
+//	//// delete some values
+//	//for i := 0; i < 100; i++ {
+//	//	// check existance before delete
+//	//	res := sl.GetValue(samehada_util.GetPonterOfValue(types.NewInteger(int32(i * 11))))
+//	//	testingpkg.SimpleAssert(t, res == uint32(i*11))
+//	//
+//	//	// check no existance after delete
+//	//	sl.Remove(samehada_util.GetPonterOfValue(types.NewInteger(int32(i*11))), uint32(i*11))
+//	//	res = sl.GetValue(samehada_util.GetPonterOfValue(types.NewInteger(int32(i * 11))))
+//	//	testingpkg.SimpleAssert(t, math.MaxUint32 == res)
+//	//}
+//}
 
 //func TestSkipListItrPageBackedOnMem(t *testing.T) {
 //	os.Remove("test.db")
