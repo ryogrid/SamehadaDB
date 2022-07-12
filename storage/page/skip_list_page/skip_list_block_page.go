@@ -149,8 +149,22 @@ func (node *SkipListBlockPage) Insert(key *types.Value, value uint32, bpm *buffe
 				// insert to new node
 				newSmallerIdx := foundIdx - splitIdx
 				newNode := node.Forward[0]
-				if (newSmallerIdx + 1 + 1) >= int32(len(newNode.Entries)) {
-					newNode.Entries = append(node.Entries[:newSmallerIdx+1], &SkipListPair{*key, value})
+				if (newSmallerIdx + 1 + 1) >= newNode.EntryCnt {
+					//newNode.Entries = append(node.Entries[:newSmallerIdx+1], &SkipListPair{*key, value})
+					var rightEntry []*SkipListPair = nil
+					if newSmallerIdx < newNode.EntryCnt-1 {
+						rightEntry = newNode.Entries[newSmallerIdx+1:]
+					}
+
+					if newSmallerIdx+1 >= newNode.EntryCnt {
+						newNode.Entries = append(newNode.Entries, &SkipListPair{*key, value})
+					} else {
+						newNode.Entries = append(newNode.Entries[:newSmallerIdx+1], &SkipListPair{*key, value})
+					}
+
+					if rightEntry != nil {
+						newNode.Entries = append(newNode.Entries, rightEntry...)
+					}
 				} else {
 					newNode.Entries = append(node.Entries[:newSmallerIdx+1+1], node.Entries[newSmallerIdx+1:]...)
 					newNode.Entries[newSmallerIdx+1] = &SkipListPair{*key, value}
