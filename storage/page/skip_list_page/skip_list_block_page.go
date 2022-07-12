@@ -185,7 +185,7 @@ func (node *SkipListBlockPage) Insert(key *types.Value, value uint32, bpm *buffe
 				newNode := node.Forward[0]
 				if (newSmallerIdx + 1 + 1) >= newNode.EntryCnt {
 					// when insertin point is next of last entry of new node
-					newNode.Entries = append(node.Entries, &SkipListPair{*key, value})
+					newNode.Entries = append(newNode.Entries, &SkipListPair{*key, value})
 					//var rightEntry []*SkipListPair = nil
 					//if newSmallerIdx < newNode.EntryCnt-1 {
 					//	rightEntry = newNode.Entries[newSmallerIdx+1:]
