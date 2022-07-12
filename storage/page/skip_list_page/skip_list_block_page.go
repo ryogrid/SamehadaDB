@@ -127,10 +127,13 @@ func (node *SkipListBlockPage) Insert(key *types.Value, value uint32, bpm *buffe
 	found, _, foundIdx := node.FindEntryByKey(key)
 	isMadeNewNode := false
 	if found {
+		fmt.Println("found at Insert")
 		// over write exsiting entry
 		node.Entries[foundIdx] = &SkipListPair{*key, value}
+		fmt.Printf("end of Insert of SkipListBlockPage called! : page=%v key=%d page.EntryCnt=%d len(page.Entries)=%d\n", node.ID(), key.ToInteger(), node.EntryCnt, len(node.Entries))
 		return isMadeNewNode
 	} else if !found {
+		fmt.Printf("not found at Insert. foundIdx=%d\n", foundIdx)
 		if node.EntryCnt+1 > node.MaxEntry {
 			// this node is full. so node split is needed
 
@@ -156,6 +159,7 @@ func (node *SkipListBlockPage) Insert(key *types.Value, value uint32, bpm *buffe
 				//newNode.Entries[newSmallerIdx+1] = &SkipListPair{*key, value}
 				newNode.EntryCnt = int32(len(newNode.Entries))
 
+				fmt.Printf("end of Insert of SkipListBlockPage called! : page=%v key=%d page.EntryCnt=%d len(page.Entries)=%d\n", node.ID(), key.ToInteger(), node.EntryCnt, len(node.Entries))
 				return isMadeNewNode
 			} // else => insert to this node
 		}
@@ -194,8 +198,15 @@ func (node *SkipListBlockPage) Insert(key *types.Value, value uint32, bpm *buffe
 		//		node.SmallestKey = *key
 		//	}
 		//} else {
-		if (foundIdx + 1 + 1) >= int32(len(node.Entries)) {
+		if (foundIdx + 1 + 1) >= node.EntryCnt {
+			var rightEntry []*SkipListPair = nil
+			if foundIdx < node.EntryCnt-1 {
+				rightEntry = node.Entries[foundIdx+1:]
+			}
 			node.Entries = append(node.Entries[:foundIdx+1], &SkipListPair{*key, value})
+			if rightEntry != nil {
+				node.Entries = append(node.Entries, rightEntry...)
+			}
 		} else {
 			node.Entries = append(node.Entries[:foundIdx+1+1], node.Entries[foundIdx+1:]...)
 			node.Entries[foundIdx+1] = &SkipListPair{*key, value}
@@ -206,6 +217,7 @@ func (node *SkipListBlockPage) Insert(key *types.Value, value uint32, bpm *buffe
 		//	}
 		//}
 	}
+	fmt.Printf("end of Insert of SkipListBlockPage called! : page=%v key=%d page.EntryCnt=%d len(page.Entries)=%d\n", node.ID(), key.ToInteger(), node.EntryCnt, len(node.Entries))
 	return isMadeNewNode
 }
 
@@ -252,10 +264,10 @@ func (node *SkipListBlockPage) SplitNode(idx int32, bpm *buffer.BufferPoolManage
 
 	newNode := NewSkipListBlockPage(bpm, level, node.Entries[idx+1])
 	newNode.Entries = node.Entries[idx+1:]
-	node.Entries = node.Entries[:idx+1]
-	node.EntryCnt = int32(len(node.Entries))
 	newNode.SmallestKey = newNode.Entries[0].Key
 	newNode.EntryCnt = int32(len(newNode.Entries))
+	node.Entries = node.Entries[:idx+1]
+	node.EntryCnt = int32(len(node.Entries))
 
 	skipPathList[level-1] = startNode
 	for ii := int32(0); ii < level; ii++ {
