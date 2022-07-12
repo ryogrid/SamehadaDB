@@ -235,44 +235,6 @@ func (sl *SkipListOnMem) CheckElemListOnMem() {
 }
 
 func (sl *SkipList) Insert(key *types.Value, value uint32) (err error) {
-	//sl.list_latch.WLock()
-	//defer sl.list_latch.WUnlock()
-	//hPageData := sl.bpm.FetchPage(sl.headerPageId).Data()
-	//headerPage := (*skip_list_page.SkipListHeaderPage)(unsafe.Pointer(hPageData))
-	//
-	//hash := hash(key)
-	//
-	//originalBucketIndex := hash % headerPage.NumBlocks()
-	//originalBucketOffset := hash % skip_list_page.BlockArraySize
-	//
-	//iterator := newSkipListIterator(sl.bpm, headerPage, originalBucketIndex, originalBucketOffset)
-	//
-	//blockPage, offset := iterator.blockPage, iterator.offset
-	//var bucket uint32
-	//for {
-	//	if blockPage.IsOccupied(offset) && blockPage.ValueAt(offset) == value {
-	//		err = errors.New("duplicated values on the same key are not allowed")
-	//		break
-	//	}
-	//
-	//	if !blockPage.IsOccupied(offset) {
-	//		blockPage.Insert(offset, hash, value)
-	//		err = nil
-	//		break
-	//	}
-	//	iterator.next()
-	//
-	//	blockPage, bucket, offset = iterator.blockPage, iterator.bucket, iterator.offset
-	//	if bucket == originalBucketIndex && offset == originalBucketOffset {
-	//		break
-	//	}
-	//}
-	//
-	//sl.bpm.UnpinPage(iterator.blockId, true)
-	//sl.bpm.UnpinPage(sl.headerPageId, false)
-	//
-	//return
-
 	// Utilise skipPathList which is a (vertical) array
 	// of pointers to the elements which will be
 	// predecessors of the new element.
@@ -288,38 +250,15 @@ func (sl *SkipList) Insert(key *types.Value, value uint32) (err error) {
 		//note: node.SmallestKey <= searchKey < node.forward[ii].SmallestKey
 		skipPathList[ii] = node
 	}
-	//node = node.Forward[0]
-	//if node.Key.CompareEquals(*key) {
-	//	node.Val = value
-	//	return nil
-	//} else {
-	//	// key not found, do insertion here:
-	//	newLevel := sl.GetNodeLevel()
-	//	// If the newLevel is greater than the current levelWhenNodeSplitOccur
-	//	// of the list, knock newLevel down so that it is only
-	//	// one levelWhenNodeSplitOccur more than the current levelWhenNodeSplitOccur of the list.
-	//	// In other words, we will increase the levelWhenNodeSplitOccur of the
-	//	// list by at most one on each insertion.
-	//	if newLevel >= sl.CurMaxLevel {
-	//		newLevel = sl.CurMaxLevel + 1
-	//		sl.CurMaxLevel = newLevel
-	//		skipPathList[newLevel-1] = sl
-	//	}
-	//	node := NewSkipListOnMem(newLevel, key, value, false)
-	//	for ii := int32(0); ii < newLevel; ii++ {
-	//		node.Forward[ii] = skipPathList[ii].Forward[ii]
-	//		skipPathList[ii].Forward[ii] = node
-	//	}
-	//	return nil
-	//}
 	levelWhenNodeSplitOccur := sl.GetNodeLevel()
-	if levelWhenNodeSplitOccur == sl.headerPageId.CurMaxLevel {
-		levelWhenNodeSplitOccur++
-	}
-	isNewNodeCreated := node.Insert(key, value, sl.bpm, skipPathList, levelWhenNodeSplitOccur, sl.headerPageId.CurMaxLevel, sl.headerPageId.ListStartPage)
-	if isNewNodeCreated && levelWhenNodeSplitOccur > sl.headerPageId.CurMaxLevel {
-		sl.headerPageId.CurMaxLevel = levelWhenNodeSplitOccur
-	}
+	//if levelWhenNodeSplitOccur == sl.headerPageId.CurMaxLevel {
+	//	levelWhenNodeSplitOccur++
+	//}
+	//isNewNodeCreated := node.Insert(key, value, sl.bpm, skipPathList, levelWhenNodeSplitOccur, sl.headerPageId.CurMaxLevel, sl.headerPageId.ListStartPage)
+	//if isNewNodeCreated && levelWhenNodeSplitOccur > sl.headerPageId.CurMaxLevel {
+	//	sl.headerPageId.CurMaxLevel = levelWhenNodeSplitOccur
+	//}
+	node.Insert(key, value, sl.bpm, skipPathList, levelWhenNodeSplitOccur, sl.headerPageId.CurMaxLevel, sl.headerPageId.ListStartPage)
 
 	return nil
 }
@@ -466,10 +405,11 @@ func (sl *SkipListOnMem) GetNodeLevel() int32 {
 }
 
 func (sl *SkipList) GetNodeLevel() int32 {
-	//rand.Float32() returns a random value in [0..1)
-	var retLevel int32 = 1
-	for rand.Float32() < common.SkipListProb { // no MaxLevel check
-		retLevel++
-	}
-	return int32(math.Min(float64(retLevel), float64(sl.headerPageId.CurMaxLevel)))
+	////rand.Float32() returns a random value in [0..1)
+	//var retLevel int32 = 1
+	//for rand.Float32() < common.SkipListProb { // no MaxLevel check
+	//	retLevel++
+	//}
+	//return int32(math.Min(float64(retLevel), float64(sl.headerPageId.CurMaxLevel)))
+	return 1
 }

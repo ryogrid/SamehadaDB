@@ -1,10 +1,15 @@
 package skip_list_test
 
 import (
+	"fmt"
+	"github.com/ryogrid/SamehadaDB/container/skip_list"
 	"github.com/ryogrid/SamehadaDB/samehada"
+	"github.com/ryogrid/SamehadaDB/samehada/samehada_util"
 	"github.com/ryogrid/SamehadaDB/storage/page/skip_list_page"
 	testingpkg "github.com/ryogrid/SamehadaDB/testing"
 	"github.com/ryogrid/SamehadaDB/types"
+	"math"
+	"math/rand"
 	"os"
 	"testing"
 )
@@ -148,7 +153,7 @@ func TestBSearchOfSkipLisBlockPageBackedOnMem(t *testing.T) {
 		}
 	}
 
-	// ------- when element num is even number -----
+	// ------- when element num is odd number -----
 	bpage.Entries = make([]*skip_list_page.SkipListPair, 0)
 	bpage.Entries = append(bpage.Entries, &skip_list_page.SkipListPair{
 		Key:   types.NewInteger(-1),
@@ -172,51 +177,51 @@ func TestBSearchOfSkipLisBlockPageBackedOnMem(t *testing.T) {
 	}
 }
 
-//func TestSkipLisPageBackedOnMem(t *testing.T) {
-//	os.Remove("test.db")
-//	os.Remove("test.log")
-//
-//	shi := samehada.NewSamehadaInstanceForTesting()
-//	sl := skip_list.NewSkipList(shi.GetBufferPoolManager(), types.Integer)
-//
-//	insVals := make([]int32, 0)
-//	for i := 0; i < 250; i++ {
-//		insVals = append(insVals, int32(i*11))
-//	}
-//	// shuffle value list for inserting
-//	rand.Shuffle(len(insVals), func(i, j int) { insVals[i], insVals[j] = insVals[j], insVals[i] })
-//
-//	// Insert entries
-//	insCnt := 0
-//	for _, insVal := range insVals {
-//		fmt.Printf("insCnt: %d\n", insCnt)
-//		insCnt++
-//		sl.Insert(samehada_util.GetPonterOfValue(types.NewInteger(int32(insVal))), uint32(insVal))
-//	}
-//
-//	// Get entries
-//	for i := 0; i < 250; i++ {
-//		fmt.Printf("get entry i=%d key=%d\n", i, i*11)
-//		res := sl.GetValue(samehada_util.GetPonterOfValue(types.NewInteger(int32(i * 11))))
-//		if res == math.MaxUint32 {
-//			t.Errorf("result should not be nil")
-//		} else {
-//			testingpkg.SimpleAssert(t, uint32(i*11) == res)
-//		}
-//	}
-//
-//	//// delete some values
-//	//for i := 0; i < 100; i++ {
-//	//	// check existance before delete
-//	//	res := sl.GetValue(samehada_util.GetPonterOfValue(types.NewInteger(int32(i * 11))))
-//	//	testingpkg.SimpleAssert(t, res == uint32(i*11))
-//	//
-//	//	// check no existance after delete
-//	//	sl.Remove(samehada_util.GetPonterOfValue(types.NewInteger(int32(i*11))), uint32(i*11))
-//	//	res = sl.GetValue(samehada_util.GetPonterOfValue(types.NewInteger(int32(i * 11))))
-//	//	testingpkg.SimpleAssert(t, math.MaxUint32 == res)
-//	//}
-//}
+func TestSkipLisPageBackedOnMem(t *testing.T) {
+	os.Remove("test.db")
+	os.Remove("test.log")
+
+	shi := samehada.NewSamehadaInstanceForTesting()
+	sl := skip_list.NewSkipList(shi.GetBufferPoolManager(), types.Integer)
+
+	insVals := make([]int32, 0)
+	for i := 0; i < 250; i++ {
+		insVals = append(insVals, int32(i*11))
+	}
+	// shuffle value list for inserting
+	rand.Shuffle(len(insVals), func(i, j int) { insVals[i], insVals[j] = insVals[j], insVals[i] })
+
+	// Insert entries
+	insCnt := 0
+	for _, insVal := range insVals {
+		fmt.Printf("insCnt: %d\n", insCnt)
+		insCnt++
+		sl.Insert(samehada_util.GetPonterOfValue(types.NewInteger(int32(insVal))), uint32(insVal))
+	}
+
+	// Get entries
+	for i := 0; i < 250; i++ {
+		fmt.Printf("get entry i=%d key=%d\n", i, i*11)
+		res := sl.GetValue(samehada_util.GetPonterOfValue(types.NewInteger(int32(i * 11))))
+		if res == math.MaxUint32 {
+			t.Errorf("result should not be nil")
+		} else {
+			testingpkg.SimpleAssert(t, uint32(i*11) == res)
+		}
+	}
+
+	//// delete some values
+	//for i := 0; i < 100; i++ {
+	//	// check existance before delete
+	//	res := sl.GetValue(samehada_util.GetPonterOfValue(types.NewInteger(int32(i * 11))))
+	//	testingpkg.SimpleAssert(t, res == uint32(i*11))
+	//
+	//	// check no existance after delete
+	//	sl.Remove(samehada_util.GetPonterOfValue(types.NewInteger(int32(i*11))), uint32(i*11))
+	//	res = sl.GetValue(samehada_util.GetPonterOfValue(types.NewInteger(int32(i * 11))))
+	//	testingpkg.SimpleAssert(t, math.MaxUint32 == res)
+	//}
+}
 
 //func TestSkipListItrPageBackedOnMem(t *testing.T) {
 //	os.Remove("test.db")
