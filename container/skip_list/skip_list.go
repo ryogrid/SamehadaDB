@@ -316,7 +316,7 @@ func (sl *SkipList) Insert(key *types.Value, value uint32) (err error) {
 	if levelWhenNodeSplitOccur == sl.headerPageId.CurMaxLevel {
 		levelWhenNodeSplitOccur++
 	}
-	isNewNodeCreated := node.Insert(key, value, sl.bpm, skipPathList, levelWhenNodeSplitOccur, sl.headerPageId.ListStartPage)
+	isNewNodeCreated := node.Insert(key, value, sl.bpm, skipPathList, levelWhenNodeSplitOccur, sl.headerPageId.CurMaxLevel, sl.headerPageId.ListStartPage)
 	if isNewNodeCreated && levelWhenNodeSplitOccur > sl.headerPageId.CurMaxLevel {
 		sl.headerPageId.CurMaxLevel = levelWhenNodeSplitOccur
 	}

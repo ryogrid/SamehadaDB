@@ -83,36 +83,70 @@ func (node *SkipListBlockPage) ValueAt(idx int32) uint32 {
 	return val
 }
 
+//// if not found, returns info of nearest smaller key
+//// binary search is used for search
+//func (node *SkipListBlockPage) FindEntryByKey(key *types.Value) (found bool, entry *SkipListPair, index int32) {
+//	var curEntry *SkipListPair
+//	if node.EntryCnt == 1 {
+//		// when first entry at start node
+//		return false, node.Entries[0], 0
+//	} else {
+//		leftIdx := int32(-1)
+//		rightIdx := node.EntryCnt
+//		curIdx := int32(-1)
+//
+//		for 1 < rightIdx-leftIdx {
+//			curIdx = (leftIdx + rightIdx) / 2
+//			curEntry = node.EntryAt(curIdx)
+//			if curEntry.Key.CompareLessThan(*key) {
+//				leftIdx = curIdx
+//			} else {
+//				rightIdx = curIdx
+//			}
+//		}
+//		//return right
+//		if rightIdx >= node.EntryCnt {
+//			rightIdx--
+//		}
+//		rightEntry := node.EntryAt(rightIdx)
+//		if key.CompareEquals(rightEntry.Key) {
+//			return true, rightEntry, rightIdx
+//		} else {
+//			return false, node.EntryAt(rightIdx - 1), rightIdx - 1
+//		}
+//	}
+//}
+
 // if not found, returns info of nearest smaller key
 // binary search is used for search
+// https://www.cs.usfca.edu/~galles/visualization/Search.html
 func (node *SkipListBlockPage) FindEntryByKey(key *types.Value) (found bool, entry *SkipListPair, index int32) {
-	var curEntry *SkipListPair
 	if node.EntryCnt == 1 {
 		// when first entry at start node
 		return false, node.Entries[0], 0
 	} else {
-		leftIdx := int32(-1)
-		rightIdx := node.EntryCnt
-		curIdx := int32(-1)
+		lowIdx := int32(0)
+		highIdx := node.EntryCnt - 1
+		midIdx := int32(-1)
 
-		for 1 < rightIdx-leftIdx {
-			curIdx = (leftIdx + rightIdx) / 2
-			curEntry = node.EntryAt(curIdx)
-			if curEntry.Key.CompareLessThan(*key) {
-				leftIdx = curIdx
+		for lowIdx <= highIdx {
+			midIdx = (lowIdx + highIdx) / 2
+			if node.KeyAt(midIdx).CompareEquals(*key) {
+				return true, node.EntryAt(midIdx), midIdx
+			} else if node.KeyAt(midIdx).CompareLessThan(*key) {
+				lowIdx = midIdx + 1
 			} else {
-				rightIdx = curIdx
+				highIdx = midIdx - 1
 			}
 		}
-		//return right
-		if rightIdx >= node.EntryCnt {
-			rightIdx--
-		}
-		rightEntry := node.EntryAt(rightIdx)
-		if key.CompareEquals(rightEntry.Key) {
-			return true, rightEntry, rightIdx
+		if lowIdx < highIdx {
+			return false, node.EntryAt(lowIdx), lowIdx
 		} else {
-			return false, node.EntryAt(rightIdx - 1), rightIdx - 1
+			if highIdx < 0 {
+				return false, node.EntryAt(0), 0
+			} else {
+				return false, node.EntryAt(highIdx), highIdx
+			}
 		}
 	}
 
@@ -121,7 +155,7 @@ func (node *SkipListBlockPage) FindEntryByKey(key *types.Value) (found bool, ent
 // Attempts to insert a key and value into an index in the baccess
 // return value is whether newNode is created or not
 func (node *SkipListBlockPage) Insert(key *types.Value, value uint32, bpm *buffer.BufferPoolManager, skipPathList []*SkipListBlockPage,
-	level int32, startNode *SkipListBlockPage) bool {
+	level int32, curMaxLevel int32, startNode *SkipListBlockPage) bool {
 	fmt.Printf("Insert of SkipListBlockPage called! : page=%v key=%d\n", node.ID(), key.ToInteger())
 
 	found, _, foundIdx := node.FindEntryByKey(key)
@@ -133,7 +167,7 @@ func (node *SkipListBlockPage) Insert(key *types.Value, value uint32, bpm *buffe
 		fmt.Printf("end of Insert of SkipListBlockPage called! : page=%v key=%d page.EntryCnt=%d len(page.Entries)=%d\n", node.ID(), key.ToInteger(), node.EntryCnt, len(node.Entries))
 		return isMadeNewNode
 	} else if !found {
-		fmt.Printf("not found at Insert. foundIdx=%d\n", foundIdx)
+		fmt.Printf("not found at Insert of SkipListBlockPage. foundIdx=%d\n", foundIdx)
 		if node.EntryCnt+1 > node.MaxEntry {
 			// this node is full. so node split is needed
 
@@ -142,29 +176,30 @@ func (node *SkipListBlockPage) Insert(key *types.Value, value uint32, bpm *buffe
 			splitIdx := node.MaxEntry / 2
 			// update with this node
 			skipPathList[0] = node
-			node.SplitNode(splitIdx, bpm, skipPathList, level, startNode)
+			node.SplitNode(splitIdx, bpm, skipPathList, level, curMaxLevel, startNode)
 			isMadeNewNode = true
 
-			if foundIdx > splitIdx {
+			if foundIdx >= splitIdx {
 				// insert to new node
 				newSmallerIdx := foundIdx - splitIdx
 				newNode := node.Forward[0]
 				if (newSmallerIdx + 1 + 1) >= newNode.EntryCnt {
-					//newNode.Entries = append(node.Entries[:newSmallerIdx+1], &SkipListPair{*key, value})
-					var rightEntry []*SkipListPair = nil
-					if newSmallerIdx < newNode.EntryCnt-1 {
-						rightEntry = newNode.Entries[newSmallerIdx+1:]
-					}
-
-					if newSmallerIdx+1 >= newNode.EntryCnt {
-						newNode.Entries = append(newNode.Entries, &SkipListPair{*key, value})
-					} else {
-						newNode.Entries = append(newNode.Entries[:newSmallerIdx+1], &SkipListPair{*key, value})
-					}
-
-					if rightEntry != nil {
-						newNode.Entries = append(newNode.Entries, rightEntry...)
-					}
+					// when insertin point is next of last entry of new node
+					newNode.Entries = append(node.Entries, &SkipListPair{*key, value})
+					//var rightEntry []*SkipListPair = nil
+					//if newSmallerIdx < newNode.EntryCnt-1 {
+					//	rightEntry = newNode.Entries[newSmallerIdx+1:]
+					//}
+					//
+					//if newSmallerIdx+1 >= newNode.EntryCnt {
+					//	newNode.Entries = append(newNode.Entries, &SkipListPair{*key, value})
+					//} else {
+					//	newNode.Entries = append(newNode.Entries[:newSmallerIdx+1], &SkipListPair{*key, value})
+					//}
+					//
+					//if rightEntry != nil {
+					//	newNode.Entries = append(newNode.Entries, rightEntry...)
+					//}
 				} else {
 					newNode.Entries = append(node.Entries[:newSmallerIdx+1+1], node.Entries[newSmallerIdx+1:]...)
 					newNode.Entries[newSmallerIdx+1] = &SkipListPair{*key, value}
@@ -181,46 +216,18 @@ func (node *SkipListBlockPage) Insert(key *types.Value, value uint32, bpm *buffe
 		// foundIdx is index of nearlest smaller key entry
 		// new entry is inserted next of nearlest smaller key entry
 
-		//if node.EntryCnt == 1 {
-		//	if node.Entries[0].Key.CompareLessThan(*key) {
-		//		node.Entries = append(node.Entries, &SkipListPair{*key, value})
-		//	} else {
-		//		tmpEntry := node.Entries[0]
-		//		node.Entries[0] = &SkipListPair{*key, value}
-		//		node.Entries = append(node.Entries, tmpEntry)
-		//	}
-		//	node.EntryCnt = int32(len(node.Entries))
-		//} else if node.EntryCnt == 2 {
-		//	if foundIdx == 0 {
-		//		tmpEntry0 := node.Entries[0]
-		//		tmpEntry1 := node.Entries[1]
-		//		node.Entries = make([]*SkipListPair, 3)
-		//		node.Entries[0] = tmpEntry0
-		//		node.Entries[1] = &SkipListPair{*key, value}
-		//		node.Entries[2] = tmpEntry1
-		//	} else { // 1
-		//		tmpEntry0 := node.Entries[0]
-		//		tmpEntry1 := node.Entries[1]
-		//		node.Entries = make([]*SkipListPair, 3)
-		//		node.Entries[0] = tmpEntry0
-		//		node.Entries[1] = tmpEntry1
-		//		node.Entries[2] = &SkipListPair{*key, value}
-		//	}
-		//	node.Entries[foundIdx+1] = &SkipListPair{*key, value}
-		//	node.EntryCnt = int32(len(node.Entries))
-		//	if foundIdx == -1 {
-		//		node.SmallestKey = *key
-		//	}
-		//} else {
 		if (foundIdx + 1 + 1) >= node.EntryCnt {
-			var rightEntry []*SkipListPair = nil
-			if foundIdx < node.EntryCnt-1 {
-				rightEntry = node.Entries[foundIdx+1:]
-			}
-			node.Entries = append(node.Entries[:foundIdx+1], &SkipListPair{*key, value})
-			if rightEntry != nil {
-				node.Entries = append(node.Entries, rightEntry...)
-			}
+			// when insertin point is next of last entry of this node
+			node.Entries = append(node.Entries, &SkipListPair{*key, value})
+
+			//var rightEntry []*SkipListPair = nil
+			//if foundIdx < node.EntryCnt-1 {
+			//	rightEntry = node.Entries[foundIdx+1:]
+			//}
+			//node.Entries = append(node.Entries[:foundIdx+1], &SkipListPair{*key, value})
+			//if rightEntry != nil {
+			//	node.Entries = append(node.Entries, rightEntry...)
+			//}
 		} else {
 			node.Entries = append(node.Entries[:foundIdx+1+1], node.Entries[foundIdx+1:]...)
 			node.Entries[foundIdx+1] = &SkipListPair{*key, value}
@@ -273,7 +280,7 @@ func (node *SkipListBlockPage) Remove(key *types.Value) {
 // new node contains entries node.Entries[idx+1:]
 // (new node does not include entry node.Entries[idx])
 func (node *SkipListBlockPage) SplitNode(idx int32, bpm *buffer.BufferPoolManager, skipPathList []*SkipListBlockPage,
-	level int32, startNode *SkipListBlockPage) {
+	level int32, curMaxLevel int32, startNode *SkipListBlockPage) {
 	fmt.Println("SplitNode called!")
 
 	newNode := NewSkipListBlockPage(bpm, level, node.Entries[idx+1])
@@ -283,7 +290,9 @@ func (node *SkipListBlockPage) SplitNode(idx int32, bpm *buffer.BufferPoolManage
 	node.Entries = node.Entries[:idx+1]
 	node.EntryCnt = int32(len(node.Entries))
 
-	skipPathList[level-1] = startNode
+	if level > curMaxLevel {
+		skipPathList[level-1] = startNode
+	}
 	for ii := int32(0); ii < level; ii++ {
 		newNode.Forward[ii] = skipPathList[ii].Forward[ii]
 		skipPathList[ii].Forward[ii] = newNode
