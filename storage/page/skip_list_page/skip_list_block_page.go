@@ -2,6 +2,7 @@ package skip_list_page
 
 import (
 	"fmt"
+	"github.com/ryogrid/SamehadaDB/common"
 	"github.com/ryogrid/SamehadaDB/storage/buffer"
 	"github.com/ryogrid/SamehadaDB/storage/page"
 	"github.com/ryogrid/SamehadaDB/types"
@@ -147,10 +148,11 @@ func (node *SkipListBlockPage) Insert(key *types.Value, value uint32, bpm *buffe
 
 			if foundIdx >= splitIdx {
 				// insert to new node
-				newSmallerIdx := foundIdx - splitIdx
+				newSmallerIdx := foundIdx - splitIdx + 1
 				newNode := node.Forward[0]
-				if (newSmallerIdx + 1 + 1) >= newNode.EntryCnt {
+				if (newSmallerIdx + 1) >= newNode.EntryCnt {
 					// when insertin point is next of last entry of new node
+					common.SH_Assert(node.Entries[len(newNode.Entries)-1].Key.CompareLessThan(*key), "order is invalid.")
 					newNode.Entries = append(newNode.Entries, &SkipListPair{*key, value})
 					//var rightEntry []*SkipListPair = nil
 					//if newSmallerIdx < newNode.EntryCnt-1 {
@@ -167,14 +169,16 @@ func (node *SkipListBlockPage) Insert(key *types.Value, value uint32, bpm *buffe
 					//	newNode.Entries = append(newNode.Entries, rightEntry...)
 					//}
 				} else {
-					newNode.Entries = append(node.Entries[:newSmallerIdx+1+1], node.Entries[newSmallerIdx+1:]...)
-					newNode.Entries[newSmallerIdx+1] = &SkipListPair{*key, value}
+					newNode.Entries = append(newNode.Entries[:newSmallerIdx], newNode.Entries[newSmallerIdx-1:]...)
+					//common.SH_Assert(newNode.Entries[newSmallerIdx-2].Key.CompareLessThan(*key), "order is invalid.")
+					newNode.Entries[newSmallerIdx-1] = &SkipListPair{*key, value}
 				}
 				//newNode.Entries = append(newNode.Entries[:newSmallerIdx+1+1], newNode.Entries[newSmallerIdx+1:]...)
 				//newNode.Entries[newSmallerIdx+1] = &SkipListPair{*key, value}
 				newNode.EntryCnt = int32(len(newNode.Entries))
 
 				fmt.Printf("end of Insert of SkipListBlockPage called! : page=%v key=%d page.EntryCnt=%d len(page.Entries)=%d\n", node.ID(), key.ToInteger(), node.EntryCnt, len(node.Entries))
+
 				return isMadeNewNode
 			} // else => insert to this node
 		}
@@ -182,8 +186,9 @@ func (node *SkipListBlockPage) Insert(key *types.Value, value uint32, bpm *buffe
 		// foundIdx is index of nearlest smaller key entry
 		// new entry is inserted next of nearlest smaller key entry
 
-		if (foundIdx + 1 + 1) >= node.EntryCnt {
+		if (foundIdx + 1) >= node.EntryCnt {
 			// when inserting point is next of last entry of this node
+			common.SH_Assert(node.Entries[len(node.Entries)-1].Key.IsInfMin() || node.Entries[len(node.Entries)-1].Key.CompareLessThan(*key), "order is invalid.")
 			node.Entries = append(node.Entries, &SkipListPair{*key, value})
 
 			//var rightEntry []*SkipListPair = nil
@@ -196,6 +201,7 @@ func (node *SkipListBlockPage) Insert(key *types.Value, value uint32, bpm *buffe
 			//}
 		} else {
 			node.Entries = append(node.Entries[:foundIdx+1+1], node.Entries[foundIdx+1:]...)
+			common.SH_Assert(node.Entries[foundIdx].Key.CompareLessThan(*key), "order is invalid.")
 			node.Entries[foundIdx+1] = &SkipListPair{*key, value}
 		}
 		node.EntryCnt = int32(len(node.Entries))
