@@ -89,7 +89,8 @@ func (node *SkipListBlockPage) ValueAt(idx int32) uint32 {
 // https://www.cs.usfca.edu/~galles/visualization/Search.html
 func (node *SkipListBlockPage) FindEntryByKey(key *types.Value) (found bool, entry *SkipListPair, index int32) {
 	if node.EntryCnt == 1 {
-		// when first entry at start node
+		// TODO: (SDB) need care here (SkipListBlockPage::FindEntryByKey)
+		//             Though EntryCont is 1, case that Entries[0] is normal entry is exist
 		return false, node.Entries[0], 0
 	} else {
 		lowIdx := int32(0)
@@ -154,27 +155,11 @@ func (node *SkipListBlockPage) Insert(key *types.Value, value uint32, bpm *buffe
 					// when insertin point is next of last entry of new node
 					common.SH_Assert(node.Entries[len(newNode.Entries)-1].Key.CompareLessThan(*key), "order is invalid.")
 					newNode.Entries = append(newNode.Entries, &SkipListPair{*key, value})
-					//var rightEntry []*SkipListPair = nil
-					//if newSmallerIdx < newNode.EntryCnt-1 {
-					//	rightEntry = newNode.Entries[newSmallerIdx+1:]
-					//}
-					//
-					//if newSmallerIdx+1 >= newNode.EntryCnt {
-					//	newNode.Entries = append(newNode.Entries, &SkipListPair{*key, value})
-					//} else {
-					//	newNode.Entries = append(newNode.Entries[:newSmallerIdx+1], &SkipListPair{*key, value})
-					//}
-					//
-					//if rightEntry != nil {
-					//	newNode.Entries = append(newNode.Entries, rightEntry...)
-					//}
 				} else {
 					newNode.Entries = append(newNode.Entries[:newSmallerIdx], newNode.Entries[newSmallerIdx-1:]...)
 					//common.SH_Assert(newNode.Entries[newSmallerIdx-2].Key.CompareLessThan(*key), "order is invalid.")
 					newNode.Entries[newSmallerIdx-1] = &SkipListPair{*key, value}
 				}
-				//newNode.Entries = append(newNode.Entries[:newSmallerIdx+1+1], newNode.Entries[newSmallerIdx+1:]...)
-				//newNode.Entries[newSmallerIdx+1] = &SkipListPair{*key, value}
 				newNode.EntryCnt = int32(len(newNode.Entries))
 
 				fmt.Printf("end of Insert of SkipListBlockPage called! : page=%v key=%d page.EntryCnt=%d len(page.Entries)=%d\n", node.ID(), key.ToInteger(), node.EntryCnt, len(node.Entries))
@@ -190,15 +175,6 @@ func (node *SkipListBlockPage) Insert(key *types.Value, value uint32, bpm *buffe
 			// when inserting point is next of last entry of this node
 			common.SH_Assert(node.Entries[len(node.Entries)-1].Key.IsInfMin() || node.Entries[len(node.Entries)-1].Key.CompareLessThan(*key), "order is invalid.")
 			node.Entries = append(node.Entries, &SkipListPair{*key, value})
-
-			//var rightEntry []*SkipListPair = nil
-			//if foundIdx < node.EntryCnt-1 {
-			//	rightEntry = node.Entries[foundIdx+1:]
-			//}
-			//node.Entries = append(node.Entries[:foundIdx+1], &SkipListPair{*key, value})
-			//if rightEntry != nil {
-			//	node.Entries = append(node.Entries, rightEntry...)
-			//}
 		} else {
 			node.Entries = append(node.Entries[:foundIdx+1+1], node.Entries[foundIdx+1:]...)
 			common.SH_Assert(node.Entries[foundIdx].Key.CompareLessThan(*key), "order is invalid.")

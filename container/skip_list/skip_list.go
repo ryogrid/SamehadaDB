@@ -203,14 +203,14 @@ func (sl *SkipList) Insert(key *types.Value, value uint32) (err error) {
 		skipPathList[ii] = node
 	}
 	levelWhenNodeSplitOccur := sl.GetNodeLevel()
-	//if levelWhenNodeSplitOccur == sl.headerPageId.CurMaxLevel {
-	//	levelWhenNodeSplitOccur++
-	//}
-	//isNewNodeCreated := node.Insert(key, value, sl.bpm, skipPathList, levelWhenNodeSplitOccur, sl.headerPageId.CurMaxLevel, sl.headerPageId.ListStartPage)
-	//if isNewNodeCreated && levelWhenNodeSplitOccur > sl.headerPageId.CurMaxLevel {
-	//	sl.headerPageId.CurMaxLevel = levelWhenNodeSplitOccur
-	//}
-	node.Insert(key, value, sl.bpm, skipPathList, levelWhenNodeSplitOccur, sl.headerPageId.CurMaxLevel, sl.headerPageId.ListStartPage)
+	if levelWhenNodeSplitOccur == sl.headerPageId.CurMaxLevel {
+		levelWhenNodeSplitOccur++
+	}
+	isNewNodeCreated := node.Insert(key, value, sl.bpm, skipPathList, levelWhenNodeSplitOccur, sl.headerPageId.CurMaxLevel, sl.headerPageId.ListStartPage)
+	if isNewNodeCreated && levelWhenNodeSplitOccur > sl.headerPageId.CurMaxLevel {
+		sl.headerPageId.CurMaxLevel = levelWhenNodeSplitOccur
+	}
+	//node.Insert(key, value, sl.bpm, skipPathList, levelWhenNodeSplitOccur, sl.headerPageId.CurMaxLevel, sl.headerPageId.ListStartPage)
 
 	return nil
 }
@@ -299,11 +299,11 @@ func (sl *SkipListOnMem) GetNodeLevel() int32 {
 }
 
 func (sl *SkipList) GetNodeLevel() int32 {
-	////rand.Float32() returns a random value in [0..1)
-	//var retLevel int32 = 1
-	//for rand.Float32() < common.SkipListProb { // no MaxLevel check
-	//	retLevel++
-	//}
-	//return int32(math.Min(float64(retLevel), float64(sl.headerPageId.CurMaxLevel)))
-	return 1
+	//rand.Float32() returns a random value in [0..1)
+	var retLevel int32 = 1
+	for rand.Float32() < common.SkipListProb { // no MaxLevel check
+		retLevel++
+	}
+	return int32(math.Min(float64(retLevel), float64(sl.headerPageId.CurMaxLevel)))
+	//return 1
 }
