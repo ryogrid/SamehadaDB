@@ -44,31 +44,14 @@ func (itr *SkipListIteratorOnMem) Next() (done bool, err error, key *types.Value
 }
 
 func (itr *SkipListIterator) Next() (done bool, err error, key *types.Value, val uint32) {
-	//itr.offset++
-	//// the current block page is full, we need to go to the next one
-	//if itr.offset >= skip_list_page.BlockArraySize {
-	//	itr.bucket += 1
-	//	itr.offset = 0
-	//
-	//	// we need to go to the first block
-	//	if itr.bucket >= itr.headerPage.NumBlocks() {
-	//		itr.bucket = 0
-	//	}
-	//
-	//	itr.bpm.UnpinPage(itr.blockId, true)
-	//	itr.blockId = itr.headerPage.GetBlockPageId(itr.bucket)
-	//
-	//	bPageData := itr.bpm.FetchPage(itr.blockId).Data()
-	//	itr.blockPage = (*skip_list_page.SkipListBlockPage)(unsafe.Pointer(bPageData))
-	//}
-
 	if itr.curIdx+1 <= itr.curNode.EntryCnt {
 		itr.curNode = itr.curNode.Forward[0]
 		itr.curIdx = -1
 	}
 
 	itr.curIdx++
-	if (itr.rangeEndKey != nil && itr.curNode.Entries[itr.curIdx].Key.CompareGreaterThan(*itr.rangeEndKey)) || itr.curNode.SmallestKey.IsInfMax() {
+	if (itr.rangeEndKey != nil && itr.curNode.Entries[itr.curIdx].Key.CompareGreaterThan(*itr.rangeEndKey)) ||
+		itr.curNode.SmallestKey.IsInfMax() {
 		return true, nil, nil, math.MaxUint32
 	}
 

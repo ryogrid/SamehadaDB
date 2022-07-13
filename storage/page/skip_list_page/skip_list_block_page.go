@@ -83,40 +83,6 @@ func (node *SkipListBlockPage) ValueAt(idx int32) uint32 {
 	return val
 }
 
-//// if not found, returns info of nearest smaller key
-//// binary search is used for search
-//func (node *SkipListBlockPage) FindEntryByKey(key *types.Value) (found bool, entry *SkipListPair, index int32) {
-//	var curEntry *SkipListPair
-//	if node.EntryCnt == 1 {
-//		// when first entry at start node
-//		return false, node.Entries[0], 0
-//	} else {
-//		leftIdx := int32(-1)
-//		rightIdx := node.EntryCnt
-//		curIdx := int32(-1)
-//
-//		for 1 < rightIdx-leftIdx {
-//			curIdx = (leftIdx + rightIdx) / 2
-//			curEntry = node.EntryAt(curIdx)
-//			if curEntry.Key.CompareLessThan(*key) {
-//				leftIdx = curIdx
-//			} else {
-//				rightIdx = curIdx
-//			}
-//		}
-//		//return right
-//		if rightIdx >= node.EntryCnt {
-//			rightIdx--
-//		}
-//		rightEntry := node.EntryAt(rightIdx)
-//		if key.CompareEquals(rightEntry.Key) {
-//			return true, rightEntry, rightIdx
-//		} else {
-//			return false, node.EntryAt(rightIdx - 1), rightIdx - 1
-//		}
-//	}
-//}
-
 // if not found, returns info of nearest smaller key
 // binary search is used for search
 // https://www.cs.usfca.edu/~galles/visualization/Search.html
@@ -217,7 +183,7 @@ func (node *SkipListBlockPage) Insert(key *types.Value, value uint32, bpm *buffe
 		// new entry is inserted next of nearlest smaller key entry
 
 		if (foundIdx + 1 + 1) >= node.EntryCnt {
-			// when insertin point is next of last entry of this node
+			// when inserting point is next of last entry of this node
 			node.Entries = append(node.Entries, &SkipListPair{*key, value})
 
 			//var rightEntry []*SkipListPair = nil
@@ -284,9 +250,10 @@ func (node *SkipListBlockPage) SplitNode(idx int32, bpm *buffer.BufferPoolManage
 	fmt.Println("SplitNode called!")
 
 	newNode := NewSkipListBlockPage(bpm, level, node.Entries[idx+1])
-	newNode.Entries = node.Entries[idx+1:]
+	newNode.Entries = append(make([]*SkipListPair, 0), node.Entries[idx+1:]...)
 	newNode.SmallestKey = newNode.Entries[0].Key
 	newNode.EntryCnt = int32(len(newNode.Entries))
+	newNode.Level = level
 	node.Entries = node.Entries[:idx+1]
 	node.EntryCnt = int32(len(node.Entries))
 

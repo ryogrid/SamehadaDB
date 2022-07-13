@@ -104,20 +104,11 @@ func (sl *SkipList) FindNodeWithEntryIdxForIterator(key *types.Value) (*skip_lis
 
 func (sl *SkipListOnMem) getValueOnMemInner(key *types.Value) *SkipListOnMem {
 	x := sl
-	// loop invariant: x.key < searchKey
-	//fmt.Println("---")
-	//fmt.Println(key.ToInteger())
-	//moveCnt := 0
 	for i := (x.CurMaxLevel - 1); i >= 0; i-- {
-		//fmt.Printf("level %d\n", i)
 		for x.Forward[i].Key.CompareLessThan(*key) {
 			x = x.Forward[i]
-			//fmt.Printf("%d ", x.Key.ToInteger())
-			//moveCnt++
 		}
-		//fmt.Println("")
 	}
-	//fmt.Println(moveCnt)
 	return x
 }
 
@@ -138,46 +129,7 @@ func (sl *SkipListOnMem) GetEqualOrNearestSmallerNodeOnMem(key *types.Value) *Sk
 }
 
 func (sl *SkipList) GetValue(key *types.Value) uint32 {
-	//sl.list_latch.RLock()
-	//defer sl.list_latch.RUnlock()
-	//hPageData := sl.bpm.FetchPage(sl.headerPageId).Data()
-	//headerPage := (*skip_list_page.SkipListHeaderPage)(unsafe.Pointer(hPageData))
-	//
-	//hash := hash(key)
-	//
-	//originalBucketIndex := hash % headerPage.NumBlocks()
-	//originalBucketOffset := hash % skip_list_page.BlockArraySize
-	//
-	//iterator := newSkipListIterator(sl.bpm, headerPage, originalBucketIndex, originalBucketOffset)
-	//
-	//result := []uint32{}
-	//blockPage, offset := iterator.blockPage, iterator.offset
-	//var bucket uint32
-	//for blockPage.IsOccupied(offset) { // stop the search and we find an empty spot
-	//	if blockPage.IsReadable(offset) && blockPage.KeyAt(offset).CompareEquals(*types.NewValueFromBytes(key, types.Integer)) {
-	//		result = append(result, blockPage.ValueAt(offset))
-	//	}
-	//
-	//	iterator.next()
-	//	blockPage, bucket, offset = iterator.blockPage, iterator.bucket, iterator.offset
-	//	if bucket == originalBucketIndex && offset == originalBucketOffset {
-	//		break
-	//	}
-	//}
-	//
-	//sl.bpm.UnpinPage(iterator.blockId, true)
-	//sl.bpm.UnpinPage(sl.headerPageId, false)
-	//
-	//return result
-
 	node := sl.FindNode(key)
-	//xf := node.Forward[0]
-	//// node.SmallestKey < searchKey <= node.forward[0].SmallestKey
-	//if xf.SmallestKey.CompareEquals(*key) {
-	//	return xf.Val
-	//} else {
-	//	return math.MaxUint32
-	//}
 	found, entry, _ := node.FindEntryByKey(key)
 	if found {
 		return entry.Value
@@ -293,35 +245,6 @@ func (sl *SkipListOnMem) RemoveOnMem(key *types.Value, value uint32) {
 }
 
 func (sl *SkipList) Remove(key *types.Value, value uint32) {
-	//sl.list_latch.WLock()
-	//defer sl.list_latch.WUnlock()
-	//hPageData := sl.bpm.FetchPage(sl.headerPageId).Data()
-	//headerPage := (*skip_list_page.SkipListHeaderPage)(unsafe.Pointer(hPageData))
-	//
-	//hash := hash(key)
-	//
-	//originalBucketIndex := hash % headerPage.NumBlocks()
-	//originalBucketOffset := hash % skip_list_page.BlockArraySize
-	//
-	//iterator := newSkipListIterator(sl.bpm, headerPage, originalBucketIndex, originalBucketOffset)
-	//
-	//blockPage, offset := iterator.blockPage, iterator.offset
-	//var bucket uint32
-	//for blockPage.IsOccupied(offset) { // stop the search and we find an empty spot
-	//	if blockPage.IsOccupied(offset) && blockPage.KeyAt(offset).CompareEquals(*types.NewValueFromBytes(key, types.Integer)) && blockPage.ValueAt(offset) == value {
-	//		blockPage.Remove(offset)
-	//	}
-	//
-	//	iterator.next()
-	//	blockPage, bucket, offset = iterator.blockPage, iterator.bucket, iterator.offset
-	//	if bucket == originalBucketIndex && offset == originalBucketOffset {
-	//		break
-	//	}
-	//}
-	//
-	//sl.bpm.UnpinPage(iterator.blockId, true)
-	//sl.bpm.UnpinPage(sl.headerPageId, false)
-
 	// update is an array of pointers to the
 	// predecessors of the element to be deleted.
 	node := sl.headerPageId.ListStartPage
@@ -331,22 +254,6 @@ func (sl *SkipList) Remove(key *types.Value, value uint32) {
 		}
 	}
 	//node = node.Forward[0]
-
-	//if node.Key.CompareEquals(*key) {
-	//	// go delete ...
-	//	for ii := int32(0); ii < sl.CurMaxLevel; ii++ {
-	//		if update[ii].Forward[ii] != node {
-	//			break //(**)
-	//		}
-	//		update[ii].Forward[ii] = node.Forward[ii]
-	//	}
-	//	// if deleting the element causes some of the
-	//	// highest level list to become empty, decrease the
-	//	// list level until a non-empty list is encountered.
-	//	for (sl.CurMaxLevel > 1) && (sl.Forward[sl.CurMaxLevel-1] == sl) {
-	//		sl.CurMaxLevel--
-	//	}
-	//}
 
 	// remove specified entry from found node
 	node.Remove(key)
@@ -366,22 +273,10 @@ func (sl *SkipListOnMem) IteratorOnMem(rangeStartKey *types.Value, rangeEndKey *
 }
 
 func (sl *SkipList) Iterator(rangeStartKey *types.Value, rangeEndKey *types.Value) *SkipListIterator {
-	//ret := new(SkipListIteratorOnMem)
-	//ret.curNode = sl
-	//ret.rangeStartKey = rangeStartKey
-	//ret.rangeEndKey = rangeEndKey
-	//
-	//if rangeStartKey != nil {
-	//	ret.curNode = ret.curNode.GetEqualOrNearestSmallerNodeOnMem(rangeStartKey)
-	//}
-	//
-	//return ret
-
 	ret := new(SkipListIterator)
-	if len(sl.headerPageId.ListStartPage.Entries) == 1 {
-		// there are no entry corresponding user record
-
-	}
+	//if len(sl.headerPageId.ListStartPage.Entries) == 1 {
+	//	// there are no entry corresponding user record
+	//}
 	ret.curNode = sl.headerPageId.ListStartPage
 	ret.curIdx = 0
 	ret.rangeStartKey = rangeStartKey
@@ -392,7 +287,6 @@ func (sl *SkipList) Iterator(rangeStartKey *types.Value, rangeEndKey *types.Valu
 	}
 
 	return ret
-
 }
 
 func (sl *SkipListOnMem) GetNodeLevel() int32 {

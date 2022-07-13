@@ -153,6 +153,12 @@ func TestBSearchOfSkipLisBlockPageBackedOnMem(t *testing.T) {
 		}
 	}
 
+	//// try find entry which is smaller than first entry on nodes
+	//key := types.NewInteger(int32(-10))
+	//found, entry, idx := bpage.FindEntryByKey(&key)
+	//fmt.Printf("When specified key which is smaller than smallest entry: idx=%d", idx)
+	//testingpkg.SimpleAssert(t, found == false && entry.Value == uint32(key.ToInteger()))
+
 	// ------- when element num is odd number -----
 	bpage.Entries = make([]*skip_list_page.SkipListPair, 0)
 	bpage.Entries = append(bpage.Entries, &skip_list_page.SkipListPair{
