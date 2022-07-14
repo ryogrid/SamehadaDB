@@ -4,7 +4,6 @@ import (
 	"fmt"
 	"github.com/ryogrid/SamehadaDB/common"
 	"github.com/ryogrid/SamehadaDB/storage/buffer"
-	"github.com/ryogrid/SamehadaDB/storage/page"
 	"github.com/ryogrid/SamehadaDB/types"
 )
 
@@ -36,7 +35,7 @@ type SkipListBlockPageOnMem struct {
 }
 
 type SkipListBlockPage struct {
-	page.Page
+	//page.Page
 	Level       int32
 	SmallestKey types.Value
 	Forward     []*SkipListBlockPage //[]types.PageID
@@ -49,13 +48,13 @@ type SkipListBlockPage struct {
 }
 
 func NewSkipListBlockPage(bpm *buffer.BufferPoolManager, level int32, smallestListPair *SkipListPair) *SkipListBlockPage {
-	page_ := bpm.NewPage()
-	if page_ == nil {
-		return nil
-	}
+	//page_ := bpm.NewPage()
+	//if page_ == nil {
+	//	return nil
+	//}
 
 	ret := new(SkipListBlockPage)
-	ret.Page = *page_
+	//ret.Page = *page_
 	//(*SkipListBlockPage)(unsafe.Pointer(page_))
 	ret.Entries = make([]*SkipListPair, 0) // for first insert works
 	ret.Entries = append(ret.Entries, smallestListPair)
@@ -130,7 +129,7 @@ func (node *SkipListBlockPage) FindEntryByKey(key *types.Value) (found bool, ent
 // return value is whether newNode is created or not
 func (node *SkipListBlockPage) Insert(key *types.Value, value uint32, bpm *buffer.BufferPoolManager, skipPathList []*SkipListBlockPage,
 	level int32, curMaxLevel int32, startNode *SkipListBlockPage) bool {
-	fmt.Printf("Insert of SkipListBlockPage called! : page=%v key=%d\n", node.ID(), key.ToInteger())
+	fmt.Printf("Insert of SkipListBlockPage called! : key=%d\n", key.ToInteger())
 
 	found, _, foundIdx := node.FindEntryByKey(key)
 	isMadeNewNode := false
@@ -139,7 +138,7 @@ func (node *SkipListBlockPage) Insert(key *types.Value, value uint32, bpm *buffe
 		fmt.Println("found at Insert")
 		// over write exsiting entry
 		node.Entries[foundIdx] = &SkipListPair{*key, value}
-		fmt.Printf("end of Insert of SkipListBlockPage called! : page=%v key=%d page.EntryCnt=%d len(page.Entries)=%d\n", node.ID(), key.ToInteger(), node.EntryCnt, len(node.Entries))
+		fmt.Printf("end of Insert of SkipListBlockPage called! : key=%d page.EntryCnt=%d len(page.Entries)=%d\n", key.ToInteger(), node.EntryCnt, len(node.Entries))
 		return isMadeNewNode
 	} else if !found {
 		fmt.Printf("not found at Insert of SkipListBlockPage. foundIdx=%d\n", foundIdx)
@@ -173,7 +172,7 @@ func (node *SkipListBlockPage) Insert(key *types.Value, value uint32, bpm *buffe
 				}
 				newNode.EntryCnt = int32(len(newNode.Entries))
 
-				fmt.Printf("end of Insert of SkipListBlockPage called! : page=%v key=%d page.EntryCnt=%d len(page.Entries)=%d\n", node.ID(), key.ToInteger(), node.EntryCnt, len(node.Entries))
+				fmt.Printf("end of Insert of SkipListBlockPage called! : key=%d page.EntryCnt=%d len(page.Entries)=%d\n", key.ToInteger(), node.EntryCnt, len(node.Entries))
 
 				return isMadeNewNode
 			} // else => insert to this node
@@ -204,7 +203,7 @@ func (node *SkipListBlockPage) Insert(key *types.Value, value uint32, bpm *buffe
 		}
 		node.EntryCnt = int32(len(node.Entries))
 	}
-	fmt.Printf("end of Insert of SkipListBlockPage called! : page=%v key=%d page.EntryCnt=%d len(page.Entries)=%d\n", node.ID(), key.ToInteger(), node.EntryCnt, len(node.Entries))
+	fmt.Printf("end of Insert of SkipListBlockPage called! : key=%d page.EntryCnt=%d len(page.Entries)=%d\n", key.ToInteger(), node.EntryCnt, len(node.Entries))
 	return isMadeNewNode
 }
 
@@ -215,7 +214,7 @@ func (node *SkipListBlockPage) Remove(key *types.Value, skipPathList []*SkipList
 		// this node keep reft with no entry (but new entry can be stored)
 
 		// remove this node from all level of chain
-		for ii := int32(0); ii < level; ii++ {
+		for ii := int32(0); ii < node.Level; ii++ {
 			skipPathList[ii].Forward[ii] = node.Forward[ii]
 		}
 
