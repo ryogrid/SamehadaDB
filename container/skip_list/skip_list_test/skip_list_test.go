@@ -5,6 +5,7 @@ import (
 	"github.com/ryogrid/SamehadaDB/container/skip_list"
 	"github.com/ryogrid/SamehadaDB/samehada"
 	"github.com/ryogrid/SamehadaDB/samehada/samehada_util"
+	"github.com/ryogrid/SamehadaDB/storage/page/skip_list_page"
 	testingpkg "github.com/ryogrid/SamehadaDB/testing"
 	"github.com/ryogrid/SamehadaDB/types"
 	"math"
@@ -118,63 +119,63 @@ import (
 //	testingpkg.SimpleAssert(t, nodeCnt == 250)
 //}
 
-//func TestBSearchOfSkipLisBlockPageBackedOnMem(t *testing.T) {
-//	os.Remove("test.db")
-//	os.Remove("test.log")
-//	shi := samehada.NewSamehadaInstanceForTesting()
-//	bpm := shi.GetBufferPoolManager()
-//
-//	bpage := skip_list_page.NewSkipListBlockPage(bpm, 1, &skip_list_page.SkipListPair{
-//		Key:   types.NewInteger(-1),
-//		Value: 0,
-//	})
-//
-//	// ------- when element num is even number -----
-//	bpage.Entries = make([]*skip_list_page.SkipListPair, 0)
-//	bpage.Entries = append(bpage.Entries, &skip_list_page.SkipListPair{
-//		Key:   types.NewInteger(-1),
-//		Value: 0,
-//	})
-//	// set entries
-//	for ii := 1; ii < 50; ii++ {
-//		bpage.Entries = append(bpage.Entries, &skip_list_page.SkipListPair{types.NewInteger(int32(ii * 10)), uint32(ii * 10)})
-//	}
-//	bpage.EntryCnt = int32(len(bpage.Entries))
-//
-//	for ii := 1; ii < 100; ii++ {
-//		key := types.NewInteger(int32(ii * 5))
-//		found, entry, idx := bpage.FindEntryByKey(&key)
-//		//fmt.Println(ii)
-//		if ii%2 == 0 {
-//			testingpkg.SimpleAssert(t, found == true && entry.Value == uint32(key.ToInteger()))
-//		} else {
-//			testingpkg.SimpleAssert(t, found == false && uint32(key.ToInteger())-bpage.ValueAt(idx) == 5)
-//		}
-//	}
-//
-//	// ------- when element num is odd number -----
-//	bpage.Entries = make([]*skip_list_page.SkipListPair, 0)
-//	bpage.Entries = append(bpage.Entries, &skip_list_page.SkipListPair{
-//		Key:   types.NewInteger(-1),
-//		Value: 0,
-//	})
-//	// set entries
-//	for ii := 1; ii < 51; ii++ {
-//		bpage.Entries = append(bpage.Entries, &skip_list_page.SkipListPair{types.NewInteger(int32(ii * 10)), uint32(ii * 10)})
-//	}
-//	bpage.EntryCnt = int32(len(bpage.Entries))
-//
-//	for ii := 1; ii < 102; ii++ {
-//		key := types.NewInteger(int32(ii * 5))
-//		found, entry, idx := bpage.FindEntryByKey(&key)
-//		//fmt.Println(ii)
-//		if ii%2 == 0 {
-//			testingpkg.SimpleAssert(t, found == true && entry.Value == uint32(key.ToInteger()))
-//		} else {
-//			testingpkg.SimpleAssert(t, found == false && uint32(key.ToInteger())-bpage.ValueAt(idx) == 5)
-//		}
-//	}
-//}
+func TestBSearchOfSkipLisBlockPageBackedOnMem(t *testing.T) {
+	os.Remove("test.db")
+	os.Remove("test.log")
+	shi := samehada.NewSamehadaInstanceForTesting()
+	bpm := shi.GetBufferPoolManager()
+
+	bpage := skip_list_page.NewSkipListBlockPage(bpm, 1, &skip_list_page.SkipListPair{
+		Key:   types.NewInteger(-1),
+		Value: 0,
+	})
+
+	// ------- when element num is even number -----
+	bpage.Entries = make([]*skip_list_page.SkipListPair, 0)
+	bpage.Entries = append(bpage.Entries, &skip_list_page.SkipListPair{
+		Key:   types.NewInteger(-1),
+		Value: 0,
+	})
+	// set entries
+	for ii := 1; ii < 50; ii++ {
+		bpage.Entries = append(bpage.Entries, &skip_list_page.SkipListPair{types.NewInteger(int32(ii * 10)), uint32(ii * 10)})
+	}
+	bpage.EntryCnt = int32(len(bpage.Entries))
+
+	for ii := 1; ii < 100; ii++ {
+		key := types.NewInteger(int32(ii * 5))
+		found, entry, idx := bpage.FindEntryByKey(&key)
+		//fmt.Println(ii)
+		if ii%2 == 0 {
+			testingpkg.SimpleAssert(t, found == true && entry.Value == uint32(key.ToInteger()))
+		} else {
+			testingpkg.SimpleAssert(t, found == false && uint32(key.ToInteger())-bpage.ValueAt(idx) == 5)
+		}
+	}
+
+	// ------- when element num is odd number -----
+	bpage.Entries = make([]*skip_list_page.SkipListPair, 0)
+	bpage.Entries = append(bpage.Entries, &skip_list_page.SkipListPair{
+		Key:   types.NewInteger(-1),
+		Value: 0,
+	})
+	// set entries
+	for ii := 1; ii < 51; ii++ {
+		bpage.Entries = append(bpage.Entries, &skip_list_page.SkipListPair{types.NewInteger(int32(ii * 10)), uint32(ii * 10)})
+	}
+	bpage.EntryCnt = int32(len(bpage.Entries))
+
+	for ii := 1; ii < 102; ii++ {
+		key := types.NewInteger(int32(ii * 5))
+		found, entry, idx := bpage.FindEntryByKey(&key)
+		//fmt.Println(ii)
+		if ii%2 == 0 {
+			testingpkg.SimpleAssert(t, found == true && entry.Value == uint32(key.ToInteger()))
+		} else {
+			testingpkg.SimpleAssert(t, found == false && uint32(key.ToInteger())-bpage.ValueAt(idx) == 5)
+		}
+	}
+}
 
 func confirmSkipListContent(t *testing.T, sl *skip_list.SkipList, step int32) int32 {
 	entryCnt := int32(0)
@@ -224,16 +225,16 @@ func TestSkipLisPageBackedOnMem(t *testing.T) {
 	// Insert entries
 	insCnt := 0
 	for _, insVal := range insVals {
-		fmt.Printf("insCnt: %d\n", insCnt)
+		//fmt.Printf("insCnt: %d\n", insCnt)
 		insCnt++
 		sl.Insert(samehada_util.GetPonterOfValue(types.NewInteger(int32(insVal))), uint32(insVal))
 	}
 
-	confirmSkipListContent(t, sl, 11)
+	//confirmSkipListContent(t, sl, 11)
 
 	// Get entries
 	for i := 0; i < 250; i++ {
-		fmt.Printf("get entry i=%d key=%d\n", i, i*11)
+		//fmt.Printf("get entry i=%d key=%d\n", i, i*11)
 		res := sl.GetValue(samehada_util.GetPonterOfValue(types.NewInteger(int32(i * 11))))
 		if res == math.MaxUint32 {
 			t.Errorf("result should not be nil")
@@ -245,30 +246,17 @@ func TestSkipLisPageBackedOnMem(t *testing.T) {
 	// delete some values
 	for i := 0; i < 100; i++ {
 		// check existance before delete
-		res := uint32(0)
-		if i == 72 {
-			res = sl.GetValue(samehada_util.GetPonterOfValue(types.NewInteger(int32(i * 11))))
-		} else if i == 73 {
-			res = sl.GetValue(samehada_util.GetPonterOfValue(types.NewInteger(int32(i * 11))))
-		} else if i == 74 {
-			res = sl.GetValue(samehada_util.GetPonterOfValue(types.NewInteger(int32(i * 11))))
-		} else {
-			res = sl.GetValue(samehada_util.GetPonterOfValue(types.NewInteger(int32(i * 11))))
-		}
-		fmt.Printf("check existance before delete : i=%d\n", i)
+		res := sl.GetValue(samehada_util.GetPonterOfValue(types.NewInteger(int32(i * 11))))
+		//fmt.Printf("check existance before delete : i=%d\n", i)
 		testingpkg.SimpleAssert(t, res == uint32(i*11))
 
-		if i == 73 {
-			// check no existance after delete
-			sl.Remove(samehada_util.GetPonterOfValue(types.NewInteger(int32(i*11))), uint32(i*11))
-		} else {
-			sl.Remove(samehada_util.GetPonterOfValue(types.NewInteger(int32(i*11))), uint32(i*11))
-		}
+		// check no existance after delete
+		sl.Remove(samehada_util.GetPonterOfValue(types.NewInteger(int32(i*11))), uint32(i*11))
 
 		res = sl.GetValue(samehada_util.GetPonterOfValue(types.NewInteger(int32(i * 11))))
 		testingpkg.SimpleAssert(t, math.MaxUint32 == res)
-		fmt.Println("contents listing after delete")
-		confirmSkipListContent(t, sl, -1)
+		//fmt.Println("contents listing after delete")
+		//confirmSkipListContent(t, sl, -1)
 	}
 }
 
@@ -337,12 +325,12 @@ func TestSkipListItrPageBackedOnMem(t *testing.T) {
 	nodeCnt := 0
 	itr4 := sl.Iterator(startValP, endValP)
 	for done, _, key, _ := itr4.Next(); !done; done, _, key, _ = itr4.Next() {
-		fmt.Printf("lastKeyVal=%d curVal=%d nodeCnt=%d\n", lastKeyVal, key.ToInteger(), nodeCnt)
+		//fmt.Printf("lastKeyVal=%d curVal=%d nodeCnt=%d\n", lastKeyVal, key.ToInteger(), nodeCnt)
 		testingpkg.SimpleAssert(t, lastKeyVal <= key.ToInteger())
 		lastKeyVal = key.ToInteger()
 		nodeCnt++
 	}
 
-	fmt.Printf("nodeCnt=%d\n", nodeCnt)
+	//fmt.Printf("nodeCnt=%d\n", nodeCnt)
 	testingpkg.SimpleAssert(t, nodeCnt == 250)
 }
