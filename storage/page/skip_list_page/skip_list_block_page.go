@@ -151,7 +151,7 @@ func (node *SkipListBlockPage) Insert(key *types.Value, value uint32, bpm *buffe
 			if foundIdx >= splitIdx {
 				// insert to new node
 				//newSmallerIdx := foundIdx - splitIdx + 1
-				newSmallerIdx := foundIdx - splitIdx
+				newSmallerIdx := foundIdx - splitIdx - 1
 				newNode := node.Forward[0]
 				if (newSmallerIdx + 1) >= newNode.EntryCnt {
 					// when insertin point is next of last entry of new node
