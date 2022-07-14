@@ -184,12 +184,14 @@ func confirmSkipListContent(t *testing.T, sl *skip_list.SkipList, step int32) in
 	itr := sl.Iterator(nil, nil)
 	for done, _, key, _ := itr.Next(); !done; done, _, key, _ = itr.Next() {
 		curVal := key.ToInteger()
-		fmt.Printf("lastKeyVal=%d curVal=%d nodeCnt=%d\n", lastKeyVal, curVal, entryCnt)
+		fmt.Printf("lastKeyVal=%d curVal=%d entryCnt=%d\n", lastKeyVal, curVal, entryCnt)
 		_, ok := dupCheckMap[curVal]
-		if !(lastKeyVal == -1 || (lastKeyVal <= curVal && (curVal-lastKeyVal == step))) {
-			fmt.Println("!!! curVal or lastKeyVal is invalid !!!")
-		} else if ok {
-			fmt.Println("!!! curVal is duplicated !!!")
+		if step != -1 {
+			if !(lastKeyVal == -1 || (lastKeyVal <= curVal && (curVal-lastKeyVal == step))) {
+				fmt.Println("!!! curVal or lastKeyVal is invalid !!!")
+			} else if ok {
+				fmt.Println("!!! curVal is duplicated !!!")
+			}
 		}
 		//testingpkg.SimpleAssert(t, lastKeyVal == -1 || (lastKeyVal <= key.ToInteger() && (key.ToInteger()-lastKeyVal == step)))
 		//testingpkg.SimpleAssert(t, lastKeyVal != key.ToInteger())
@@ -245,7 +247,9 @@ func TestSkipLisPageBackedOnMem(t *testing.T) {
 	for i := 0; i < 100; i++ {
 		// check existance before delete
 		res := uint32(0)
-		if i == 74 {
+		if i == 73 {
+			res = sl.GetValue(samehada_util.GetPonterOfValue(types.NewInteger(int32(i * 11))))
+		} else if i == 74 {
 			res = sl.GetValue(samehada_util.GetPonterOfValue(types.NewInteger(int32(i * 11))))
 		} else {
 			res = sl.GetValue(samehada_util.GetPonterOfValue(types.NewInteger(int32(i * 11))))
@@ -258,6 +262,8 @@ func TestSkipLisPageBackedOnMem(t *testing.T) {
 
 		res = sl.GetValue(samehada_util.GetPonterOfValue(types.NewInteger(int32(i * 11))))
 		testingpkg.SimpleAssert(t, math.MaxUint32 == res)
+		fmt.Println("contents listing after delete")
+		confirmSkipListContent(t, sl, -1)
 	}
 }
 

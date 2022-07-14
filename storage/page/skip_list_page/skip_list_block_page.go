@@ -89,9 +89,15 @@ func (node *SkipListBlockPage) ValueAt(idx int32) uint32 {
 // https://www.cs.usfca.edu/~galles/visualization/Search.html
 func (node *SkipListBlockPage) FindEntryByKey(key *types.Value) (found bool, entry *SkipListPair, index int32) {
 	if node.EntryCnt == 1 {
-		// TODO: (SDB) need care here (SkipListBlockPage::FindEntryByKey)
-		//             Though EntryCont is 1, case that Entries[0] is normal entry is exist
-		return false, node.Entries[0], 0
+		if node.Entries[0].Key.CompareEquals(*key) {
+			return true, node.Entries[0], 0
+		} else {
+			if node.Entries[0].Key.IsInfMin() {
+				return false, node.Entries[0], 0
+			} else {
+				return false, node.Entries[0], -1
+			}
+		}
 	} else {
 		lowIdx := int32(0)
 		highIdx := node.EntryCnt - 1
@@ -243,6 +249,7 @@ func (node *SkipListBlockPage) Remove(key *types.Value, skipPathList []*SkipList
 		//formerEntries = append(formerEntries, laterEntries...)
 		//node.Entries = formerEntries
 		node.Entries = append(node.Entries[:foundIdx], node.Entries[foundIdx+1:]...)
+		node.SmallestKey = node.Entries[0].Key
 		node.EntryCnt = int32(len(node.Entries))
 		return true, node.Level
 	} else { // found == false
