@@ -191,7 +191,7 @@ func TestSkipLisPageBackedOnMem(t *testing.T) {
 	sl := skip_list.NewSkipList(shi.GetBufferPoolManager(), types.Integer)
 
 	insVals := make([]int32, 0)
-	for i := 0; i < 250; i++ {
+	for i := 0; i < 2500; i++ {
 		insVals = append(insVals, int32(i*11))
 	}
 	// shuffle value list for inserting
@@ -237,7 +237,7 @@ func TestSkipListItrPageBackedOnMem(t *testing.T) {
 	sl := skip_list.NewSkipList(shi.GetBufferPoolManager(), types.Integer)
 
 	insVals := make([]int32, 0)
-	for i := 0; i < 250; i++ {
+	for i := 0; i < 2500; i++ {
 		insVals = append(insVals, int32(i*11))
 	}
 	// shuffle value list for inserting
