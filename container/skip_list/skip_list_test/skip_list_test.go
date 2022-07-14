@@ -190,8 +190,11 @@ func TestSkipLisPageBackedOnMem(t *testing.T) {
 	shi := samehada.NewSamehadaInstanceForTesting()
 	sl := skip_list.NewSkipList(shi.GetBufferPoolManager(), types.Integer)
 
+	// override global rand seed (seed has been set on NewSkipList)
+	rand.Seed(3)
+
 	insVals := make([]int32, 0)
-	for i := 0; i < 2500; i++ {
+	for i := 0; i < 250; i++ {
 		insVals = append(insVals, int32(i*11))
 	}
 	// shuffle value list for inserting
@@ -237,7 +240,7 @@ func TestSkipListItrPageBackedOnMem(t *testing.T) {
 	sl := skip_list.NewSkipList(shi.GetBufferPoolManager(), types.Integer)
 
 	insVals := make([]int32, 0)
-	for i := 0; i < 2500; i++ {
+	for i := 0; i < 250; i++ {
 		insVals = append(insVals, int32(i*11))
 	}
 	// shuffle value list for inserting
