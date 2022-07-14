@@ -9,12 +9,6 @@ import (
 )
 
 type SkipListIteratorOnMem struct {
-	//bpm        *buffer.BufferPoolManager
-	//headerPage *skip_list_page.SkipListHeaderPage
-	//bucket     uint32
-	//offset     uint32
-	//blockId    types.PageID
-	//blockPage  *skip_list_page.SkipListBlockPage
 	curNode       *SkipListOnMem
 	rangeStartKey *types.Value
 	rangeEndKey   *types.Value

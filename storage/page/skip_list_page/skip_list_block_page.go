@@ -218,34 +218,7 @@ func (node *SkipListBlockPage) Remove(key *types.Value, skipPathList []*SkipList
 		}
 
 		return true, node.Level
-		//// delete specified entry
-		//node.Entries[0] = nil
-		//
-		//var smallestKey types.Value
-		//switch key.ValueType() {
-		//case types.Integer:
-		//	smallestKey = types.NewInteger(0)
-		//	smallestKey.SetInfMin()
-		//case types.Float:
-		//	smallestKey = types.NewFloat(0)
-		//	smallestKey.SetInfMin()
-		//case types.Varchar:
-		//	smallestKey = types.NewVarchar("")
-		//	smallestKey.SetInfMin()
-		//case types.Boolean:
-		//	smallestKey = types.NewBoolean(false)
-		//	smallestKey.SetInfMin()
-		//default:
-		//	panic("not implemented")
-		//}
-		//node.SmallestKey = smallestKey
 	} else if found {
-		//formerEntries := make([]*SkipListPair, len(node.Entries[:foundIdx]))
-		//copy(formerEntries, node.Entries[:foundIdx])
-		//laterEntries := make([]*SkipListPair, len(node.Entries[foundIdx+1:]))
-		//copy(laterEntries, node.Entries[foundIdx+1:])
-		//formerEntries = append(formerEntries, laterEntries...)
-		//node.Entries = formerEntries
 		node.Entries = append(node.Entries[:foundIdx], node.Entries[foundIdx+1:]...)
 		node.SmallestKey = node.Entries[0].Key
 		node.EntryCnt = int32(len(node.Entries))
