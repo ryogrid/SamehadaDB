@@ -245,19 +245,37 @@ func (sl *SkipListOnMem) RemoveOnMem(key *types.Value, value uint32) {
 	}
 }
 
-func (sl *SkipList) Remove(key *types.Value, value uint32) {
+func (sl *SkipList) Remove(key *types.Value, value uint32) (isDeleted bool) {
 	// update is an array of pointers to the
 	// predecessors of the element to be deleted.
+	var skipPathList []*skip_list_page.SkipListBlockPage = make([]*skip_list_page.SkipListBlockPage, sl.headerPageId.CurMaxLevel)
 	node := sl.headerPageId.ListStartPage
 	for ii := (sl.headerPageId.CurMaxLevel - 1); ii >= 0; ii-- {
 		for node.Forward[ii].SmallestKey.CompareLessThanOrEqual(*key) {
 			node = node.Forward[ii]
 		}
+		//note: node.SmallestKey <= searchKey < node.forward[ii].SmallestKey
+		skipPathList[ii] = node
 	}
 	//node = node.Forward[0]
 
 	// remove specified entry from found node
-	node.Remove(key)
+	isDeleted_, level := node.Remove(key, skipPathList)
+
+	// if there are no node at *level* except start and end node due to node delete
+	// CurMaxLevel should be down to the level
+	if isDeleted_ {
+		newMaxLevel := int32(0)
+		for ii := int32(0); ii < level; ii++ {
+			if sl.headerPageId.ListStartPage.Forward[ii].SmallestKey.IsInfMax() {
+				break
+			}
+			newMaxLevel++
+		}
+		sl.headerPageId.CurMaxLevel = newMaxLevel
+	}
+
+	return isDeleted_
 }
 
 func (sl *SkipListOnMem) IteratorOnMem(rangeStartKey *types.Value, rangeEndKey *types.Value) *SkipListIteratorOnMem {
@@ -275,9 +293,6 @@ func (sl *SkipListOnMem) IteratorOnMem(rangeStartKey *types.Value, rangeEndKey *
 
 func (sl *SkipList) Iterator(rangeStartKey *types.Value, rangeEndKey *types.Value) *SkipListIterator {
 	ret := new(SkipListIterator)
-	//if len(sl.headerPageId.ListStartPage.Entries) == 1 {
-	//	// there are no entry corresponding user record
-	//}
 	ret.curNode = sl.headerPageId.ListStartPage
 	ret.curIdx = 0
 	ret.rangeStartKey = rangeStartKey
@@ -306,5 +321,4 @@ func (sl *SkipList) GetNodeLevel() int32 {
 		retLevel++
 	}
 	return int32(math.Min(float64(retLevel), float64(sl.headerPageId.CurMaxLevel)))
-	//return 1
 }

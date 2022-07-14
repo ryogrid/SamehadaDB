@@ -150,7 +150,6 @@ func (node *SkipListBlockPage) Insert(key *types.Value, value uint32, bpm *buffe
 
 			if foundIdx >= splitIdx {
 				// insert to new node
-				//newSmallerIdx := foundIdx - splitIdx + 1
 				newSmallerIdx := foundIdx - splitIdx - 1
 				newNode := node.Forward[0]
 				if (newSmallerIdx + 1) >= newNode.EntryCnt {
@@ -160,19 +159,11 @@ func (node *SkipListBlockPage) Insert(key *types.Value, value uint32, bpm *buffe
 				} else {
 					formerEntries := make([]*SkipListPair, len(newNode.Entries[:newSmallerIdx+1]))
 					copy(formerEntries, newNode.Entries[:newSmallerIdx+1])
-					//formerEntries := newNode.Entries[:newSmallerIdx+1]
 					laterEntries := make([]*SkipListPair, len(newNode.Entries[newSmallerIdx+1:]))
 					copy(laterEntries, newNode.Entries[newSmallerIdx+1:])
-					//laterEntries := newNode.Entries[newSmallerIdx+1:]
 					formerEntries = append(formerEntries, &SkipListPair{*key, value})
 					formerEntries = append(formerEntries, laterEntries...)
 					newNode.Entries = formerEntries
-					//newNode.Entries = append(formerEntries, &SkipListPair{*key, value})
-					//newNode.Entries = append(newNode.Entries, laterEntries...)
-
-					//newNode.Entries = append(newNode.Entries[:newSmallerIdx], newNode.Entries[newSmallerIdx-1:]...)
-					////common.SH_Assert(newNode.Entries[newSmallerIdx-2].Key.CompareLessThan(*key), "order is invalid.")
-					//newNode.Entries[newSmallerIdx-1] = &SkipListPair{*key, value}
 				}
 				newNode.EntryCnt = int32(len(newNode.Entries))
 
@@ -204,63 +195,59 @@ func (node *SkipListBlockPage) Insert(key *types.Value, value uint32, bpm *buffe
 			formerEntries = append(formerEntries, &SkipListPair{*key, value})
 			formerEntries = append(formerEntries, laterEntries...)
 			node.Entries = formerEntries
-
-			//formerEntries := node.Entries[:foundIdx+1]
-			//laterEntries := make([]*SkipListPair, 0)
-			//if isMadeNewNode {
-			//	laterEntries = node.Entries[foundIdx+1 : splitIdx+1]
-			//} else {
-			//	laterEntries = node.Entries[foundIdx+1:]
-			//}
-			//
-			//node.Entries = append(formerEntries, &SkipListPair{*key, value})
-			//node.Entries = append(node.Entries, laterEntries...)
-
-			//node.Entries = append(node.Entries[:foundIdx+1+1], node.Entries[foundIdx+1:]...)
-			//common.SH_Assert(node.Entries[foundIdx].Key.CompareLessThan(*key), "order is invalid.")
-			//node.Entries[foundIdx+1] = &SkipListPair{*key, value}
 		}
 		node.EntryCnt = int32(len(node.Entries))
-		//	if foundIdx == -1 {
-		//		node.SmallestKey = *key
-		//	}
-		//}
 	}
 	fmt.Printf("end of Insert of SkipListBlockPage called! : page=%v key=%d page.EntryCnt=%d len(page.Entries)=%d\n", node.ID(), key.ToInteger(), node.EntryCnt, len(node.Entries))
 	return isMadeNewNode
 }
 
-func (node *SkipListBlockPage) Remove(key *types.Value) {
+func (node *SkipListBlockPage) Remove(key *types.Value, skipPathList []*SkipListBlockPage) (isDeleted bool, level int32) {
 	found, _, foundIdx := node.FindEntryByKey(key)
 	if found && (node.EntryCnt == 1) {
 		// when there are no enry without target entry
 		// this node keep reft with no entry (but new entry can be stored)
 
-		// delete specified entry
-		node.Entries[0] = nil
-
-		var smallestKey types.Value
-		switch key.ValueType() {
-		case types.Integer:
-			smallestKey = types.NewInteger(0)
-			smallestKey.SetInfMin()
-		case types.Float:
-			smallestKey = types.NewFloat(0)
-			smallestKey.SetInfMin()
-		case types.Varchar:
-			smallestKey = types.NewVarchar("")
-			smallestKey.SetInfMin()
-		case types.Boolean:
-			smallestKey = types.NewBoolean(false)
-			smallestKey.SetInfMin()
-		default:
-			panic("not implemented")
+		// remove this node from all level of chain
+		for ii := int32(0); ii < level; ii++ {
+			skipPathList[ii].Forward[ii] = node.Forward[ii]
 		}
-		node.SmallestKey = smallestKey
+
+		return true, node.Level
+		//// delete specified entry
+		//node.Entries[0] = nil
+		//
+		//var smallestKey types.Value
+		//switch key.ValueType() {
+		//case types.Integer:
+		//	smallestKey = types.NewInteger(0)
+		//	smallestKey.SetInfMin()
+		//case types.Float:
+		//	smallestKey = types.NewFloat(0)
+		//	smallestKey.SetInfMin()
+		//case types.Varchar:
+		//	smallestKey = types.NewVarchar("")
+		//	smallestKey.SetInfMin()
+		//case types.Boolean:
+		//	smallestKey = types.NewBoolean(false)
+		//	smallestKey.SetInfMin()
+		//default:
+		//	panic("not implemented")
+		//}
+		//node.SmallestKey = smallestKey
 	} else if found {
+		//formerEntries := make([]*SkipListPair, len(node.Entries[:foundIdx]))
+		//copy(formerEntries, node.Entries[:foundIdx])
+		//laterEntries := make([]*SkipListPair, len(node.Entries[foundIdx+1:]))
+		//copy(laterEntries, node.Entries[foundIdx+1:])
+		//formerEntries = append(formerEntries, laterEntries...)
+		//node.Entries = formerEntries
 		node.Entries = append(node.Entries[:foundIdx], node.Entries[foundIdx+1:]...)
+		node.EntryCnt = int32(len(node.Entries))
+		return true, node.Level
 	} else { // found == false
 		// do nothing
+		return false, -1
 	}
 }
 

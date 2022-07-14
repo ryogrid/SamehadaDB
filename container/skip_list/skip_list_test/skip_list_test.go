@@ -153,12 +153,6 @@ func TestBSearchOfSkipLisBlockPageBackedOnMem(t *testing.T) {
 		}
 	}
 
-	//// try find entry which is smaller than first entry on nodes
-	//key := types.NewInteger(int32(-10))
-	//found, entry, idx := bpage.FindEntryByKey(&key)
-	//fmt.Printf("When specified key which is smaller than smallest entry: idx=%d", idx)
-	//testingpkg.SimpleAssert(t, found == false && entry.Value == uint32(key.ToInteger()))
-
 	// ------- when element num is odd number -----
 	bpage.Entries = make([]*skip_list_page.SkipListPair, 0)
 	bpage.Entries = append(bpage.Entries, &skip_list_page.SkipListPair{
@@ -247,17 +241,24 @@ func TestSkipLisPageBackedOnMem(t *testing.T) {
 		}
 	}
 
-	//// delete some values
-	//for i := 0; i < 100; i++ {
-	//	// check existance before delete
-	//	res := sl.GetValue(samehada_util.GetPonterOfValue(types.NewInteger(int32(i * 11))))
-	//	testingpkg.SimpleAssert(t, res == uint32(i*11))
-	//
-	//	// check no existance after delete
-	//	sl.Remove(samehada_util.GetPonterOfValue(types.NewInteger(int32(i*11))), uint32(i*11))
-	//	res = sl.GetValue(samehada_util.GetPonterOfValue(types.NewInteger(int32(i * 11))))
-	//	testingpkg.SimpleAssert(t, math.MaxUint32 == res)
-	//}
+	// delete some values
+	for i := 0; i < 100; i++ {
+		// check existance before delete
+		res := uint32(0)
+		if i == 74 {
+			res = sl.GetValue(samehada_util.GetPonterOfValue(types.NewInteger(int32(i * 11))))
+		} else {
+			res = sl.GetValue(samehada_util.GetPonterOfValue(types.NewInteger(int32(i * 11))))
+		}
+		fmt.Printf("check existance before delete : i=%d\n", i)
+		testingpkg.SimpleAssert(t, res == uint32(i*11))
+
+		// check no existance after delete
+		sl.Remove(samehada_util.GetPonterOfValue(types.NewInteger(int32(i*11))), uint32(i*11))
+
+		res = sl.GetValue(samehada_util.GetPonterOfValue(types.NewInteger(int32(i * 11))))
+		testingpkg.SimpleAssert(t, math.MaxUint32 == res)
+	}
 }
 
 func TestSkipListItrPageBackedOnMem(t *testing.T) {
