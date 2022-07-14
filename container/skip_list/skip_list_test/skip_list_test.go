@@ -183,6 +183,32 @@ func TestBSearchOfSkipLisBlockPageBackedOnMem(t *testing.T) {
 	}
 }
 
+func confirmSkipListContent(t *testing.T, sl *skip_list.SkipList, step int32) int32 {
+	entryCnt := int32(0)
+	lastKeyVal := int32(-1)
+	dupCheckMap := make(map[int32]int32)
+	itr := sl.Iterator(nil, nil)
+	for done, _, key, _ := itr.Next(); !done; done, _, key, _ = itr.Next() {
+		curVal := key.ToInteger()
+		fmt.Printf("lastKeyVal=%d curVal=%d nodeCnt=%d\n", lastKeyVal, curVal, entryCnt)
+		_, ok := dupCheckMap[curVal]
+		if !(lastKeyVal == -1 || (lastKeyVal <= curVal && (curVal-lastKeyVal == step))) {
+			fmt.Println("!!! curVal or lastKeyVal is invalid !!!")
+		} else if ok {
+			fmt.Println("!!! curVal is duplicated !!!")
+		}
+		//testingpkg.SimpleAssert(t, lastKeyVal == -1 || (lastKeyVal <= key.ToInteger() && (key.ToInteger()-lastKeyVal == step)))
+		//testingpkg.SimpleAssert(t, lastKeyVal != key.ToInteger())
+		lastKeyVal = curVal
+		dupCheckMap[lastKeyVal] = lastKeyVal
+		entryCnt++
+	}
+
+	fmt.Printf("entryCnt=%d\n", entryCnt)
+	return entryCnt
+
+}
+
 func TestSkipLisPageBackedOnMem(t *testing.T) {
 	os.Remove("test.db")
 	os.Remove("test.log")
@@ -207,6 +233,8 @@ func TestSkipLisPageBackedOnMem(t *testing.T) {
 		insCnt++
 		sl.Insert(samehada_util.GetPonterOfValue(types.NewInteger(int32(insVal))), uint32(insVal))
 	}
+
+	confirmSkipListContent(t, sl, 11)
 
 	// Get entries
 	for i := 0; i < 250; i++ {
@@ -304,5 +332,5 @@ func TestSkipListItrPageBackedOnMem(t *testing.T) {
 	}
 
 	fmt.Printf("nodeCnt=%d\n", nodeCnt)
-	//testingpkg.SimpleAssert(t, nodeCnt == 250)
+	testingpkg.SimpleAssert(t, nodeCnt == 250)
 }
