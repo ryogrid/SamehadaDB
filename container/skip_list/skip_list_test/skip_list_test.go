@@ -229,3 +229,90 @@ func TestSkipListItrPageBackedOnMem(t *testing.T) {
 	//fmt.Printf("nodeCnt=%d\n", nodeCnt)
 	testingpkg.SimpleAssert(t, nodeCnt == 250)
 }
+
+func FuzzSkipLisMixOpPageBackedOnMem(f *testing.F) {
+	const MAX_ENTRIES = 700
+
+	f.Add(uint8(150), uint8(10), uint16(0))
+	f.Add(uint8(150), uint8(10), uint16(300))
+	f.Add(uint8(150), uint8(10), uint16(600))
+	f.Fuzz(func(t *testing.T, opTimes uint8, skipRand uint8, initialEntryNum uint16) {
+		os.Remove("test.db")
+		os.Remove("test.log")
+
+		//fmt.Println("fuzzing test now!")
+
+		shi := samehada.NewSamehadaInstanceForTesting()
+		sl := skip_list.NewSkipList(shi.GetBufferPoolManager(), types.Integer)
+
+		// override global rand seed (seed has been set on NewSkipList)
+		rand.Seed(3)
+
+		tmpSkipRand := skipRand
+		// skip random value series
+		for tmpSkipRand > 0 {
+			rand.Int31()
+			tmpSkipRand--
+		}
+
+		insVals := make([]int32, 0)
+
+		// initial entries
+		// uint8 range is small...
+		useInitialEntryNum := int(initialEntryNum)
+		for ii := 0; ii < useInitialEntryNum; ii++ {
+			if len(insVals) < MAX_ENTRIES {
+				insVal := rand.Int31()
+				insVals = append(insVals, insVal)
+				sl.Insert(samehada_util.GetPonterOfValue(types.NewInteger(int32(insVal))), uint32(insVal))
+				insVals = append(insVals, insVal)
+			}
+		}
+
+		removedVals := make([]int32, 0)
+		// uint8 range is small...
+		useOpTimes := int(opTimes * 2)
+		for ii := 0; ii < useOpTimes; ii++ {
+			// get 0-2
+			opType := rand.Intn(3)
+			switch opType {
+			case 0: // Insert
+				if len(insVals) < MAX_ENTRIES {
+					insVal := rand.Int31()
+					insVals = append(insVals, insVal)
+					sl.Insert(samehada_util.GetPonterOfValue(types.NewInteger(int32(insVal))), uint32(insVal))
+					insVals = append(insVals, insVal)
+				}
+			case 1: // Delete
+				// get 0-5 value
+				tmpRand := rand.Intn(6)
+				if tmpRand == 0 {
+					// 20% is Remove to not existing entry
+					tmpIdx := int(math.Abs(float64(rand.Intn(len(removedVals)) - 1)))
+					tmpVal := removedVals[tmpIdx]
+					isDeleted := sl.Remove(samehada_util.GetPonterOfValue(types.NewInteger(int32(tmpVal))), uint32(tmpVal))
+					testingpkg.SimpleAssert(t, isDeleted == false)
+				} else {
+					// 80% is Remove to existing entry
+					if len(insVals) > 0 {
+						tmpIdx := int(math.Abs(float64(rand.Intn(len(insVals)) - 1)))
+						isDeleted := sl.Remove(samehada_util.GetPonterOfValue(types.NewInteger(int32(insVals[tmpIdx]))), uint32(insVals[tmpIdx]))
+						testingpkg.SimpleAssert(t, isDeleted == true)
+						if len(insVals) == 1 {
+							// make empty
+							insVals = make([]int32, 0)
+						} else if len(insVals) == tmpIdx+1 {
+							insVals = insVals[:len(insVals)-1]
+						} else {
+							insVals = append(insVals[:tmpIdx], insVals[tmpIdx+1:]...)
+						}
+					}
+				}
+			case 2: // Get
+				tmpIdx := int(math.Abs(float64(rand.Intn(len(insVals)) - 1)))
+				gotVal := sl.GetValue(samehada_util.GetPonterOfValue(types.NewInteger(int32(insVals[tmpIdx]))))
+				testingpkg.SimpleAssert(t, gotVal == uint32(insVals[tmpIdx]))
+			}
+		}
+	})
+}
