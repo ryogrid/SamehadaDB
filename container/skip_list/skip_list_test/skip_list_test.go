@@ -309,9 +309,11 @@ func FuzzSkipLisMixOpPageBackedOnMem(f *testing.F) {
 					}
 				}
 			case 2: // Get
-				tmpIdx := int(math.Abs(float64(rand.Intn(len(insVals)) - 1)))
-				gotVal := sl.GetValue(samehada_util.GetPonterOfValue(types.NewInteger(int32(insVals[tmpIdx]))))
-				testingpkg.SimpleAssert(t, gotVal == uint32(insVals[tmpIdx]))
+				if len(insVals) > 0 {
+					tmpIdx := int(math.Abs(float64(rand.Intn(len(insVals)) - 1)))
+					gotVal := sl.GetValue(samehada_util.GetPonterOfValue(types.NewInteger(int32(insVals[tmpIdx]))))
+					testingpkg.SimpleAssert(t, gotVal == uint32(insVals[tmpIdx]))
+				}
 			}
 		}
 	})
