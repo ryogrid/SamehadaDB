@@ -340,12 +340,10 @@ func testSkipLisMixOpPageBackedOnMemInner(t *testing.T, opTimes uint8, skipRand 
 	insVals := make([]int32, 0)
 
 	// initial entries
-	// uint8 range is small...
 	useInitialEntryNum := int(initialEntryNum)
 	for ii := 0; ii < useInitialEntryNum; ii++ {
 		if len(insVals) < MAX_ENTRIES {
 			insVal := rand.Int31()
-			insVals = append(insVals, insVal)
 			sl.Insert(samehada_util.GetPonterOfValue(types.NewInteger(int32(insVal))), uint32(insVal))
 			insVals = append(insVals, insVal)
 		}
