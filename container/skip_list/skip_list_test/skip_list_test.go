@@ -317,6 +317,44 @@ import (
 //	})
 
 const MAX_ENTRIES = 700
+const BULK_SIZE = 100
+
+func insertRandom(sl *skip_list.SkipList, num int32, insVals *[]int32) {
+	for ii := 0; ii < int(num); ii++ {
+		if int32(len(*insVals))+num < MAX_ENTRIES {
+			insVal := rand.Int31()
+			sl.Insert(samehada_util.GetPonterOfValue(types.NewInteger(int32(insVal))), uint32(insVal))
+			tmpInsVal := append(*insVals, insVal)
+			insVals = &tmpInsVal
+		}
+	}
+}
+
+func removeRandom(t *testing.T, sl *skip_list.SkipList, num int32, insVals *[]int32, removedVals *[]int32) {
+	if int32(len(*insVals))+num > 0 {
+		tmpIdx := int(rand.Intn(len(*insVals)))
+		insValsPointed := *insVals
+		insVal := insValsPointed[tmpIdx]
+		isDeleted := sl.Remove(samehada_util.GetPonterOfValue(types.NewInteger(int32(insVal))), uint32(insVal))
+		testingpkg.SimpleAssert(t, isDeleted == true)
+		if len(*insVals) == 1 {
+			// make empty
+			insValsP := make([]int32, 0)
+			insVals = &insValsP
+		} else if len(*insVals) == tmpIdx+1 {
+			insValsPointed := *insVals
+			insValsPointed = insValsPointed[:len(*insVals)-1]
+			insVals = &insValsPointed
+		} else {
+			insValsPointed := *insVals
+			insValsPointed = append(insValsPointed[:tmpIdx], insValsPointed[tmpIdx+1:]...)
+			insVals = &insValsPointed
+		}
+		removedValsPointed := *removedVals
+		removedValsPointed = append(removedValsPointed, insVal)
+		removedVals = &removedValsPointed
+	}
+}
 
 func testSkipLisMixOpPageBackedOnMemInner(t *testing.T, opTimes uint8, skipRand uint8, initialEntryNum uint16) {
 	os.Remove("test.db")
@@ -351,42 +389,46 @@ func testSkipLisMixOpPageBackedOnMemInner(t *testing.T, opTimes uint8, skipRand 
 
 	removedVals := make([]int32, 0)
 	// uint8 range is small...
-	useOpTimes := int(opTimes * 2)
+	useOpTimes := int(opTimes * 4)
 	for ii := 0; ii < useOpTimes; ii++ {
 		// get 0-2
 		opType := rand.Intn(3)
 		switch opType {
 		case 0: // Insert
-			if len(insVals) < MAX_ENTRIES {
-				insVal := rand.Int31()
-				sl.Insert(samehada_util.GetPonterOfValue(types.NewInteger(int32(insVal))), uint32(insVal))
-				insVals = append(insVals, insVal)
+			if len(insVals)+BULK_SIZE < MAX_ENTRIES {
+				//insVal := rand.Int31()
+				insertRandom(sl, BULK_SIZE, &insVals)
+				//sl.Insert(samehada_util.GetPonterOfValue(types.NewInteger(int32(insVal))), uint32(insVal))
+				//insVals = append(insVals, insVal)
 			}
 		case 1: // Delete
 			// get 0-5 value
 			tmpRand := rand.Intn(6)
 			if tmpRand == 0 {
 				// 20% is Remove to not existing entry
-				tmpIdx := int(rand.Intn(len(removedVals)))
-				tmpVal := removedVals[tmpIdx]
-				isDeleted := sl.Remove(samehada_util.GetPonterOfValue(types.NewInteger(int32(tmpVal))), uint32(tmpVal))
-				testingpkg.SimpleAssert(t, isDeleted == false)
+				if len(removedVals) != 0 {
+					tmpIdx := int(rand.Intn(len(removedVals)))
+					tmpVal := removedVals[tmpIdx]
+					isDeleted := sl.Remove(samehada_util.GetPonterOfValue(types.NewInteger(int32(tmpVal))), uint32(tmpVal))
+					testingpkg.SimpleAssert(t, isDeleted == false)
+				}
 			} else {
 				// 80% is Remove to existing entry
-				if len(insVals) > 0 {
-					tmpIdx := int(rand.Intn(len(insVals)))
-					insVal := insVals[tmpIdx]
-					isDeleted := sl.Remove(samehada_util.GetPonterOfValue(types.NewInteger(int32(insVal))), uint32(insVal))
-					testingpkg.SimpleAssert(t, isDeleted == true)
-					if len(insVals) == 1 {
-						// make empty
-						insVals = make([]int32, 0)
-					} else if len(insVals) == tmpIdx+1 {
-						insVals = insVals[:len(insVals)-1]
-					} else {
-						insVals = append(insVals[:tmpIdx], insVals[tmpIdx+1:]...)
-					}
-					removedVals = append(removedVals, insVal)
+				if len(insVals)-BULK_SIZE > 0 {
+					removeRandom(t, sl, BULK_SIZE, &insVals, &removedVals)
+					//tmpIdx := int(rand.Intn(len(insVals)))
+					//insVal := insVals[tmpIdx]
+					//isDeleted := sl.Remove(samehada_util.GetPonterOfValue(types.NewInteger(int32(insVal))), uint32(insVal))
+					//testingpkg.SimpleAssert(t, isDeleted == true)
+					//if len(insVals) == 1 {
+					//	// make empty
+					//	insVals = make([]int32, 0)
+					//} else if len(insVals) == tmpIdx+1 {
+					//	insVals = insVals[:len(insVals)-1]
+					//} else {
+					//	insVals = append(insVals[:tmpIdx], insVals[tmpIdx+1:]...)
+					//}
+					//removedVals = append(removedVals, insVal)
 				}
 			}
 		case 2: // Get
@@ -407,4 +449,7 @@ func TestSkipLisMixOpPageBackedOnMem(t *testing.T) {
 	testSkipLisMixOpPageBackedOnMemInner(t, uint8(150), uint8(10), uint16(300))
 	testSkipLisMixOpPageBackedOnMemInner(t, uint8(150), uint8(10), uint16(600))
 	testSkipLisMixOpPageBackedOnMemInner(t, uint8(200), uint8(5), uint16(10))
+	testSkipLisMixOpPageBackedOnMemInner(t, uint8(250), uint8(5), uint16(10))
+	testSkipLisMixOpPageBackedOnMemInner(t, uint8(250), uint8(4), uint16(0))
+	testSkipLisMixOpPageBackedOnMemInner(t, uint8(250), uint8(3), uint16(0))
 }
