@@ -7,7 +7,6 @@ import (
 	"github.com/ryogrid/SamehadaDB/samehada/samehada_util"
 	testingpkg "github.com/ryogrid/SamehadaDB/testing"
 	"github.com/ryogrid/SamehadaDB/types"
-	"math"
 	"math/rand"
 	"os"
 	"testing"
@@ -362,7 +361,6 @@ func testSkipLisMixOpPageBackedOnMemInner(t *testing.T, opTimes uint8, skipRand 
 		case 0: // Insert
 			if len(insVals) < MAX_ENTRIES {
 				insVal := rand.Int31()
-				insVals = append(insVals, insVal)
 				sl.Insert(samehada_util.GetPonterOfValue(types.NewInteger(int32(insVal))), uint32(insVal))
 				insVals = append(insVals, insVal)
 			}
@@ -371,15 +369,16 @@ func testSkipLisMixOpPageBackedOnMemInner(t *testing.T, opTimes uint8, skipRand 
 			tmpRand := rand.Intn(6)
 			if tmpRand == 0 {
 				// 20% is Remove to not existing entry
-				tmpIdx := int(math.Abs(float64(rand.Intn(len(removedVals)) - 1)))
+				tmpIdx := int(rand.Intn(len(removedVals)))
 				tmpVal := removedVals[tmpIdx]
 				isDeleted := sl.Remove(samehada_util.GetPonterOfValue(types.NewInteger(int32(tmpVal))), uint32(tmpVal))
 				testingpkg.SimpleAssert(t, isDeleted == false)
 			} else {
 				// 80% is Remove to existing entry
 				if len(insVals) > 0 {
-					tmpIdx := int(math.Abs(float64(rand.Intn(len(insVals)) - 1)))
-					isDeleted := sl.Remove(samehada_util.GetPonterOfValue(types.NewInteger(int32(insVals[tmpIdx]))), uint32(insVals[tmpIdx]))
+					tmpIdx := int(rand.Intn(len(insVals)))
+					insVal := insVals[tmpIdx]
+					isDeleted := sl.Remove(samehada_util.GetPonterOfValue(types.NewInteger(int32(insVal))), uint32(insVal))
 					testingpkg.SimpleAssert(t, isDeleted == true)
 					if len(insVals) == 1 {
 						// make empty
@@ -389,11 +388,12 @@ func testSkipLisMixOpPageBackedOnMemInner(t *testing.T, opTimes uint8, skipRand 
 					} else {
 						insVals = append(insVals[:tmpIdx], insVals[tmpIdx+1:]...)
 					}
+					removedVals = append(removedVals, insVal)
 				}
 			}
 		case 2: // Get
 			if len(insVals) > 0 {
-				tmpIdx := int(math.Abs(float64(rand.Intn(len(insVals)) - 1)))
+				tmpIdx := int(rand.Intn(len(insVals)))
 				gotVal := sl.GetValue(samehada_util.GetPonterOfValue(types.NewInteger(int32(insVals[tmpIdx]))))
 				if gotVal != uint32(insVals[tmpIdx]) {
 					fmt.Println(gotVal)
@@ -408,4 +408,5 @@ func TestSkipLisMixOpPageBackedOnMem(t *testing.T) {
 	testSkipLisMixOpPageBackedOnMemInner(t, uint8(150), uint8(10), uint16(0))
 	testSkipLisMixOpPageBackedOnMemInner(t, uint8(150), uint8(10), uint16(300))
 	testSkipLisMixOpPageBackedOnMemInner(t, uint8(150), uint8(10), uint16(600))
+	testSkipLisMixOpPageBackedOnMemInner(t, uint8(200), uint8(5), uint16(10))
 }
