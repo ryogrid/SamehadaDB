@@ -44,10 +44,14 @@ func confirmSkipListContent(t *testing.T, sl *skip_list.SkipList, step int32) in
 func FuzzSkipLisMixOpPageBackedOnMem(f *testing.F) {
 	const MAX_ENTRIES = 700
 
-	f.Add(150, 10)
+	f.Add(150, 10, 0)
+	f.Add(150, 10, 300)
+	f.Add(150, 10, 600)
 	f.Fuzz(func(t *testing.T, opTimes uint8, skipRand uint8, initialEntryNum uint8) {
 		os.Remove("test.db")
 		os.Remove("test.log")
+
+		fmt.Println("fuzzing test now!")
 
 		shi := samehada.NewSamehadaInstanceForTesting()
 		sl := skip_list.NewSkipList(shi.GetBufferPoolManager(), types.Integer)
@@ -65,6 +69,7 @@ func FuzzSkipLisMixOpPageBackedOnMem(f *testing.F) {
 		insVals := make([]int32, 0)
 
 		// initial entries
+		// uint8 range is small...
 		useInitialEntryNum := 3 * int(initialEntryNum)
 		for ii := 0; ii < useInitialEntryNum; ii++ {
 			if len(insVals) < MAX_ENTRIES {
