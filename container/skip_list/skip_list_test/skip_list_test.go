@@ -70,35 +70,45 @@ import (
 //		}
 //	}
 //}
-//
-//func confirmSkipListContent(t *testing.T, sl *skip_list.SkipList, step int32) int32 {
-//	entryCnt := int32(0)
-//	lastKeyVal := int32(-1)
-//	dupCheckMap := make(map[int32]int32)
-//	itr := sl.Iterator(nil, nil)
-//	for done, _, key, _ := itr.Next(); !done; done, _, key, _ = itr.Next() {
-//		curVal := key.ToInteger()
-//		fmt.Printf("lastKeyVal=%d curVal=%d entryCnt=%d\n", lastKeyVal, curVal, entryCnt)
-//		_, ok := dupCheckMap[curVal]
-//		if step != -1 {
-//			if !(lastKeyVal == -1 || (lastKeyVal <= curVal && (curVal-lastKeyVal == step))) {
-//				fmt.Println("!!! curVal or lastKeyVal is invalid !!!")
-//			} else if ok {
-//				fmt.Println("!!! curVal is duplicated !!!")
-//			}
-//		}
-//		//testingpkg.SimpleAssert(t, lastKeyVal == -1 || (lastKeyVal <= key.ToInteger() && (key.ToInteger()-lastKeyVal == step)))
-//		//testingpkg.SimpleAssert(t, lastKeyVal != key.ToInteger())
-//		lastKeyVal = curVal
-//		dupCheckMap[lastKeyVal] = lastKeyVal
-//		entryCnt++
-//	}
-//
-//	fmt.Printf("entryCnt=%d\n", entryCnt)
-//	return entryCnt
-//
-//}
-//
+
+func countSkipListContent(sl *skip_list.SkipList) int32 {
+	entryCnt := int32(0)
+	itr := sl.Iterator(nil, nil)
+	for done, _, _, _ := itr.Next(); !done; done, _, _, _ = itr.Next() {
+		entryCnt++
+	}
+
+	//fmt.Printf("entryCnt=%d\n", entryCnt)
+	return entryCnt
+}
+
+func confirmSkipListContent(t *testing.T, sl *skip_list.SkipList, step int32) int32 {
+	entryCnt := int32(0)
+	lastKeyVal := int32(-1)
+	dupCheckMap := make(map[int32]int32)
+	itr := sl.Iterator(nil, nil)
+	for done, _, key, _ := itr.Next(); !done; done, _, key, _ = itr.Next() {
+		curVal := key.ToInteger()
+		fmt.Printf("lastKeyVal=%d curVal=%d entryCnt=%d\n", lastKeyVal, curVal, entryCnt)
+		_, ok := dupCheckMap[curVal]
+		if step != -1 {
+			if !(lastKeyVal == -1 || (lastKeyVal <= curVal && (curVal-lastKeyVal == step))) {
+				fmt.Println("!!! curVal or lastKeyVal is invalid !!!")
+			} else if ok {
+				fmt.Println("!!! curVal is duplicated !!!")
+			}
+		}
+		//testingpkg.SimpleAssert(t, lastKeyVal == -1 || (lastKeyVal <= key.ToInteger() && (key.ToInteger()-lastKeyVal == step)))
+		//testingpkg.SimpleAssert(t, lastKeyVal != key.ToInteger())
+		lastKeyVal = curVal
+		dupCheckMap[lastKeyVal] = lastKeyVal
+		entryCnt++
+	}
+
+	fmt.Printf("entryCnt=%d\n", entryCnt)
+	return entryCnt
+}
+
 //func TestSkipLisPageBackedOnMem(t *testing.T) {
 //	os.Remove("test.db")
 //	os.Remove("test.log")
@@ -319,10 +329,16 @@ import (
 
 const MAX_ENTRIES = 700
 
-func insertRandom(sl *skip_list.SkipList, num int32, insVals *[]int32) {
+func insertRandom(sl *skip_list.SkipList, num int32, insVals *[]int32, checkDupMap map[int32]int32) {
 	if int32(len(*insVals))+num < MAX_ENTRIES {
 		for ii := 0; ii < int(num); ii++ {
+			//insVal := rand.Int31()
 			insVal := rand.Int31()
+			for _, exist := checkDupMap[insVal]; exist; _, exist = checkDupMap[insVal] {
+				insVal = rand.Int31()
+			}
+			checkDupMap[insVal] = insVal
+
 			sl.Insert(samehada_util.GetPonterOfValue(types.NewInteger(int32(insVal))), uint32(insVal))
 			tmpInsVal := append(*insVals, insVal)
 			insVals = &tmpInsVal
@@ -337,6 +353,10 @@ func removeRandom(t *testing.T, sl *skip_list.SkipList, num int32, insVals *[]in
 			insValsPointed := *insVals
 			insVal := insValsPointed[tmpIdx]
 			isDeleted := sl.Remove(samehada_util.GetPonterOfValue(types.NewInteger(int32(insVal))), uint32(insVal))
+			if isDeleted != true {
+				fmt.Println("isDeleted should be true!")
+				common.RuntimeStack()
+			}
 			testingpkg.SimpleAssert(t, isDeleted == true)
 			if len(*insVals) == 1 {
 				// make empty
@@ -363,6 +383,7 @@ func testSkipLisMixOpPageBackedOnMemInner(t *testing.T, bulkSize int32, opTimes 
 	os.Remove("test.log")
 
 	//fmt.Println("fuzzing test now!")
+	checkDupMap := make(map[int32]int32)
 
 	shi := samehada.NewSamehadaInstanceForTesting()
 	sl := skip_list.NewSkipList(shi.GetBufferPoolManager(), types.Integer)
@@ -383,10 +404,22 @@ func testSkipLisMixOpPageBackedOnMemInner(t *testing.T, bulkSize int32, opTimes 
 	useInitialEntryNum := int(initialEntryNum)
 	for ii := 0; ii < useInitialEntryNum; ii++ {
 		if len(insVals) < MAX_ENTRIES {
+			// avoid duplication
 			insVal := rand.Int31()
+			for _, exist := checkDupMap[insVal]; exist; _, exist = checkDupMap[insVal] {
+				insVal = rand.Int31()
+			}
+			checkDupMap[insVal] = insVal
+
 			sl.Insert(samehada_util.GetPonterOfValue(types.NewInteger(int32(insVal))), uint32(insVal))
 			insVals = append(insVals, insVal)
 		}
+	}
+
+	// check num of stored entries on sl is same with num of initial entries (if differ, there are bug)
+	if int32(useInitialEntryNum) != countSkipListContent(sl) {
+		fmt.Println("initial entries are invalid!")
+		common.RuntimeStack()
 	}
 
 	removedVals := make([]int32, 0)
@@ -399,7 +432,7 @@ func testSkipLisMixOpPageBackedOnMemInner(t *testing.T, bulkSize int32, opTimes 
 		case 0: // Insert
 			if int32(len(insVals))+bulkSize < MAX_ENTRIES {
 				//insVal := rand.Int31()
-				insertRandom(sl, bulkSize, &insVals)
+				insertRandom(sl, bulkSize, &insVals, checkDupMap)
 				//sl.Insert(samehada_util.GetPonterOfValue(types.NewInteger(int32(insVal))), uint32(insVal))
 				//insVals = append(insVals, insVal)
 			}
