@@ -416,8 +416,11 @@ func testSkipLisMixOpPageBackedOnMemInner(t *testing.T, bulkSize int32, opTimes 
 		}
 	}
 
+	// entries num on SkipList should be same with this variable
+	entriesOnList := int32(useInitialEntryNum)
+
 	// check num of stored entries on sl is same with num of initial entries (if differ, there are bug)
-	if int32(useInitialEntryNum) != countSkipListContent(sl) {
+	if entriesOnList != countSkipListContent(sl) {
 		fmt.Println("initial entries are invalid!")
 		common.RuntimeStack()
 	}
@@ -435,6 +438,11 @@ func testSkipLisMixOpPageBackedOnMemInner(t *testing.T, bulkSize int32, opTimes 
 				insertRandom(sl, bulkSize, &insVals, checkDupMap)
 				//sl.Insert(samehada_util.GetPonterOfValue(types.NewInteger(int32(insVal))), uint32(insVal))
 				//insVals = append(insVals, insVal)
+				entriesOnList += bulkSize
+				if entriesOnList != countSkipListContent(sl) {
+					fmt.Printf("entries num on list is strange! %d != %d\n", entriesOnList, countSkipListContent(sl))
+					common.RuntimeStack()
+				}
 			}
 		case 1: // Delete
 			// get 0-5 value
@@ -446,11 +454,20 @@ func testSkipLisMixOpPageBackedOnMemInner(t *testing.T, bulkSize int32, opTimes 
 					tmpVal := removedVals[tmpIdx]
 					isDeleted := sl.Remove(samehada_util.GetPonterOfValue(types.NewInteger(int32(tmpVal))), uint32(tmpVal))
 					testingpkg.SimpleAssert(t, isDeleted == false)
+					if entriesOnList != countSkipListContent(sl) {
+						fmt.Printf("entries num on list is strange! %d != %d\n", entriesOnList, countSkipListContent(sl))
+						common.RuntimeStack()
+					}
 				}
 			} else {
 				// 80% is Remove to existing entry
 				if int32(len(insVals))-bulkSize > 0 {
 					removeRandom(t, sl, bulkSize, &insVals, &removedVals)
+					entriesOnList -= bulkSize
+					if entriesOnList != countSkipListContent(sl) {
+						fmt.Printf("entries num on list is strange! %d != %d\n", entriesOnList, countSkipListContent(sl))
+						common.RuntimeStack()
+					}
 					//tmpIdx := int(rand.Intn(len(insVals)))
 					//insVal := insVals[tmpIdx]
 					//isDeleted := sl.Remove(samehada_util.GetPonterOfValue(types.NewInteger(int32(insVal))), uint32(insVal))
