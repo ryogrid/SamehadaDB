@@ -71,6 +71,18 @@ import (
 //	}
 //}
 
+// for debug
+func isExistKeyOnList(sl *skip_list.SkipList, checkKey int32) bool {
+	itr := sl.Iterator(nil, nil)
+	for done, _, key, _ := itr.Next(); !done; done, _, key, _ = itr.Next() {
+		if key.ToInteger() == checkKey {
+			return true
+		}
+	}
+
+	return false
+}
+
 func countSkipListContent(sl *skip_list.SkipList) int32 {
 	entryCnt := int32(0)
 	itr := sl.Iterator(nil, nil)
@@ -328,6 +340,9 @@ func confirmSkipListContent(t *testing.T, sl *skip_list.SkipList, step int32) in
 //	})
 
 const MAX_ENTRIES = 700
+const NOT_FOUND_VAL = 1801932928
+
+var isInserted bool = false
 
 func insertRandom(sl *skip_list.SkipList, num int32, insVals *[]int32, checkDupMap map[int32]int32) {
 	if int32(len(*insVals))+num < MAX_ENTRIES {
@@ -339,7 +354,15 @@ func insertRandom(sl *skip_list.SkipList, num int32, insVals *[]int32, checkDupM
 			}
 			checkDupMap[insVal] = insVal
 
+			if insVal == NOT_FOUND_VAL {
+				fmt.Printf("!!!insert of NOT_FOUND_VAL!!!  ii=%d, insVal=%d len(*insVals)=%d\n", ii, insVal, len(*insVals))
+				isInserted = true
+			}
 			sl.Insert(samehada_util.GetPonterOfValue(types.NewInteger(int32(insVal))), uint32(insVal))
+			fmt.Printf("sl.Insert at insertRandom: ii=%d, insVal=%d len(*insVals)=%d\n", ii, insVal, len(*insVals))
+			if isInserted && !isExistKeyOnList(sl, NOT_FOUND_VAL) {
+				fmt.Printf("NOT_FOUND_VAL does not visible with iterator!\n")
+			}
 			tmpInsVals := append(*insVals, insVal)
 			*insVals = tmpInsVals
 		}
@@ -353,8 +376,12 @@ func removeRandom(t *testing.T, sl *skip_list.SkipList, opStep int32, num int32,
 			insValsPointed := *insVals
 			insVal := insValsPointed[tmpIdx]
 			isDeleted := sl.Remove(samehada_util.GetPonterOfValue(types.NewInteger(int32(insVal))), uint32(insVal))
+			fmt.Printf("sl.Remove at removeRandom: ii=%d, insVal=%d len(*insVals)=%d len(*removedVals)=%d\n", ii, insVal, len(*insVals), len(*removedVals))
+			if isInserted && !isExistKeyOnList(sl, NOT_FOUND_VAL) {
+				fmt.Printf("NOT_FOUND_VAL does not visible with iterator!\n")
+			}
 			if isDeleted != true {
-				fmt.Printf("isDeleted should be true! opStep=%d, ii=%d tmpIdx=%d len(*insVals)=%d len(*removedVals)=%d\n", opStep, ii, tmpIdx, len(*insVals), len(*removedVals))
+				fmt.Printf("isDeleted should be true! opStep=%d, ii=%d tmpIdx=%d insVal=%d len(*insVals)=%d len(*removedVals)=%d\n", opStep, ii, tmpIdx, insVal, len(*insVals), len(*removedVals))
 				common.RuntimeStack()
 			}
 			testingpkg.SimpleAssert(t, isDeleted == true)
