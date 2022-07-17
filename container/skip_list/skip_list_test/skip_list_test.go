@@ -340,8 +340,8 @@ func insertRandom(sl *skip_list.SkipList, num int32, insVals *[]int32, checkDupM
 			checkDupMap[insVal] = insVal
 
 			sl.Insert(samehada_util.GetPonterOfValue(types.NewInteger(int32(insVal))), uint32(insVal))
-			tmpInsVal := append(*insVals, insVal)
-			insVals = &tmpInsVal
+			tmpInsVals := append(*insVals, insVal)
+			*insVals = tmpInsVals
 		}
 	}
 }
@@ -360,20 +360,20 @@ func removeRandom(t *testing.T, sl *skip_list.SkipList, num int32, insVals *[]in
 			testingpkg.SimpleAssert(t, isDeleted == true)
 			if len(*insVals) == 1 {
 				// make empty
-				insValsP := make([]int32, 0)
-				insVals = &insValsP
+				insValsTmp := make([]int32, 0)
+				*insVals = insValsTmp
 			} else if len(*insVals) == tmpIdx+1 {
 				insValsPointed := *insVals
 				insValsPointed = insValsPointed[:len(*insVals)-1]
-				insVals = &insValsPointed
+				*insVals = insValsPointed
 			} else {
 				insValsPointed := *insVals
 				insValsPointed = append(insValsPointed[:tmpIdx], insValsPointed[tmpIdx+1:]...)
-				insVals = &insValsPointed
+				*insVals = insValsPointed
 			}
 			removedValsPointed := *removedVals
 			removedValsPointed = append(removedValsPointed, insVal)
-			removedVals = &removedValsPointed
+			*removedVals = removedValsPointed
 		}
 	}
 }
