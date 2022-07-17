@@ -317,7 +317,6 @@ import (
 //	})
 
 const MAX_ENTRIES = 700
-const BULK_SIZE = 100
 
 func insertRandom(sl *skip_list.SkipList, num int32, insVals *[]int32) {
 	for ii := 0; ii < int(num); ii++ {
@@ -356,7 +355,7 @@ func removeRandom(t *testing.T, sl *skip_list.SkipList, num int32, insVals *[]in
 	}
 }
 
-func testSkipLisMixOpPageBackedOnMemInner(t *testing.T, opTimes uint8, skipRand uint8, initialEntryNum uint16) {
+func testSkipLisMixOpPageBackedOnMemInner(t *testing.T, bulkSize int32, opTimes uint8, skipRand uint8, initialEntryNum uint16) {
 	os.Remove("test.db")
 	os.Remove("test.log")
 
@@ -395,9 +394,9 @@ func testSkipLisMixOpPageBackedOnMemInner(t *testing.T, opTimes uint8, skipRand 
 		opType := rand.Intn(3)
 		switch opType {
 		case 0: // Insert
-			if len(insVals)+BULK_SIZE < MAX_ENTRIES {
+			if int32(len(insVals))+bulkSize < MAX_ENTRIES {
 				//insVal := rand.Int31()
-				insertRandom(sl, BULK_SIZE, &insVals)
+				insertRandom(sl, bulkSize, &insVals)
 				//sl.Insert(samehada_util.GetPonterOfValue(types.NewInteger(int32(insVal))), uint32(insVal))
 				//insVals = append(insVals, insVal)
 			}
@@ -414,8 +413,8 @@ func testSkipLisMixOpPageBackedOnMemInner(t *testing.T, opTimes uint8, skipRand 
 				}
 			} else {
 				// 80% is Remove to existing entry
-				if len(insVals)-BULK_SIZE > 0 {
-					removeRandom(t, sl, BULK_SIZE, &insVals, &removedVals)
+				if int32(len(insVals))-bulkSize > 0 {
+					removeRandom(t, sl, bulkSize, &insVals, &removedVals)
 					//tmpIdx := int(rand.Intn(len(insVals)))
 					//insVal := insVals[tmpIdx]
 					//isDeleted := sl.Remove(samehada_util.GetPonterOfValue(types.NewInteger(int32(insVal))), uint32(insVal))
@@ -445,11 +444,27 @@ func testSkipLisMixOpPageBackedOnMemInner(t *testing.T, opTimes uint8, skipRand 
 }
 
 func TestSkipLisMixOpPageBackedOnMem(t *testing.T) {
-	testSkipLisMixOpPageBackedOnMemInner(t, uint8(150), uint8(10), uint16(0))
-	testSkipLisMixOpPageBackedOnMemInner(t, uint8(150), uint8(10), uint16(300))
-	testSkipLisMixOpPageBackedOnMemInner(t, uint8(150), uint8(10), uint16(600))
-	testSkipLisMixOpPageBackedOnMemInner(t, uint8(200), uint8(5), uint16(10))
-	testSkipLisMixOpPageBackedOnMemInner(t, uint8(250), uint8(5), uint16(10))
-	testSkipLisMixOpPageBackedOnMemInner(t, uint8(250), uint8(4), uint16(0))
-	testSkipLisMixOpPageBackedOnMemInner(t, uint8(250), uint8(3), uint16(0))
+	testSkipLisMixOpPageBackedOnMemInner(t, 100, uint8(150), uint8(10), uint16(0))
+	testSkipLisMixOpPageBackedOnMemInner(t, 100, uint8(150), uint8(10), uint16(300))
+	testSkipLisMixOpPageBackedOnMemInner(t, 100, uint8(150), uint8(10), uint16(600))
+	testSkipLisMixOpPageBackedOnMemInner(t, 100, uint8(200), uint8(5), uint16(10))
+	testSkipLisMixOpPageBackedOnMemInner(t, 100, uint8(250), uint8(5), uint16(10))
+	testSkipLisMixOpPageBackedOnMemInner(t, 100, uint8(250), uint8(4), uint16(0))
+	testSkipLisMixOpPageBackedOnMemInner(t, 100, uint8(250), uint8(3), uint16(0))
+
+	testSkipLisMixOpPageBackedOnMemInner(t, 50, uint8(150), uint8(10), uint16(0))
+	testSkipLisMixOpPageBackedOnMemInner(t, 50, uint8(150), uint8(10), uint16(300))
+	testSkipLisMixOpPageBackedOnMemInner(t, 50, uint8(150), uint8(10), uint16(600))
+	testSkipLisMixOpPageBackedOnMemInner(t, 50, uint8(200), uint8(5), uint16(10))
+	testSkipLisMixOpPageBackedOnMemInner(t, 50, uint8(250), uint8(5), uint16(10))
+	testSkipLisMixOpPageBackedOnMemInner(t, 50, uint8(250), uint8(4), uint16(0))
+	testSkipLisMixOpPageBackedOnMemInner(t, 50, uint8(250), uint8(3), uint16(0))
+
+	testSkipLisMixOpPageBackedOnMemInner(t, 1, uint8(150), uint8(10), uint16(0))
+	testSkipLisMixOpPageBackedOnMemInner(t, 1, uint8(150), uint8(10), uint16(300))
+	testSkipLisMixOpPageBackedOnMemInner(t, 1, uint8(150), uint8(10), uint16(600))
+	testSkipLisMixOpPageBackedOnMemInner(t, 1, uint8(200), uint8(5), uint16(10))
+	testSkipLisMixOpPageBackedOnMemInner(t, 1, uint8(250), uint8(5), uint16(10))
+	testSkipLisMixOpPageBackedOnMemInner(t, 1, uint8(250), uint8(4), uint16(0))
+	testSkipLisMixOpPageBackedOnMemInner(t, 1, uint8(250), uint8(3), uint16(0))
 }
