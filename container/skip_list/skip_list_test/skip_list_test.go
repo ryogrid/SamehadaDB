@@ -449,17 +449,17 @@ func testSkipLisMixOpPageBackedOnMemInner(t *testing.T, bulkSize int32, opTimes 
 			// get 0-5 value
 			tmpRand := rand.Intn(6)
 			if tmpRand == 0 {
-				// 20% is Remove to not existing entry
-				if len(removedVals) != 0 {
-					tmpIdx := int(rand.Intn(len(removedVals)))
-					tmpVal := removedVals[tmpIdx]
-					isDeleted := sl.Remove(samehada_util.GetPonterOfValue(types.NewInteger(int32(tmpVal))), uint32(tmpVal))
-					testingpkg.SimpleAssert(t, isDeleted == false)
-					if entriesOnListNum != countSkipListContent(sl) || entriesOnListNum != int32(len(insVals)) || removedEntriesNum != int32(len(removedVals)) {
-						fmt.Printf("entries num on list is strange! %d != (%d or %d) / %d != %d\n", entriesOnListNum, countSkipListContent(sl), len(insVals), removedEntriesNum, len(removedVals))
-						common.RuntimeStack()
-					}
-				}
+				//// 20% is Remove to not existing entry
+				//if len(removedVals) != 0 {
+				//	tmpIdx := int(rand.Intn(len(removedVals)))
+				//	tmpVal := removedVals[tmpIdx]
+				//	isDeleted := sl.Remove(samehada_util.GetPonterOfValue(types.NewInteger(int32(tmpVal))), uint32(tmpVal))
+				//	testingpkg.SimpleAssert(t, isDeleted == false)
+				//	if entriesOnListNum != countSkipListContent(sl) || entriesOnListNum != int32(len(insVals)) || removedEntriesNum != int32(len(removedVals)) {
+				//		fmt.Printf("entries num on list is strange! %d != (%d or %d) / %d != %d\n", entriesOnListNum, countSkipListContent(sl), len(insVals), removedEntriesNum, len(removedVals))
+				//		common.RuntimeStack()
+				//	}
+				//}
 			} else {
 				// 80% is Remove to existing entry
 				if int32(len(insVals))-bulkSize > 0 {
@@ -506,24 +506,24 @@ func TestSkipLisMixOpPageBackedOnMem(t *testing.T) {
 	testSkipLisMixOpPageBackedOnMemInner(t, 100, uint8(150), uint8(10), uint16(0))
 	testSkipLisMixOpPageBackedOnMemInner(t, 100, uint8(150), uint8(10), uint16(300))
 	testSkipLisMixOpPageBackedOnMemInner(t, 100, uint8(150), uint8(10), uint16(600))
-	testSkipLisMixOpPageBackedOnMemInner(t, 100, uint8(200), uint8(5), uint16(10))
-	testSkipLisMixOpPageBackedOnMemInner(t, 100, uint8(250), uint8(5), uint16(10))
-	testSkipLisMixOpPageBackedOnMemInner(t, 100, uint8(250), uint8(4), uint16(0))
-	testSkipLisMixOpPageBackedOnMemInner(t, 100, uint8(250), uint8(3), uint16(0))
-
-	testSkipLisMixOpPageBackedOnMemInner(t, 50, uint8(150), uint8(10), uint16(0))
-	testSkipLisMixOpPageBackedOnMemInner(t, 50, uint8(150), uint8(10), uint16(300))
-	testSkipLisMixOpPageBackedOnMemInner(t, 50, uint8(150), uint8(10), uint16(600))
-	testSkipLisMixOpPageBackedOnMemInner(t, 50, uint8(200), uint8(5), uint16(10))
-	testSkipLisMixOpPageBackedOnMemInner(t, 50, uint8(250), uint8(5), uint16(10))
-	testSkipLisMixOpPageBackedOnMemInner(t, 50, uint8(250), uint8(4), uint16(0))
-	testSkipLisMixOpPageBackedOnMemInner(t, 50, uint8(250), uint8(3), uint16(0))
-
-	testSkipLisMixOpPageBackedOnMemInner(t, 1, uint8(150), uint8(10), uint16(0))
-	testSkipLisMixOpPageBackedOnMemInner(t, 1, uint8(150), uint8(10), uint16(300))
-	testSkipLisMixOpPageBackedOnMemInner(t, 1, uint8(150), uint8(10), uint16(600))
-	testSkipLisMixOpPageBackedOnMemInner(t, 1, uint8(200), uint8(5), uint16(10))
-	testSkipLisMixOpPageBackedOnMemInner(t, 1, uint8(250), uint8(5), uint16(10))
-	testSkipLisMixOpPageBackedOnMemInner(t, 1, uint8(250), uint8(4), uint16(0))
-	testSkipLisMixOpPageBackedOnMemInner(t, 1, uint8(250), uint8(3), uint16(0))
+	//testSkipLisMixOpPageBackedOnMemInner(t, 100, uint8(200), uint8(5), uint16(10))
+	//testSkipLisMixOpPageBackedOnMemInner(t, 100, uint8(250), uint8(5), uint16(10))
+	//testSkipLisMixOpPageBackedOnMemInner(t, 100, uint8(250), uint8(4), uint16(0))
+	//testSkipLisMixOpPageBackedOnMemInner(t, 100, uint8(250), uint8(3), uint16(0))
+	//
+	//testSkipLisMixOpPageBackedOnMemInner(t, 50, uint8(150), uint8(10), uint16(0))
+	//testSkipLisMixOpPageBackedOnMemInner(t, 50, uint8(150), uint8(10), uint16(300))
+	//testSkipLisMixOpPageBackedOnMemInner(t, 50, uint8(150), uint8(10), uint16(600))
+	//testSkipLisMixOpPageBackedOnMemInner(t, 50, uint8(200), uint8(5), uint16(10))
+	//testSkipLisMixOpPageBackedOnMemInner(t, 50, uint8(250), uint8(5), uint16(10))
+	//testSkipLisMixOpPageBackedOnMemInner(t, 50, uint8(250), uint8(4), uint16(0))
+	//testSkipLisMixOpPageBackedOnMemInner(t, 50, uint8(250), uint8(3), uint16(0))
+	//
+	//testSkipLisMixOpPageBackedOnMemInner(t, 1, uint8(150), uint8(10), uint16(0))
+	//testSkipLisMixOpPageBackedOnMemInner(t, 1, uint8(150), uint8(10), uint16(300))
+	//testSkipLisMixOpPageBackedOnMemInner(t, 1, uint8(150), uint8(10), uint16(600))
+	//testSkipLisMixOpPageBackedOnMemInner(t, 1, uint8(200), uint8(5), uint16(10))
+	//testSkipLisMixOpPageBackedOnMemInner(t, 1, uint8(250), uint8(5), uint16(10))
+	//testSkipLisMixOpPageBackedOnMemInner(t, 1, uint8(250), uint8(4), uint16(0))
+	//testSkipLisMixOpPageBackedOnMemInner(t, 1, uint8(250), uint8(3), uint16(0))
 }

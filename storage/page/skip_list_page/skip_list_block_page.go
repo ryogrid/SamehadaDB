@@ -136,6 +136,10 @@ func (node *SkipListBlockPage) Insert(key *types.Value, value uint32, bpm *buffe
 	if found {
 		//fmt.Println("found at Insert")
 		// over write exsiting entry
+		if !node.Entries[foundIdx].Key.CompareEquals(*key) {
+			panic("overwriting wrong value!")
+		}
+
 		node.Entries[foundIdx] = &SkipListPair{*key, value}
 		//fmt.Printf("end of Insert of SkipListBlockPage called! : key=%d page.EntryCnt=%d len(page.Entries)=%d\n", key.ToInteger(), node.EntryCnt, len(node.Entries))
 		return isMadeNewNode
@@ -152,12 +156,12 @@ func (node *SkipListBlockPage) Insert(key *types.Value, value uint32, bpm *buffe
 			node.SplitNode(splitIdx, bpm, skipPathList, level, curMaxLevel, startNode)
 			isMadeNewNode = true
 
-			if foundIdx >= splitIdx {
+			if foundIdx > splitIdx {
 				// insert to new node
 				newSmallerIdx := foundIdx - splitIdx - 1
 				newNode := node.Forward[0]
 				if (newSmallerIdx + 1) >= newNode.EntryCnt {
-					// when insertin point is next of last entry of new node
+					// when inserting point is next of last entry of new node
 					common.SH_Assert(node.Entries[len(newNode.Entries)-1].Key.CompareLessThan(*key), "order is invalid.")
 					newNode.Entries = append(newNode.Entries, &SkipListPair{*key, value})
 				} else {
@@ -169,6 +173,7 @@ func (node *SkipListBlockPage) Insert(key *types.Value, value uint32, bpm *buffe
 					formerEntries = append(formerEntries, laterEntries...)
 					newNode.Entries = formerEntries
 				}
+				newNode.SmallestKey = newNode.Entries[0].Key
 				newNode.EntryCnt = int32(len(newNode.Entries))
 
 				//fmt.Printf("end of Insert of SkipListBlockPage called! : key=%d page.EntryCnt=%d len(page.Entries)=%d\n", key.ToInteger(), node.EntryCnt, len(node.Entries))
@@ -200,6 +205,7 @@ func (node *SkipListBlockPage) Insert(key *types.Value, value uint32, bpm *buffe
 			formerEntries = append(formerEntries, laterEntries...)
 			node.Entries = formerEntries
 		}
+		node.SmallestKey = node.Entries[0].Key
 		node.EntryCnt = int32(len(node.Entries))
 	}
 	//fmt.Printf("end of Insert of SkipListBlockPage called! : key=%d page.EntryCnt=%d len(page.Entries)=%d\n", key.ToInteger(), node.EntryCnt, len(node.Entries))
@@ -212,6 +218,10 @@ func (node *SkipListBlockPage) Remove(key *types.Value, skipPathList []*SkipList
 		// when there are no enry without target entry
 		// this node keep reft with no entry (but new entry can be stored)
 
+		if !node.Entries[0].Key.CompareEquals(*key) {
+			panic("removing wrong entry!")
+		}
+
 		// remove this node from all level of chain
 		for ii := int32(0); ii < node.Level; ii++ {
 			skipPathList[ii].Forward[ii] = node.Forward[ii]
@@ -219,6 +229,16 @@ func (node *SkipListBlockPage) Remove(key *types.Value, skipPathList []*SkipList
 
 		return true, node.Level
 	} else if found {
+		if !node.Entries[foundIdx].Key.CompareEquals(*key) {
+			panic("removing wrong entry!")
+		}
+
+		//formerEntries := make([]*SkipListPair, len(node.Entries[:foundIdx]))
+		//copy(formerEntries, node.Entries[:foundIdx])
+		//laterEntries := make([]*SkipListPair, len(node.Entries[foundIdx+1:]))
+		//copy(laterEntries, node.Entries[foundIdx+1:])
+		//formerEntries = append(formerEntries, laterEntries...)
+		//node.Entries = formerEntries
 		node.Entries = append(node.Entries[:foundIdx], node.Entries[foundIdx+1:]...)
 		node.SmallestKey = node.Entries[0].Key
 		node.EntryCnt = int32(len(node.Entries))
@@ -244,7 +264,11 @@ func (node *SkipListBlockPage) SplitNode(idx int32, bpm *buffer.BufferPoolManage
 	newNode.SmallestKey = newNode.Entries[0].Key
 	newNode.EntryCnt = int32(len(newNode.Entries))
 	newNode.Level = level
-	node.Entries = node.Entries[:idx+1]
+	copyEntriesFormer := make([]*SkipListPair, len(node.Entries[:idx+1]))
+	copy(copyEntriesFormer, node.Entries[:idx+1])
+	node.Entries = copyEntriesFormer
+	node.SmallestKey = node.Entries[0].Key
+	//node.Entries = node.Entries[:idx+1]
 	node.EntryCnt = int32(len(node.Entries))
 
 	if level > curMaxLevel {
