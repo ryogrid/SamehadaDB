@@ -369,18 +369,31 @@ func insertRandom(sl *skip_list.SkipList, num int32, insVals *[]int32, checkDupM
 	}
 }
 
+//for debug
+func isAlreadyRemoved(removedVals []int32, checkVal int32) bool {
+	for _, val := range removedVals {
+		if val == checkVal {
+			return true
+		}
+	}
+	return false
+}
+
 func removeRandom(t *testing.T, sl *skip_list.SkipList, opStep int32, num int32, insVals *[]int32, removedVals *[]int32) {
 	if int32(len(*insVals))-num > 0 {
 		for ii := 0; ii < int(num); ii++ {
 			tmpIdx := int(rand.Intn(len(*insVals)))
 			insValsPointed := *insVals
 			insVal := insValsPointed[tmpIdx]
+			if insVal == NOT_FOUND_VAL {
+				fmt.Println(NOT_FOUND_VAL)
+			}
 			isDeleted := sl.Remove(samehada_util.GetPonterOfValue(types.NewInteger(int32(insVal))), uint32(insVal))
 			fmt.Printf("sl.Remove at removeRandom: ii=%d, insVal=%d len(*insVals)=%d len(*removedVals)=%d\n", ii, insVal, len(*insVals), len(*removedVals))
 			if isInserted && !isExistKeyOnList(sl, NOT_FOUND_VAL) {
 				fmt.Printf("NOT_FOUND_VAL does not visible with iterator!\n")
 			}
-			if isDeleted != true {
+			if isDeleted != true && !isAlreadyRemoved(*removedVals, insVal) {
 				fmt.Printf("isDeleted should be true! opStep=%d, ii=%d tmpIdx=%d insVal=%d len(*insVals)=%d len(*removedVals)=%d\n", opStep, ii, tmpIdx, insVal, len(*insVals), len(*removedVals))
 				common.RuntimeStack()
 			}
