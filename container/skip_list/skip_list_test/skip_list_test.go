@@ -346,7 +346,7 @@ func insertRandom(sl *skip_list.SkipList, num int32, insVals *[]int32, checkDupM
 	}
 }
 
-func removeRandom(t *testing.T, sl *skip_list.SkipList, num int32, insVals *[]int32, removedVals *[]int32) {
+func removeRandom(t *testing.T, sl *skip_list.SkipList, opStep int32, num int32, insVals *[]int32, removedVals *[]int32) {
 	if int32(len(*insVals))-num > 0 {
 		for ii := 0; ii < int(num); ii++ {
 			tmpIdx := int(rand.Intn(len(*insVals)))
@@ -354,7 +354,7 @@ func removeRandom(t *testing.T, sl *skip_list.SkipList, num int32, insVals *[]in
 			insVal := insValsPointed[tmpIdx]
 			isDeleted := sl.Remove(samehada_util.GetPonterOfValue(types.NewInteger(int32(insVal))), uint32(insVal))
 			if isDeleted != true {
-				fmt.Println("isDeleted should be true!")
+				fmt.Printf("isDeleted should be true! opStep=%d, ii=%d tmpIdx=%d len(*insVals)=%d len(*removedVals)=%d\n", opStep, ii, tmpIdx, len(*insVals), len(*removedVals))
 				common.RuntimeStack()
 			}
 			testingpkg.SimpleAssert(t, isDeleted == true)
@@ -462,7 +462,7 @@ func testSkipLisMixOpPageBackedOnMemInner(t *testing.T, bulkSize int32, opTimes 
 			} else {
 				// 80% is Remove to existing entry
 				if int32(len(insVals))-bulkSize > 0 {
-					removeRandom(t, sl, bulkSize, &insVals, &removedVals)
+					removeRandom(t, sl, int32(ii), bulkSize, &insVals, &removedVals)
 					entriesOnList -= bulkSize
 					if entriesOnList != countSkipListContent(sl) {
 						fmt.Printf("entries num on list is strange! %d != %d\n", entriesOnList, countSkipListContent(sl))
