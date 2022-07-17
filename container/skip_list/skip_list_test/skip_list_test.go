@@ -417,10 +417,11 @@ func testSkipLisMixOpPageBackedOnMemInner(t *testing.T, bulkSize int32, opTimes 
 	}
 
 	// entries num on SkipList should be same with this variable
-	entriesOnList := int32(useInitialEntryNum)
+	entriesOnListNum := int32(useInitialEntryNum)
+	removedEntriesNum := int32(0)
 
 	// check num of stored entries on sl is same with num of initial entries (if differ, there are bug)
-	if entriesOnList != countSkipListContent(sl) {
+	if entriesOnListNum != countSkipListContent(sl) {
 		fmt.Println("initial entries are invalid!")
 		common.RuntimeStack()
 	}
@@ -438,9 +439,9 @@ func testSkipLisMixOpPageBackedOnMemInner(t *testing.T, bulkSize int32, opTimes 
 				insertRandom(sl, bulkSize, &insVals, checkDupMap)
 				//sl.Insert(samehada_util.GetPonterOfValue(types.NewInteger(int32(insVal))), uint32(insVal))
 				//insVals = append(insVals, insVal)
-				entriesOnList += bulkSize
-				if entriesOnList != countSkipListContent(sl) {
-					fmt.Printf("entries num on list is strange! %d != %d\n", entriesOnList, countSkipListContent(sl))
+				entriesOnListNum += bulkSize
+				if entriesOnListNum != countSkipListContent(sl) || entriesOnListNum != int32(len(insVals)) || removedEntriesNum != int32(len(removedVals)) {
+					fmt.Printf("entries num on list is strange! %d != (%d or %d) / %d != %d\n", entriesOnListNum, countSkipListContent(sl), len(insVals), removedEntriesNum, len(removedVals))
 					common.RuntimeStack()
 				}
 			}
@@ -454,8 +455,8 @@ func testSkipLisMixOpPageBackedOnMemInner(t *testing.T, bulkSize int32, opTimes 
 					tmpVal := removedVals[tmpIdx]
 					isDeleted := sl.Remove(samehada_util.GetPonterOfValue(types.NewInteger(int32(tmpVal))), uint32(tmpVal))
 					testingpkg.SimpleAssert(t, isDeleted == false)
-					if entriesOnList != countSkipListContent(sl) {
-						fmt.Printf("entries num on list is strange! %d != %d\n", entriesOnList, countSkipListContent(sl))
+					if entriesOnListNum != countSkipListContent(sl) || entriesOnListNum != int32(len(insVals)) || removedEntriesNum != int32(len(removedVals)) {
+						fmt.Printf("entries num on list is strange! %d != (%d or %d) / %d != %d\n", entriesOnListNum, countSkipListContent(sl), len(insVals), removedEntriesNum, len(removedVals))
 						common.RuntimeStack()
 					}
 				}
@@ -463,11 +464,13 @@ func testSkipLisMixOpPageBackedOnMemInner(t *testing.T, bulkSize int32, opTimes 
 				// 80% is Remove to existing entry
 				if int32(len(insVals))-bulkSize > 0 {
 					removeRandom(t, sl, int32(ii), bulkSize, &insVals, &removedVals)
-					entriesOnList -= bulkSize
-					if entriesOnList != countSkipListContent(sl) {
-						fmt.Printf("entries num on list is strange! %d != %d\n", entriesOnList, countSkipListContent(sl))
+					entriesOnListNum -= bulkSize
+					removedEntriesNum += bulkSize
+					if entriesOnListNum != countSkipListContent(sl) || entriesOnListNum != int32(len(insVals)) || removedEntriesNum != int32(len(removedVals)) {
+						fmt.Printf("entries num on list is strange! %d != (%d or %d) / %d != %d\n", entriesOnListNum, countSkipListContent(sl), len(insVals), removedEntriesNum, len(removedVals))
 						common.RuntimeStack()
 					}
+
 					//tmpIdx := int(rand.Intn(len(insVals)))
 					//insVal := insVals[tmpIdx]
 					//isDeleted := sl.Remove(samehada_util.GetPonterOfValue(types.NewInteger(int32(insVal))), uint32(insVal))
