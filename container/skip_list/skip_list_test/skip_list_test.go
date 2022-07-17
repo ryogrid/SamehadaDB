@@ -423,8 +423,8 @@ func testSkipLisMixOpPageBackedOnMemInner(t *testing.T, bulkSize int32, opTimes 
 	}
 
 	removedVals := make([]int32, 0)
-	// uint8 range is small...
-	useOpTimes := int(opTimes * 4)
+	//useOpTimes := int(opTimes * 4)
+	useOpTimes := int(opTimes)
 	for ii := 0; ii < useOpTimes; ii++ {
 		// get 0-2
 		opType := rand.Intn(3)
