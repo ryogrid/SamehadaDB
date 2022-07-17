@@ -2,6 +2,7 @@ package skip_list_test
 
 import (
 	"fmt"
+	"github.com/ryogrid/SamehadaDB/common"
 	"github.com/ryogrid/SamehadaDB/container/skip_list"
 	"github.com/ryogrid/SamehadaDB/samehada"
 	"github.com/ryogrid/SamehadaDB/samehada/samehada_util"
@@ -319,8 +320,8 @@ import (
 const MAX_ENTRIES = 700
 
 func insertRandom(sl *skip_list.SkipList, num int32, insVals *[]int32) {
-	for ii := 0; ii < int(num); ii++ {
-		if int32(len(*insVals))+num < MAX_ENTRIES {
+	if int32(len(*insVals))+num < MAX_ENTRIES {
+		for ii := 0; ii < int(num); ii++ {
 			insVal := rand.Int31()
 			sl.Insert(samehada_util.GetPonterOfValue(types.NewInteger(int32(insVal))), uint32(insVal))
 			tmpInsVal := append(*insVals, insVal)
@@ -330,28 +331,30 @@ func insertRandom(sl *skip_list.SkipList, num int32, insVals *[]int32) {
 }
 
 func removeRandom(t *testing.T, sl *skip_list.SkipList, num int32, insVals *[]int32, removedVals *[]int32) {
-	if int32(len(*insVals))+num > 0 {
-		tmpIdx := int(rand.Intn(len(*insVals)))
-		insValsPointed := *insVals
-		insVal := insValsPointed[tmpIdx]
-		isDeleted := sl.Remove(samehada_util.GetPonterOfValue(types.NewInteger(int32(insVal))), uint32(insVal))
-		testingpkg.SimpleAssert(t, isDeleted == true)
-		if len(*insVals) == 1 {
-			// make empty
-			insValsP := make([]int32, 0)
-			insVals = &insValsP
-		} else if len(*insVals) == tmpIdx+1 {
+	if int32(len(*insVals))-num > 0 {
+		for ii := 0; ii < int(num); ii++ {
+			tmpIdx := int(rand.Intn(len(*insVals)))
 			insValsPointed := *insVals
-			insValsPointed = insValsPointed[:len(*insVals)-1]
-			insVals = &insValsPointed
-		} else {
-			insValsPointed := *insVals
-			insValsPointed = append(insValsPointed[:tmpIdx], insValsPointed[tmpIdx+1:]...)
-			insVals = &insValsPointed
+			insVal := insValsPointed[tmpIdx]
+			isDeleted := sl.Remove(samehada_util.GetPonterOfValue(types.NewInteger(int32(insVal))), uint32(insVal))
+			testingpkg.SimpleAssert(t, isDeleted == true)
+			if len(*insVals) == 1 {
+				// make empty
+				insValsP := make([]int32, 0)
+				insVals = &insValsP
+			} else if len(*insVals) == tmpIdx+1 {
+				insValsPointed := *insVals
+				insValsPointed = insValsPointed[:len(*insVals)-1]
+				insVals = &insValsPointed
+			} else {
+				insValsPointed := *insVals
+				insValsPointed = append(insValsPointed[:tmpIdx], insValsPointed[tmpIdx+1:]...)
+				insVals = &insValsPointed
+			}
+			removedValsPointed := *removedVals
+			removedValsPointed = append(removedValsPointed, insVal)
+			removedVals = &removedValsPointed
 		}
-		removedValsPointed := *removedVals
-		removedValsPointed = append(removedValsPointed, insVal)
-		removedVals = &removedValsPointed
 	}
 }
 
@@ -436,11 +439,14 @@ func testSkipLisMixOpPageBackedOnMemInner(t *testing.T, bulkSize int32, opTimes 
 				gotVal := sl.GetValue(samehada_util.GetPonterOfValue(types.NewInteger(int32(insVals[tmpIdx]))))
 				if gotVal != uint32(insVals[tmpIdx]) {
 					fmt.Println(gotVal)
+					common.RuntimeStack()
 				}
 				testingpkg.SimpleAssert(t, gotVal == uint32(insVals[tmpIdx]))
 			}
 		}
 	}
+
+	shi.Finalize(false)
 }
 
 func TestSkipLisMixOpPageBackedOnMem(t *testing.T) {
