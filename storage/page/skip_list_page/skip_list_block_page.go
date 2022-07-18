@@ -248,9 +248,9 @@ func (node *SkipListBlockPage) Remove(key *types.Value, skipPathList []*SkipList
 			panic("removing wrong entry!")
 		}
 
-		skipPathLen := int32(len(skipPathList))
+		updateLen := int32(len(node.Forward))
 		// remove this node from all level of chain
-		for ii := int32(0); ii < skipPathLen; ii++ {
+		for ii := int32(0); ii < updateLen; ii++ {
 			skipPathList[ii].Forward[ii] = node.Forward[ii]
 		}
 
