@@ -318,7 +318,7 @@ func (sl *SkipListOnMem) GetNodeLevel() int32 {
 }
 
 func (sl *SkipList) GetNodeLevel() int32 {
-	//rand.Float32() returns a random value in [0..1)
+	rand.Float32() //returns a random value in [0..1)
 	var retLevel int32 = 1
 	for rand.Float32() < common.SkipListProb { // no MaxLevel check
 		retLevel++

@@ -8,6 +8,7 @@ import (
 	"github.com/ryogrid/SamehadaDB/samehada/samehada_util"
 	testingpkg "github.com/ryogrid/SamehadaDB/testing"
 	"github.com/ryogrid/SamehadaDB/types"
+	"math"
 	"math/rand"
 	"os"
 	"testing"
@@ -72,14 +73,24 @@ import (
 //}
 
 // for debug
-func isExistKeyOnList(sl *skip_list.SkipList, checkKey int32) bool {
+func isExistKeyOnList(sl *skip_list.SkipList, checkKey int32, isPrint bool) bool {
 	itr := sl.Iterator(nil, nil)
+	fmt.Printf("isExistKeyOnList:")
 	for done, _, key, _ := itr.Next(); !done; done, _, key, _ = itr.Next() {
+		if isPrint {
+			fmt.Printf(" %d", key.ToInteger())
+		}
 		if key.ToInteger() == checkKey {
+			if isPrint {
+				fmt.Println("")
+			}
 			return true
 		}
 	}
 
+	if isPrint {
+		fmt.Println("")
+	}
 	return false
 }
 
@@ -340,7 +351,7 @@ func confirmSkipListContent(t *testing.T, sl *skip_list.SkipList, step int32) in
 //	})
 
 const MAX_ENTRIES = 700
-const NOT_FOUND_VAL = 1801932928
+const TARGET_KEY_RELATED_BUG = 1237427852
 
 var isInserted bool = false
 var entriesOnListNum int32 = 0
@@ -358,14 +369,14 @@ func insertRandom(sl *skip_list.SkipList, num int32, insVals *[]int32, checkDupM
 			}
 			checkDupMap[insVal] = insVal
 
-			if insVal == NOT_FOUND_VAL {
-				fmt.Printf("!!!insert of NOT_FOUND_VAL!!!  ii=%d, insVal=%d len(*insVals)=%d\n", ii, insVal, len(*insVals))
+			if insVal == TARGET_KEY_RELATED_BUG {
+				fmt.Printf("!!!insert of TARGET_KEY_RELATED_BUG!!!  ii=%d, insVal=%d len(*insVals)=%d\n", ii, insVal, len(*insVals))
 				isInserted = true
 			}
 			sl.Insert(samehada_util.GetPonterOfValue(types.NewInteger(int32(insVal))), uint32(insVal))
 			fmt.Printf("sl.Insert at insertRandom: ii=%d, insVal=%d len(*insVals)=%d\n", ii, insVal, len(*insVals))
-			if isInserted && !isExistKeyOnList(sl, NOT_FOUND_VAL) {
-				fmt.Printf("NOT_FOUND_VAL does not visible with iterator!\n")
+			if isInserted && !isExistKeyOnList(sl, TARGET_KEY_RELATED_BUG, false) {
+				fmt.Printf("TARGET_KEY_RELATED_BUG does not visible with iterator!\n")
 			}
 			tmpInsVals := append(*insVals, insVal)
 			*insVals = tmpInsVals
@@ -389,13 +400,13 @@ func removeRandom(t *testing.T, sl *skip_list.SkipList, opStep int32, num int32,
 			tmpIdx := int(rand.Intn(len(*insVals)))
 			insValsPointed := *insVals
 			insVal := insValsPointed[tmpIdx]
-			if insVal == NOT_FOUND_VAL {
-				fmt.Println(NOT_FOUND_VAL)
+			if insVal == TARGET_KEY_RELATED_BUG {
+				fmt.Println(TARGET_KEY_RELATED_BUG)
 			}
 			isDeleted := sl.Remove(samehada_util.GetPonterOfValue(types.NewInteger(int32(insVal))), uint32(insVal))
 			fmt.Printf("sl.Remove at removeRandom: ii=%d, insVal=%d len(*insVals)=%d len(*removedVals)=%d\n", ii, insVal, len(*insVals), len(*removedVals))
-			if isInserted && !isExistKeyOnList(sl, NOT_FOUND_VAL) {
-				fmt.Printf("NOT_FOUND_VAL does not visible with iterator!\n")
+			if isInserted && !isExistKeyOnList(sl, TARGET_KEY_RELATED_BUG, false) {
+				fmt.Printf("TARGET_KEY_RELATED_BUG does not visible with iterator!\n")
 			}
 			if isDeleted != true && !isAlreadyRemoved(*removedVals, insVal) {
 				fmt.Printf("isDeleted should be true! opStep=%d, ii=%d tmpIdx=%d insVal=%d len(*insVals)=%d len(*removedVals)=%d\n", opStep, ii, tmpIdx, insVal, len(*insVals), len(*removedVals))
@@ -534,6 +545,10 @@ func testSkipLisMixOpPageBackedOnMemInner(t *testing.T, bulkSize int32, opTimes 
 			if len(insVals) > 0 {
 				tmpIdx := int(rand.Intn(len(insVals)))
 				gotVal := sl.GetValue(samehada_util.GetPonterOfValue(types.NewInteger(int32(insVals[tmpIdx]))))
+				if entriesOnListNum != countSkipListContent(sl) || entriesOnListNum != int32(len(insVals)) || removedEntriesNum != int32(len(removedVals)) {
+					fmt.Printf("entries num on list is strange! %d != (%d or %d) / %d != %d\n", entriesOnListNum, countSkipListContent(sl), len(insVals), removedEntriesNum, len(removedVals))
+					common.RuntimeStack()
+				}
 				if gotVal != uint32(insVals[tmpIdx]) {
 					fmt.Println(gotVal)
 					common.RuntimeStack()
@@ -592,8 +607,17 @@ func insertRandom2(sl *skip_list.SkipList, num int32, checkDupMap map[int32]int3
 			}
 			checkDupMap[insVal] = insVal
 
+			if insVal == TARGET_KEY_RELATED_BUG {
+				isInserted = true
+			}
+			if insVal == 1431672847 {
+				fmt.Println("")
+			}
 			sl.Insert(samehada_util.GetPonterOfValue(types.NewInteger(int32(insVal))), uint32(insVal))
 			fmt.Printf("sl.Insert at insertRandom: ii=%d, insVal=%d len(*insVals)=%d\n", ii, insVal, len(insVals))
+			if isInserted && !isExistKeyOnList(sl, TARGET_KEY_RELATED_BUG, true) {
+				panic("TARGET_KEY_RELATED_BUG does not visible with iterator!")
+			}
 			insVals = append(insVals, insVal)
 		}
 	}
@@ -604,14 +628,24 @@ func removeRandom2(t *testing.T, sl *skip_list.SkipList, opStep int32, num int32
 		for ii := 0; ii < int(num); ii++ {
 			tmpIdx := int(rand.Intn(len(insVals)))
 			insVal := insVals[tmpIdx]
-			//if insVal == NOT_FOUND_VAL {
-			//	fmt.Println(NOT_FOUND_VAL)
-			//}
+			if insVal == TARGET_KEY_RELATED_BUG {
+				isInserted = false
+			}
+			//sl.Remove(samehada_util.GetPonterOfValue(types.NewInteger(int32(insVal))), uint32(insVal))
 			isDeleted := sl.Remove(samehada_util.GetPonterOfValue(types.NewInteger(int32(insVal))), uint32(insVal))
 			fmt.Printf("sl.Remove at removeRandom: ii=%d, insVal=%d len(*insVals)=%d len(*removedVals)=%d\n", ii, insVal, len(insVals), len(removedVals))
-			if isDeleted != true && !isAlreadyRemoved2(insVal) {
+			if isInserted && !isExistKeyOnList(sl, TARGET_KEY_RELATED_BUG, true) {
+				panic("TARGET_KEY_RELATED_BUG does not visible with iterator!")
+			}
+			if isAlreadyRemoved2(insVal) {
+				fmt.Printf("delete duplicated value should not be occur! opStep=%d, ii=%d tmpIdx=%d insVal=%d len(*insVals)=%d len(*removedVals)=%d\n", opStep, ii, tmpIdx, insVal, len(insVals), len(removedVals))
+				panic("delete duplicated value should not be occur!")
+			}
+			//if isDeleted != true && !isAlreadyRemoved2(insVal) {
+			if isDeleted != true {
 				fmt.Printf("isDeleted should be true! opStep=%d, ii=%d tmpIdx=%d insVal=%d len(*insVals)=%d len(*removedVals)=%d\n", opStep, ii, tmpIdx, insVal, len(insVals), len(removedVals))
-				common.RuntimeStack()
+				panic("isDeleted should be true!")
+				//common.RuntimeStack()
 			}
 			testingpkg.SimpleAssert(t, isDeleted == true || isAlreadyRemoved(removedVals, insVal))
 			if len(insVals) == 1 {
@@ -628,14 +662,20 @@ func removeRandom2(t *testing.T, sl *skip_list.SkipList, opStep int32, num int32
 }
 
 func testSkipLisMixOpPageBackedOnMemInner2(t *testing.T, bulkSize int32, opTimes uint8, skipRand uint8, initialEntryNum uint16) {
-	os.Remove("test.db")
-	os.Remove("test.log")
+	fmt.Println("")
+	fmt.Println("")
+	fmt.Printf("start of testSkipLisMixOpPageBackedOnMemInner2 bulkSize=%d opTimes=%d skipRand=%d initialEntryNum=%d ====================================================\n",
+		bulkSize, opTimes, skipRand, initialEntryNum)
+
+	//os.Remove("test.db")
+	//os.Remove("test.log")
 
 	//fmt.Println("fuzzing test now!")
 	checkDupMap := make(map[int32]int32)
 
-	shi := samehada.NewSamehadaInstanceForTesting()
-	sl := skip_list.NewSkipList(shi.GetBufferPoolManager(), types.Integer)
+	//shi := samehada.NewSamehadaInstanceForTesting()
+	//sl := skip_list.NewSkipList(shi.GetBufferPoolManager(), types.Integer)
+	sl := skip_list.NewSkipList(nil, types.Integer)
 
 	// override global rand seed (seed has been set on NewSkipList)
 	rand.Seed(3)
@@ -649,31 +689,39 @@ func testSkipLisMixOpPageBackedOnMemInner2(t *testing.T, bulkSize int32, opTimes
 
 	insVals = make([]int32, 0)
 	removedVals = make([]int32, 0)
+	isInserted = false
+	entriesOnListNum = 0
 
 	// initial entries
 	useInitialEntryNum := int(initialEntryNum)
 	for ii := 0; ii < useInitialEntryNum; ii++ {
-		if entriesOnListNum < MAX_ENTRIES {
+		if entriesOnListNum+1 < MAX_ENTRIES {
 			// avoid duplication
 			insVal := rand.Int31()
 			for _, exist := checkDupMap[insVal]; exist; _, exist = checkDupMap[insVal] {
 				insVal = rand.Int31()
 			}
 			checkDupMap[insVal] = insVal
+			if insVal == TARGET_KEY_RELATED_BUG {
+				isInserted = true
+			}
 
+			fmt.Printf("sl.Insert at testSkipLisMixOpPageBackedOnMemInner2 for initial entry: ii=%d, insVal=%d len(*insVals)=%d len(*removedVals)=%d\n", ii, insVal, len(insVals), len(removedVals))
 			sl.Insert(samehada_util.GetPonterOfValue(types.NewInteger(int32(insVal))), uint32(insVal))
 			insVals = append(insVals, insVal)
+			entriesOnListNum++
 		}
 	}
 
 	// entries num on SkipList should be same with this variable
-	entriesOnListNum = int32(useInitialEntryNum)
+	//entriesOnListNum = int32(useInitialEntryNum)
 	removedEntriesNum = int32(0)
 
 	// check num of stored entries on sl is same with num of initial entries (if differ, there are bug)
 	if entriesOnListNum != countSkipListContent(sl) {
-		fmt.Println("initial entries are invalid!")
-		common.RuntimeStack()
+		fmt.Println("initial entries num are strange!")
+		panic("initial entries count are strange!")
+		//common.RuntimeStack()
 	}
 
 	//useOpTimes := int(opTimes * 4)
@@ -691,7 +739,8 @@ func testSkipLisMixOpPageBackedOnMemInner2(t *testing.T, bulkSize int32, opTimes
 				entriesOnListNum += bulkSize
 				if entriesOnListNum != countSkipListContent(sl) || entriesOnListNum != int32(len(insVals)) || removedEntriesNum != int32(len(removedVals)) {
 					fmt.Printf("entries num on list is strange! %d != (%d or %d) / %d != %d\n", entriesOnListNum, countSkipListContent(sl), len(insVals), removedEntriesNum, len(removedVals))
-					common.RuntimeStack()
+					//common.RuntimeStack()
+					panic("entries num on list is strange!")
 				}
 			}
 		case 1: // Delete
@@ -717,48 +766,67 @@ func testSkipLisMixOpPageBackedOnMemInner2(t *testing.T, bulkSize int32, opTimes
 					removedEntriesNum += bulkSize
 					if entriesOnListNum != countSkipListContent(sl) || entriesOnListNum != int32(len(insVals)) || removedEntriesNum != int32(len(removedVals)) {
 						fmt.Printf("entries num on list is strange! %d != (%d or %d) / %d != %d\n", entriesOnListNum, countSkipListContent(sl), len(insVals), removedEntriesNum, len(removedVals))
-						common.RuntimeStack()
+						panic("entries num on list is strange!")
+						//common.RuntimeStack()
 					}
 				}
 			}
 		case 2: // Get
 			if len(insVals) > 0 {
 				tmpIdx := int(rand.Intn(len(insVals)))
+				if insVals[tmpIdx] == TARGET_KEY_RELATED_BUG {
+					fmt.Println("")
+				}
+				fmt.Printf("sl.GetValue at testSkipLisMixOpPageBackedOnMemInner2: ii=%d, tmpIdx=%d insVals[tmpIdx]=%d len(*insVals)=%d len(*removedVals)=%d\n", ii, tmpIdx, insVals[tmpIdx], len(insVals), len(removedVals))
 				gotVal := sl.GetValue(samehada_util.GetPonterOfValue(types.NewInteger(int32(insVals[tmpIdx]))))
+				if entriesOnListNum != countSkipListContent(sl) || entriesOnListNum != int32(len(insVals)) || removedEntriesNum != int32(len(removedVals)) {
+					fmt.Printf("entries num on list is strange! %d != (%d or %d) / %d != %d\n", entriesOnListNum, countSkipListContent(sl), len(insVals), removedEntriesNum, len(removedVals))
+					panic("entries num on list is strange!")
+					//common.RuntimeStack()
+				}
+				if gotVal == math.MaxUint32 {
+					fmt.Printf("%d is not found!\n", insVals[tmpIdx])
+					panic("sl.GetValue could not target key!")
+				}
 				if gotVal != uint32(insVals[tmpIdx]) {
-					fmt.Println(gotVal)
-					common.RuntimeStack()
+					fmt.Printf("gotVal is not match! %d != %d\n", gotVal, insVals[tmpIdx])
+					panic("gotVal is not match!")
+					//common.RuntimeStack()
 				}
 				testingpkg.SimpleAssert(t, gotVal == uint32(insVals[tmpIdx]))
 			}
 		}
 	}
 
-	shi.Finalize(false)
+	//shi.Finalize(false)
 }
 
 func TestSkipLisMixOpPageBackedOnMem2(t *testing.T) {
+	testSkipLisMixOpPageBackedOnMemInner2(t, 1, uint8(150), uint8(10), uint16(0))
+	testSkipLisMixOpPageBackedOnMemInner2(t, 1, uint8(150), uint8(10), uint16(300))
+	testSkipLisMixOpPageBackedOnMemInner2(t, 1, uint8(150), uint8(10), uint16(600))
+	testSkipLisMixOpPageBackedOnMemInner2(t, 1, uint8(200), uint8(5), uint16(10))
+	testSkipLisMixOpPageBackedOnMemInner2(t, 1, uint8(250), uint8(5), uint16(10))
+	testSkipLisMixOpPageBackedOnMemInner2(t, 1, uint8(250), uint8(4), uint16(0))
+	testSkipLisMixOpPageBackedOnMemInner2(t, 1, uint8(250), uint8(3), uint16(0))
+
+	testSkipLisMixOpPageBackedOnMemInner(t, 50, uint8(150), uint8(10), uint16(0))
+	testSkipLisMixOpPageBackedOnMemInner(t, 50, uint8(150), uint8(10), uint16(300))
+	testSkipLisMixOpPageBackedOnMemInner(t, 50, uint8(150), uint8(10), uint16(600))
+	testSkipLisMixOpPageBackedOnMemInner(t, 50, uint8(200), uint8(5), uint16(10))
+	testSkipLisMixOpPageBackedOnMemInner(t, 50, uint8(250), uint8(5), uint16(10))
+	testSkipLisMixOpPageBackedOnMemInner(t, 50, uint8(250), uint8(4), uint16(0))
+	testSkipLisMixOpPageBackedOnMemInner(t, 50, uint8(250), uint8(3), uint16(0))
+
 	testSkipLisMixOpPageBackedOnMemInner2(t, 100, uint8(150), uint8(10), uint16(0))
 	testSkipLisMixOpPageBackedOnMemInner2(t, 100, uint8(150), uint8(10), uint16(300))
 	testSkipLisMixOpPageBackedOnMemInner2(t, 100, uint8(150), uint8(10), uint16(600))
-	//testSkipLisMixOpPageBackedOnMemInner(t, 100, uint8(200), uint8(5), uint16(10))
-	//testSkipLisMixOpPageBackedOnMemInner(t, 100, uint8(250), uint8(5), uint16(10))
-	//testSkipLisMixOpPageBackedOnMemInner(t, 100, uint8(250), uint8(4), uint16(0))
-	//testSkipLisMixOpPageBackedOnMemInner(t, 100, uint8(250), uint8(3), uint16(0))
+	//testSkipLisMixOpPageBackedOnMemInner2(t, 100, uint8(200), uint8(5), uint16(10))
+	//testSkipLisMixOpPageBackedOnMemInner2(t, 100, uint8(250), uint8(5), uint16(10))
+	//testSkipLisMixOpPageBackedOnMemInner2(t, 100, uint8(250), uint8(4), uint16(0))
+	//testSkipLisMixOpPageBackedOnMemInner2(t, 100, uint8(250), uint8(3), uint16(0))
 	//
-	//testSkipLisMixOpPageBackedOnMemInner(t, 50, uint8(150), uint8(10), uint16(0))
-	//testSkipLisMixOpPageBackedOnMemInner(t, 50, uint8(150), uint8(10), uint16(300))
-	//testSkipLisMixOpPageBackedOnMemInner(t, 50, uint8(150), uint8(10), uint16(600))
-	//testSkipLisMixOpPageBackedOnMemInner(t, 50, uint8(200), uint8(5), uint16(10))
-	//testSkipLisMixOpPageBackedOnMemInner(t, 50, uint8(250), uint8(5), uint16(10))
-	//testSkipLisMixOpPageBackedOnMemInner(t, 50, uint8(250), uint8(4), uint16(0))
-	//testSkipLisMixOpPageBackedOnMemInner(t, 50, uint8(250), uint8(3), uint16(0))
+
 	//
-	//testSkipLisMixOpPageBackedOnMemInner(t, 1, uint8(150), uint8(10), uint16(0))
-	//testSkipLisMixOpPageBackedOnMemInner(t, 1, uint8(150), uint8(10), uint16(300))
-	//testSkipLisMixOpPageBackedOnMemInner(t, 1, uint8(150), uint8(10), uint16(600))
-	//testSkipLisMixOpPageBackedOnMemInner(t, 1, uint8(200), uint8(5), uint16(10))
-	//testSkipLisMixOpPageBackedOnMemInner(t, 1, uint8(250), uint8(5), uint16(10))
-	//testSkipLisMixOpPageBackedOnMemInner(t, 1, uint8(250), uint8(4), uint16(0))
-	//testSkipLisMixOpPageBackedOnMemInner(t, 1, uint8(250), uint8(3), uint16(0))
+
 }
