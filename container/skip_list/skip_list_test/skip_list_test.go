@@ -397,7 +397,7 @@ func removeRandom(t *testing.T, sl *skip_list.SkipList, opStep int32, num int32,
 				fmt.Printf("isDeleted should be true! opStep=%d, ii=%d tmpIdx=%d insVal=%d len(*insVals)=%d len(*removedVals)=%d\n", opStep, ii, tmpIdx, insVal, len(*insVals), len(*removedVals))
 				common.RuntimeStack()
 			}
-			testingpkg.SimpleAssert(t, isDeleted == true)
+			testingpkg.SimpleAssert(t, isDeleted == true || isAlreadyRemoved(*removedVals, insVal))
 			if len(*insVals) == 1 {
 				// make empty
 				insValsTmp := make([]int32, 0)
