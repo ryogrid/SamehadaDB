@@ -324,5 +324,4 @@ func (sl *SkipList) GetNodeLevel() int32 {
 		retLevel++
 	}
 	return int32(math.Min(float64(retLevel), float64(sl.headerPageId.CurMaxLevel)))
-	return 1
 }
