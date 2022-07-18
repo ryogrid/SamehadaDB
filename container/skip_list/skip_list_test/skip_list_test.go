@@ -592,6 +592,9 @@ func insertRandom2(sl *skip_list.SkipList, num int32, checkDupMap map[int32]int3
 			}
 			checkDupMap[insVal] = insVal
 
+			if insVal == 477040190 {
+				fmt.Println(insVal)
+			}
 			sl.Insert(samehada_util.GetPonterOfValue(types.NewInteger(int32(insVal))), uint32(insVal))
 			fmt.Printf("sl.Insert at insertRandom: ii=%d, insVal=%d len(*insVals)=%d\n", ii, insVal, len(insVals))
 			insVals = append(insVals, insVal)

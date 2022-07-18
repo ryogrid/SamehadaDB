@@ -50,31 +50,31 @@ func NewSkipListStartBlockPage(bpm *buffer.BufferPoolManager, keyType types.Type
 	var startNode *SkipListBlockPage = nil
 	switch keyType {
 	case types.Integer:
-		startNode = NewSkipListBlockPage(bpm, MAX_FOWARD_LIST_LEN, &SkipListPair{types.NewInteger(math.MinInt32), 0})
+		startNode = NewSkipListBlockPage(bpm, MAX_FOWARD_LIST_LEN, SkipListPair{types.NewInteger(math.MinInt32), 0})
 	case types.Float:
-		startNode = NewSkipListBlockPage(bpm, MAX_FOWARD_LIST_LEN, &SkipListPair{types.NewFloat(math.SmallestNonzeroFloat32), 0})
+		startNode = NewSkipListBlockPage(bpm, MAX_FOWARD_LIST_LEN, SkipListPair{types.NewFloat(math.SmallestNonzeroFloat32), 0})
 	case types.Varchar:
-		startNode = NewSkipListBlockPage(bpm, MAX_FOWARD_LIST_LEN, &SkipListPair{types.NewVarchar(""), 0})
+		startNode = NewSkipListBlockPage(bpm, MAX_FOWARD_LIST_LEN, SkipListPair{types.NewVarchar(""), 0})
 	case types.Boolean:
-		startNode = NewSkipListBlockPage(bpm, MAX_FOWARD_LIST_LEN, &SkipListPair{types.NewBoolean(false), 0})
+		startNode = NewSkipListBlockPage(bpm, MAX_FOWARD_LIST_LEN, SkipListPair{types.NewBoolean(false), 0})
 	}
 
 	var sentinelNode *SkipListBlockPage = nil
 	switch keyType {
 	case types.Integer:
-		pl := &SkipListPair{types.NewInteger(0), 0}
+		pl := SkipListPair{types.NewInteger(0), 0}
 		pl.Key.SetInfMax()
 		sentinelNode = NewSkipListBlockPage(bpm, MAX_FOWARD_LIST_LEN, pl)
 	case types.Float:
-		pl := &SkipListPair{types.NewFloat(0), 0}
+		pl := SkipListPair{types.NewFloat(0), 0}
 		pl.Key.SetInfMax()
 		sentinelNode = NewSkipListBlockPage(bpm, MAX_FOWARD_LIST_LEN, pl)
 	case types.Varchar:
-		pl := &SkipListPair{types.NewVarchar(""), 0}
+		pl := SkipListPair{types.NewVarchar(""), 0}
 		pl.Key.SetInfMax()
 		sentinelNode = NewSkipListBlockPage(bpm, MAX_FOWARD_LIST_LEN, pl)
 	case types.Boolean:
-		pl := &SkipListPair{types.NewBoolean(false), 0}
+		pl := SkipListPair{types.NewBoolean(false), 0}
 		pl.Key.SetInfMax()
 		sentinelNode = NewSkipListBlockPage(bpm, MAX_FOWARD_LIST_LEN, pl)
 	}
