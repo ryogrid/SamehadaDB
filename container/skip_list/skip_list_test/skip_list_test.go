@@ -73,14 +73,24 @@ import (
 //}
 
 // for debug
-func isExistKeyOnList(sl *skip_list.SkipList, checkKey int32) bool {
+func isExistKeyOnList(sl *skip_list.SkipList, checkKey int32, isPrint bool) bool {
 	itr := sl.Iterator(nil, nil)
+	fmt.Printf("isExistKeyOnList:")
 	for done, _, key, _ := itr.Next(); !done; done, _, key, _ = itr.Next() {
+		if isPrint {
+			fmt.Printf(" %d", key.ToInteger())
+		}
 		if key.ToInteger() == checkKey {
+			if isPrint {
+				fmt.Println("")
+			}
 			return true
 		}
 	}
 
+	if isPrint {
+		fmt.Println("")
+	}
 	return false
 }
 
@@ -365,7 +375,7 @@ func insertRandom(sl *skip_list.SkipList, num int32, insVals *[]int32, checkDupM
 			}
 			sl.Insert(samehada_util.GetPonterOfValue(types.NewInteger(int32(insVal))), uint32(insVal))
 			fmt.Printf("sl.Insert at insertRandom: ii=%d, insVal=%d len(*insVals)=%d\n", ii, insVal, len(*insVals))
-			if isInserted && !isExistKeyOnList(sl, TARGET_KEY_RELATED_BUG) {
+			if isInserted && !isExistKeyOnList(sl, TARGET_KEY_RELATED_BUG, false) {
 				fmt.Printf("TARGET_KEY_RELATED_BUG does not visible with iterator!\n")
 			}
 			tmpInsVals := append(*insVals, insVal)
@@ -395,7 +405,7 @@ func removeRandom(t *testing.T, sl *skip_list.SkipList, opStep int32, num int32,
 			}
 			isDeleted := sl.Remove(samehada_util.GetPonterOfValue(types.NewInteger(int32(insVal))), uint32(insVal))
 			fmt.Printf("sl.Remove at removeRandom: ii=%d, insVal=%d len(*insVals)=%d len(*removedVals)=%d\n", ii, insVal, len(*insVals), len(*removedVals))
-			if isInserted && !isExistKeyOnList(sl, TARGET_KEY_RELATED_BUG) {
+			if isInserted && !isExistKeyOnList(sl, TARGET_KEY_RELATED_BUG, false) {
 				fmt.Printf("TARGET_KEY_RELATED_BUG does not visible with iterator!\n")
 			}
 			if isDeleted != true && !isAlreadyRemoved(*removedVals, insVal) {
@@ -602,7 +612,7 @@ func insertRandom2(sl *skip_list.SkipList, num int32, checkDupMap map[int32]int3
 			}
 			sl.Insert(samehada_util.GetPonterOfValue(types.NewInteger(int32(insVal))), uint32(insVal))
 			fmt.Printf("sl.Insert at insertRandom: ii=%d, insVal=%d len(*insVals)=%d\n", ii, insVal, len(insVals))
-			if isInserted && !isExistKeyOnList(sl, TARGET_KEY_RELATED_BUG) {
+			if isInserted && !isExistKeyOnList(sl, TARGET_KEY_RELATED_BUG, true) {
 				panic("TARGET_KEY_RELATED_BUG does not visible with iterator!")
 			}
 			insVals = append(insVals, insVal)
@@ -621,7 +631,7 @@ func removeRandom2(t *testing.T, sl *skip_list.SkipList, opStep int32, num int32
 			//sl.Remove(samehada_util.GetPonterOfValue(types.NewInteger(int32(insVal))), uint32(insVal))
 			isDeleted := sl.Remove(samehada_util.GetPonterOfValue(types.NewInteger(int32(insVal))), uint32(insVal))
 			fmt.Printf("sl.Remove at removeRandom: ii=%d, insVal=%d len(*insVals)=%d len(*removedVals)=%d\n", ii, insVal, len(insVals), len(removedVals))
-			if isInserted && !isExistKeyOnList(sl, TARGET_KEY_RELATED_BUG) {
+			if isInserted && !isExistKeyOnList(sl, TARGET_KEY_RELATED_BUG, true) {
 				panic("TARGET_KEY_RELATED_BUG does not visible with iterator!")
 			}
 			if isAlreadyRemoved2(insVal) {
