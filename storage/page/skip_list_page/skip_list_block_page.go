@@ -22,7 +22,7 @@ import (
 //  ----------------------------------------------------------------
 
 const (
-	DUMMY_MAX_ENTRY = 50
+	DUMMY_MAX_ENTRY = 10 //50
 )
 
 type SkipListBlockPageOnMem struct {

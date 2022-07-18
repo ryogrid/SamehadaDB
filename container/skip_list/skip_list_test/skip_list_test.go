@@ -610,13 +610,14 @@ func removeRandom2(t *testing.T, sl *skip_list.SkipList, opStep int32, num int32
 			//if insVal == NOT_FOUND_VAL {
 			//	fmt.Println(NOT_FOUND_VAL)
 			//}
-			isDeleted := sl.Remove(samehada_util.GetPonterOfValue(types.NewInteger(int32(insVal))), uint32(insVal))
+			sl.Remove(samehada_util.GetPonterOfValue(types.NewInteger(int32(insVal))), uint32(insVal))
+			//isDeleted := sl.Remove(samehada_util.GetPonterOfValue(types.NewInteger(int32(insVal))), uint32(insVal))
 			fmt.Printf("sl.Remove at removeRandom: ii=%d, insVal=%d len(*insVals)=%d len(*removedVals)=%d\n", ii, insVal, len(insVals), len(removedVals))
-			if isDeleted != true && !isAlreadyRemoved2(insVal) {
-				fmt.Printf("isDeleted should be true! opStep=%d, ii=%d tmpIdx=%d insVal=%d len(*insVals)=%d len(*removedVals)=%d\n", opStep, ii, tmpIdx, insVal, len(insVals), len(removedVals))
-				common.RuntimeStack()
-			}
-			testingpkg.SimpleAssert(t, isDeleted == true || isAlreadyRemoved(removedVals, insVal))
+			//if isDeleted != true && !isAlreadyRemoved2(insVal) {
+			//	fmt.Printf("isDeleted should be true! opStep=%d, ii=%d tmpIdx=%d insVal=%d len(*insVals)=%d len(*removedVals)=%d\n", opStep, ii, tmpIdx, insVal, len(insVals), len(removedVals))
+			//	common.RuntimeStack()
+			//}
+			//testingpkg.SimpleAssert(t, isDeleted == true || isAlreadyRemoved(removedVals, insVal))
 			if len(insVals) == 1 {
 				// make empty
 				insVals = make([]int32, 0)
