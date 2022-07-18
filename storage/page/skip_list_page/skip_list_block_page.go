@@ -2,6 +2,7 @@ package skip_list_page
 
 import (
 	"fmt"
+	"github.com/cznic/mathutil"
 	"github.com/ryogrid/SamehadaDB/common"
 	"github.com/ryogrid/SamehadaDB/storage/buffer"
 	"github.com/ryogrid/SamehadaDB/types"
@@ -248,7 +249,7 @@ func (node *SkipListBlockPage) Remove(key *types.Value, skipPathList []*SkipList
 			panic("removing wrong entry!")
 		}
 
-		updateLen := int32(len(node.Forward))
+		updateLen := int32(mathutil.Min(len(skipPathList), len(node.Forward)))
 		// remove this node from all level of chain
 		for ii := int32(0); ii < updateLen; ii++ {
 			skipPathList[ii].Forward[ii] = node.Forward[ii]
