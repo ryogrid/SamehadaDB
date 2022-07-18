@@ -1,6 +1,7 @@
 package skip_list_page
 
 import (
+	"fmt"
 	"github.com/ryogrid/SamehadaDB/common"
 	"github.com/ryogrid/SamehadaDB/storage/buffer"
 	"github.com/ryogrid/SamehadaDB/types"
@@ -93,7 +94,12 @@ func (node *SkipListBlockPage) FindEntryByKey(key *types.Value) (found bool, ent
 			if node.Entries[0].Key.IsInfMin() {
 				return false, node.Entries[0], 0
 			} else {
-				return false, node.Entries[0], -1
+				if node.Entries[0].Key.CompareLessThan(*key) {
+					return false, node.Entries[0], 0
+				} else {
+					return false, node.Entries[0], -1
+				}
+
 			}
 		}
 	} else {
@@ -196,20 +202,34 @@ func (node *SkipListBlockPage) Insert(key *types.Value, value uint32, bpm *buffe
 			node.Entries = append(copiedEntries, SkipListPair{*key, value})
 			//node.Entries = append(node.Entries, SkipListPair{*key, value})
 		} else {
-			formerEntries := make([]SkipListPair, len(node.Entries[:foundIdx+1]))
-			copy(formerEntries, node.Entries[:foundIdx+1])
-			var laterEntries []SkipListPair = nil
-			if isMadeNewNode {
-				laterEntries = make([]SkipListPair, len(node.Entries[foundIdx+1:splitIdx+1]))
-				copy(laterEntries, node.Entries[foundIdx+1:splitIdx+1])
+			if foundIdx == -1 {
+				var copiedEntries []SkipListPair = nil
+				if isMadeNewNode {
+					copiedEntries = make([]SkipListPair, len(node.Entries[:splitIdx+1]))
+					copy(copiedEntries, node.Entries[:splitIdx+1])
+				} else {
+					copiedEntries = make([]SkipListPair, len(node.Entries[:]))
+					copy(copiedEntries, node.Entries[:])
+				}
+				finalEntriles := make([]SkipListPair, 0)
+				finalEntriles = append(finalEntriles, SkipListPair{*key, value})
+				node.Entries = append(finalEntriles, copiedEntries...)
 			} else {
-				laterEntries = make([]SkipListPair, len(node.Entries[foundIdx+1:]))
-				copy(laterEntries, node.Entries[foundIdx+1:])
-			}
+				formerEntries := make([]SkipListPair, len(node.Entries[:foundIdx+1]))
+				copy(formerEntries, node.Entries[:foundIdx+1])
+				var laterEntries []SkipListPair = nil
+				if isMadeNewNode {
+					laterEntries = make([]SkipListPair, len(node.Entries[foundIdx+1:splitIdx+1]))
+					copy(laterEntries, node.Entries[foundIdx+1:splitIdx+1])
+				} else {
+					laterEntries = make([]SkipListPair, len(node.Entries[foundIdx+1:]))
+					copy(laterEntries, node.Entries[foundIdx+1:])
+				}
 
-			formerEntries = append(formerEntries, SkipListPair{*key, value})
-			formerEntries = append(formerEntries, laterEntries...)
-			node.Entries = formerEntries
+				formerEntries = append(formerEntries, SkipListPair{*key, value})
+				formerEntries = append(formerEntries, laterEntries...)
+				node.Entries = formerEntries
+			}
 		}
 		node.SmallestKey = node.Entries[0].Key
 		node.EntryCnt = int32(len(node.Entries))
@@ -261,7 +281,7 @@ func (node *SkipListBlockPage) Remove(key *types.Value, skipPathList []*SkipList
 // (new node does not include entry node.Entries[idx])
 func (node *SkipListBlockPage) SplitNode(idx int32, bpm *buffer.BufferPoolManager, skipPathList []*SkipListBlockPage,
 	level int32, curMaxLevel int32, startNode *SkipListBlockPage) {
-	//fmt.Println("SplitNode called!")
+	fmt.Println("<<<<<<<<<<<<<<<<<<<<<<<< SplitNode called! >>>>>>>>>>>>>>>>>>>>>>>>>>>>>>")
 
 	newNode := NewSkipListBlockPage(bpm, level, node.Entries[idx+1])
 	copyEntries := make([]SkipListPair, len(node.Entries[idx+1:]))

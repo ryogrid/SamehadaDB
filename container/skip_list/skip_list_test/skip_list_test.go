@@ -610,6 +610,9 @@ func insertRandom2(sl *skip_list.SkipList, num int32, checkDupMap map[int32]int3
 			if insVal == TARGET_KEY_RELATED_BUG {
 				isInserted = true
 			}
+			if insVal == 1431672847 {
+				fmt.Println("")
+			}
 			sl.Insert(samehada_util.GetPonterOfValue(types.NewInteger(int32(insVal))), uint32(insVal))
 			fmt.Printf("sl.Insert at insertRandom: ii=%d, insVal=%d len(*insVals)=%d\n", ii, insVal, len(insVals))
 			if isInserted && !isExistKeyOnList(sl, TARGET_KEY_RELATED_BUG, true) {
