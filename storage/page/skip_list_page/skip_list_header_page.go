@@ -5,7 +5,6 @@ import (
 	"github.com/ryogrid/SamehadaDB/storage/buffer"
 	"github.com/ryogrid/SamehadaDB/types"
 	"math"
-	"unsafe"
 )
 
 /**
@@ -92,9 +91,10 @@ func NewSkipListStartBlockPage(bpm *buffer.BufferPoolManager, keyType types.Type
 }
 
 func NewSkipListHeaderPage(bpm *buffer.BufferPoolManager, keyType types.TypeID) *SkipListHeaderPage {
-	page_ := bpm.NewPage()
-	headerData := page_.Data()
-	headerPage := (*SkipListHeaderPage)(unsafe.Pointer(headerData))
+	//page_ := bpm.NewPage()
+	//headerData := page_.Data()
+	//headerPage := (*SkipListHeaderPage)(unsafe.Pointer(headerData))
+	headerPage := new(SkipListHeaderPage)
 
 	headerPage.ListStartPage = NewSkipListStartBlockPage(bpm, keyType)
 	headerPage.CurMaxLevel = 1

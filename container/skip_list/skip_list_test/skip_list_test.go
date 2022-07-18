@@ -642,14 +642,15 @@ func removeRandom2(t *testing.T, sl *skip_list.SkipList, opStep int32, num int32
 }
 
 func testSkipLisMixOpPageBackedOnMemInner2(t *testing.T, bulkSize int32, opTimes uint8, skipRand uint8, initialEntryNum uint16) {
-	os.Remove("test.db")
-	os.Remove("test.log")
+	//os.Remove("test.db")
+	//os.Remove("test.log")
 
 	//fmt.Println("fuzzing test now!")
 	checkDupMap := make(map[int32]int32)
 
-	shi := samehada.NewSamehadaInstanceForTesting()
-	sl := skip_list.NewSkipList(shi.GetBufferPoolManager(), types.Integer)
+	//shi := samehada.NewSamehadaInstanceForTesting()
+	//sl := skip_list.NewSkipList(shi.GetBufferPoolManager(), types.Integer)
+	sl := skip_list.NewSkipList(nil, types.Integer)
 
 	// override global rand seed (seed has been set on NewSkipList)
 	rand.Seed(3)
@@ -747,7 +748,7 @@ func testSkipLisMixOpPageBackedOnMemInner2(t *testing.T, bulkSize int32, opTimes
 					//common.RuntimeStack()
 				}
 				if gotVal != uint32(insVals[tmpIdx]) {
-					fmt.Printf("gotVal is not match! %d != %d", gotVal, insVals[tmpIdx])
+					fmt.Printf("gotVal is not match! %d != %d\n", gotVal, insVals[tmpIdx])
 					panic("gotVal is not match!")
 					//common.RuntimeStack()
 				}
@@ -756,7 +757,7 @@ func testSkipLisMixOpPageBackedOnMemInner2(t *testing.T, bulkSize int32, opTimes
 		}
 	}
 
-	shi.Finalize(false)
+	//shi.Finalize(false)
 }
 
 func TestSkipLisMixOpPageBackedOnMem2(t *testing.T) {
