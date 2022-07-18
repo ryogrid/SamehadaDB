@@ -8,6 +8,7 @@ import (
 	"github.com/ryogrid/SamehadaDB/samehada/samehada_util"
 	testingpkg "github.com/ryogrid/SamehadaDB/testing"
 	"github.com/ryogrid/SamehadaDB/types"
+	"math"
 	"math/rand"
 	"os"
 	"testing"
@@ -769,6 +770,10 @@ func testSkipLisMixOpPageBackedOnMemInner2(t *testing.T, bulkSize int32, opTimes
 					fmt.Printf("entries num on list is strange! %d != (%d or %d) / %d != %d\n", entriesOnListNum, countSkipListContent(sl), len(insVals), removedEntriesNum, len(removedVals))
 					panic("entries num on list is strange!")
 					//common.RuntimeStack()
+				}
+				if gotVal == math.MaxUint32 {
+					fmt.Printf("%d is not found!\n", insVals[tmpIdx])
+					panic("sl.GetValue could not target key!")
 				}
 				if gotVal != uint32(insVals[tmpIdx]) {
 					fmt.Printf("gotVal is not match! %d != %d\n", gotVal, insVals[tmpIdx])
