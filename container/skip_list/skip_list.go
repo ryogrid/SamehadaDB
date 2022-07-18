@@ -257,6 +257,14 @@ func (sl *SkipList) Remove(key *types.Value, value uint32) (isDeleted bool) {
 			skipPathListPrev[ii] = node
 			node = node.Forward[ii]
 		}
+		//for {
+		//	if node.Forward[ii].SmallestKey.CompareLessThanOrEqual(*key) {
+		//		node = node.Forward[ii]
+		//	} else {
+		//		skipPathListPrev[ii] = node.Forward[ii]
+		//		break
+		//	}
+		//}
 		//note: node.SmallestKey <= searchKey < node.forward[ii].SmallestKey
 		//skipPathList[ii] = node
 	}

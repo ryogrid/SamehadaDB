@@ -249,7 +249,14 @@ func (node *SkipListBlockPage) Remove(key *types.Value, skipPathList []*SkipList
 			panic("removing wrong entry!")
 		}
 
-		updateLen := int32(mathutil.Min(len(skipPathList), len(node.Forward)))
+		shrinkedPathList := make([]*SkipListBlockPage, 0)
+		for ii := 0; ii < len(skipPathList); ii++ {
+			if skipPathList[ii] != nil {
+				shrinkedPathList = append(shrinkedPathList, skipPathList[ii])
+			}
+		}
+
+		updateLen := int32(mathutil.Min(len(shrinkedPathList), len(node.Forward)))
 		// remove this node from all level of chain
 		for ii := int32(0); ii < updateLen; ii++ {
 			skipPathList[ii].Forward[ii] = node.Forward[ii]
