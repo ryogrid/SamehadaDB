@@ -246,39 +246,15 @@ func (sl *SkipListOnMem) RemoveOnMem(key *types.Value, value uint32) {
 }
 
 func (sl *SkipList) Remove(key *types.Value, value uint32) (isDeleted bool) {
-	// update is an array of pointers to the
-	// predecessors of the element to be deleted.
-	//var skipPathList []*skip_list_page.SkipListBlockPage = make([]*skip_list_page.SkipListBlockPage, sl.headerPageId.CurMaxLevel)
-	var skipPathListPrev []*skip_list_page.SkipListBlockPage = make([]*skip_list_page.SkipListBlockPage, sl.headerPageId.CurMaxLevel)
-
 	node := sl.headerPageId.ListStartPage
 	for ii := (sl.headerPageId.CurMaxLevel - 1); ii >= 0; ii-- {
 		for node.Forward[ii].SmallestKey.CompareLessThanOrEqual(*key) {
-			skipPathListPrev[ii] = node
 			node = node.Forward[ii]
 		}
-		//for {
-		//	if node.Forward[ii].SmallestKey.CompareLessThanOrEqual(*key) {
-		//		skipPathListPrev[ii] = node
-		//		node = node.Forward[ii]
-		//	} else {
-		//		//skipPathListPrev[ii] = node.Forward[ii]
-		//		// when position has not forwarded at level (ii+1) path
-		//		// ... this approch is bad..
-		//		if skipPathListPrev[ii] == nil && ii+1 <= (sl.headerPageId.CurMaxLevel-1) {
-		//			skipPathListPrev[ii] = skipPathListPrev[ii+1]
-		//		}
-		//
-		//		break
-		//	}
-		//}
-		//note: node.SmallestKey <= searchKey < node.forward[ii].SmallestKey
-		//skipPathList[ii] = node
 	}
-	//node = node.Forward[0]
 
 	// remove specified entry from found node
-	isDeleted_, level := node.Remove(key, skipPathListPrev)
+	isDeleted_, level := node.Remove(key)
 
 	// if there are no node at *level* except start and end node due to node delete
 	// CurMaxLevel should be down to the level
