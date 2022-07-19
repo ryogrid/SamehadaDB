@@ -818,8 +818,8 @@ func TestSkipLisMixOpPageBackedOnMem2(t *testing.T) {
 	testSkipLisMixOpPageBackedOnMemInner2(t, 100, uint8(150), uint8(10), uint16(0))
 	testSkipLisMixOpPageBackedOnMemInner2(t, 100, uint8(150), uint8(10), uint16(300))
 	testSkipLisMixOpPageBackedOnMemInner2(t, 100, uint8(150), uint8(10), uint16(600))
-	//testSkipLisMixOpPageBackedOnMemInner2(t, 100, uint8(200), uint8(5), uint16(10))
-	//testSkipLisMixOpPageBackedOnMemInner2(t, 100, uint8(250), uint8(5), uint16(10))
-	//testSkipLisMixOpPageBackedOnMemInner2(t, 100, uint8(250), uint8(4), uint16(0))
-	//testSkipLisMixOpPageBackedOnMemInner2(t, 100, uint8(250), uint8(3), uint16(0))
+	testSkipLisMixOpPageBackedOnMemInner2(t, 100, uint8(200), uint8(5), uint16(10))
+	testSkipLisMixOpPageBackedOnMemInner2(t, 100, uint8(250), uint8(5), uint16(10))
+	testSkipLisMixOpPageBackedOnMemInner2(t, 100, uint8(250), uint8(4), uint16(0))
+	testSkipLisMixOpPageBackedOnMemInner2(t, 100, uint8(250), uint8(3), uint16(0))
 }
