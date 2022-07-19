@@ -340,7 +340,7 @@ import (
 //}
 
 const MAX_ENTRIES = 700
-const TARGET_KEY_RELATED_BUG = 1237427852
+const TARGET_KEY_RELATED_BUG = 2041122064
 
 var isInserted bool = false
 var entriesOnListNum int32 = 0

@@ -259,9 +259,16 @@ func (sl *SkipList) Remove(key *types.Value, value uint32) (isDeleted bool) {
 		}
 		//for {
 		//	if node.Forward[ii].SmallestKey.CompareLessThanOrEqual(*key) {
+		//		skipPathListPrev[ii] = node
 		//		node = node.Forward[ii]
 		//	} else {
-		//		skipPathListPrev[ii] = node.Forward[ii]
+		//		//skipPathListPrev[ii] = node.Forward[ii]
+		//		// when position has not forwarded at level (ii+1) path
+		//		// ... this approch is bad..
+		//		if skipPathListPrev[ii] == nil && ii+1 <= (sl.headerPageId.CurMaxLevel-1) {
+		//			skipPathListPrev[ii] = skipPathListPrev[ii+1]
+		//		}
+		//
 		//		break
 		//	}
 		//}
