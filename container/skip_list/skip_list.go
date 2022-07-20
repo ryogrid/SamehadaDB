@@ -77,6 +77,12 @@ func NewSkipList(bpm *buffer.BufferPoolManager, keyType types.TypeID) *SkipList 
 	return ret
 }
 
+// TODO: (SDB) need to aggregate node traverse code of Insert, Remove, GetValue to FindNode
+//             and FindNode to offer connectivity update of IsNeedDeleted marked node
+//             and to traverse with considering backtrack
+//             (when on-disk impl, cheking whether all connectivity is removed and node deallocate
+//              should be done if needed)
+
 func (sl *SkipList) FindNode(key *types.Value) *skip_list_page.SkipListBlockPage {
 	node := sl.headerPageId.ListStartPage
 	// loop invariant: node.key < searchKey
@@ -247,14 +253,24 @@ func (sl *SkipListOnMem) RemoveOnMem(key *types.Value, value uint32) {
 
 func (sl *SkipList) Remove(key *types.Value, value uint32) (isDeleted bool) {
 	node := sl.headerPageId.ListStartPage
+
+	var skipPathListPrev []*skip_list_page.SkipListBlockPage = make([]*skip_list_page.SkipListBlockPage, sl.headerPageId.CurMaxLevel)
+
 	for ii := (sl.headerPageId.CurMaxLevel - 1); ii >= 0; ii-- {
 		for node.Forward[ii].SmallestKey.CompareLessThanOrEqual(*key) {
+			skipPathListPrev[ii] = node
 			node = node.Forward[ii]
 		}
 	}
 
+	//for ii := (sl.headerPageId.CurMaxLevel - 1); ii >= 0; ii-- {
+	//	for node.Forward[ii].SmallestKey.CompareLessThanOrEqual(*key) {
+	//		node = node.Forward[ii]
+	//	}
+	//}
+
 	// remove specified entry from found node
-	isDeleted_, level := node.Remove(key)
+	isDeleted_, level := node.Remove(key, skipPathListPrev)
 
 	// if there are no node at *level* except start and end node due to node delete
 	// CurMaxLevel should be down to the level

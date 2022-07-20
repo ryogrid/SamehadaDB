@@ -1,6 +1,7 @@
 package skip_list_page
 
 import (
+	"github.com/cznic/mathutil"
 	"github.com/ryogrid/SamehadaDB/common"
 	"github.com/ryogrid/SamehadaDB/storage/buffer"
 	"github.com/ryogrid/SamehadaDB/types"
@@ -38,10 +39,11 @@ type SkipListBlockPage struct {
 	Level       int32
 	SmallestKey types.Value
 	Forward     []*SkipListBlockPage //[]types.PageID
-	Backward    []*SkipListBlockPage
-	EntryCnt    int32
-	MaxEntry    int32
-	Entries     []SkipListPair
+	//Backward    []*SkipListBlockPage
+	EntryCnt      int32
+	MaxEntry      int32
+	Entries       []SkipListPair
+	isNeedDeleted bool
 	//occuppied [(BlockArraySize-1)/8 + 1]byte // 256 bits
 	//readable  [(BlockArraySize-1)/8 + 1]byte // 256 bits
 	//array     [BlockArraySize]SkipListPair   // 252 * 16 bits
@@ -62,7 +64,7 @@ func NewSkipListBlockPage(bpm *buffer.BufferPoolManager, level int32, smallestLi
 	ret.EntryCnt = 1
 	ret.MaxEntry = DUMMY_MAX_ENTRY
 	ret.Forward = make([]*SkipListBlockPage, level)
-	ret.Backward = make([]*SkipListBlockPage, level)
+	//ret.Backward = make([]*SkipListBlockPage, level)
 
 	return ret
 }
@@ -239,7 +241,7 @@ func (node *SkipListBlockPage) Insert(key *types.Value, value uint32, bpm *buffe
 	return isMadeNewNode
 }
 
-func (node *SkipListBlockPage) Remove(key *types.Value) (isDeleted bool, level int32) {
+func (node *SkipListBlockPage) Remove(key *types.Value, skipPathList []*SkipListBlockPage) (isDeleted bool, level int32) {
 	found, _, foundIdx := node.FindEntryByKey(key)
 	if found && (node.EntryCnt == 1) {
 		// when there are no enry without target entry
@@ -249,12 +251,36 @@ func (node *SkipListBlockPage) Remove(key *types.Value) (isDeleted bool, level i
 			panic("removing wrong entry!")
 		}
 
-		for ii := int32(0); ii < int32(len(node.Forward)); ii++ {
-			//modify forward link
-			node.Backward[ii].Forward[ii] = node.Forward[ii]
-			//modify backward link
-			node.Forward[ii].Backward[ii] = node.Backward[ii]
+		shrinkedPathList := make([]*SkipListBlockPage, 0)
+		for ii := 0; ii < len(skipPathList); ii++ {
+			if skipPathList[ii] != nil {
+				shrinkedPathList = append(shrinkedPathList, skipPathList[ii])
+			}
 		}
+
+		updateLen := int32(mathutil.Min(len(shrinkedPathList), len(node.Forward)))
+
+		// try removing this node from all level of chain
+		// but, some connectivity left often
+		// when several connectivity is left, remmoving is achieved in later index accesses
+		for ii := int32(0); ii < updateLen; ii++ {
+			skipPathList[ii].Forward[ii] = node.Forward[ii]
+			// mark (ii+1) lrbrl connectivity is removed
+			node.Forward[ii] = nil
+		}
+
+		// this node does not block node traverse to any key
+		node.SmallestKey.SetInfMin()
+
+		// TODO: (SDB) when all level connectivity is removed, this node should be deallocate
+		//             (at on-disk impl)
+
+		//for ii := int32(0); ii < int32(len(node.Forward)); ii++ {
+		//	//modify forward link
+		//	node.Backward[ii].Forward[ii] = node.Forward[ii]
+		//	//modify backward link
+		//	node.Forward[ii].Backward[ii] = node.Backward[ii]
+		//}
 
 		return true, node.Level
 	} else if found {
@@ -307,8 +333,8 @@ func (node *SkipListBlockPage) SplitNode(idx int32, bpm *buffer.BufferPoolManage
 		// modify forward link
 		newNode.Forward[ii] = skipPathList[ii].Forward[ii]
 		skipPathList[ii].Forward[ii] = newNode
-		// modify back link
-		newNode.Backward[ii] = skipPathList[ii]
-		newNode.Forward[ii].Backward[ii] = newNode
+		//// modify back link
+		//newNode.Backward[ii] = skipPathList[ii]
+		//newNode.Forward[ii].Backward[ii] = newNode
 	}
 }
