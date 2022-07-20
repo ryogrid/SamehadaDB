@@ -19,7 +19,7 @@ type SamehadaInstance struct {
 }
 
 func NewSamehadaInstanceForTesting() *SamehadaInstance {
-	ret := NewSamehadaInstance("test", 32)
+	ret := NewSamehadaInstance("test", common.BufferPoolMaxFrameNumForTest)
 	common.EnableLogging = false
 	return ret
 }

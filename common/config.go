@@ -22,20 +22,17 @@ const (
 	// the header page id
 	HeaderPageID = 0
 	// size of a data page in byte
-	PageSize = 4096
-	// size of buffer pool
-	LogBufferPoolSize = 32
+	PageSize                     = 4096
+	BufferPoolMaxFrameNumForTest = 32
+	// number for calculate log buffer size (number of page size)
+	LogBufferSizeBase = 32
 	// size of a log buffer in byte
-	LogBufferSize = ((LogBufferPoolSize + 1) * PageSize)
-	// size of extendible hash bucket
-	BucketSize = 50
+	LogBufferSize = ((LogBufferSizeBase + 1) * PageSize)
+	// size of hash bucket
+	BucketSizeOfHashIndex = 10
 	// probability used for determin node level on SkipList
 	SkipListProb = 0.25
 )
 
-//type FrameID int32 // frame id type
-//type PageID int32       // page id type
-type TxnID int32 // transaction id type
-//type LSN int32          // log sequence number
+type TxnID int32        // transaction id type
 type SlotOffset uintptr // slot offset type
-//type OID uint16

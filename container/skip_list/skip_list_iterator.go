@@ -1,5 +1,3 @@
-// TODO: (SDB) not implemented yet skip_list_iterator.go
-
 package skip_list
 
 import (
