@@ -14,12 +14,14 @@ type Column struct {
 	variableLength uint32 // For an inlined column, 0. Otherwise, the length of the variable length column
 	columnOffset   uint32 // Column offset in the tuple
 	hasIndex       bool   // whether the column has index data
-	isLeft         bool   // when temporal schema, this is used for join
+	// TODO: (SDB) need to define a member which stores header page ID of index data
+	isLeft bool // when temporal schema, this is used for join
 	// should be pointer of subtype of expression.Expression
 	// this member is used and needed at temporarily created table (schema) on query execution
 	expr_ interface{}
 }
 
+// TODO: (SDB) need to add argument to set header page of index data or define new method for that
 // expr argument should be pointer of subtype of expression.Expression
 func NewColumn(name string, columnType types.TypeID, hasIndex bool, expr interface{}) *Column {
 	if columnType != types.Varchar {
