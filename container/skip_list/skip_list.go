@@ -77,33 +77,36 @@ func NewSkipList(bpm *buffer.BufferPoolManager, keyType types.TypeID) *SkipList 
 	return ret
 }
 
-// TODO: (SDB) need to aggregate node traverse code of Insert, Remove, GetValue to FindNode
-//             and FindNode to offer connectivity update of IsNeedDeleted marked node
+// TODO: (SDB) need FinedNode to to offer connectivity update of IsNeedDeleted marked node
 //             and to traverse with considering backtrack
-//             (when on-disk impl, cheking whether all connectivity is removed and node deallocate
+//             (when on-disk impl, checking whether all connectivity is removed and node deallocation
 //              should be done if needed)
 
-func (sl *SkipList) FindNode(key *types.Value) *skip_list_page.SkipListBlockPage {
+func (sl *SkipList) FindNode(key *types.Value) (found_node *skip_list_page.SkipListBlockPage, skipPath []*skip_list_page.SkipListBlockPage, skipPathPrev []*skip_list_page.SkipListBlockPage) {
 	node := sl.headerPageId.ListStartPage
 	// loop invariant: node.key < searchKey
 	//fmt.Println("---")
 	//fmt.Println(key.ToInteger())
 	//moveCnt := 0
+	var skipPathList []*skip_list_page.SkipListBlockPage = make([]*skip_list_page.SkipListBlockPage, sl.headerPageId.CurMaxLevel+1)
+	var skipPathListPrev []*skip_list_page.SkipListBlockPage = make([]*skip_list_page.SkipListBlockPage, sl.headerPageId.CurMaxLevel)
 	for i := (sl.headerPageId.CurMaxLevel - 1); i >= 0; i-- {
 		//fmt.Printf("level %d\n", i)
 		for node.Forward[i].SmallestKey.CompareLessThanOrEqual(*key) {
+			skipPathListPrev[i] = node
 			node = node.Forward[i]
 			//fmt.Printf("%d ", node.Key.ToInteger())
 			//moveCnt++
 		}
+		skipPathList[i] = node
 		//fmt.Println("")
 	}
 	//fmt.Println(moveCnt)
-	return node
+	return node, skipPathList, skipPathListPrev
 }
 
 func (sl *SkipList) FindNodeWithEntryIdxForIterator(key *types.Value) (*skip_list_page.SkipListBlockPage, int32) {
-	node := sl.FindNode(key)
+	node, _, _ := sl.FindNode(key)
 	// get idx of target entry or one of nearest smaller entry
 	_, _, idx := node.FindEntryByKey(key)
 	return node, idx
@@ -136,7 +139,7 @@ func (sl *SkipListOnMem) GetEqualOrNearestSmallerNodeOnMem(key *types.Value) *Sk
 }
 
 func (sl *SkipList) GetValue(key *types.Value) uint32 {
-	node := sl.FindNode(key)
+	node, _, _ := sl.FindNode(key)
 	found, entry, _ := node.FindEntryByKey(key)
 	if found {
 		return entry.Value
@@ -198,17 +201,18 @@ func (sl *SkipList) Insert(key *types.Value, value uint32) (err error) {
 	// of pointers to the elements which will be
 	// predecessors of the new element.
 
-	//fmt.Println("Insert of SkipList called!")
-	var skipPathList []*skip_list_page.SkipListBlockPage = make([]*skip_list_page.SkipListBlockPage, sl.headerPageId.CurMaxLevel+1)
-	node := sl.headerPageId.ListStartPage
-	for ii := (sl.headerPageId.CurMaxLevel - 1); ii >= 0; ii-- {
-		//fmt.Printf("At Insert of SkipList: ii = %d, node = %v\n", ii, *node)
-		for node.Forward[ii].SmallestKey.CompareLessThanOrEqual(*key) {
-			node = node.Forward[ii]
-		}
-		//note: node.SmallestKey <= searchKey < node.forward[ii].SmallestKey
-		skipPathList[ii] = node
-	}
+	////fmt.Println("Insert of SkipList called!")
+	//var skipPathList []*skip_list_page.SkipListBlockPage = make([]*skip_list_page.SkipListBlockPage, sl.headerPageId.CurMaxLevel+1)
+	//node := sl.headerPageId.ListStartPage
+	//for ii := (sl.headerPageId.CurMaxLevel - 1); ii >= 0; ii-- {
+	//	//fmt.Printf("At Insert of SkipList: ii = %d, node = %v\n", ii, *node)
+	//	for node.Forward[ii].SmallestKey.CompareLessThanOrEqual(*key) {
+	//		node = node.Forward[ii]
+	//	}
+	//	//note: node.SmallestKey <= searchKey < node.forward[ii].SmallestKey
+	//	skipPathList[ii] = node
+	//}
+	node, skipPathList, _ := sl.FindNode(key)
 	levelWhenNodeSplitOccur := sl.GetNodeLevel()
 	if levelWhenNodeSplitOccur == sl.headerPageId.CurMaxLevel {
 		levelWhenNodeSplitOccur++
@@ -252,16 +256,17 @@ func (sl *SkipListOnMem) RemoveOnMem(key *types.Value, value uint32) {
 }
 
 func (sl *SkipList) Remove(key *types.Value, value uint32) (isDeleted bool) {
-	node := sl.headerPageId.ListStartPage
-
-	var skipPathListPrev []*skip_list_page.SkipListBlockPage = make([]*skip_list_page.SkipListBlockPage, sl.headerPageId.CurMaxLevel)
-
-	for ii := (sl.headerPageId.CurMaxLevel - 1); ii >= 0; ii-- {
-		for node.Forward[ii].SmallestKey.CompareLessThanOrEqual(*key) {
-			skipPathListPrev[ii] = node
-			node = node.Forward[ii]
-		}
-	}
+	//node := sl.headerPageId.ListStartPage
+	//
+	//var skipPathListPrev []*skip_list_page.SkipListBlockPage = make([]*skip_list_page.SkipListBlockPage, sl.headerPageId.CurMaxLevel)
+	//
+	//for ii := (sl.headerPageId.CurMaxLevel - 1); ii >= 0; ii-- {
+	//	for node.Forward[ii].SmallestKey.CompareLessThanOrEqual(*key) {
+	//		skipPathListPrev[ii] = node
+	//		node = node.Forward[ii]
+	//	}
+	//}
+	node, _, skipPathListPrev := sl.FindNode(key)
 
 	//for ii := (sl.headerPageId.CurMaxLevel - 1); ii >= 0; ii-- {
 	//	for node.Forward[ii].SmallestKey.CompareLessThanOrEqual(*key) {
