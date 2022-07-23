@@ -80,6 +80,7 @@ func NewSkipList(bpm *buffer.BufferPoolManager, keyType types.TypeID) *SkipList 
 // TODO: (SDB) when on-disk impl, checking whether all connectivity is removed and node deallocation should be done if needed
 func (sl *SkipList) handleDelMarkedNode(delMarkedNode *skip_list_page.SkipListBlockPage, curLevel int32, skipPathListPrev []*skip_list_page.SkipListBlockPage) *skip_list_page.SkipListBlockPage {
 	skipPathListPrev[curLevel].Forward[curLevel] = delMarkedNode.Forward[curLevel]
+
 	// marked connectivity is collectly modified on curLevel
 	delMarkedNode.Forward[curLevel] = nil
 
@@ -108,6 +109,9 @@ func (sl *SkipList) FindNode(key *types.Value, handleDelMarked bool) (found_node
 				//if handleDelMarked && node.IsNeedDeleted && node.Forward[ii] != nil {
 				// handle node (IsNeedDeleted marked) and returns appropriate node (prev node at ii + 1 level)
 				node = sl.handleDelMarkedNode(node, ii, skipPathListPrev)
+				if node.IsNeedDeleted {
+					panic("return value of handleDelMarkedNode is invalid!")
+				}
 				//handleDelMarkedList[ii] = true
 			}
 		}
