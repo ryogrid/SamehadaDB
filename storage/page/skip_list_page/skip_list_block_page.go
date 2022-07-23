@@ -27,9 +27,6 @@ const (
 )
 
 type SkipListBlockPageOnMem struct {
-	//occuppied [(BlockArraySize-1)/8 + 1]byte // 256 bits
-	//readable  [(BlockArraySize-1)/8 + 1]byte // 256 bits
-	//array     [BlockArraySize]SkipListPair   // 252 * 16 bits
 	key   []byte
 	value uint32
 }
@@ -43,7 +40,7 @@ type SkipListBlockPage struct {
 	EntryCnt      int32
 	MaxEntry      int32
 	Entries       []SkipListPair
-	isNeedDeleted bool
+	IsNeedDeleted bool
 	//occuppied [(BlockArraySize-1)/8 + 1]byte // 256 bits
 	//readable  [(BlockArraySize-1)/8 + 1]byte // 256 bits
 	//array     [BlockArraySize]SkipListPair   // 252 * 16 bits
@@ -251,29 +248,31 @@ func (node *SkipListBlockPage) Remove(key *types.Value, skipPathList []*SkipList
 			panic("removing wrong entry!")
 		}
 
-		shrinkedPathList := make([]*SkipListBlockPage, 0)
-		for ii := 0; ii < len(skipPathList); ii++ {
-			if skipPathList[ii] != nil {
-				shrinkedPathList = append(shrinkedPathList, skipPathList[ii])
-			}
-		}
+		//shrinkedPathList := make([]*SkipListBlockPage, 0)
+		//for ii := 0; ii < len(skipPathList); ii++ {
+		//	if skipPathList[ii] != nil {
+		//		shrinkedPathList = append(shrinkedPathList, skipPathList[ii])
+		//	}
+		//}
+		//updateLen := int32(mathutil.Min(len(shrinkedPathList), len(node.Forward)))
 
-		updateLen := int32(mathutil.Min(len(shrinkedPathList), len(node.Forward)))
+		updateLen := int32(mathutil.Min(len(skipPathList), len(node.Forward)))
 
 		// try removing this node from all level of chain
 		// but, some connectivity left often
-		// when several connectivity is left, remmoving is achieved in later index accesses
+		// when several connectivity is left, removing is achieved in later index accesses
 		for ii := int32(0); ii < updateLen; ii++ {
-			skipPathList[ii].Forward[ii] = node.Forward[ii]
-			// mark (ii+1) lrbrl connectivity is removed
-			node.Forward[ii] = nil
+			if skipPathList[ii] != nil {
+				skipPathList[ii].Forward[ii] = node.Forward[ii]
+				// mark (ii+1) lebel connectivity is removed
+				node.Forward[ii] = nil
+			}
 		}
 
 		// this node does not block node traverse to any key
 		node.SmallestKey.SetInfMin()
 
-		// TODO: (SDB) when all level connectivity is removed, this node should be deallocate
-		//             (at on-disk impl)
+		// TODO: (SDB) when all level connectivity is removed, this node should be deallocate at on-disk impl
 
 		//for ii := int32(0); ii < int32(len(node.Forward)); ii++ {
 		//	//modify forward link
