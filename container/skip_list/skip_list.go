@@ -86,7 +86,7 @@ func (sl *SkipList) handleDelMarkedNode(delMarkedNode *skip_list_page.SkipListBl
 	return skipPathListPrev[curLevel]
 }
 
-// handleDelMarked: IsNeedDeleted marked node is found on node traverse, do link modification for complete deletion (one node only at each level)
+// handleDelMarked: IsNeedDeleted marked node is found on node traverse, do link modification for complete deletion
 func (sl *SkipList) FindNode(key *types.Value, handleDelMarked bool) (found_node *skip_list_page.SkipListBlockPage, skipPath []*skip_list_page.SkipListBlockPage, skipPathPrev []*skip_list_page.SkipListBlockPage) {
 	node := sl.headerPageId.ListStartPage
 	// loop invariant: node.key < searchKey
@@ -95,7 +95,7 @@ func (sl *SkipList) FindNode(key *types.Value, handleDelMarked bool) (found_node
 	//moveCnt := 0
 	skipPathList := make([]*skip_list_page.SkipListBlockPage, sl.headerPageId.CurMaxLevel+1)
 	skipPathListPrev := make([]*skip_list_page.SkipListBlockPage, sl.headerPageId.CurMaxLevel)
-	handleDelMarkedList := make([]bool, sl.headerPageId.CurMaxLevel)
+	//handleDelMarkedList := make([]bool, sl.headerPageId.CurMaxLevel)
 	for ii := (sl.headerPageId.CurMaxLevel - 1); ii >= 0; ii-- {
 		//fmt.Printf("level %d\n", i)
 		for node.Forward[ii].SmallestKey.CompareLessThanOrEqual(*key) {
@@ -103,10 +103,11 @@ func (sl *SkipList) FindNode(key *types.Value, handleDelMarked bool) (found_node
 			node = node.Forward[ii]
 			//fmt.Printf("%d ", node.Key.ToInteger())
 			//moveCnt++
-			if node.IsNeedDeleted && handleDelMarkedList[ii] == false && node.Forward[ii] != nil {
+			//if node.IsNeedDeleted && handleDelMarkedList[ii] == false && node.Forward[ii] != nil {
+			if handleDelMarked && node.IsNeedDeleted && node.Forward[ii] != nil {
 				// handle node (IsNeedDeleted marked) and returns appropriate node (prev node at ii + 1 level)
 				node = sl.handleDelMarkedNode(node, ii, skipPathListPrev)
-				handleDelMarkedList[ii] = true
+				//handleDelMarkedList[ii] = true
 			}
 		}
 		skipPathList[ii] = node
