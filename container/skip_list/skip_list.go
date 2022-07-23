@@ -254,13 +254,13 @@ func (sl *SkipList) Remove(key *types.Value, value uint32) (isDeleted bool) {
 	}
 
 	// remove specified entry from found node
-	isDeleted_, level := node.Remove(key)
+	isDeleted_, _ := node.Remove(key)
 
 	// if there are no node at *level* except start and end node due to node delete
 	// CurMaxLevel should be down to the level
 	if isDeleted_ {
 		newMaxLevel := int32(0)
-		for ii := int32(0); ii < level; ii++ {
+		for ii := int32(0); ii < sl.headerPageId.CurMaxLevel; ii++ {
 			if sl.headerPageId.ListStartPage.Forward[ii].SmallestKey.IsInfMax() {
 				break
 			}
