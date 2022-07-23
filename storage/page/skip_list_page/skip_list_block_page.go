@@ -274,6 +274,7 @@ func (node *SkipListBlockPage) Remove(key *types.Value, skipPathList []*SkipList
 
 		// TODO: (SDB) when all level connectivity is removed, this node should be deallocate at on-disk impl
 
+		node.IsNeedDeleted = true
 		//for ii := int32(0); ii < int32(len(node.Forward)); ii++ {
 		//	//modify forward link
 		//	node.Backward[ii].Forward[ii] = node.Forward[ii]

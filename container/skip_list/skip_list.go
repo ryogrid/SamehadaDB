@@ -103,8 +103,9 @@ func (sl *SkipList) FindNode(key *types.Value, handleDelMarked bool) (found_node
 			node = node.Forward[ii]
 			//fmt.Printf("%d ", node.Key.ToInteger())
 			//moveCnt++
-			//if node.IsNeedDeleted && handleDelMarkedList[ii] == false && node.Forward[ii] != nil {
-			if handleDelMarked && node.IsNeedDeleted && node.Forward[ii] != nil {
+			if node.IsNeedDeleted && node.Forward[ii] != nil {
+				//if node.IsNeedDeleted && handleDelMarkedList[ii] == false && node.Forward[ii] != nil {
+				//if handleDelMarked && node.IsNeedDeleted && node.Forward[ii] != nil {
 				// handle node (IsNeedDeleted marked) and returns appropriate node (prev node at ii + 1 level)
 				node = sl.handleDelMarkedNode(node, ii, skipPathListPrev)
 				//handleDelMarkedList[ii] = true

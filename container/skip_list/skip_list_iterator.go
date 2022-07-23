@@ -38,6 +38,10 @@ func (itr *SkipListIteratorOnMem) Next() (done bool, err error, key *types.Value
 func (itr *SkipListIterator) Next() (done bool, err error, key *types.Value, val uint32) {
 	if itr.curIdx+1 >= itr.curNode.EntryCnt {
 		itr.curNode = itr.curNode.Forward[0]
+		for itr.curNode.IsNeedDeleted && !itr.curNode.SmallestKey.IsInfMax() {
+			// skip IsNeedDeleted marked node
+			itr.curNode = itr.curNode.Forward[0]
+		}
 		itr.curIdx = -1
 	}
 

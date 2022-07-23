@@ -389,6 +389,9 @@ func removeRandom(t *testing.T, sl *skip_list.SkipList, opStep int32, num int32)
 			tmpIdx := int(rand.Intn(len(insVals)))
 			insVal := insVals[tmpIdx]
 			//sl.Remove(samehada_util.GetPonterOfValue(types.NewInteger(int32(insVal))), uint32(insVal))
+			if insVal == 1933250583 {
+				fmt.Println("")
+			}
 			isDeleted := sl.Remove(samehada_util.GetPonterOfValue(types.NewInteger(int32(insVal))), uint32(insVal))
 			//fmt.Printf("sl.Remove at removeRandom: ii=%d, insVal=%d len(*insVals)=%d len(*removedVals)=%d\n", ii, insVal, len(insVals), len(removedVals))
 			if isAlreadyRemoved(insVal) {
