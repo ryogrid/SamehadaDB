@@ -2,7 +2,6 @@ package skip_list_page
 
 import (
 	"fmt"
-	"github.com/cznic/mathutil"
 	"github.com/ryogrid/SamehadaDB/common"
 	"github.com/ryogrid/SamehadaDB/storage/buffer"
 	"github.com/ryogrid/SamehadaDB/types"
@@ -249,44 +248,25 @@ func (node *SkipListBlockPage) Remove(key *types.Value, skipPathList []*SkipList
 			panic("removing wrong entry!")
 		}
 
-		//shrinkedPathList := make([]*SkipListBlockPage, 0)
-		//for ii := 0; ii < len(skipPathList); ii++ {
+		// doing connectivity cut here needs accesses to backword nodes
+		// and it needs complicated latch (lock) control
+		// so, not do connectivity cut here
+
+		//updateLen := int32(mathutil.Min(len(skipPathList), len(node.Forward)))
+		//
+		//// try removing this node from all level of chain
+		//// but, some connectivity left often
+		//// when several connectivity is left, removing is achieved in later index accesses
+		//for ii := int32(0); ii < updateLen; ii++ {
 		//	if skipPathList[ii] != nil {
-		//		shrinkedPathList = append(shrinkedPathList, skipPathList[ii])
+		//		skipPathList[ii].Forward[ii] = node.Forward[ii]
+		//		// mark (ii+1) lebel connectivity is removed
+		//		node.Forward[ii] = nil
 		//	}
 		//}
-		//updateLen := int32(mathutil.Min(len(shrinkedPathList), len(node.Forward)))
 
-		//if common.LogLevelSetting == common.DEBUG {
-		//	validHeight := 0
-		//	for ii := 0; ii < len(node.Forward); ii++ {
-		//		if node.Forward[ii] == nil {
-		//			break
-		//		}
-		//		validHeight++
-		//	}
-		//	common.ShPrintf(common.DEBUG, "SkipListBlockPage::Remove: len(skipPathList)=%d, validHeigh=%d, skipPathList=%v node.Forward=%v\n",
-		//		len(skipPathList), validHeight, skipPathList, node.Forward)
-		//	common.SH_Assert(len(skipPathList) >= validHeight, "SkipListBlocPage: length of skipPathList is strange!")
-		//}
-
-		updateLen := int32(mathutil.Min(len(skipPathList), len(node.Forward)))
-
-		// try removing this node from all level of chain
-		// but, some connectivity left often
-		// when several connectivity is left, removing is achieved in later index accesses
-		for ii := int32(0); ii < updateLen; ii++ {
-			if skipPathList[ii] != nil {
-				skipPathList[ii].Forward[ii] = node.Forward[ii]
-				// mark (ii+1) lebel connectivity is removed
-				node.Forward[ii] = nil
-			}
-		}
-
-		// this node does not block node traverse to any key
+		// this node does not block node traverse in key value compare
 		node.SmallestKey.SetInfMin()
-
-		// TODO: (SDB) when all level connectivity is removed, this node should be deallocate at on-disk impl
 
 		node.IsNeedDeleted = true
 
