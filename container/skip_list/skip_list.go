@@ -78,13 +78,18 @@ func NewSkipList(bpm *buffer.BufferPoolManager, keyType types.TypeID) *SkipList 
 }
 
 // TODO: (SDB) when on-disk impl, checking whether all connectivity is removed and node deallocation should be done if needed
-func (sl *SkipList) handleDelMarkedNode(delMarkedNode *skip_list_page.SkipListBlockPage, curLevel int32, skipPathListPrev []*skip_list_page.SkipListBlockPage) *skip_list_page.SkipListBlockPage {
-	skipPathListPrev[curLevel].Forward[curLevel] = delMarkedNode.Forward[curLevel]
+func (sl *SkipList) handleDelMarkedNode(delMarkedNode *skip_list_page.SkipListBlockPage, curLevelIdx int32, skipPathListPrev []*skip_list_page.SkipListBlockPage) *skip_list_page.SkipListBlockPage {
+	if common.LogLevelSetting == common.DEBUG {
+		common.ShPrintf(common.DEBUG, "handleDelMarkedNode: curLevelIdx=%d len(skipPathListPrev)=%d len(delMarkedNode.Forward)=%d skipPathListPrev=%v delMarkedNode.Forward=%v skipPathListPrev[curLevelIdx].Forward[curLevelIdx]=%v delMarkedNode.Forward[curLevelIdx]=%v\n",
+			curLevelIdx, len(skipPathListPrev), len(delMarkedNode.Forward), skipPathListPrev, delMarkedNode.Forward, skipPathListPrev[curLevelIdx].Forward[curLevelIdx], delMarkedNode.Forward[curLevelIdx])
+	}
 
-	// marked connectivity is collectly modified on curLevel
-	delMarkedNode.Forward[curLevel] = nil
+	skipPathListPrev[curLevelIdx].Forward[curLevelIdx] = delMarkedNode.Forward[curLevelIdx]
 
-	return skipPathListPrev[curLevel]
+	// marked connectivity is collectly modified on curLevelIdx
+	delMarkedNode.Forward[curLevelIdx] = nil
+
+	return skipPathListPrev[curLevelIdx]
 }
 
 // handleDelMarked: IsNeedDeleted marked node is found on node traverse, do link modification for complete deletion

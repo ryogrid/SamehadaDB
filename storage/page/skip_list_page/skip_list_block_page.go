@@ -264,8 +264,9 @@ func (node *SkipListBlockPage) Remove(key *types.Value, skipPathList []*SkipList
 				}
 				validHeight++
 			}
-			common.ShPrintf(common.DEBUG, "SkipListBlockPage::Remove: len(skipPathList)=%d, validHeigh=%d, skipPathList=%v\n", len(skipPathList), validHeight, skipPathList)
-			common.SH_Assert(len(skipPathList) != validHeight, "SkipListBlocPage: length of skipPathList is strange!")
+			common.ShPrintf(common.DEBUG, "SkipListBlockPage::Remove: len(skipPathList)=%d, validHeigh=%d, skipPathList=%v node.Forward=%v\n",
+				len(skipPathList), validHeight, skipPathList, node.Forward)
+			common.SH_Assert(len(skipPathList) >= validHeight, "SkipListBlocPage: length of skipPathList is strange!")
 		}
 
 		updateLen := int32(mathutil.Min(len(skipPathList), len(node.Forward)))
