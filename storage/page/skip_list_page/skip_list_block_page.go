@@ -256,6 +256,18 @@ func (node *SkipListBlockPage) Remove(key *types.Value, skipPathList []*SkipList
 		//}
 		//updateLen := int32(mathutil.Min(len(shrinkedPathList), len(node.Forward)))
 
+		if common.LogLevelSetting == common.DEBUG {
+			validHeight := 0
+			for ii := 0; ii < len(node.Forward); ii++ {
+				if node.Forward[ii] == nil {
+					break
+				}
+				validHeight++
+			}
+			common.ShPrintf(common.DEBUG, "SkipListBlockPage::Remove: len(skipPathList)=%d, validHeigh=%d, skipPathList=%v\n", len(skipPathList), validHeight, skipPathList)
+			common.SH_Assert(len(skipPathList) != validHeight, "SkipListBlocPage: length of skipPathList is strange!")
+		}
+
 		updateLen := int32(mathutil.Min(len(skipPathList), len(node.Forward)))
 
 		// try removing this node from all level of chain
