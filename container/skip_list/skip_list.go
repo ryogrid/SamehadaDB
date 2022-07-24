@@ -86,6 +86,9 @@ func (sl *SkipList) handleDelMarkedNode(delMarkedNode *skip_list_page.SkipListBl
 
 	skipPathListPrev[curLevelIdx].Forward[curLevelIdx] = delMarkedNode.Forward[curLevelIdx]
 	if common.LogLevelSetting == common.DEBUG {
+		if skipPathListPrev[curLevelIdx].Forward[curLevelIdx] == nil {
+			panic("settting nil to Forward!")
+		}
 		skipPathListPrev[curLevelIdx].Forward[curLevelIdx].CheckCompletelyEmpty()
 	}
 
