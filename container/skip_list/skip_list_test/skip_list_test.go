@@ -419,8 +419,6 @@ func removeRandom(t *testing.T, sl *skip_list.SkipList, opStep int32, num int32)
 }
 
 func testSkipLisMixOpPageBackedOnMemInner(t *testing.T, bulkSize int32, opTimes uint8, skipRand uint8, initialEntryNum uint16) {
-	//fmt.Println("")
-	//fmt.Println("")
 	common.ShPrintf(common.DEBUG, "start of testSkipLisMixOpPageBackedOnMemInner bulkSize=%d opTimes=%d skipRand=%d initialEntryNum=%d ====================================================\n",
 		bulkSize, opTimes, skipRand, initialEntryNum)
 

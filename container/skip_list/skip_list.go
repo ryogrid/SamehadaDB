@@ -79,17 +79,7 @@ func NewSkipList(bpm *buffer.BufferPoolManager, keyType types.TypeID) *SkipList 
 
 // TODO: (SDB) when on-disk impl, checking whether all connectivity is removed and node deallocation should be done if needed
 func (sl *SkipList) handleDelMarkedNode(delMarkedNode *skip_list_page.SkipListBlockPage, curNode *skip_list_page.SkipListBlockPage, curLevelIdx int32) {
-	//if common.LogLevelSetting == common.DEBUG {
-	//	common.ShPrintf(common.DEBUG, "handleDelMarkedNode: curLevelIdx=%d len(skipPathListPrev)=%d len(delMarkedNode.Forward)=%d skipPathListPrev=%v delMarkedNode.Forward=%v skipPathListPrev[curLevelIdx].Forward[curLevelIdx]=%v delMarkedNode.Forward[curLevelIdx]=%v\n",
-	//		curLevelIdx, len(skipPathListPrev), len(delMarkedNode.Forward), skipPathListPrev, delMarkedNode.Forward, skipPathListPrev[curLevelIdx].Forward[curLevelIdx], delMarkedNode.Forward[curLevelIdx])
-	//}
-
 	curNode.Forward[curLevelIdx] = delMarkedNode.Forward[curLevelIdx]
-	if common.LogLevelSetting == common.DEBUG {
-		if curNode.Forward[curLevelIdx] == nil {
-			panic("settting nil to Forward!")
-		}
-	}
 
 	// marked connectivity is collectly modified on curLevelIdx
 	delMarkedNode.Forward[curLevelIdx] = nil
@@ -104,13 +94,10 @@ func (sl *SkipList) FindNode(key *types.Value, handleDelMarked bool) (found_node
 	//moveCnt := 0
 	skipPathList := make([]*skip_list_page.SkipListBlockPage, sl.headerPageId.CurMaxLevel+1)
 	skipPathListPrev := make([]*skip_list_page.SkipListBlockPage, sl.headerPageId.CurMaxLevel)
-	//handleDelMarkedList := make([]bool, sl.headerPageId.CurMaxLevel)
 	for ii := (sl.headerPageId.CurMaxLevel - 1); ii >= 0; ii-- {
 		//fmt.Printf("level %d\n", i)
 		for node.Forward[ii].SmallestKey.CompareLessThanOrEqual(*key) {
 
-			//if node.IsNeedDeleted && handleDelMarkedList[ii] == false && node.Forward[ii] != nil {
-			//if handleDelMarked && node.IsNeedDeleted && node.Forward[ii] != nil {
 			if node.Forward[ii].IsNeedDeleted {
 				// when next node is IsNeedDeleted marked node
 				// stop at current node and handle next node
@@ -125,15 +112,9 @@ func (sl *SkipList) FindNode(key *types.Value, handleDelMarked bool) (found_node
 				skipPathListPrev[ii] = node
 				node = node.Forward[ii]
 			}
-			//if common.LogLevelSetting == common.DEBUG {
-			//	common.ShPrintf(common.DEBUG, "FindNode: key.ToInteger()=%d, ii=%d, len(skipPathListPrev)=%d, len(skipPathList)=%d, len(node.Forward)=%d, skipPathListPrev=%v, skipPathList=%v, skipPathListPrev[%d]=%s, node=%s, node.Forward[%d]=%s\n",
-			//		key.ToInteger(), ii, len(skipPathListPrev), len(skipPathList), len(node.Forward), skipPathListPrev, skipPathList, ii, skipPathListPrev[ii].ToDebugString(), node.ToDebugString(), ii, node.Forward[ii].ToDebugString())
-			//}
 		}
 		skipPathList[ii] = node
-		//fmt.Println("")
 	}
-	//fmt.Println(moveCnt)
 	return node, skipPathList, skipPathListPrev
 }
 
@@ -233,17 +214,6 @@ func (sl *SkipList) Insert(key *types.Value, value uint32) (err error) {
 	// of pointers to the elements which will be
 	// predecessors of the new element.
 
-	////fmt.Println("Insert of SkipList called!")
-	//var skipPathList []*skip_list_page.SkipListBlockPage = make([]*skip_list_page.SkipListBlockPage, sl.headerPageId.CurMaxLevel+1)
-	//node := sl.headerPageId.ListStartPage
-	//for ii := (sl.headerPageId.CurMaxLevel - 1); ii >= 0; ii-- {
-	//	//fmt.Printf("At Insert of SkipList: ii = %d, node = %v\n", ii, *node)
-	//	for node.Forward[ii].SmallestKey.CompareLessThanOrEqual(*key) {
-	//		node = node.Forward[ii]
-	//	}
-	//	//note: node.SmallestKey <= searchKey < node.forward[ii].SmallestKey
-	//	skipPathList[ii] = node
-	//}
 	node, skipPathList, _ := sl.FindNode(key, false)
 	levelWhenNodeSplitOccur := sl.GetNodeLevel()
 	if levelWhenNodeSplitOccur == sl.headerPageId.CurMaxLevel {
@@ -288,26 +258,7 @@ func (sl *SkipListOnMem) RemoveOnMem(key *types.Value, value uint32) {
 }
 
 func (sl *SkipList) Remove(key *types.Value, value uint32) (isDeleted bool) {
-	//node := sl.headerPageId.ListStartPage
-	//
-	//var skipPathListPrev []*skip_list_page.SkipListBlockPage = make([]*skip_list_page.SkipListBlockPage, sl.headerPageId.CurMaxLevel)
-	//
-	//for ii := (sl.headerPageId.CurMaxLevel - 1); ii >= 0; ii-- {
-	//	for node.Forward[ii].SmallestKey.CompareLessThanOrEqual(*key) {
-	//		skipPathListPrev[ii] = node
-	//		node = node.Forward[ii]
-	//	}
-	//}
 	node, _, skipPathListPrev := sl.FindNode(key, false)
-
-	//for ii := (sl.headerPageId.CurMaxLevel - 1); ii >= 0; ii-- {
-	//	for node.Forward[ii].SmallestKey.CompareLessThanOrEqual(*key) {
-	//		node = node.Forward[ii]
-	//	}
-	//}
-
-	// remove specified entry from found node
-
 	isDeleted_, _ := node.Remove(key, skipPathListPrev)
 
 	// if there are no node at *level* except start and end node due to node delete

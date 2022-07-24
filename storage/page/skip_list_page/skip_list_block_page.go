@@ -167,12 +167,6 @@ func (node *SkipListBlockPage) Insert(key *types.Value, value uint32, bpm *buffe
 				// insert to new node
 				newSmallerIdx := foundIdx - splitIdx - 1
 				newNode := node.Forward[0]
-				if common.LogLevelSetting == common.DEBUG {
-					if newNode == nil {
-						panic("newNode is nil!")
-					}
-					newNode.CheckCompletelyEmpty()
-				}
 				if (newSmallerIdx + 1) >= newNode.EntryCnt {
 					// when inserting point is next of last entry of new node
 					common.SH_Assert(newNode.Entries[len(newNode.Entries)-1].Key.CompareLessThan(*key), "order is invalid.")
@@ -284,12 +278,6 @@ func (node *SkipListBlockPage) Remove(key *types.Value, skipPathList []*SkipList
 		for ii := int32(0); ii < updateLen; ii++ {
 			if skipPathList[ii] != nil {
 				skipPathList[ii].Forward[ii] = node.Forward[ii]
-				if common.LogLevelSetting == common.DEBUG {
-					if skipPathList[ii].Forward[ii] == nil {
-						panic("settting nil to Forward!")
-					}
-					skipPathList[ii].Forward[ii].CheckCompletelyEmpty()
-				}
 				// mark (ii+1) lebel connectivity is removed
 				node.Forward[ii] = nil
 			}
@@ -301,12 +289,6 @@ func (node *SkipListBlockPage) Remove(key *types.Value, skipPathList []*SkipList
 		// TODO: (SDB) when all level connectivity is removed, this node should be deallocate at on-disk impl
 
 		node.IsNeedDeleted = true
-		//for ii := int32(0); ii < int32(len(node.Forward)); ii++ {
-		//	//modify forward link
-		//	node.Backward[ii].Forward[ii] = node.Forward[ii]
-		//	//modify backward link
-		//	node.Forward[ii].Backward[ii] = node.Backward[ii]
-		//}
 
 		return true, node.Level
 	} else if found {
@@ -358,22 +340,7 @@ func (node *SkipListBlockPage) SplitNode(idx int32, bpm *buffer.BufferPoolManage
 	for ii := int32(0); ii < level; ii++ {
 		// modify forward link
 		newNode.Forward[ii] = skipPathList[ii].Forward[ii]
-		if common.LogLevelSetting == common.DEBUG {
-			if newNode.Forward[ii] == nil {
-				panic("settting nil to Forward!")
-			}
-			newNode.Forward[ii].CheckCompletelyEmpty()
-		}
 		skipPathList[ii].Forward[ii] = newNode
-		if common.LogLevelSetting == common.DEBUG {
-			if skipPathList[ii].Forward[ii] == nil {
-				panic("settting nil to Forward!")
-			}
-			skipPathList[ii].Forward[ii].CheckCompletelyEmpty()
-		}
-		//// modify back link
-		//newNode.Backward[ii] = skipPathList[ii]
-		//newNode.Forward[ii].Backward[ii] = newNode
 	}
 }
 
