@@ -78,24 +78,21 @@ func NewSkipList(bpm *buffer.BufferPoolManager, keyType types.TypeID) *SkipList 
 }
 
 // TODO: (SDB) when on-disk impl, checking whether all connectivity is removed and node deallocation should be done if needed
-func (sl *SkipList) handleDelMarkedNode(delMarkedNode *skip_list_page.SkipListBlockPage, curLevelIdx int32, skipPathListPrev []*skip_list_page.SkipListBlockPage) *skip_list_page.SkipListBlockPage {
+func (sl *SkipList) handleDelMarkedNode(delMarkedNode *skip_list_page.SkipListBlockPage, curNode *skip_list_page.SkipListBlockPage, curLevelIdx int32) {
 	//if common.LogLevelSetting == common.DEBUG {
 	//	common.ShPrintf(common.DEBUG, "handleDelMarkedNode: curLevelIdx=%d len(skipPathListPrev)=%d len(delMarkedNode.Forward)=%d skipPathListPrev=%v delMarkedNode.Forward=%v skipPathListPrev[curLevelIdx].Forward[curLevelIdx]=%v delMarkedNode.Forward[curLevelIdx]=%v\n",
 	//		curLevelIdx, len(skipPathListPrev), len(delMarkedNode.Forward), skipPathListPrev, delMarkedNode.Forward, skipPathListPrev[curLevelIdx].Forward[curLevelIdx], delMarkedNode.Forward[curLevelIdx])
 	//}
 
-	skipPathListPrev[curLevelIdx].Forward[curLevelIdx] = delMarkedNode.Forward[curLevelIdx]
+	curNode.Forward[curLevelIdx] = delMarkedNode.Forward[curLevelIdx]
 	if common.LogLevelSetting == common.DEBUG {
-		if skipPathListPrev[curLevelIdx].Forward[curLevelIdx] == nil {
+		if curNode.Forward[curLevelIdx] == nil {
 			panic("settting nil to Forward!")
 		}
-		skipPathListPrev[curLevelIdx].Forward[curLevelIdx].CheckCompletelyEmpty()
 	}
 
 	// marked connectivity is collectly modified on curLevelIdx
 	delMarkedNode.Forward[curLevelIdx] = nil
-
-	return skipPathListPrev[curLevelIdx]
 }
 
 // handleDelMarked: IsNeedDeleted marked node is found on node traverse, do link modification for complete deletion
@@ -111,25 +108,27 @@ func (sl *SkipList) FindNode(key *types.Value, handleDelMarked bool) (found_node
 	for ii := (sl.headerPageId.CurMaxLevel - 1); ii >= 0; ii-- {
 		//fmt.Printf("level %d\n", i)
 		for node.Forward[ii].SmallestKey.CompareLessThanOrEqual(*key) {
-			skipPathListPrev[ii] = node
-			node = node.Forward[ii]
+
+			//if node.IsNeedDeleted && handleDelMarkedList[ii] == false && node.Forward[ii] != nil {
+			//if handleDelMarked && node.IsNeedDeleted && node.Forward[ii] != nil {
+			if node.Forward[ii].IsNeedDeleted {
+				// when next node is IsNeedDeleted marked node
+				// stop at current node and handle next node
+
+				// handle node (IsNeedDeleted marked) and returns appropriate node (prev node at ii + 1 level)
+				sl.handleDelMarkedNode(node.Forward[ii], node, ii)
+				if node.IsNeedDeleted {
+					panic("return value of handleDelMarkedNode is invalid!")
+				}
+			} else {
+				// move to next node
+				skipPathListPrev[ii] = node
+				node = node.Forward[ii]
+			}
 			//if common.LogLevelSetting == common.DEBUG {
 			//	common.ShPrintf(common.DEBUG, "FindNode: key.ToInteger()=%d, ii=%d, len(skipPathListPrev)=%d, len(skipPathList)=%d, len(node.Forward)=%d, skipPathListPrev=%v, skipPathList=%v, skipPathListPrev[%d]=%s, node=%s, node.Forward[%d]=%s\n",
 			//		key.ToInteger(), ii, len(skipPathListPrev), len(skipPathList), len(node.Forward), skipPathListPrev, skipPathList, ii, skipPathListPrev[ii].ToDebugString(), node.ToDebugString(), ii, node.Forward[ii].ToDebugString())
 			//}
-			//fmt.Printf("%d ", node.Key.ToInteger())
-			//moveCnt++
-			//if node.IsNeedDeleted && node.Forward[ii] != nil {
-			if node.IsNeedDeleted {
-				//if node.IsNeedDeleted && handleDelMarkedList[ii] == false && node.Forward[ii] != nil {
-				//if handleDelMarked && node.IsNeedDeleted && node.Forward[ii] != nil {
-				// handle node (IsNeedDeleted marked) and returns appropriate node (prev node at ii + 1 level)
-				node = sl.handleDelMarkedNode(node, ii, skipPathListPrev)
-				if node.IsNeedDeleted {
-					panic("return value of handleDelMarkedNode is invalid!")
-				}
-				//handleDelMarkedList[ii] = true
-			}
 		}
 		skipPathList[ii] = node
 		//fmt.Println("")
