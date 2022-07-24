@@ -1,6 +1,7 @@
 package skip_list_page
 
 import (
+	"fmt"
 	"github.com/cznic/mathutil"
 	"github.com/ryogrid/SamehadaDB/common"
 	"github.com/ryogrid/SamehadaDB/storage/buffer"
@@ -166,6 +167,9 @@ func (node *SkipListBlockPage) Insert(key *types.Value, value uint32, bpm *buffe
 				// insert to new node
 				newSmallerIdx := foundIdx - splitIdx - 1
 				newNode := node.Forward[0]
+				if common.LogLevelSetting == common.DEBUG {
+					newNode.CheckCompletelyEmpty()
+				}
 				if (newSmallerIdx + 1) >= newNode.EntryCnt {
 					// when inserting point is next of last entry of new node
 					common.SH_Assert(newNode.Entries[len(newNode.Entries)-1].Key.CompareLessThan(*key), "order is invalid.")
@@ -256,18 +260,18 @@ func (node *SkipListBlockPage) Remove(key *types.Value, skipPathList []*SkipList
 		//}
 		//updateLen := int32(mathutil.Min(len(shrinkedPathList), len(node.Forward)))
 
-		if common.LogLevelSetting == common.DEBUG {
-			validHeight := 0
-			for ii := 0; ii < len(node.Forward); ii++ {
-				if node.Forward[ii] == nil {
-					break
-				}
-				validHeight++
-			}
-			common.ShPrintf(common.DEBUG, "SkipListBlockPage::Remove: len(skipPathList)=%d, validHeigh=%d, skipPathList=%v node.Forward=%v\n",
-				len(skipPathList), validHeight, skipPathList, node.Forward)
-			common.SH_Assert(len(skipPathList) >= validHeight, "SkipListBlocPage: length of skipPathList is strange!")
-		}
+		//if common.LogLevelSetting == common.DEBUG {
+		//	validHeight := 0
+		//	for ii := 0; ii < len(node.Forward); ii++ {
+		//		if node.Forward[ii] == nil {
+		//			break
+		//		}
+		//		validHeight++
+		//	}
+		//	common.ShPrintf(common.DEBUG, "SkipListBlockPage::Remove: len(skipPathList)=%d, validHeigh=%d, skipPathList=%v node.Forward=%v\n",
+		//		len(skipPathList), validHeight, skipPathList, node.Forward)
+		//	common.SH_Assert(len(skipPathList) >= validHeight, "SkipListBlocPage: length of skipPathList is strange!")
+		//}
 
 		updateLen := int32(mathutil.Min(len(skipPathList), len(node.Forward)))
 
@@ -277,6 +281,9 @@ func (node *SkipListBlockPage) Remove(key *types.Value, skipPathList []*SkipList
 		for ii := int32(0); ii < updateLen; ii++ {
 			if skipPathList[ii] != nil {
 				skipPathList[ii].Forward[ii] = node.Forward[ii]
+				if common.LogLevelSetting == common.DEBUG {
+					skipPathList[ii].Forward[ii].CheckCompletelyEmpty()
+				}
 				// mark (ii+1) lebel connectivity is removed
 				node.Forward[ii] = nil
 			}
@@ -345,9 +352,54 @@ func (node *SkipListBlockPage) SplitNode(idx int32, bpm *buffer.BufferPoolManage
 	for ii := int32(0); ii < level; ii++ {
 		// modify forward link
 		newNode.Forward[ii] = skipPathList[ii].Forward[ii]
+		if common.LogLevelSetting == common.DEBUG {
+			newNode.Forward[ii].CheckCompletelyEmpty()
+		}
 		skipPathList[ii].Forward[ii] = newNode
+		if common.LogLevelSetting == common.DEBUG {
+			skipPathList[ii].Forward[ii].CheckCompletelyEmpty()
+		}
 		//// modify back link
 		//newNode.Backward[ii] = skipPathList[ii]
 		//newNode.Forward[ii].Backward[ii] = newNode
 	}
+}
+
+func (node *SkipListBlockPage) ToDebugString() string {
+	ret := ""
+	ret += fmt.Sprintf("{")
+	// Print SmallestKey
+	ret += fmt.Sprintf("%d ", node.SmallestKey.ToInteger())
+	// print contents of Forward
+	ret += fmt.Sprintf("[")
+	for ii := 0; ii < len(node.Forward); ii++ {
+		if node.Forward[ii] == nil {
+			ret += fmt.Sprintf(" nil")
+		} else {
+			ret += fmt.Sprintf(" *")
+		}
+	}
+	ret += fmt.Sprintf("] ")
+	// print IsDeleteNeeded
+	if node.IsNeedDeleted {
+		ret += fmt.Sprintf("true")
+	} else {
+		ret += fmt.Sprintf("false")
+	}
+	ret += fmt.Sprintf("}")
+	return ret
+}
+
+//for debug
+func (node *SkipListBlockPage) CheckCompletelyEmpty() {
+	if !node.IsNeedDeleted {
+		return
+	}
+
+	for ii := 0; ii < len(node.Forward); ii++ {
+		if node.Forward[ii] != nil {
+			return
+		}
+	}
+	panic("chekCompletelyEmpty: this node can't be chain!")
 }
