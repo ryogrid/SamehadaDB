@@ -9,10 +9,11 @@ import "github.com/ryogrid/SamehadaDB/types"
  *
  * Header Page for linear probing hash table.
  *
- * Header format (size in byte, 16 bytes in total):
- * -------------------------------------------------------------
- * | LSN (4) | Size (4) | PageId(4) | NextBlockIndex(4)
- * -------------------------------------------------------------
+ * Header format (size in byte, 12 bytes in total):
+ * ----------------------------------------------------------------------
+ * |  PageId(4) | NextBlockIndex(4) | Size (4) | BlockPageIds (4) x 1020
+ * ----------------------------------------------------------------------
+ * all Page content size: 12 + 4 * 1020 = 4092
  */
 type HashTableHeaderPage struct {
 	pageId types.PageID

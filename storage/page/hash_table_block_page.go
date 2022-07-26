@@ -8,8 +8,8 @@ type HashTablePair struct {
 	value uint32
 }
 
-const sizeOfHashTablePair = 16
-const BlockArraySize = 4 * 4096 / (4*sizeOfHashTablePair + 1)
+const sizeOfHashTablePair = 8
+const BlockArraySize = 4 * 4096 / (4*sizeOfHashTablePair + 1) //496
 
 /**
  * Store indexed key and value together within block page. Supports
@@ -24,9 +24,9 @@ const BlockArraySize = 4 * 4096 / (4*sizeOfHashTablePair + 1)
  *
  */
 type HashTableBlockPage struct {
-	occuppied [(BlockArraySize-1)/8 + 1]byte // 256 bits
-	readable  [(BlockArraySize-1)/8 + 1]byte // 256 bits
-	array     [BlockArraySize]HashTablePair  // 252 * 16 bits
+	occuppied [(BlockArraySize-1)/8 + 1]byte // 62 bytes (496 bits)
+	readable  [(BlockArraySize-1)/8 + 1]byte // 62 bytes (496 bits)
+	array     [BlockArraySize]HashTablePair  // 496 * 8 bytes
 }
 
 // Gets the key at an index in the block

@@ -10,20 +10,21 @@ import (
 )
 
 func TableCatalogSchema() *schema.Schema {
-	oidColumn := column.NewColumn("oid", types.Integer, false, nil)
-	nameColumn := column.NewColumn("name", types.Varchar, false, nil)
-	firstPageColumn := column.NewColumn("first_page", types.Integer, false, nil)
+	oidColumn := column.NewColumn("oid", types.Integer, false, types.PageID(-1), nil)
+	nameColumn := column.NewColumn("name", types.Varchar, false, types.PageID(-1), nil)
+	firstPageColumn := column.NewColumn("first_page", types.Integer, false, types.PageID(-1), nil)
 	return schema.NewSchema([]*column.Column{oidColumn, nameColumn, firstPageColumn})
 }
 
 func ColumnsCatalogSchema() *schema.Schema {
-	tableOIDColumn := column.NewColumn("table_oid", types.Integer, false, nil)
-	typeColumn := column.NewColumn("type", types.Integer, false, nil)
-	nameColumn := column.NewColumn("name", types.Varchar, false, nil)
-	fixedLengthColumn := column.NewColumn("fixed_length", types.Integer, false, nil)
-	variableLengthColumn := column.NewColumn("variable_length", types.Integer, false, nil)
-	offsetColumn := column.NewColumn("offset", types.Integer, false, nil)
-	hasIndexColumn := column.NewColumn("has_index", types.Integer, false, nil)
+	tableOIDColumn := column.NewColumn("table_oid", types.Integer, false, types.PageID(-1), nil)
+	typeColumn := column.NewColumn("type", types.Integer, false, types.PageID(-1), nil)
+	nameColumn := column.NewColumn("name", types.Varchar, false, types.PageID(-1), nil)
+	fixedLengthColumn := column.NewColumn("fixed_length", types.Integer, false, types.PageID(-1), nil)
+	variableLengthColumn := column.NewColumn("variable_length", types.Integer, false, types.PageID(-1), nil)
+	offsetColumn := column.NewColumn("offset", types.Integer, false, types.PageID(-1), nil)
+	hasIndexColumn := column.NewColumn("has_index", types.Integer, false, types.PageID(-1), nil)
+	indexHeaderPageId := column.NewColumn("index_header_page_id", types.Integer, false, types.PageID(-1), nil)
 
 	return schema.NewSchema([]*column.Column{
 		tableOIDColumn,
@@ -32,5 +33,6 @@ func ColumnsCatalogSchema() *schema.Schema {
 		fixedLengthColumn,
 		variableLengthColumn,
 		offsetColumn,
-		hasIndexColumn})
+		hasIndexColumn,
+		indexHeaderPageId})
 }
