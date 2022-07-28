@@ -45,6 +45,11 @@ func NewLinearProbeHashTable(bpm *buffer.BufferPoolManager, numBuckets int) *Lin
 	}
 	bpm.UnpinPage(header.ID(), true)
 
+	// on current not expandable HashTable impl
+	// flush of header page is needed only creating time
+	// because, content of header page is changed only creatting time
+	bpm.FlushPage(header.ID())
+
 	return &LinearProbeHashTable{header.ID(), bpm, common.NewRWLatch()}
 }
 
