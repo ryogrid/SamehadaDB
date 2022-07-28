@@ -21,6 +21,7 @@ type LinearProbeHashTableIndex struct {
 	col_idx uint32
 }
 
+// TODO: (SDB) need to add index header page ID argument (NewLinearProbeHashTableIndex)
 func NewLinearProbeHashTableIndex(metadata *IndexMetadata, buffer_pool_manager *buffer.BufferPoolManager, col_idx uint32,
 	num_buckets int) *LinearProbeHashTableIndex {
 	ret := new(LinearProbeHashTableIndex)

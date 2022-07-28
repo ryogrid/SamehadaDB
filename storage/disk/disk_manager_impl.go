@@ -126,9 +126,13 @@ func (d *DiskManagerImpl) ReadPage(pageID types.PageID, pageData []byte) error {
 }
 
 //  AllocatePage allocates a new page
-//  For now just keep an increasing counter
 func (d *DiskManagerImpl) AllocatePage() types.PageID {
 	ret := d.nextPageID
+
+	// extend db file for avoiding later ReadPage and WritePage fails
+	zeroClearedPageData := make([]byte, common.PageSize)
+	d.WritePage(ret, zeroClearedPageData)
+
 	d.nextPageID++
 	return ret
 }
