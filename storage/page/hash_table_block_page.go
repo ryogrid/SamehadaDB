@@ -41,7 +41,7 @@ func (page *HashTableBlockPage) ValueAt(index uint32) uint32 {
 
 // Attempts to insert a key and value into an index in the baccess.
 func (page *HashTableBlockPage) Insert(index uint32, key uint32, value uint32) bool {
-	if page.IsOccupied(index) {
+	if page.IsOccupied(index) && page.IsReadable(index) {
 		return false
 	}
 

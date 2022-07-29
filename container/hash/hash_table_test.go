@@ -86,5 +86,15 @@ func TestLinearProbeHashTable(t *testing.T) {
 		}
 	}
 
+	// remove several entries and re-insert these entry and check got value
+	for i := 1; i < 5; i++ {
+		ht.Remove(IntToBytes(i), uint32(i*2))
+		ht.Insert(IntToBytes(i), uint32(i*3))
+		res := ht.GetValue(IntToBytes(i))
+
+		testingpkg.Equals(t, 1, len(res))
+		testingpkg.Equals(t, uint32(3*i), res[0])
+	}
+
 	bpm.FlushAllPages()
 }

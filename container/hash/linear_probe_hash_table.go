@@ -103,8 +103,15 @@ func (ht *LinearProbeHashTable) Insert(key []byte, value uint32) (err error) {
 	blockPage, offset := iterator.blockPage, iterator.offset
 	var bucket uint32
 	for {
-		if blockPage.IsOccupied(offset) && blockPage.ValueAt(offset) == value {
+		if blockPage.IsOccupied(offset) && blockPage.IsReadable(offset) && blockPage.ValueAt(offset) == value {
 			err = errors.New("duplicated values on the same key are not allowed")
+			break
+		}
+
+		// insert to deleted marked slot
+		if blockPage.IsOccupied(offset) && !blockPage.IsReadable(offset) {
+			blockPage.Insert(offset, hash, value)
+			err = nil
 			break
 		}
 
