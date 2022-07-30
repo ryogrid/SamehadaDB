@@ -36,6 +36,13 @@ func StartCheckpointThread(cpMngr *concurrency.CheckpointManager) {
 	}()
 }
 
+func reconstructAllIndexData(c *catalog.Catalog, txn *access.Transaction) {
+	allTables := c.GetAllTables()
+	for ii := 0; ii < len(allTables); ii++ {
+		allTables[ii].ReconstructIndexDataOfAllCol(c, txn)
+	}
+}
+
 func NewSamehadaDB(dbName string, memKBytes int) *SamehadaDB {
 	isExisitingDB := samehada_util.FileExists(dbName + ".db")
 
@@ -60,12 +67,14 @@ func NewSamehadaDB(dbName string, memKBytes int) *SamehadaDB {
 	var c *catalog.Catalog
 	if isExisitingDB {
 		c = catalog.RecoveryCatalogFromCatalogPage(shi.GetBufferPoolManager(), shi.GetLogManager(), shi.GetLockManager(), txn)
+		// index date reloading/recovery is not implemented yet
+		// so all index data should be recounstruct using already allocated pages
+		reconstructAllIndexData(c, txn)
 	} else {
 		c = catalog.BootstrapCatalog(shi.GetBufferPoolManager(), shi.GetLogManager(), shi.GetLockManager(), txn)
 	}
 
-	// TODO: (SDB) need to implement index reconsutructin fucn and call it here
-
+	shi.bpm.FlushAllPages()
 	shi.transaction_manager.Commit(txn)
 
 	shi.GetLogManager().ActivateLogging()

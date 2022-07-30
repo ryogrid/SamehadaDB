@@ -119,6 +119,14 @@ func (c *Catalog) GetTableByOID(oid uint32) *TableMetadata {
 	return nil
 }
 
+func (c *Catalog) GetAllTables() []*TableMetadata {
+	ret := make([]*TableMetadata, 0)
+	for key, _ := range c.tableIds {
+		ret = append(ret, c.tableIds[key])
+	}
+	return ret
+}
+
 // CreateTable creates a new table and return its metadata
 func (c *Catalog) CreateTable(name string, schema *schema.Schema, txn *access.Transaction) *TableMetadata {
 	oid := c.nextTableId

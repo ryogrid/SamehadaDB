@@ -5,6 +5,8 @@ package catalog
 
 import (
 	"github.com/ryogrid/SamehadaDB/common"
+	"github.com/ryogrid/SamehadaDB/execution/executors"
+	"github.com/ryogrid/SamehadaDB/execution/plans"
 	"github.com/ryogrid/SamehadaDB/storage/access"
 	"github.com/ryogrid/SamehadaDB/storage/index"
 	"github.com/ryogrid/SamehadaDB/storage/table/schema"
@@ -45,9 +47,24 @@ func NewTableMetadata(schema *schema.Schema, name string, table *access.TableHea
 	return ret
 }
 
-// TODO: (SDB) not implemente yet (TableMetadata::ReconstructIndexDataOfAllCol)
-func (t *TableMetadata) ReconstructIndexDataOfAllCol() {
+func (t *TableMetadata) ReconstructIndexDataOfAllCol(c *Catalog, txn *access.Transaction) {
+	executionEngine := &executors.ExecutionEngine{}
+	executorContext := executors.NewExecutorContext(c, t.table.GetBufferPoolManager(), txn)
 
+	// get all tuples
+	outSchema := t.schema
+	seqPlan := plans.NewSeqScanPlanNode(outSchema, nil, t.OID())
+	results := executionEngine.Execute(seqPlan, executorContext)
+
+	// insert index entries correspond to each tuple and column to each index objects
+	for _, index_ := range t.indexes {
+		if index_ != nil {
+			for _, tuple_ := range results {
+				rid := tuple_.GetRID()
+				index_.InsertEntry(tuple_, *rid, txn)
+			}
+		}
+	}
 }
 
 func (t *TableMetadata) Schema() *schema.Schema {
