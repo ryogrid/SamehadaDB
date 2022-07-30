@@ -6,6 +6,7 @@ import (
 	"github.com/ryogrid/SamehadaDB/common"
 	"github.com/ryogrid/SamehadaDB/concurrency"
 	"github.com/ryogrid/SamehadaDB/execution/executors"
+	"github.com/ryogrid/SamehadaDB/execution/plans"
 	"github.com/ryogrid/SamehadaDB/parser"
 	"github.com/ryogrid/SamehadaDB/planner"
 	"github.com/ryogrid/SamehadaDB/recovery/log_recovery"
@@ -36,10 +37,30 @@ func StartCheckpointThread(cpMngr *concurrency.CheckpointManager) {
 	}()
 }
 
+func reconstructIndexDataOfEachCol(t *catalog.TableMetadata, c *catalog.Catalog, txn *access.Transaction) {
+	executionEngine := &executors.ExecutionEngine{}
+	executorContext := executors.NewExecutorContext(c, t.Table().GetBufferPoolManager(), txn)
+
+	// get all tuples
+	outSchema := t.Schema()
+	seqPlan := plans.NewSeqScanPlanNode(outSchema, nil, t.OID())
+	results := executionEngine.Execute(seqPlan, executorContext)
+
+	// insert index entries correspond to each tuple and column to each index objects
+	for _, index_ := range t.Indexes() {
+		if index_ != nil {
+			for _, tuple_ := range results {
+				rid := tuple_.GetRID()
+				index_.InsertEntry(tuple_, *rid, txn)
+			}
+		}
+	}
+}
+
 func reconstructAllIndexData(c *catalog.Catalog, txn *access.Transaction) {
 	allTables := c.GetAllTables()
 	for ii := 0; ii < len(allTables); ii++ {
-		allTables[ii].ReconstructIndexDataOfAllCol(c, txn)
+		reconstructIndexDataOfEachCol(allTables[ii], c, txn)
 	}
 }
 

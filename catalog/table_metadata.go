@@ -5,8 +5,6 @@ package catalog
 
 import (
 	"github.com/ryogrid/SamehadaDB/common"
-	"github.com/ryogrid/SamehadaDB/execution/executors"
-	"github.com/ryogrid/SamehadaDB/execution/plans"
 	"github.com/ryogrid/SamehadaDB/storage/access"
 	"github.com/ryogrid/SamehadaDB/storage/index"
 	"github.com/ryogrid/SamehadaDB/storage/table/schema"
@@ -47,26 +45,6 @@ func NewTableMetadata(schema *schema.Schema, name string, table *access.TableHea
 	return ret
 }
 
-func (t *TableMetadata) ReconstructIndexDataOfAllCol(c *Catalog, txn *access.Transaction) {
-	executionEngine := &executors.ExecutionEngine{}
-	executorContext := executors.NewExecutorContext(c, t.table.GetBufferPoolManager(), txn)
-
-	// get all tuples
-	outSchema := t.schema
-	seqPlan := plans.NewSeqScanPlanNode(outSchema, nil, t.OID())
-	results := executionEngine.Execute(seqPlan, executorContext)
-
-	// insert index entries correspond to each tuple and column to each index objects
-	for _, index_ := range t.indexes {
-		if index_ != nil {
-			for _, tuple_ := range results {
-				rid := tuple_.GetRID()
-				index_.InsertEntry(tuple_, *rid, txn)
-			}
-		}
-	}
-}
-
 func (t *TableMetadata) Schema() *schema.Schema {
 	return t.schema
 }
@@ -90,4 +68,8 @@ func (t *TableMetadata) GetIndex(colIndex int) index.Index {
 
 func (t *TableMetadata) GetColumnNum() uint32 {
 	return t.schema.GetColumnCount()
+}
+
+func (t *TableMetadata) Indexes() []index.Index {
+	return t.indexes
 }
