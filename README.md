@@ -56,6 +56,7 @@ original codes of go-bustub are [here](https://github.com/brunocalza/go-bustub).
     - When the system exits in not graceful, reconstruction of index data is needed at reboot of system now
   - [ ] SkipList Index
   - <del>Tree Based Index</del>
+  - [ ] Logging/Recovery of Index Data (Redo/Undo)
 - [ ] JOIN
   - [x] INNER JOIN (Hash Join)
     - Currently, only two tables JOIN is implemented and codition specified at ON clause should be composed of single item  
