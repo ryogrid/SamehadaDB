@@ -6,6 +6,7 @@ package hash
 import (
 	"bytes"
 	"encoding/binary"
+	"github.com/ryogrid/SamehadaDB/types"
 	"testing"
 
 	"github.com/ryogrid/SamehadaDB/recovery"
@@ -25,7 +26,7 @@ func TestLinearProbeHashTable(t *testing.T) {
 	defer diskManager.ShutDown()
 	bpm := buffer.NewBufferPoolManager(uint32(10), diskManager, recovery.NewLogManager(&diskManager))
 
-	ht := NewLinearProbeHashTable(bpm, 1000)
+	ht := NewLinearProbeHashTable(bpm, 1000, types.InvalidPageID)
 
 	for i := 0; i < 5; i++ {
 		ht.Insert(IntToBytes(i), uint32(i))
@@ -97,4 +98,8 @@ func TestLinearProbeHashTable(t *testing.T) {
 	}
 
 	bpm.FlushAllPages()
+}
+
+// TODO: (SDB) need to Test of recounstruction of Index datas using (already allocated pages should be used)
+func TestRecounstructionOfHashIndex(t *testing.T) {
 }

@@ -27,30 +27,34 @@ type LinearProbeHashTable struct {
 	table_latch  common.ReaderWriterLatch
 }
 
-// TODO: (SDB) need to add index header page ID argument (NewLinearProbeHashTable)
-func NewLinearProbeHashTable(bpm *buffer.BufferPoolManager, numBuckets int) *LinearProbeHashTable {
-	// TODO: when valid index header page ID argument, header page should be fetched
-	//       adding block pages are not needed because already allocated
-	header := bpm.NewPage()
-	headerData := header.Data()
-	headerPage := (*page.HashTableHeaderPage)(unsafe.Pointer(headerData))
+func NewLinearProbeHashTable(bpm *buffer.BufferPoolManager, numBuckets int, headerPageId types.PageID) *LinearProbeHashTable {
+	if headerPageId == types.InvalidPageID {
+		header := bpm.NewPage()
+		headerData := header.Data()
+		headerPage := (*page.HashTableHeaderPage)(unsafe.Pointer(headerData))
 
-	headerPage.SetPageId(header.ID())
-	headerPage.SetSize(numBuckets * page.BlockArraySize)
+		headerPage.SetPageId(header.ID())
+		headerPage.SetSize(numBuckets * page.BlockArraySize)
 
-	for i := 0; i < numBuckets; i++ {
-		np := bpm.NewPage()
-		headerPage.AddBlockPageId(np.ID())
-		bpm.UnpinPage(np.ID(), true)
+		for i := 0; i < numBuckets; i++ {
+			np := bpm.NewPage()
+			headerPage.AddBlockPageId(np.ID())
+			bpm.UnpinPage(np.ID(), true)
+		}
+		bpm.UnpinPage(header.ID(), true)
+
+		// on current not expandable HashTable impl
+		// flush of header page is needed only creating time
+		// because, content of header page is changed only creatting time
+		bpm.FlushPage(header.ID())
+
+		return &LinearProbeHashTable{header.ID(), bpm, common.NewRWLatch()}
+	} else {
+		header := bpm.FetchPage(headerPageId)
+		bpm.UnpinPage(header.ID(), true)
+
+		return &LinearProbeHashTable{header.ID(), bpm, common.NewRWLatch()}
 	}
-	bpm.UnpinPage(header.ID(), true)
-
-	// on current not expandable HashTable impl
-	// flush of header page is needed only creating time
-	// because, content of header page is changed only creatting time
-	bpm.FlushPage(header.ID())
-
-	return &LinearProbeHashTable{header.ID(), bpm, common.NewRWLatch()}
 }
 
 func (ht *LinearProbeHashTable) GetValue(key []byte) []uint32 {
