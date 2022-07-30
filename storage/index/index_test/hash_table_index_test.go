@@ -155,7 +155,7 @@ func TestRecounstructionOfHashIndex(t *testing.T) {
 	txn = shi.GetTransactionManager().Begin(nil)
 
 	c = catalog.RecoveryCatalogFromCatalogPage(shi.GetBufferPoolManager(), shi.GetLogManager(), shi.GetLockManager(), txn)
-	tableMetadata = c.GetTableByName("test")
+	tableMetadata = c.GetTableByName("test_1")
 	samehada.ReconstructAllIndexData(c, txn)
 
 	shi.GetLogManager().ActivateLogging()
