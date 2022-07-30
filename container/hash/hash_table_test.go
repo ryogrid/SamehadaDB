@@ -99,7 +99,3 @@ func TestLinearProbeHashTable(t *testing.T) {
 
 	bpm.FlushAllPages()
 }
-
-// TODO: (SDB) need to Test of recounstruction of Index datas using (already allocated pages should be used)
-func TestRecounstructionOfHashIndex(t *testing.T) {
-}
