@@ -86,7 +86,7 @@ func RecoveryCatalogFromCatalogPage(bpm *buffer.BufferPoolManager, log_manager *
 			column_.SetVariableLength(uint32(variableLength))
 			column_.SetOffset(uint32(columnOffset))
 			column_.SetHasIndex(hasIndex)
-			// TODO: (SDB) need to set header page ID of index data
+			column_.SetIndexHeaderPageId(types.PageID(indexHeaderPageId))
 
 			columns = append(columns, column_)
 		}

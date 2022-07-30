@@ -30,7 +30,7 @@ type LinearProbeHashTable struct {
 // TODO: (SDB) need to add index header page ID argument (NewLinearProbeHashTable)
 func NewLinearProbeHashTable(bpm *buffer.BufferPoolManager, numBuckets int) *LinearProbeHashTable {
 	// TODO: when valid index header page ID argument, header page should be fetched
-	//       nad adding block pages are not needed
+	//       adding block pages are not needed because already allocated
 	header := bpm.NewPage()
 	headerData := header.Data()
 	headerPage := (*page.HashTableHeaderPage)(unsafe.Pointer(headerData))

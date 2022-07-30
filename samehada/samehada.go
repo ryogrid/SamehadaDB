@@ -64,6 +64,8 @@ func NewSamehadaDB(dbName string, memKBytes int) *SamehadaDB {
 		c = catalog.BootstrapCatalog(shi.GetBufferPoolManager(), shi.GetLogManager(), shi.GetLockManager(), txn)
 	}
 
+	// TODO: (SDB) need to implement index reconsutructin fucn and call it here
+
 	shi.transaction_manager.Commit(txn)
 
 	shi.GetLogManager().ActivateLogging()

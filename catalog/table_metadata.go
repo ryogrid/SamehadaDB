@@ -33,7 +33,7 @@ func NewTableMetadata(schema *schema.Schema, name string, table *access.TableHea
 		// TODO: (SDB) if column.HasIndex() == true && column.IndexHeaderPageId != -1 then create LinearProbeHashTableIndex from the IndexHeaderPageID
 		if column_.HasIndex() {
 			im := index.NewIndexMetadata(column_.GetColumnName()+"_index", name, schema, []uint32{uint32(idx)})
-			// TODO: (SDB) index bucket size is 10 (auto size extending is needed...)
+			// TODO: (SDB) index bucket size is common.BucketSizeOfHashIndex (auto size extending is needed...)
 			//             note: one bucket is used pages for storing index key/value pairs for a column.
 			//                   one page can store 512 key/value pair
 			indexes = append(indexes, index.NewLinearProbeHashTableIndex(im, table.GetBufferPoolManager(), uint32(idx), common.BucketSizeOfHashIndex))
