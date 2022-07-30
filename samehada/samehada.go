@@ -57,7 +57,7 @@ func reconstructIndexDataOfEachCol(t *catalog.TableMetadata, c *catalog.Catalog,
 	}
 }
 
-func reconstructAllIndexData(c *catalog.Catalog, txn *access.Transaction) {
+func ReconstructAllIndexData(c *catalog.Catalog, txn *access.Transaction) {
 	allTables := c.GetAllTables()
 	for ii := 0; ii < len(allTables); ii++ {
 		reconstructIndexDataOfEachCol(allTables[ii], c, txn)
@@ -90,7 +90,7 @@ func NewSamehadaDB(dbName string, memKBytes int) *SamehadaDB {
 		c = catalog.RecoveryCatalogFromCatalogPage(shi.GetBufferPoolManager(), shi.GetLogManager(), shi.GetLockManager(), txn)
 		// index date reloading/recovery is not implemented yet
 		// so all index data should be recounstruct using already allocated pages
-		reconstructAllIndexData(c, txn)
+		ReconstructAllIndexData(c, txn)
 	} else {
 		c = catalog.BootstrapCatalog(shi.GetBufferPoolManager(), shi.GetLogManager(), shi.GetLockManager(), txn)
 	}
