@@ -38,10 +38,10 @@ func TestHashTableHeaderPage(t *testing.T) {
 			t.Errorf("GetPageId shoud be %d, but got %d", types.PageID(i), headerPage.GetPageId())
 		}
 
-		headerPage.SetLSN(i)
-		if i != headerPage.GetLSN() {
-			t.Errorf("GetLSN shoud be %d, but got %d", i, headerPage.GetLSN())
-		}
+		//headerPage.SetLSN(i)
+		//if i != headerPage.GetLSN() {
+		//	t.Errorf("GetLSN shoud be %d, but got %d", i, headerPage.GetLSN())
+		//}
 	}
 
 	// add a few hypothetical block pages

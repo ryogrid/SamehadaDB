@@ -58,7 +58,9 @@ func (e *SeqScanExecutor) Next() (*tuple.Tuple, Done, error) {
 	// if the iterator is not in the end, projects the current tuple into the output schema
 	if !e.it.End() {
 		defer e.it.Next() // advances the iterator after projection
-		return e.projects(e.it.Current()), false, nil
+		ret := e.projects(e.it.Current())
+		ret.SetRID(e.it.Current().GetRID())
+		return ret, false, nil
 	}
 
 	return nil, true, nil

@@ -6,6 +6,7 @@ package hash
 import (
 	"bytes"
 	"encoding/binary"
+	"github.com/ryogrid/SamehadaDB/types"
 	"testing"
 
 	"github.com/ryogrid/SamehadaDB/recovery"
@@ -25,7 +26,7 @@ func TestLinearProbeHashTable(t *testing.T) {
 	defer diskManager.ShutDown()
 	bpm := buffer.NewBufferPoolManager(uint32(10), diskManager, recovery.NewLogManager(&diskManager))
 
-	ht := NewLinearProbeHashTable(bpm, 1000)
+	ht := NewLinearProbeHashTable(bpm, 1000, types.InvalidPageID)
 
 	for i := 0; i < 5; i++ {
 		ht.Insert(IntToBytes(i), uint32(i))
@@ -84,6 +85,16 @@ func TestLinearProbeHashTable(t *testing.T) {
 			testingpkg.Equals(t, 1, len(res))
 			testingpkg.Equals(t, uint32(2*i), res[0])
 		}
+	}
+
+	// remove several entries and re-insert these entry and check got value
+	for i := 1; i < 5; i++ {
+		ht.Remove(IntToBytes(i), uint32(i*2))
+		ht.Insert(IntToBytes(i), uint32(i*3))
+		res := ht.GetValue(IntToBytes(i))
+
+		testingpkg.Equals(t, 1, len(res))
+		testingpkg.Equals(t, uint32(3*i), res[0])
 	}
 
 	bpm.FlushAllPages()

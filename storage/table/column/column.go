@@ -8,14 +8,14 @@ import (
 )
 
 type Column struct {
-	columnName     string
-	columnType     types.TypeID
-	fixedLength    uint32 // For a non-inlined column, this is the size of a pointer. Otherwise, the size of the fixed length column
-	variableLength uint32 // For an inlined column, 0. Otherwise, the length of the variable length column
-	columnOffset   uint32 // Column offset in the tuple
-	hasIndex       bool   // whether the column has index data
-	// TODO: (SDB) need to define a member which stores header page ID of index data
-	isLeft bool // when temporal schema, this is used for join
+	columnName        string
+	columnType        types.TypeID
+	fixedLength       uint32 // For a non-inlined column, this is the size of a pointer. Otherwise, the size of the fixed length column
+	variableLength    uint32 // For an inlined column, 0. Otherwise, the length of the variable length column
+	columnOffset      uint32 // Column offset in the tuple
+	hasIndex          bool   // whether the column has index data
+	indexHeaderPageId types.PageID
+	isLeft            bool // when temporal schema, this is used for join
 	// should be pointer of subtype of expression.Expression
 	// this member is used and needed at temporarily created table (schema) on query execution
 	expr_ interface{}
@@ -23,12 +23,12 @@ type Column struct {
 
 // TODO: (SDB) need to add argument to set header page of index data or define new method for that
 // expr argument should be pointer of subtype of expression.Expression
-func NewColumn(name string, columnType types.TypeID, hasIndex bool, expr interface{}) *Column {
+func NewColumn(name string, columnType types.TypeID, hasIndex bool, indexHeaderPageID types.PageID, expr interface{}) *Column {
 	if columnType != types.Varchar {
-		return &Column{name, columnType, columnType.Size(), 0, 0, hasIndex, true, expr}
+		return &Column{name, columnType, columnType.Size(), 0, 0, hasIndex, indexHeaderPageID, true, expr}
 	}
 
-	return &Column{name, types.Varchar, 4, 255, 0, hasIndex, true, expr}
+	return &Column{name, types.Varchar, 4, 255, 0, hasIndex, indexHeaderPageID, true, expr}
 }
 
 func (c *Column) IsInlined() bool {
@@ -73,6 +73,14 @@ func (c *Column) HasIndex() bool {
 
 func (c *Column) SetHasIndex(hasIndex bool) {
 	c.hasIndex = hasIndex
+}
+
+func (c *Column) IndexHeaderPageId() types.PageID {
+	return c.indexHeaderPageId
+}
+
+func (c *Column) SetIndexHeaderPageId(pageId types.PageID) {
+	c.indexHeaderPageId = pageId
 }
 
 func (c *Column) IsLeft() bool {

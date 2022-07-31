@@ -27,8 +27,8 @@ func TestTableCatalogReload(t *testing.T) {
 	txn := samehada_instance.GetTransactionManager().Begin(nil)
 	catalog_old := catalog.BootstrapCatalog(bpm, samehada_instance.GetLogManager(), samehada_instance.GetLockManager(), txn)
 
-	columnA := column.NewColumn("a", types.Integer, false, nil)
-	columnB := column.NewColumn("b", types.Integer, true, nil)
+	columnA := column.NewColumn("a", types.Integer, false, types.PageID(-1), nil)
+	columnB := column.NewColumn("b", types.Integer, true, types.PageID(-1), nil)
 	schema_ := schema.NewSchema([]*column.Column{columnA, columnB})
 
 	catalog_old.CreateTable("test_1", schema_, txn)

@@ -6,6 +6,7 @@ import (
 	"github.com/ryogrid/SamehadaDB/common"
 	"github.com/ryogrid/SamehadaDB/concurrency"
 	"github.com/ryogrid/SamehadaDB/execution/executors"
+	"github.com/ryogrid/SamehadaDB/execution/plans"
 	"github.com/ryogrid/SamehadaDB/parser"
 	"github.com/ryogrid/SamehadaDB/planner"
 	"github.com/ryogrid/SamehadaDB/recovery/log_recovery"
@@ -36,6 +37,33 @@ func StartCheckpointThread(cpMngr *concurrency.CheckpointManager) {
 	}()
 }
 
+func reconstructIndexDataOfEachCol(t *catalog.TableMetadata, c *catalog.Catalog, txn *access.Transaction) {
+	executionEngine := &executors.ExecutionEngine{}
+	executorContext := executors.NewExecutorContext(c, t.Table().GetBufferPoolManager(), txn)
+
+	// get all tuples
+	outSchema := t.Schema()
+	seqPlan := plans.NewSeqScanPlanNode(outSchema, nil, t.OID())
+	results := executionEngine.Execute(seqPlan, executorContext)
+
+	// insert index entries correspond to each tuple and column to each index objects
+	for _, index_ := range t.Indexes() {
+		if index_ != nil {
+			for _, tuple_ := range results {
+				rid := tuple_.GetRID()
+				index_.InsertEntry(tuple_, *rid, txn)
+			}
+		}
+	}
+}
+
+func ReconstructAllIndexData(c *catalog.Catalog, txn *access.Transaction) {
+	allTables := c.GetAllTables()
+	for ii := 0; ii < len(allTables); ii++ {
+		reconstructIndexDataOfEachCol(allTables[ii], c, txn)
+	}
+}
+
 func NewSamehadaDB(dbName string, memKBytes int) *SamehadaDB {
 	isExisitingDB := samehada_util.FileExists(dbName + ".db")
 
@@ -60,10 +88,14 @@ func NewSamehadaDB(dbName string, memKBytes int) *SamehadaDB {
 	var c *catalog.Catalog
 	if isExisitingDB {
 		c = catalog.RecoveryCatalogFromCatalogPage(shi.GetBufferPoolManager(), shi.GetLogManager(), shi.GetLockManager(), txn)
+		// index date reloading/recovery is not implemented yet
+		// so all index data should be recounstruct using already allocated pages
+		ReconstructAllIndexData(c, txn)
 	} else {
 		c = catalog.BootstrapCatalog(shi.GetBufferPoolManager(), shi.GetLogManager(), shi.GetLockManager(), txn)
 	}
 
+	shi.bpm.FlushAllPages()
 	shi.transaction_manager.Commit(txn)
 
 	shi.GetLogManager().ActivateLogging()

@@ -2,6 +2,7 @@ package index
 
 import (
 	"github.com/ryogrid/SamehadaDB/samehada/samehada_util"
+	"github.com/ryogrid/SamehadaDB/types"
 
 	hash "github.com/ryogrid/SamehadaDB/container/hash"
 	"github.com/ryogrid/SamehadaDB/storage/access"
@@ -22,10 +23,10 @@ type LinearProbeHashTableIndex struct {
 }
 
 func NewLinearProbeHashTableIndex(metadata *IndexMetadata, buffer_pool_manager *buffer.BufferPoolManager, col_idx uint32,
-	num_buckets int) *LinearProbeHashTableIndex {
+	num_buckets int, headerPageId types.PageID) *LinearProbeHashTableIndex {
 	ret := new(LinearProbeHashTableIndex)
 	ret.metadata = metadata
-	ret.container = *hash.NewLinearProbeHashTable(buffer_pool_manager, num_buckets)
+	ret.container = *hash.NewLinearProbeHashTable(buffer_pool_manager, num_buckets, headerPageId)
 	ret.col_idx = col_idx
 	return ret
 }
@@ -66,4 +67,8 @@ func (htidx *LinearProbeHashTableIndex) ScanKey(key *tuple.Tuple, transaction *a
 		ret_arr = append(ret_arr, samehada_util.UnpackUint32toRID(packed_val))
 	}
 	return ret_arr
+}
+
+func (htidx *LinearProbeHashTableIndex) GetHeaderPageId() types.PageID {
+	return htidx.container.GetHeaderPageId()
 }

@@ -250,5 +250,5 @@ func (log_recovery *LogRecovery) Undo() {
 			// fmt.Printf("lsn at Undo loop bottom: %d\n", lsn)
 		}
 	}
-	log_recovery.buffer_pool_manager.FlushAllPages()
+	//log_recovery.buffer_pool_manager.FlushAllPages()
 }

@@ -30,11 +30,15 @@ func NewTableMetadata(schema *schema.Schema, name string, table *access.TableHea
 	indexes := make([]index.Index, 0)
 	for idx, column_ := range schema.GetColumns() {
 		if column_.HasIndex() {
-			im := index.NewIndexMetadata(column_.GetColumnName()+"_index", name, schema, []uint32{uint32(idx)})
-			// TODO: (SDB) index bucket size is 10 (auto size extending is needed...)
+			// TODO: (SDB) index bucket size is common.BucketSizeOfHashIndex (auto size extending is needed...)
 			//             note: one bucket is used pages for storing index key/value pairs for a column.
 			//                   one page can store 512 key/value pair
-			indexes = append(indexes, index.NewLinearProbeHashTableIndex(im, table.GetBufferPoolManager(), uint32(idx), common.BucketSizeOfHashIndex))
+			im := index.NewIndexMetadata(column_.GetColumnName()+"_index", name, schema, []uint32{uint32(idx)})
+			hidx := index.NewLinearProbeHashTableIndex(im, table.GetBufferPoolManager(), uint32(idx), common.BucketSizeOfHashIndex, column_.IndexHeaderPageId())
+			indexes = append(indexes, hidx)
+			// when first allocation of pages for index, column definition should be set indexHeaderPageID (column_.IndexHeaderPageId() == -1)
+			// first allocation occurs when table creation is processed (not launched DB instace from existing db file which has difinition of this table)
+			column_.SetIndexHeaderPageId(hidx.GetHeaderPageId())
 		} else {
 			indexes = append(indexes, nil)
 		}
@@ -68,4 +72,8 @@ func (t *TableMetadata) GetIndex(colIndex int) index.Index {
 
 func (t *TableMetadata) GetColumnNum() uint32 {
 	return t.schema.GetColumnCount()
+}
+
+func (t *TableMetadata) Indexes() []index.Index {
+	return t.indexes
 }
