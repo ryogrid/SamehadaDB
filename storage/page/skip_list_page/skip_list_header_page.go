@@ -26,14 +26,6 @@ type SkipListPair struct {
 	Value uint32
 }
 
-type SkipListHeaderPageOnMem struct {
-	pageId       types.PageID
-	lsn          int    // log sequence number
-	nextIndex    uint32 // the next index to add a new entry to blockPageIds
-	size         int    // the number of key/value pairs the hash table can hold
-	blockPageIds [1020]types.PageID
-}
-
 type SkipListHeaderPage struct {
 	//page.Page
 	// Header's successor node has all level path

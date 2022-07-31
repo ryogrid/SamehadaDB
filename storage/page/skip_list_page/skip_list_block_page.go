@@ -26,11 +26,6 @@ const (
 	DUMMY_MAX_ENTRY = 10 //50
 )
 
-type SkipListBlockPageOnMem struct {
-	key   []byte
-	value uint32
-}
-
 type SkipListBlockPage struct {
 	//page.Page
 	Level       int32

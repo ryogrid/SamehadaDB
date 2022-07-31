@@ -6,12 +6,6 @@ import (
 	"math"
 )
 
-type SkipListIteratorOnMem struct {
-	curNode       *SkipListOnMem
-	rangeStartKey *types.Value
-	rangeEndKey   *types.Value
-}
-
 type SkipListIterator struct {
 	//bpm        *buffer.BufferPoolManager
 	//headerPage *skip_list_page.SkipListHeaderPage
@@ -24,15 +18,6 @@ type SkipListIterator struct {
 	curIdx        int32
 	rangeStartKey *types.Value
 	rangeEndKey   *types.Value
-}
-
-func (itr *SkipListIteratorOnMem) Next() (done bool, err error, key *types.Value, val uint32) {
-	itr.curNode = itr.curNode.Forward[0]
-	if (itr.rangeEndKey != nil && itr.curNode.Key.CompareGreaterThan(*itr.rangeEndKey)) || itr.curNode.Key.IsInfMax() {
-		return true, nil, nil, math.MaxUint32
-	}
-
-	return false, nil, itr.curNode.Key, itr.curNode.Val
 }
 
 func (itr *SkipListIterator) Next() (done bool, err error, key *types.Value, val uint32) {
