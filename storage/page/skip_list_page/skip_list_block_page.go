@@ -27,15 +27,15 @@ const (
 )
 
 type SkipListBlockPage struct {
-	//page.Page
-	Level       int32
-	SmallestKey types.Value
-	Forward     []*SkipListBlockPage //[]types.PageID
-	//Backward    []*SkipListBlockPage
-	EntryCnt      int32
-	MaxEntry      int32
-	Entries       []SkipListPair
-	IsNeedDeleted bool
+	////page.Page
+	//Level         int32
+	//SmallestKey   types.Value
+	//Forward       []*SkipListBlockPage //[]types.PageID
+	//EntryCnt      int32
+	//MaxEntry      int32
+	//Entries       []SkipListPair
+	//IsNeedDeleted bool
+
 	//occuppied [(BlockArraySize-1)/8 + 1]byte // 256 bits
 	//readable  [(BlockArraySize-1)/8 + 1]byte // 256 bits
 	//array     [BlockArraySize]SkipListPair   // 252 * 16 bits
@@ -356,4 +356,76 @@ func (node *SkipListBlockPage) CheckCompletelyEmpty() {
 		}
 	}
 	panic("chekCompletelyEmpty: this node can't be chain!")
+}
+
+func (node *SkipListBlockPage) GetLevel() int32 {
+	//return node.Level
+	return -1
+}
+
+func (node *SkipListBlockPage) setLevel(level int32) {
+	//node.Level = level
+}
+
+func (node *SkipListBlockPage) GetSmallestKey() types.Value {
+	//return node.SmallestKey
+	return types.NewInteger(-1)
+}
+
+func (node *SkipListBlockPage) SetSmallestKey(key types.Value) {
+	//node.SmallestKey = key
+}
+
+func (node *SkipListBlockPage) GetForward(idx int32) *SkipListBlockPage {
+	//return node.Forward[idx]
+	return nil
+}
+
+func (node *SkipListBlockPage) SetForward(idx int32, fwdNode *SkipListBlockPage) {
+	//node.Forward[idx] = fwdNode
+}
+
+func (node *SkipListBlockPage) GetEntryCnt() int32 {
+	//return node.EntryCnt
+	return -1
+}
+
+func (node *SkipListBlockPage) SetEntryCnt(cnt int32) {
+	//node.EntryCnt = cnt
+}
+
+func (node *SkipListBlockPage) GetMaxEntry() int32 {
+	//return node.MaxEntry
+	return -1
+}
+
+func (node *SkipListBlockPage) SetMaxEntry(num int32) {
+	//node.MaxEntry = num
+}
+
+func (node *SkipListBlockPage) GetEntries() []SkipListPair {
+	//return node.Entries
+	return nil
+}
+
+func (node *SkipListBlockPage) SetEntries(entries []SkipListPair) {
+	//node.Entries = entries
+}
+
+func (node *SkipListBlockPage) GetEntry(idx int) SkipListPair {
+	//return node.Entries[idx]
+	return SkipListPair{types.NewInteger(-1), 0}
+}
+
+func (node *SkipListBlockPage) SetEntry(idx int, entry SkipListPair) {
+	//node.Entries[idx] = entry
+}
+
+func (node *SkipListBlockPage) GetIsNeedDeleted() bool {
+	//return node.IsNeedDeleted
+	return false
+}
+
+func (node *SkipListBlockPage) SetIsNeedDeleted(val bool) {
+	//node.IsNeedDeleted = val
 }
