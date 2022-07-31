@@ -21,21 +21,21 @@ type SkipListIterator struct {
 }
 
 func (itr *SkipListIterator) Next() (done bool, err error, key *types.Value, val uint32) {
-	if itr.curIdx+1 >= itr.curNode.EntryCnt {
-		itr.curNode = itr.curNode.Forward[0]
-		for itr.curNode.IsNeedDeleted && !itr.curNode.SmallestKey.IsInfMax() {
-			// skip IsNeedDeleted marked node
-			itr.curNode = itr.curNode.Forward[0]
+	if itr.curIdx+1 >= itr.curNode.GetEntryCnt() {
+		itr.curNode = itr.curNode.GetForwardEntry(0)
+		for itr.curNode.GetIsNeedDeleted() && !itr.curNode.GetSmallestKey().IsInfMax() {
+			// skip isNeedDeleted marked node
+			itr.curNode = itr.curNode.GetForwardEntry(0)
 		}
 		itr.curIdx = -1
 	}
 
 	itr.curIdx++
-	if (itr.rangeEndKey != nil && itr.curNode.Entries[itr.curIdx].Key.CompareGreaterThan(*itr.rangeEndKey)) ||
-		itr.curNode.SmallestKey.IsInfMax() {
+	if (itr.rangeEndKey != nil && itr.curNode.GetEntry(itr.curIdx).Key.CompareGreaterThan(*itr.rangeEndKey)) ||
+		itr.curNode.GetSmallestKey().IsInfMax() {
 		return true, nil, nil, math.MaxUint32
 	}
 
-	tmpKey := itr.curNode.Entries[itr.curIdx].Key
-	return false, nil, &tmpKey, itr.curNode.Entries[itr.curIdx].Value
+	tmpKey := itr.curNode.GetEntry(itr.curIdx).Key
+	return false, nil, &tmpKey, itr.curNode.GetEntry(itr.curIdx).Value
 }

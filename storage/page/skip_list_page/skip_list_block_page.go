@@ -27,14 +27,14 @@ const (
 )
 
 type SkipListBlockPage struct {
-	////page.Page
-	//Level         int32
-	//SmallestKey   types.Value
-	//Forward       []*SkipListBlockPage //[]types.PageID
-	//EntryCnt      int32
-	//MaxEntry      int32
-	//Entries       []SkipListPair
-	//IsNeedDeleted bool
+	//page.Page
+	level         int32
+	smallestKey   types.Value
+	forward       []*SkipListBlockPage //[]types.PageID
+	entryCnt      int32
+	maxEntry      int32
+	entries       []SkipListPair
+	isNeedDeleted bool
 
 	//occuppied [(BlockArraySize-1)/8 + 1]byte // 256 bits
 	//readable  [(BlockArraySize-1)/8 + 1]byte // 256 bits
@@ -50,12 +50,12 @@ func NewSkipListBlockPage(bpm *buffer.BufferPoolManager, level int32, smallestLi
 	ret := new(SkipListBlockPage)
 	//ret.Page = *page_
 	//(*SkipListBlockPage)(unsafe.Pointer(page_))
-	ret.Entries = make([]SkipListPair, 0) // for first insert works
-	ret.Entries = append(ret.Entries, smallestListPair)
-	ret.SmallestKey = smallestListPair.Key
-	ret.EntryCnt = 1
-	ret.MaxEntry = DUMMY_MAX_ENTRY
-	ret.Forward = make([]*SkipListBlockPage, level)
+	ret.SetEntries(make([]SkipListPair, 0)) // for first insert works
+	ret.SetEntries(append(ret.GetEntries(), smallestListPair))
+	ret.SetSmallestKey(smallestListPair.Key)
+	ret.SetEntryCnt(1)
+	ret.SetMaxEntry(DUMMY_MAX_ENTRY)
+	ret.SetForward(make([]*SkipListBlockPage, level))
 	//ret.Backward = make([]*SkipListBlockPage, level)
 
 	return ret
@@ -63,18 +63,18 @@ func NewSkipListBlockPage(bpm *buffer.BufferPoolManager, level int32, smallestLi
 
 // Gets the entry at index in this node
 func (node *SkipListBlockPage) EntryAt(idx int32) SkipListPair {
-	return node.Entries[idx]
+	return node.GetEntry(idx)
 }
 
 // Gets the key at index in this node
 func (node *SkipListBlockPage) KeyAt(idx int32) *types.Value {
-	key := node.Entries[idx].Key
+	key := node.GetEntry(idx).Key
 	return &key
 }
 
 // Gets the value at an index in this node
 func (node *SkipListBlockPage) ValueAt(idx int32) uint32 {
-	val := node.Entries[idx].Value
+	val := node.GetEntry(idx).Value
 	return val
 }
 
@@ -82,24 +82,24 @@ func (node *SkipListBlockPage) ValueAt(idx int32) uint32 {
 // binary search is used for search
 // https://www.cs.usfca.edu/~galles/visualization/Search.html
 func (node *SkipListBlockPage) FindEntryByKey(key *types.Value) (found bool, entry SkipListPair, index int32) {
-	if node.EntryCnt == 1 {
-		if node.Entries[0].Key.CompareEquals(*key) {
-			return true, node.Entries[0], 0
+	if node.GetEntryCnt() == 1 {
+		if node.GetEntry(0).Key.CompareEquals(*key) {
+			return true, node.GetEntry(0), 0
 		} else {
-			if node.Entries[0].Key.IsInfMin() {
-				return false, node.Entries[0], 0
+			if node.GetEntry(0).Key.IsInfMin() {
+				return false, node.GetEntry(0), 0
 			} else {
-				if node.Entries[0].Key.CompareLessThan(*key) {
-					return false, node.Entries[0], 0
+				if node.GetEntry(0).Key.CompareLessThan(*key) {
+					return false, node.GetEntry(0), 0
 				} else {
-					return false, node.Entries[0], -1
+					return false, node.GetEntry(0), -1
 				}
 
 			}
 		}
 	} else {
 		lowIdx := int32(0)
-		highIdx := node.EntryCnt - 1
+		highIdx := node.GetEntryCnt() - 1
 		midIdx := int32(-1)
 
 		for lowIdx <= highIdx {
@@ -137,21 +137,21 @@ func (node *SkipListBlockPage) Insert(key *types.Value, value uint32, bpm *buffe
 	if found {
 		//fmt.Println("found at Insert")
 		// over write exsiting entry
-		if !node.Entries[foundIdx].Key.CompareEquals(*key) {
+		if !node.GetEntry(foundIdx).Key.CompareEquals(*key) {
 			panic("overwriting wrong value!")
 		}
 
-		node.Entries[foundIdx] = SkipListPair{*key, value}
-		//fmt.Printf("end of Insert of SkipListBlockPage called! : key=%d page.EntryCnt=%d len(page.Entries)=%d\n", key.ToInteger(), node.EntryCnt, len(node.Entries))
+		node.SetEntry(foundIdx, SkipListPair{*key, value})
+		//fmt.Printf("end of Insert of SkipListBlockPage called! : key=%d page.entryCnt=%d len(page.entries)=%d\n", key.ToInteger(), node.entryCnt, len(node.entries))
 		return isMadeNewNode
 	} else if !found {
 		//fmt.Printf("not found at Insert of SkipListBlockPage. foundIdx=%d\n", foundIdx)
-		if node.EntryCnt+1 > node.MaxEntry {
+		if node.GetEntryCnt()+1 > node.GetMaxEntry() {
 			// this node is full. so node split is needed
 
 			// first, split this node at center of entry list
 			// half of entries are moved to new node
-			splitIdx = node.MaxEntry / 2
+			splitIdx = node.GetMaxEntry() / 2
 			// update with this node
 			skipPathList[0] = node
 			node.SplitNode(splitIdx, bpm, skipPathList, level, curMaxLevel, startNode)
@@ -160,27 +160,27 @@ func (node *SkipListBlockPage) Insert(key *types.Value, value uint32, bpm *buffe
 			if foundIdx > splitIdx {
 				// insert to new node
 				newSmallerIdx := foundIdx - splitIdx - 1
-				newNode := node.Forward[0]
-				if (newSmallerIdx + 1) >= newNode.EntryCnt {
+				newNode := node.GetForwardEntry(0)
+				if (newSmallerIdx + 1) >= newNode.GetEntryCnt() {
 					// when inserting point is next of last entry of new node
-					common.SH_Assert(newNode.Entries[len(newNode.Entries)-1].Key.CompareLessThan(*key), "order is invalid.")
-					copiedEntries := make([]SkipListPair, len(newNode.Entries))
-					copy(copiedEntries, newNode.Entries[:])
-					newNode.Entries = append(copiedEntries, SkipListPair{*key, value})
-					//newNode.Entries = append(newNode.Entries, &SkipListPair{*key, value})
+					common.SH_Assert(newNode.GetEntry(int32(len(newNode.GetEntries())-1)).Key.CompareLessThan(*key), "order is invalid.")
+					copiedEntries := make([]SkipListPair, len(newNode.GetEntries()))
+					copy(copiedEntries, newNode.GetEntries()[:])
+					newNode.SetEntries(append(copiedEntries, SkipListPair{*key, value}))
+					//newNode.entries = append(newNode.entries, &SkipListPair{*key, value})
 				} else {
-					formerEntries := make([]SkipListPair, len(newNode.Entries[:newSmallerIdx+1]))
-					copy(formerEntries, newNode.Entries[:newSmallerIdx+1])
-					laterEntries := make([]SkipListPair, len(newNode.Entries[newSmallerIdx+1:]))
-					copy(laterEntries, newNode.Entries[newSmallerIdx+1:])
+					formerEntries := make([]SkipListPair, len(newNode.GetEntries()[:newSmallerIdx+1]))
+					copy(formerEntries, newNode.GetEntries()[:newSmallerIdx+1])
+					laterEntries := make([]SkipListPair, len(newNode.GetEntries()[newSmallerIdx+1:]))
+					copy(laterEntries, newNode.GetEntries()[newSmallerIdx+1:])
 					formerEntries = append(formerEntries, SkipListPair{*key, value})
 					formerEntries = append(formerEntries, laterEntries...)
-					newNode.Entries = formerEntries
+					newNode.SetEntries(formerEntries)
 				}
-				newNode.SmallestKey = newNode.Entries[0].Key
-				newNode.EntryCnt = int32(len(newNode.Entries))
+				newNode.SetSmallestKey(newNode.GetEntry(0).Key)
+				newNode.SetEntryCnt(int32(len(newNode.GetEntries())))
 
-				//fmt.Printf("end of Insert of SkipListBlockPage called! : key=%d page.EntryCnt=%d len(page.Entries)=%d\n", key.ToInteger(), node.EntryCnt, len(node.Entries))
+				//fmt.Printf("end of Insert of SkipListBlockPage called! : key=%d page.entryCnt=%d len(page.entries)=%d\n", key.ToInteger(), node.entryCnt, len(node.entries))
 
 				return isMadeNewNode
 			} // else => insert to this node
@@ -189,57 +189,57 @@ func (node *SkipListBlockPage) Insert(key *types.Value, value uint32, bpm *buffe
 		// foundIdx is index of nearlest smaller key entry
 		// new entry is inserted next of nearlest smaller key entry
 
-		if (foundIdx + 1) >= node.EntryCnt {
+		if (foundIdx + 1) >= node.GetEntryCnt() {
 			// when inserting point is next of last entry of this node
-			common.SH_Assert(node.Entries[len(node.Entries)-1].Key.IsInfMin() || node.Entries[len(node.Entries)-1].Key.CompareLessThan(*key), "order is invalid.")
-			copiedEntries := make([]SkipListPair, len(node.Entries))
-			copy(copiedEntries, node.Entries[:])
-			node.Entries = append(copiedEntries, SkipListPair{*key, value})
-			//node.Entries = append(node.Entries, SkipListPair{*key, value})
+			common.SH_Assert(node.GetEntry(int32(len(node.GetEntries())-1)).Key.IsInfMin() || node.GetEntry(int32(len(node.GetEntries())-1)).Key.CompareLessThan(*key), "order is invalid.")
+			copiedEntries := make([]SkipListPair, len(node.GetEntries()))
+			copy(copiedEntries, node.GetEntries()[:])
+			node.SetEntries(append(copiedEntries, SkipListPair{*key, value}))
+			//node.entries = append(node.entries, SkipListPair{*key, value})
 		} else {
 			if foundIdx == -1 {
 				var copiedEntries []SkipListPair = nil
 				if isMadeNewNode {
-					copiedEntries = make([]SkipListPair, len(node.Entries[:splitIdx+1]))
-					copy(copiedEntries, node.Entries[:splitIdx+1])
+					copiedEntries = make([]SkipListPair, len(node.GetEntries()[:splitIdx+1]))
+					copy(copiedEntries, node.GetEntries()[:splitIdx+1])
 				} else {
-					copiedEntries = make([]SkipListPair, len(node.Entries[:]))
-					copy(copiedEntries, node.Entries[:])
+					copiedEntries = make([]SkipListPair, len(node.GetEntries()[:]))
+					copy(copiedEntries, node.GetEntries()[:])
 				}
 				finalEntriles := make([]SkipListPair, 0)
 				finalEntriles = append(finalEntriles, SkipListPair{*key, value})
-				node.Entries = append(finalEntriles, copiedEntries...)
+				node.SetEntries(append(finalEntriles, copiedEntries...))
 			} else {
-				formerEntries := make([]SkipListPair, len(node.Entries[:foundIdx+1]))
-				copy(formerEntries, node.Entries[:foundIdx+1])
+				formerEntries := make([]SkipListPair, len(node.GetEntries()[:foundIdx+1]))
+				copy(formerEntries, node.GetEntries()[:foundIdx+1])
 				var laterEntries []SkipListPair = nil
 				if isMadeNewNode {
-					laterEntries = make([]SkipListPair, len(node.Entries[foundIdx+1:splitIdx+1]))
-					copy(laterEntries, node.Entries[foundIdx+1:splitIdx+1])
+					laterEntries = make([]SkipListPair, len(node.GetEntries()[foundIdx+1:splitIdx+1]))
+					copy(laterEntries, node.GetEntries()[foundIdx+1:splitIdx+1])
 				} else {
-					laterEntries = make([]SkipListPair, len(node.Entries[foundIdx+1:]))
-					copy(laterEntries, node.Entries[foundIdx+1:])
+					laterEntries = make([]SkipListPair, len(node.GetEntries()[foundIdx+1:]))
+					copy(laterEntries, node.GetEntries()[foundIdx+1:])
 				}
 
 				formerEntries = append(formerEntries, SkipListPair{*key, value})
 				formerEntries = append(formerEntries, laterEntries...)
-				node.Entries = formerEntries
+				node.SetEntries(formerEntries)
 			}
 		}
-		node.SmallestKey = node.Entries[0].Key
-		node.EntryCnt = int32(len(node.Entries))
+		node.SetSmallestKey(node.GetEntry(0).Key)
+		node.SetEntryCnt(int32(len(node.GetEntries())))
 	}
-	//fmt.Printf("end of Insert of SkipListBlockPage called! : key=%d page.EntryCnt=%d len(page.Entries)=%d\n", key.ToInteger(), node.EntryCnt, len(node.Entries))
+	//fmt.Printf("end of Insert of SkipListBlockPage called! : key=%d page.entryCnt=%d len(page.entries)=%d\n", key.ToInteger(), node.entryCnt, len(node.entries))
 	return isMadeNewNode
 }
 
 func (node *SkipListBlockPage) Remove(key *types.Value, skipPathList []*SkipListBlockPage) (isDeleted bool, level int32) {
 	found, _, foundIdx := node.FindEntryByKey(key)
-	if found && (node.EntryCnt == 1) {
+	if found && (node.GetEntryCnt() == 1) {
 		// when there are no enry without target entry
 		// this node keep reft with no entry (but new entry can be stored)
 
-		if !node.Entries[0].Key.CompareEquals(*key) {
+		if !node.GetEntry(0).Key.CompareEquals(*key) {
 			panic("removing wrong entry!")
 		}
 
@@ -247,40 +247,40 @@ func (node *SkipListBlockPage) Remove(key *types.Value, skipPathList []*SkipList
 		// and it needs complicated latch (lock) control
 		// so, not do connectivity cut here
 
-		//updateLen := int32(mathutil.Min(len(skipPathList), len(node.Forward)))
+		//updateLen := int32(mathutil.Min(len(skipPathList), len(node.forward)))
 		//
 		//// try removing this node from all level of chain
 		//// but, some connectivity left often
 		//// when several connectivity is left, removing is achieved in later index accesses
 		//for ii := int32(0); ii < updateLen; ii++ {
 		//	if skipPathList[ii] != nil {
-		//		skipPathList[ii].Forward[ii] = node.Forward[ii]
+		//		skipPathList[ii].forward[ii] = node.forward[ii]
 		//		// mark (ii+1) lebel connectivity is removed
-		//		node.Forward[ii] = nil
+		//		node.forward[ii] = nil
 		//	}
 		//}
 
 		// this node does not block node traverse in key value compare
-		node.SmallestKey.SetInfMin()
+		node.GetSmallestKey().SetInfMin()
 
-		node.IsNeedDeleted = true
+		node.SetIsNeedDeleted(true)
 
-		return true, node.Level
+		return true, node.GetLevel()
 	} else if found {
-		if !node.Entries[foundIdx].Key.CompareEquals(*key) {
+		if !node.GetEntry(foundIdx).Key.CompareEquals(*key) {
 			panic("removing wrong entry!")
 		}
 
-		formerEntries := make([]SkipListPair, len(node.Entries[:foundIdx]))
-		copy(formerEntries, node.Entries[:foundIdx])
-		laterEntries := make([]SkipListPair, len(node.Entries[foundIdx+1:]))
-		copy(laterEntries, node.Entries[foundIdx+1:])
+		formerEntries := make([]SkipListPair, len(node.GetEntries()[:foundIdx]))
+		copy(formerEntries, node.GetEntries()[:foundIdx])
+		laterEntries := make([]SkipListPair, len(node.GetEntries()[foundIdx+1:]))
+		copy(laterEntries, node.GetEntries()[foundIdx+1:])
 		formerEntries = append(formerEntries, laterEntries...)
-		node.Entries = formerEntries
-		//node.Entries = append(node.Entries[:foundIdx], node.Entries[foundIdx+1:]...)
-		node.SmallestKey = node.Entries[0].Key
-		node.EntryCnt = int32(len(node.Entries))
-		return true, node.Level
+		node.SetEntries(formerEntries)
+		//node.entries = append(node.entries[:foundIdx], node.entries[foundIdx+1:]...)
+		node.SetSmallestKey(node.GetEntry(0).Key)
+		node.SetEntryCnt(int32(len(node.GetEntries())))
+		return true, node.GetLevel()
 	} else { // found == false
 		// do nothing
 		return false, -1
@@ -288,46 +288,46 @@ func (node *SkipListBlockPage) Remove(key *types.Value, skipPathList []*SkipList
 }
 
 // split entries of node at entry specified with idx arg
-// new node contains entries node.Entries[idx+1:]
-// (new node does not include entry node.Entries[idx])
+// new node contains entries node.entries[idx+1:]
+// (new node does not include entry node.entries[idx])
 func (node *SkipListBlockPage) SplitNode(idx int32, bpm *buffer.BufferPoolManager, skipPathList []*SkipListBlockPage,
 	level int32, curMaxLevel int32, startNode *SkipListBlockPage) {
 	//fmt.Println("<<<<<<<<<<<<<<<<<<<<<<<< SplitNode called! >>>>>>>>>>>>>>>>>>>>>>>>>>>>>>")
 
-	newNode := NewSkipListBlockPage(bpm, level, node.Entries[idx+1])
-	copyEntries := make([]SkipListPair, len(node.Entries[idx+1:]))
-	copy(copyEntries, node.Entries[idx+1:])
-	//newNode.Entries = append(make([]*SkipListPair, 0), node.Entries[idx+1:]...)
-	newNode.Entries = copyEntries
-	newNode.SmallestKey = newNode.Entries[0].Key
-	newNode.EntryCnt = int32(len(newNode.Entries))
-	newNode.Level = level
-	copyEntriesFormer := make([]SkipListPair, len(node.Entries[:idx+1]))
-	copy(copyEntriesFormer, node.Entries[:idx+1])
-	node.Entries = copyEntriesFormer
-	node.SmallestKey = node.Entries[0].Key
-	//node.Entries = node.Entries[:idx+1]
-	node.EntryCnt = int32(len(node.Entries))
+	newNode := NewSkipListBlockPage(bpm, level, node.GetEntry(idx+1))
+	copyEntries := make([]SkipListPair, len(node.GetEntries()[idx+1:]))
+	copy(copyEntries, node.GetEntries()[idx+1:])
+	//newNode.entries = append(make([]*SkipListPair, 0), node.entries[idx+1:]...)
+	newNode.SetEntries(copyEntries)
+	newNode.SetSmallestKey(newNode.GetEntry(0).Key)
+	newNode.SetEntryCnt(int32(len(newNode.GetEntries())))
+	newNode.SetLevel(level)
+	copyEntriesFormer := make([]SkipListPair, len(node.GetEntries()[:idx+1]))
+	copy(copyEntriesFormer, node.GetEntries()[:idx+1])
+	node.SetEntries(copyEntriesFormer)
+	node.SetSmallestKey(node.GetEntry(0).Key)
+	//node.entries = node.entries[:idx+1]
+	node.SetEntryCnt(int32(len(node.GetEntries())))
 
 	if level > curMaxLevel {
 		skipPathList[level-1] = startNode
 	}
 	for ii := int32(0); ii < level; ii++ {
 		// modify forward link
-		newNode.Forward[ii] = skipPathList[ii].Forward[ii]
-		skipPathList[ii].Forward[ii] = newNode
+		newNode.SetForwardEntry(ii, skipPathList[ii].GetForwardEntry(ii))
+		skipPathList[ii].SetForwardEntry(ii, newNode)
 	}
 }
 
 func (node *SkipListBlockPage) ToDebugString() string {
 	ret := ""
 	ret += fmt.Sprintf("{")
-	// Print SmallestKey
-	ret += fmt.Sprintf("%d ", node.SmallestKey.ToInteger())
-	// print contents of Forward
+	// Print smallestKey
+	ret += fmt.Sprintf("%d ", node.GetSmallestKey().ToInteger())
+	// print contents of forward
 	ret += fmt.Sprintf("[")
-	for ii := 0; ii < len(node.Forward); ii++ {
-		if node.Forward[ii] == nil {
+	for ii := 0; ii < len(node.GetForward()); ii++ {
+		if node.GetForwardEntry(int32(ii)) == nil {
 			ret += fmt.Sprintf(" nil")
 		} else {
 			ret += fmt.Sprintf(" *")
@@ -335,7 +335,7 @@ func (node *SkipListBlockPage) ToDebugString() string {
 	}
 	ret += fmt.Sprintf("] ")
 	// print IsDeleteNeeded
-	if node.IsNeedDeleted {
+	if node.GetIsNeedDeleted() {
 		ret += fmt.Sprintf("true")
 	} else {
 		ret += fmt.Sprintf("false")
@@ -346,12 +346,12 @@ func (node *SkipListBlockPage) ToDebugString() string {
 
 //for debug
 func (node *SkipListBlockPage) CheckCompletelyEmpty() {
-	if !node.IsNeedDeleted {
+	if !node.GetIsNeedDeleted() {
 		return
 	}
 
-	for ii := 0; ii < len(node.Forward); ii++ {
-		if node.Forward[ii] != nil {
+	for ii := 0; ii < len(node.GetForward()); ii++ {
+		if node.GetForwardEntry(int32(ii)) != nil {
 			return
 		}
 	}
@@ -359,73 +359,82 @@ func (node *SkipListBlockPage) CheckCompletelyEmpty() {
 }
 
 func (node *SkipListBlockPage) GetLevel() int32 {
-	//return node.Level
-	return -1
+	return node.level
+	//return -1
 }
 
-func (node *SkipListBlockPage) setLevel(level int32) {
-	//node.Level = level
+func (node *SkipListBlockPage) SetLevel(level int32) {
+	node.level = level
 }
 
 func (node *SkipListBlockPage) GetSmallestKey() types.Value {
-	//return node.SmallestKey
-	return types.NewInteger(-1)
+	return node.smallestKey
+	//return types.NewInteger(-1)
 }
 
 func (node *SkipListBlockPage) SetSmallestKey(key types.Value) {
-	//node.SmallestKey = key
+	node.smallestKey = key
 }
 
-func (node *SkipListBlockPage) GetForward(idx int32) *SkipListBlockPage {
-	//return node.Forward[idx]
-	return nil
+func (node *SkipListBlockPage) GetForward() []*SkipListBlockPage {
+	return node.forward
+	//return nil
 }
 
-func (node *SkipListBlockPage) SetForward(idx int32, fwdNode *SkipListBlockPage) {
-	//node.Forward[idx] = fwdNode
+func (node *SkipListBlockPage) SetForward(fwd []*SkipListBlockPage) {
+	node.forward = fwd
+}
+
+func (node *SkipListBlockPage) GetForwardEntry(idx int32) *SkipListBlockPage {
+	return node.forward[idx]
+	//return nil
+}
+
+func (node *SkipListBlockPage) SetForwardEntry(idx int32, fwdNode *SkipListBlockPage) {
+	node.forward[idx] = fwdNode
 }
 
 func (node *SkipListBlockPage) GetEntryCnt() int32 {
-	//return node.EntryCnt
-	return -1
+	return node.entryCnt
+	//return -1
 }
 
 func (node *SkipListBlockPage) SetEntryCnt(cnt int32) {
-	//node.EntryCnt = cnt
+	node.entryCnt = cnt
 }
 
 func (node *SkipListBlockPage) GetMaxEntry() int32 {
-	//return node.MaxEntry
-	return -1
+	return node.maxEntry
+	//return -1
 }
 
 func (node *SkipListBlockPage) SetMaxEntry(num int32) {
-	//node.MaxEntry = num
+	node.maxEntry = num
 }
 
 func (node *SkipListBlockPage) GetEntries() []SkipListPair {
-	//return node.Entries
-	return nil
+	return node.entries
+	//return nil
 }
 
 func (node *SkipListBlockPage) SetEntries(entries []SkipListPair) {
-	//node.Entries = entries
+	node.entries = entries
 }
 
-func (node *SkipListBlockPage) GetEntry(idx int) SkipListPair {
-	//return node.Entries[idx]
-	return SkipListPair{types.NewInteger(-1), 0}
+func (node *SkipListBlockPage) GetEntry(idx int32) SkipListPair {
+	return node.entries[idx]
+	//return SkipListPair{types.NewInteger(-1), 0}
 }
 
-func (node *SkipListBlockPage) SetEntry(idx int, entry SkipListPair) {
-	//node.Entries[idx] = entry
+func (node *SkipListBlockPage) SetEntry(idx int32, entry SkipListPair) {
+	node.entries[idx] = entry
 }
 
 func (node *SkipListBlockPage) GetIsNeedDeleted() bool {
-	//return node.IsNeedDeleted
-	return false
+	return node.isNeedDeleted
+	//return false
 }
 
 func (node *SkipListBlockPage) SetIsNeedDeleted(val bool) {
-	//node.IsNeedDeleted = val
+	node.isNeedDeleted = val
 }
