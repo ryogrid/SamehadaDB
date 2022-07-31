@@ -34,7 +34,6 @@ func TestPackAndUnpackRID(t *testing.T) {
 	testingpkg.Assert(t, unpacked_val.SlotNum == 1027, "")
 }
 
-// TODO: (SDB) need to Test of recounstruction of Index datas using (already allocated pages should be used)
 func TestRecounstructionOfHashIndex(t *testing.T) {
 	os.Remove("test.db")
 	os.Remove("test.log")
