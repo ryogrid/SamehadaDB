@@ -13,11 +13,13 @@ import (
 	"github.com/ryogrid/SamehadaDB/samehada/samehada_util"
 	"github.com/ryogrid/SamehadaDB/storage/access"
 	"github.com/ryogrid/SamehadaDB/storage/disk"
+	"github.com/ryogrid/SamehadaDB/storage/page"
 	"github.com/ryogrid/SamehadaDB/storage/table/schema"
 	"github.com/ryogrid/SamehadaDB/storage/tuple"
 	"github.com/ryogrid/SamehadaDB/types"
 	"math"
 	"time"
+	"unsafe"
 )
 
 type SamehadaDB struct {
@@ -37,7 +39,7 @@ func StartCheckpointThread(cpMngr *concurrency.CheckpointManager) {
 	}()
 }
 
-func reconstructIndexDataOfEachCol(t *catalog.TableMetadata, c *catalog.Catalog, txn *access.Transaction) {
+func reconstructIndexDataOfEachCol(t *catalog.TableMetadata, c *catalog.Catalog, dman disk.DiskManager, txn *access.Transaction) {
 	executionEngine := &executors.ExecutionEngine{}
 	executorContext := executors.NewExecutorContext(c, t.Table().GetBufferPoolManager(), txn)
 
@@ -45,6 +47,27 @@ func reconstructIndexDataOfEachCol(t *catalog.TableMetadata, c *catalog.Catalog,
 	outSchema := t.Schema()
 	seqPlan := plans.NewSeqScanPlanNode(outSchema, nil, t.OID())
 	results := executionEngine.Execute(seqPlan, executorContext)
+
+	zeroClearedBuf := make([]byte, common.PageSize)
+	bpm := t.Table().GetBufferPoolManager()
+
+	// clear pages for HashTableBlockPage for avoiding conflict with reconstruction
+	// when this method is called, the pages are not fetched yet (= are not in memory)
+	// (there may be pages(on disk) which has old index entries data in current design...)
+	for colIdx, index_ := range t.Indexes() {
+		if index_ != nil {
+			column_ := t.Schema().GetColumn(uint32(colIdx))
+			indexHeaderPageId := column_.IndexHeaderPageId()
+
+			hPageData := bpm.FetchPage(indexHeaderPageId).Data()
+			headerPage := (*page.HashTableHeaderPage)(unsafe.Pointer(hPageData))
+			for ii := uint32(0); ii < headerPage.NumBlocks(); ii++ {
+				blockPageId := headerPage.GetBlockPageId(ii)
+				// zero clear specifed space of db file
+				dman.WritePage(blockPageId, zeroClearedBuf)
+			}
+		}
+	}
 
 	// insert index entries correspond to each tuple and column to each index objects
 	for _, index_ := range t.Indexes() {
@@ -57,10 +80,10 @@ func reconstructIndexDataOfEachCol(t *catalog.TableMetadata, c *catalog.Catalog,
 	}
 }
 
-func ReconstructAllIndexData(c *catalog.Catalog, txn *access.Transaction) {
+func ReconstructAllIndexData(c *catalog.Catalog, dman disk.DiskManager, txn *access.Transaction) {
 	allTables := c.GetAllTables()
 	for ii := 0; ii < len(allTables); ii++ {
-		reconstructIndexDataOfEachCol(allTables[ii], c, txn)
+		reconstructIndexDataOfEachCol(allTables[ii], c, dman, txn)
 	}
 }
 
@@ -90,7 +113,7 @@ func NewSamehadaDB(dbName string, memKBytes int) *SamehadaDB {
 		c = catalog.RecoveryCatalogFromCatalogPage(shi.GetBufferPoolManager(), shi.GetLogManager(), shi.GetLockManager(), txn)
 		// index date reloading/recovery is not implemented yet
 		// so all index data should be recounstruct using already allocated pages
-		ReconstructAllIndexData(c, txn)
+		ReconstructAllIndexData(c, shi.GetDiskManager(), txn)
 	} else {
 		c = catalog.BootstrapCatalog(shi.GetBufferPoolManager(), shi.GetLogManager(), shi.GetLockManager(), txn)
 	}
