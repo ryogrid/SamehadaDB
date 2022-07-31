@@ -159,7 +159,7 @@ func TestRecounstructionOfHashIndex(t *testing.T) {
 
 	// reconstruct all index data of all column
 	tableMetadata = c.GetTableByName("test_1")
-	samehada.ReconstructAllIndexData(c, txn)
+	samehada.ReconstructAllIndexData(c, dman, txn)
 	shi.GetTransactionManager().Commit(txn)
 
 	// checking reconstruction result of index data by getting tuples using index
