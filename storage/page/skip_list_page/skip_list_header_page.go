@@ -1,7 +1,6 @@
 package skip_list_page
 
 import (
-	"github.com/ryogrid/SamehadaDB/common"
 	"github.com/ryogrid/SamehadaDB/storage/buffer"
 	"github.com/ryogrid/SamehadaDB/types"
 	"math"
@@ -30,10 +29,10 @@ type SkipListHeaderPage struct {
 	//page.Page
 	// Header's successor node has all level path
 	// and header does'nt have no entry
+
 	ListStartPage *SkipListBlockPage //types.PageID
 	CurMaxLevel   int32
 	KeyType       types.TypeID // used when load list datas from disk
-	rwlatch_      common.ReaderWriterLatch
 }
 
 func NewSkipListStartBlockPage(bpm *buffer.BufferPoolManager, keyType types.TypeID) *SkipListBlockPage {
@@ -80,14 +79,41 @@ func NewSkipListStartBlockPage(bpm *buffer.BufferPoolManager, keyType types.Type
 	return startNode
 }
 
+func (hp *SkipListHeaderPage) GetListStartPage() *SkipListBlockPage {
+	return hp.ListStartPage
+	//return nil
+}
+
+func (hp *SkipListHeaderPage) SetListStartPage(bp *SkipListBlockPage) {
+	hp.ListStartPage = bp
+}
+
+func (hp *SkipListHeaderPage) GetCurMaxLevel() int32 {
+	return hp.CurMaxLevel
+	//return -1
+}
+
+func (hp *SkipListHeaderPage) SetCurMaxLevel(maxLevel int32) {
+	hp.CurMaxLevel = maxLevel
+}
+
+func (hp *SkipListHeaderPage) GetKeyType() types.TypeID {
+	return hp.KeyType
+	//return types.TypeID(-1)
+}
+
+func (hp *SkipListHeaderPage) SetKeyType(ktype types.TypeID) {
+	hp.KeyType = ktype
+}
+
 func NewSkipListHeaderPage(bpm *buffer.BufferPoolManager, keyType types.TypeID) *SkipListHeaderPage {
 	//page_ := bpm.NewPage()
 	//headerData := page_.Data()
 	//headerPage := (*SkipListHeaderPage)(unsafe.Pointer(headerData))
 	headerPage := new(SkipListHeaderPage)
 
-	headerPage.ListStartPage = NewSkipListStartBlockPage(bpm, keyType)
-	headerPage.CurMaxLevel = 1
+	headerPage.SetListStartPage(NewSkipListStartBlockPage(bpm, keyType))
+	headerPage.SetCurMaxLevel(1)
 
 	return headerPage
 }

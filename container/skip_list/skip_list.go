@@ -42,14 +42,14 @@ func (sl *SkipList) handleDelMarkedNode(delMarkedNode *skip_list_page.SkipListBl
 
 // handleDelMarked: IsNeedDeleted marked node is found on node traverse, do link modification for complete deletion
 func (sl *SkipList) FindNode(key *types.Value, handleDelMarked bool) (found_node *skip_list_page.SkipListBlockPage, skipPath []*skip_list_page.SkipListBlockPage, skipPathPrev []*skip_list_page.SkipListBlockPage) {
-	node := sl.headerPageId.ListStartPage
+	node := sl.headerPageId.GetListStartPage()
 	// loop invariant: node.key < searchKey
 	//fmt.Println("---")
 	//fmt.Println(key.ToInteger())
 	//moveCnt := 0
-	skipPathList := make([]*skip_list_page.SkipListBlockPage, sl.headerPageId.CurMaxLevel+1)
-	skipPathListPrev := make([]*skip_list_page.SkipListBlockPage, sl.headerPageId.CurMaxLevel)
-	for ii := (sl.headerPageId.CurMaxLevel - 1); ii >= 0; ii-- {
+	skipPathList := make([]*skip_list_page.SkipListBlockPage, sl.headerPageId.GetCurMaxLevel()+1)
+	skipPathListPrev := make([]*skip_list_page.SkipListBlockPage, sl.headerPageId.GetCurMaxLevel())
+	for ii := (sl.headerPageId.GetCurMaxLevel() - 1); ii >= 0; ii-- {
 		//fmt.Printf("level %d\n", i)
 		for node.Forward[ii].SmallestKey.CompareLessThanOrEqual(*key) {
 
@@ -98,12 +98,12 @@ func (sl *SkipList) Insert(key *types.Value, value uint32) (err error) {
 
 	node, skipPathList, _ := sl.FindNode(key, false)
 	levelWhenNodeSplitOccur := sl.GetNodeLevel()
-	if levelWhenNodeSplitOccur == sl.headerPageId.CurMaxLevel {
+	if levelWhenNodeSplitOccur == sl.headerPageId.GetCurMaxLevel() {
 		levelWhenNodeSplitOccur++
 	}
-	isNewNodeCreated := node.Insert(key, value, sl.bpm, skipPathList, levelWhenNodeSplitOccur, sl.headerPageId.CurMaxLevel, sl.headerPageId.ListStartPage)
-	if isNewNodeCreated && levelWhenNodeSplitOccur > sl.headerPageId.CurMaxLevel {
-		sl.headerPageId.CurMaxLevel = levelWhenNodeSplitOccur
+	isNewNodeCreated := node.Insert(key, value, sl.bpm, skipPathList, levelWhenNodeSplitOccur, sl.headerPageId.GetCurMaxLevel(), sl.headerPageId.GetListStartPage())
+	if isNewNodeCreated && levelWhenNodeSplitOccur > sl.headerPageId.GetCurMaxLevel() {
+		sl.headerPageId.SetCurMaxLevel(levelWhenNodeSplitOccur)
 	}
 	//node.Insert(key, value, sl.bpm, skipPathList, levelWhenNodeSplitOccur, sl.headerPageId.CurMaxLevel, sl.headerPageId.ListStartPage)
 
@@ -119,13 +119,13 @@ func (sl *SkipList) Remove(key *types.Value, value uint32) (isDeleted bool) {
 	if isDeleted_ {
 		// if IsNeedDeleted marked node exists, check logic below has no problem
 		newMaxLevel := int32(0)
-		for ii := int32(0); ii < sl.headerPageId.CurMaxLevel; ii++ {
-			if sl.headerPageId.ListStartPage.Forward[ii].SmallestKey.IsInfMax() {
+		for ii := int32(0); ii < sl.headerPageId.GetCurMaxLevel(); ii++ {
+			if sl.headerPageId.GetListStartPage().Forward[ii].SmallestKey.IsInfMax() {
 				break
 			}
 			newMaxLevel++
 		}
-		sl.headerPageId.CurMaxLevel = newMaxLevel
+		sl.headerPageId.SetCurMaxLevel(newMaxLevel)
 	}
 
 	return isDeleted_
@@ -133,7 +133,7 @@ func (sl *SkipList) Remove(key *types.Value, value uint32) (isDeleted bool) {
 
 func (sl *SkipList) Iterator(rangeStartKey *types.Value, rangeEndKey *types.Value) *SkipListIterator {
 	ret := new(SkipListIterator)
-	ret.curNode = sl.headerPageId.ListStartPage
+	ret.curNode = sl.headerPageId.GetListStartPage()
 	ret.curIdx = 0
 	ret.rangeStartKey = rangeStartKey
 	ret.rangeEndKey = rangeEndKey
@@ -151,5 +151,5 @@ func (sl *SkipList) GetNodeLevel() int32 {
 	for rand.Float32() < common.SkipListProb { // no MaxLevel check
 		retLevel++
 	}
-	return int32(math.Min(float64(retLevel), float64(sl.headerPageId.CurMaxLevel)))
+	return int32(math.Min(float64(retLevel), float64(sl.headerPageId.GetCurMaxLevel())))
 }
