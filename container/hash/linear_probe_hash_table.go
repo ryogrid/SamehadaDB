@@ -183,3 +183,7 @@ func (ht *LinearProbeHashTable) hash(key []byte) uint32 {
 	//return int(binary.LittleEndian.Uint32(hash))
 	return binary.LittleEndian.Uint32(hash)
 }
+
+func (ht *LinearProbeHashTable) GetHeaderPageId() types.PageID {
+	return ht.headerPageId
+}

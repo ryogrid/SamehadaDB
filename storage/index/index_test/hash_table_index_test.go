@@ -7,8 +7,10 @@ import (
 	"github.com/ryogrid/SamehadaDB/execution/executors"
 	"github.com/ryogrid/SamehadaDB/execution/expression"
 	"github.com/ryogrid/SamehadaDB/execution/plans"
+	"github.com/ryogrid/SamehadaDB/recovery/log_recovery"
 	"github.com/ryogrid/SamehadaDB/samehada"
 	"github.com/ryogrid/SamehadaDB/samehada/samehada_util"
+	"github.com/ryogrid/SamehadaDB/storage/disk"
 	"github.com/ryogrid/SamehadaDB/storage/table/column"
 	"github.com/ryogrid/SamehadaDB/storage/table/schema"
 	"github.com/ryogrid/SamehadaDB/types"
@@ -47,17 +49,6 @@ func TestRecounstructionOfHashIndex(t *testing.T) {
 	txn := txn_mgr.Begin(nil)
 
 	c := catalog.BootstrapCatalog(bpm, shi.GetLogManager(), shi.GetLockManager(), txn)
-	/*
-		diskManager := disk.NewDiskManagerTest()
-		defer diskManager.ShutDown()
-		log_mgr := recovery.NewLogManager(&diskManager)
-		bpm := buffer.NewBufferPoolManager(uint32(32), diskManager, log_mgr) //, recovery.NewLogManager(diskManager), access.NewLockManager(access.REGULAR, access.PREVENTION))
-
-		txn_mgr := access.NewTransactionManager(access.NewLockManager(access.REGULAR, access.DETECTION), log_mgr)
-		txn := txn_mgr.Begin(nil)
-
-		c := catalog.BootstrapCatalog(bpm, log_mgr, access.NewLockManager(access.REGULAR, access.PREVENTION), txn)
-	*/
 	columnA := column.NewColumn("a", types.Integer, true, types.PageID(-1), nil)
 	columnB := column.NewColumn("b", types.Integer, true, types.PageID(-1), nil)
 	columnC := column.NewColumn("c", types.Varchar, true, types.PageID(-1), nil)
@@ -149,14 +140,31 @@ func TestRecounstructionOfHashIndex(t *testing.T) {
 	shi.GetTransactionManager().Commit(txn)
 	shi.Finalize(false)
 
-	// check recovery includes index data
+	// ----------- check recovery includes index data ----------
+
+	// recovery catalog data and tuple datas
 	shi = samehada.NewSamehadaInstanceForTesting()
 	shi.GetLogManager().DeactivateLogging()
 	txn = shi.GetTransactionManager().Begin(nil)
 
+	log_recovery := log_recovery.NewLogRecovery(
+		shi.GetDiskManager(),
+		shi.GetBufferPoolManager())
+	greatestLSN := log_recovery.Redo()
+	log_recovery.Undo()
+
+	dman := shi.GetDiskManager().(*disk.DiskManagerImpl)
+	dman.GCLogFile()
+	shi.GetLogManager().SetNextLSN(greatestLSN + 1)
 	c = catalog.RecoveryCatalogFromCatalogPage(shi.GetBufferPoolManager(), shi.GetLogManager(), shi.GetLockManager(), txn)
+
+	// reconstruct all index data of all column
 	tableMetadata = c.GetTableByName("test_1")
 	samehada.ReconstructAllIndexData(c, txn)
+	shi.GetTransactionManager().Commit(txn)
+
+	// checking reconstruction result of index data by getting tuples using index
+	txn = shi.GetTransactionManager().Begin(nil)
 
 	shi.GetLogManager().ActivateLogging()
 	testingpkg.Assert(t, common.EnableLogging, "")
