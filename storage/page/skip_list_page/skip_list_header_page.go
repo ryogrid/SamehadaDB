@@ -4,6 +4,7 @@ import (
 	"github.com/ryogrid/SamehadaDB/storage/buffer"
 	"github.com/ryogrid/SamehadaDB/types"
 	"math"
+	"unsafe"
 )
 
 /**
@@ -13,7 +14,7 @@ import (
  *
  * page format (size in byte, 12 bytes in total):
  * ------------------------------------------------------------------
- * | PageId of list start page (4) | CurMaxLevel (4) | KeyType (4) |
+ * | pageID (4) | ListStartPage (4) | CurMaxLevel (4) | KeyType (4) |
  * -----------------------------------------------------------------
  */
 
@@ -31,6 +32,7 @@ type SkipListHeaderPage struct {
 	// Header's successor node has all level path
 	// and header does'nt have no entry
 
+	pageId        types.PageID
 	ListStartPage *SkipListBlockPage //types.PageID
 	CurMaxLevel   int32
 	KeyType       types.TypeID // used when load list datas from disk
@@ -80,6 +82,14 @@ func NewSkipListStartBlockPage(bpm *buffer.BufferPoolManager, keyType types.Type
 	return startNode
 }
 
+func (hp *SkipListHeaderPage) SetPageId(pageId types.PageID) {
+	hp.pageId = pageId
+}
+
+func (hp *SkipListHeaderPage) GetPageId() types.PageID {
+	return hp.pageId
+}
+
 func (hp *SkipListHeaderPage) GetListStartPage() *SkipListBlockPage {
 	return hp.ListStartPage
 	//return nil
@@ -108,10 +118,14 @@ func (hp *SkipListHeaderPage) SetKeyType(ktype types.TypeID) {
 }
 
 func NewSkipListHeaderPage(bpm *buffer.BufferPoolManager, keyType types.TypeID) *SkipListHeaderPage {
-	//page_ := bpm.NewPage()
-	//headerData := page_.Data()
-	//headerPage := (*SkipListHeaderPage)(unsafe.Pointer(headerData))
-	headerPage := new(SkipListHeaderPage)
+	page_ := bpm.NewPage()
+	headerData := page_.Data()
+	headerPage := (*SkipListHeaderPage)(unsafe.Pointer(headerData))
+	headerPage.SetPageId(page_.GetPageId())
+
+	// TODO: (SDB) need unpin of page_ variable here at on-disk impl
+
+	//headerPage := new(SkipListHeaderPage)
 
 	headerPage.SetListStartPage(NewSkipListStartBlockPage(bpm, keyType))
 	headerPage.SetCurMaxLevel(1)

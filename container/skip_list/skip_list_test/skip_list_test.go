@@ -6,6 +6,7 @@ import (
 	"github.com/ryogrid/SamehadaDB/container/skip_list"
 	"github.com/ryogrid/SamehadaDB/samehada"
 	"github.com/ryogrid/SamehadaDB/samehada/samehada_util"
+	"github.com/ryogrid/SamehadaDB/storage/buffer"
 	"github.com/ryogrid/SamehadaDB/storage/page/skip_list_page"
 	testingpkg "github.com/ryogrid/SamehadaDB/testing"
 	"github.com/ryogrid/SamehadaDB/types"
@@ -424,7 +425,7 @@ func testSkipLisMixOpPageBackedOnMemInner(t *testing.T, bulkSize int32, opTimes 
 
 	checkDupMap := make(map[int32]int32)
 
-	sl := skip_list.NewSkipList(nil, types.Integer)
+	sl := skip_list.NewSkipList(bpm, types.Integer)
 
 	// override global rand seed (seed has been set on NewSkipList)
 	rand.Seed(3)
@@ -540,7 +541,15 @@ func testSkipLisMixOpPageBackedOnMemInner(t *testing.T, bulkSize int32, opTimes 
 	}
 }
 
+var bpm *buffer.BufferPoolManager
+
 func TestSkipLisMixOpPageBackedOnMem(t *testing.T) {
+	os.Remove("test.db")
+	os.Remove("test.log")
+
+	shi := samehada.NewSamehadaInstanceForTesting()
+	bpm = shi.GetBufferPoolManager()
+
 	testSkipLisMixOpPageBackedOnMemInner(t, 1, uint8(150), uint8(10), uint16(0))
 	testSkipLisMixOpPageBackedOnMemInner(t, 1, uint8(150), uint8(10), uint16(300))
 	testSkipLisMixOpPageBackedOnMemInner(t, 1, uint8(150), uint8(10), uint16(600))
