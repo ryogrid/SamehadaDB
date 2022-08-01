@@ -28,13 +28,14 @@ const (
 
 type SkipListBlockPage struct {
 	//page.Page
-	level         int32
-	smallestKey   types.Value
-	forward       []*SkipListBlockPage //[]types.PageID
-	entryCnt      int32
+	level    int32
+	entryCnt int32
+	// TODO: (SDB) maxEntry member is not needed at on-disk impl
 	maxEntry      int32
-	entries       []SkipListPair
 	isNeedDeleted bool
+	forward       []*SkipListBlockPage //[]types.PageID
+	entries       []SkipListPair
+	//smallestKey   types.Value
 
 	//occuppied [(BlockArraySize-1)/8 + 1]byte // 256 bits
 	//readable  [(BlockArraySize-1)/8 + 1]byte // 256 bits
@@ -368,12 +369,14 @@ func (node *SkipListBlockPage) SetLevel(level int32) {
 }
 
 func (node *SkipListBlockPage) GetSmallestKey() types.Value {
-	return node.smallestKey
+	//return node.smallestKey
+	return node.GetEntry(0).Key
 	//return types.NewInteger(-1)
 }
 
 func (node *SkipListBlockPage) SetSmallestKey(key types.Value) {
-	node.smallestKey = key
+	//node.smallestKey = key
+	// TODO: (SDB) debug: do nothing here
 }
 
 func (node *SkipListBlockPage) GetForward() []*SkipListBlockPage {
