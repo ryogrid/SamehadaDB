@@ -71,7 +71,7 @@ func NewSkipListStartBlockPage(bpm *buffer.BufferPoolManager, keyType types.Type
 	}
 
 	startNode.level = 1
-	startNode.SetForward(make([]*SkipListBlockPage, MAX_FOWARD_LIST_LEN))
+	//startNode.SetForward(make([]*SkipListBlockPage, MAX_FOWARD_LIST_LEN))
 	// set sentinel node at end of list
 	for ii := 0; ii < MAX_FOWARD_LIST_LEN; ii++ {
 		startNode.SetForwardEntry(int32(ii), sentinelNode)

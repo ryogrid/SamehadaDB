@@ -4,6 +4,7 @@ import (
 	"fmt"
 	"github.com/ryogrid/SamehadaDB/common"
 	"github.com/ryogrid/SamehadaDB/storage/buffer"
+	"github.com/ryogrid/SamehadaDB/storage/page"
 	"github.com/ryogrid/SamehadaDB/types"
 )
 
@@ -27,19 +28,14 @@ const (
 )
 
 type SkipListBlockPage struct {
-	//page.Page
+	page.Page
 	level    int32
 	entryCnt int32
-	// TODO: (SDB) maxEntry member is not needed at on-disk impl
-	maxEntry      int32
+	//maxEntry      int32
 	isNeedDeleted bool
-	forward       []*SkipListBlockPage //[]types.PageID
+	forward       [MAX_FOWARD_LIST_LEN]*SkipListBlockPage //[]types.PageID
 	entries       []SkipListPair
 	//smallestKey   types.Value
-
-	//occuppied [(BlockArraySize-1)/8 + 1]byte // 256 bits
-	//readable  [(BlockArraySize-1)/8 + 1]byte // 256 bits
-	//array     [BlockArraySize]SkipListPair   // 252 * 16 bits
 }
 
 func NewSkipListBlockPage(bpm *buffer.BufferPoolManager, level int32, smallestListPair SkipListPair) *SkipListBlockPage {
@@ -55,8 +51,8 @@ func NewSkipListBlockPage(bpm *buffer.BufferPoolManager, level int32, smallestLi
 	ret.SetEntries(append(ret.GetEntries(), smallestListPair))
 	ret.SetSmallestKey(smallestListPair.Key)
 	ret.SetEntryCnt(1)
-	ret.SetMaxEntry(DUMMY_MAX_ENTRY)
-	ret.SetForward(make([]*SkipListBlockPage, level))
+	//ret.SetMaxEntry(DUMMY_MAX_ENTRY)
+	//ret.SetForward(make([]*SkipListBlockPage, level))
 	//ret.Backward = make([]*SkipListBlockPage, level)
 
 	return ret
@@ -147,12 +143,12 @@ func (node *SkipListBlockPage) Insert(key *types.Value, value uint32, bpm *buffe
 		return isMadeNewNode
 	} else if !found {
 		//fmt.Printf("not found at Insert of SkipListBlockPage. foundIdx=%d\n", foundIdx)
-		if node.GetEntryCnt()+1 > node.GetMaxEntry() {
+		if node.GetEntryCnt()+1 > DUMMY_MAX_ENTRY {
 			// this node is full. so node split is needed
 
 			// first, split this node at center of entry list
 			// half of entries are moved to new node
-			splitIdx = node.GetMaxEntry() / 2
+			splitIdx = DUMMY_MAX_ENTRY / 2
 			// update with this node
 			skipPathList[0] = node
 			node.SplitNode(splitIdx, bpm, skipPathList, level, curMaxLevel, startNode)
@@ -379,14 +375,14 @@ func (node *SkipListBlockPage) SetSmallestKey(key types.Value) {
 	// TODO: (SDB) debug: do nothing here
 }
 
-func (node *SkipListBlockPage) GetForward() []*SkipListBlockPage {
+func (node *SkipListBlockPage) GetForward() [MAX_FOWARD_LIST_LEN]*SkipListBlockPage {
 	return node.forward
 	//return nil
 }
 
-func (node *SkipListBlockPage) SetForward(fwd []*SkipListBlockPage) {
-	node.forward = fwd
-}
+//func (node *SkipListBlockPage) SetForward(fwd []*SkipListBlockPage) {
+//	node.forward = fwd
+//}
 
 func (node *SkipListBlockPage) GetForwardEntry(idx int32) *SkipListBlockPage {
 	return node.forward[idx]
@@ -406,14 +402,14 @@ func (node *SkipListBlockPage) SetEntryCnt(cnt int32) {
 	node.entryCnt = cnt
 }
 
-func (node *SkipListBlockPage) GetMaxEntry() int32 {
-	return node.maxEntry
-	//return -1
-}
+//func (node *SkipListBlockPage) GetMaxEntry() int32 {
+//	return node.maxEntry
+//	//return -1
+//}
 
-func (node *SkipListBlockPage) SetMaxEntry(num int32) {
-	node.maxEntry = num
-}
+//func (node *SkipListBlockPage) SetMaxEntry(num int32) {
+//	node.maxEntry = num
+//}
 
 func (node *SkipListBlockPage) GetEntries() []SkipListPair {
 	return node.entries
