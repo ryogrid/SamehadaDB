@@ -14,7 +14,7 @@ import (
  *
  * page format (size in byte, 12 bytes in total):
  * ------------------------------------------------------------------
- * | pageID (4) | ListStartPage (4) | CurMaxLevel (4) | KeyType (4) |
+ * | pageID (4) | listStartPageId (4) | curMaxLevel (4) | keyType (4) |
  * -----------------------------------------------------------------
  */
 
@@ -32,10 +32,10 @@ type SkipListHeaderPage struct {
 	// Header's successor node has all level path
 	// and header does'nt have no entry
 
-	pageId        types.PageID
-	ListStartPage *SkipListBlockPage //types.PageID
-	CurMaxLevel   int32
-	KeyType       types.TypeID // used when load list datas from disk
+	pageId          types.PageID
+	listStartPageId *SkipListBlockPage //types.PageID
+	curMaxLevel     int32
+	keyType         types.TypeID // used when load list datas from disk
 }
 
 func NewSkipListStartBlockPage(bpm *buffer.BufferPoolManager, keyType types.TypeID) *SkipListBlockPage {
@@ -90,31 +90,31 @@ func (hp *SkipListHeaderPage) GetPageId() types.PageID {
 	return hp.pageId
 }
 
-func (hp *SkipListHeaderPage) GetListStartPage() *SkipListBlockPage {
-	return hp.ListStartPage
+func (hp *SkipListHeaderPage) GetListStartPageId() *SkipListBlockPage {
+	return hp.listStartPageId
 	//return nil
 }
 
-func (hp *SkipListHeaderPage) SetListStartPage(bp *SkipListBlockPage) {
-	hp.ListStartPage = bp
+func (hp *SkipListHeaderPage) SetListStartPageId(bp *SkipListBlockPage) {
+	hp.listStartPageId = bp
 }
 
 func (hp *SkipListHeaderPage) GetCurMaxLevel() int32 {
-	return hp.CurMaxLevel
+	return hp.curMaxLevel
 	//return -1
 }
 
 func (hp *SkipListHeaderPage) SetCurMaxLevel(maxLevel int32) {
-	hp.CurMaxLevel = maxLevel
+	hp.curMaxLevel = maxLevel
 }
 
 func (hp *SkipListHeaderPage) GetKeyType() types.TypeID {
-	return hp.KeyType
+	return hp.keyType
 	//return types.TypeID(-1)
 }
 
 func (hp *SkipListHeaderPage) SetKeyType(ktype types.TypeID) {
-	hp.KeyType = ktype
+	hp.keyType = ktype
 }
 
 func NewSkipListHeaderPage(bpm *buffer.BufferPoolManager, keyType types.TypeID) *SkipListHeaderPage {
@@ -127,7 +127,7 @@ func NewSkipListHeaderPage(bpm *buffer.BufferPoolManager, keyType types.TypeID) 
 
 	//headerPage := new(SkipListHeaderPage)
 
-	headerPage.SetListStartPage(NewSkipListStartBlockPage(bpm, keyType))
+	headerPage.SetListStartPageId(NewSkipListStartBlockPage(bpm, keyType))
 	headerPage.SetCurMaxLevel(1)
 
 	return headerPage

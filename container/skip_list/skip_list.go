@@ -42,7 +42,7 @@ func (sl *SkipList) handleDelMarkedNode(delMarkedNode *skip_list_page.SkipListBl
 
 // handleDelMarked: isNeedDeleted marked node is found on node traverse, do link modification for complete deletion
 func (sl *SkipList) FindNode(key *types.Value, handleDelMarked bool) (found_node *skip_list_page.SkipListBlockPage, skipPath []*skip_list_page.SkipListBlockPage, skipPathPrev []*skip_list_page.SkipListBlockPage) {
-	node := sl.headerPageID.GetListStartPage()
+	node := sl.headerPageID.GetListStartPageId()
 	// loop invariant: node.key < searchKey
 	//fmt.Println("---")
 	//fmt.Println(key.ToInteger())
@@ -101,11 +101,11 @@ func (sl *SkipList) Insert(key *types.Value, value uint32) (err error) {
 	if levelWhenNodeSplitOccur == sl.headerPageID.GetCurMaxLevel() {
 		levelWhenNodeSplitOccur++
 	}
-	isNewNodeCreated := node.Insert(key, value, sl.bpm, skipPathList, levelWhenNodeSplitOccur, sl.headerPageID.GetCurMaxLevel(), sl.headerPageID.GetListStartPage())
+	isNewNodeCreated := node.Insert(key, value, sl.bpm, skipPathList, levelWhenNodeSplitOccur, sl.headerPageID.GetCurMaxLevel(), sl.headerPageID.GetListStartPageId())
 	if isNewNodeCreated && levelWhenNodeSplitOccur > sl.headerPageID.GetCurMaxLevel() {
 		sl.headerPageID.SetCurMaxLevel(levelWhenNodeSplitOccur)
 	}
-	//node.Insert(key, value, sl.bpm, skipPathList, levelWhenNodeSplitOccur, sl.headerPageID.CurMaxLevel, sl.headerPageID.ListStartPage)
+	//node.Insert(key, value, sl.bpm, skipPathList, levelWhenNodeSplitOccur, sl.headerPageID.curMaxLevel, sl.headerPageID.listStartPageId)
 
 	return nil
 }
@@ -115,12 +115,12 @@ func (sl *SkipList) Remove(key *types.Value, value uint32) (isDeleted bool) {
 	isDeleted_, _ := node.Remove(key, skipPathListPrev)
 
 	// if there are no node at *level* except start and end node due to node delete
-	// CurMaxLevel should be down to the level
+	// curMaxLevel should be down to the level
 	if isDeleted_ {
 		// if isNeedDeleted marked node exists, check logic below has no problem
 		newMaxLevel := int32(0)
 		for ii := int32(0); ii < sl.headerPageID.GetCurMaxLevel(); ii++ {
-			if sl.headerPageID.GetListStartPage().GetForwardEntry(ii).GetSmallestKey().IsInfMax() {
+			if sl.headerPageID.GetListStartPageId().GetForwardEntry(ii).GetSmallestKey().IsInfMax() {
 				break
 			}
 			newMaxLevel++
@@ -133,7 +133,7 @@ func (sl *SkipList) Remove(key *types.Value, value uint32) (isDeleted bool) {
 
 func (sl *SkipList) Iterator(rangeStartKey *types.Value, rangeEndKey *types.Value) *SkipListIterator {
 	ret := new(SkipListIterator)
-	ret.curNode = sl.headerPageID.GetListStartPage()
+	ret.curNode = sl.headerPageID.GetListStartPageId()
 	ret.curIdx = 0
 	ret.rangeStartKey = rangeStartKey
 	ret.rangeEndKey = rangeEndKey
