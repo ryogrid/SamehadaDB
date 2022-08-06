@@ -17,10 +17,10 @@ import (
 //
 //  Header format (size in bytes):
 //  -------------------------------------------------------------------------------------------------------------------
-//  | PageId (4)| level (4)| entryCnt (4)| isNeedDeleted (1)| forward (MAX_FOWARD_LIST_LEN * 4) | FreeSpacePointer(4) |
+//  | PageId (4)| level (4)| entryCnt (4)| isNeedDeleted (1)| forward (4 * MAX_FOWARD_LIST_LEN) | FreeSpacePointer(4) |
 //  ------------------------------------------------------------------------------------------------------------------
 //  -------------------------------------------------------------
-//  | Entry_1 offset (4) | Entry_1 size (4) | ................|
+//  | Entry_1 offset (4) | Entry_1 size (4) | ..................|
 //  ------------------------------------------------------------
 //
 //  Entries format (size in bytes):
@@ -36,7 +36,21 @@ import (
 //  ----------------------------------------------
 
 const (
-	DUMMY_MAX_ENTRY = 10 //50
+	DUMMY_MAX_ENTRY        = 10 //50
+	sizePageId             = uint32(4)
+	sizeLevel              = uint32(4)
+	sizeEntryCnt           = uint32(4)
+	sizeIsNeedDeleted      = uint32(1)
+	sizeForward            = uint32(4 * MAX_FOWARD_LIST_LEN)
+	sizeFreeSpacePointer   = uint32(4)
+	sizeTablePageHeader    = sizePageId + sizeLevel + sizeEntryCnt + sizeIsNeedDeleted + sizeForward + sizeFreeSpacePointer
+	offsetPageId           = int32(0)
+	offsetLevel            = sizePageId
+	offsetEntryCnt         = offsetLevel + sizeLevel
+	offsetIsNeedDeleted    = offsetEntryCnt + sizeEntryCnt
+	offsetForward          = offsetIsNeedDeleted + sizeIsNeedDeleted
+	offsetFreeSpacePointer = offsetForward + sizeForward
+	sizeEntryValue         = uint32(4)
 )
 
 type SkipListBlockPage struct {
