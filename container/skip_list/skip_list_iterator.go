@@ -18,6 +18,7 @@ type SkipListIterator struct {
 	curIdx        int32
 	rangeStartKey *types.Value
 	rangeEndKey   *types.Value
+	keyType       types.TypeID
 }
 
 func (itr *SkipListIterator) Next() (done bool, err error, key *types.Value, val uint32) {
@@ -32,11 +33,11 @@ func (itr *SkipListIterator) Next() (done bool, err error, key *types.Value, val
 	}
 
 	itr.curIdx++
-	if (itr.rangeEndKey != nil && itr.curNode.GetEntry(itr.curIdx).Key.CompareGreaterThan(*itr.rangeEndKey)) ||
+	if (itr.rangeEndKey != nil && itr.curNode.GetEntry(int(itr.curIdx), itr.keyType).Key.CompareGreaterThan(*itr.rangeEndKey)) ||
 		itr.curNode.GetSmallestKey().IsInfMax() {
 		return true, nil, nil, math.MaxUint32
 	}
 
-	tmpKey := itr.curNode.GetEntry(itr.curIdx).Key
-	return false, nil, &tmpKey, itr.curNode.GetEntry(itr.curIdx).Value
+	tmpKey := itr.curNode.GetEntry(int(itr.curIdx), itr.keyType).Key
+	return false, nil, &tmpKey, itr.curNode.GetEntry(int(itr.curIdx), itr.keyType).Value
 }

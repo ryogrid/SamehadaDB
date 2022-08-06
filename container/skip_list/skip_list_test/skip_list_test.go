@@ -28,16 +28,16 @@ func TestBSearchOfSkipLisBlockPageBackedOnMem(t *testing.T) {
 	})
 
 	// ------- when element num is even number -----
-	bpage.SetEntries(make([]skip_list_page.SkipListPair, 0))
-	bpage.SetEntries(append(bpage.GetEntries(), skip_list_page.SkipListPair{
+	bpage.SetEntries(make([]*skip_list_page.SkipListPair, 0))
+	bpage.SetEntries(append(bpage.GetEntries(types.Integer), &skip_list_page.SkipListPair{
 		Key:   types.NewInteger(-1),
 		Value: 0,
 	}))
 	// set entries
 	for ii := 1; ii < 50; ii++ {
-		bpage.SetEntries(append(bpage.GetEntries(), skip_list_page.SkipListPair{types.NewInteger(int32(ii * 10)), uint32(ii * 10)}))
+		bpage.SetEntries(append(bpage.GetEntries(types.Integer), &skip_list_page.SkipListPair{types.NewInteger(int32(ii * 10)), uint32(ii * 10)}))
 	}
-	bpage.SetEntryCnt(int32(len(bpage.GetEntries())))
+	bpage.SetEntryCnt(int32(len(bpage.GetEntries(types.Integer))))
 
 	for ii := 1; ii < 100; ii++ {
 		key := types.NewInteger(int32(ii * 5))
@@ -46,21 +46,21 @@ func TestBSearchOfSkipLisBlockPageBackedOnMem(t *testing.T) {
 		if ii%2 == 0 {
 			testingpkg.SimpleAssert(t, found == true && entry.Value == uint32(key.ToInteger()))
 		} else {
-			testingpkg.SimpleAssert(t, found == false && uint32(key.ToInteger())-bpage.ValueAt(idx) == 5)
+			testingpkg.SimpleAssert(t, found == false && uint32(key.ToInteger())-bpage.ValueAt(idx, types.Integer) == 5)
 		}
 	}
 
 	// ------- when element num is odd number -----
-	bpage.SetEntries(make([]skip_list_page.SkipListPair, 0))
-	bpage.SetEntries(append(bpage.GetEntries(), skip_list_page.SkipListPair{
+	bpage.SetEntries(make([]*skip_list_page.SkipListPair, 0))
+	bpage.SetEntries(append(bpage.GetEntries(types.Integer), &skip_list_page.SkipListPair{
 		Key:   types.NewInteger(-1),
 		Value: 0,
 	}))
 	// set entries
 	for ii := 1; ii < 51; ii++ {
-		bpage.SetEntries(append(bpage.GetEntries(), skip_list_page.SkipListPair{types.NewInteger(int32(ii * 10)), uint32(ii * 10)}))
+		bpage.SetEntries(append(bpage.GetEntries(types.Integer), &skip_list_page.SkipListPair{types.NewInteger(int32(ii * 10)), uint32(ii * 10)}))
 	}
-	bpage.SetEntryCnt(int32(len(bpage.GetEntries())))
+	bpage.SetEntryCnt(int32(len(bpage.GetEntries(types.Integer))))
 
 	for ii := 1; ii < 102; ii++ {
 		key := types.NewInteger(int32(ii * 5))
@@ -69,7 +69,7 @@ func TestBSearchOfSkipLisBlockPageBackedOnMem(t *testing.T) {
 		if ii%2 == 0 {
 			testingpkg.SimpleAssert(t, found == true && entry.Value == uint32(key.ToInteger()))
 		} else {
-			testingpkg.SimpleAssert(t, found == false && uint32(key.ToInteger())-bpage.ValueAt(idx) == 5)
+			testingpkg.SimpleAssert(t, found == false && uint32(key.ToInteger())-bpage.ValueAt(idx, types.Integer) == 5)
 		}
 	}
 }

@@ -154,11 +154,13 @@ func (sl *SkipList) Iterator(rangeStartKey *types.Value, rangeEndKey *types.Valu
 	hPageData := sl.bpm.FetchPage(sl.headerPageID).Data()
 	headerPage := (*skip_list_page.SkipListHeaderPage)(unsafe.Pointer(hPageData))
 	ret.curNode = headerPage.GetListStartPageId()
-	sl.bpm.UnpinPage(sl.headerPageID, false)
 
 	ret.curIdx = 0
 	ret.rangeStartKey = rangeStartKey
 	ret.rangeEndKey = rangeEndKey
+	ret.keyType = headerPage.GetKeyType()
+
+	sl.bpm.UnpinPage(sl.headerPageID, false)
 
 	if rangeStartKey != nil {
 		ret.curNode, ret.curIdx = sl.FindNodeWithEntryIdxForIterator(rangeStartKey)
