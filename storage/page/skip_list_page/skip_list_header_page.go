@@ -22,11 +22,6 @@ const (
 	MAX_FOWARD_LIST_LEN = 20
 )
 
-type SkipListPair struct {
-	Key   types.Value
-	Value uint32
-}
-
 type SkipListHeaderPage struct {
 	//page.Page
 	// Header's successor node has all level path

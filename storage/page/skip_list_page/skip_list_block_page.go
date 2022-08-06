@@ -53,6 +53,21 @@ const (
 	sizeEntryValue         = uint32(4)
 )
 
+type SkipListPair struct {
+	Key   types.Value
+	Value uint32
+}
+
+func (sp SkipListPair) Serialize() []byte {
+	// TODO: (SDB) not implemented yet (SkipListPair::Serialize)
+	return nil
+}
+
+func NewSkpListPairFromBytes(size uint32, keyType types.TypeID) *SkipListPair {
+	// TODO: (SDB) not implemented yet (SkipListPair::NewSkipListPairFromBytes)
+	return nil
+}
+
 type SkipListBlockPage struct {
 	page.Page
 	level    int32

@@ -66,7 +66,7 @@ func (p *Page) IsDirty() bool {
 	return p.isDirty
 }
 
-// Copy copies data to the page's data. It is mainly used for testing
+// Copy copies data to the page's data
 func (p *Page) Copy(offset uint32, data []byte) {
 	copy(p.data[offset:], data)
 }
