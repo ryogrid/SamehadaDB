@@ -112,7 +112,7 @@ func (hp *SkipListHeaderPage) SetKeyType(ktype types.TypeID) {
 	hp.keyType = ktype
 }
 
-func NewSkipListHeaderPage(bpm *buffer.BufferPoolManager, keyType types.TypeID) *SkipListHeaderPage {
+func NewSkipListHeaderPage(bpm *buffer.BufferPoolManager, keyType types.TypeID) types.PageID {
 	page_ := bpm.NewPage()
 	headerData := page_.Data()
 	headerPage := (*SkipListHeaderPage)(unsafe.Pointer(headerData))
@@ -126,5 +126,7 @@ func NewSkipListHeaderPage(bpm *buffer.BufferPoolManager, keyType types.TypeID) 
 	headerPage.SetCurMaxLevel(1)
 	headerPage.SetKeyType(keyType)
 
-	return headerPage
+	bpm.UnpinPage(headerPage.GetPageId(), true)
+
+	return headerPage.GetPageId()
 }

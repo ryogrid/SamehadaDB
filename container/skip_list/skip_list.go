@@ -7,6 +7,7 @@ import (
 	"github.com/ryogrid/SamehadaDB/types"
 	"math"
 	"math/rand"
+	"unsafe"
 )
 
 /**
@@ -16,7 +17,7 @@ import (
 
 type SkipList struct {
 	// TODO: (SDB) headerPageID should be replaced from pointer to PageId (SkipList)
-	headerPageID    *skip_list_page.SkipListHeaderPage //types.PageID
+	headerPageID    types.PageID //*skip_list_page.SkipListHeaderPage
 	bpm             *buffer.BufferPoolManager
 	headerPageLatch common.ReaderWriterLatch
 }
@@ -42,14 +43,17 @@ func (sl *SkipList) handleDelMarkedNode(delMarkedNode *skip_list_page.SkipListBl
 
 // handleDelMarked: isNeedDeleted marked node is found on node traverse, do link modification for complete deletion
 func (sl *SkipList) FindNode(key *types.Value, handleDelMarked bool) (found_node *skip_list_page.SkipListBlockPage, skipPath []*skip_list_page.SkipListBlockPage, skipPathPrev []*skip_list_page.SkipListBlockPage) {
-	node := sl.headerPageID.GetListStartPageId()
+	hPageData := sl.bpm.FetchPage(sl.headerPageID).Data()
+	headerPage := (*skip_list_page.SkipListHeaderPage)(unsafe.Pointer(hPageData))
+
+	node := headerPage.GetListStartPageId()
 	// loop invariant: node.key < searchKey
 	//fmt.Println("---")
 	//fmt.Println(key.ToInteger())
 	//moveCnt := 0
-	skipPathList := make([]*skip_list_page.SkipListBlockPage, sl.headerPageID.GetCurMaxLevel()+1)
-	skipPathListPrev := make([]*skip_list_page.SkipListBlockPage, sl.headerPageID.GetCurMaxLevel())
-	for ii := (sl.headerPageID.GetCurMaxLevel() - 1); ii >= 0; ii-- {
+	skipPathList := make([]*skip_list_page.SkipListBlockPage, headerPage.GetCurMaxLevel()+1)
+	skipPathListPrev := make([]*skip_list_page.SkipListBlockPage, headerPage.GetCurMaxLevel())
+	for ii := (headerPage.GetCurMaxLevel() - 1); ii >= 0; ii-- {
 		//fmt.Printf("level %d\n", i)
 		for node.GetForwardEntry(ii).GetSmallestKey().CompareLessThanOrEqual(*key) {
 
@@ -70,6 +74,8 @@ func (sl *SkipList) FindNode(key *types.Value, handleDelMarked bool) (found_node
 		}
 		skipPathList[ii] = node
 	}
+	sl.bpm.UnpinPage(sl.headerPageID, false)
+
 	return node, skipPathList, skipPathListPrev
 }
 
@@ -96,16 +102,21 @@ func (sl *SkipList) Insert(key *types.Value, value uint32) (err error) {
 	// of pointers to the elements which will be
 	// predecessors of the new element.
 
+	hPageData := sl.bpm.FetchPage(sl.headerPageID).Data()
+	headerPage := (*skip_list_page.SkipListHeaderPage)(unsafe.Pointer(hPageData))
+
 	node, skipPathList, _ := sl.FindNode(key, false)
 	levelWhenNodeSplitOccur := sl.GetNodeLevel()
-	if levelWhenNodeSplitOccur == sl.headerPageID.GetCurMaxLevel() {
+	if levelWhenNodeSplitOccur == headerPage.GetCurMaxLevel() {
 		levelWhenNodeSplitOccur++
 	}
-	isNewNodeCreated := node.Insert(key, value, sl.bpm, skipPathList, levelWhenNodeSplitOccur, sl.headerPageID.GetCurMaxLevel(), sl.headerPageID.GetListStartPageId())
-	if isNewNodeCreated && levelWhenNodeSplitOccur > sl.headerPageID.GetCurMaxLevel() {
-		sl.headerPageID.SetCurMaxLevel(levelWhenNodeSplitOccur)
+	isNewNodeCreated := node.Insert(key, value, sl.bpm, skipPathList, levelWhenNodeSplitOccur, headerPage.GetCurMaxLevel(), headerPage.GetListStartPageId())
+	if isNewNodeCreated && levelWhenNodeSplitOccur > headerPage.GetCurMaxLevel() {
+		headerPage.SetCurMaxLevel(levelWhenNodeSplitOccur)
 	}
 	//node.Insert(key, value, sl.bpm, skipPathList, levelWhenNodeSplitOccur, sl.headerPageID.curMaxLevel, sl.headerPageID.listStartPageId)
+
+	sl.bpm.UnpinPage(sl.headerPageID, true)
 
 	return nil
 }
@@ -114,26 +125,35 @@ func (sl *SkipList) Remove(key *types.Value, value uint32) (isDeleted bool) {
 	node, _, skipPathListPrev := sl.FindNode(key, false)
 	isDeleted_, _ := node.Remove(key, skipPathListPrev)
 
+	hPageData := sl.bpm.FetchPage(sl.headerPageID).Data()
+	headerPage := (*skip_list_page.SkipListHeaderPage)(unsafe.Pointer(hPageData))
+
 	// if there are no node at *level* except start and end node due to node delete
 	// curMaxLevel should be down to the level
 	if isDeleted_ {
 		// if isNeedDeleted marked node exists, check logic below has no problem
 		newMaxLevel := int32(0)
-		for ii := int32(0); ii < sl.headerPageID.GetCurMaxLevel(); ii++ {
-			if sl.headerPageID.GetListStartPageId().GetForwardEntry(ii).GetSmallestKey().IsInfMax() {
+		for ii := int32(0); ii < headerPage.GetCurMaxLevel(); ii++ {
+			if headerPage.GetListStartPageId().GetForwardEntry(ii).GetSmallestKey().IsInfMax() {
 				break
 			}
 			newMaxLevel++
 		}
-		sl.headerPageID.SetCurMaxLevel(newMaxLevel)
+		headerPage.SetCurMaxLevel(newMaxLevel)
 	}
+	sl.bpm.UnpinPage(sl.headerPageID, true)
 
 	return isDeleted_
 }
 
 func (sl *SkipList) Iterator(rangeStartKey *types.Value, rangeEndKey *types.Value) *SkipListIterator {
 	ret := new(SkipListIterator)
-	ret.curNode = sl.headerPageID.GetListStartPageId()
+
+	hPageData := sl.bpm.FetchPage(sl.headerPageID).Data()
+	headerPage := (*skip_list_page.SkipListHeaderPage)(unsafe.Pointer(hPageData))
+	ret.curNode = headerPage.GetListStartPageId()
+	sl.bpm.UnpinPage(sl.headerPageID, false)
+
 	ret.curIdx = 0
 	ret.rangeStartKey = rangeStartKey
 	ret.rangeEndKey = rangeEndKey
@@ -151,7 +171,13 @@ func (sl *SkipList) GetNodeLevel() int32 {
 	for rand.Float32() < common.SkipListProb { // no MaxLevel check
 		retLevel++
 	}
-	return int32(math.Min(float64(retLevel), float64(sl.headerPageID.GetCurMaxLevel())))
+
+	hPageData := sl.bpm.FetchPage(sl.headerPageID).Data()
+	headerPage := (*skip_list_page.SkipListHeaderPage)(unsafe.Pointer(hPageData))
+	ret := int32(math.Min(float64(retLevel), float64(headerPage.GetCurMaxLevel())))
+	sl.bpm.UnpinPage(sl.headerPageID, false)
+
+	return ret
 }
 
 // TODO: (SDB) not implemented (SkipList::GetHeaderPageId)
