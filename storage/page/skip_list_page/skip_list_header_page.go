@@ -4,7 +4,6 @@ import (
 	"github.com/ryogrid/SamehadaDB/storage/buffer"
 	"github.com/ryogrid/SamehadaDB/types"
 	"math"
-	"unsafe"
 )
 
 /**
@@ -113,14 +112,14 @@ func (hp *SkipListHeaderPage) SetKeyType(ktype types.TypeID) {
 }
 
 func NewSkipListHeaderPage(bpm *buffer.BufferPoolManager, keyType types.TypeID) *SkipListHeaderPage {
-	page_ := bpm.NewPage()
-	headerData := page_.Data()
-	headerPage := (*SkipListHeaderPage)(unsafe.Pointer(headerData))
-	headerPage.SetPageId(page_.GetPageId())
+	//page_ := bpm.NewPage()
+	//headerData := page_.Data()
+	//headerPage := (*SkipListHeaderPage)(unsafe.Pointer(headerData))
+	//headerPage.SetPageId(page_.GetPageId())
 
 	// TODO: (SDB) need unpin of page_ variable here at on-disk impl
 
-	//headerPage := new(SkipListHeaderPage)
+	headerPage := new(SkipListHeaderPage)
 
 	headerPage.SetListStartPageId(NewSkipListStartBlockPage(bpm, keyType))
 	headerPage.SetCurMaxLevel(1)
