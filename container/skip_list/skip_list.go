@@ -46,7 +46,9 @@ func (sl *SkipList) FindNode(key *types.Value, handleDelMarked bool) (found_node
 	hPageData := sl.bpm.FetchPage(sl.headerPageID).Data()
 	headerPage := (*skip_list_page.SkipListHeaderPage)(unsafe.Pointer(hPageData))
 
-	node := headerPage.GetListStartPageId()
+	startPageId := headerPage.GetListStartPageId()
+	page_ := sl.bpm.FetchPage(startPageId)
+	node := (*skip_list_page.SkipListBlockPage)(unsafe.Pointer(page_))
 	// loop invariant: node.key < searchKey
 	//fmt.Println("---")
 	//fmt.Println(key.ToInteger())

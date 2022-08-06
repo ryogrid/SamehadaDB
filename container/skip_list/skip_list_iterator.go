@@ -21,6 +21,7 @@ type SkipListIterator struct {
 }
 
 func (itr *SkipListIterator) Next() (done bool, err error, key *types.Value, val uint32) {
+	// TODO: (SDB) need UnpinPage of node at appropriate timing
 	if itr.curIdx+1 >= itr.curNode.GetEntryCnt() {
 		itr.curNode = itr.curNode.GetForwardEntry(0)
 		for itr.curNode.GetIsNeedDeleted() && !itr.curNode.GetSmallestKey().IsInfMax() {

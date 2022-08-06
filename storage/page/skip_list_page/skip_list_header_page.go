@@ -28,12 +28,12 @@ type SkipListHeaderPage struct {
 	// and header does'nt have no entry
 
 	pageId          types.PageID
-	listStartPageId *SkipListBlockPage //types.PageID
+	listStartPageId types.PageID //*SkipListBlockPage
 	curMaxLevel     int32
 	keyType         types.TypeID // used when load list datas from disk
 }
 
-func NewSkipListStartBlockPage(bpm *buffer.BufferPoolManager, keyType types.TypeID) *SkipListBlockPage {
+func NewSkipListStartBlockPage(bpm *buffer.BufferPoolManager, keyType types.TypeID) types.PageID {
 	//startPage.ID()
 	var startNode *SkipListBlockPage = nil
 	switch keyType {
@@ -67,14 +67,18 @@ func NewSkipListStartBlockPage(bpm *buffer.BufferPoolManager, keyType types.Type
 		sentinelNode = NewSkipListBlockPage(bpm, MAX_FOWARD_LIST_LEN, pl)
 	}
 
-	startNode.level = 1
+	startNode.SetLevel(1)
 	//startNode.SetForward(make([]*SkipListBlockPage, MAX_FOWARD_LIST_LEN))
 	// set sentinel node at end of list
 	for ii := 0; ii < MAX_FOWARD_LIST_LEN; ii++ {
-		startNode.SetForwardEntry(int32(ii), sentinelNode)
+		startNode.SetForwardEntry(int32(ii), sentinelNode.GetPageId())
 	}
 
-	return startNode
+	ret := startNode.GetPageId()
+	bpm.UnpinPage(startNode.GetPageId(), true)
+	bpm.UnpinPage(sentinelNode.GetPageId(), true)
+
+	return ret
 }
 
 func (hp *SkipListHeaderPage) SetPageId(pageId types.PageID) {
@@ -85,13 +89,13 @@ func (hp *SkipListHeaderPage) GetPageId() types.PageID {
 	return hp.pageId
 }
 
-func (hp *SkipListHeaderPage) GetListStartPageId() *SkipListBlockPage {
+func (hp *SkipListHeaderPage) GetListStartPageId() types.PageID {
 	return hp.listStartPageId
 	//return nil
 }
 
-func (hp *SkipListHeaderPage) SetListStartPageId(bp *SkipListBlockPage) {
-	hp.listStartPageId = bp
+func (hp *SkipListHeaderPage) SetListStartPageId(bpId types.PageID) {
+	hp.listStartPageId = bpId
 }
 
 func (hp *SkipListHeaderPage) GetCurMaxLevel() int32 {
