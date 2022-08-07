@@ -20,12 +20,12 @@ type SkipListIterator struct {
 func (itr *SkipListIterator) Next() (done bool, err error, key *types.Value, val uint32) {
 	if itr.curIdx+1 >= itr.curNode.GetEntryCnt() {
 		prevNodeId := itr.curNode.GetPageId()
-		itr.curNode = FetchAndCastToBlockPage(itr.bpm, itr.curNode.GetForwardEntry(0))
+		itr.curNode = skip_list_page.FetchAndCastToBlockPage(itr.bpm, itr.curNode.GetForwardEntry(0))
 		itr.bpm.UnpinPage(prevNodeId, false)
 		for itr.curNode.GetIsNeedDeleted() && !itr.curNode.GetSmallestKey(key.ValueType()).IsInfMax() {
 			// skip isNeedDeleted marked node
 			prevNodeId = itr.curNode.GetPageId()
-			itr.curNode = FetchAndCastToBlockPage(itr.bpm, itr.curNode.GetForwardEntry(0))
+			itr.curNode = skip_list_page.FetchAndCastToBlockPage(itr.bpm, itr.curNode.GetForwardEntry(0))
 			itr.bpm.UnpinPage(prevNodeId, false)
 		}
 		itr.curIdx = -1

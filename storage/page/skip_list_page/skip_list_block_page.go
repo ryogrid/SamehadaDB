@@ -4,7 +4,6 @@ import (
 	"bytes"
 	"encoding/binary"
 	"github.com/ryogrid/SamehadaDB/common"
-	"github.com/ryogrid/SamehadaDB/container/skip_list"
 	"github.com/ryogrid/SamehadaDB/storage/buffer"
 	"github.com/ryogrid/SamehadaDB/storage/page"
 	"github.com/ryogrid/SamehadaDB/types"
@@ -241,7 +240,7 @@ func (node *SkipListBlockPage) Insert(key *types.Value, value uint32, bpm *buffe
 				newNodePageId := node.GetForwardEntry(0)
 				//page_ := bpm.FetchPage(newNodePageId)
 				//newNode := (*SkipListBlockPage)(unsafe.Pointer(page_))
-				newNode := skip_list.FetchAndCastToBlockPage(bpm, newNodePageId)
+				newNode := FetchAndCastToBlockPage(bpm, newNodePageId)
 
 				if (newSmallerIdx + 1) >= newNode.GetEntryCnt() {
 					// when inserting point is next of last entry of new node
@@ -405,7 +404,7 @@ func (node *SkipListBlockPage) SplitNode(idx int32, bpm *buffer.BufferPoolManage
 	}
 	for ii := 0; ii < int(level); ii++ {
 		// modify forward link
-		tmpNode := skip_list.FetchAndCastToBlockPage(bpm, skipPathList[ii])
+		tmpNode := FetchAndCastToBlockPage(bpm, skipPathList[ii])
 		newNode.SetForwardEntry(ii, tmpNode.GetForwardEntry(ii))
 		tmpNode.SetForwardEntry(ii, newNode.GetPageId())
 		bpm.UnpinPage(tmpNode.GetPageId(), true)
@@ -648,4 +647,13 @@ func (node *SkipListBlockPage) SetIsNeedDeleted(val bool) {
 	valInBytes := buf.Bytes()
 	copy(node.Data()[offsetIsNeedDeleted:], valInBytes)
 	//node.isNeedDeleted = val
+}
+
+// TODO: (SDB) in concurrent impl, locking in this method is needed. and caller must do unlock (FectchAndCastToBlockPage)
+
+// Attention:
+//   caller must call UnpinPage with appropriate diaty page to the got page when page using ends
+func FetchAndCastToBlockPage(bpm *buffer.BufferPoolManager, pageId types.PageID) *SkipListBlockPage {
+	bPage := bpm.FetchPage(pageId)
+	return (*SkipListBlockPage)(unsafe.Pointer(bPage))
 }

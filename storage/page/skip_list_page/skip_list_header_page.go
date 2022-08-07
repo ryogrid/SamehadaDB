@@ -131,3 +131,12 @@ func NewSkipListHeaderPage(bpm *buffer.BufferPoolManager, keyType types.TypeID) 
 
 	return retPageID
 }
+
+// TODO: (SDB) in concurrent impl, locking in this method is needed. and caller must do unlock (FectchAndCastToBlockPage)
+
+// Attention:
+//   caller must call UnpinPage with appropriate diaty page to the got page when page using ends
+func FetchAndCastToHeaderPage(bpm *buffer.BufferPoolManager, pageId types.PageID) *SkipListHeaderPage {
+	hPageData := bpm.FetchPage(pageId).Data()
+	return (*SkipListHeaderPage)(unsafe.Pointer(hPageData))
+}
