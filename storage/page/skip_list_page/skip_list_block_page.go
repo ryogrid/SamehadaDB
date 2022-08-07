@@ -541,13 +541,13 @@ func (node *SkipListBlockPage) SetEntrySize(idx int, setSize uint32) {
 	copy(node.Data()[offset:], setSizeInBytes)
 }
 
-func (node *SkipListBlockPage) GetFreeSpacePointer(idx int) uint32 {
+func (node *SkipListBlockPage) GetFreeSpacePointer() uint32 {
 	offset := offsetFreeSpacePointer
 
 	return uint32(types.NewUInt32FromBytes(node.Data()[offset : offset+sizeFreeSpacePointer]))
 }
 
-func (node *SkipListBlockPage) SetFreeSpacePointer(idx int, pointOffset uint32) {
+func (node *SkipListBlockPage) SetFreeSpacePointer(pointOffset uint32) {
 	buf := new(bytes.Buffer)
 	binary.Write(buf, binary.LittleEndian, pointOffset)
 	pointOffsetInBytes := buf.Bytes()
