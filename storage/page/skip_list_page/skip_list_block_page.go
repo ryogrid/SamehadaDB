@@ -4,6 +4,7 @@ import (
 	"bytes"
 	"encoding/binary"
 	"github.com/ryogrid/SamehadaDB/common"
+	"github.com/ryogrid/SamehadaDB/container/skip_list"
 	"github.com/ryogrid/SamehadaDB/storage/buffer"
 	"github.com/ryogrid/SamehadaDB/storage/page"
 	"github.com/ryogrid/SamehadaDB/types"
@@ -200,7 +201,7 @@ func (node *SkipListBlockPage) FindEntryByKey(key *types.Value) (found bool, ent
 
 // Attempts to insert a key and value into an index in the baccess
 // return value is whether newNode is created or not
-func (node *SkipListBlockPage) Insert(key *types.Value, value uint32, bpm *buffer.BufferPoolManager, skipPathList []*SkipListBlockPage,
+func (node *SkipListBlockPage) Insert(key *types.Value, value uint32, bpm *buffer.BufferPoolManager, skipPathList []types.PageID,
 	level int32, curMaxLevel int32, startNode *SkipListBlockPage) bool {
 	//fmt.Printf("Insert of SkipListBlockPage called! : key=%d\n", key.ToInteger())
 
@@ -230,7 +231,7 @@ func (node *SkipListBlockPage) Insert(key *types.Value, value uint32, bpm *buffe
 			// half of entries are moved to new node
 			splitIdx = DUMMY_MAX_ENTRY / 2
 			// update with this node
-			skipPathList[0] = node
+			skipPathList[0] = node.GetPageId()
 			node.SplitNode(splitIdx, bpm, skipPathList, level, curMaxLevel, startNode, key.ValueType())
 			isMadeNewNode = true
 
@@ -318,7 +319,7 @@ func (node *SkipListBlockPage) Insert(key *types.Value, value uint32, bpm *buffe
 	return isMadeNewNode
 }
 
-func (node *SkipListBlockPage) Remove(key *types.Value, skipPathList []*SkipListBlockPage) (isDeleted bool, level int32) {
+func (node *SkipListBlockPage) Remove(key *types.Value, skipPathList []types.PageID) (isDeleted bool, level int32) {
 	found, _, foundIdx := node.FindEntryByKey(key)
 	if found && (node.GetEntryCnt() == 1) {
 		// when there are no enry without target entry
@@ -377,7 +378,7 @@ func (node *SkipListBlockPage) Remove(key *types.Value, skipPathList []*SkipList
 // split entries of node at entry specified with idx arg
 // new node contains entries node.entries[idx+1:]
 // (new node does not include entry node.entries[idx])
-func (node *SkipListBlockPage) SplitNode(idx int32, bpm *buffer.BufferPoolManager, skipPathList []*SkipListBlockPage,
+func (node *SkipListBlockPage) SplitNode(idx int32, bpm *buffer.BufferPoolManager, skipPathList []types.PageID,
 	level int32, curMaxLevel int32, startNode *SkipListBlockPage, keyType types.TypeID) {
 	//fmt.Println("<<<<<<<<<<<<<<<<<<<<<<<< SplitNode called! >>>>>>>>>>>>>>>>>>>>>>>>>>>>>>")
 
@@ -398,12 +399,14 @@ func (node *SkipListBlockPage) SplitNode(idx int32, bpm *buffer.BufferPoolManage
 	node.SetEntryCnt(int32(len(node.GetEntries(keyType))))
 
 	if level > curMaxLevel {
-		skipPathList[level-1] = startNode
+		skipPathList[level-1] = startNode.GetPageId()
 	}
 	for ii := 0; ii < int(level); ii++ {
 		// modify forward link
-		newNode.SetForwardEntry(ii, skipPathList[ii].GetForwardEntry(ii))
-		skipPathList[ii].SetForwardEntry(ii, newNode.GetPageId())
+		tmpNode := skip_list.FetchAndCastToBlockPage(bpm, skipPathList[ii])
+		newNode.SetForwardEntry(ii, tmpNode.GetForwardEntry(ii))
+		tmpNode.SetForwardEntry(ii, newNode.GetPageId())
+		bpm.UnpinPage(tmpNode.GetPageId(), true)
 	}
 }
 
