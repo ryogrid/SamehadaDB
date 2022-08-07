@@ -91,7 +91,7 @@ func (sl *SkipList) FindNode(key *types.Value) (found_node *skip_list_page.SkipL
 		}
 		skipPathList[ii] = node.GetPageId()
 	}
-	sl.bpm.UnpinPage(sl.headerPageID, false)
+	sl.bpm.UnpinPage(headerPage.GetPageId(), false)
 
 	return node, skipPathList, skipPathListPrev
 }
@@ -115,7 +115,6 @@ func (sl *SkipList) GetValue(key *types.Value) uint32 {
 	} else {
 		return math.MaxUint32
 	}
-
 }
 
 func (sl *SkipList) Insert(key *types.Value, value uint32) (err error) {
@@ -130,13 +129,17 @@ func (sl *SkipList) Insert(key *types.Value, value uint32) (err error) {
 	if levelWhenNodeSplitOccur == headerPage.GetCurMaxLevel() {
 		levelWhenNodeSplitOccur++
 	}
-	isNewNodeCreated := node.Insert(key, value, sl.bpm, skipPathList, levelWhenNodeSplitOccur, headerPage.GetCurMaxLevel(), headerPage.GetListStartPageId())
+
+	startPage := FetchAndCastToBlockPage(sl.bpm, headerPage.GetListStartPageId())
+	isNewNodeCreated := node.Insert(key, value, sl.bpm, skipPathList, levelWhenNodeSplitOccur, headerPage.GetCurMaxLevel(), startPage)
 	if isNewNodeCreated && levelWhenNodeSplitOccur > headerPage.GetCurMaxLevel() {
 		headerPage.SetCurMaxLevel(levelWhenNodeSplitOccur)
 	}
 	//node.Insert(key, value, sl.bpm, skipPathList, levelWhenNodeSplitOccur, sl.headerPageID.curMaxLevel, sl.headerPageID.listStartPageId)
 
-	sl.bpm.UnpinPage(sl.headerPageID, true)
+	sl.bpm.UnpinPage(startPage.GetPageId(), true)
+	sl.bpm.UnpinPage(headerPage.GetPageId(), true)
+	sl.bpm.UnpinPage(node.GetPageId(), true)
 
 	return nil
 }
@@ -144,6 +147,7 @@ func (sl *SkipList) Insert(key *types.Value, value uint32) (err error) {
 func (sl *SkipList) Remove(key *types.Value, value uint32) (isDeleted bool) {
 	node, _, skipPathListPrev := sl.FindNode(key)
 	isDeleted_, _ := node.Remove(key, skipPathListPrev)
+	sl.bpm.UnpinPage(node.GetPageId(), true)
 
 	headerPage := FetchAndCastToHeaderPage(sl.bpm, sl.headerPageID)
 
@@ -152,13 +156,18 @@ func (sl *SkipList) Remove(key *types.Value, value uint32) (isDeleted bool) {
 	if isDeleted_ {
 		// if isNeedDeleted marked node exists, check logic below has no problem
 		newMaxLevel := int32(0)
+		startNode := FetchAndCastToBlockPage(sl.bpm, headerPage.GetListStartPageId())
 		for ii := int32(0); ii < headerPage.GetCurMaxLevel(); ii++ {
-			if headerPage.GetListStartPageId().GetForwardEntry(ii).GetSmallestKey().IsInfMax() {
+			tmpNode := FetchAndCastToBlockPage(sl.bpm, startNode.GetForwardEntry(int(ii)))
+			if tmpNode.GetSmallestKey(key.ValueType()).IsInfMax() {
+				sl.bpm.UnpinPage(tmpNode.GetPageId(), false)
 				break
 			}
+			sl.bpm.UnpinPage(tmpNode.GetPageId(), false)
 			newMaxLevel++
 		}
 		headerPage.SetCurMaxLevel(newMaxLevel)
+		sl.bpm.UnpinPage(startNode.GetPageId(), false)
 	}
 	sl.bpm.UnpinPage(sl.headerPageID, true)
 

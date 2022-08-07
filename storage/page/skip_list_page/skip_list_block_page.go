@@ -239,8 +239,9 @@ func (node *SkipListBlockPage) Insert(key *types.Value, value uint32, bpm *buffe
 				// insert to new node
 				newSmallerIdx := foundIdx - splitIdx - 1
 				newNodePageId := node.GetForwardEntry(0)
-				page_ := bpm.FetchPage(newNodePageId)
-				newNode := (*SkipListBlockPage)(unsafe.Pointer(page_))
+				//page_ := bpm.FetchPage(newNodePageId)
+				//newNode := (*SkipListBlockPage)(unsafe.Pointer(page_))
+				newNode := skip_list.FetchAndCastToBlockPage(bpm, newNodePageId)
 
 				if (newSmallerIdx + 1) >= newNode.GetEntryCnt() {
 					// when inserting point is next of last entry of new node
@@ -261,6 +262,7 @@ func (node *SkipListBlockPage) Insert(key *types.Value, value uint32, bpm *buffe
 				newNode.SetSmallestKey(newNode.GetEntry(0, key.ValueType()).Key)
 				newNode.SetEntryCnt(int32(len(newNode.GetEntries(key.ValueType()))))
 
+				bpm.UnpinPage(newNode.GetPageId(), true)
 				//fmt.Printf("end of Insert of SkipListBlockPage called! : key=%d page.entryCnt=%d len(page.entries)=%d\n", key.ToInteger(), node.entryCnt, len(node.entries))
 
 				return isMadeNewNode
