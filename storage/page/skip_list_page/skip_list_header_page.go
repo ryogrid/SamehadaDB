@@ -122,15 +122,12 @@ func NewSkipListHeaderPage(bpm *buffer.BufferPoolManager, keyType types.TypeID) 
 	headerPage := (*SkipListHeaderPage)(unsafe.Pointer(headerData))
 	headerPage.SetPageId(page_.GetPageId())
 
-	// TODO: (SDB) need unpin of page_ variable here at on-disk impl
-
-	//headerPage := new(SkipListHeaderPage)
-
 	headerPage.SetListStartPageId(NewSkipListStartBlockPage(bpm, keyType))
 	headerPage.SetCurMaxLevel(1)
 	headerPage.SetKeyType(keyType)
 
+	retPageID := headerPage.GetPageId()
 	bpm.UnpinPage(headerPage.GetPageId(), true)
 
-	return headerPage.GetPageId()
+	return retPageID
 }
