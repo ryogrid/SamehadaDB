@@ -74,6 +74,8 @@ func TestBSearchOfSkipLisBlockPage(t *testing.T) {
 	}
 }
 
+// Attention:
+// if DUMMY_MAX_ENTRY is used on SkipListBlockPage, its value must be bigger than 52
 func TestBSearchOfSkipLisBlockPage2(t *testing.T) {
 	os.Remove("test.db")
 	os.Remove("test.log")
@@ -161,60 +163,60 @@ func confirmSkipListContent(t *testing.T, sl *skip_list.SkipList, step int32) in
 	return entryCnt
 }
 
-//func TestSkipListSimple(t *testing.T) {
-//	os.Remove("test.db")
-//	os.Remove("test.log")
-//
-//	shi := samehada.NewSamehadaInstanceForTesting()
-//	sl := skip_list.NewSkipList(shi.GetBufferPoolManager(), types.Integer)
-//
-//	// override global rand seed (seed has been set on NewSkipList)
-//	rand.Seed(3)
-//
-//	insVals := make([]int32, 0)
-//	for i := 0; i < 250; i++ {
-//		insVals = append(insVals, int32(i*11))
-//	}
-//	// shuffle value list for inserting
-//	rand.Shuffle(len(insVals), func(i, j int) { insVals[i], insVals[j] = insVals[j], insVals[i] })
-//
-//	// Insert entries
-//	insCnt := 0
-//	for _, insVal := range insVals {
-//		//fmt.Printf("insCnt: %d\n", insCnt)
-//		insCnt++
-//		sl.Insert(samehada_util.GetPonterOfValue(types.NewInteger(int32(insVal))), uint32(insVal))
-//	}
-//
-//	//confirmSkipListContent(t, sl, 11)
-//
-//	// Get entries
-//	for i := 0; i < 250; i++ {
-//		//fmt.Printf("get entry i=%d key=%d\n", i, i*11)
-//		res := sl.GetValue(samehada_util.GetPonterOfValue(types.NewInteger(int32(i * 11))))
-//		if res == math.MaxUint32 {
-//			t.Errorf("result should not be nil")
-//		} else {
-//			testingpkg.SimpleAssert(t, uint32(i*11) == res)
-//		}
-//	}
-//
-//	// delete some values
-//	for i := 0; i < 100; i++ {
-//		// check existance before delete
-//		res := sl.GetValue(samehada_util.GetPonterOfValue(types.NewInteger(int32(i * 11))))
-//		//fmt.Printf("check existance before delete : i=%d\n", i)
-//		testingpkg.SimpleAssert(t, res == uint32(i*11))
-//
-//		// check no existance after delete
-//		sl.Remove(samehada_util.GetPonterOfValue(types.NewInteger(int32(i*11))), uint32(i*11))
-//
-//		res = sl.GetValue(samehada_util.GetPonterOfValue(types.NewInteger(int32(i * 11))))
-//		testingpkg.SimpleAssert(t, math.MaxUint32 == res)
-//		//fmt.Println("contents listing after delete")
-//		//confirmSkipListContent(t, sl, -1)
-//	}
-//}
+func TestSkipListSimple(t *testing.T) {
+	os.Remove("test.db")
+	os.Remove("test.log")
+
+	shi := samehada.NewSamehadaInstanceForTesting()
+	sl := skip_list.NewSkipList(shi.GetBufferPoolManager(), types.Integer)
+
+	// override global rand seed (seed has been set on NewSkipList)
+	rand.Seed(3)
+
+	insVals := make([]int32, 0)
+	for i := 0; i < 250; i++ {
+		insVals = append(insVals, int32(i*11))
+	}
+	// shuffle value list for inserting
+	rand.Shuffle(len(insVals), func(i, j int) { insVals[i], insVals[j] = insVals[j], insVals[i] })
+
+	// Insert entries
+	insCnt := 0
+	for _, insVal := range insVals {
+		//fmt.Printf("insCnt: %d\n", insCnt)
+		insCnt++
+		sl.Insert(samehada_util.GetPonterOfValue(types.NewInteger(int32(insVal))), uint32(insVal))
+	}
+
+	//confirmSkipListContent(t, sl, 11)
+
+	// Get entries
+	for i := 0; i < 250; i++ {
+		//fmt.Printf("get entry i=%d key=%d\n", i, i*11)
+		res := sl.GetValue(samehada_util.GetPonterOfValue(types.NewInteger(int32(i * 11))))
+		if res == math.MaxUint32 {
+			t.Errorf("result should not be nil")
+		} else {
+			testingpkg.SimpleAssert(t, uint32(i*11) == res)
+		}
+	}
+
+	// delete some values
+	for i := 0; i < 100; i++ {
+		// check existance before delete
+		res := sl.GetValue(samehada_util.GetPonterOfValue(types.NewInteger(int32(i * 11))))
+		//fmt.Printf("check existance before delete : i=%d\n", i)
+		testingpkg.SimpleAssert(t, res == uint32(i*11))
+
+		// check no existance after delete
+		sl.Remove(samehada_util.GetPonterOfValue(types.NewInteger(int32(i*11))), uint32(i*11))
+
+		res = sl.GetValue(samehada_util.GetPonterOfValue(types.NewInteger(int32(i * 11))))
+		testingpkg.SimpleAssert(t, math.MaxUint32 == res)
+		//fmt.Println("contents listing after delete")
+		//confirmSkipListContent(t, sl, -1)
+	}
+}
 
 //func TestSkipListItrPageBackedOnMem(t *testing.T) {
 //	os.Remove("test.db")

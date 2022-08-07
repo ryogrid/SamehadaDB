@@ -110,13 +110,14 @@ func NewSkipListBlockPage(bpm *buffer.BufferPoolManager, level int32, smallestLi
 	//ret := new(SkipListBlockPage)
 	ret := (*SkipListBlockPage)(unsafe.Pointer(page_))
 	ret.SetPageId(page_.ID())
-	ret.SetEntryCnt(1)
+	ret.SetEntryCnt(0)
 	ret.SetLevel(level)
 	ret.SetIsNeedDeleted(false)
 	ret.initForwardEntries()
 	ret.SetFreeSpacePointer(common.PageSize)
 	//ret.SetEntries(make([]*SkipListPair, 0)) // for first insert works
 	tmpSmallestListPair := smallestListPair
+	// EntryCnt is incremented to 1
 	ret.SetEntry(0, &tmpSmallestListPair)
 	//ret.SetEntries(append(ret.GetEntries(smallestListPair.Key.ValueType()), &tmpSmallestListPair))
 	//ret.SetSmallestKey(smallestListPair.Key)
