@@ -40,6 +40,8 @@ import (
 //  ----------------------------------------------
 
 const (
+	// TODO: (SDB) need to modify codes referencing DUMMY_MAX_ENTRY for on disk support
+	//             above means implemantation of free space amount check at Insert entry at least
 	DUMMY_MAX_ENTRY                     = 10 //50
 	sizePageId                          = uint32(4)
 	sizeLevel                           = uint32(4)
@@ -595,8 +597,6 @@ func (node *SkipListBlockPage) SetEntry(idx int, entry *SkipListPair) {
 }
 
 func (node *SkipListBlockPage) SetEntries(entries []*SkipListPair) {
-	// TODO: (SDB) need to check usage of caller
-
 	buf := new(bytes.Buffer)
 	entryNum := len(entries)
 	// order of entries becomes descending order in contrast with entries arg
