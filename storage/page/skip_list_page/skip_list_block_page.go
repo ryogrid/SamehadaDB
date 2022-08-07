@@ -42,7 +42,7 @@ import (
 const (
 	// TODO: (SDB) need to modify codes referencing DUMMY_MAX_ENTRY for on disk support
 	//             above means implemantation of free space amount check at Insert entry at least
-	DUMMY_MAX_ENTRY                     = 10 //50
+	DUMMY_MAX_ENTRY                     = 100 //10 //50
 	sizePageId                          = uint32(4)
 	sizeLevel                           = uint32(4)
 	sizeEntryCnt                        = uint32(4)
