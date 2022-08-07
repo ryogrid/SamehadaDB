@@ -16,7 +16,6 @@ import (
  */
 
 type SkipList struct {
-	// TODO: (SDB) headerPageID should be replaced from pointer to PageId (SkipList)
 	headerPageID    types.PageID //*skip_list_page.SkipListHeaderPage
 	bpm             *buffer.BufferPoolManager
 	headerPageLatch common.ReaderWriterLatch
@@ -35,16 +34,17 @@ func NewSkipList(bpm *buffer.BufferPoolManager, keyType types.TypeID) *SkipList 
 
 // TODO: (SDB) when on-disk impl, checking whether all connectivity is removed and node deallocation should be done if needed
 func (sl *SkipList) handleDelMarkedNode(delMarkedNode *skip_list_page.SkipListBlockPage, curNode *skip_list_page.SkipListBlockPage, curLevelIdx int32) {
-	curNode.SetForwardEntry(curLevelIdx, delMarkedNode.GetForwardEntry(curLevelIdx))
+	curNode.SetForwardEntry(int(curLevelIdx), delMarkedNode.GetForwardEntry(int(curLevelIdx)))
 
 	// marked connectivity is collectly modified on curLevelIdx
-	delMarkedNode.SetForwardEntry(curLevelIdx, nil)
+	delMarkedNode.SetForwardEntry(int(curLevelIdx), common.InvalidPageID)
 }
 
 // handleDelMarked: isNeedDeleted marked node is found on node traverse, do link modification for complete deletion
 func (sl *SkipList) FindNode(key *types.Value, handleDelMarked bool) (found_node *skip_list_page.SkipListBlockPage, skipPath []*skip_list_page.SkipListBlockPage, skipPathPrev []*skip_list_page.SkipListBlockPage) {
-	hPageData := sl.bpm.FetchPage(sl.headerPageID).Data()
-	headerPage := (*skip_list_page.SkipListHeaderPage)(unsafe.Pointer(hPageData))
+	//hPageData := sl.bpm.FetchPage(sl.headerPageID).Data()
+	//headerPage := (*skip_list_page.SkipListHeaderPage)(unsafe.Pointer(hPageData))
+	headerPage := FetchAndCastToHeaderPage(sl.bpm, sl.headerPageID)
 
 	startPageId := headerPage.GetListStartPageId()
 	page_ := sl.bpm.FetchPage(startPageId)
@@ -57,21 +57,21 @@ func (sl *SkipList) FindNode(key *types.Value, handleDelMarked bool) (found_node
 	skipPathListPrev := make([]*skip_list_page.SkipListBlockPage, headerPage.GetCurMaxLevel())
 	for ii := (headerPage.GetCurMaxLevel() - 1); ii >= 0; ii-- {
 		//fmt.Printf("level %d\n", i)
-		for node.GetForwardEntry(ii).GetSmallestKey().CompareLessThanOrEqual(*key) {
+		for node.GetForwardEntry(int(ii)).GetSmallestKey().CompareLessThanOrEqual(*key) {
 
-			if node.GetForwardEntry(ii).GetIsNeedDeleted() {
+			if node.GetForwardEntry(int(ii)).GetIsNeedDeleted() {
 				// when next node is isNeedDeleted marked node
 				// stop at current node and handle next node
 
 				// handle node (isNeedDeleted marked) and returns appropriate node (prev node at ii + 1 level)
-				sl.handleDelMarkedNode(node.GetForwardEntry(ii), node, ii)
+				sl.handleDelMarkedNode(node.GetForwardEntry(int(ii)), node, ii)
 				if node.GetIsNeedDeleted() {
 					panic("return value of handleDelMarkedNode is invalid!")
 				}
 			} else {
 				// move to next node
 				skipPathListPrev[ii] = node
-				node = node.GetForwardEntry(ii)
+				node = node.GetForwardEntry(int(ii))
 			}
 		}
 		skipPathList[ii] = node
@@ -104,8 +104,9 @@ func (sl *SkipList) Insert(key *types.Value, value uint32) (err error) {
 	// of pointers to the elements which will be
 	// predecessors of the new element.
 
-	hPageData := sl.bpm.FetchPage(sl.headerPageID).Data()
-	headerPage := (*skip_list_page.SkipListHeaderPage)(unsafe.Pointer(hPageData))
+	//hPageData := sl.bpm.FetchPage(sl.headerPageID).Data()
+	//headerPage := (*skip_list_page.SkipListHeaderPage)(unsafe.Pointer(hPageData))
+	headerPage := FetchAndCastToHeaderPage(sl.bpm, sl.headerPageID)
 
 	node, skipPathList, _ := sl.FindNode(key, false)
 	levelWhenNodeSplitOccur := sl.GetNodeLevel()
@@ -127,8 +128,9 @@ func (sl *SkipList) Remove(key *types.Value, value uint32) (isDeleted bool) {
 	node, _, skipPathListPrev := sl.FindNode(key, false)
 	isDeleted_, _ := node.Remove(key, skipPathListPrev)
 
-	hPageData := sl.bpm.FetchPage(sl.headerPageID).Data()
-	headerPage := (*skip_list_page.SkipListHeaderPage)(unsafe.Pointer(hPageData))
+	//hPageData := sl.bpm.FetchPage(sl.headerPageID).Data()
+	//headerPage := (*skip_list_page.SkipListHeaderPage)(unsafe.Pointer(hPageData))
+	headerPage := FetchAndCastToHeaderPage(sl.bpm, sl.headerPageID)
 
 	// if there are no node at *level* except start and end node due to node delete
 	// curMaxLevel should be down to the level
@@ -151,10 +153,12 @@ func (sl *SkipList) Remove(key *types.Value, value uint32) (isDeleted bool) {
 func (sl *SkipList) Iterator(rangeStartKey *types.Value, rangeEndKey *types.Value) *SkipListIterator {
 	ret := new(SkipListIterator)
 
-	hPageData := sl.bpm.FetchPage(sl.headerPageID).Data()
-	headerPage := (*skip_list_page.SkipListHeaderPage)(unsafe.Pointer(hPageData))
-	ret.curNode = headerPage.GetListStartPageId()
+	//hPageData := sl.bpm.FetchPage(sl.headerPageID).Data()
+	//headerPage := (*skip_list_page.SkipListHeaderPage)(unsafe.Pointer(hPageData))
+	headerPage := FetchAndCastToHeaderPage(sl.bpm, sl.headerPageID)
 
+	ret.bpm = sl.bpm
+	ret.curNode = FetchAndCastToBlockPage(sl.bpm, headerPage.GetListStartPageId())
 	ret.curIdx = 0
 	ret.rangeStartKey = rangeStartKey
 	ret.rangeEndKey = rangeEndKey
@@ -176,16 +180,31 @@ func (sl *SkipList) GetNodeLevel() int32 {
 		retLevel++
 	}
 
-	hPageData := sl.bpm.FetchPage(sl.headerPageID).Data()
-	headerPage := (*skip_list_page.SkipListHeaderPage)(unsafe.Pointer(hPageData))
+	//hPageData := sl.bpm.FetchPage(sl.headerPageID).Data()
+	//headerPage := (*skip_list_page.SkipListHeaderPage)(unsafe.Pointer(hPageData))
+	headerPage := FetchAndCastToHeaderPage(sl.bpm, sl.headerPageID)
 	ret := int32(math.Min(float64(retLevel), float64(headerPage.GetCurMaxLevel())))
 	sl.bpm.UnpinPage(sl.headerPageID, false)
 
 	return ret
 }
 
-// TODO: (SDB) not implemented (SkipList::GetHeaderPageId)
 func (sl *SkipList) GetHeaderPageId() types.PageID {
-	//return sl.headerPageID
-	return types.InvalidPageID
+	return sl.headerPageID
+}
+
+// TODO: (SDB) in concurrent impl, locking in this method is needed. and caller must do unlock (FectchAndCastToBlockPage)
+// Attention:
+//   caller must call UnpinPage with appropriate diaty page to the got page when page using ends
+func FetchAndCastToBlockPage(bpm *buffer.BufferPoolManager, pageId types.PageID) *skip_list_page.SkipListBlockPage {
+	bPage := bpm.FetchPage(pageId)
+	return (*skip_list_page.SkipListBlockPage)(unsafe.Pointer(bPage))
+}
+
+// TODO: (SDB) in concurrent impl, locking in this method is needed. and caller must do unlock (FectchAndCastToBlockPage)
+// Attention:
+//   caller must call UnpinPage with appropriate diaty page to the got page when page using ends
+func FetchAndCastToHeaderPage(bpm *buffer.BufferPoolManager, pageId types.PageID) *skip_list_page.SkipListHeaderPage {
+	hPageData := bpm.FetchPage(pageId).Data()
+	return (*skip_list_page.SkipListHeaderPage)(unsafe.Pointer(hPageData))
 }
