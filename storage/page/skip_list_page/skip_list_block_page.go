@@ -70,13 +70,23 @@ type SkipListPair struct {
 }
 
 func (sp SkipListPair) Serialize() []byte {
-	// TODO: (SDB) not implemented yet (SkipListPair::Serialize)
-	return nil
+	keyInBytes := sp.Key.Serialize()
+	valBuf := new(bytes.Buffer)
+	binary.Write(valBuf, binary.LittleEndian, sp.Value)
+	valInBytes := valBuf.Bytes()
+
+	retBuf := new(bytes.Buffer)
+	retBuf.Write(keyInBytes)
+	retBuf.Write(valInBytes)
+	return retBuf.Bytes()
 }
 
 func NewSkipListPairFromBytes(buf []byte, keyType types.TypeID) *SkipListPair {
-	// TODO: (SDB) not implemented yet (SkipListPair::NewSkipListPairFromBytes)
-	return nil
+	dataLen := len(buf)
+	valPartOffset := dataLen - int(sizeEntryValue)
+	key := types.NewValueFromBytes(buf[:valPartOffset], keyType)
+	value := uint32(types.NewUInt32FromBytes(buf[valPartOffset:]))
+	return &SkipListPair{*key, value}
 }
 
 type SkipListBlockPage struct {
