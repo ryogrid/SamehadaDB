@@ -8,12 +8,6 @@ import (
 )
 
 type SkipListIterator struct {
-	//bpm        *buffer.BufferPoolManager
-	//headerPageID *skip_list_page.SkipListHeaderPage
-	//bucket     uint32
-	//offset     uint32
-	//blockId    types.PageID
-	//blockPage  *skip_list_page.SkipListBlockPage
 	bpm           *buffer.BufferPoolManager
 	curNode       *skip_list_page.SkipListBlockPage
 	curEntry      *skip_list_page.SkipListPair
