@@ -98,16 +98,28 @@ func NewSkipListBlockPage(bpm *buffer.BufferPoolManager, level int32, smallestLi
 	//ret := new(SkipListBlockPage)
 	ret := (*SkipListBlockPage)(unsafe.Pointer(page_))
 	ret.SetPageId(page_.ID())
-	ret.SetEntries(make([]*SkipListPair, 0)) // for first insert works
-	tmpSmallestListPair := smallestListPair
-	ret.SetEntries(append(ret.GetEntries(smallestListPair.Key.ValueType()), &tmpSmallestListPair))
-	ret.SetSmallestKey(smallestListPair.Key)
 	ret.SetEntryCnt(1)
+	ret.SetLevel(level)
+	ret.SetIsNeedDeleted(false)
+	ret.initForwardEntries()
+	ret.SetFreeSpacePointer(common.PageSize)
+	//ret.SetEntries(make([]*SkipListPair, 0)) // for first insert works
+	tmpSmallestListPair := smallestListPair
+	ret.SetEntry(0, &tmpSmallestListPair)
+	//ret.SetEntries(append(ret.GetEntries(smallestListPair.Key.ValueType()), &tmpSmallestListPair))
+	//ret.SetSmallestKey(smallestListPair.Key)
+
 	//ret.SetMaxEntry(DUMMY_MAX_ENTRY)
 	//ret.SetForward(make([]*SkipListBlockPage, level))
 	//ret.Backward = make([]*SkipListBlockPage, level)
 
 	return ret
+}
+
+func (node *SkipListBlockPage) initForwardEntries() {
+	for ii := 0; ii < MAX_FOWARD_LIST_LEN; ii++ {
+		node.SetForwardEntry(ii, common.InvalidPageID)
+	}
 }
 
 // Gets the entry at index in this node
@@ -376,7 +388,7 @@ func (node *SkipListBlockPage) SplitNode(idx int32, bpm *buffer.BufferPoolManage
 	if level > curMaxLevel {
 		skipPathList[level-1] = startNode
 	}
-	for ii := int32(0); ii < level; ii++ {
+	for ii := 0; ii < int(level); ii++ {
 		// modify forward link
 		newNode.SetForwardEntry(ii, skipPathList[ii].GetForwardEntry(ii))
 		skipPathList[ii].SetForwardEntry(ii, newNode.GetPageId())
@@ -468,12 +480,12 @@ func (node *SkipListBlockPage) SetSmallestKey(key types.Value) {
 //	node.forward = fwd
 //}
 
-func (node *SkipListBlockPage) GetForwardEntry(idx int32) types.PageID {
+func (node *SkipListBlockPage) GetForwardEntry(idx int) types.PageID {
 	return types.NewPageIDFromBytes(node.Data()[offsetForward+uint32(idx)*sizeForwardEntry:])
 	//return node.forward[idx]
 }
 
-func (node *SkipListBlockPage) SetForwardEntry(idx int32, fwdNodeId types.PageID) {
+func (node *SkipListBlockPage) SetForwardEntry(idx int, fwdNodeId types.PageID) {
 	buf := new(bytes.Buffer)
 	binary.Write(buf, binary.LittleEndian, fwdNodeId)
 	fwdNodeIdInBytes := buf.Bytes()
@@ -561,28 +573,36 @@ func (node *SkipListBlockPage) GetEntry(idx int, keyType types.TypeID) *SkipList
 	//return node.entries[idx]
 }
 
-// this method is called only when it is guranteed that new entry insert
-// doesn't cause overflow of node space capacity
+// ATTENTION:
+// this method can be called only when...
+//  - it is guranteed that new entry insert doesn't cause overflow of node space capacity
+//  - key of target entry doesn't exist in this node
 func (node *SkipListBlockPage) SetEntry(idx int, entry *SkipListPair) {
-	// TODO: (SDB) not implemented yet (SkipListBlockPage::SetEntry)
-	//             updating of header info should be included
-
 	// at current design,
 	// - duplicated key is not supported
 	// - this SkipList is used for index of RDBMS, so update of value part (stores record data offset at DB file)
 	//   doesn't occur on thisl method call (it is guranteed by caller)
 	//     => - it is guranteed that key of entry doesn't exist in this node
-	//     => - passed data can be placed to tail of entry data area (address is specified by freeSpacePointer value)
+	//     => - passed data can be placed to tail of entry data area (address is specified by freeSpacePointer)
 	appendData := entry.Serialize()
-
-	//node.entries[idx] = entry
+	entrySize := uint32(len(appendData))
+	newFSP := node.GetFreeSpacePointer() - entrySize
+	copy(node.Data()[newFSP:], appendData)
+	node.SetFreeSpacePointer(newFSP)
+	node.SetEntryOffset(idx, newFSP)
+	node.SetEntrySize(idx, entrySize)
+	node.SetEntryCnt(node.GetEntryCnt() + 1)
 }
 
 func (node *SkipListBlockPage) SetEntries(entries []*SkipListPair) {
-	entryNum := len(entries)
-	for ii := 0; ii < entryNum; ii++ {
-		node.SetEntry(ii, entries[ii])
-	}
+	// TODO: (SDB) need to implement without SetEntry method call and check usage of caller
+	//             because SetEntry method
+
+	//entryNum := len(entries)
+	//for ii := 0; ii < entryNum; ii++ {
+	//	node.SetEntry(ii, entries[ii])
+	//}
+
 	//node.entries = entries
 }
 
