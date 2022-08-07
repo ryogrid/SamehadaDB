@@ -88,7 +88,7 @@ type SkipListBlockPage struct {
 	////smallestKey   types.Value
 }
 
-// TODO: (SDB) caller should UnpinPage with appropriate dirty flag call to returned object
+// TODO: (SDB) caller must call UnpinPage with appropriate dirty flag call to returned object
 func NewSkipListBlockPage(bpm *buffer.BufferPoolManager, level int32, smallestListPair SkipListPair) *SkipListBlockPage {
 	page_ := bpm.NewPage()
 	if page_ == nil {
@@ -595,15 +595,31 @@ func (node *SkipListBlockPage) SetEntry(idx int, entry *SkipListPair) {
 }
 
 func (node *SkipListBlockPage) SetEntries(entries []*SkipListPair) {
-	// TODO: (SDB) need to implement without SetEntry method call and check usage of caller
-	//             because SetEntry method
+	// TODO: (SDB) need to check usage of caller
 
-	//entryNum := len(entries)
-	//for ii := 0; ii < entryNum; ii++ {
-	//	node.SetEntry(ii, entries[ii])
-	//}
+	buf := new(bytes.Buffer)
+	entryNum := len(entries)
+	// order of entries becomes descending order in contrast with entries arg
+	entryOffset := int(common.PageSize)
+	for ii := entryNum - 1; ii >= 0; ii-- {
+		entry := entries[ii]
+		entryData := entry.Serialize()
+		buf.Write(entryData)
 
-	//node.entries = entries
+		// update each entry location info in header
+		entrySize := len(entryData)
+		entryOffset = entryOffset - entrySize
+		node.SetEntryOffset(ii, uint32(entryOffset))
+		node.SetEntrySize(ii, uint32(entrySize))
+	}
+	entriesInBytes := buf.Bytes()
+	copySize := len(entriesInBytes)
+	offset := common.PageSize - copySize
+	copy(node.Data()[offset:], entriesInBytes)
+
+	// update entries info in header
+	node.SetFreeSpacePointer(uint32(offset))
+	node.SetEntryCnt(int32(entryNum))
 }
 
 func (node *SkipListBlockPage) GetIsNeedDeleted() bool {
