@@ -22,16 +22,17 @@ import (
 //  | PageId (4)| level (4)| entryCnt (4)| isNeedDeleted (1)| forward (4 * MAX_FOWARD_LIST_LEN) | FreeSpacePointer(4) |
 //  ------------------------------------------------------------------------------------------------------------------
 //  -------------------------------------------------------------
-//  | Entry_1 offset (4) | Entry_1 size (4) | ..................|
+//  | Entry_0 offset (4) | Entry_0 size (4) | ..................|
 //  ------------------------------------------------------------
 //  ^ offsetEntryInfos (=sizeBlockPageHeaderExceptEntryInfos)
 //
 //  Entries format (size in bytes):
-//  -----------------------------------------------------------------------------------------------------------------------------
-//  | HEADER | ... FREE SPACE ... | ...............| Entry2_key (1+x) | Entry_2 value (4) | Entry1_key (1+x) | Entry_1 value (4)|
-//  ----------------------------------------------------------------------------------------------------------------------------
-//                                                ^ <-------------- size ---------------> ^ <-------------- size --------------->
-//                                         offset(from buffer head)                   offset(...)
+//  ----------------------------------------------------------------------------------------------------------------------------------
+//  | HEADER | ... FREE SPACE ... | ....more entries....| Entry1_key (1+x) | Entry_1 value (4) | Entry0_key (1+x) | Entry_0 value (4)|
+//  ---------------------------------------------------------------------------------------------------------------------------------
+//                                ^                    ^ <-------------- size ---------------> ^ <-------------- size --------------->
+//                                freeSpacePointer     offset(from page head)                  offset(...)
+//
 //  Entry_key format (size in bytes)
 //    = Serialized types.Value
 //  ----------------------------------------------
@@ -186,7 +187,11 @@ func (node *SkipListBlockPage) Insert(key *types.Value, value uint32, bpm *buffe
 		//fmt.Println("found at Insert")
 		// over write exsiting entry
 		if !node.GetEntry(int(foundIdx), key.ValueType()).Key.CompareEquals(*key) {
-			panic("overwriting wrong value!")
+			panic("overwriting wrong entry!")
+		}
+
+		if node.GetEntry(int(foundIdx), key.ValueType()).Key.CompareEquals(*key) {
+			panic("key duplication is not supported yet!")
 		}
 
 		node.SetEntry(int(foundIdx), &SkipListPair{*key, value})
@@ -451,7 +456,7 @@ func (node *SkipListBlockPage) GetSmallestKey(keyType types.TypeID) types.Value 
 
 func (node *SkipListBlockPage) SetSmallestKey(key types.Value) {
 	//node.smallestKey = key
-	// TODO: (SDB) debug: do nothing here
+	// TODO: (SDB) this method and calling of this method should be removed (SetSmallestKey)
 }
 
 //func (node *SkipListBlockPage) GetForward() [MAX_FOWARD_LIST_LEN]*SkipListBlockPage {
@@ -514,10 +519,40 @@ func (node *SkipListBlockPage) GetEntryOffset(idx int) uint32 {
 	return uint32(types.NewUInt32FromBytes(node.Data()[offset : offset+sizeEntryInfoOffset]))
 }
 
+func (node *SkipListBlockPage) SetEntryOffset(idx int, setOffset uint32) {
+	buf := new(bytes.Buffer)
+	binary.Write(buf, binary.LittleEndian, setOffset)
+	setOffsetInBytes := buf.Bytes()
+	offset := offsetEntryInfos + sizeEntryInfo*uint32(idx)
+	copy(node.Data()[offset:], setOffsetInBytes)
+}
+
 func (node *SkipListBlockPage) GetEntrySize(idx int) uint32 {
 	offset := offsetEntryInfos + sizeEntryInfo*uint32(idx) + sizeEntryInfoOffset
 
 	return uint32(types.NewUInt32FromBytes(node.Data()[offset : offset+sizeEntryInfoSize]))
+}
+
+func (node *SkipListBlockPage) SetEntrySize(idx int, setSize uint32) {
+	buf := new(bytes.Buffer)
+	binary.Write(buf, binary.LittleEndian, setSize)
+	setSizeInBytes := buf.Bytes()
+	offset := offsetEntryInfos + sizeEntryInfo*uint32(idx) + sizeEntryInfoOffset
+	copy(node.Data()[offset:], setSizeInBytes)
+}
+
+func (node *SkipListBlockPage) GetFreeSpacePointer(idx int) uint32 {
+	offset := offsetFreeSpacePointer
+
+	return uint32(types.NewUInt32FromBytes(node.Data()[offset : offset+sizeFreeSpacePointer]))
+}
+
+func (node *SkipListBlockPage) SetFreeSpacePointer(idx int, pointOffset uint32) {
+	buf := new(bytes.Buffer)
+	binary.Write(buf, binary.LittleEndian, pointOffset)
+	pointOffsetInBytes := buf.Bytes()
+	offset := offsetFreeSpacePointer
+	copy(node.Data()[offset:], pointOffsetInBytes)
 }
 
 func (node *SkipListBlockPage) GetEntry(idx int, keyType types.TypeID) *SkipListPair {
@@ -526,8 +561,21 @@ func (node *SkipListBlockPage) GetEntry(idx int, keyType types.TypeID) *SkipList
 	//return node.entries[idx]
 }
 
+// this method is called only when it is guranteed that new entry insert
+// doesn't cause overflow of node space capacity
 func (node *SkipListBlockPage) SetEntry(idx int, entry *SkipListPair) {
-	node.entries[idx] = entry
+	// TODO: (SDB) not implemented yet (SkipListBlockPage::SetEntry)
+	//             updating of header info should be included
+
+	// at current design,
+	// - duplicated key is not supported
+	// - this SkipList is used for index of RDBMS, so update of value part (stores record data offset at DB file)
+	//   doesn't occur on thisl method call (it is guranteed by caller)
+	//     => - it is guranteed that key of entry doesn't exist in this node
+	//     => - passed data can be placed to tail of entry data area (address is specified by freeSpacePointer value)
+	appendData := entry.Serialize()
+
+	//node.entries[idx] = entry
 }
 
 func (node *SkipListBlockPage) SetEntries(entries []*SkipListPair) {
