@@ -613,8 +613,9 @@ func (node *SkipListBlockPage) SetEntry(idx int, entry *SkipListPair) {
 func (node *SkipListBlockPage) SetEntries(entries []*SkipListPair) {
 	buf := new(bytes.Buffer)
 	entryNum := len(entries)
-	// order of entries becomes descending order in contrast with entries arg
-	entryOffset := int(common.PageSize)
+	// order of elements on buf becomes descending order in contrast with entries arg
+
+	entrySizes := make([]uint32, entryNum)
 	for ii := entryNum - 1; ii >= 0; ii-- {
 		entry := entries[ii]
 		entryData := entry.Serialize()
@@ -622,14 +623,21 @@ func (node *SkipListBlockPage) SetEntries(entries []*SkipListPair) {
 
 		// update each entry location info in header
 		entrySize := len(entryData)
-		entryOffset = entryOffset - entrySize
-		node.SetEntryOffset(ii, uint32(entryOffset))
 		node.SetEntrySize(ii, uint32(entrySize))
+		entrySizes[ii] = uint32(entrySize)
 	}
 	entriesInBytes := buf.Bytes()
 	copySize := len(entriesInBytes)
 	offset := common.PageSize - copySize
 	copy(node.Data()[offset:], entriesInBytes)
+
+	// set entry offset infos here
+	// because offset info can't calculate above loop efficiently
+	entryOffset := uint32(common.PageSize)
+	for ii := 0; ii < entryNum; ii++ {
+		entryOffset = entryOffset - entrySizes[ii]
+		node.SetEntryOffset(ii, entryOffset)
+	}
 
 	// update entries info in header
 	node.SetFreeSpacePointer(uint32(offset))
