@@ -349,7 +349,9 @@ func (node *SkipListBlockPage) Remove(key *types.Value, skipPathList []types.Pag
 		//}
 
 		// this node does not block node traverse in key value compare
-		node.GetSmallestKey(key.ValueType()).SetInfMin()
+		tmpEntries := make([]*SkipListPair, 0)
+		tmpEntries = append(tmpEntries, &SkipListPair{*node.GetSmallestKey(key.ValueType()).SetInfMin(), 0})
+		node.SetEntries(tmpEntries)
 
 		node.SetIsNeedDeleted(true)
 
