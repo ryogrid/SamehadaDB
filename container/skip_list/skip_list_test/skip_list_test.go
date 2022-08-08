@@ -481,8 +481,8 @@ func removeRandom(t *testing.T, sl *skip_list.SkipList, opStep int32, num int32)
 	}
 }
 
-func testSkipLisMixOpPageBackedOnMemInner(t *testing.T, bulkSize int32, opTimes uint8, skipRand uint8, initialEntryNum uint16) {
-	common.ShPrintf(common.DEBUG, "start of testSkipLisMixOpPageBackedOnMemInner bulkSize=%d opTimes=%d skipRand=%d initialEntryNum=%d ====================================================\n",
+func testSkipLisMix(t *testing.T, bulkSize int32, opTimes uint8, skipRand uint8, initialEntryNum uint16) {
+	common.ShPrintf(common.DEBUG, "start of testSkipLisMix bulkSize=%d opTimes=%d skipRand=%d initialEntryNum=%d ====================================================\n",
 		bulkSize, opTimes, skipRand, initialEntryNum)
 
 	checkDupMap := make(map[int32]int32)
@@ -514,7 +514,7 @@ func testSkipLisMixOpPageBackedOnMemInner(t *testing.T, bulkSize int32, opTimes 
 			}
 			checkDupMap[insVal] = insVal
 
-			//fmt.Printf("sl.Insert at testSkipLisMixOpPageBackedOnMemInner for initial entry: ii=%d, insVal=%d len(*insVals)=%d len(*removedVals)=%d\n", ii, insVal, len(insVals), len(removedVals))
+			//fmt.Printf("sl.Insert at testSkipLisMix for initial entry: ii=%d, insVal=%d len(*insVals)=%d len(*removedVals)=%d\n", ii, insVal, len(insVals), len(removedVals))
 			sl.Insert(samehada_util.GetPonterOfValue(types.NewInteger(int32(insVal))), uint32(insVal))
 			insVals = append(insVals, insVal)
 			entriesOnListNum++
@@ -581,7 +581,7 @@ func testSkipLisMixOpPageBackedOnMemInner(t *testing.T, bulkSize int32, opTimes 
 		case 2: // Get
 			if len(insVals) > 0 {
 				tmpIdx := int(rand.Intn(len(insVals)))
-				//fmt.Printf("sl.GetValue at testSkipLisMixOpPageBackedOnMemInner: ii=%d, tmpIdx=%d insVals[tmpIdx]=%d len(*insVals)=%d len(*removedVals)=%d\n", ii, tmpIdx, insVals[tmpIdx], len(insVals), len(removedVals))
+				//fmt.Printf("sl.GetValue at testSkipLisMix: ii=%d, tmpIdx=%d insVals[tmpIdx]=%d len(*insVals)=%d len(*removedVals)=%d\n", ii, tmpIdx, insVals[tmpIdx], len(insVals), len(removedVals))
 				gotVal := sl.GetValue(samehada_util.GetPonterOfValue(types.NewInteger(int32(insVals[tmpIdx]))))
 				if entriesOnListNum != countSkipListContent(sl) || entriesOnListNum != int32(len(insVals)) || removedEntriesNum != int32(len(removedVals)) {
 					fmt.Printf("entries num on list is strange! %d != (%d or %d) / %d != %d\n", entriesOnListNum, countSkipListContent(sl), len(insVals), removedEntriesNum, len(removedVals))
@@ -605,34 +605,34 @@ func testSkipLisMixOpPageBackedOnMemInner(t *testing.T, bulkSize int32, opTimes 
 
 var bpm *buffer.BufferPoolManager
 
-//func TestSkipLisMixOpPageBackedOnMem(t *testing.T) {
-//	os.Remove("test.db")
-//	os.Remove("test.log")
-//
-//	shi := samehada.NewSamehadaInstanceForTesting()
-//	bpm = shi.GetBufferPoolManager()
-//
-//	testSkipLisMixOpPageBackedOnMemInner(t, 1, uint8(150), uint8(10), uint16(0))
-//	testSkipLisMixOpPageBackedOnMemInner(t, 1, uint8(150), uint8(10), uint16(300))
-//	testSkipLisMixOpPageBackedOnMemInner(t, 1, uint8(150), uint8(10), uint16(600))
-//	testSkipLisMixOpPageBackedOnMemInner(t, 1, uint8(200), uint8(5), uint16(10))
-//	testSkipLisMixOpPageBackedOnMemInner(t, 1, uint8(250), uint8(5), uint16(10))
-//	testSkipLisMixOpPageBackedOnMemInner(t, 1, uint8(250), uint8(4), uint16(0))
-//	testSkipLisMixOpPageBackedOnMemInner(t, 1, uint8(250), uint8(3), uint16(0))
-//
-//	testSkipLisMixOpPageBackedOnMemInner(t, 50, uint8(150), uint8(10), uint16(0))
-//	testSkipLisMixOpPageBackedOnMemInner(t, 50, uint8(150), uint8(10), uint16(300))
-//	testSkipLisMixOpPageBackedOnMemInner(t, 50, uint8(150), uint8(10), uint16(600))
-//	testSkipLisMixOpPageBackedOnMemInner(t, 50, uint8(200), uint8(5), uint16(10))
-//	testSkipLisMixOpPageBackedOnMemInner(t, 50, uint8(250), uint8(5), uint16(10))
-//	testSkipLisMixOpPageBackedOnMemInner(t, 50, uint8(250), uint8(4), uint16(0))
-//	testSkipLisMixOpPageBackedOnMemInner(t, 50, uint8(250), uint8(3), uint16(0))
-//
-//	testSkipLisMixOpPageBackedOnMemInner(t, 100, uint8(150), uint8(10), uint16(0))
-//	testSkipLisMixOpPageBackedOnMemInner(t, 100, uint8(150), uint8(10), uint16(300))
-//	testSkipLisMixOpPageBackedOnMemInner(t, 100, uint8(150), uint8(10), uint16(600))
-//	testSkipLisMixOpPageBackedOnMemInner(t, 100, uint8(200), uint8(5), uint16(10))
-//	testSkipLisMixOpPageBackedOnMemInner(t, 100, uint8(250), uint8(5), uint16(10))
-//	testSkipLisMixOpPageBackedOnMemInner(t, 100, uint8(250), uint8(4), uint16(0))
-//	testSkipLisMixOpPageBackedOnMemInner(t, 100, uint8(250), uint8(3), uint16(0))
-//}
+func TestSkipLisMix(t *testing.T) {
+	os.Remove("test.db")
+	os.Remove("test.log")
+
+	shi := samehada.NewSamehadaInstanceForTesting()
+	bpm = shi.GetBufferPoolManager()
+
+	testSkipLisMix(t, 1, uint8(150), uint8(10), uint16(0))
+	testSkipLisMix(t, 1, uint8(150), uint8(10), uint16(300))
+	testSkipLisMix(t, 1, uint8(150), uint8(10), uint16(600))
+	testSkipLisMix(t, 1, uint8(200), uint8(5), uint16(10))
+	testSkipLisMix(t, 1, uint8(250), uint8(5), uint16(10))
+	testSkipLisMix(t, 1, uint8(250), uint8(4), uint16(0))
+	testSkipLisMix(t, 1, uint8(250), uint8(3), uint16(0))
+
+	testSkipLisMix(t, 50, uint8(150), uint8(10), uint16(0))
+	testSkipLisMix(t, 50, uint8(150), uint8(10), uint16(300))
+	testSkipLisMix(t, 50, uint8(150), uint8(10), uint16(600))
+	testSkipLisMix(t, 50, uint8(200), uint8(5), uint16(10))
+	testSkipLisMix(t, 50, uint8(250), uint8(5), uint16(10))
+	testSkipLisMix(t, 50, uint8(250), uint8(4), uint16(0))
+	testSkipLisMix(t, 50, uint8(250), uint8(3), uint16(0))
+
+	testSkipLisMix(t, 100, uint8(150), uint8(10), uint16(0))
+	testSkipLisMix(t, 100, uint8(150), uint8(10), uint16(300))
+	testSkipLisMix(t, 100, uint8(150), uint8(10), uint16(600))
+	testSkipLisMix(t, 100, uint8(200), uint8(5), uint16(10))
+	testSkipLisMix(t, 100, uint8(250), uint8(5), uint16(10))
+	testSkipLisMix(t, 100, uint8(250), uint8(4), uint16(0))
+	testSkipLisMix(t, 100, uint8(250), uint8(3), uint16(0))
+}
