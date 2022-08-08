@@ -413,6 +413,7 @@ func (node *SkipListBlockPage) SplitNode(idx int32, bpm *buffer.BufferPoolManage
 		tmpNode.SetForwardEntry(ii, newNode.GetPageId())
 		bpm.UnpinPage(tmpNode.GetPageId(), true)
 	}
+	bpm.UnpinPage(newNode.GetPageId(), true)
 }
 
 //func (node *SkipListBlockPage) ToDebugString() string {
