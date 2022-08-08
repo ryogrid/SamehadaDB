@@ -104,7 +104,8 @@ type SkipListBlockPage struct {
 func NewSkipListBlockPage(bpm *buffer.BufferPoolManager, level int32, smallestListPair SkipListPair) *SkipListBlockPage {
 	page_ := bpm.NewPage()
 	if page_ == nil {
-		return nil
+		panic("NewPage can't allocate more page!")
+		//return nil
 	}
 
 	//ret := new(SkipListBlockPage)
@@ -135,10 +136,10 @@ func (node *SkipListBlockPage) initForwardEntries() {
 	}
 }
 
-// Gets the entry at index in this node
-func (node *SkipListBlockPage) EntryAt(idx int32, keyType types.TypeID) *SkipListPair {
-	return node.GetEntry(int(idx), keyType)
-}
+//// Gets the entry at index in this node
+//func (node *SkipListBlockPage) EntryAt(idx int32, keyType types.TypeID) *SkipListPair {
+//	return node.GetEntry(int(idx), keyType)
+//}
 
 // Gets the key at index in this node
 func (node *SkipListBlockPage) KeyAt(idx int32, keyType types.TypeID) *types.Value {
@@ -179,7 +180,7 @@ func (node *SkipListBlockPage) FindEntryByKey(key *types.Value) (found bool, ent
 		for lowIdx <= highIdx {
 			midIdx = (lowIdx + highIdx) / 2
 			if node.KeyAt(midIdx, key.ValueType()).CompareEquals(*key) {
-				return true, node.EntryAt(midIdx, key.ValueType()), midIdx
+				return true, node.GetEntry(int(midIdx), key.ValueType()), midIdx
 			} else if node.KeyAt(midIdx, key.ValueType()).CompareLessThan(*key) {
 				lowIdx = midIdx + 1
 			} else {
@@ -187,12 +188,12 @@ func (node *SkipListBlockPage) FindEntryByKey(key *types.Value) (found bool, ent
 			}
 		}
 		if lowIdx < highIdx {
-			return false, node.EntryAt(lowIdx, key.ValueType()), lowIdx
+			return false, node.GetEntry(int(lowIdx), key.ValueType()), lowIdx
 		} else {
 			if highIdx < 0 {
-				return false, node.EntryAt(0, key.ValueType()), 0
+				return false, node.GetEntry(0, key.ValueType()), 0
 			} else {
-				return false, node.EntryAt(highIdx, key.ValueType()), highIdx
+				return false, node.GetEntry(int(highIdx), key.ValueType()), highIdx
 			}
 		}
 	}
