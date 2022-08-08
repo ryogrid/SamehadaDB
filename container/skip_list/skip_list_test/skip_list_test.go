@@ -6,6 +6,7 @@ import (
 	"github.com/ryogrid/SamehadaDB/container/skip_list"
 	"github.com/ryogrid/SamehadaDB/samehada"
 	"github.com/ryogrid/SamehadaDB/samehada/samehada_util"
+	"github.com/ryogrid/SamehadaDB/storage/buffer"
 	"github.com/ryogrid/SamehadaDB/storage/page/skip_list_page"
 	testingpkg "github.com/ryogrid/SamehadaDB/testing"
 	"github.com/ryogrid/SamehadaDB/types"
@@ -519,11 +520,11 @@ func testSkipLisMix(t *testing.T, bulkSize int32, opTimes uint8, skipRand uint8,
 	common.ShPrintf(common.DEBUG, "start of testSkipLisMix bulkSize=%d opTimes=%d skipRand=%d initialEntryNum=%d ====================================================\n",
 		bulkSize, opTimes, skipRand, initialEntryNum)
 
-	os.Remove("test.db")
-	os.Remove("test.log")
-
-	shi := samehada.NewSamehadaInstanceForTesting()
-	bpm := shi.GetBufferPoolManager()
+	//os.Remove("test.db")
+	//os.Remove("test.log")
+	//
+	//shi := samehada.NewSamehadaInstanceForTesting()
+	//bpm := shi.GetBufferPoolManager()
 
 	checkDupMap := make(map[int32]int32)
 
@@ -642,12 +643,19 @@ func testSkipLisMix(t *testing.T, bulkSize int32, opTimes uint8, skipRand uint8,
 		}
 	}
 
-	shi.Finalize(false)
+	//shi.Finalize(false)
 }
 
-//var bpm *buffer.BufferPoolManager
+var bpm *buffer.BufferPoolManager
 
 func TestSkipLisMix(t *testing.T) {
+	os.Remove("test.db")
+	os.Remove("test.log")
+
+	//shi := samehada.NewSamehadaInstanceForTesting()
+	shi := samehada.NewSamehadaInstance("test", 10*1024) // buffer is about 40MB
+	bpm = shi.GetBufferPoolManager()
+
 	testSkipLisMix(t, 1, uint8(150), uint8(10), uint16(0))
 	testSkipLisMix(t, 1, uint8(150), uint8(10), uint16(300))
 	testSkipLisMix(t, 1, uint8(150), uint8(10), uint16(600))

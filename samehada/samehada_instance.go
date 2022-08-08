@@ -26,6 +26,7 @@ func NewSamehadaInstanceForTesting() *SamehadaInstance {
 
 // reset program state except for variables on testcase function
 // and db/log file
+// bpoolSize: usable buffer size in frame(=page) num
 func NewSamehadaInstance(dbName string, bpoolSize int) *SamehadaInstance {
 	common.EnableLogging = true
 
