@@ -61,6 +61,7 @@ func (sl *SkipList) FindNode(key *types.Value) (found_node *skip_list_page.SkipL
 		for {
 			tmpNode := skip_list_page.FetchAndCastToBlockPage(sl.bpm, node.GetForwardEntry(int(ii)))
 			if tmpNode == nil {
+				common.ShPrintf(common.FATAL, "PageID to passed FetchAndCastToBlockPage is %d\n", node.GetForwardEntry(int(ii)))
 				panic("SkipList::FindNode: FetchAndCastToBlockPage returned nil!")
 			}
 			if tmpNode.GetSmallestKey(key.ValueType()).CompareLessThanOrEqual(*key) {
