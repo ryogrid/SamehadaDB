@@ -16,6 +16,41 @@ import (
 	"testing"
 )
 
+func TestSerializationOfSkipLisBlockPage(t *testing.T) {
+	os.Remove("test.db")
+	os.Remove("test.log")
+	shi := samehada.NewSamehadaInstanceForTesting()
+	bpm := shi.GetBufferPoolManager()
+
+	bpage := skip_list_page.NewSkipListBlockPage(bpm, 1, skip_list_page.SkipListPair{
+		Key:   types.NewInteger(math.MinInt32),
+		Value: 0,
+	})
+
+	bpage.SetPageId(7)
+	bpage.SetEntryCnt(1)
+	bpage.SetLevel(4)
+	bpage.SetIsNeedDeleted(true)
+	bpage.SetForwardEntry(5, types.PageID(11))
+	bpage.SetFreeSpacePointer(1234)
+	// EntryCnt is incremented to 2
+	// freeSpacePointer is decremented size of entry (1+2+7+4 => 14)
+	bpage.SetEntry(1, &skip_list_page.SkipListPair{types.NewVarchar("abcdeff"), 12345})
+
+	testingpkg.SimpleAssert(t, bpage.GetPageId() == 7)
+	testingpkg.SimpleAssert(t, bpage.GetEntryCnt() == 2)
+	testingpkg.SimpleAssert(t, bpage.GetLevel() == 4)
+	testingpkg.SimpleAssert(t, bpage.GetIsNeedDeleted() == true)
+	testingpkg.SimpleAssert(t, bpage.GetForwardEntry(5) == types.PageID(11))
+
+	testingpkg.SimpleAssert(t, bpage.GetFreeSpacePointer() == (1234-14))
+	entry := bpage.GetEntry(1, types.Varchar)
+	testingpkg.SimpleAssert(t, entry.Key.CompareEquals(types.NewVarchar("abcdeff")))
+	testingpkg.SimpleAssert(t, entry.Value == 12345)
+
+	shi.Finalize(false)
+}
+
 func TestBSearchOfSkipLisBlockPage(t *testing.T) {
 	os.Remove("test.db")
 	os.Remove("test.log")

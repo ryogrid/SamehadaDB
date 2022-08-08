@@ -465,7 +465,7 @@ func (node *SkipListBlockPage) SetPageId(pageId types.PageID) {
 }
 
 func (node *SkipListBlockPage) GetLevel() int32 {
-	return int32(types.NewInt32FromBytes(node.Data()[offsetPageId:]))
+	return int32(types.NewInt32FromBytes(node.Data()[offsetLevel:]))
 	//return node.level
 }
 
