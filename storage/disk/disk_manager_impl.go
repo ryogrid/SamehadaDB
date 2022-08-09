@@ -82,11 +82,13 @@ func (d *DiskManagerImpl) WritePage(pageId types.PageID, pageData []byte) error 
 	d.db.Seek(offset, io.SeekStart)
 	bytesWritten, err := d.db.Write(pageData)
 	if err != nil {
-		return err
+		panic("WritePge: d.db.Write returns err!")
+		//return err
 	}
 
 	if bytesWritten != common.PageSize {
-		return errors.New("bytes written not equals page size")
+		panic("bytes written not equals page size")
+		//return errors.New("bytes written not equals page size")
 	}
 
 	if offset >= d.size {

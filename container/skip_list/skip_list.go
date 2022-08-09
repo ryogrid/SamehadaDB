@@ -113,6 +113,7 @@ func (sl *SkipList) FindNodeWithEntryIdxForIterator(key *types.Value) (*skip_lis
 func (sl *SkipList) GetValue(key *types.Value) uint32 {
 	node, _, _ := sl.FindNode(key)
 	found, entry, _ := node.FindEntryByKey(key)
+	sl.bpm.UnpinPage(node.GetPageId(), false)
 	if found {
 		return entry.Value
 	} else {
@@ -192,6 +193,7 @@ func (sl *SkipList) Iterator(rangeStartKey *types.Value, rangeEndKey *types.Valu
 	sl.bpm.UnpinPage(sl.headerPageID, false)
 
 	if rangeStartKey != nil {
+		sl.bpm.UnpinPage(ret.curNode.GetPageId(), false)
 		ret.curNode, ret.curIdx = sl.FindNodeWithEntryIdxForIterator(rangeStartKey)
 	}
 

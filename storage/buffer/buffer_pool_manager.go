@@ -65,7 +65,8 @@ func (b *BufferPoolManager) FetchPage(pageID types.PageID) *page.Page {
 	data := make([]byte, common.PageSize)
 	err := b.diskManager.ReadPage(pageID, data)
 	if err != nil {
-		return nil
+		panic("ReadPage returned error!")
+		//return nil
 	}
 	var pageData [common.PageSize]byte
 	copy(pageData[:], data)
