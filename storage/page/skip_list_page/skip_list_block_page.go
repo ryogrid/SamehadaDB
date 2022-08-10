@@ -40,18 +40,14 @@ import (
 //  ----------------------------------------------
 
 const (
-	// TODO: (SDB) need to modify codes referencing DUMMY_MAX_ENTRY for on disk support
-	//             above means implemantation of free space amount check at Insert entry at least
-	//DUMMY_MAX_ENTRY                     = 100 //10 //50
-	sizePageId           = uint32(4)
-	sizeLevel            = uint32(4)
-	sizeEntryCnt         = uint32(4)
-	sizeIsNeedDeleted    = uint32(1)
-	sizeForward          = uint32(4 * MAX_FOWARD_LIST_LEN)
-	sizeForwardEntry     = uint32(4) // types.PageID
-	sizeFreeSpacePointer = uint32(4)
-	sizeEntryInfoOffset  = uint32(2)
-	//sizeEntryInfoSize                   = uint32(2)
+	sizePageId                          = uint32(4)
+	sizeLevel                           = uint32(4)
+	sizeEntryCnt                        = uint32(4)
+	sizeIsNeedDeleted                   = uint32(1)
+	sizeForward                         = uint32(4 * MAX_FOWARD_LIST_LEN)
+	sizeForwardEntry                    = uint32(4) // types.PageID
+	sizeFreeSpacePointer                = uint32(4)
+	sizeEntryInfoOffset                 = uint32(2)
 	sizeEntryInfo                       = sizeEntryInfoOffset //+ sizeEntryInfoSize
 	sizeBlockPageHeaderExceptEntryInfos = sizePageId + sizeLevel + sizeEntryCnt + sizeIsNeedDeleted + sizeForward + sizeFreeSpacePointer
 	offsetPageId                        = int32(0)
@@ -97,13 +93,6 @@ func (sp SkipListPair) GetDataSize() uint32 {
 
 type SkipListBlockPage struct {
 	page.Page
-	//level    int32
-	//entryCnt int32
-	////maxEntry      int32
-	//isNeedDeleted bool
-	//forward       [MAX_FOWARD_LIST_LEN]types.PageID //*SkipListBlockPage
-	//entries       []SkipListPair
-	////smallestKey   types.Value
 }
 
 // TODO: (SDB) caller must call UnpinPage with appropriate dirty flag call to returned object
@@ -126,12 +115,6 @@ func NewSkipListBlockPage(bpm *buffer.BufferPoolManager, level int32, smallestLi
 	tmpSmallestListPair := smallestListPair
 	// EntryCnt is incremented to 1
 	ret.SetEntry(0, &tmpSmallestListPair)
-	//ret.SetEntries(append(ret.GetEntries(smallestListPair.Key.ValueType()), &tmpSmallestListPair))
-	//ret.SetSmallestKey(smallestListPair.Key)
-
-	//ret.SetMaxEntry(DUMMY_MAX_ENTRY)
-	//ret.SetForward(make([]*SkipListBlockPage, level))
-	//ret.Backward = make([]*SkipListBlockPage, level)
 
 	return ret
 }
@@ -141,11 +124,6 @@ func (node *SkipListBlockPage) initForwardEntries() {
 		node.SetForwardEntry(ii, common.InvalidPageID)
 	}
 }
-
-//// Gets the entry at index in this node
-//func (node *SkipListBlockPage) EntryAt(idx int32, keyType types.TypeID) *SkipListPair {
-//	return node.GetEntry(int(idx), keyType)
-//}
 
 // Gets the key at index in this node
 func (node *SkipListBlockPage) KeyAt(idx int32, keyType types.TypeID) *types.Value {
@@ -262,8 +240,6 @@ func (node *SkipListBlockPage) Insert(key *types.Value, value uint32, bpm *buffe
 				// insert to new node
 				newSmallerIdx := foundIdx - splitIdx - 1
 				newNodePageId := node.GetForwardEntry(0)
-				//page_ := bpm.FetchPage(newNodePageId)
-				//newNode := (*SkipListBlockPage)(unsafe.Pointer(page_))
 				newNode := FetchAndCastToBlockPage(bpm, newNodePageId)
 
 				if (newSmallerIdx + 1) >= newNode.GetEntryCnt() {
@@ -282,7 +258,6 @@ func (node *SkipListBlockPage) Insert(key *types.Value, value uint32, bpm *buffe
 					formerEntries = append(formerEntries, laterEntries...)
 					newNode.SetEntries(formerEntries)
 				}
-				newNode.SetSmallestKey(newNode.GetEntry(0, key.ValueType()).Key)
 				newNode.SetEntryCnt(int32(len(newNode.GetEntries(key.ValueType()))))
 
 				bpm.UnpinPage(newNode.GetPageId(), true)
@@ -336,8 +311,6 @@ func (node *SkipListBlockPage) Insert(key *types.Value, value uint32, bpm *buffe
 				toSetEntryCnt = int32(len(formerEntries))
 			}
 		}
-		node.SetSmallestKey(node.GetEntry(0, key.ValueType()).Key)
-		//node.SetEntryCnt(int32(len(node.GetEntries(key.ValueType()))))
 		node.SetEntryCnt(toSetEntryCnt)
 	}
 	//fmt.Printf("end of Insert of SkipListBlockPage called! : key=%d page.entryCnt=%d len(page.entries)=%d\n", key.ToInteger(), node.entryCnt, len(node.entries))
@@ -402,10 +375,7 @@ func (node *SkipListBlockPage) Remove(key *types.Value, skipPathList []types.Pag
 		copy(laterEntries, node.GetEntries(key.ValueType())[foundIdx+1:])
 		formerEntries = append(formerEntries, laterEntries...)
 		node.SetEntries(formerEntries)
-		//node.entries = append(node.entries[:foundIdx], node.entries[foundIdx+1:]...)
-		node.SetSmallestKey(node.GetEntry(0, key.ValueType()).Key)
 		node.SetEntryCnt(int32(len(formerEntries)))
-		//node.SetEntryCnt(int32(len(node.GetEntries(key.ValueType()))))
 
 		return true, node.GetLevel()
 	} else { // found == false
@@ -426,15 +396,12 @@ func (node *SkipListBlockPage) SplitNode(idx int32, bpm *buffer.BufferPoolManage
 	copy(copyEntries, node.GetEntries(keyType)[idx+1:])
 	//newNode.entries = append(make([]*SkipListPair, 0), node.entries[idx+1:]...)
 	newNode.SetEntries(copyEntries)
-	newNode.SetSmallestKey(newNode.GetEntry(0, keyType).Key)
 	newNode.SetEntryCnt(int32(len(copyEntries)))
 	//newNode.SetEntryCnt(int32(len(newNode.GetEntries(keyType))))
 	newNode.SetLevel(level)
 	copyEntriesFormer := make([]*SkipListPair, len(node.GetEntries(keyType)[:idx+1]))
 	copy(copyEntriesFormer, node.GetEntries(keyType)[:idx+1])
 	node.SetEntries(copyEntriesFormer)
-	node.SetSmallestKey(node.GetEntry(0, keyType).Key)
-	//node.entries = node.entries[:idx+1]
 	node.SetEntryCnt(int32(len(node.GetEntries(keyType))))
 
 	if level > curMaxLevel {
@@ -499,7 +466,6 @@ func (node *SkipListBlockPage) SetPageId(pageId types.PageID) {
 	binary.Write(buf, binary.LittleEndian, pageId)
 	pageIdInBytes := buf.Bytes()
 	copy(node.Data()[offsetPageId:], pageIdInBytes)
-	//node.entryCnt = cnt
 }
 
 func (node *SkipListBlockPage) GetLevel() int32 {
@@ -512,19 +478,15 @@ func (node *SkipListBlockPage) SetLevel(level int32) {
 	binary.Write(buf, binary.LittleEndian, level)
 	levelInBytes := buf.Bytes()
 	copy(node.Data()[offsetLevel:], levelInBytes)
-	//node.level = level
 }
 
 func (node *SkipListBlockPage) GetSmallestKey(keyType types.TypeID) types.Value {
-	//return node.smallestKey
 	return node.GetEntry(0, keyType).Key
-	//return types.NewInteger(-1)
 }
 
-func (node *SkipListBlockPage) SetSmallestKey(key types.Value) {
-	//node.smallestKey = key
-	// TODO: (SDB) this method and calling of this method should be removed (SetSmallestKey)
-}
+//func (node *SkipListBlockPage) SetSmallestKey(key types.Value) {
+//	//node.smallestKey = key
+//}
 
 //func (node *SkipListBlockPage) GetForward() [MAX_FOWARD_LIST_LEN]*SkipListBlockPage {
 //	return node.forward
@@ -545,7 +507,6 @@ func (node *SkipListBlockPage) SetForwardEntry(idx int, fwdNodeId types.PageID) 
 	binary.Write(buf, binary.LittleEndian, fwdNodeId)
 	fwdNodeIdInBytes := buf.Bytes()
 	copy(node.Data()[offsetForward+uint32(idx)*sizeForwardEntry:], fwdNodeIdInBytes)
-	//node.forward[idx] = fwdNode
 }
 
 func (node *SkipListBlockPage) GetEntryCnt() int32 {
@@ -568,7 +529,6 @@ func (node *SkipListBlockPage) GetEntries(keyType types.TypeID) []*SkipListPair 
 		retArr = append(retArr, node.GetEntry(ii, keyType))
 	}
 	return retArr
-	//return node.entries
 }
 
 func (node *SkipListBlockPage) GetEntryOffset(idx int) uint16 {
@@ -627,7 +587,6 @@ func (node *SkipListBlockPage) SetFreeSpacePointer(pointOffset uint32) {
 func (node *SkipListBlockPage) GetEntry(idx int, keyType types.TypeID) *SkipListPair {
 	offset := node.GetEntryOffset(idx)
 	return NewSkipListPairFromBytes(node.Data()[offset:offset+node.GetEntrySize(idx)], keyType)
-	//return node.entries[idx]
 }
 
 // ATTENTION:
@@ -647,7 +606,6 @@ func (node *SkipListBlockPage) SetEntry(idx int, entry *SkipListPair) {
 	copy(node.Data()[newFSP:], appendData)
 	node.SetFreeSpacePointer(newFSP)
 	node.SetEntryOffset(idx, uint16(newFSP))
-	//node.SetEntrySize(idx, uint16(entrySize))
 	node.SetEntryCnt(node.GetEntryCnt() + 1)
 }
 
@@ -664,7 +622,6 @@ func (node *SkipListBlockPage) SetEntries(entries []*SkipListPair) {
 
 		// update each entry location info in header
 		entrySize := len(entryData)
-		//node.SetEntrySize(ii, uint16(entrySize))
 		entrySizes[ii] = uint32(entrySize)
 	}
 	entriesInBytes := buf.Bytes()
@@ -695,7 +652,6 @@ func (node *SkipListBlockPage) SetIsNeedDeleted(val bool) {
 	binary.Write(buf, binary.LittleEndian, val)
 	valInBytes := buf.Bytes()
 	copy(node.Data()[offsetIsNeedDeleted:], valInBytes)
-	//node.isNeedDeleted = val
 }
 
 // since header space grow with insertion entry, memory size which is needed
