@@ -42,7 +42,7 @@ import (
 const (
 	// TODO: (SDB) need to modify codes referencing DUMMY_MAX_ENTRY for on disk support
 	//             above means implemantation of free space amount check at Insert entry at least
-	DUMMY_MAX_ENTRY                     = 100 //10 //50
+	//DUMMY_MAX_ENTRY                     = 100 //10 //50
 	sizePageId                          = uint32(4)
 	sizeLevel                           = uint32(4)
 	sizeEntryCnt                        = uint32(4)
@@ -231,12 +231,12 @@ func (node *SkipListBlockPage) Insert(key *types.Value, value uint32, bpm *buffe
 		return isMadeNewNode
 	} else if !found {
 		//fmt.Printf("not found at Insert of SkipListBlockPage. foundIdx=%d\n", foundIdx)
-		if node.GetEntryCnt()+1 > DUMMY_MAX_ENTRY {
+		if node.getFreeSpaceRemaining() < node.GetSpecifiedSLPNeedSpace(&SkipListPair{*key, value}) {
 			// this node is full. so node split is needed
 
 			// first, split this node at center of entry list
 			// half of entries are moved to new node
-			splitIdx = DUMMY_MAX_ENTRY / 2
+			splitIdx = node.GetEntryCnt() / 2
 			// update with this node
 			skipPathList[0] = node.GetPageId()
 			node.SplitNode(splitIdx, bpm, skipPathList, level, curMaxLevel, startNode, key.ValueType())
