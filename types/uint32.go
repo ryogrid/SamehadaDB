@@ -8,9 +8,22 @@ import (
 	"encoding/binary"
 )
 
+type UInt16 uint16
 type UInt32 uint32
 type Int32 int32
 type Bool bool
+
+// Serialize casts it to []byte
+func (id UInt16) Serialize() []byte {
+	buf := new(bytes.Buffer)
+	binary.Write(buf, binary.LittleEndian, id)
+	return buf.Bytes()
+}
+
+func NewUInt16FromBytes(data []byte) (ret UInt16) {
+	binary.Read(bytes.NewBuffer(data), binary.LittleEndian, &ret)
+	return ret
+}
 
 // Serialize casts it to []byte
 func (id UInt32) Serialize() []byte {

@@ -22,7 +22,7 @@ import (
 //  | PageId (4)| level (4)| entryCnt (4)| isNeedDeleted (1)| forward (4 * MAX_FOWARD_LIST_LEN) | FreeSpacePointer(4) |
 //  ------------------------------------------------------------------------------------------------------------------
 //  -------------------------------------------------------------
-//  | Entry_0 offset (4) | Entry_0 size (4) | ..................|
+//  | Entry_0 offset (2) | Entry_0 size (2) | ..................|
 //  ------------------------------------------------------------
 //  ^ offsetEntryInfos (=sizeBlockPageHeaderExceptEntryInfos)
 //
@@ -50,8 +50,8 @@ const (
 	sizeForward                         = uint32(4 * MAX_FOWARD_LIST_LEN)
 	sizeForwardEntry                    = uint32(4) // types.PageID
 	sizeFreeSpacePointer                = uint32(4)
-	sizeEntryInfoOffset                 = uint32(4)
-	sizeEntryInfoSize                   = uint32(4)
+	sizeEntryInfoOffset                 = uint32(2)
+	sizeEntryInfoSize                   = uint32(2)
 	sizeEntryInfo                       = sizeEntryInfoOffset + sizeEntryInfoSize
 	sizeBlockPageHeaderExceptEntryInfos = sizePageId + sizeLevel + sizeEntryCnt + sizeIsNeedDeleted + sizeForward + sizeFreeSpacePointer
 	offsetPageId                        = int32(0)
@@ -92,7 +92,7 @@ func NewSkipListPairFromBytes(buf []byte, keyType types.TypeID) *SkipListPair {
 func (sp SkipListPair) GetDataSize() uint32 {
 	keyInBytes := sp.Key.Serialize()
 
-	return uint32(len(keyInBytes) + 4)
+	return uint32(len(keyInBytes)) + sizeEntryValue
 }
 
 type SkipListBlockPage struct {
@@ -543,13 +543,13 @@ func (node *SkipListBlockPage) GetEntries(keyType types.TypeID) []*SkipListPair 
 	//return node.entries
 }
 
-func (node *SkipListBlockPage) GetEntryOffset(idx int) uint32 {
+func (node *SkipListBlockPage) GetEntryOffset(idx int) uint16 {
 	offset := offsetEntryInfos + sizeEntryInfo*uint32(idx)
 
-	return uint32(types.NewUInt32FromBytes(node.Data()[offset : offset+sizeEntryInfoOffset]))
+	return uint16(types.NewUInt16FromBytes(node.Data()[offset : offset+sizeEntryInfoOffset]))
 }
 
-func (node *SkipListBlockPage) SetEntryOffset(idx int, setOffset uint32) {
+func (node *SkipListBlockPage) SetEntryOffset(idx int, setOffset uint16) {
 	buf := new(bytes.Buffer)
 	binary.Write(buf, binary.LittleEndian, setOffset)
 	setOffsetInBytes := buf.Bytes()
@@ -557,13 +557,13 @@ func (node *SkipListBlockPage) SetEntryOffset(idx int, setOffset uint32) {
 	copy(node.Data()[offset:], setOffsetInBytes)
 }
 
-func (node *SkipListBlockPage) GetEntrySize(idx int) uint32 {
+func (node *SkipListBlockPage) GetEntrySize(idx int) uint16 {
 	offset := offsetEntryInfos + sizeEntryInfo*uint32(idx) + sizeEntryInfoOffset
 
-	return uint32(types.NewUInt32FromBytes(node.Data()[offset : offset+sizeEntryInfoSize]))
+	return uint16(types.NewUInt16FromBytes(node.Data()[offset : offset+sizeEntryInfoSize]))
 }
 
-func (node *SkipListBlockPage) SetEntrySize(idx int, setSize uint32) {
+func (node *SkipListBlockPage) SetEntrySize(idx int, setSize uint16) {
 	buf := new(bytes.Buffer)
 	binary.Write(buf, binary.LittleEndian, setSize)
 	setSizeInBytes := buf.Bytes()
@@ -609,8 +609,8 @@ func (node *SkipListBlockPage) SetEntry(idx int, entry *SkipListPair) {
 	newFSP := node.GetFreeSpacePointer() - entrySize
 	copy(node.Data()[newFSP:], appendData)
 	node.SetFreeSpacePointer(newFSP)
-	node.SetEntryOffset(idx, newFSP)
-	node.SetEntrySize(idx, entrySize)
+	node.SetEntryOffset(idx, uint16(newFSP))
+	node.SetEntrySize(idx, uint16(entrySize))
 	node.SetEntryCnt(node.GetEntryCnt() + 1)
 }
 
@@ -627,7 +627,7 @@ func (node *SkipListBlockPage) SetEntries(entries []*SkipListPair) {
 
 		// update each entry location info in header
 		entrySize := len(entryData)
-		node.SetEntrySize(ii, uint32(entrySize))
+		node.SetEntrySize(ii, uint16(entrySize))
 		entrySizes[ii] = uint32(entrySize)
 	}
 	entriesInBytes := buf.Bytes()
@@ -640,7 +640,7 @@ func (node *SkipListBlockPage) SetEntries(entries []*SkipListPair) {
 	entryOffset := uint32(common.PageSize)
 	for ii := 0; ii < entryNum; ii++ {
 		entryOffset = entryOffset - entrySizes[ii]
-		node.SetEntryOffset(ii, entryOffset)
+		node.SetEntryOffset(ii, uint16(entryOffset))
 	}
 
 	// update entries info in header
