@@ -32,7 +32,7 @@ func TestSerializationOfSkipLisBlockPage(t *testing.T) {
 	bpage.SetLevel(4)
 	bpage.SetIsNeedDeleted(true)
 	bpage.SetForwardEntry(5, types.PageID(11))
-	bpage.SetFreeSpacePointer(1234)
+	bpage.SetFreeSpacePointer(common.PageSize - 9)
 	// EntryCnt is incremented to 2
 	// freeSpacePointer is decremented size of entry (1+2+7+4 => 14)
 	bpage.SetEntry(1, &skip_list_page.SkipListPair{types.NewVarchar("abcdeff"), 12345})
@@ -43,7 +43,7 @@ func TestSerializationOfSkipLisBlockPage(t *testing.T) {
 	testingpkg.SimpleAssert(t, bpage.GetIsNeedDeleted() == true)
 	testingpkg.SimpleAssert(t, bpage.GetForwardEntry(5) == types.PageID(11))
 
-	testingpkg.SimpleAssert(t, bpage.GetFreeSpacePointer() == (1234-14))
+	testingpkg.SimpleAssert(t, bpage.GetFreeSpacePointer() == (common.PageSize-9-14))
 	entry := bpage.GetEntry(1, types.Varchar)
 	testingpkg.SimpleAssert(t, entry.Key.CompareEquals(types.NewVarchar("abcdeff")))
 	testingpkg.SimpleAssert(t, entry.Value == 12345)

@@ -22,7 +22,7 @@ import (
 //  | PageId (4)| level (4)| entryCnt (4)| isNeedDeleted (1)| forward (4 * MAX_FOWARD_LIST_LEN) | FreeSpacePointer(4) |
 //  ------------------------------------------------------------------------------------------------------------------
 //  -------------------------------------------------------------
-//  | Entry_0 offset (2) | Entry_0 size (2) | ..................|
+//  | Entry_0 offset (2) | Entry_1 offset (2) | ..................|
 //  ------------------------------------------------------------
 //  ^ offsetEntryInfos (=sizeBlockPageHeaderExceptEntryInfos)
 //
@@ -43,16 +43,16 @@ const (
 	// TODO: (SDB) need to modify codes referencing DUMMY_MAX_ENTRY for on disk support
 	//             above means implemantation of free space amount check at Insert entry at least
 	//DUMMY_MAX_ENTRY                     = 100 //10 //50
-	sizePageId                          = uint32(4)
-	sizeLevel                           = uint32(4)
-	sizeEntryCnt                        = uint32(4)
-	sizeIsNeedDeleted                   = uint32(1)
-	sizeForward                         = uint32(4 * MAX_FOWARD_LIST_LEN)
-	sizeForwardEntry                    = uint32(4) // types.PageID
-	sizeFreeSpacePointer                = uint32(4)
-	sizeEntryInfoOffset                 = uint32(2)
-	sizeEntryInfoSize                   = uint32(2)
-	sizeEntryInfo                       = sizeEntryInfoOffset + sizeEntryInfoSize
+	sizePageId           = uint32(4)
+	sizeLevel            = uint32(4)
+	sizeEntryCnt         = uint32(4)
+	sizeIsNeedDeleted    = uint32(1)
+	sizeForward          = uint32(4 * MAX_FOWARD_LIST_LEN)
+	sizeForwardEntry     = uint32(4) // types.PageID
+	sizeFreeSpacePointer = uint32(4)
+	sizeEntryInfoOffset  = uint32(2)
+	//sizeEntryInfoSize                   = uint32(2)
+	sizeEntryInfo                       = sizeEntryInfoOffset //+ sizeEntryInfoSize
 	sizeBlockPageHeaderExceptEntryInfos = sizePageId + sizeLevel + sizeEntryCnt + sizeIsNeedDeleted + sizeForward + sizeFreeSpacePointer
 	offsetPageId                        = int32(0)
 	offsetLevel                         = sizePageId
@@ -586,18 +586,27 @@ func (node *SkipListBlockPage) SetEntryOffset(idx int, setOffset uint16) {
 }
 
 func (node *SkipListBlockPage) GetEntrySize(idx int) uint16 {
-	offset := offsetEntryInfos + sizeEntryInfo*uint32(idx) + sizeEntryInfoOffset
+	offsetTgt := offsetEntryInfos + sizeEntryInfo*uint32(idx)
+	tgtOffset := uint16(types.NewUInt16FromBytes(node.Data()[offsetTgt : offsetTgt+sizeEntryInfoOffset]))
 
-	return uint16(types.NewUInt16FromBytes(node.Data()[offset : offset+sizeEntryInfoSize]))
+	var prevOffset uint16
+	if idx == 0 {
+		// last entry
+		prevOffset = uint16(common.PageSize)
+	} else {
+		prevOffset = uint16(types.NewUInt16FromBytes(node.Data()[offsetTgt-sizeEntryInfoOffset : offsetTgt-sizeEntryInfoOffset+sizeEntryInfoOffset]))
+	}
+
+	return prevOffset - tgtOffset
 }
 
-func (node *SkipListBlockPage) SetEntrySize(idx int, setSize uint16) {
-	buf := new(bytes.Buffer)
-	binary.Write(buf, binary.LittleEndian, setSize)
-	setSizeInBytes := buf.Bytes()
-	offset := offsetEntryInfos + sizeEntryInfo*uint32(idx) + sizeEntryInfoOffset
-	copy(node.Data()[offset:], setSizeInBytes)
-}
+//func (node *SkipListBlockPage) SetEntrySize(idx int, setSize uint16) {
+//	buf := new(bytes.Buffer)
+//	binary.Write(buf, binary.LittleEndian, setSize)
+//	setSizeInBytes := buf.Bytes()
+//	offset := offsetEntryInfos + sizeEntryInfo*uint32(idx) + sizeEntryInfoOffset
+//	copy(node.Data()[offset:], setSizeInBytes)
+//}
 
 // memo: freeSpacePointer value is index of buffer which points already data placed
 //       so, you can use memory Data()[someOffset:freeSpacePointer] in golang description
@@ -638,7 +647,7 @@ func (node *SkipListBlockPage) SetEntry(idx int, entry *SkipListPair) {
 	copy(node.Data()[newFSP:], appendData)
 	node.SetFreeSpacePointer(newFSP)
 	node.SetEntryOffset(idx, uint16(newFSP))
-	node.SetEntrySize(idx, uint16(entrySize))
+	//node.SetEntrySize(idx, uint16(entrySize))
 	node.SetEntryCnt(node.GetEntryCnt() + 1)
 }
 
@@ -655,7 +664,7 @@ func (node *SkipListBlockPage) SetEntries(entries []*SkipListPair) {
 
 		// update each entry location info in header
 		entrySize := len(entryData)
-		node.SetEntrySize(ii, uint16(entrySize))
+		//node.SetEntrySize(ii, uint16(entrySize))
 		entrySizes[ii] = uint32(entrySize)
 	}
 	entriesInBytes := buf.Bytes()
