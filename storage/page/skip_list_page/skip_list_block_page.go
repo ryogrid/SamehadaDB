@@ -206,6 +206,22 @@ func (node *SkipListBlockPage) FindEntryByKey(key *types.Value) (found bool, ent
 
 }
 
+// insert entry locatin info to page header next of idx index entry
+// idx==-1 -> data's inddx become 0 (insert to head of entries)
+// idx==entryCnt -> data's index become entryCnt (insert next of last entry)
+func (node *SkipListBlockPage) InsertEntryInfo(idx int, dataSize int16) {
+	// TODO: (SDB) not implemented yet (SkipListBlockPage::InsertEntryInfo)
+	panic("not implemented yet")
+}
+
+// insert serialized data of slp arg next of idx index entry
+// idx==-1 -> data's inddx become 0 (insert to head of entries)
+// idx==entryCnt -> data's index become entryCnt (insert next of last entry)
+func (node *SkipListBlockPage) InsertInner(idx int, slp *SkipListPair) {
+	// TODO: (SDB) not implemented yet (SkipListBlockPage::InsertInner)
+	panic("not implemented yet")
+}
+
 // Attempts to insert a key and value into an index in the baccess
 // return value is whether newNode is created or not
 func (node *SkipListBlockPage) Insert(key *types.Value, value uint32, bpm *buffer.BufferPoolManager, skipPathList []types.PageID,
@@ -326,6 +342,18 @@ func (node *SkipListBlockPage) Insert(key *types.Value, value uint32, bpm *buffe
 	}
 	//fmt.Printf("end of Insert of SkipListBlockPage called! : key=%d page.entryCnt=%d len(page.entries)=%d\n", key.ToInteger(), node.entryCnt, len(node.entries))
 	return isMadeNewNode
+}
+
+// remove entry info specified with idx arg from header of page
+func (node *SkipListBlockPage) RemoveEntryInfo(idx int, dataSize int16) {
+	// TODO: (SDB) not implemented yet (SkipListBlockPage::RemoveEntryInfo)
+	panic("not implemented yet")
+}
+
+// remove entry index specified with idx arg
+func (node *SkipListBlockPage) RemoveInner(idx int) {
+	// TODO: (SDB) not implemented yet (SkipListBlockPage::RemoveInner)
+	panic("not implemented yet")
 }
 
 func (node *SkipListBlockPage) Remove(key *types.Value, skipPathList []types.PageID) (isDeleted bool, level int32) {
