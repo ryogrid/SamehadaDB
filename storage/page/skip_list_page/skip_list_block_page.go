@@ -270,7 +270,7 @@ func (node *SkipListBlockPage) Insert(key *types.Value, value uint32, bpm *buffe
 		// foundIdx is index of nearlest smaller key entry
 		// new entry is inserted next of nearlest smaller key entry
 
-		var toSetEntryCnt int32 = -1
+		//var toSetEntryCnt int32 = -1
 		if (foundIdx + 1) >= node.GetEntryCnt() {
 			// when inserting point is next of last entry of this node
 			//common.SH_Assert(node.GetEntry(len(node.GetEntries(key.ValueType()))-1, key.ValueType()).Key.IsInfMin() || node.GetEntry(len(node.GetEntries(key.ValueType()))-1, key.ValueType()).Key.CompareLessThan(*key), "order is invalid.")
@@ -286,10 +286,7 @@ func (node *SkipListBlockPage) Insert(key *types.Value, value uint32, bpm *buffe
 				if isMadeNewNode {
 					//copiedEntries = make([]*SkipListPair, len(node.GetEntries(key.ValueType())[:splitIdx+1]))
 					//copy(copiedEntries, node.GetEntries(key.ValueType())[:splitIdx+1])
-					tmpEntries := make([]*SkipListPair, 0)
-					tmpEntries = append(tmpEntries, &SkipListPair{*key, value})
-					tmpEntries = append(tmpEntries, node.GetEntries(key.ValueType())[:splitIdx+1]...)
-					node.SetEntries(tmpEntries)
+					node.InsertInner(-1, &SkipListPair{*key, value})
 				} else {
 					//copiedEntries = make([]*SkipListPair, len(node.GetEntries(key.ValueType())[:]))
 					//copy(copiedEntries, node.GetEntries(key.ValueType())[:])
@@ -306,7 +303,6 @@ func (node *SkipListBlockPage) Insert(key *types.Value, value uint32, bpm *buffe
 				if isMadeNewNode {
 					//laterEntries = make([]*SkipListPair, len(node.GetEntries(key.ValueType())[foundIdx+1:splitIdx+1]))
 					//copy(laterEntries, node.GetEntries(key.ValueType())[foundIdx+1:splitIdx+1])
-					node.SetEntries(node.GetEntries(key.ValueType())[:splitIdx+1])
 					node.InsertInner(int(foundIdx), &SkipListPair{*key, value})
 				} else {
 					//laterEntries = make([]*SkipListPair, len(node.GetEntries(key.ValueType())[foundIdx+1:]))
@@ -411,6 +407,7 @@ func (node *SkipListBlockPage) SplitNode(idx int32, bpm *buffer.BufferPoolManage
 	//copy(copyEntriesFormer, node.GetEntries(keyType)[:idx+1])
 	//node.SetEntries(copyEntriesFormer)
 	//node.SetEntryCnt(int32(len(node.GetEntries(keyType))))
+	node.SetEntries(node.GetEntries(keyType)[:idx+1])
 
 	if level > curMaxLevel {
 		skipPathList[level-1] = startNode.GetPageId()
