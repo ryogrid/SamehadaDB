@@ -89,6 +89,12 @@ func NewSkipListPairFromBytes(buf []byte, keyType types.TypeID) *SkipListPair {
 	return &SkipListPair{*key, value}
 }
 
+func (sp SkipListPair) GetDataSize() uint32 {
+	keyInBytes := sp.Key.Serialize()
+
+	return uint32(len(keyInBytes) + 4)
+}
+
 type SkipListBlockPage struct {
 	page.Page
 	//level    int32
@@ -527,15 +533,6 @@ func (node *SkipListBlockPage) SetEntryCnt(cnt int32) {
 	//node.entryCnt = cnt
 }
 
-//func (node *SkipListBlockPage) GetMaxEntry() int32 {
-//	return node.maxEntry
-//	//return -1
-//}
-
-//func (node *SkipListBlockPage) SetMaxEntry(num int32) {
-//	node.maxEntry = num
-//}
-
 func (node *SkipListBlockPage) GetEntries(keyType types.TypeID) []*SkipListPair {
 	entryNum := int(node.GetEntryCnt())
 	retArr := make([]*SkipListPair, 0)
@@ -574,6 +571,8 @@ func (node *SkipListBlockPage) SetEntrySize(idx int, setSize uint32) {
 	copy(node.Data()[offset:], setSizeInBytes)
 }
 
+// memo: freeSpacePointer value is index of buffer which points already data placed
+//       so, you can use memory Data()[someOffset:freeSpacePointer] in golang description
 func (node *SkipListBlockPage) GetFreeSpacePointer() uint32 {
 	offset := offsetFreeSpacePointer
 
@@ -660,6 +659,17 @@ func (node *SkipListBlockPage) SetIsNeedDeleted(val bool) {
 	valInBytes := buf.Bytes()
 	copy(node.Data()[offsetIsNeedDeleted:], valInBytes)
 	//node.isNeedDeleted = val
+}
+
+// since header space grow with insertion entry, memory size which is needed
+// for insertion is not same with size of SkipListPair object
+func (node *SkipListBlockPage) GetSpecifiedSLPNeedSpace(slp *SkipListPair) uint32 {
+	return slp.GetDataSize() + sizeEntryInfo
+}
+
+// returns remaining bytes for additional entry
+func (node *SkipListBlockPage) getFreeSpaceRemaining() uint32 {
+	return (node.GetFreeSpacePointer() - 1) - ((offsetEntryInfos + (sizeEntryInfo * uint32(node.GetEntryCnt()))) - 1)
 }
 
 // TODO: (SDB) in concurrent impl, locking in this method is needed. and caller must do unlock (FectchAndCastToBlockPage)
