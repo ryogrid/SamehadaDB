@@ -374,13 +374,14 @@ func (node *SkipListBlockPage) Remove(key *types.Value, skipPathList []types.Pag
 			panic("removing wrong entry!")
 		}
 
-		formerEntries := make([]*SkipListPair, len(node.GetEntries(key.ValueType())[:foundIdx]))
-		copy(formerEntries, node.GetEntries(key.ValueType())[:foundIdx])
-		laterEntries := make([]*SkipListPair, len(node.GetEntries(key.ValueType())[foundIdx+1:]))
-		copy(laterEntries, node.GetEntries(key.ValueType())[foundIdx+1:])
-		formerEntries = append(formerEntries, laterEntries...)
-		node.SetEntries(formerEntries)
-		node.SetEntryCnt(int32(len(formerEntries)))
+		//formerEntries := make([]*SkipListPair, len(node.GetEntries(key.ValueType())[:foundIdx]))
+		//copy(formerEntries, node.GetEntries(key.ValueType())[:foundIdx])
+		//laterEntries := make([]*SkipListPair, len(node.GetEntries(key.ValueType())[foundIdx+1:]))
+		//copy(laterEntries, node.GetEntries(key.ValueType())[foundIdx+1:])
+		//formerEntries = append(formerEntries, laterEntries...)
+		//node.SetEntries(formerEntries)
+		//node.SetEntryCnt(int32(len(formerEntries)))
+		node.RemoveInner(int(foundIdx))
 
 		return true, node.GetLevel()
 	} else { // found == false
