@@ -194,7 +194,12 @@ func (node *SkipListBlockPage) InsertEntryInfo(idx int, dataSize int16) {
 // idx==-1 -> data's inddx become 0 (insert to head of entries)
 // idx==entryCnt -> data's index become entryCnt (insert next of last entry)
 func (node *SkipListBlockPage) InsertInner(idx int, slp *SkipListPair) {
-	// TODO: (SDB) not implemented yet (SkipListBlockPage::InsertInner)
+	removeEntrySize := int16(node.GetEntrySize(idx))
+
+	// TODO: (SDB) need to implement data copy of slp arg to tail of entry data space (SkipListBlockPage::InsertInner)
+	//             the tail is pointed by freeSpacePointer
+
+	node.InsertEntryInfo(idx, removeEntrySize)
 	panic("not implemented yet")
 }
 
@@ -330,7 +335,11 @@ func (node *SkipListBlockPage) RemoveEntryInfo(idx int, dataSize int16) {
 
 // remove entry index specified with idx arg
 func (node *SkipListBlockPage) RemoveInner(idx int) {
-	// TODO: (SDB) not implemented yet (SkipListBlockPage::RemoveInner)
+	removeEntrySize := int16(node.GetEntrySize(idx))
+
+	// TODO: (SDB) need to implement payload data moving (SkipListBlockPage::RemoveInner)
+
+	node.RemoveEntryInfo(idx, removeEntrySize)
 	panic("not implemented yet")
 }
 
