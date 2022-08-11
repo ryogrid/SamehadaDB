@@ -192,7 +192,7 @@ func (node *SkipListBlockPage) FindEntryByKey(key *types.Value) (found bool, ent
 // idx==entryCnt -> data's index become entryCnt (insert next of last entry)
 // ATTENTION:
 //   caller should update entryCnt appropriatery after this method call
-func (node *SkipListBlockPage) InsertEntryInfo(idx int) {
+func (node *SkipListBlockPage) updateEntryInfosAtInsert(idx int) {
 	// entrries data backward of entry which specifed with idx arg are not changed
 	// because data of new entry is always placed tail of payload area
 	// and so, this method needs offset info of new entry on arg
@@ -225,7 +225,7 @@ func (node *SkipListBlockPage) InsertInner(idx int, slp *SkipListPair) {
 	copy(node.Data()[offset:], insertData)
 	node.SetFreeSpacePointer(offset)
 
-	node.InsertEntryInfo(idx)
+	node.updateEntryInfosAtInsert(idx)
 	node.SetEntryCnt(node.GetEntryCnt() + 1)
 }
 
@@ -357,8 +357,10 @@ func (node *SkipListBlockPage) Insert(key *types.Value, value uint32, bpm *buffe
 // this method slides memory area of header using memory copy
 // ATTENTION:
 //   caller should update entryCnt appropriatery after this method call
-func (node *SkipListBlockPage) RemoveEntryInfo(idx int, dataSize uint16) {
+func (node *SkipListBlockPage) updateEntryInfosAtRemove(idx int) {
+	dataSize := node.GetEntrySize(idx)
 	allEntryNum := uint32(node.GetEntryCnt())
+
 	// entrries indo data backward of entry which specifed with idx arg needs to be updated
 	for ii := idx + 1; ii < int(allEntryNum); ii++ {
 		node.SetEntryOffset(ii, node.GetEntryOffset(ii)+dataSize)
@@ -375,14 +377,20 @@ func (node *SkipListBlockPage) RemoveEntryInfo(idx int, dataSize uint16) {
 // remove entry index specified with idx arg
 // this method slides memory area of header and payload using memory copy
 func (node *SkipListBlockPage) RemoveInner(idx int) {
-	removeEntrySize := uint16(node.GetEntrySize(idx))
+	// entrries data backward of entry which specifed with idx arg is slided for working
+	// out partial free space
+	removeEntrySize := node.GetEntrySize(idx)
+	removeEntryOffset := node.GetEntryOffset(idx)
+	slideAreaStartOffset := node.GetFreeSpacePointer()
+	slideAreaEndOffset := removeEntryOffset
+	slideToStartOffset := slideAreaStartOffset + uint32(removeEntrySize)
+	//slideToEndOffset := removeEntryOffset + removeEntrySize
+	copy(node.Data()[slideToStartOffset:], node.Data()[slideAreaStartOffset:slideAreaEndOffset])
+	node.SetFreeSpacePointer(slideToStartOffset)
 
-	// TODO: (SDB) need to implement payload data moving (SkipListBlockPage::RemoveInner)
+	node.updateEntryInfosAtRemove(idx)
 
-	node.RemoveEntryInfo(idx, removeEntrySize)
-
-	// TODO: (SDB) set appropriate value
-	node.SetEntryCnt(-1)
+	node.SetEntryCnt(node.GetEntryCnt() - 1)
 	panic("not implemented yet")
 }
 
