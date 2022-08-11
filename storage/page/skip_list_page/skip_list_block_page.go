@@ -273,15 +273,7 @@ func (node *SkipListBlockPage) Insert(key *types.Value, value uint32, bpm *buffe
 				newNodePageId := node.GetForwardEntry(0)
 				newNode := FetchAndCastToBlockPage(bpm, newNodePageId)
 
-				if (newSmallerIdx + 1) >= newNode.GetEntryCnt() {
-					// when inserting point is next of last entry of new node
-					//common.SH_Assert(newNode.GetEntry(len(newNode.GetEntries(key.ValueType()))-1, key.ValueType()).Key.CompareLessThan(*key), "order is invalid.")
-
-					newNode.InsertInner(int(newSmallerIdx), &SkipListPair{*key, value})
-				} else {
-					newNode.InsertInner(int(newSmallerIdx), &SkipListPair{*key, value})
-				}
-
+				newNode.InsertInner(int(newSmallerIdx), &SkipListPair{*key, value})
 				bpm.UnpinPage(newNode.GetPageId(), true)
 				//fmt.Printf("end of Insert of SkipListBlockPage called! : key=%d page.entryCnt=%d len(page.entries)=%d\n", key.ToInteger(), node.entryCnt, len(node.entries))
 
@@ -292,29 +284,7 @@ func (node *SkipListBlockPage) Insert(key *types.Value, value uint32, bpm *buffe
 		// foundIdx is index of nearlest smaller key entry
 		// new entry is inserted next of nearlest smaller key entry
 
-		//var toSetEntryCnt int32 = -1
-		if (foundIdx + 1) >= node.GetEntryCnt() {
-			// when inserting point is next of last entry of this node
-			//common.SH_Assert(node.GetEntry(len(node.GetEntries(key.ValueType()))-1, key.ValueType()).Key.IsInfMin() || node.GetEntry(len(node.GetEntries(key.ValueType()))-1, key.ValueType()).Key.CompareLessThan(*key), "order is invalid.")
-
-			node.InsertInner(int(foundIdx), &SkipListPair{*key, value})
-		} else {
-			if foundIdx == -1 {
-				//var copiedEntries []*SkipListPair = nil
-				if isMadeNewNode {
-					node.InsertInner(-1, &SkipListPair{*key, value})
-				} else {
-					node.InsertInner(-1, &SkipListPair{*key, value})
-				}
-			} else {
-				if isMadeNewNode {
-					node.InsertInner(int(foundIdx), &SkipListPair{*key, value})
-				} else {
-					node.InsertInner(int(foundIdx), &SkipListPair{*key, value})
-				}
-			}
-		}
-		//node.SetEntryCnt(toSetEntryCnt)
+		node.InsertInner(int(foundIdx), &SkipListPair{*key, value})
 	}
 	//fmt.Printf("end of Insert of SkipListBlockPage called! : key=%d page.entryCnt=%d len(page.entries)=%d\n", key.ToInteger(), node.entryCnt, len(node.entries))
 	return isMadeNewNode

@@ -164,9 +164,6 @@ func (sl *SkipList) Remove(key *types.Value, value uint32) (isDeleted bool) {
 			if tmpNode.GetSmallestKey(key.ValueType()).IsInfMax() {
 				//if tmpNode.GetSmallestKey(key.ValueType()).IsInfMax() {
 				sl.bpm.UnpinPage(tmpNode.GetPageId(), false)
-				if newMaxLevel < 1 {
-					panic("newMaxLevel must not be 0!")
-				}
 				break
 			}
 			sl.bpm.UnpinPage(tmpNode.GetPageId(), false)
