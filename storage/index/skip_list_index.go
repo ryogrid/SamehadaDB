@@ -18,8 +18,7 @@ type SkipListIndex struct {
 	col_idx uint32
 }
 
-func NewSkipListIndex(metadata *IndexMetadata, buffer_pool_manager *buffer.BufferPoolManager, col_idx uint32,
-	num_buckets int) *SkipListIndex {
+func NewSkipListIndex(metadata *IndexMetadata, buffer_pool_manager *buffer.BufferPoolManager, col_idx uint32) *SkipListIndex {
 	ret := new(SkipListIndex)
 	ret.metadata = metadata
 	ret.container = *skip_list.NewSkipList(buffer_pool_manager, ret.metadata.GetTupleSchema().GetColumn(0).GetType())
