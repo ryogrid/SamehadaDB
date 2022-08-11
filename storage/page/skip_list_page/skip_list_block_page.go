@@ -22,7 +22,7 @@ import (
 //  | PageId (4)| level (4)| entryCnt (4)| isNeedDeleted (1)| forward (4 * MAX_FOWARD_LIST_LEN) | FreeSpacePointer(4) |
 //  ------------------------------------------------------------------------------------------------------------------
 //  -------------------------------------------------------------
-//  | Entry_0 offset (2) | Entry_1 offset (2) | ..................|
+//  | Entry_0 offset (2) | Entry_0 size (2) | ..................|
 //  ------------------------------------------------------------
 //  ^ offsetEntryInfos (=sizeBlockPageHeaderExceptEntryInfos)
 //
@@ -52,7 +52,8 @@ const (
 	sizeForwardEntry                    = uint32(4) // types.PageID
 	sizeFreeSpacePointer                = uint32(4)
 	sizeEntryInfoOffset                 = uint32(2)
-	sizeEntryInfo                       = sizeEntryInfoOffset //+ sizeEntryInfoSize
+	sizeEntryInfoSize                   = uint32(2)
+	sizeEntryInfo                       = sizeEntryInfoOffset + sizeEntryInfoSize
 	sizeBlockPageHeaderExceptEntryInfos = sizePageId + sizeLevel + sizeEntryCnt + sizeIsNeedDeleted + sizeForward + sizeFreeSpacePointer
 	offsetPageId                        = int32(0)
 	offsetLevel                         = sizePageId
@@ -192,7 +193,7 @@ func (node *SkipListBlockPage) FindEntryByKey(key *types.Value) (found bool, ent
 // idx==entryCnt -> data's index become entryCnt (insert next of last entry)
 // ATTENTION:
 //   caller should update entryCnt appropriatery after this method call
-func (node *SkipListBlockPage) updateEntryInfosAtInsert(idx int) {
+func (node *SkipListBlockPage) updateEntryInfosAtInsert(idx int, dataSize uint16) {
 	// entrries data backward of entry which specifed with idx arg are not changed
 	// because data of new entry is always placed tail of payload area
 	// and so, this method needs offset info of new entry on arg
@@ -209,6 +210,7 @@ func (node *SkipListBlockPage) updateEntryInfosAtInsert(idx int) {
 	// set data of new entry
 	entryOffsetVal := node.GetFreeSpacePointer()
 	node.SetEntryOffset(idx+1, uint16(entryOffsetVal))
+	node.SetEntrySize(idx+1, dataSize)
 }
 
 // insert serialized data of slp arg next of idx index entry
@@ -225,7 +227,7 @@ func (node *SkipListBlockPage) InsertInner(idx int, slp *SkipListPair) {
 	copy(node.Data()[offset:], insertData)
 	node.SetFreeSpacePointer(offset)
 
-	node.updateEntryInfosAtInsert(idx)
+	node.updateEntryInfosAtInsert(idx, uint16(insertEntrySize))
 	node.SetEntryCnt(node.GetEntryCnt() + 1)
 }
 
@@ -361,7 +363,7 @@ func (node *SkipListBlockPage) updateEntryInfosAtRemove(idx int) {
 	dataSize := node.GetEntrySize(idx)
 	allEntryNum := uint32(node.GetEntryCnt())
 
-	// entrries indo data backward of entry which specifed with idx arg needs to be updated
+	// entries info data backward of entry which specifed with idx arg needs to be updated
 	for ii := idx + 1; ii < int(allEntryNum); ii++ {
 		node.SetEntryOffset(ii, node.GetEntryOffset(ii)+dataSize)
 	}
@@ -607,19 +609,33 @@ func (node *SkipListBlockPage) SetEntryOffset(idx int, setOffset uint16) {
 }
 
 func (node *SkipListBlockPage) GetEntrySize(idx int) uint16 {
-	offsetTgt := offsetEntryInfos + sizeEntryInfo*uint32(idx)
-	tgtOffset := uint16(types.NewUInt16FromBytes(node.Data()[offsetTgt : offsetTgt+sizeEntryInfoOffset]))
+	offset := offsetEntryInfos + sizeEntryInfo*uint32(idx) + sizeEntryInfoOffset
 
-	var prevOffset uint16
-	if idx == 0 {
-		// last entry
-		prevOffset = uint16(common.PageSize)
-	} else {
-		prevOffset = uint16(types.NewUInt16FromBytes(node.Data()[offsetTgt-sizeEntryInfoOffset : offsetTgt-sizeEntryInfoOffset+sizeEntryInfoOffset]))
-	}
-
-	return prevOffset - tgtOffset
+	return uint16(types.NewUInt16FromBytes(node.Data()[offset : offset+sizeEntryInfoSize]))
 }
+
+func (node *SkipListBlockPage) SetEntrySize(idx int, setSize uint16) {
+	buf := new(bytes.Buffer)
+	binary.Write(buf, binary.LittleEndian, setSize)
+	setSizeInBytes := buf.Bytes()
+	offset := offsetEntryInfos + sizeEntryInfo*uint32(idx) + sizeEntryInfoOffset
+	copy(node.Data()[offset:], setSizeInBytes)
+}
+
+//func (node *SkipListBlockPage) GetEntrySize(idx int) uint16 {
+//	offsetTgt := offsetEntryInfos + sizeEntryInfo*uint32(idx)
+//	tgtOffset := uint16(types.NewUInt16FromBytes(node.Data()[offsetTgt : offsetTgt+sizeEntryInfoOffset]))
+//
+//	var prevOffset uint16
+//	if idx == 0 {
+//		// last entry
+//		prevOffset = uint16(common.PageSize)
+//	} else {
+//		prevOffset = uint16(types.NewUInt16FromBytes(node.Data()[offsetTgt-sizeEntryInfoOffset : offsetTgt-sizeEntryInfoOffset+sizeEntryInfoOffset]))
+//	}
+//
+//	return prevOffset - tgtOffset
+//}
 
 // memo: freeSpacePointer value is index of buffer which points already data placed
 //       so, you can use memory Data()[someOffset:freeSpacePointer] in golang description
@@ -659,6 +675,7 @@ func (node *SkipListBlockPage) SetEntry(idx int, entry *SkipListPair) {
 	copy(node.Data()[newFSP:], appendData)
 	node.SetFreeSpacePointer(newFSP)
 	node.SetEntryOffset(idx, uint16(newFSP))
+	node.SetEntrySize(idx, uint16(entrySize))
 	node.SetEntryCnt(node.GetEntryCnt() + 1)
 }
 
@@ -688,6 +705,7 @@ func (node *SkipListBlockPage) SetEntries(entries []*SkipListPair) {
 	for ii := 0; ii < entryNum; ii++ {
 		entryOffset = entryOffset - entrySizes[ii]
 		node.SetEntryOffset(ii, uint16(entryOffset))
+		node.SetEntrySize(ii, uint16(entrySizes[ii]))
 	}
 
 	// update entries info in header

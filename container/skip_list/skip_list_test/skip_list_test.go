@@ -104,7 +104,7 @@ func TestInnerInsertDeleteOfBlockPageSimple(t *testing.T) {
 	})
 
 	initialEntries = make([]*skip_list_page.SkipListPair, 0)
-	initialEntries = append(initialEntries, bpage1.GetEntry(0, types.Varchar))
+	initialEntries = append(initialEntries, bpage2.GetEntry(0, types.Varchar))
 	initialEntries = append(initialEntries, &skip_list_page.SkipListPair{
 		Key:   types.NewVarchar("abcde"),
 		Value: 1,
@@ -121,7 +121,7 @@ func TestInnerInsertDeleteOfBlockPageSimple(t *testing.T) {
 		Value: 0,
 	})
 	bpage2.InsertInner(2, &skip_list_page.SkipListPair{
-		Key:   types.NewVarchar("abcdeff"),
+		Key:   types.NewVarchar("abcdee"),
 		Value: 22,
 	})
 	bpage2.InsertInner(4, &skip_list_page.SkipListPair{
@@ -130,13 +130,20 @@ func TestInnerInsertDeleteOfBlockPageSimple(t *testing.T) {
 	})
 
 	// check entry datas
-	testingpkg.SimpleAssert(t, bpage1.GetEntryCnt() == 6)
-	testingpkg.SimpleAssert(t, bpage1.GetEntry(0, types.Varchar).Key.CompareEquals(types.NewVarchar("abc")))
-	testingpkg.SimpleAssert(t, bpage1.GetEntry(1, types.Varchar).Key.CompareEquals(types.NewVarchar("abcd")))
-	testingpkg.SimpleAssert(t, bpage1.GetEntry(2, types.Varchar).Key.CompareEquals(types.NewVarchar("abcde")))
-	testingpkg.SimpleAssert(t, bpage1.GetEntry(3, types.Varchar).Key.CompareEquals(types.NewVarchar("abcdee")))
-	testingpkg.SimpleAssert(t, bpage1.GetEntry(4, types.Varchar).Key.CompareEquals(types.NewVarchar("abcdef")))
-	testingpkg.SimpleAssert(t, bpage1.GetEntry(5, types.Varchar).Key.CompareEquals(types.NewVarchar("abcdeff")))
+	entryCnt := bpage2.GetEntryCnt()
+	testingpkg.SimpleAssert(t, entryCnt == 6)
+	entry := bpage2.GetEntry(0, types.Varchar)
+	testingpkg.SimpleAssert(t, entry.Key.CompareEquals(types.NewVarchar("abc")))
+	entry = bpage2.GetEntry(1, types.Varchar)
+	testingpkg.SimpleAssert(t, entry.Key.CompareEquals(types.NewVarchar("abcd")))
+	entry = bpage2.GetEntry(2, types.Varchar)
+	testingpkg.SimpleAssert(t, entry.Key.CompareEquals(types.NewVarchar("abcde")))
+	entry = bpage2.GetEntry(3, types.Varchar)
+	testingpkg.SimpleAssert(t, entry.Key.CompareEquals(types.NewVarchar("abcdee")))
+	entry = bpage2.GetEntry(4, types.Varchar)
+	testingpkg.SimpleAssert(t, entry.Key.CompareEquals(types.NewVarchar("abcdef")))
+	entry = bpage2.GetEntry(5, types.Varchar)
+	testingpkg.SimpleAssert(t, entry.Key.CompareEquals(types.NewVarchar("abcdeff")))
 
 	bpm.UnpinPage(bpage2.GetPageId(), true)
 
