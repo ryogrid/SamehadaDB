@@ -361,11 +361,14 @@ func (node *SkipListBlockPage) Insert(key *types.Value, value uint32, bpm *buffe
 //   caller should update entryCnt appropriatery after this method call
 func (node *SkipListBlockPage) updateEntryInfosAtRemove(idx int) {
 	dataSize := node.GetEntrySize(idx)
+	orgDataOffset := node.GetEntryOffset(idx)
 	allEntryNum := uint32(node.GetEntryCnt())
 
 	// entries info data backward of entry which specifed with idx arg needs to be updated
-	for ii := idx + 1; ii < int(allEntryNum); ii++ {
-		node.SetEntryOffset(ii, node.GetEntryOffset(ii)+dataSize)
+	for ii := 0; ii < int(allEntryNum); ii++ {
+		if offset := node.GetEntryOffset(ii); offset < orgDataOffset {
+			node.SetEntryOffset(ii, offset+dataSize)
+		}
 	}
 
 	// entrries info data backward of entry which specifed with idx arg is slided for working
