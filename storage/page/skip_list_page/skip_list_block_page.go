@@ -342,7 +342,7 @@ func (node *SkipListBlockPage) RemoveEntryInfo(idx int, dataSize uint16) {
 
 	// entrries data backward of entry which specifed with idx arg is slided for working
 	// out partial free space
-	slideToOffset := offsetEntryInfos + uint32(idx+1)*sizeEntryInfo
+	slideToOffset := offsetEntryInfos + uint32(idx)*sizeEntryInfo
 	slideAreaStartOffset := slideToOffset + sizeEntryInfo
 	slideAreaEndOffset := offsetEntryInfos + allEntryNum*sizeEntryInfo
 	copy(node.Data()[:slideToOffset], node.Data()[slideAreaStartOffset:slideAreaEndOffset])
