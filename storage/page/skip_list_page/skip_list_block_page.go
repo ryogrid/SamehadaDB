@@ -183,6 +183,7 @@ func (node *SkipListBlockPage) FindEntryByKey(key *types.Value) (found bool, ent
 }
 
 // insert entry locatin info to page header next of idx index entry
+// this method call slides memory area of header using memory copy
 // idx==-1 -> data's inddx become 0 (insert to head of entries)
 // idx==entryCnt -> data's index become entryCnt (insert next of last entry)
 func (node *SkipListBlockPage) InsertEntryInfo(idx int, dataSize int16) {
@@ -191,6 +192,7 @@ func (node *SkipListBlockPage) InsertEntryInfo(idx int, dataSize int16) {
 }
 
 // insert serialized data of slp arg next of idx index entry
+// this method slides memory area of header using memory copy
 // idx==-1 -> data's inddx become 0 (insert to head of entries)
 // idx==entryCnt -> data's index become entryCnt (insert next of last entry)
 func (node *SkipListBlockPage) InsertInner(idx int, slp *SkipListPair) {
@@ -328,14 +330,28 @@ func (node *SkipListBlockPage) Insert(key *types.Value, value uint32, bpm *buffe
 }
 
 // remove entry info specified with idx arg from header of page
-func (node *SkipListBlockPage) RemoveEntryInfo(idx int, dataSize int16) {
-	// TODO: (SDB) not implemented yet (SkipListBlockPage::RemoveEntryInfo)
-	panic("not implemented yet")
+// this method slides memory area of header using memory copy
+// ATTENTION:
+//   caller should update entryCnt appropriatery after this method call
+func (node *SkipListBlockPage) RemoveEntryInfo(idx int, dataSize uint16) {
+	allEntryNum := uint32(node.GetEntryCnt())
+	// entrries data backward of entry which specifed with idx arg needs to be updated
+	for ii := idx + 1; ii < int(allEntryNum); ii++ {
+		node.SetEntryOffset(ii, node.GetEntryOffset(ii)+dataSize)
+	}
+
+	// entrries data backward of entry which specifed with idx arg is slided for working
+	// out partial free space
+	slideToOffset := offsetEntryInfos + uint32(idx+1)*sizeEntryInfo
+	slideAreaStartOffset := slideToOffset + sizeEntryInfo
+	slideAreaEndOffset := offsetEntryInfos + allEntryNum*sizeEntryInfo
+	copy(node.Data()[:slideToOffset], node.Data()[slideAreaStartOffset:slideAreaEndOffset])
 }
 
 // remove entry index specified with idx arg
+// this method slides memory area of header and payload using memory copy
 func (node *SkipListBlockPage) RemoveInner(idx int) {
-	removeEntrySize := int16(node.GetEntrySize(idx))
+	removeEntrySize := uint16(node.GetEntrySize(idx))
 
 	// TODO: (SDB) need to implement payload data moving (SkipListBlockPage::RemoveInner)
 
