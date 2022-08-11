@@ -155,6 +155,7 @@ func (b *BufferPoolManager) NewPage() *page.Page {
 
 	b.mutex.Unlock()
 
+	common.ShPrintf(common.DEBUG, "NewPage: returned pageID: %d\n", pageID)
 	return pg
 }
 

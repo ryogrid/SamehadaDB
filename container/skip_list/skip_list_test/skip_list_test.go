@@ -206,6 +206,8 @@ func TestBSearchOfSkipLisBlockPage(t *testing.T) {
 			testingpkg.SimpleAssert(t, found == false && uint32(key.ToInteger())-bpage.ValueAt(idx, types.Integer) == 5)
 		}
 	}
+
+	shi.Finalize(false)
 }
 
 func TestBSearchOfSkipLisBlockPage2(t *testing.T) {
@@ -266,6 +268,8 @@ func TestBSearchOfSkipLisBlockPage2(t *testing.T) {
 			testingpkg.SimpleAssert(t, found == false && uint32(key.ToInteger())-bpage.ValueAt(idx, types.Integer) == 5)
 		}
 	}
+
+	shi.Finalize(false)
 }
 
 func confirmSkipListContent(t *testing.T, sl *skip_list.SkipList, step int32) int32 {
@@ -336,6 +340,9 @@ func TestSkipListSimple(t *testing.T) {
 	// delete some values
 	for i := 0; i < 100; i++ {
 		// check existance before delete
+		if i == 3 {
+			fmt.Println()
+		}
 		res := sl.GetValue(samehada_util.GetPonterOfValue(types.NewInteger(int32(i * 11))))
 		common.ShPrintf(common.DEBUG, "check existance before delete : i=%d res=%d\n", i, res)
 		if res == math.MaxUint32 {
@@ -352,6 +359,8 @@ func TestSkipListSimple(t *testing.T) {
 		//fmt.Println("contents listing after delete")
 		//confirmSkipListContent(t, sl, -1)
 	}
+
+	shi.Finalize(false)
 }
 
 func TestSkipListItr(t *testing.T) {

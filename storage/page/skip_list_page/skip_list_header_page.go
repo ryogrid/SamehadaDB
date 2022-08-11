@@ -51,19 +51,19 @@ func NewSkipListStartBlockPage(bpm *buffer.BufferPoolManager, keyType types.Type
 	switch keyType {
 	case types.Integer:
 		pl := SkipListPair{types.NewInteger(0), 0}
-		pl.Key.SetInfMax()
+		pl.Key = *pl.Key.SetInfMax()
 		sentinelNode = NewSkipListBlockPage(bpm, MAX_FOWARD_LIST_LEN, pl)
 	case types.Float:
 		pl := SkipListPair{types.NewFloat(0), 0}
-		pl.Key.SetInfMax()
+		pl.Key = *pl.Key.SetInfMax()
 		sentinelNode = NewSkipListBlockPage(bpm, MAX_FOWARD_LIST_LEN, pl)
 	case types.Varchar:
 		pl := SkipListPair{types.NewVarchar(""), 0}
-		pl.Key.SetInfMax()
+		pl.Key = *pl.Key.SetInfMax()
 		sentinelNode = NewSkipListBlockPage(bpm, MAX_FOWARD_LIST_LEN, pl)
 	case types.Boolean:
 		pl := SkipListPair{types.NewBoolean(false), 0}
-		pl.Key.SetInfMax()
+		pl.Key = *pl.Key.SetInfMax()
 		sentinelNode = NewSkipListBlockPage(bpm, MAX_FOWARD_LIST_LEN, pl)
 	}
 
@@ -104,6 +104,9 @@ func (hp *SkipListHeaderPage) GetCurMaxLevel() int32 {
 }
 
 func (hp *SkipListHeaderPage) SetCurMaxLevel(maxLevel int32) {
+	if maxLevel < 1 {
+		panic("SetCurMaxLevel: invalid maxLevel is passed!")
+	}
 	hp.curMaxLevel = maxLevel
 }
 

@@ -160,12 +160,17 @@ func (sl *SkipList) Remove(key *types.Value, value uint32) (isDeleted bool) {
 	// curMaxLevel should be down to the level
 	if isDeleted_ {
 		// if isNeedDeleted marked node exists, check logic below has no problem
-		newMaxLevel := int32(0)
+		newMaxLevel := int32(1)
 		startNode := skip_list_page.FetchAndCastToBlockPage(sl.bpm, headerPage.GetListStartPageId())
-		for ii := int32(0); ii < headerPage.GetCurMaxLevel(); ii++ {
+		for ii := int32(1); ii < headerPage.GetCurMaxLevel(); ii++ {
 			tmpNode := skip_list_page.FetchAndCastToBlockPage(sl.bpm, startNode.GetForwardEntry(int(ii)))
-			if tmpNode.GetSmallestKey(key.ValueType()).IsInfMax() {
+			smallestKey := tmpNode.GetSmallestKey(key.ValueType())
+			if smallestKey.IsInfMax() {
+				//if tmpNode.GetSmallestKey(key.ValueType()).IsInfMax() {
 				sl.bpm.UnpinPage(tmpNode.GetPageId(), false)
+				if newMaxLevel < 1 {
+					panic("newMaxLevel must not be 0!")
+				}
 				break
 			}
 			sl.bpm.UnpinPage(tmpNode.GetPageId(), false)
