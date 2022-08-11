@@ -356,6 +356,9 @@ func (node *SkipListBlockPage) RemoveInner(idx int) {
 	// TODO: (SDB) need to implement payload data moving (SkipListBlockPage::RemoveInner)
 
 	node.RemoveEntryInfo(idx, removeEntrySize)
+
+	// TODO: (SDB) set appropriate value
+	node.SetEntryCnt(-1)
 	panic("not implemented yet")
 }
 
