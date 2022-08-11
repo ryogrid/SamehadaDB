@@ -33,6 +33,10 @@ import (
 //                                ^                    ^ <-------------- size ---------------> ^ <-------------- size --------------->
 //                                freeSpacePointer     offset(from page head)                  offset(...)
 //
+// Note:
+//  placement order of entry location data on header doesn't match with entry data on payload
+//  because entry insertion cost is keeped lower
+//
 //  Entry_key format (size in bytes)
 //    = Serialized types.Value
 //  ----------------------------------------------
@@ -209,19 +213,20 @@ func (node *SkipListBlockPage) InsertEntryInfo(idx int) {
 
 // insert serialized data of slp arg next of idx index entry
 // this method slides memory area of header using memory copy
+// in contrast, new entry data is placed always tail of entries data area
 // idx==-1 -> data's inddx become 0 (insert to head of entries)
 // idx==entryCnt -> data's index become entryCnt (insert next of last entry)
 func (node *SkipListBlockPage) InsertInner(idx int, slp *SkipListPair) {
-	insertEntrySize := int16(slp.GetDataSize())
-
-	// TODO: (SDB) need to implement data copy of slp arg to tail of entry data space (SkipListBlockPage::InsertInner)
-	//             the tail is pointed by freeSpacePointer
+	// data copy of slp arg to tail of entry data space
+	// the tail is pointed by freeSpacePointer
+	insertData := slp.Serialize()
+	insertEntrySize := uint32(len(insertData))
+	offset := node.GetFreeSpacePointer() - insertEntrySize
+	copy(node.Data()[offset:], insertData)
+	node.SetFreeSpacePointer(offset)
 
 	node.InsertEntryInfo(idx)
-
-	// TODO: (SDB) need to set appropriate value!
-	node.SetEntryCnt(-1)
-	panic("not implemented yet")
+	node.SetEntryCnt(node.GetEntryCnt() + 1)
 }
 
 // Attempts to insert a key and value into an index in the baccess
