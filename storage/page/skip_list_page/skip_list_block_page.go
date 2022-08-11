@@ -186,9 +186,25 @@ func (node *SkipListBlockPage) FindEntryByKey(key *types.Value) (found bool, ent
 // this method call slides memory area of header using memory copy
 // idx==-1 -> data's inddx become 0 (insert to head of entries)
 // idx==entryCnt -> data's index become entryCnt (insert next of last entry)
-func (node *SkipListBlockPage) InsertEntryInfo(idx int, dataSize int16) {
-	// TODO: (SDB) not implemented yet (SkipListBlockPage::InsertEntryInfo)
-	panic("not implemented yet")
+// ATTENTION:
+//   caller should update entryCnt appropriatery after this method call
+func (node *SkipListBlockPage) InsertEntryInfo(idx int) {
+	// entrries data backward of entry which specifed with idx arg are not changed
+	// because data of new entry is always placed tail of payload area
+	// and so, this method needs offset info of new entry on arg
+
+	// entrries info data backward of entry which specifed with idx arg is slided for
+	// new entry insertion
+	allEntryNum := uint32(node.GetEntryCnt())
+	slideFromOffset := offsetEntryInfos + uint32(idx+1)*sizeEntryInfo
+	slideToOffset := offsetEntryInfos + uint32(idx+2)*sizeEntryInfo
+	slideAreaStartOffset := slideFromOffset
+	slideAreaEndOffset := offsetEntryInfos + allEntryNum*sizeEntryInfo
+	copy(node.Data()[slideToOffset:], node.Data()[slideAreaStartOffset:slideAreaEndOffset])
+
+	// set data of new entry
+	entryOffsetVal := node.GetFreeSpacePointer()
+	node.SetEntryOffset(idx+1, uint16(entryOffsetVal))
 }
 
 // insert serialized data of slp arg next of idx index entry
@@ -196,12 +212,15 @@ func (node *SkipListBlockPage) InsertEntryInfo(idx int, dataSize int16) {
 // idx==-1 -> data's inddx become 0 (insert to head of entries)
 // idx==entryCnt -> data's index become entryCnt (insert next of last entry)
 func (node *SkipListBlockPage) InsertInner(idx int, slp *SkipListPair) {
-	removeEntrySize := int16(node.GetEntrySize(idx))
+	insertEntrySize := int16(slp.GetDataSize())
 
 	// TODO: (SDB) need to implement data copy of slp arg to tail of entry data space (SkipListBlockPage::InsertInner)
 	//             the tail is pointed by freeSpacePointer
 
-	node.InsertEntryInfo(idx, removeEntrySize)
+	node.InsertEntryInfo(idx)
+
+	// TODO: (SDB) need to set appropriate value!
+	node.SetEntryCnt(-1)
 	panic("not implemented yet")
 }
 
@@ -335,17 +354,17 @@ func (node *SkipListBlockPage) Insert(key *types.Value, value uint32, bpm *buffe
 //   caller should update entryCnt appropriatery after this method call
 func (node *SkipListBlockPage) RemoveEntryInfo(idx int, dataSize uint16) {
 	allEntryNum := uint32(node.GetEntryCnt())
-	// entrries data backward of entry which specifed with idx arg needs to be updated
+	// entrries indo data backward of entry which specifed with idx arg needs to be updated
 	for ii := idx + 1; ii < int(allEntryNum); ii++ {
 		node.SetEntryOffset(ii, node.GetEntryOffset(ii)+dataSize)
 	}
 
-	// entrries data backward of entry which specifed with idx arg is slided for working
+	// entrries info data backward of entry which specifed with idx arg is slided for working
 	// out partial free space
 	slideToOffset := offsetEntryInfos + uint32(idx)*sizeEntryInfo
 	slideAreaStartOffset := slideToOffset + sizeEntryInfo
 	slideAreaEndOffset := offsetEntryInfos + allEntryNum*sizeEntryInfo
-	copy(node.Data()[:slideToOffset], node.Data()[slideAreaStartOffset:slideAreaEndOffset])
+	copy(node.Data()[slideToOffset:], node.Data()[slideAreaStartOffset:slideAreaEndOffset])
 }
 
 // remove entry index specified with idx arg
