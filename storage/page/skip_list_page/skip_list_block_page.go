@@ -391,7 +391,6 @@ func (node *SkipListBlockPage) RemoveInner(idx int) {
 	node.updateEntryInfosAtRemove(idx)
 
 	node.SetEntryCnt(node.GetEntryCnt() - 1)
-	panic("not implemented yet")
 }
 
 func (node *SkipListBlockPage) Remove(key *types.Value, skipPathList []types.PageID) (isDeleted bool, level int32) {
