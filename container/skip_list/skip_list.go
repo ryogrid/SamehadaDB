@@ -48,8 +48,6 @@ func (sl *SkipList) FindNode(key *types.Value) (found_node *skip_list_page.SkipL
 	headerPage := skip_list_page.FetchAndCastToHeaderPage(sl.bpm, sl.headerPageID)
 
 	startPageId := headerPage.GetListStartPageId()
-	//page_ := sl.bpm.FetchPage(startPageId)
-	//node := (*skip_list_page.SkipListBlockPage)(unsafe.Pointer(page_))
 	node := skip_list_page.FetchAndCastToBlockPage(sl.bpm, startPageId)
 	// loop invariant: node.key < searchKey
 	//fmt.Println("---")
@@ -88,7 +86,6 @@ func (sl *SkipList) FindNode(key *types.Value) (found_node *skip_list_page.SkipL
 				// move to next node
 				prevPageId := node.GetPageId()
 				skipPathListPrev[ii] = node.GetPageId()
-				//node = node.GetForwardEntry(int(ii))
 				node = tmpNode
 				sl.bpm.UnpinPage(prevPageId, false)
 			}
@@ -164,8 +161,7 @@ func (sl *SkipList) Remove(key *types.Value, value uint32) (isDeleted bool) {
 		startNode := skip_list_page.FetchAndCastToBlockPage(sl.bpm, headerPage.GetListStartPageId())
 		for ii := int32(1); ii < headerPage.GetCurMaxLevel(); ii++ {
 			tmpNode := skip_list_page.FetchAndCastToBlockPage(sl.bpm, startNode.GetForwardEntry(int(ii)))
-			smallestKey := tmpNode.GetSmallestKey(key.ValueType())
-			if smallestKey.IsInfMax() {
+			if tmpNode.GetSmallestKey(key.ValueType()).IsInfMax() {
 				//if tmpNode.GetSmallestKey(key.ValueType()).IsInfMax() {
 				sl.bpm.UnpinPage(tmpNode.GetPageId(), false)
 				if newMaxLevel < 1 {

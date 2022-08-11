@@ -340,11 +340,7 @@ func TestSkipListSimple(t *testing.T) {
 	// delete some values
 	for i := 0; i < 100; i++ {
 		// check existance before delete
-		if i == 3 {
-			fmt.Println()
-		}
 		res := sl.GetValue(samehada_util.GetPonterOfValue(types.NewInteger(int32(i * 11))))
-		common.ShPrintf(common.DEBUG, "check existance before delete : i=%d res=%d\n", i, res)
 		if res == math.MaxUint32 {
 			panic("result should not be nil")
 		} else {
