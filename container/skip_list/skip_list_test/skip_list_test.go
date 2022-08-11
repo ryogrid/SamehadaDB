@@ -338,7 +338,11 @@ func TestSkipListSimple(t *testing.T) {
 		// check existance before delete
 		res := sl.GetValue(samehada_util.GetPonterOfValue(types.NewInteger(int32(i * 11))))
 		common.ShPrintf(common.DEBUG, "check existance before delete : i=%d res=%d\n", i, res)
-		testingpkg.SimpleAssert(t, res == uint32(i*11))
+		if res == math.MaxUint32 {
+			panic("result should not be nil")
+		} else {
+			testingpkg.SimpleAssert(t, uint32(i*11) == res)
+		}
 
 		// check no existance after delete
 		sl.Remove(samehada_util.GetPonterOfValue(types.NewInteger(int32(i*11))), uint32(i*11))
