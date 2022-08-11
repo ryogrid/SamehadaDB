@@ -733,7 +733,7 @@ func (node *SkipListBlockPage) GetSpecifiedSLPNeedSpace(slp *SkipListPair) uint3
 
 // returns remaining bytes for additional entry
 func (node *SkipListBlockPage) getFreeSpaceRemaining() uint32 {
-	return (node.GetFreeSpacePointer() - 1) - ((offsetEntryInfos + (sizeEntryInfo * uint32(node.GetEntryCnt()))) - 1)
+	return (node.GetFreeSpacePointer() - 1) - (offsetEntryInfos + (sizeEntryInfo * uint32(node.GetEntryCnt())) - 1)
 }
 
 // TODO: (SDB) in concurrent impl, locking in this method is needed. and caller must do unlock (FectchAndCastToBlockPage)

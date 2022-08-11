@@ -337,7 +337,7 @@ func TestSkipListSimple(t *testing.T) {
 	for i := 0; i < 100; i++ {
 		// check existance before delete
 		res := sl.GetValue(samehada_util.GetPonterOfValue(types.NewInteger(int32(i * 11))))
-		//fmt.Printf("check existance before delete : i=%d\n", i)
+		common.ShPrintf(common.DEBUG, "check existance before delete : i=%d res=%d\n", i, res)
 		testingpkg.SimpleAssert(t, res == uint32(i*11))
 
 		// check no existance after delete
