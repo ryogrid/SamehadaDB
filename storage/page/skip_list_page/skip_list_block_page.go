@@ -99,7 +99,7 @@ type SkipListBlockPage struct {
 	page.Page
 }
 
-// TODO: (SDB) caller must call UnpinPage with appropriate dirty flag call to returned object
+// ATTENTION: caller must call UnpinPage with appropriate dirty flag call to returned object
 func NewSkipListBlockPage(bpm *buffer.BufferPoolManager, level int32, smallestListPair SkipListPair) *SkipListBlockPage {
 	page_ := bpm.NewPage()
 	if page_ == nil {

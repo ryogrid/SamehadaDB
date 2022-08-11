@@ -32,6 +32,7 @@ func NewSkipList(bpm *buffer.BufferPoolManager, keyType types.TypeID) *SkipList 
 }
 
 // TODO: (SDB) when on-disk impl, checking whether all connectivity is removed and node deallocation should be done if needed
+
 func (sl *SkipList) handleDelMarkedNode(delMarkedNode *skip_list_page.SkipListBlockPage, curNode *skip_list_page.SkipListBlockPage, curLevelIdx int32) {
 	curNode.SetForwardEntry(int(curLevelIdx), delMarkedNode.GetForwardEntry(int(curLevelIdx)))
 

@@ -109,8 +109,6 @@ func TestBSearchOfSkipLisBlockPage(t *testing.T) {
 	}
 }
 
-// Attention:
-// if DUMMY_MAX_ENTRY is used on SkipListBlockPage, its value must be bigger than 52
 func TestBSearchOfSkipLisBlockPage2(t *testing.T) {
 	os.Remove("test.db")
 	os.Remove("test.log")
@@ -169,6 +167,98 @@ func TestBSearchOfSkipLisBlockPage2(t *testing.T) {
 			testingpkg.SimpleAssert(t, found == false && uint32(key.ToInteger())-bpage.ValueAt(idx, types.Integer) == 5)
 		}
 	}
+}
+
+func TestInnerInsertDeleteOfBlockPageSimple(t *testing.T) {
+	os.Remove("test.db")
+	os.Remove("test.log")
+	shi := samehada.NewSamehadaInstanceForTesting()
+	bpm := shi.GetBufferPoolManager()
+
+	// ---------- test RemoveInner --------
+	// setup a page
+	bpage1 := skip_list_page.NewSkipListBlockPage(bpm, 1, skip_list_page.SkipListPair{
+		Key:   types.NewVarchar("abcd"),
+		Value: 1,
+	})
+
+	initialEntries := make([]*skip_list_page.SkipListPair, 0)
+	initialEntries = append(initialEntries, bpage1.GetEntry(0, types.Varchar))
+	initialEntries = append(initialEntries, &skip_list_page.SkipListPair{
+		Key:   types.NewVarchar("abcde"),
+		Value: 2,
+	})
+	initialEntries = append(initialEntries, &skip_list_page.SkipListPair{
+		Key:   types.NewVarchar("abcdef"),
+		Value: 3,
+	})
+	initialEntries = append(initialEntries, &skip_list_page.SkipListPair{
+		Key:   types.NewVarchar("abcdefg"),
+		Value: 4,
+	})
+	initialEntries = append(initialEntries, &skip_list_page.SkipListPair{
+		Key:   types.NewVarchar("abcdefgh"),
+		Value: 5,
+	})
+	bpage1.SetEntries(initialEntries)
+
+	// remove entries
+	bpage1.RemoveInner(0)
+	bpage1.RemoveInner(2)
+
+	// check entry datas
+	testingpkg.SimpleAssert(t, bpage1.GetEntryCnt() == 3)
+	testingpkg.SimpleAssert(t, bpage1.GetEntry(0, types.Varchar).Key.CompareEquals(types.NewVarchar("abcde")))
+	testingpkg.SimpleAssert(t, bpage1.GetEntry(1, types.Varchar).Key.CompareEquals(types.NewVarchar("abcdef")))
+	testingpkg.SimpleAssert(t, bpage1.GetEntry(2, types.Varchar).Key.CompareEquals(types.NewVarchar("abcdefgh")))
+
+	bpm.UnpinPage(bpage1.GetPageId(), true)
+
+	// ---------- test InsertInner --------
+	// setup a page
+	bpage2 := skip_list_page.NewSkipListBlockPage(bpm, 1, skip_list_page.SkipListPair{
+		Key:   types.NewVarchar("abcd"),
+		Value: 0,
+	})
+
+	initialEntries = make([]*skip_list_page.SkipListPair, 0)
+	initialEntries = append(initialEntries, bpage1.GetEntry(0, types.Varchar))
+	initialEntries = append(initialEntries, &skip_list_page.SkipListPair{
+		Key:   types.NewVarchar("abcde"),
+		Value: 1,
+	})
+	initialEntries = append(initialEntries, &skip_list_page.SkipListPair{
+		Key:   types.NewVarchar("abcdef"),
+		Value: 2,
+	})
+	bpage2.SetEntries(initialEntries)
+
+	// insert entries
+	bpage2.InsertInner(-1, &skip_list_page.SkipListPair{
+		Key:   types.NewVarchar("abc"),
+		Value: 0,
+	})
+	bpage2.InsertInner(2, &skip_list_page.SkipListPair{
+		Key:   types.NewVarchar("abcdeff"),
+		Value: 22,
+	})
+	bpage2.InsertInner(4, &skip_list_page.SkipListPair{
+		Key:   types.NewVarchar("abcdeff"),
+		Value: 33,
+	})
+
+	// check entry datas
+	testingpkg.SimpleAssert(t, bpage1.GetEntryCnt() == 6)
+	testingpkg.SimpleAssert(t, bpage1.GetEntry(0, types.Varchar).Key.CompareEquals(types.NewVarchar("abc")))
+	testingpkg.SimpleAssert(t, bpage1.GetEntry(1, types.Varchar).Key.CompareEquals(types.NewVarchar("abcd")))
+	testingpkg.SimpleAssert(t, bpage1.GetEntry(2, types.Varchar).Key.CompareEquals(types.NewVarchar("abcde")))
+	testingpkg.SimpleAssert(t, bpage1.GetEntry(3, types.Varchar).Key.CompareEquals(types.NewVarchar("abcdee")))
+	testingpkg.SimpleAssert(t, bpage1.GetEntry(4, types.Varchar).Key.CompareEquals(types.NewVarchar("abcdef")))
+	testingpkg.SimpleAssert(t, bpage1.GetEntry(5, types.Varchar).Key.CompareEquals(types.NewVarchar("abcdeff")))
+
+	bpm.UnpinPage(bpage2.GetPageId(), true)
+
+	shi.Finalize(false)
 }
 
 func confirmSkipListContent(t *testing.T, sl *skip_list.SkipList, step int32) int32 {
