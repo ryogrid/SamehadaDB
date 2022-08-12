@@ -31,13 +31,28 @@ func NewSkipList(bpm *buffer.BufferPoolManager, keyType types.TypeID) *SkipList 
 	return ret
 }
 
-// TODO: (SDB) when on-disk impl, checking whether all connectivity is removed and node deallocation should be done if needed
-
-func (sl *SkipList) handleDelMarkedNode(delMarkedNode *skip_list_page.SkipListBlockPage, curNode *skip_list_page.SkipListBlockPage, curLevelIdx int32) {
+func (sl *SkipList) handleDelMarkedNode(delMarkedNode *skip_list_page.SkipListBlockPage, curNode *skip_list_page.SkipListBlockPage, curLevelIdx int32) (isCanDelete bool) {
 	curNode.SetForwardEntry(int(curLevelIdx), delMarkedNode.GetForwardEntry(int(curLevelIdx)))
 
-	// marked connectivity is collectly modified on curLevelIdx
+	// marked entry's connectivity is collectly modified on curLevelIdx
 	delMarkedNode.SetForwardEntry(int(curLevelIdx), common.InvalidPageID)
+
+	// check whether all connectivity is removed.
+	// and if result is true, marked node can be removed
+	level := int(delMarkedNode.GetLevel())
+	isAllRemoved := true
+	for ii := 0; ii < level; ii++ {
+		fwdEntry := delMarkedNode.GetForwardEntry(ii)
+		if fwdEntry != common.InvalidPageID {
+			isAllRemoved = false
+			break
+		}
+	}
+	if isAllRemoved {
+		return true
+	} else {
+		return false
+	}
 }
 
 // TODO: (SDB) in concurrent impl, locking in this method is needed. and caller must do unlock (SkipList::FindNode)
@@ -77,8 +92,13 @@ func (sl *SkipList) FindNode(key *types.Value) (found_node *skip_list_page.SkipL
 
 				// handle node (isNeedDeleted marked) and returns appropriate node (prev node at ii + 1 level)
 				//sl.handleDelMarkedNode(node.GetForwardEntry(int(ii)), node, ii)
-				sl.handleDelMarkedNode(tmpNode, node, ii)
-				sl.bpm.UnpinPage(tmpNode.GetPageId(), true)
+				isCanDelete := sl.handleDelMarkedNode(tmpNode, node, ii)
+				tmpNodeId := tmpNode.GetPageId()
+				sl.bpm.UnpinPage(tmpNodeId, true)
+				// delete node (page) which is marked with IsNeedDeleted flag
+				if isCanDelete {
+					sl.bpm.DeletePage(tmpNodeId)
+				}
 				if node.GetIsNeedDeleted() {
 					panic("return value of handleDelMarkedNode is invalid!")
 				}
