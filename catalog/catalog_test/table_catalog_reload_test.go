@@ -47,5 +47,5 @@ func TestTableCatalogReload(t *testing.T) {
 	testingpkg.Assert(t, columnToCheck.GetType() == 4, "")
 	testingpkg.Assert(t, columnToCheck.HasIndex() == true, "")
 
-	samehada_instance.Finalize(true)
+	samehada_instance.Shutdown(true)
 }

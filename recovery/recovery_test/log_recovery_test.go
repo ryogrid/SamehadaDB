@@ -195,7 +195,7 @@ func TestRedo(t *testing.T) {
 	fmt.Println("Commit txn")
 
 	fmt.Println("Shutdown System")
-	samehada_instance.Finalize(false)
+	samehada_instance.Shutdown(false)
 
 	fmt.Println("System restart...")
 	samehada_instance = samehada.NewSamehadaInstanceForTesting()
@@ -249,7 +249,7 @@ func TestRedo(t *testing.T) {
 	testingpkg.Assert(t, old_tuple1.GetValue(schema_, 0).CompareEquals(val1_0), "")
 
 	fmt.Println("Tearing down the system..")
-	samehada_instance.Finalize(true)
+	samehada_instance.Shutdown(true)
 }
 
 func TestUndo(t *testing.T) {
@@ -325,7 +325,7 @@ func TestUndo(t *testing.T) {
 
 	fmt.Println("System crash before commit")
 	// delete samehada_instance
-	samehada_instance.Finalize(false)
+	samehada_instance.Shutdown(false)
 
 	fmt.Println("System restarted..")
 	samehada_instance = samehada.NewSamehadaInstanceForTesting()
@@ -392,7 +392,7 @@ func TestUndo(t *testing.T) {
 	//samehada_instance.GetTransactionManager().Commit(txn)
 
 	fmt.Println("Tearing down the system..")
-	samehada_instance.Finalize(true)
+	samehada_instance.Shutdown(true)
 }
 
 func TestCheckpoint(t *testing.T) {
@@ -503,7 +503,7 @@ func TestCheckpoint(t *testing.T) {
 	testingpkg.Assert(t, all_pages_lte, "")
 
 	fmt.Println("Shutdown System")
-	samehada_instance.Finalize(true)
+	samehada_instance.Shutdown(true)
 
 	fmt.Println("Tearing down the system..")
 }

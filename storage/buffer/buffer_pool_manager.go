@@ -206,7 +206,27 @@ func (b *BufferPoolManager) FlushAllPages() {
 	for _, pageID := range pageIDs {
 		b.FlushPage(pageID)
 	}
+}
 
+// FlushAllDitryPages flushes all dirty pages in the buffer pool to disk.
+func (b *BufferPoolManager) FlushAllDirtyPages() {
+	pageIDs := make([]types.PageID, 0)
+	b.mutex.Lock()
+	for pageID, _ := range b.pageTable {
+		if frameID, ok := b.pageTable[pageID]; ok {
+			pg := b.pages[frameID]
+			pg.RLatch()
+			if pg.IsDirty() {
+				pageIDs = append(pageIDs, pageID)
+			}
+			pg.RUnlatch()
+		}
+	}
+	b.mutex.Unlock()
+
+	for _, pageID := range pageIDs {
+		b.FlushPage(pageID)
+	}
 }
 
 func (b *BufferPoolManager) getFrameID() (*FrameID, bool) {

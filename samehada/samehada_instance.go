@@ -64,9 +64,9 @@ func (si *SamehadaInstance) GetCheckpointManager() *concurrency.CheckpointManage
 	return si.checkpoint_manger
 }
 
-// functionality is Shutdown of DiskManager and action around DB file only
-func (si *SamehadaInstance) Finalize(IsRemoveFiles bool) {
-	//dm := ((*disk.DiskManagerImpl)(unsafe.Pointer(si.disk_manager)))
+// functionality is Flushing dirty pages, shutdown of DiskManager and action around DB/Log files
+func (si *SamehadaInstance) Shutdown(IsRemoveFiles bool) {
+	// TODO: (SDB) flush all dirty pages
 	si.disk_manager.ShutDown()
 	if IsRemoveFiles {
 		si.disk_manager.RemoveDBFile()

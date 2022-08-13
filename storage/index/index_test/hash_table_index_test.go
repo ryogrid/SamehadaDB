@@ -137,7 +137,7 @@ func TestRecounstructionOfHashIndex(t *testing.T) {
 	}
 
 	shi.GetTransactionManager().Commit(txn)
-	shi.Finalize(false)
+	shi.Shutdown(false)
 
 	// ----------- check recovery includes index data ----------
 
@@ -217,5 +217,5 @@ func TestRecounstructionOfHashIndex(t *testing.T) {
 	}
 
 	shi.GetTransactionManager().Commit(txn)
-	shi.Finalize(false)
+	shi.Shutdown(false)
 }

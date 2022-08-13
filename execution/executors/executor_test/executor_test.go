@@ -1651,7 +1651,7 @@ func TestConcurrentTransactionExecution(t *testing.T) {
 	fmt.Printf("final commited_cnt: %d\n", commited_cnt)
 
 	// remove db file and log file
-	shi.Finalize(true)
+	shi.Shutdown(true)
 }
 
 func TestTestTableGenerator(t *testing.T) {

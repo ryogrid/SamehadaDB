@@ -48,7 +48,7 @@ func TestSerializationOfSkipLisBlockPage(t *testing.T) {
 	testingpkg.SimpleAssert(t, entry.Key.CompareEquals(types.NewVarchar("abcdeff")))
 	testingpkg.SimpleAssert(t, entry.Value == 12345)
 
-	shi.Finalize(false)
+	shi.Shutdown(false)
 }
 
 func TestInnerInsertDeleteOfBlockPageSimple(t *testing.T) {
@@ -147,7 +147,7 @@ func TestInnerInsertDeleteOfBlockPageSimple(t *testing.T) {
 
 	bpm.UnpinPage(bpage2.GetPageId(), true)
 
-	shi.Finalize(false)
+	shi.Shutdown(false)
 }
 
 func TestBSearchOfSkipLisBlockPage(t *testing.T) {
@@ -207,7 +207,7 @@ func TestBSearchOfSkipLisBlockPage(t *testing.T) {
 		}
 	}
 
-	shi.Finalize(false)
+	shi.Shutdown(false)
 }
 
 func TestBSearchOfSkipLisBlockPage2(t *testing.T) {
@@ -269,7 +269,7 @@ func TestBSearchOfSkipLisBlockPage2(t *testing.T) {
 		}
 	}
 
-	shi.Finalize(false)
+	shi.Shutdown(false)
 }
 
 func confirmSkipListContent(t *testing.T, sl *skip_list.SkipList, step int32) int32 {
@@ -356,7 +356,7 @@ func TestSkipListSimple(t *testing.T) {
 		//confirmSkipListContent(t, sl, -1)
 	}
 
-	shi.Finalize(false)
+	shi.Shutdown(false)
 }
 
 func TestSkipListItr(t *testing.T) {
@@ -749,7 +749,7 @@ func testSkipLisMix(t *testing.T, bulkSize int32, opTimes uint8, skipRand uint8,
 		}
 	}
 
-	//shi.Finalize(false)
+	//shi.Shutdown(false)
 }
 
 var bpm *buffer.BufferPoolManager

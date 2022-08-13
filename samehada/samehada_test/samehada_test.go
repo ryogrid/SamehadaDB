@@ -32,7 +32,7 @@ func TestInsertAndMultiItemPredicateSelect(t *testing.T) {
 	_, results5 := db.ExecuteSQLRetValues("SELECT * FROM name_age_list WHERE (age = 18 OR age >= 22) AND age < 25;")
 	samehada.PrintExecuteResults(results5)
 
-	db.Finalize()
+	db.Shutdown()
 }
 
 // TODO: (SDB) need to check query result (TestHasJoinSelect)
@@ -63,7 +63,7 @@ func TestHasJoinSelect(t *testing.T) {
 	_, results4 := db.ExecuteSQLRetValues("SELECT id_name_list.id, id_buppin_list.buppin FROM id_name_list JOIN id_buppin_list ON id_name_list.id = id_buppin_list.id WHERE id_name_list.id > 1 AND id_buppin_list.id < 4;")
 	samehada.PrintExecuteResults(results4)
 
-	db.Finalize()
+	db.Shutdown()
 }
 
 func TestSimpleDelete(t *testing.T) {
@@ -83,7 +83,7 @@ func TestSimpleDelete(t *testing.T) {
 	_, results1 := db.ExecuteSQLRetValues("SELECT * FROM name_age_list;")
 	testingpkg.SimpleAssert(t, len(results1) == 3)
 
-	db.Finalize()
+	db.Shutdown()
 }
 
 func TestSimpleUpdate(t *testing.T) {
@@ -104,7 +104,7 @@ func TestSimpleUpdate(t *testing.T) {
 	samehada.PrintExecuteResults(results1)
 	testingpkg.SimpleAssert(t, len(results1) == 3)
 
-	db.Finalize()
+	db.Shutdown()
 }
 
 func TestRebootWithLoadAndRecovery(t *testing.T) {
@@ -126,7 +126,7 @@ func TestRebootWithLoadAndRecovery(t *testing.T) {
 	testingpkg.SimpleAssert(t, len(results1) == 3)
 
 	// close db and log file
-	db.Finalize()
+	db.Shutdown()
 
 	// relaunch using /tmp/todo.db and /tmp/todo.log files
 	// load of db file and redo/undo process runs
@@ -138,7 +138,7 @@ func TestRebootWithLoadAndRecovery(t *testing.T) {
 	testingpkg.SimpleAssert(t, len(results2) == 4)
 
 	// close db and log file
-	db2.Finalize()
+	db2.Shutdown()
 
 	// relaunch using /tmp/todo.db and /tmp/todo.log files
 	// load of db file and redo/undo process runs
@@ -150,7 +150,7 @@ func TestRebootWithLoadAndRecovery(t *testing.T) {
 	testingpkg.SimpleAssert(t, len(results3) == 5)
 
 	// close db and log file
-	db3.Finalize()
+	db3.Shutdown()
 }
 
 func TestRebootAndReturnIFValues(t *testing.T) {
@@ -175,7 +175,7 @@ func TestRebootAndReturnIFValues(t *testing.T) {
 	testingpkg.SimpleAssert(t, len(results1) == 3)
 
 	// close db and log file
-	db.Finalize()
+	db.Shutdown()
 
 	// relaunch using /tmp/todo.db and /tmp/todo.log files
 	// load of db file and redo/undo process runs
@@ -190,7 +190,7 @@ func TestRebootAndReturnIFValues(t *testing.T) {
 	testingpkg.SimpleAssert(t, len(results2) == 4)
 
 	// close db and log file
-	db2.Finalize()
+	db2.Shutdown()
 
 	// relaunch using /tmp/todo.db and /tmp/todo.log files
 	// load of db file and redo/undo process runs
@@ -204,5 +204,5 @@ func TestRebootAndReturnIFValues(t *testing.T) {
 	}
 	testingpkg.SimpleAssert(t, len(results3) == 5)
 
-	db3.Finalize()
+	db3.Shutdown()
 }

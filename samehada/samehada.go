@@ -18,7 +18,6 @@ import (
 	"github.com/ryogrid/SamehadaDB/storage/tuple"
 	"github.com/ryogrid/SamehadaDB/types"
 	"math"
-	"time"
 	"unsafe"
 )
 
@@ -26,17 +25,8 @@ type SamehadaDB struct {
 	shi_         *SamehadaInstance
 	catalog_     *catalog.Catalog
 	exec_engine_ *executors.ExecutionEngine
+	chkpntMgr    *concurrency.CheckpointManager
 	planner_     planner.Planner
-}
-
-func StartCheckpointThread(cpMngr *concurrency.CheckpointManager) {
-	go func() {
-		for {
-			time.Sleep(time.Minute * 5)
-			cpMngr.BeginCheckpoint()
-			cpMngr.EndCheckpoint()
-		}
-	}()
 }
 
 func reconstructIndexDataOfEachCol(t *catalog.TableMetadata, c *catalog.Catalog, dman disk.DiskManager, txn *access.Transaction) {
@@ -126,9 +116,10 @@ func NewSamehadaDB(dbName string, memKBytes int) *SamehadaDB {
 	exec_engine := &executors.ExecutionEngine{}
 	pnner := planner.NewSimplePlanner(c, shi.GetBufferPoolManager())
 
-	StartCheckpointThread(concurrency.NewCheckpointManager(shi.GetTransactionManager(), shi.GetLogManager(), shi.GetBufferPoolManager()))
+	chkpntMgr := concurrency.NewCheckpointManager(shi.GetTransactionManager(), shi.GetLogManager(), shi.GetBufferPoolManager())
+	chkpntMgr.StartCheckpointTh()
 
-	return &SamehadaDB{shi, c, exec_engine, pnner}
+	return &SamehadaDB{shi, c, exec_engine, chkpntMgr, pnner}
 }
 
 func (sdb *SamehadaDB) ExecuteSQL(sqlStr string) (error, [][]interface{}) {
@@ -170,9 +161,11 @@ func (sdb *SamehadaDB) ExecuteSQLRetValues(sqlStr string) (error, [][]*types.Val
 	return nil, retVals
 }
 
-func (sdb *SamehadaDB) Finalize() {
-	//sdb.shi_.GetBufferPoolManager().FlushAllPages()
-	sdb.shi_.Finalize(false)
+func (sdb *SamehadaDB) Shutdown() {
+	// set a flag which is check by checkpointing thread
+	sdb.chkpntMgr.StopCheckpointTh()
+	sdb.shi_.GetBufferPoolManager().FlushAllDirtyPages()
+	sdb.shi_.Shutdown(false)
 }
 
 func ConvTupleListToValues(schema_ *schema.Schema, result []*tuple.Tuple) [][]*types.Value {
