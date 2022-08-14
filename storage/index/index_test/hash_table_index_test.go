@@ -149,7 +149,7 @@ func TestRecounstructionOfHashIndex(t *testing.T) {
 	log_recovery := log_recovery.NewLogRecovery(
 		shi.GetDiskManager(),
 		shi.GetBufferPoolManager())
-	greatestLSN := log_recovery.Redo()
+	greatestLSN, _ := log_recovery.Redo()
 	log_recovery.Undo()
 
 	dman := shi.GetDiskManager().(*disk.DiskManagerImpl)
