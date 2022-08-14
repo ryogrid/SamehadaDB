@@ -443,6 +443,8 @@ func FuzzSkipLisMix(f *testing.F) {
 
 	f.Add(int32(100), uint8(150), uint8(10), uint16(300))
 	f.Fuzz(func(t *testing.T, bulkSize int32, opTimes uint8, skipRand uint8, initialEntryNum uint16) {
+		testingpkg.Assert(t, false, "dummy assertion")
+		testingpkg.SimpleAssert(t, false)
 		testSkipLisMix(t, bulkSize, opTimes, skipRand, initialEntryNum)
 	})
 }
