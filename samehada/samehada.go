@@ -86,24 +86,26 @@ func NewSamehadaDB(dbName string, memKBytes int) *SamehadaDB {
 
 	shi.GetLogManager().DeactivateLogging()
 
+	var c *catalog.Catalog
 	if isExisitingDB {
 		log_recovery := log_recovery.NewLogRecovery(
 			shi.GetDiskManager(),
 			shi.GetBufferPoolManager())
-		greatestLSN := log_recovery.Redo()
-		log_recovery.Undo()
+		greatestLSN, isRedoOccured := log_recovery.Redo()
+		isUndoOccured := log_recovery.Undo()
 
 		dman := shi.GetDiskManager().(*disk.DiskManagerImpl)
 		dman.GCLogFile()
 		shi.GetLogManager().SetNextLSN(greatestLSN + 1)
-	}
 
-	var c *catalog.Catalog
-	if isExisitingDB {
 		c = catalog.RecoveryCatalogFromCatalogPage(shi.GetBufferPoolManager(), shi.GetLogManager(), shi.GetLockManager(), txn)
-		// index date reloading/recovery is not implemented yet
-		// so all index data should be recounstruct using already allocated pages
-		ReconstructAllIndexData(c, shi.GetDiskManager(), txn)
+
+		if isRedoOccured || isUndoOccured {
+			// index date reloading/recovery is not implemented yet
+			// so when db did not exit graceful, all index data should be recounstruct
+			// (hash index uses already allocated pages but skip list index deserts these...)
+			ReconstructAllIndexData(c, shi.GetDiskManager(), txn)
+		}
 	} else {
 		c = catalog.BootstrapCatalog(shi.GetBufferPoolManager(), shi.GetLogManager(), shi.GetLockManager(), txn)
 	}
