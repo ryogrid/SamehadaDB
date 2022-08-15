@@ -80,6 +80,7 @@ func RecoveryCatalogFromCatalogPage(bpm *buffer.BufferPoolManager, log_manager *
 			variableLength := tuple.GetValue(ColumnsCatalogSchema(), ColumnsCatalogSchema().GetColIndex("variable_length")).ToInteger()
 			columnOffset := tuple.GetValue(ColumnsCatalogSchema(), ColumnsCatalogSchema().GetColIndex("offset")).ToInteger()
 			hasIndex := Int32toBool(tuple.GetValue(ColumnsCatalogSchema(), ColumnsCatalogSchema().GetColIndex("has_index")).ToInteger())
+			indexKind := tuple.GetValue(ColumnsCatalogSchema(), ColumnsCatalogSchema().GetColIndex("index_kind")).ToInteger()
 			indexHeaderPageId := tuple.GetValue(ColumnsCatalogSchema(), ColumnsCatalogSchema().GetColIndex("index_header_page_id")).ToInteger()
 
 			column_ := column.NewColumn(columnName, types.TypeID(columnType), false, index_constants.INDEX_KIND_INVAID, types.PageID(indexHeaderPageId), nil)
@@ -87,6 +88,7 @@ func RecoveryCatalogFromCatalogPage(bpm *buffer.BufferPoolManager, log_manager *
 			column_.SetVariableLength(uint32(variableLength))
 			column_.SetOffset(uint32(columnOffset))
 			column_.SetHasIndex(hasIndex)
+			column_.SetIndexKind(index_constants.IndexKind(indexKind))
 			column_.SetIndexHeaderPageId(types.PageID(indexHeaderPageId))
 
 			columns = append(columns, column_)
@@ -170,6 +172,7 @@ func (c *Catalog) insertTable(tableMetadata *TableMetadata, txn *access.Transact
 		row = append(row, types.NewInteger(int32(column_.VariableLength())))
 		row = append(row, types.NewInteger(int32(column_.GetOffset())))
 		row = append(row, types.NewInteger(boolToInt32(column_.HasIndex())))
+		row = append(row, types.NewInteger(int32(column_.IndexKind())))
 		row = append(row, types.NewInteger(int32(column_.IndexHeaderPageId())))
 		new_tuple := tuple.NewTupleFromSchema(row, ColumnsCatalogSchema())
 

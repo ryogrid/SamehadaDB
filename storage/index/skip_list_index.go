@@ -21,7 +21,7 @@ type SkipListIndex struct {
 func NewSkipListIndex(metadata *IndexMetadata, buffer_pool_manager *buffer.BufferPoolManager, col_idx uint32) *SkipListIndex {
 	ret := new(SkipListIndex)
 	ret.metadata = metadata
-	ret.container = *skip_list.NewSkipList(buffer_pool_manager, ret.metadata.GetTupleSchema().GetColumn(0).GetType())
+	ret.container = *skip_list.NewSkipList(buffer_pool_manager, ret.metadata.GetTupleSchema().GetColumn(col_idx).GetType())
 	ret.col_idx = col_idx
 	return ret
 }
@@ -40,6 +40,10 @@ func (slidx *SkipListIndex) GetTupleSchema() *schema.Schema {
 }
 
 func (slidx *SkipListIndex) GetKeyAttrs() []uint32 { return slidx.metadata.GetKeyAttrs() }
+
+func (slidx *SkipListIndex) GetHeaderPageId() types.PageID {
+	return slidx.container.GetHeaderPageId()
+}
 
 func (slidx *SkipListIndex) InsertEntry(key *tuple.Tuple, rid page.RID, transaction *access.Transaction) {
 	tupleSchema_ := slidx.GetTupleSchema()
