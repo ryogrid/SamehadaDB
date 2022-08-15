@@ -555,9 +555,9 @@ func TestHashTableIndex(t *testing.T) {
 
 	c := catalog.BootstrapCatalog(bpm, log_mgr, access.NewLockManager(access.REGULAR, access.PREVENTION), txn)
 
-	columnA := column.NewColumn("a", types.Integer, true, index_constants.INDEX_KIND_INVAID, types.PageID(-1), nil)
-	columnB := column.NewColumn("b", types.Integer, true, index_constants.INDEX_KIND_INVAID, types.PageID(-1), nil)
-	columnC := column.NewColumn("c", types.Varchar, true, index_constants.INDEX_KIND_INVAID, types.PageID(-1), nil)
+	columnA := column.NewColumn("a", types.Integer, true, index_constants.INDEX_KIND_HASH, types.PageID(-1), nil)
+	columnB := column.NewColumn("b", types.Integer, true, index_constants.INDEX_KIND_HASH, types.PageID(-1), nil)
+	columnC := column.NewColumn("c", types.Varchar, true, index_constants.INDEX_KIND_HASH, types.PageID(-1), nil)
 	schema_ := schema.NewSchema([]*column.Column{columnA, columnB, columnC})
 
 	tableMetadata := c.CreateTable("test_1", schema_, txn)

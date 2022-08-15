@@ -88,7 +88,7 @@ type HashIndexScanTestCase struct {
 func ExecuteHashIndexScanTestCase(t *testing.T, testCase HashIndexScanTestCase) {
 	columns := []*column.Column{}
 	for _, c := range testCase.Columns {
-		columns = append(columns, column.NewColumn(c.Name, c.Kind, false, index_constants.INDEX_KIND_INVAID, types.PageID(-1), nil))
+		columns = append(columns, column.NewColumn(c.Name, c.Kind, true, index_constants.INDEX_KIND_HASH, types.PageID(-1), nil))
 	}
 	outSchema := schema.NewSchema(columns)
 

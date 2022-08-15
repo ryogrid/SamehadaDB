@@ -49,9 +49,9 @@ func TestRecounstructionOfHashIndex(t *testing.T) {
 	txn := txn_mgr.Begin(nil)
 
 	c := catalog.BootstrapCatalog(bpm, shi.GetLogManager(), shi.GetLockManager(), txn)
-	columnA := column.NewColumn("a", types.Integer, true, index_constants.INDEX_KIND_INVAID, types.PageID(-1), nil)
-	columnB := column.NewColumn("b", types.Integer, true, index_constants.INDEX_KIND_INVAID, types.PageID(-1), nil)
-	columnC := column.NewColumn("c", types.Varchar, true, index_constants.INDEX_KIND_INVAID, types.PageID(-1), nil)
+	columnA := column.NewColumn("a", types.Integer, true, index_constants.INDEX_KIND_HASH, types.PageID(-1), nil)
+	columnB := column.NewColumn("b", types.Integer, true, index_constants.INDEX_KIND_HASH, types.PageID(-1), nil)
+	columnC := column.NewColumn("c", types.Varchar, true, index_constants.INDEX_KIND_HASH, types.PageID(-1), nil)
 	schema_ := schema.NewSchema([]*column.Column{columnA, columnB, columnC})
 
 	tableMetadata := c.CreateTable("test_1", schema_, txn)
