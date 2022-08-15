@@ -33,6 +33,8 @@ func NewTableMetadata(schema *schema.Schema, name string, table *access.TableHea
 			// TODO: (SDB) index bucket size is common.BucketSizeOfHashIndex (auto size extending is needed...)
 			//             note: one bucket is used pages for storing index key/value pairs for a column.
 			//                   one page can store 512 key/value pair
+
+			// TODO: (SDB) need to set Index object corresponding to column_.IndexKind() (TableMetadata::NewTableMetadata)
 			im := index.NewIndexMetadata(column_.GetColumnName()+"_index", name, schema, []uint32{uint32(idx)})
 			hidx := index.NewLinearProbeHashTableIndex(im, table.GetBufferPoolManager(), uint32(idx), common.BucketSizeOfHashIndex, column_.IndexHeaderPageId())
 			indexes = append(indexes, hidx)

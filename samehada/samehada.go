@@ -13,6 +13,7 @@ import (
 	"github.com/ryogrid/SamehadaDB/samehada/samehada_util"
 	"github.com/ryogrid/SamehadaDB/storage/access"
 	"github.com/ryogrid/SamehadaDB/storage/disk"
+	"github.com/ryogrid/SamehadaDB/storage/index/index_constants"
 	"github.com/ryogrid/SamehadaDB/storage/page"
 	"github.com/ryogrid/SamehadaDB/storage/table/schema"
 	"github.com/ryogrid/SamehadaDB/storage/tuple"
@@ -29,40 +30,53 @@ type SamehadaDB struct {
 	planner_     planner.Planner
 }
 
-func reconstructIndexDataOfEachCol(t *catalog.TableMetadata, c *catalog.Catalog, dman disk.DiskManager, txn *access.Transaction) {
+func reconstructIndexDataOfATbl(t *catalog.TableMetadata, c *catalog.Catalog, dman disk.DiskManager, txn *access.Transaction) {
 	executionEngine := &executors.ExecutionEngine{}
 	executorContext := executors.NewExecutorContext(c, t.Table().GetBufferPoolManager(), txn)
-
-	// get all tuples
-	outSchema := t.Schema()
-	seqPlan := plans.NewSeqScanPlanNode(outSchema, nil, t.OID())
-	results := executionEngine.Execute(seqPlan, executorContext)
 
 	zeroClearedBuf := make([]byte, common.PageSize)
 	bpm := t.Table().GetBufferPoolManager()
 
-	// clear pages for HashTableBlockPage for avoiding conflict with reconstruction
-	// when this method is called, the pages are not fetched yet (= are not in memory)
-	// (there may be pages(on disk) which has old index entries data in current design...)
 	for colIdx, index_ := range t.Indexes() {
 		if index_ != nil {
 			column_ := t.Schema().GetColumn(uint32(colIdx))
-			indexHeaderPageId := column_.IndexHeaderPageId()
+			switch column_.IndexKind() {
+			case index_constants.INDEX_KIND_HASH:
+				// clear pages for HashTableBlockPage for avoiding conflict with reconstruction
+				// due to there may be pages (on disk) which has old index entries data in current design...
+				// note: when this method is called, the pages are not fetched yet (= are not in memory)
 
-			hPageData := bpm.FetchPage(indexHeaderPageId).Data()
-			headerPage := (*page.HashTableHeaderPage)(unsafe.Pointer(hPageData))
-			for ii := uint32(0); ii < headerPage.NumBlocks(); ii++ {
-				blockPageId := headerPage.GetBlockPageId(ii)
-				// zero clear specifed space of db file
-				dman.WritePage(blockPageId, zeroClearedBuf)
+				indexHeaderPageId := column_.IndexHeaderPageId()
+
+				hPageData := bpm.FetchPage(indexHeaderPageId).Data()
+				headerPage := (*page.HashTableHeaderPage)(unsafe.Pointer(hPageData))
+				for ii := uint32(0); ii < headerPage.NumBlocks(); ii++ {
+					blockPageId := headerPage.GetBlockPageId(ii)
+					// zero clear specifed space of db file
+					dman.WritePage(blockPageId, zeroClearedBuf)
+				}
+			case index_constants.INDEX_KIND_SKIP_LIST:
+				// do nothing here
+				// (Since SkipList index can't reuse past allocated pages, data clear of allocated pages
+				//  are not needed...)
+			default:
+				panic("invalid index kind!")
 			}
 		}
 	}
 
+	var allTuples []*tuple.Tuple = nil
+
 	// insert index entries correspond to each tuple and column to each index objects
 	for _, index_ := range t.Indexes() {
 		if index_ != nil {
-			for _, tuple_ := range results {
+			if allTuples == nil {
+				// get all tuples once
+				outSchema := t.Schema()
+				seqPlan := plans.NewSeqScanPlanNode(outSchema, nil, t.OID())
+				allTuples = executionEngine.Execute(seqPlan, executorContext)
+			}
+			for _, tuple_ := range allTuples {
 				rid := tuple_.GetRID()
 				index_.InsertEntry(tuple_, *rid, txn)
 			}
@@ -73,7 +87,7 @@ func reconstructIndexDataOfEachCol(t *catalog.TableMetadata, c *catalog.Catalog,
 func ReconstructAllIndexData(c *catalog.Catalog, dman disk.DiskManager, txn *access.Transaction) {
 	allTables := c.GetAllTables()
 	for ii := 0; ii < len(allTables); ii++ {
-		reconstructIndexDataOfEachCol(allTables[ii], c, dman, txn)
+		reconstructIndexDataOfATbl(allTables[ii], c, dman, txn)
 	}
 }
 
