@@ -51,3 +51,20 @@ func ProcessSQLStr(sqlStr *string) *QueryInfo {
 
 	return extractInfoFromAST(astNode)
 }
+
+// for utity func on develop phase
+func printTraversedNodes(rootNode *ast.StmtNode) {
+	v := NewPrintNodesVisitor()
+	(*rootNode).Accept(v)
+}
+
+// for utity func on develop phase
+func PrintParsedNodes(sqlStr *string) {
+	astNode, err := parse(sqlStr)
+	if err != nil {
+		fmt.Printf("parse error: %v\n", err.Error())
+		return
+	}
+
+	printTraversedNodes(astNode)
+}
