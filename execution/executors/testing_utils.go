@@ -4,6 +4,7 @@
 package executors
 
 import (
+	"github.com/ryogrid/SamehadaDB/storage/index/index_constants"
 	"testing"
 
 	"github.com/ryogrid/SamehadaDB/catalog"
@@ -53,7 +54,7 @@ type SeqScanTestCase struct {
 func ExecuteSeqScanTestCase(t *testing.T, testCase SeqScanTestCase) {
 	columns := []*column.Column{}
 	for _, c := range testCase.Columns {
-		columns = append(columns, column.NewColumn(c.Name, c.Kind, false, types.PageID(-1), nil))
+		columns = append(columns, column.NewColumn(c.Name, c.Kind, false, index_constants.INDEX_KIND_INVAID, types.PageID(-1), nil))
 	}
 	outSchema := schema.NewSchema(columns)
 
@@ -87,7 +88,7 @@ type HashIndexScanTestCase struct {
 func ExecuteHashIndexScanTestCase(t *testing.T, testCase HashIndexScanTestCase) {
 	columns := []*column.Column{}
 	for _, c := range testCase.Columns {
-		columns = append(columns, column.NewColumn(c.Name, c.Kind, false, types.PageID(-1), nil))
+		columns = append(columns, column.NewColumn(c.Name, c.Kind, false, index_constants.INDEX_KIND_INVAID, types.PageID(-1), nil))
 	}
 	outSchema := schema.NewSchema(columns)
 
@@ -123,7 +124,7 @@ func ExecuteDeleteTestCase(t *testing.T, testCase DeleteTestCase) {
 
 	columns := []*column.Column{}
 	for _, c := range testCase.Columns {
-		columns = append(columns, column.NewColumn(c.Name, c.Kind, false, types.PageID(-1), nil))
+		columns = append(columns, column.NewColumn(c.Name, c.Kind, false, index_constants.INDEX_KIND_INVAID, types.PageID(-1), nil))
 	}
 	outSchema := schema.NewSchema(columns)
 

@@ -5,6 +5,7 @@
 package tuple
 
 import (
+	"github.com/ryogrid/SamehadaDB/storage/index/index_constants"
 	"testing"
 
 	"github.com/ryogrid/SamehadaDB/storage/table/column"
@@ -14,11 +15,11 @@ import (
 )
 
 func TestTuple(t *testing.T) {
-	columnA := column.NewColumn("a", types.Integer, false, types.PageID(-1), nil)
-	columnB := column.NewColumn("b", types.Varchar, false, types.PageID(-1), nil)
-	columnC := column.NewColumn("c", types.Integer, false, types.PageID(-1), nil)
-	columnD := column.NewColumn("d", types.Varchar, false, types.PageID(-1), nil)
-	columnE := column.NewColumn("e", types.Varchar, false, types.PageID(-1), nil)
+	columnA := column.NewColumn("a", types.Integer, false, index_constants.INDEX_KIND_INVAID, types.PageID(-1), nil)
+	columnB := column.NewColumn("b", types.Varchar, false, index_constants.INDEX_KIND_INVAID, types.PageID(-1), nil)
+	columnC := column.NewColumn("c", types.Integer, false, index_constants.INDEX_KIND_INVAID, types.PageID(-1), nil)
+	columnD := column.NewColumn("d", types.Varchar, false, index_constants.INDEX_KIND_INVAID, types.PageID(-1), nil)
+	columnE := column.NewColumn("e", types.Varchar, false, index_constants.INDEX_KIND_INVAID, types.PageID(-1), nil)
 
 	schema := schema.NewSchema([]*column.Column{columnA, columnB, columnC, columnD, columnE})
 

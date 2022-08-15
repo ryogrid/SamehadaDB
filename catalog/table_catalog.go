@@ -4,6 +4,7 @@
 package catalog
 
 import (
+	"github.com/ryogrid/SamehadaDB/storage/index/index_constants"
 	"sync/atomic"
 
 	"github.com/ryogrid/SamehadaDB/recovery"
@@ -81,7 +82,7 @@ func RecoveryCatalogFromCatalogPage(bpm *buffer.BufferPoolManager, log_manager *
 			hasIndex := Int32toBool(tuple.GetValue(ColumnsCatalogSchema(), ColumnsCatalogSchema().GetColIndex("has_index")).ToInteger())
 			indexHeaderPageId := tuple.GetValue(ColumnsCatalogSchema(), ColumnsCatalogSchema().GetColIndex("index_header_page_id")).ToInteger()
 
-			column_ := column.NewColumn(columnName, types.TypeID(columnType), false, types.PageID(indexHeaderPageId), nil)
+			column_ := column.NewColumn(columnName, types.TypeID(columnType), false, index_constants.INDEX_KIND_INVAID, types.PageID(indexHeaderPageId), nil)
 			column_.SetFixedLength(uint32(fixedLength))
 			column_.SetVariableLength(uint32(variableLength))
 			column_.SetOffset(uint32(columnOffset))
