@@ -35,7 +35,7 @@ import (
 //
 // Note:
 //  placement order of entry location data on header doesn't match with entry data on payload
-//  because entry insertion cost is keeped lower
+//  for entry insertion cost is keeped lower
 //
 //  Entry_key format (size in bytes)
 //    = Serialized types.Value
@@ -192,7 +192,8 @@ func (node *SkipListBlockPage) FindEntryByKey(key *types.Value) (found bool, ent
 // idx==-1 -> data's inddx become 0 (insert to head of entries)
 // idx==entryCnt -> data's index become entryCnt (insert next of last entry)
 // ATTENTION:
-//   caller should update entryCnt appropriatery after this method call
+//
+//	caller should update entryCnt appropriatery after this method call
 func (node *SkipListBlockPage) updateEntryInfosAtInsert(idx int, dataSize uint16) {
 	// entrries data backward of entry which specifed with idx arg are not changed
 	// because data of new entry is always placed tail of payload area
@@ -293,7 +294,8 @@ func (node *SkipListBlockPage) Insert(key *types.Value, value uint32, bpm *buffe
 // remove entry info specified with idx arg from header of page
 // this method slides memory area of header using memory copy
 // ATTENTION:
-//   caller should update entryCnt appropriatery after this method call
+//
+//	caller should update entryCnt appropriatery after this method call
 func (node *SkipListBlockPage) updateEntryInfosAtRemove(idx int) {
 	dataSize := node.GetEntrySize(idx)
 	orgDataOffset := node.GetEntryOffset(idx)
@@ -561,7 +563,8 @@ func (node *SkipListBlockPage) SetEntrySize(idx int, setSize uint16) {
 //}
 
 // memo: freeSpacePointer value is index of buffer which points already data placed
-//       so, you can use memory Data()[someOffset:freeSpacePointer] in golang description
+//
+//	so, you can use memory Data()[someOffset:freeSpacePointer] in golang description
 func (node *SkipListBlockPage) GetFreeSpacePointer() uint32 {
 	offset := offsetFreeSpacePointer
 
@@ -583,8 +586,8 @@ func (node *SkipListBlockPage) GetEntry(idx int, keyType types.TypeID) *SkipList
 
 // ATTENTION:
 // this method can be called only when...
-//  - it is guranteed that new entry insert doesn't cause overflow of node space capacity
-//  - key of target entry doesn't exist in this node
+//   - it is guranteed that new entry insert doesn't cause overflow of node space capacity
+//   - key of target entry doesn't exist in this node
 func (node *SkipListBlockPage) SetEntry(idx int, entry *SkipListPair) {
 	// at current design,
 	// - duplicated key is not supported
@@ -662,7 +665,8 @@ func (node *SkipListBlockPage) getFreeSpaceRemaining() uint32 {
 // TODO: (SDB) in concurrent impl, locking in this method is needed. and caller must do unlock (FectchAndCastToBlockPage)
 
 // Attention:
-//   caller must call UnpinPage with appropriate diaty page to the got page when page using ends
+//
+//	caller must call UnpinPage with appropriate diaty page to the got page when page using ends
 func FetchAndCastToBlockPage(bpm *buffer.BufferPoolManager, pageId types.PageID) *SkipListBlockPage {
 	bPage := bpm.FetchPage(pageId)
 	return (*SkipListBlockPage)(unsafe.Pointer(bPage))

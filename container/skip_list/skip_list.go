@@ -60,68 +60,76 @@ func (sl *SkipList) handleDelMarkedNode(delMarkedNode *skip_list_page.SkipListBl
 // Attention:
 //
 //	caller must call UnpinPage with appropriate diaty page to the got page when page using ends
-func (sl *SkipList) FindNode(key *types.Value) (found_node *skip_list_page.SkipListBlockPage, skipPath []types.PageID, skipPathPrev []types.PageID) {
+func (sl *SkipList) FindNode(key *types.Value) (found_node *skip_list_page.SkipListBlockPage, lfound_ int32, preds_ []types.PageID, nexts_ []types.PageID) {
 	headerPage := skip_list_page.FetchAndCastToHeaderPage(sl.bpm, sl.headerPageID)
 
 	startPageId := headerPage.GetListStartPageId()
-	node := skip_list_page.FetchAndCastToBlockPage(sl.bpm, startPageId)
-	// loop invariant: node.key < searchKey
+	pred := skip_list_page.FetchAndCastToBlockPage(sl.bpm, startPageId)
+	// loop invariant: pred.key < searchKey
 	//fmt.Println("---")
 	//fmt.Println(key.ToInteger())
 	//moveCnt := 0
-	//skipPathList := make([]types.PageID, headerPage.GetCurMaxLevel()+1)
-	skipPathList := make([]types.PageID, skip_list_page.MAX_FOWARD_LIST_LEN)
-	//skipPathListPrev := make([]types.PageID, headerPage.GetCurMaxLevel())
-	skipPathListPrev := make([]types.PageID, skip_list_page.MAX_FOWARD_LIST_LEN)
+	//nexts := make([]types.PageID, headerPage.GetCurMaxLevel()+1)
+	lfound := -1
+	nexts := make([]types.PageID, skip_list_page.MAX_FOWARD_LIST_LEN)
+	//preds := make([]types.PageID, headerPage.GetCurMaxLevel())
+	preds := make([]types.PageID, skip_list_page.MAX_FOWARD_LIST_LEN)
 	//for ii := (headerPage.GetCurMaxLevel() - 1); ii >= 0; ii-- {
 	for ii := (skip_list_page.MAX_FOWARD_LIST_LEN - 1); ii >= 0; ii-- {
 		//fmt.Printf("level %d\n", i)
 		for {
-			tmpNode := skip_list_page.FetchAndCastToBlockPage(sl.bpm, node.GetForwardEntry(int(ii)))
+			tmpNode := skip_list_page.FetchAndCastToBlockPage(sl.bpm, pred.GetForwardEntry(int(ii)))
 			if tmpNode == nil {
-				common.ShPrintf(common.FATAL, "PageID to passed FetchAndCastToBlockPage is %d\n", node.GetForwardEntry(int(ii)))
+				common.ShPrintf(common.FATAL, "PageID to passed FetchAndCastToBlockPage is %d\n", pred.GetForwardEntry(int(ii)))
 				panic("SkipList::FindNode: FetchAndCastToBlockPage returned nil!")
 			}
-			if tmpNode.GetSmallestKey(key.ValueType()).CompareLessThanOrEqual(*key) {
-				// do nothing
-			} else {
-				sl.bpm.UnpinPage(tmpNode.GetPageId(), false)
+			if !tmpNode.GetSmallestKey(key.ValueType()).CompareLessThanOrEqual(*key) && !tmpNode.GetIsNeedDeleted() {
+				// reached (ii + 1) level's nearest pred
+				//sl.bpm.UnpinPage(tmpNode.GetPageId(), false)
+				prevPageId := pred.GetPageId()
+				preds[ii] = pred.GetPageId()
+				pred = tmpNode
+				sl.bpm.UnpinPage(prevPageId, false)
+				nexts[ii] = pred.GetPageId()
 				break
 			}
 
-			// TODO: (SDB) need to consider that reach delete marked node at SkipList::FindNode
+			// TODO: (SDB) need to consider that reach delete marked pred at SkipList::FindNode
 
-			////if node.GetForwardEntry(int(ii)).GetIsNeedDeleted() {
+			////if pred.GetForwardEntry(int(ii)).GetIsNeedDeleted() {
 			//if tmpNode.GetIsNeedDeleted() {
-			//	// when next node is isNeedDeleted marked node
-			//	// stop at current node and handle next node
+			//	// when next pred is isNeedDeleted marked pred
+			//	// stop at current pred and handle next pred
 			//
-			//	// handle node (isNeedDeleted marked) and returns appropriate node (prev node at ii + 1 level)
-			//	//sl.handleDelMarkedNode(node.GetForwardEntry(int(ii)), node, ii)
-			//	isCanDelete := sl.handleDelMarkedNode(tmpNode, node, ii)
+			//	// handle pred (isNeedDeleted marked) and returns appropriate pred (prev pred at ii + 1 level)
+			//	//sl.handleDelMarkedNode(pred.GetForwardEntry(int(ii)), pred, ii)
+			//	isCanDelete := sl.handleDelMarkedNode(tmpNode, pred, ii)
 			//	tmpNodeId := tmpNode.GetPageId()
 			//	sl.bpm.UnpinPage(tmpNodeId, true)
-			//	// delete node (page) which is marked with IsNeedDeleted flag
+			//	// delete pred (page) which is marked with IsNeedDeleted flag
 			//	if isCanDelete {
 			//		sl.bpm.DeletePage(tmpNodeId)
 			//	}
-			//	if node.GetIsNeedDeleted() {
+			//	if pred.GetIsNeedDeleted() {
 			//		panic("return value of handleDelMarkedNode is invalid!")
 			//	}
 			//} else {
-			// move to next node
-			prevPageId := node.GetPageId()
-			skipPathListPrev[ii] = node.GetPageId()
-			node = tmpNode
+			// move to next pred
+			prevPageId := pred.GetPageId()
+			//preds[ii] = pred.GetPageId()
+			pred = tmpNode
 			sl.bpm.UnpinPage(prevPageId, false)
 			//}
 			//}
-			skipPathList[ii] = node.GetPageId()
+			//nexts[ii] = pred.GetPageId()
+		}
+		if lfound == -1 {
+			lfound = ii
 		}
 	}
 	sl.bpm.UnpinPage(headerPage.GetPageId(), false)
 
-	return node, skipPathList, skipPathListPrev
+	return pred, nexts, preds
 }
 
 // TODO: (SDB) in concurrent impl, locking in this method is needed. and caller must do unlock (SkipList::FindNodeWithEntryIdxForIterator)
