@@ -22,7 +22,7 @@ func (itr *SkipListIterator) Next() (done bool, err error, key *types.Value, val
 		prevNodeId := itr.curNode.GetPageId()
 		itr.curNode = skip_list_page.FetchAndCastToBlockPage(itr.bpm, itr.curNode.GetForwardEntry(0))
 		itr.bpm.UnpinPage(prevNodeId, false)
-		for itr.curNode.GetIsNeedDeleted() && !itr.curNode.GetBiggestKey(itr.keyType).IsInfMax() {
+		for itr.curNode.GetIsNeedDeleted() && !itr.curNode.GetSmallestKey(itr.keyType).IsInfMax() {
 			// skip isNeedDeleted marked node
 			prevNodeId = itr.curNode.GetPageId()
 			itr.curNode = skip_list_page.FetchAndCastToBlockPage(itr.bpm, itr.curNode.GetForwardEntry(0))
@@ -33,7 +33,7 @@ func (itr *SkipListIterator) Next() (done bool, err error, key *types.Value, val
 
 	itr.curIdx++
 	if (itr.rangeEndKey != nil && itr.curNode.GetEntry(int(itr.curIdx), itr.keyType).Key.CompareGreaterThan(*itr.rangeEndKey)) ||
-		itr.curNode.GetBiggestKey(itr.keyType).IsInfMax() {
+		itr.curNode.GetSmallestKey(itr.keyType).IsInfMax() {
 		itr.bpm.UnpinPage(itr.curNode.GetPageId(), false)
 		return true, nil, nil, math.MaxUint32
 	}

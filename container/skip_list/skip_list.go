@@ -80,7 +80,7 @@ func (sl *SkipList) FindNode(key *types.Value) (lfound_ int32, preds_ []types.Pa
 				common.ShPrintf(common.FATAL, "PageID to passed FetchAndCastToBlockPage is %d\n", pred.GetForwardEntry(int(ii)))
 				panic("SkipList::FindNode: FetchAndCastToBlockPage returned nil!")
 			}
-			if !curr.GetBiggestKey(key.ValueType()).CompareLessThanOrEqual(*key) && !curr.GetIsNeedDeleted() {
+			if !curr.GetSmallestKey(key.ValueType()).CompareLessThanOrEqual(*key) && !curr.GetIsNeedDeleted() {
 				// reached (ii + 1) level's nearest pred
 				break
 			} else {
@@ -90,11 +90,12 @@ func (sl *SkipList) FindNode(key *types.Value) (lfound_ int32, preds_ []types.Pa
 			}
 		}
 
+		// TODO: (SDB) lfound is not usable at ondisk impl! (SkipList::FindNode)
 		if lfound == -1 {
 			lfound = ii
 		}
-		preds[ii] = pred.GetPageId()
-		succs[ii] = curr.GetPageId()
+		preds[ii] = // TODO: (SDB) need to set page ID of pred of pred
+		succs[ii] = pred.GetPageId()
 		sl.bpm.UnpinPage(curr.GetPageId(), false)
 	}
 	sl.bpm.UnpinPage(pred.GetPageId(), false)
