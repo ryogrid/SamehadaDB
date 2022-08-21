@@ -62,6 +62,9 @@ func (sl *SkipList) FindNode(key *types.Value) (predOfCorners_ []types.PageID, c
 
 	startPageId := headerPage.GetListStartPageId()
 	// TODO: (SDB) need to consider pred == startPage is OK?
+
+	// TODO: (SDB) need to add arg of operation type and chacking direct reach for removing case
+	//             smallestKey match target key && entry count is 1, then pred shoud be change to one of backward
 	pred := skip_list_page.FetchAndCastToBlockPage(sl.bpm, startPageId)
 	// loop invariant: pred.key < searchKey
 	//fmt.Println("---")
