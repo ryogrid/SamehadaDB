@@ -80,7 +80,7 @@ func (sl *SkipList) FindNode(key *types.Value) (lfound_ int32, preds_ []types.Pa
 				common.ShPrintf(common.FATAL, "PageID to passed FetchAndCastToBlockPage is %d\n", pred.GetForwardEntry(int(ii)))
 				panic("SkipList::FindNode: FetchAndCastToBlockPage returned nil!")
 			}
-			if !curr.GetBiggestKey(key.ValueType()).CompareLessThan(*key) && !curr.GetIsNeedDeleted() {
+			if !curr.GetBiggestKey(key.ValueType()).CompareLessThanOrEqual(*key) && !curr.GetIsNeedDeleted() {
 				// reached (ii + 1) level's nearest pred
 				break
 			} else {
