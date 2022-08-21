@@ -5,6 +5,7 @@ import (
 	"github.com/ryogrid/SamehadaDB/storage/buffer"
 	"github.com/ryogrid/SamehadaDB/storage/page/skip_list_page"
 	"github.com/ryogrid/SamehadaDB/types"
+	"golang.org/x/exp/shiny/widget/node"
 	"math"
 	"math/rand"
 )
@@ -57,7 +58,7 @@ func (sl *SkipList) handleDelMarkedNode(delMarkedNode *skip_list_page.SkipListBl
 
 // TODO: (SDB) in concurrent impl, locking in this method is needed. and caller must do unlock (SkipList::FindNode)
 
-func (sl *SkipList) FindNode(key *types.Value) (lfound_ int32, preds_ []types.PageID, succs_ []types.PageID) {
+func (sl *SkipList) FindNode(key *types.Value) (predOfCorners_ []types.PageID, corners_ []types.PageID, succOfCorners_ []types.PageID) {
 	headerPage := skip_list_page.FetchAndCastToHeaderPage(sl.bpm, sl.headerPageID)
 
 	startPageId := headerPage.GetListStartPageId()
@@ -67,10 +68,12 @@ func (sl *SkipList) FindNode(key *types.Value) (lfound_ int32, preds_ []types.Pa
 	//fmt.Println("---")
 	//fmt.Println(key.ToInteger())
 	//moveCnt := 0
-	//succs := make([]types.PageID, headerPage.GetCurMaxLevel()+1)
-	lfound := -1
-	preds := make([]types.PageID, skip_list_page.MAX_FOWARD_LIST_LEN)
-	succs := make([]types.PageID, skip_list_page.MAX_FOWARD_LIST_LEN)
+	//corners := make([]types.PageID, headerPage.GetCurMaxLevel()+1)
+	var predOfpredId types.PageID
+	predOfCorners := make([]types.PageID, skip_list_page.MAX_FOWARD_LIST_LEN)
+	// entry of corners is corner node or target node
+	corners := make([]types.PageID, skip_list_page.MAX_FOWARD_LIST_LEN)
+	succOfCorners := make([]types.PageID, skip_list_page.MAX_FOWARD_LIST_LEN)
 	var curr *skip_list_page.SkipListBlockPage
 	for ii := (skip_list_page.MAX_FOWARD_LIST_LEN - 1); ii >= 0; ii-- {
 		//fmt.Printf("level %d\n", i)
@@ -85,42 +88,37 @@ func (sl *SkipList) FindNode(key *types.Value) (lfound_ int32, preds_ []types.Pa
 				break
 			} else {
 				// keep moving foward
+				predOfpredId = pred.GetPageId()
 				sl.bpm.UnpinPage(pred.GetPageId(), false)
 				pred = curr
 			}
 		}
-
-		// TODO: (SDB) lfound is not usable at ondisk impl! (SkipList::FindNode)
-		if lfound == -1 {
-			lfound = ii
-		}
-		preds[ii] = // TODO: (SDB) need to set page ID of pred of pred
-		succs[ii] = pred.GetPageId()
+		predOfCorners[ii] = predOfpredId
+		corners[ii] = pred.GetPageId()
+		succOfCorners[ii] = curr.GetPageId()
 		sl.bpm.UnpinPage(curr.GetPageId(), false)
 	}
 	sl.bpm.UnpinPage(pred.GetPageId(), false)
 	sl.bpm.UnpinPage(headerPage.GetPageId(), false)
 
-	return int32(lfound), preds, succs
+	return predOfCorners, corners, succOfCorners
 }
 
 // TODO: (SDB) in concurrent impl, locking in this method is needed. and caller must do unlock (SkipList::FindNodeWithEntryIdxForItr)
 
-func (sl *SkipList) FindNodeWithEntryIdxForItr(key *types.Value) (lfound_ int32, idx_ int32, preds_ []types.PageID, nexts_ []types.PageID) {
-	lfound, preds, succs := sl.FindNode(key)
+func (sl *SkipList) FindNodeWithEntryIdxForItr(key *types.Value) (idx_ int32, predOfCorners_ []types.PageID, corners_ []types.PageID, succOfCorners_ []types.PageID) {
+	predOfCorners, corners, succOfCorners := sl.FindNode(key)
 	// get idx of target entry or one of nearest smaller entry
 
-	// TODO: (SDB) need to consider lfound == -1 case (SkipList::FindNodeWithEntryIdxForItr)
-	node := skip_list_page.FetchAndCastToBlockPage(sl.bpm, succs[lfound])
+	node := skip_list_page.FetchAndCastToBlockPage(sl.bpm, corners[0])
 	_, _, idx := node.FindEntryByKey(key)
 	sl.bpm.UnpinPage(node.GetPageId(), false)
-	return lfound, idx, preds, succs
+	return idx, predOfCorners, corners, succOfCorners
 }
 
 func (sl *SkipList) GetValue(key *types.Value) uint32 {
-	lfound, _, succs := sl.FindNode(key)
-	// TODO: (SDB) need to consider lfound == -1 case (SkipList::GetValue)
-	node := skip_list_page.FetchAndCastToBlockPage(sl.bpm, succs[lfound])
+	_, corners, _ := sl.FindNode(key)
+	node := skip_list_page.FetchAndCastToBlockPage(sl.bpm, corners[0])
 	found, entry, _ := node.FindEntryByKey(key)
 	sl.bpm.UnpinPage(node.GetPageId(), false)
 	if found {
@@ -137,7 +135,7 @@ func (sl *SkipList) Insert(key *types.Value, value uint32) (err error) {
 
 	headerPage := skip_list_page.FetchAndCastToHeaderPage(sl.bpm, sl.headerPageID)
 
-	node, skipPathList, _ := sl.FindNode(key)
+	predOfCorners, corners, succOfCorners := sl.FindNode(key)
 	levelWhenNodeSplitOccur := sl.GetNodeLevel()
 
 	startPage := skip_list_page.FetchAndCastToBlockPage(sl.bpm, headerPage.GetListStartPageId())
@@ -151,7 +149,7 @@ func (sl *SkipList) Insert(key *types.Value, value uint32) (err error) {
 }
 
 func (sl *SkipList) Remove(key *types.Value, value uint32) (isDeleted bool) {
-	node, _, skipPathListPrev := sl.FindNode(key)
+	predOfCorners, corners, succOfCorners := sl.FindNode(key)
 	isDeleted_, _ := node.Remove(key, skipPathListPrev)
 	sl.bpm.UnpinPage(node.GetPageId(), true)
 

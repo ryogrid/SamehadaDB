@@ -260,6 +260,8 @@ func (node *SkipListBlockPage) Insert(key *types.Value, value uint32, bpm *buffe
 		if node.getFreeSpaceRemaining() < node.GetSpecifiedSLPNeedSpace(&SkipListPair{*key, value}) {
 			// this node is full. so node split is needed
 
+			// TODO: (SDB) split must be done after pass of connectivity change existance at concurrent impl
+
 			// first, split this node at center of entry list
 			// half of entries are moved to new node
 			splitIdx = node.GetEntryCnt() / 2
@@ -344,6 +346,8 @@ func (node *SkipListBlockPage) Remove(key *types.Value, skipPathList []types.Pag
 		if !node.GetEntry(0, key.ValueType()).Key.CompareEquals(*key) {
 			panic("removing wrong entry!")
 		}
+
+		// TODO: (SDB) need to check connectivity modification target is same with this node! (SkipListBlockPage::Remove)
 
 		// doing connectivity cut here needs accesses to backword nodes
 		// and it needs complicated latch (lock) control
