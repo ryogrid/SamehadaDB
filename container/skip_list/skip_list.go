@@ -61,6 +61,7 @@ func (sl *SkipList) FindNode(key *types.Value) (lfound_ int32, preds_ []types.Pa
 	headerPage := skip_list_page.FetchAndCastToHeaderPage(sl.bpm, sl.headerPageID)
 
 	startPageId := headerPage.GetListStartPageId()
+	// TODO: (SDB) need to consider pred == startPage is OK?
 	pred := skip_list_page.FetchAndCastToBlockPage(sl.bpm, startPageId)
 	// loop invariant: pred.key < searchKey
 	//fmt.Println("---")
