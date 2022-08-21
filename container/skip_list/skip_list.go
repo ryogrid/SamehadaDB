@@ -5,7 +5,6 @@ import (
 	"github.com/ryogrid/SamehadaDB/storage/buffer"
 	"github.com/ryogrid/SamehadaDB/storage/page/skip_list_page"
 	"github.com/ryogrid/SamehadaDB/types"
-	"golang.org/x/exp/shiny/widget/node"
 	"math"
 	"math/rand"
 )
@@ -139,6 +138,7 @@ func (sl *SkipList) Insert(key *types.Value, value uint32) (err error) {
 	levelWhenNodeSplitOccur := sl.GetNodeLevel()
 
 	startPage := skip_list_page.FetchAndCastToBlockPage(sl.bpm, headerPage.GetListStartPageId())
+	var node interface{} = nil
 	node.Insert(key, value, sl.bpm, skipPathList, levelWhenNodeSplitOccur, skip_list_page.MAX_FOWARD_LIST_LEN, startPage)
 
 	sl.bpm.UnpinPage(startPage.GetPageId(), true)
@@ -150,6 +150,7 @@ func (sl *SkipList) Insert(key *types.Value, value uint32) (err error) {
 
 func (sl *SkipList) Remove(key *types.Value, value uint32) (isDeleted bool) {
 	predOfCorners, corners, succOfCorners := sl.FindNode(key)
+	var node interface{} = nil
 	isDeleted_, _ := node.Remove(key, skipPathListPrev)
 	sl.bpm.UnpinPage(node.GetPageId(), true)
 
