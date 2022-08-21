@@ -60,7 +60,7 @@ func (sl *SkipList) handleDelMarkedNode(delMarkedNode *skip_list_page.SkipListBl
 // Attention:
 //
 //	caller must call UnpinPage with appropriate diaty page to the got page when page using ends
-func (sl *SkipList) FindNode(key *types.Value) (found_node *skip_list_page.SkipListBlockPage, lfound_ int32, preds_ []types.PageID, nexts_ []types.PageID) {
+func (sl *SkipList) FindNode(key *types.Value) (lfound_ int32, preds_ []types.PageID, nexts_ []types.PageID) {
 	headerPage := skip_list_page.FetchAndCastToHeaderPage(sl.bpm, sl.headerPageID)
 
 	startPageId := headerPage.GetListStartPageId()
@@ -74,74 +74,50 @@ func (sl *SkipList) FindNode(key *types.Value) (found_node *skip_list_page.SkipL
 	nexts := make([]types.PageID, skip_list_page.MAX_FOWARD_LIST_LEN)
 	//preds := make([]types.PageID, headerPage.GetCurMaxLevel())
 	preds := make([]types.PageID, skip_list_page.MAX_FOWARD_LIST_LEN)
+	var curr *skip_list_page.SkipListBlockPage
 	//for ii := (headerPage.GetCurMaxLevel() - 1); ii >= 0; ii-- {
 	for ii := (skip_list_page.MAX_FOWARD_LIST_LEN - 1); ii >= 0; ii-- {
 		//fmt.Printf("level %d\n", i)
 		for {
-			tmpNode := skip_list_page.FetchAndCastToBlockPage(sl.bpm, pred.GetForwardEntry(int(ii)))
-			if tmpNode == nil {
+			curr = skip_list_page.FetchAndCastToBlockPage(sl.bpm, pred.GetForwardEntry(int(ii)))
+			if curr == nil {
 				common.ShPrintf(common.FATAL, "PageID to passed FetchAndCastToBlockPage is %d\n", pred.GetForwardEntry(int(ii)))
 				panic("SkipList::FindNode: FetchAndCastToBlockPage returned nil!")
 			}
-			if !tmpNode.GetSmallestKey(key.ValueType()).CompareLessThanOrEqual(*key) && !tmpNode.GetIsNeedDeleted() {
+			if !curr.GetBiggestKey(key.ValueType()).CompareLessThan(*key) && !curr.GetIsNeedDeleted() {
 				// reached (ii + 1) level's nearest pred
-				//sl.bpm.UnpinPage(tmpNode.GetPageId(), false)
-				prevPageId := pred.GetPageId()
-				preds[ii] = pred.GetPageId()
-				pred = tmpNode
-				sl.bpm.UnpinPage(prevPageId, false)
-				nexts[ii] = pred.GetPageId()
 				break
+			} else {
+				// keep moving foward
+				sl.bpm.UnpinPage(pred.GetPageId(), false)
+				pred = curr
 			}
-
-			// TODO: (SDB) need to consider that reach delete marked pred at SkipList::FindNode
-
-			////if pred.GetForwardEntry(int(ii)).GetIsNeedDeleted() {
-			//if tmpNode.GetIsNeedDeleted() {
-			//	// when next pred is isNeedDeleted marked pred
-			//	// stop at current pred and handle next pred
-			//
-			//	// handle pred (isNeedDeleted marked) and returns appropriate pred (prev pred at ii + 1 level)
-			//	//sl.handleDelMarkedNode(pred.GetForwardEntry(int(ii)), pred, ii)
-			//	isCanDelete := sl.handleDelMarkedNode(tmpNode, pred, ii)
-			//	tmpNodeId := tmpNode.GetPageId()
-			//	sl.bpm.UnpinPage(tmpNodeId, true)
-			//	// delete pred (page) which is marked with IsNeedDeleted flag
-			//	if isCanDelete {
-			//		sl.bpm.DeletePage(tmpNodeId)
-			//	}
-			//	if pred.GetIsNeedDeleted() {
-			//		panic("return value of handleDelMarkedNode is invalid!")
-			//	}
-			//} else {
-			// move to next pred
-			prevPageId := pred.GetPageId()
-			//preds[ii] = pred.GetPageId()
-			pred = tmpNode
-			sl.bpm.UnpinPage(prevPageId, false)
-			//}
-			//}
-			//nexts[ii] = pred.GetPageId()
 		}
+
 		if lfound == -1 {
 			lfound = ii
 		}
+		preds[ii] = pred.GetPageId()
+		nexts[ii] = curr.GetPageId()
+		sl.bpm.UnpinPage(curr.GetPageId(), false)
 	}
+	sl.bpm.UnpinPage(pred.GetPageId(), false)
 	sl.bpm.UnpinPage(headerPage.GetPageId(), false)
 
-	return pred, nexts, preds
+	return int32(lfound), nexts, preds
 }
 
 // TODO: (SDB) in concurrent impl, locking in this method is needed. and caller must do unlock (SkipList::FindNodeWithEntryIdxForIterator)
 
-// Attention:
-//
-//	caller must call UnpinPage with appropriate diaty page to the got page when page using ends
-func (sl *SkipList) FindNodeWithEntryIdxForIterator(key *types.Value) (*skip_list_page.SkipListBlockPage, int32) {
-	node, _, _ := sl.FindNode(key)
+func (sl *SkipList) FindNodeWithEntryIdxForIterator(key *types.Value) (lfound_ int32, idx_ int32, preds_ []types.PageID, nexts_ []types.PageID) {
+	lfound, preds, nexts := sl.FindNode(key)
 	// get idx of target entry or one of nearest smaller entry
-	_, _, idx := node.FindEntryByKey(key)
-	return node, idx
+	predNode := skip_list_page.FetchAndCastToBlockPage(sl.bpm, preds[0])
+	tgtNode := skip_list_page.FetchAndCastToBlockPage(sl.bpm, predNode.GetForwardEntry(0))
+	_, _, idx := tgtNode.FindEntryByKey(key)
+	sl.bpm.UnpinPage(predNode.GetPageId(), false)
+	sl.bpm.UnpinPage(tgtNode.GetPageId(), false)
+	return lfound, idx, preds, nexts
 }
 
 func (sl *SkipList) GetValue(key *types.Value) uint32 {
@@ -199,8 +175,8 @@ func (sl *SkipList) Remove(key *types.Value, value uint32) (isDeleted bool) {
 	//	for ii := int32(1); ii < headerPage.GetCurMaxLevel(); ii++ {
 	//		for ii := int32(1); ii < headerPage.GetCurMaxLevel(); ii++ {
 	//			tmpNode := skip_list_page.FetchAndCastToBlockPage(sl.bpm, startNode.GetForwardEntry(int(ii)))
-	//			if tmpNode.GetSmallestKey(key.ValueType()).IsInfMax() {
-	//				//if tmpNode.GetSmallestKey(key.ValueType()).IsInfMax() {
+	//			if tmpNode.GetBiggestKey(key.ValueType()).IsInfMax() {
+	//				//if tmpNode.GetBiggestKey(key.ValueType()).IsInfMax() {
 	//				sl.bpm.UnpinPage(tmpNode.GetPageId(), false)
 	//				break
 	//			}

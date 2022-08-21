@@ -364,7 +364,7 @@ func (node *SkipListBlockPage) Remove(key *types.Value, skipPathList []types.Pag
 
 		// this node does not block node traverse in key value compare
 		tmpEntries := make([]*SkipListPair, 0)
-		tmpEntries = append(tmpEntries, &SkipListPair{*node.GetSmallestKey(key.ValueType()).SetInfMin(), 0})
+		tmpEntries = append(tmpEntries, &SkipListPair{*node.GetBiggestKey(key.ValueType()).SetInfMin(), 0})
 		node.SetEntries(tmpEntries)
 
 		node.SetIsNeedDeleted(true)
@@ -413,7 +413,7 @@ func (node *SkipListBlockPage) SplitNode(idx int32, bpm *buffer.BufferPoolManage
 //	ret := ""
 //	ret += fmt.Sprintf("{")
 //	// Print smallestKey
-//	ret += fmt.Sprintf("%d ", node.GetSmallestKey().ToInteger())
+//	ret += fmt.Sprintf("%d ", node.GetBiggestKey().ToInteger())
 //	// print contents of forward
 //	ret += fmt.Sprintf("[")
 //	for ii := 0; ii < len(node.GetForward()); ii++ {
@@ -472,8 +472,9 @@ func (node *SkipListBlockPage) SetLevel(level int32) {
 	copy(node.Data()[offsetLevel:], levelInBytes)
 }
 
-func (node *SkipListBlockPage) GetSmallestKey(keyType types.TypeID) types.Value {
-	return node.GetEntry(0, keyType).Key
+func (node *SkipListBlockPage) GetBiggestKey(keyType types.TypeID) types.Value {
+	//return node.GetEntry(0, keyType).Key
+	return node.GetEntry(int(node.GetEntryCnt()-1), keyType).Key
 }
 
 //func (node *SkipListBlockPage) GetForward() [MAX_FOWARD_LIST_LEN]*SkipListBlockPage {
