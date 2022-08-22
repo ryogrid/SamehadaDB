@@ -337,7 +337,7 @@ func (node *SkipListBlockPage) RemoveInner(idx int) {
 	node.SetEntryCnt(node.GetEntryCnt() - 1)
 }
 
-func (node *SkipListBlockPage) Remove(key *types.Value, skipPathList []types.PageID) (isDeleted bool, level int32) {
+func (node *SkipListBlockPage) Remove(bpm *buffer.BufferPoolManager, key *types.Value, predOfCorners []types.PageID, corners []types.PageID) (isNodeShouldBeDeleted bool, isDeleted bool, level int32) {
 	found, _, foundIdx := node.FindEntryByKey(key)
 	if found && (node.GetEntryCnt() == 1) {
 		// when there are no enry without target entry
@@ -347,33 +347,34 @@ func (node *SkipListBlockPage) Remove(key *types.Value, skipPathList []types.Pag
 			panic("removing wrong entry!")
 		}
 
-		// TODO: (SDB) need to check connectivity modification target is same with this node! (SkipListBlockPage::Remove)
+		// TODO: (SDB) need to check connectivity modification target is same with this node? (SkipListBlockPage::Remove)
 
-		// doing connectivity cut here needs accesses to backword nodes
-		// and it needs complicated latch (lock) control
-		// so, not do connectivity cut here
+		updateLen := int(node.GetLevel())
 
-		//updateLen := int32(mathutil.Min(len(skipPathList), len(node.forward)))
-		//
-		//// try removing this node from all level of chain
-		//// but, some connectivity left often
-		//// when several connectivity is left, removing is achieved in later index accesses
-		//for ii := int32(0); ii < updateLen; ii++ {
-		//	if skipPathList[ii] != nil {
-		//		skipPathList[ii].forward[ii] = node.forward[ii]
-		//		// mark (ii+1) lebel connectivity is removed
-		//		node.forward[ii] = nil
-		//	}
-		//}
+		// try removing this node from all level of chain
+		// but, some connectivity left often
+		// when several connectivity is left, removing is achieved in later index accesses
+		for ii := 1; ii < updateLen; ii++ {
+			corner := FetchAndCastToBlockPage(bpm, corners[ii])
+			corner.SetForwardEntry(ii, node.GetForwardEntry(ii))
+			bpm.UnpinPage(corners[ii], true)
 
-		// this node does not block node traverse in key value compare
-		tmpEntries := make([]*SkipListPair, 0)
-		tmpEntries = append(tmpEntries, &SkipListPair{*node.GetSmallestKey(key.ValueType()).SetInfMin(), 0})
-		node.SetEntries(tmpEntries)
+			// mark (ii+1) lebel connectivity is removed
+			//node.forward[ii] = nil
+		}
+		// level-1's pred is stored predOfCorners
+		pred := FetchAndCastToBlockPage(bpm, predOfCorners[0])
+		pred.SetForwardEntry(0, node.GetForwardEntry(0))
+		bpm.UnpinPage(predOfCorners[0], true)
 
-		node.SetIsNeedDeleted(true)
+		//// this node does not block node traverse in key value compare
+		//tmpEntries := make([]*SkipListPair, 0)
+		//tmpEntries = append(tmpEntries, &SkipListPair{*node.GetSmallestKey(key.ValueType()).SetInfMin(), 0})
+		//node.SetEntries(tmpEntries)
 
-		return true, node.GetLevel()
+		//node.SetIsNeedDeleted(true)
+
+		return true, true, node.GetLevel()
 	} else if found {
 		if !node.GetEntry(int(foundIdx), key.ValueType()).Key.CompareEquals(*key) {
 			panic("removing wrong entry!")
@@ -381,10 +382,10 @@ func (node *SkipListBlockPage) Remove(key *types.Value, skipPathList []types.Pag
 
 		node.RemoveInner(int(foundIdx))
 
-		return true, node.GetLevel()
+		return false, true, node.GetLevel()
 	} else { // found == false
 		// do nothing
-		return false, -1
+		return false, false, -1
 	}
 }
 

@@ -66,7 +66,8 @@ func (si *SamehadaInstance) GetCheckpointManager() *concurrency.CheckpointManage
 
 // functionality is Flushing dirty pages, shutdown of DiskManager and action around DB/Log files
 func (si *SamehadaInstance) Shutdown(IsRemoveFiles bool) {
-	// TODO: (SDB) flush all dirty pages
+	// TODO: (SDB) flush only dirty pages
+	si.bpm.FlushAllPages()
 	si.disk_manager.ShutDown()
 	if IsRemoveFiles {
 		si.disk_manager.RemoveDBFile()
