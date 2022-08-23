@@ -196,7 +196,8 @@ func TestRedo(t *testing.T) {
 	fmt.Println("Commit txn")
 
 	fmt.Println("Shutdown System")
-	samehada_instance.Shutdown(false)
+	//samehada_instance.Shutdown(false)
+	samehada_instance.CloseFilesForTesting()
 
 	fmt.Println("System restart...")
 	samehada_instance = samehada.NewSamehadaInstanceForTesting()

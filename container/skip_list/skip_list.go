@@ -152,17 +152,17 @@ func (sl *SkipList) Insert(key *types.Value, value uint32) (err error) {
 	// of pointers to the elements which will be
 	// predecessors of the new element.
 
-	headerPage := skip_list_page.FetchAndCastToHeaderPage(sl.bpm, sl.headerPageID)
+	//headerPage := skip_list_page.FetchAndCastToHeaderPage(sl.bpm, sl.headerPageID)
 
 	_, corners, _ := sl.FindNode(key, SKIP_LIST_OP_INSERT)
 	levelWhenNodeSplitOccur := sl.GetNodeLevel()
 
-	startPage := skip_list_page.FetchAndCastToBlockPage(sl.bpm, headerPage.GetListStartPageId())
+	//startPage := skip_list_page.FetchAndCastToBlockPage(sl.bpm, headerPage.GetListStartPageId())
 	node := skip_list_page.FetchAndCastToBlockPage(sl.bpm, corners[0])
-	node.Insert(key, value, sl.bpm, corners, levelWhenNodeSplitOccur, skip_list_page.MAX_FOWARD_LIST_LEN, startPage)
+	node.Insert(key, value, sl.bpm, corners, levelWhenNodeSplitOccur)
 
-	sl.bpm.UnpinPage(startPage.GetPageId(), true)
-	sl.bpm.UnpinPage(headerPage.GetPageId(), true)
+	//sl.bpm.UnpinPage(startPage.GetPageId(), true)
+	//sl.bpm.UnpinPage(headerPage.GetPageId(), true)
 	sl.bpm.UnpinPage(node.GetPageId(), true)
 
 	return nil

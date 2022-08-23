@@ -74,3 +74,8 @@ func (si *SamehadaInstance) Shutdown(IsRemoveFiles bool) {
 		si.disk_manager.RemoveLogFile()
 	}
 }
+
+// for testing. this method does file closing only in contrast to Shutdown method
+func (si *SamehadaInstance) CloseFilesForTesting() {
+	si.disk_manager.ShutDown()
+}

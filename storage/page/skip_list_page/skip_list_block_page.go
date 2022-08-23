@@ -234,8 +234,8 @@ func (node *SkipListBlockPage) InsertInner(idx int, slp *SkipListPair) {
 
 // Attempts to insert a key and value into an index in the baccess
 // return value is whether newNode is created or not
-func (node *SkipListBlockPage) Insert(key *types.Value, value uint32, bpm *buffer.BufferPoolManager, skipPathList []types.PageID,
-	level int32, curMaxLevel int32, startNode *SkipListBlockPage) bool {
+func (node *SkipListBlockPage) Insert(key *types.Value, value uint32, bpm *buffer.BufferPoolManager, corners []types.PageID,
+	level int32) bool {
 	//fmt.Printf("Insert of SkipListBlockPage called! : key=%d\n", key.ToInteger())
 
 	found, _, foundIdx := node.FindEntryByKey(key)
@@ -266,8 +266,8 @@ func (node *SkipListBlockPage) Insert(key *types.Value, value uint32, bpm *buffe
 			// half of entries are moved to new node
 			splitIdx = node.GetEntryCnt() / 2
 			// update with this node
-			skipPathList[0] = node.GetPageId()
-			node.SplitNode(splitIdx, bpm, skipPathList, level, curMaxLevel, startNode, key.ValueType())
+			corners[0] = node.GetPageId()
+			node.SplitNode(splitIdx, bpm, corners, level, key.ValueType())
 			isMadeNewNode = true
 
 			if foundIdx > splitIdx {
@@ -392,8 +392,8 @@ func (node *SkipListBlockPage) Remove(bpm *buffer.BufferPoolManager, key *types.
 // split entries of node at entry specified with idx arg
 // new node contains entries node.entries[idx+1:]
 // (new node does not include entry node.entries[idx])
-func (node *SkipListBlockPage) SplitNode(idx int32, bpm *buffer.BufferPoolManager, skipPathList []types.PageID,
-	level int32, curMaxLevel int32, startNode *SkipListBlockPage, keyType types.TypeID) {
+func (node *SkipListBlockPage) SplitNode(idx int32, bpm *buffer.BufferPoolManager, corners []types.PageID,
+	level int32, keyType types.TypeID) {
 	//fmt.Println("<<<<<<<<<<<<<<<<<<<<<<<< SplitNode called! >>>>>>>>>>>>>>>>>>>>>>>>>>>>>>")
 
 	newNode := NewSkipListBlockPage(bpm, level, *node.GetEntry(int(idx+1), keyType))
@@ -401,12 +401,12 @@ func (node *SkipListBlockPage) SplitNode(idx int32, bpm *buffer.BufferPoolManage
 	newNode.SetLevel(level)
 	node.SetEntries(node.GetEntries(keyType)[:idx+1])
 
-	if level > curMaxLevel {
-		skipPathList[level-1] = startNode.GetPageId()
-	}
+	//if level > curMaxLevel {
+	//	corners[level-1] = startNode.GetPageId()
+	//}
 	for ii := 0; ii < int(level); ii++ {
 		// modify forward link
-		tmpNode := FetchAndCastToBlockPage(bpm, skipPathList[ii])
+		tmpNode := FetchAndCastToBlockPage(bpm, corners[ii])
 		newNode.SetForwardEntry(ii, tmpNode.GetForwardEntry(ii))
 		tmpNode.SetForwardEntry(ii, newNode.GetPageId())
 		bpm.UnpinPage(tmpNode.GetPageId(), true)
