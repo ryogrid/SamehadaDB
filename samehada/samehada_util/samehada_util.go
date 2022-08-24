@@ -5,6 +5,8 @@ import (
 	"encoding/binary"
 	"github.com/ryogrid/SamehadaDB/storage/page"
 	"github.com/ryogrid/SamehadaDB/types"
+	"math"
+	"math/rand"
 	"os"
 )
 
@@ -46,4 +48,17 @@ func UnpackUint32toRID(value uint32) page.RID {
 func GetPonterOfValue(value types.Value) *types.Value {
 	val := value
 	return &val
+}
+
+func GetRandomStr(maxLength int32) *string {
+	alphabets :=
+		"ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz"
+	len_ := (1 + rand.Intn(math.MaxInt32)) % (int(maxLength) - 1)
+	s := ""
+	for j := 0; j < len_; j++ {
+		idx := rand.Intn(52)
+		s = s + alphabets[idx:idx+1]
+	}
+
+	return &s
 }

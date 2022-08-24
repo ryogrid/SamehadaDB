@@ -536,7 +536,7 @@ func FuzzSkipLisMix(f *testing.F) {
 		//shi := samehada.NewSamehadaInstance("test", 10*1024) // buffer is about 40MB
 		bpm := shi.GetBufferPoolManager()
 
-		testSkipLisMix(t, bpm, bulkSize, opTimes, skipRand, initialEntryNum)
+		testSkipListMix(t, bpm, bulkSize, opTimes, skipRand, initialEntryNum)
 
 		shi.CloseFilesForTesting()
 	})
@@ -551,7 +551,7 @@ func FuzzSkipLisMix(f *testing.F) {
 //	bpm := shi.GetBufferPoolManager()
 //
 //	fmt.Printf("param of TestFuzzerUnexpectedExitParam: %d %d %d %d\n", int32(rune('Į')), int32(rune('Ď')), int32(rune('T')), int32(rune('Ć')))
-//	testSkipLisMix(t, bpm, rune('Į'), rune('Ď'), rune('T'), rune('Ć'))
+//	testSkipListMix(t, bpm, rune('Į'), rune('Ď'), rune('T'), rune('Ć'))
 //
 //	shi.CloseFilesForTesting()
 //}
@@ -562,10 +562,22 @@ var entriesOnListNum int32 = 0
 var removedEntriesNum int32 = 0
 var insVals []int32
 var removedVals []int32
+var insValsS []string
+var removedValsS []string
 
 // for debug
 func isAlreadyRemoved(checkVal int32) bool {
 	for _, val := range removedVals {
+		if val == checkVal {
+			return true
+		}
+	}
+	return false
+}
+
+// for debug
+func isAlreadyRemovedS(checkVal string) bool {
+	for _, val := range removedValsS {
 		if val == checkVal {
 			return true
 		}
@@ -621,6 +633,22 @@ func insertRandom(sl *skip_list.SkipList, num int32, checkDupMap map[int32]int32
 	}
 }
 
+func insertRandomS(sl *skip_list.SkipList, num int32, checkDupMap map[string]string) {
+	if int32(len(insVals))+num < MAX_ENTRIES {
+		for ii := 0; ii < int(num); ii++ {
+			insVal := *samehada_util.GetRandomStr(20) //rand.Int31()
+			for _, exist := checkDupMap[insVal]; exist; _, exist = checkDupMap[insVal] {
+				insVal = *samehada_util.GetRandomStr(20)
+			}
+			checkDupMap[insVal] = insVal
+
+			sl.Insert(samehada_util.GetPonterOfValue(types.NewVarchar(insVal)), uint32(len(insVal)))
+			//fmt.Printf("sl.Insert at insertRandom: ii=%d, insVal=%d len(*insVals)=%d\n", ii, insVal, len(insVals))
+			insValsS = append(insValsS, insVal)
+		}
+	}
+}
+
 func removeRandom(t *testing.T, sl *skip_list.SkipList, opStep int32, num int32) {
 	if int32(len(insVals))-num > 0 {
 		for ii := 0; ii < int(num); ii++ {
@@ -656,8 +684,43 @@ func removeRandom(t *testing.T, sl *skip_list.SkipList, opStep int32, num int32)
 	}
 }
 
-func testSkipLisMix(t *testing.T, bpm *buffer.BufferPoolManager, bulkSize int32, opTimes int32, skipRand int32, initialEntryNum int32) {
-	common.ShPrintf(common.DEBUG, "start of testSkipLisMix bulkSize=%d opTimes=%d skipRand=%d initialEntryNum=%d ====================================================\n",
+func removeRandomS(t *testing.T, sl *skip_list.SkipList, opStep int32, num int32) {
+	if int32(len(insValsS))-num > 0 {
+		for ii := 0; ii < int(num); ii++ {
+			tmpIdx := int(rand.Intn(len(insValsS)))
+			insVal := insValsS[tmpIdx]
+			//sl.Remove(samehada_util.GetPonterOfValue(types.NewInteger(int32(insVal))), uint32(insVal))
+			//if insVal == 1933250583 {
+			//	fmt.Println("")
+			//}
+			isDeleted := sl.Remove(samehada_util.GetPonterOfValue(types.NewVarchar(insVal)), uint32(len(insVal)))
+			//fmt.Printf("sl.Remove at removeRandom: ii=%d, insVal=%d len(*insVals)=%d len(*removedVals)=%d\n", ii, insVal, len(insVals), len(removedVals))
+			if isAlreadyRemovedS(insVal) {
+				fmt.Printf("delete duplicated value should not be occur! opStep=%d, ii=%d tmpIdx=%d insVal=%s len(*insValsS)=%d len(*removedValsS)=%d\n", opStep, ii, tmpIdx, insVal, len(insValsS), len(removedValsS))
+				panic("delete duplicated value should not be occur!")
+			}
+			//if isDeleted != true && !isAlreadyRemoved(insVal) {
+			if isDeleted != true {
+				fmt.Printf("isDeleted should be true! opStep=%d, ii=%d tmpIdx=%d insVal=%s len(*insValsS)=%d len(*removedValsS)=%d\n", opStep, ii, tmpIdx, insVal, len(insValsS), len(removedValsS))
+				panic("isDeleted should be true!")
+				//common.RuntimeStack()
+			}
+			testingpkg.SimpleAssert(t, isDeleted == true || isAlreadyRemovedS(insVal))
+			if len(insValsS) == 1 {
+				// make empty
+				insValsS = make([]string, 0)
+			} else if len(insVals) == tmpIdx+1 {
+				insVals = insVals[:len(insVals)-1]
+			} else {
+				insVals = append(insVals[:tmpIdx], insVals[tmpIdx+1:]...)
+			}
+			removedValsS = append(removedValsS, insVal)
+		}
+	}
+}
+
+func testSkipListMix(t *testing.T, bpm *buffer.BufferPoolManager, bulkSize int32, opTimes int32, skipRand int32, initialEntryNum int32) {
+	common.ShPrintf(common.DEBUG, "start of testSkipListMix bulkSize=%d opTimes=%d skipRand=%d initialEntryNum=%d ====================================================\n",
 		bulkSize, opTimes, skipRand, initialEntryNum)
 
 	//os.Remove("test.db")
@@ -695,7 +758,7 @@ func testSkipLisMix(t *testing.T, bpm *buffer.BufferPoolManager, bulkSize int32,
 			}
 			checkDupMap[insVal] = insVal
 
-			//fmt.Printf("sl.Insert at testSkipLisMix for initial entry: ii=%d, insVal=%d len(*insVals)=%d len(*removedVals)=%d\n", ii, insVal, len(insVals), len(removedVals))
+			//fmt.Printf("sl.Insert at testSkipListMix for initial entry: ii=%d, insVal=%d len(*insVals)=%d len(*removedVals)=%d\n", ii, insVal, len(insVals), len(removedVals))
 			sl.Insert(samehada_util.GetPonterOfValue(types.NewInteger(int32(insVal))), uint32(insVal))
 			insVals = append(insVals, insVal)
 			entriesOnListNum++
@@ -762,7 +825,7 @@ func testSkipLisMix(t *testing.T, bpm *buffer.BufferPoolManager, bulkSize int32,
 		case 2: // Get
 			if len(insVals) > 0 {
 				tmpIdx := int(rand.Intn(len(insVals)))
-				//fmt.Printf("sl.GetValue at testSkipLisMix: ii=%d, tmpIdx=%d insVals[tmpIdx]=%d len(*insVals)=%d len(*removedVals)=%d\n", ii, tmpIdx, insVals[tmpIdx], len(insVals), len(removedVals))
+				//fmt.Printf("sl.GetValue at testSkipListMix: ii=%d, tmpIdx=%d insVals[tmpIdx]=%d len(*insVals)=%d len(*removedVals)=%d\n", ii, tmpIdx, insVals[tmpIdx], len(insVals), len(removedVals))
 				gotVal := sl.GetValue(samehada_util.GetPonterOfValue(types.NewInteger(int32(insVals[tmpIdx]))))
 				if entriesOnListNum != countSkipListContent(sl) || entriesOnListNum != int32(len(insVals)) || removedEntriesNum != int32(len(removedVals)) {
 					fmt.Printf("entries num on list is strange! %d != (%d or %d) / %d != %d\n", entriesOnListNum, countSkipListContent(sl), len(insVals), removedEntriesNum, len(removedVals))
@@ -786,9 +849,139 @@ func testSkipLisMix(t *testing.T, bpm *buffer.BufferPoolManager, bulkSize int32,
 	//shi.Shutdown(false)
 }
 
+func testSkipListMixS(t *testing.T, bpm *buffer.BufferPoolManager, bulkSize int32, opTimes int32, skipRand int32, initialEntryNum int32) {
+	common.ShPrintf(common.DEBUG, "start of testSkipListMixS bulkSize=%d opTimes=%d skipRand=%d initialEntryNum=%d ====================================================\n",
+		bulkSize, opTimes, skipRand, initialEntryNum)
+
+	//os.Remove("test.db")
+	//os.Remove("test.log")
+	//
+	//shi := samehada.NewSamehadaInstanceForTesting()
+	//bpm := shi.GetBufferPoolManager()
+
+	checkDupMapS := make(map[string]string)
+
+	sl := skip_list.NewSkipList(bpm, types.Varchar)
+
+	// override global rand seed (seed has been set on NewSkipList)
+	rand.Seed(3)
+
+	tmpSkipRand := skipRand
+	// skip random value series
+	for tmpSkipRand > 0 {
+		rand.Int31()
+		tmpSkipRand--
+	}
+
+	insValsS = make([]string, 0)
+	removedValsS = make([]string, 0)
+	entriesOnListNum = 0
+
+	// initial entries
+	useInitialEntryNum := int(initialEntryNum)
+	for ii := 0; ii < useInitialEntryNum; ii++ {
+		if entriesOnListNum+1 < MAX_ENTRIES {
+			// avoid duplication
+			insVal := *samehada_util.GetRandomStr(20)
+			for _, exist := checkDupMapS[insVal]; exist; _, exist = checkDupMapS[insVal] {
+				insVal = *samehada_util.GetRandomStr(20)
+			}
+			checkDupMapS[insVal] = insVal
+
+			//fmt.Printf("sl.Insert at testSkipListMix for initial entry: ii=%d, insVal=%d len(*insVals)=%d len(*removedVals)=%d\n", ii, insVal, len(insVals), len(removedVals))
+			sl.Insert(samehada_util.GetPonterOfValue(types.NewVarchar(insVal)), uint32(len(insVal)))
+			insValsS = append(insValsS, insVal)
+			entriesOnListNum++
+		}
+	}
+
+	// entries num on SkipList should be same with this variable
+	//entriesOnListNum = int32(useInitialEntryNum)
+	removedEntriesNum = int32(0)
+
+	// check num of stored entries on sl is same with num of initial entries (if differ, there are bug)
+	if entriesOnListNum != countSkipListContent(sl) {
+		fmt.Println("initial entries num are strange!")
+		panic("initial entries count are strange!")
+		//common.RuntimeStack()
+	}
+
+	useOpTimes := int(opTimes)
+	for ii := 0; ii < useOpTimes; ii++ {
+		// get 0-2
+		opType := rand.Intn(3)
+		switch opType {
+		case 0: // Insert
+			if int32(len(insValsS))+bulkSize < MAX_ENTRIES {
+				//insVal := rand.Int31()
+				insertRandomS(sl, bulkSize, checkDupMapS)
+				//sl.Insert(samehada_util.GetPonterOfValue(types.NewInteger(int32(insVal))), uint32(insVal))
+				//insVals = append(insVals, insVal)
+				entriesOnListNum += bulkSize
+				if entriesOnListNum != countSkipListContent(sl) || entriesOnListNum != int32(len(insValsS)) || removedEntriesNum != int32(len(removedVals)) {
+					fmt.Printf("entries num on list is strange! %d != (%d or %d) / %d != %d\n", entriesOnListNum, countSkipListContent(sl), len(insValsS), removedEntriesNum, len(removedValsS))
+					//common.RuntimeStack()
+					panic("entries num on list is strange!")
+				}
+			}
+		case 1: // Delete
+			// get 0-5 value
+			tmpRand := rand.Intn(5)
+			if tmpRand == 0 {
+				// 20% is Remove to not existing entry
+				if len(removedValsS) != 0 {
+					tmpIdx := int(rand.Intn(len(removedVals)))
+					tmpVal := removedValsS[tmpIdx]
+					isDeleted := sl.Remove(samehada_util.GetPonterOfValue(types.NewVarchar(tmpVal)), uint32(len(tmpVal)))
+					testingpkg.SimpleAssert(t, isDeleted == false)
+					if entriesOnListNum != countSkipListContent(sl) || entriesOnListNum != int32(len(insVals)) || removedEntriesNum != int32(len(removedVals)) {
+						fmt.Printf("entries num on list is strange! %d != (%d or %d) / %d != %d\n", entriesOnListNum, countSkipListContent(sl), len(insValsS), removedEntriesNum, len(removedValsS))
+						common.RuntimeStack()
+					}
+				}
+			} else {
+				// 80% is Remove to existing entry
+				if entriesOnListNum-bulkSize > 0 {
+					removeRandomS(t, sl, int32(ii), bulkSize)
+					entriesOnListNum -= bulkSize
+					removedEntriesNum += bulkSize
+					if entriesOnListNum != countSkipListContent(sl) || entriesOnListNum != int32(len(insValsS)) || removedEntriesNum != int32(len(removedValsS)) {
+						fmt.Printf("entries num on list is strange! %d != (%d or %d) / %d != %d\n", entriesOnListNum, countSkipListContent(sl), len(insValsS), removedEntriesNum, len(removedValsS))
+						panic("entries num on list is strange!")
+						//common.RuntimeStack()
+					}
+				}
+			}
+		case 2: // Get
+			if len(insValsS) > 0 {
+				tmpIdx := int(rand.Intn(len(insVals)))
+				//fmt.Printf("sl.GetValue at testSkipListMix: ii=%d, tmpIdx=%d insVals[tmpIdx]=%d len(*insVals)=%d len(*removedVals)=%d\n", ii, tmpIdx, insVals[tmpIdx], len(insVals), len(removedVals))
+				gotVal := sl.GetValue(samehada_util.GetPonterOfValue(types.NewVarchar(insValsS[tmpIdx])))
+				if entriesOnListNum != countSkipListContent(sl) || entriesOnListNum != int32(len(insVals)) || removedEntriesNum != int32(len(removedVals)) {
+					fmt.Printf("entries num on list is strange! %d != (%d or %d) / %d != %d\n", entriesOnListNum, countSkipListContent(sl), len(insValsS), removedEntriesNum, len(removedValsS))
+					panic("entries num on list is strange!")
+					//common.RuntimeStack()
+				}
+				if gotVal == math.MaxUint32 {
+					fmt.Printf("%s is not found!\n", insValsS[tmpIdx])
+					panic("sl.GetValue could not target key!")
+				}
+				if gotVal != uint32(len(insValsS[tmpIdx])) {
+					fmt.Printf("gotVal is not match! %d != %d\n", gotVal, len(insValsS[tmpIdx]))
+					panic("gotVal is not match!")
+					//common.RuntimeStack()
+				}
+				testingpkg.SimpleAssert(t, gotVal == uint32(len(insValsS[tmpIdx])))
+			}
+		}
+	}
+
+	//shi.Shutdown(false)
+}
+
 //var bpm *buffer.BufferPoolManager
 
-func TestSkipLisMix(t *testing.T) {
+func TestSkipListMix(t *testing.T) {
 	os.Remove("test.db")
 	os.Remove("test.log")
 
@@ -796,29 +989,64 @@ func TestSkipLisMix(t *testing.T) {
 	//shi := samehada.NewSamehadaInstance("test", 10*1024) // buffer is about 40MB
 	bpm := shi.GetBufferPoolManager()
 
-	testSkipLisMix(t, bpm, 1, int32(150), int32(10), int32(0))
-	testSkipLisMix(t, bpm, 1, int32(150), int32(10), int32(300))
-	testSkipLisMix(t, bpm, 1, int32(150), int32(10), int32(600))
-	testSkipLisMix(t, bpm, 1, int32(200), int32(5), int32(10))
-	testSkipLisMix(t, bpm, 1, int32(250), int32(5), int32(10))
-	testSkipLisMix(t, bpm, 1, int32(250), int32(4), int32(0))
-	testSkipLisMix(t, bpm, 1, int32(250), int32(3), int32(0))
+	testSkipListMix(t, bpm, 1, int32(150), int32(10), int32(0))
+	testSkipListMix(t, bpm, 1, int32(150), int32(10), int32(300))
+	testSkipListMix(t, bpm, 1, int32(150), int32(10), int32(600))
+	testSkipListMix(t, bpm, 1, int32(200), int32(5), int32(10))
+	testSkipListMix(t, bpm, 1, int32(250), int32(5), int32(10))
+	testSkipListMix(t, bpm, 1, int32(250), int32(4), int32(0))
+	testSkipListMix(t, bpm, 1, int32(250), int32(3), int32(0))
 
-	testSkipLisMix(t, bpm, 50, int32(150), int32(10), int32(0))
-	testSkipLisMix(t, bpm, 50, int32(150), int32(10), int32(300))
-	testSkipLisMix(t, bpm, 50, int32(150), int32(10), int32(600))
-	testSkipLisMix(t, bpm, 50, int32(200), int32(5), int32(10))
-	testSkipLisMix(t, bpm, 50, int32(250), int32(5), int32(10))
-	testSkipLisMix(t, bpm, 50, int32(250), int32(4), int32(0))
-	testSkipLisMix(t, bpm, 50, int32(250), int32(3), int32(0))
+	testSkipListMix(t, bpm, 50, int32(150), int32(10), int32(0))
+	testSkipListMix(t, bpm, 50, int32(150), int32(10), int32(300))
+	testSkipListMix(t, bpm, 50, int32(150), int32(10), int32(600))
+	testSkipListMix(t, bpm, 50, int32(200), int32(5), int32(10))
+	testSkipListMix(t, bpm, 50, int32(250), int32(5), int32(10))
+	testSkipListMix(t, bpm, 50, int32(250), int32(4), int32(0))
+	testSkipListMix(t, bpm, 50, int32(250), int32(3), int32(0))
 
-	testSkipLisMix(t, bpm, 100, int32(150), int32(10), int32(0))
-	testSkipLisMix(t, bpm, 100, int32(150), int32(10), int32(300))
-	testSkipLisMix(t, bpm, 100, int32(150), int32(10), int32(600))
-	testSkipLisMix(t, bpm, 100, int32(200), int32(5), int32(10))
-	testSkipLisMix(t, bpm, 100, int32(250), int32(5), int32(10))
-	testSkipLisMix(t, bpm, 100, int32(250), int32(4), int32(0))
-	testSkipLisMix(t, bpm, 100, int32(250), int32(3), int32(0))
+	testSkipListMix(t, bpm, 100, int32(150), int32(10), int32(0))
+	testSkipListMix(t, bpm, 100, int32(150), int32(10), int32(300))
+	testSkipListMix(t, bpm, 100, int32(150), int32(10), int32(600))
+	testSkipListMix(t, bpm, 100, int32(200), int32(5), int32(10))
+	testSkipListMix(t, bpm, 100, int32(250), int32(5), int32(10))
+	testSkipListMix(t, bpm, 100, int32(250), int32(4), int32(0))
+	testSkipListMix(t, bpm, 100, int32(250), int32(3), int32(0))
+
+	shi.Shutdown(true)
+}
+
+func TestSkipListMixS(t *testing.T) {
+	os.Remove("test.db")
+	os.Remove("test.log")
+
+	shi := samehada.NewSamehadaInstanceForTesting()
+	//shi := samehada.NewSamehadaInstance("test", 10*1024) // buffer is about 40MB
+	bpm := shi.GetBufferPoolManager()
+
+	testSkipListMixS(t, bpm, 1, int32(150), int32(10), int32(0))
+	testSkipListMixS(t, bpm, 1, int32(150), int32(10), int32(300))
+	testSkipListMixS(t, bpm, 1, int32(150), int32(10), int32(600))
+	testSkipListMixS(t, bpm, 1, int32(200), int32(5), int32(10))
+	testSkipListMixS(t, bpm, 1, int32(250), int32(5), int32(10))
+	testSkipListMixS(t, bpm, 1, int32(250), int32(4), int32(0))
+	testSkipListMixS(t, bpm, 1, int32(250), int32(3), int32(0))
+
+	testSkipListMixS(t, bpm, 50, int32(150), int32(10), int32(0))
+	testSkipListMixS(t, bpm, 50, int32(150), int32(10), int32(300))
+	testSkipListMixS(t, bpm, 50, int32(150), int32(10), int32(600))
+	testSkipListMixS(t, bpm, 50, int32(200), int32(5), int32(10))
+	testSkipListMixS(t, bpm, 50, int32(250), int32(5), int32(10))
+	testSkipListMixS(t, bpm, 50, int32(250), int32(4), int32(0))
+	testSkipListMixS(t, bpm, 50, int32(250), int32(3), int32(0))
+
+	testSkipListMixS(t, bpm, 100, int32(150), int32(10), int32(0))
+	testSkipListMixS(t, bpm, 100, int32(150), int32(10), int32(300))
+	testSkipListMixS(t, bpm, 100, int32(150), int32(10), int32(600))
+	testSkipListMixS(t, bpm, 100, int32(200), int32(5), int32(10))
+	testSkipListMixS(t, bpm, 100, int32(250), int32(5), int32(10))
+	testSkipListMixS(t, bpm, 100, int32(250), int32(4), int32(0))
+	testSkipListMixS(t, bpm, 100, int32(250), int32(3), int32(0))
 
 	shi.Shutdown(true)
 }
