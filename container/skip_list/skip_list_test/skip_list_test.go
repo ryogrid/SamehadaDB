@@ -523,19 +523,26 @@ func TestSkipListItr(t *testing.T) {
 }
 
 func FuzzSkipLisMix(f *testing.F) {
-	os.Remove("test.db")
-	os.Remove("test.log")
+	f.Add(int32(100), int32(150), int32(10), int32(300))
+	f.Fuzz(func(t *testing.T, bulkSize int32, opTimes int32, skipRand int32, initialEntryNum int32) {
+		if bulkSize < 0 || opTimes < 0 || skipRand < 0 || initialEntryNum < 0 {
+			return
+		}
 
-	shi := samehada.NewSamehadaInstance("test", 10*1024) // buffer is about 40MB
-	bpm = shi.GetBufferPoolManager()
+		os.Remove("test.db")
+		os.Remove("test.log")
 
-	f.Add(int32(100), uint8(150), uint8(10), uint16(300))
-	f.Fuzz(func(t *testing.T, bulkSize int32, opTimes uint8, skipRand uint8, initialEntryNum uint16) {
-		testSkipLisMix(t, bulkSize, opTimes, skipRand, initialEntryNum)
+		shi := samehada.NewSamehadaInstanceForTesting()
+		//shi := samehada.NewSamehadaInstance("test", 10*1024) // buffer is about 40MB
+		bpm := shi.GetBufferPoolManager()
+
+		testSkipLisMix(t, bpm, bulkSize, opTimes, skipRand, initialEntryNum)
+
+		shi.CloseFilesForTesting()
 	})
 }
 
-const MAX_ENTRIES = 700
+const MAX_ENTRIES = 100000
 
 var entriesOnListNum int32 = 0
 var removedEntriesNum int32 = 0
@@ -635,7 +642,7 @@ func removeRandom(t *testing.T, sl *skip_list.SkipList, opStep int32, num int32)
 	}
 }
 
-func testSkipLisMix(t *testing.T, bulkSize int32, opTimes uint8, skipRand uint8, initialEntryNum uint16) {
+func testSkipLisMix(t *testing.T, bpm *buffer.BufferPoolManager, bulkSize int32, opTimes int32, skipRand int32, initialEntryNum int32) {
 	common.ShPrintf(common.DEBUG, "start of testSkipLisMix bulkSize=%d opTimes=%d skipRand=%d initialEntryNum=%d ====================================================\n",
 		bulkSize, opTimes, skipRand, initialEntryNum)
 
@@ -765,7 +772,7 @@ func testSkipLisMix(t *testing.T, bulkSize int32, opTimes uint8, skipRand uint8,
 	//shi.Shutdown(false)
 }
 
-var bpm *buffer.BufferPoolManager
+//var bpm *buffer.BufferPoolManager
 
 func TestSkipLisMix(t *testing.T) {
 	os.Remove("test.db")
@@ -773,29 +780,31 @@ func TestSkipLisMix(t *testing.T) {
 
 	shi := samehada.NewSamehadaInstanceForTesting()
 	//shi := samehada.NewSamehadaInstance("test", 10*1024) // buffer is about 40MB
-	bpm = shi.GetBufferPoolManager()
+	bpm := shi.GetBufferPoolManager()
 
-	testSkipLisMix(t, 1, uint8(150), uint8(10), uint16(0))
-	testSkipLisMix(t, 1, uint8(150), uint8(10), uint16(300))
-	testSkipLisMix(t, 1, uint8(150), uint8(10), uint16(600))
-	testSkipLisMix(t, 1, uint8(200), uint8(5), uint16(10))
-	testSkipLisMix(t, 1, uint8(250), uint8(5), uint16(10))
-	testSkipLisMix(t, 1, uint8(250), uint8(4), uint16(0))
-	testSkipLisMix(t, 1, uint8(250), uint8(3), uint16(0))
+	testSkipLisMix(t, bpm, 1, int32(150), int32(10), int32(0))
+	testSkipLisMix(t, bpm, 1, int32(150), int32(10), int32(300))
+	testSkipLisMix(t, bpm, 1, int32(150), int32(10), int32(600))
+	testSkipLisMix(t, bpm, 1, int32(200), int32(5), int32(10))
+	testSkipLisMix(t, bpm, 1, int32(250), int32(5), int32(10))
+	testSkipLisMix(t, bpm, 1, int32(250), int32(4), int32(0))
+	testSkipLisMix(t, bpm, 1, int32(250), int32(3), int32(0))
 
-	testSkipLisMix(t, 50, uint8(150), uint8(10), uint16(0))
-	testSkipLisMix(t, 50, uint8(150), uint8(10), uint16(300))
-	testSkipLisMix(t, 50, uint8(150), uint8(10), uint16(600))
-	testSkipLisMix(t, 50, uint8(200), uint8(5), uint16(10))
-	testSkipLisMix(t, 50, uint8(250), uint8(5), uint16(10))
-	testSkipLisMix(t, 50, uint8(250), uint8(4), uint16(0))
-	testSkipLisMix(t, 50, uint8(250), uint8(3), uint16(0))
+	testSkipLisMix(t, bpm, 50, int32(150), int32(10), int32(0))
+	testSkipLisMix(t, bpm, 50, int32(150), int32(10), int32(300))
+	testSkipLisMix(t, bpm, 50, int32(150), int32(10), int32(600))
+	testSkipLisMix(t, bpm, 50, int32(200), int32(5), int32(10))
+	testSkipLisMix(t, bpm, 50, int32(250), int32(5), int32(10))
+	testSkipLisMix(t, bpm, 50, int32(250), int32(4), int32(0))
+	testSkipLisMix(t, bpm, 50, int32(250), int32(3), int32(0))
 
-	testSkipLisMix(t, 100, uint8(150), uint8(10), uint16(0))
-	testSkipLisMix(t, 100, uint8(150), uint8(10), uint16(300))
-	testSkipLisMix(t, 100, uint8(150), uint8(10), uint16(600))
-	testSkipLisMix(t, 100, uint8(200), uint8(5), uint16(10))
-	testSkipLisMix(t, 100, uint8(250), uint8(5), uint16(10))
-	testSkipLisMix(t, 100, uint8(250), uint8(4), uint16(0))
-	testSkipLisMix(t, 100, uint8(250), uint8(3), uint16(0))
+	testSkipLisMix(t, bpm, 100, int32(150), int32(10), int32(0))
+	testSkipLisMix(t, bpm, 100, int32(150), int32(10), int32(300))
+	testSkipLisMix(t, bpm, 100, int32(150), int32(10), int32(600))
+	testSkipLisMix(t, bpm, 100, int32(200), int32(5), int32(10))
+	testSkipLisMix(t, bpm, 100, int32(250), int32(5), int32(10))
+	testSkipLisMix(t, bpm, 100, int32(250), int32(4), int32(0))
+	testSkipLisMix(t, bpm, 100, int32(250), int32(3), int32(0))
+
+	shi.Shutdown(true)
 }
