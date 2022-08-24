@@ -229,7 +229,7 @@ func TestBSearchOfSkipLisBlockPage2(t *testing.T) {
 	}))
 	// set entries
 	for ii := 1; ii < 50; ii++ {
-		bpage.Insert(samehada_util.GetPonterOfValue(types.NewInteger(int32(ii*10))), uint32(ii*10), bpm, nil, 1, 1, nil)
+		bpage.Insert(samehada_util.GetPonterOfValue(types.NewInteger(int32(ii*10))), uint32(ii*10), bpm, nil, 1)
 		//bpage.SetEntries(append(bpage.GetEntries(types.Integer), &skip_list_page.SkipListPair{types.NewInteger(int32(ii * 10)), uint32(ii * 10)}))
 	}
 	bpage.SetEntryCnt(int32(len(bpage.GetEntries(types.Integer))))
@@ -253,7 +253,7 @@ func TestBSearchOfSkipLisBlockPage2(t *testing.T) {
 	}))
 	// set entries
 	for ii := 1; ii < 51; ii++ {
-		bpage.Insert(samehada_util.GetPonterOfValue(types.NewInteger(int32(ii*10))), uint32(ii*10), bpm, nil, 1, 1, nil)
+		bpage.Insert(samehada_util.GetPonterOfValue(types.NewInteger(int32(ii*10))), uint32(ii*10), bpm, nil, 1)
 		//bpage.SetEntries(append(bpage.GetEntries(types.Integer), &skip_list_page.SkipListPair{types.NewInteger(int32(ii * 10)), uint32(ii * 10)}))
 	}
 	bpage.SetEntryCnt(int32(len(bpage.GetEntries(types.Integer))))
@@ -354,6 +354,96 @@ func TestSkipListSimple(t *testing.T) {
 		testingpkg.SimpleAssert(t, math.MaxUint32 == res)
 		//fmt.Println("contents listing after delete")
 		//confirmSkipListContent(t, sl, -1)
+	}
+
+	shi.Shutdown(false)
+}
+
+func TestSkipListInsertAndDeleteAll(t *testing.T) {
+	os.Remove("test.db")
+	os.Remove("test.log")
+
+	shi := samehada.NewSamehadaInstance("test", 100)
+	sl := skip_list.NewSkipList(shi.GetBufferPoolManager(), types.Integer)
+
+	// override global rand seed (seed has been set on NewSkipList)
+	rand.Seed(3)
+
+	insVals := make([]int32, 0)
+	for i := 0; i < 2000; i++ {
+		insVals = append(insVals, int32(i*11))
+	}
+	// shuffle value list for inserting
+	rand.Shuffle(len(insVals), func(i, j int) { insVals[i], insVals[j] = insVals[j], insVals[i] })
+
+	//////////// remove from tail ///////
+
+	// Insert entries
+	insCnt := 0
+	for _, insVal := range insVals {
+		//fmt.Printf("insCnt: %d\n", insCnt)
+		insCnt++
+		sl.Insert(samehada_util.GetPonterOfValue(types.NewInteger(int32(insVal))), uint32(insVal))
+	}
+
+	//confirmSkipListContent(t, sl, 11)
+
+	// Get entries
+	for i := 0; i < 2000; i++ {
+		//fmt.Printf("get entry i=%d key=%d\n", i, i*11)
+		res := sl.GetValue(samehada_util.GetPonterOfValue(types.NewInteger(int32(i * 11))))
+		if res == math.MaxUint32 {
+			t.Errorf("result should not be nil")
+		} else {
+			testingpkg.SimpleAssert(t, uint32(i*11) == res)
+		}
+	}
+
+	// delete all values
+	for i := (2000 - 1); i >= 0; i-- {
+		// delete
+		isDeleted := sl.Remove(samehada_util.GetPonterOfValue(types.NewInteger(int32(i*11))), uint32(i*11))
+		common.ShPrintf(common.DEBUG, "i=%d i*11=%d\n", i, i*11)
+		testingpkg.SimpleAssert(t, isDeleted == true)
+
+		// check no existance after delete
+		res := sl.GetValue(samehada_util.GetPonterOfValue(types.NewInteger(int32(i * 11))))
+		common.ShPrintf(common.DEBUG, "i=%d i*11=%d res=%d\n", i, i*11, res)
+		testingpkg.SimpleAssert(t, math.MaxUint32 == res)
+	}
+
+	//////////// remove from head ///////
+
+	// Re-Insert entries
+	insCnt = 0
+	for _, insVal := range insVals {
+		//fmt.Printf("insCnt: %d\n", insCnt)
+		insCnt++
+		sl.Insert(samehada_util.GetPonterOfValue(types.NewInteger(int32(insVal))), uint32(insVal))
+	}
+
+	// Get entries
+	for i := 0; i < 2000; i++ {
+		//fmt.Printf("get entry i=%d key=%d\n", i, i*11)
+		res := sl.GetValue(samehada_util.GetPonterOfValue(types.NewInteger(int32(i * 11))))
+		if res == math.MaxUint32 {
+			t.Errorf("result should not be nil")
+		} else {
+			testingpkg.SimpleAssert(t, uint32(i*11) == res)
+		}
+	}
+
+	// delete all values
+	for i := 0; i < 2000; i++ {
+		// delete
+		isDeleted := sl.Remove(samehada_util.GetPonterOfValue(types.NewInteger(int32(i*11))), uint32(i*11))
+		common.ShPrintf(common.DEBUG, "i=%d i*11=%d\n", i, i*11)
+		testingpkg.SimpleAssert(t, isDeleted == true)
+
+		// check no existance after delete
+		res := sl.GetValue(samehada_util.GetPonterOfValue(types.NewInteger(int32(i * 11))))
+		common.ShPrintf(common.DEBUG, "i=%d i*11=%d res=%d\n", i, i*11, res)
+		testingpkg.SimpleAssert(t, math.MaxUint32 == res)
 	}
 
 	shi.Shutdown(false)

@@ -13,9 +13,9 @@ import (
  * (Header Page is placed page memory area. so serialization/desirialization of each member is not needed)
  *
  * page format (size in byte, 12 bytes in total):
- * ------------------------------------------------------------------
- * | pageID (4) | listStartPageId (4) | curMaxLevel (4) | keyType (4) |
- * -----------------------------------------------------------------
+ * --------------------------------------------------
+ * | pageID (4) | listStartPageId (4) | keyType (4) |
+ * --------------------------------------------------
  */
 
 const (
@@ -29,8 +29,8 @@ type SkipListHeaderPage struct {
 
 	pageId          types.PageID
 	listStartPageId types.PageID //*SkipListBlockPage
-	curMaxLevel     int32
-	keyType         types.TypeID // used when load list datas from disk
+	//curMaxLevel     int32
+	keyType types.TypeID // used when load list datas from disk
 }
 
 func NewSkipListStartBlockPage(bpm *buffer.BufferPoolManager, keyType types.TypeID) types.PageID {
@@ -98,17 +98,17 @@ func (hp *SkipListHeaderPage) SetListStartPageId(bpId types.PageID) {
 	hp.listStartPageId = bpId
 }
 
-func (hp *SkipListHeaderPage) GetCurMaxLevel() int32 {
-	return hp.curMaxLevel
-	//return -1
-}
-
-func (hp *SkipListHeaderPage) SetCurMaxLevel(maxLevel int32) {
-	if maxLevel < 1 {
-		panic("SetCurMaxLevel: invalid maxLevel is passed!")
-	}
-	hp.curMaxLevel = maxLevel
-}
+//func (hp *SkipListHeaderPage) GetCurMaxLevel() int32 {
+//	return hp.curMaxLevel
+//	//return -1
+//}
+//
+//func (hp *SkipListHeaderPage) SetCurMaxLevel(maxLevel int32) {
+//	if maxLevel < 1 {
+//		panic("SetCurMaxLevel: invalid maxLevel is passed!")
+//	}
+//	hp.curMaxLevel = maxLevel
+//}
 
 func (hp *SkipListHeaderPage) GetKeyType() types.TypeID {
 	return hp.keyType
@@ -126,7 +126,7 @@ func NewSkipListHeaderPage(bpm *buffer.BufferPoolManager, keyType types.TypeID) 
 	headerPage.SetPageId(page_.GetPageId())
 
 	headerPage.SetListStartPageId(NewSkipListStartBlockPage(bpm, keyType))
-	headerPage.SetCurMaxLevel(1)
+	//headerPage.SetCurMaxLevel(1)
 	headerPage.SetKeyType(keyType)
 
 	retPageID := headerPage.GetPageId()
@@ -138,7 +138,8 @@ func NewSkipListHeaderPage(bpm *buffer.BufferPoolManager, keyType types.TypeID) 
 // TODO: (SDB) in concurrent impl, locking in this method is needed. and caller must do unlock (FectchAndCastToBlockPage)
 
 // Attention:
-//   caller must call UnpinPage with appropriate diaty page to the got page when page using ends
+//
+//	caller must call UnpinPage with appropriate diaty page to the got page when page using ends
 func FetchAndCastToHeaderPage(bpm *buffer.BufferPoolManager, pageId types.PageID) *SkipListHeaderPage {
 	hPageData := bpm.FetchPage(pageId).Data()
 	return (*SkipListHeaderPage)(unsafe.Pointer(hPageData))
