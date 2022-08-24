@@ -349,6 +349,8 @@ func (node *SkipListBlockPage) Remove(bpm *buffer.BufferPoolManager, key *types.
 
 		// TODO: (SDB) need to check connectivity modification target is same with this node? (SkipListBlockPage::Remove)
 
+		common.ShPrintf(common.DEBUG, "node remove occured!\n")
+
 		updateLen := int(node.GetLevel())
 
 		// try removing this node from all level of chain
