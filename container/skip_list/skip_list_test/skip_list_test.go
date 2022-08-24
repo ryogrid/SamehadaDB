@@ -634,7 +634,7 @@ func insertRandom(sl *skip_list.SkipList, num int32, checkDupMap map[int32]int32
 }
 
 func insertRandomS(sl *skip_list.SkipList, num int32, checkDupMap map[string]string) {
-	if int32(len(insVals))+num < MAX_ENTRIES {
+	if int32(len(insValsS))+num < MAX_ENTRIES {
 		for ii := 0; ii < int(num); ii++ {
 			insVal := *samehada_util.GetRandomStr(20) //rand.Int31()
 			for _, exist := checkDupMap[insVal]; exist; _, exist = checkDupMap[insVal] {
@@ -709,10 +709,10 @@ func removeRandomS(t *testing.T, sl *skip_list.SkipList, opStep int32, num int32
 			if len(insValsS) == 1 {
 				// make empty
 				insValsS = make([]string, 0)
-			} else if len(insVals) == tmpIdx+1 {
-				insVals = insVals[:len(insVals)-1]
+			} else if len(insValsS) == tmpIdx+1 {
+				insValsS = insValsS[:len(insValsS)-1]
 			} else {
-				insVals = append(insVals[:tmpIdx], insVals[tmpIdx+1:]...)
+				insValsS = append(insValsS[:tmpIdx], insValsS[tmpIdx+1:]...)
 			}
 			removedValsS = append(removedValsS, insVal)
 		}
@@ -918,7 +918,7 @@ func testSkipListMixS(t *testing.T, bpm *buffer.BufferPoolManager, bulkSize int3
 				//sl.Insert(samehada_util.GetPonterOfValue(types.NewInteger(int32(insVal))), uint32(insVal))
 				//insVals = append(insVals, insVal)
 				entriesOnListNum += bulkSize
-				if entriesOnListNum != countSkipListContent(sl) || entriesOnListNum != int32(len(insValsS)) || removedEntriesNum != int32(len(removedVals)) {
+				if entriesOnListNum != countSkipListContent(sl) || entriesOnListNum != int32(len(insValsS)) || removedEntriesNum != int32(len(removedValsS)) {
 					fmt.Printf("entries num on list is strange! %d != (%d or %d) / %d != %d\n", entriesOnListNum, countSkipListContent(sl), len(insValsS), removedEntriesNum, len(removedValsS))
 					//common.RuntimeStack()
 					panic("entries num on list is strange!")
@@ -930,11 +930,11 @@ func testSkipListMixS(t *testing.T, bpm *buffer.BufferPoolManager, bulkSize int3
 			if tmpRand == 0 {
 				// 20% is Remove to not existing entry
 				if len(removedValsS) != 0 {
-					tmpIdx := int(rand.Intn(len(removedVals)))
+					tmpIdx := int(rand.Intn(len(removedValsS)))
 					tmpVal := removedValsS[tmpIdx]
 					isDeleted := sl.Remove(samehada_util.GetPonterOfValue(types.NewVarchar(tmpVal)), uint32(len(tmpVal)))
 					testingpkg.SimpleAssert(t, isDeleted == false)
-					if entriesOnListNum != countSkipListContent(sl) || entriesOnListNum != int32(len(insVals)) || removedEntriesNum != int32(len(removedVals)) {
+					if entriesOnListNum != countSkipListContent(sl) || entriesOnListNum != int32(len(insValsS)) || removedEntriesNum != int32(len(removedValsS)) {
 						fmt.Printf("entries num on list is strange! %d != (%d or %d) / %d != %d\n", entriesOnListNum, countSkipListContent(sl), len(insValsS), removedEntriesNum, len(removedValsS))
 						common.RuntimeStack()
 					}
@@ -954,10 +954,10 @@ func testSkipListMixS(t *testing.T, bpm *buffer.BufferPoolManager, bulkSize int3
 			}
 		case 2: // Get
 			if len(insValsS) > 0 {
-				tmpIdx := int(rand.Intn(len(insVals)))
+				tmpIdx := int(rand.Intn(len(insValsS)))
 				//fmt.Printf("sl.GetValue at testSkipListMix: ii=%d, tmpIdx=%d insVals[tmpIdx]=%d len(*insVals)=%d len(*removedVals)=%d\n", ii, tmpIdx, insVals[tmpIdx], len(insVals), len(removedVals))
 				gotVal := sl.GetValue(samehada_util.GetPonterOfValue(types.NewVarchar(insValsS[tmpIdx])))
-				if entriesOnListNum != countSkipListContent(sl) || entriesOnListNum != int32(len(insVals)) || removedEntriesNum != int32(len(removedVals)) {
+				if entriesOnListNum != countSkipListContent(sl) || entriesOnListNum != int32(len(insValsS)) || removedEntriesNum != int32(len(removedValsS)) {
 					fmt.Printf("entries num on list is strange! %d != (%d or %d) / %d != %d\n", entriesOnListNum, countSkipListContent(sl), len(insValsS), removedEntriesNum, len(removedValsS))
 					panic("entries num on list is strange!")
 					//common.RuntimeStack()
