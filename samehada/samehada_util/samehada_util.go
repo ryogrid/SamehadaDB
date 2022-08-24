@@ -53,7 +53,7 @@ func GetPonterOfValue(value types.Value) *types.Value {
 func GetRandomStr(maxLength int32) *string {
 	alphabets :=
 		"ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz"
-	len_ := (1 + rand.Intn(math.MaxInt32)) % (int(maxLength) - 1)
+	len_ := 1 + (rand.Intn(math.MaxInt32))%(int(maxLength)-1)
 	s := ""
 	for j := 0; j < len_; j++ {
 		idx := rand.Intn(52)
