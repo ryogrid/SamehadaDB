@@ -30,7 +30,6 @@ func TestSerializationOfSkipLisBlockPage(t *testing.T) {
 	bpage.SetPageId(7)
 	bpage.SetEntryCnt(1)
 	bpage.SetLevel(4)
-	bpage.SetIsNeedDeleted(true)
 	bpage.SetForwardEntry(5, types.PageID(11))
 	bpage.SetFreeSpacePointer(common.PageSize - 9)
 	// EntryCnt is incremented to 2
@@ -40,7 +39,6 @@ func TestSerializationOfSkipLisBlockPage(t *testing.T) {
 	testingpkg.SimpleAssert(t, bpage.GetPageId() == 7)
 	testingpkg.SimpleAssert(t, bpage.GetEntryCnt() == 2)
 	testingpkg.SimpleAssert(t, bpage.GetLevel() == 4)
-	testingpkg.SimpleAssert(t, bpage.GetIsNeedDeleted() == true)
 	testingpkg.SimpleAssert(t, bpage.GetForwardEntry(5) == types.PageID(11))
 
 	testingpkg.SimpleAssert(t, bpage.GetFreeSpacePointer() == (common.PageSize-9-14))
@@ -773,8 +771,8 @@ func TestSkipLisMix(t *testing.T) {
 	os.Remove("test.db")
 	os.Remove("test.log")
 
-	//shi := samehada.NewSamehadaInstanceForTesting()
-	shi := samehada.NewSamehadaInstance("test", 10*1024) // buffer is about 40MB
+	shi := samehada.NewSamehadaInstanceForTesting()
+	//shi := samehada.NewSamehadaInstance("test", 10*1024) // buffer is about 40MB
 	bpm = shi.GetBufferPoolManager()
 
 	testSkipLisMix(t, 1, uint8(150), uint8(10), uint16(0))

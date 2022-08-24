@@ -23,14 +23,11 @@ const (
 )
 
 type SkipListHeaderPage struct {
-	//page.Page
 	// Header's successor node has all level path
-	// and header does'nt have no entry
 
 	pageId          types.PageID
 	listStartPageId types.PageID //*SkipListBlockPage
-	//curMaxLevel     int32
-	keyType types.TypeID // used when load list datas from disk
+	keyType         types.TypeID // used when load list datas from disk
 }
 
 func NewSkipListStartBlockPage(bpm *buffer.BufferPoolManager, keyType types.TypeID) types.PageID {
@@ -68,7 +65,7 @@ func NewSkipListStartBlockPage(bpm *buffer.BufferPoolManager, keyType types.Type
 	}
 
 	startNode.SetLevel(1)
-	//startNode.SetForward(make([]*SkipListBlockPage, MAX_FOWARD_LIST_LEN))
+
 	// set sentinel node at end of list
 	for ii := 0; ii < MAX_FOWARD_LIST_LEN; ii++ {
 		startNode.SetForwardEntry(ii, sentinelNode.GetPageId())
@@ -98,21 +95,8 @@ func (hp *SkipListHeaderPage) SetListStartPageId(bpId types.PageID) {
 	hp.listStartPageId = bpId
 }
 
-//func (hp *SkipListHeaderPage) GetCurMaxLevel() int32 {
-//	return hp.curMaxLevel
-//	//return -1
-//}
-//
-//func (hp *SkipListHeaderPage) SetCurMaxLevel(maxLevel int32) {
-//	if maxLevel < 1 {
-//		panic("SetCurMaxLevel: invalid maxLevel is passed!")
-//	}
-//	hp.curMaxLevel = maxLevel
-//}
-
 func (hp *SkipListHeaderPage) GetKeyType() types.TypeID {
 	return hp.keyType
-	//return types.TypeID(-1)
 }
 
 func (hp *SkipListHeaderPage) SetKeyType(ktype types.TypeID) {

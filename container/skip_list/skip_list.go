@@ -39,37 +39,12 @@ func NewSkipList(bpm *buffer.BufferPoolManager, keyType types.TypeID) *SkipList 
 	return ret
 }
 
-//func (sl *SkipList) handleDelMarkedNode(delMarkedNode *skip_list_page.SkipListBlockPage, curNode *skip_list_page.SkipListBlockPage, curLevelIdx int32) (isCanDelete bool) {
-//	curNode.SetForwardEntry(int(curLevelIdx), delMarkedNode.GetForwardEntry(int(curLevelIdx)))
-//
-//	// marked entry's connectivity is collectly modified on curLevelIdx
-//	delMarkedNode.SetForwardEntry(int(curLevelIdx), common.InvalidPageID)
-//
-//	// check whether all connectivity is removed.
-//	// and if result is true, marked node can be removed
-//	level := int(delMarkedNode.GetLevel())
-//	isAllRemoved := true
-//	for ii := 0; ii < level; ii++ {
-//		fwdEntry := delMarkedNode.GetForwardEntry(ii)
-//		if fwdEntry != common.InvalidPageID {
-//			isAllRemoved = false
-//			break
-//		}
-//	}
-//	if isAllRemoved {
-//		return true
-//	} else {
-//		return false
-//	}
-//}
-
 // TODO: (SDB) in concurrent impl, locking in this method is needed. and caller must do unlock (SkipList::FindNode)
 
 func (sl *SkipList) FindNode(key *types.Value, opType SkipListOpType) (predOfCorners_ []types.PageID, corners_ []types.PageID, succOfCorners_ []types.PageID) {
 	headerPage := skip_list_page.FetchAndCastToHeaderPage(sl.bpm, sl.headerPageID)
 
 	startPageId := headerPage.GetListStartPageId()
-	// TODO: (SDB) need to consider pred == startPage is OK?
 
 	pred := skip_list_page.FetchAndCastToBlockPage(sl.bpm, startPageId)
 	// loop invariant: pred.key < searchKey
@@ -91,7 +66,7 @@ func (sl *SkipList) FindNode(key *types.Value, opType SkipListOpType) (predOfCor
 				common.ShPrintf(common.FATAL, "PageID to passed FetchAndCastToBlockPage is %d\n", pred.GetForwardEntry(int(ii)))
 				panic("SkipList::FindNode: FetchAndCastToBlockPage returned nil!")
 			}
-			if !curr.GetSmallestKey(key.ValueType()).CompareLessThanOrEqual(*key) && !curr.GetIsNeedDeleted() {
+			if !curr.GetSmallestKey(key.ValueType()).CompareLessThanOrEqual(*key) {
 				//  (ii + 1) level's corner node or target node has been identified (= pred)
 				break
 			} else {
@@ -126,11 +101,9 @@ func (sl *SkipList) FindNode(key *types.Value, opType SkipListOpType) (predOfCor
 	return predOfCorners, corners, succOfCorners
 }
 
-// TODO: (SDB) in concurrent impl, locking in this method is needed. and caller must do unlock (SkipList::FindNodeWithEntryIdxForItr)
-
 func (sl *SkipList) FindNodeWithEntryIdxForItr(key *types.Value) (idx_ int32, predOfCorners_ []types.PageID, corners_ []types.PageID, succOfCorners_ []types.PageID) {
-	predOfCorners, corners, succOfCorners := sl.FindNode(key, SKIP_LIST_OP_GET)
 	// get idx of target entry or one of nearest smaller entry
+	predOfCorners, corners, succOfCorners := sl.FindNode(key, SKIP_LIST_OP_GET)
 
 	node := skip_list_page.FetchAndCastToBlockPage(sl.bpm, corners[0])
 	_, _, idx := node.FindEntryByKey(key)
@@ -151,21 +124,12 @@ func (sl *SkipList) GetValue(key *types.Value) uint32 {
 }
 
 func (sl *SkipList) Insert(key *types.Value, value uint32) (err error) {
-	// Utilise skipPathList which is a (vertical) array
-	// of pointers to the elements which will be
-	// predecessors of the new element.
-
-	//headerPage := skip_list_page.FetchAndCastToHeaderPage(sl.bpm, sl.headerPageID)
-
 	_, corners, _ := sl.FindNode(key, SKIP_LIST_OP_INSERT)
 	levelWhenNodeSplitOccur := sl.GetNodeLevel()
 
-	//startPage := skip_list_page.FetchAndCastToBlockPage(sl.bpm, headerPage.GetListStartPageId())
 	node := skip_list_page.FetchAndCastToBlockPage(sl.bpm, corners[0])
 	node.Insert(key, value, sl.bpm, corners, levelWhenNodeSplitOccur)
 
-	//sl.bpm.UnpinPage(startPage.GetPageId(), true)
-	//sl.bpm.UnpinPage(headerPage.GetPageId(), true)
 	sl.bpm.UnpinPage(node.GetPageId(), true)
 
 	return nil
@@ -174,7 +138,7 @@ func (sl *SkipList) Insert(key *types.Value, value uint32) (err error) {
 func (sl *SkipList) Remove(key *types.Value, value uint32) (isDeleted_ bool) {
 	predOfCorners, corners, _ := sl.FindNode(key, SKIP_LIST_OP_REMOVE)
 	node := skip_list_page.FetchAndCastToBlockPage(sl.bpm, corners[0])
-	isNodeShouldBeDeleted, isDeleted, _ := node.Remove(sl.bpm, key, predOfCorners, corners)
+	isNodeShouldBeDeleted, isDeleted := node.Remove(sl.bpm, key, predOfCorners, corners)
 	sl.bpm.UnpinPage(node.GetPageId(), true)
 	if isNodeShouldBeDeleted {
 		sl.bpm.DeletePage(corners[0])

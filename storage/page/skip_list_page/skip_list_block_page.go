@@ -18,9 +18,9 @@ import (
 //                                free space pointer
 //
 //  Header format (size in bytes):
-//  -------------------------------------------------------------------------------------------------------------------
-//  | PageId (4)| level (4)| entryCnt (4)| isNeedDeleted (1)| forward (4 * MAX_FOWARD_LIST_LEN) | FreeSpacePointer(4) |
-//  ------------------------------------------------------------------------------------------------------------------
+//  ------------------------------------------------------------------------------------------------
+//  | PageId (4)| level (4)| entryCnt (4)| forward (4 * MAX_FOWARD_LIST_LEN) | FreeSpacePointer(4) |
+//  ------------------------------------------------------------------------------------------------
 //  -------------------------------------------------------------
 //  | Entry_0 offset (2) | Entry_0 size (2) | ..................|
 //  ------------------------------------------------------------
@@ -47,19 +47,17 @@ const (
 	sizePageId                          = uint32(4)
 	sizeLevel                           = uint32(4)
 	sizeEntryCnt                        = uint32(4)
-	sizeIsNeedDeleted                   = uint32(1)
 	sizeForward                         = uint32(4 * MAX_FOWARD_LIST_LEN)
 	sizeForwardEntry                    = uint32(4) // types.PageID
 	sizeFreeSpacePointer                = uint32(4)
 	sizeEntryInfoOffset                 = uint32(2)
 	sizeEntryInfoSize                   = uint32(2)
 	sizeEntryInfo                       = sizeEntryInfoOffset + sizeEntryInfoSize
-	sizeBlockPageHeaderExceptEntryInfos = sizePageId + sizeLevel + sizeEntryCnt + sizeIsNeedDeleted + sizeForward + sizeFreeSpacePointer
+	sizeBlockPageHeaderExceptEntryInfos = sizePageId + sizeLevel + sizeEntryCnt + sizeForward + sizeFreeSpacePointer
 	offsetPageId                        = int32(0)
 	offsetLevel                         = sizePageId
 	offsetEntryCnt                      = offsetLevel + sizeLevel
-	offsetIsNeedDeleted                 = offsetEntryCnt + sizeEntryCnt
-	offsetForward                       = offsetIsNeedDeleted + sizeIsNeedDeleted
+	offsetForward                       = offsetEntryCnt + sizeEntryCnt
 	offsetFreeSpacePointer              = offsetForward + sizeForward
 	offsetEntryInfos                    = offsetFreeSpacePointer + sizeFreeSpacePointer
 	sizeEntryValue                      = uint32(4)
@@ -112,7 +110,6 @@ func NewSkipListBlockPage(bpm *buffer.BufferPoolManager, level int32, smallestLi
 	ret.SetPageId(page_.ID())
 	ret.SetEntryCnt(0)
 	ret.SetLevel(level)
-	ret.SetIsNeedDeleted(false)
 	ret.initForwardEntries()
 	ret.SetFreeSpacePointer(common.PageSize)
 	tmpSmallestListPair := smallestListPair
@@ -337,7 +334,7 @@ func (node *SkipListBlockPage) RemoveInner(idx int) {
 	node.SetEntryCnt(node.GetEntryCnt() - 1)
 }
 
-func (node *SkipListBlockPage) Remove(bpm *buffer.BufferPoolManager, key *types.Value, predOfCorners []types.PageID, corners []types.PageID) (isNodeShouldBeDeleted bool, isDeleted bool, level int32) {
+func (node *SkipListBlockPage) Remove(bpm *buffer.BufferPoolManager, key *types.Value, predOfCorners []types.PageID, corners []types.PageID) (isNodeShouldBeDeleted bool, isDeleted bool) {
 	found, _, foundIdx := node.FindEntryByKey(key)
 	if found && (node.GetEntryCnt() == 1) {
 		// when there are no enry without target entry
@@ -346,8 +343,6 @@ func (node *SkipListBlockPage) Remove(bpm *buffer.BufferPoolManager, key *types.
 		if !node.GetEntry(0, key.ValueType()).Key.CompareEquals(*key) {
 			panic("removing wrong entry!")
 		}
-
-		// TODO: (SDB) need to check connectivity modification target is same with this node? (SkipListBlockPage::Remove)
 
 		common.ShPrintf(common.DEBUG, "node remove occured!\n")
 
@@ -360,23 +355,13 @@ func (node *SkipListBlockPage) Remove(bpm *buffer.BufferPoolManager, key *types.
 			corner := FetchAndCastToBlockPage(bpm, corners[ii])
 			corner.SetForwardEntry(ii, node.GetForwardEntry(ii))
 			bpm.UnpinPage(corners[ii], true)
-
-			// mark (ii+1) lebel connectivity is removed
-			//node.forward[ii] = nil
 		}
 		// level-1's pred is stored predOfCorners
 		pred := FetchAndCastToBlockPage(bpm, predOfCorners[0])
 		pred.SetForwardEntry(0, node.GetForwardEntry(0))
 		bpm.UnpinPage(predOfCorners[0], true)
 
-		//// this node does not block node traverse in key value compare
-		//tmpEntries := make([]*SkipListPair, 0)
-		//tmpEntries = append(tmpEntries, &SkipListPair{*node.GetSmallestKey(key.ValueType()).SetInfMin(), 0})
-		//node.SetEntries(tmpEntries)
-
-		//node.SetIsNeedDeleted(true)
-
-		return true, true, node.GetLevel()
+		return true, true
 	} else if found {
 		if !node.GetEntry(int(foundIdx), key.ValueType()).Key.CompareEquals(*key) {
 			panic("removing wrong entry!")
@@ -384,10 +369,10 @@ func (node *SkipListBlockPage) Remove(bpm *buffer.BufferPoolManager, key *types.
 
 		node.RemoveInner(int(foundIdx))
 
-		return false, true, node.GetLevel()
+		return false, true
 	} else { // found == false
 		// do nothing
-		return false, false, -1
+		return false, false
 	}
 }
 
@@ -403,9 +388,6 @@ func (node *SkipListBlockPage) SplitNode(idx int32, bpm *buffer.BufferPoolManage
 	newNode.SetLevel(level)
 	node.SetEntries(node.GetEntries(keyType)[:idx+1])
 
-	//if level > curMaxLevel {
-	//	corners[level-1] = startNode.GetPageId()
-	//}
 	for ii := 0; ii < int(level); ii++ {
 		// modify forward link
 		tmpNode := FetchAndCastToBlockPage(bpm, corners[ii])
@@ -483,18 +465,8 @@ func (node *SkipListBlockPage) GetSmallestKey(keyType types.TypeID) types.Value 
 	return node.GetEntry(0, keyType).Key
 }
 
-//func (node *SkipListBlockPage) GetForward() [MAX_FOWARD_LIST_LEN]*SkipListBlockPage {
-//	return node.forward
-//	//return nil
-//}
-
-//func (node *SkipListBlockPage) SetForward(fwd []*SkipListBlockPage) {
-//	node.forward = fwd
-//}
-
 func (node *SkipListBlockPage) GetForwardEntry(idx int) types.PageID {
 	return types.NewPageIDFromBytes(node.Data()[offsetForward+uint32(idx)*sizeForwardEntry:])
-	//return node.forward[idx]
 }
 
 func (node *SkipListBlockPage) SetForwardEntry(idx int, fwdNodeId types.PageID) {
@@ -506,7 +478,6 @@ func (node *SkipListBlockPage) SetForwardEntry(idx int, fwdNodeId types.PageID) 
 
 func (node *SkipListBlockPage) GetEntryCnt() int32 {
 	return int32(types.NewInt32FromBytes(node.Data()[offsetEntryCnt:]))
-	//return node.entryCnt
 }
 
 func (node *SkipListBlockPage) SetEntryCnt(cnt int32) {
@@ -514,7 +485,6 @@ func (node *SkipListBlockPage) SetEntryCnt(cnt int32) {
 	binary.Write(buf, binary.LittleEndian, cnt)
 	cntInBytes := buf.Bytes()
 	copy(node.Data()[offsetEntryCnt:], cntInBytes)
-	//node.entryCnt = cnt
 }
 
 func (node *SkipListBlockPage) GetEntries(keyType types.TypeID) []*SkipListPair {
@@ -553,21 +523,6 @@ func (node *SkipListBlockPage) SetEntrySize(idx int, setSize uint16) {
 	offset := offsetEntryInfos + sizeEntryInfo*uint32(idx) + sizeEntryInfoOffset
 	copy(node.Data()[offset:], setSizeInBytes)
 }
-
-//func (node *SkipListBlockPage) GetEntrySize(idx int) uint16 {
-//	offsetTgt := offsetEntryInfos + sizeEntryInfo*uint32(idx)
-//	tgtOffset := uint16(types.NewUInt16FromBytes(node.Data()[offsetTgt : offsetTgt+sizeEntryInfoOffset]))
-//
-//	var prevOffset uint16
-//	if idx == 0 {
-//		// last entry
-//		prevOffset = uint16(common.PageSize)
-//	} else {
-//		prevOffset = uint16(types.NewUInt16FromBytes(node.Data()[offsetTgt-sizeEntryInfoOffset : offsetTgt-sizeEntryInfoOffset+sizeEntryInfoOffset]))
-//	}
-//
-//	return prevOffset - tgtOffset
-//}
 
 // memo: freeSpacePointer value is index of buffer which points already data placed
 //
@@ -644,18 +599,6 @@ func (node *SkipListBlockPage) SetEntries(entries []*SkipListPair) {
 	// update entries info in header
 	node.SetFreeSpacePointer(uint32(offset))
 	node.SetEntryCnt(int32(entryNum))
-}
-
-func (node *SkipListBlockPage) GetIsNeedDeleted() bool {
-	return bool(types.NewBoolFromBytes(node.Data()[offsetIsNeedDeleted:]))
-	//return node.isNeedDeleted
-}
-
-func (node *SkipListBlockPage) SetIsNeedDeleted(val bool) {
-	buf := new(bytes.Buffer)
-	binary.Write(buf, binary.LittleEndian, val)
-	valInBytes := buf.Bytes()
-	copy(node.Data()[offsetIsNeedDeleted:], valInBytes)
 }
 
 // since header space grow with insertion entry, memory size which is needed
