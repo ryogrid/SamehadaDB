@@ -542,6 +542,20 @@ func FuzzSkipLisMix(f *testing.F) {
 	})
 }
 
+//func TestFuzzerUnexpectedExitParam(t *testing.T) {
+//	os.Remove("test.db")
+//	os.Remove("test.log")
+//
+//	shi := samehada.NewSamehadaInstanceForTesting()
+//	//shi := samehada.NewSamehadaInstance("test", 10*1024) // buffer is about 40MB
+//	bpm := shi.GetBufferPoolManager()
+//
+//	fmt.Printf("param of TestFuzzerUnexpectedExitParam: %d %d %d %d\n", int32(rune('Į')), int32(rune('Ď')), int32(rune('T')), int32(rune('Ć')))
+//	testSkipLisMix(t, bpm, rune('Į'), rune('Ď'), rune('T'), rune('Ć'))
+//
+//	shi.CloseFilesForTesting()
+//}
+
 const MAX_ENTRIES = 100000
 
 var entriesOnListNum int32 = 0

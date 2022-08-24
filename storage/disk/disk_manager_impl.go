@@ -72,8 +72,16 @@ func NewDiskManagerImpl(dbFilename string) DiskManager {
 
 // ShutDown closes of the database file
 func (d *DiskManagerImpl) ShutDown() {
-	d.db.Close()
-	d.log.Close()
+	err := d.db.Close()
+	if err != nil {
+		fmt.Println(err)
+		panic("close of db file failed")
+	}
+	err = d.log.Close()
+	if err != nil {
+		fmt.Println(err)
+		panic("close of log file failed")
+	}
 }
 
 // Write a page to the database file
@@ -156,12 +164,20 @@ func (d *DiskManagerImpl) Size() int64 {
 
 // ATTENTION: this method can be call after calling of Shutdown method
 func (d *DiskManagerImpl) RemoveDBFile() {
-	os.Remove(d.fileName)
+	err := os.Remove(d.fileName)
+	if err != nil {
+		fmt.Println(err)
+		panic("file remove failed")
+	}
 }
 
 // ATTENTION: this method can be call after calling of Shutdown method
 func (d *DiskManagerImpl) RemoveLogFile() {
-	os.Remove(d.fileName_log)
+	err := os.Remove(d.fileName_log)
+	if err != nil {
+		fmt.Println(err)
+		panic("file remove failed")
+	}
 }
 
 // erase needless data from log file (use this when db recovery finishes or snapshot finishes)
