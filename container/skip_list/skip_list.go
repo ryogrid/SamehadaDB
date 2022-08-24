@@ -171,16 +171,16 @@ func (sl *SkipList) Insert(key *types.Value, value uint32) (err error) {
 	return nil
 }
 
-func (sl *SkipList) Remove(key *types.Value, value uint32) (isDeleted bool) {
+func (sl *SkipList) Remove(key *types.Value, value uint32) (isDeleted_ bool) {
 	predOfCorners, corners, _ := sl.FindNode(key, SKIP_LIST_OP_REMOVE)
 	node := skip_list_page.FetchAndCastToBlockPage(sl.bpm, corners[0])
-	isNodeShouldBeDeleted, isDeleted_, _ := node.Remove(sl.bpm, key, predOfCorners, corners)
+	isNodeShouldBeDeleted, isDeleted, _ := node.Remove(sl.bpm, key, predOfCorners, corners)
 	sl.bpm.UnpinPage(node.GetPageId(), true)
 	if isNodeShouldBeDeleted {
 		sl.bpm.DeletePage(corners[0])
 	}
 
-	return isDeleted_
+	return isDeleted
 }
 
 func (sl *SkipList) Iterator(rangeStartKey *types.Value, rangeEndKey *types.Value) *SkipListIterator {

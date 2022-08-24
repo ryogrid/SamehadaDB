@@ -398,10 +398,13 @@ func TestSkipListInsertAndDeleteAll(t *testing.T) {
 	}
 
 	// delete all values
-	for i := 2000; i >= 0; i-- {
-		// check no existance after delete
-		sl.Remove(samehada_util.GetPonterOfValue(types.NewInteger(int32(i*11))), uint32(i*11))
+	for i := (2000 - 1); i >= 0; i-- {
+		// delete
+		isDeleted := sl.Remove(samehada_util.GetPonterOfValue(types.NewInteger(int32(i*11))), uint32(i*11))
+		common.ShPrintf(common.DEBUG, "i=%d i*11=%d\n", i, i*11)
+		testingpkg.SimpleAssert(t, isDeleted == true)
 
+		// check no existance after delete
 		res := sl.GetValue(samehada_util.GetPonterOfValue(types.NewInteger(int32(i * 11))))
 		common.ShPrintf(common.DEBUG, "i=%d i*11=%d res=%d\n", i, i*11, res)
 		testingpkg.SimpleAssert(t, math.MaxUint32 == res)
