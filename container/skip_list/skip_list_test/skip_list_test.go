@@ -1129,7 +1129,16 @@ func removeRandom(t *testing.T, sl *skip_list.SkipList, opStep int32, num int32)
 	}
 }
 
-func testSkipListMix(t *testing.T, bpm *buffer.BufferPoolManager, bulkSize int32, opTimes int32, skipRand int32, initialEntryNum int32) {
+func getRandomPrimitiveVal[T comparable](keyType types.TypeID) interface{} {
+	switch keyType {
+	case types.Integer:
+		return rand.Int31()
+	case types.Varchar:
+		return samehada_util.GetRandomStr(20)
+	}
+}
+
+func testSkipListMix[T comparable](t *testing.T, bpm *buffer.BufferPoolManager, keyType types.TypeID, bulkSize int32, opTimes int32, skipRand int32, initialEntryNum int32) {
 	common.ShPrintf(common.DEBUG, "start of testSkipListMix bulkSize=%d opTimes=%d skipRand=%d initialEntryNum=%d ====================================================\n",
 		bulkSize, opTimes, skipRand, initialEntryNum)
 
@@ -1139,7 +1148,7 @@ func testSkipListMix(t *testing.T, bpm *buffer.BufferPoolManager, bulkSize int32
 	//shi := samehada.NewSamehadaInstanceForTesting()
 	//bpm := shi.GetBufferPoolManager()
 
-	checkDupMap := make(map[int32]int32)
+	checkDupMap := make(map[T]T)
 
 	sl := skip_list.NewSkipList(bpm, types.Integer)
 
@@ -1153,8 +1162,8 @@ func testSkipListMix(t *testing.T, bpm *buffer.BufferPoolManager, bulkSize int32
 		tmpSkipRand--
 	}
 
-	insVals = make([]int32, 0)
-	removedVals = make([]int32, 0)
+	insVals := make([]T, 0)
+	removedVals := make([]T, 0)
 	entriesOnListNum := 0
 
 	// initial entries
@@ -1162,9 +1171,11 @@ func testSkipListMix(t *testing.T, bpm *buffer.BufferPoolManager, bulkSize int32
 	for ii := 0; ii < useInitialEntryNum; ii++ {
 		if entriesOnListNum+1 < MAX_ENTRIES {
 			// avoid duplication
-			insVal := rand.Int31()
+			//insVal := rand.Int31()
+			insVal := getRandomPrimitiveVal[T](keyType).(T)
 			for _, exist := checkDupMap[insVal]; exist; _, exist = checkDupMap[insVal] {
-				insVal = rand.Int31()
+				//insVal = rand.Int31()
+				insVal = getRandomPrimitiveVal[T](keyType).(T)
 			}
 			checkDupMap[insVal] = insVal
 
@@ -1259,7 +1270,7 @@ func testSkipListMix(t *testing.T, bpm *buffer.BufferPoolManager, bulkSize int32
 	//shi.Shutdown(false)
 }
 
-func TestSkipListMix(t *testing.T) {
+func testSkipListMixRoot[T comparable](t *testing.T, keyType types.TypeID) {
 	os.Remove("test.db")
 	os.Remove("test.log")
 
@@ -1267,29 +1278,33 @@ func TestSkipListMix(t *testing.T) {
 	//shi := samehada.NewSamehadaInstance("test", 10*1024) // buffer is about 40MB
 	bpm := shi.GetBufferPoolManager()
 
-	testSkipListMix(t, bpm, 1, int32(150), int32(10), int32(0))
-	testSkipListMix(t, bpm, 1, int32(150), int32(10), int32(300))
-	testSkipListMix(t, bpm, 1, int32(150), int32(10), int32(600))
-	testSkipListMix(t, bpm, 1, int32(200), int32(5), int32(10))
-	testSkipListMix(t, bpm, 1, int32(250), int32(5), int32(10))
-	testSkipListMix(t, bpm, 1, int32(250), int32(4), int32(0))
-	testSkipListMix(t, bpm, 1, int32(250), int32(3), int32(0))
+	testSkipListMix[T](t, bpm, keyType, 1, int32(150), int32(10), int32(0))
+	testSkipListMix[T](t, bpm, keyType, 1, int32(150), int32(10), int32(300))
+	testSkipListMix[T](t, bpm, keyType, 1, int32(150), int32(10), int32(600))
+	testSkipListMix[T](t, bpm, keyType, 1, int32(200), int32(5), int32(10))
+	testSkipListMix[T](t, bpm, keyType, 1, int32(250), int32(5), int32(10))
+	testSkipListMix[T](t, bpm, keyType, 1, int32(250), int32(4), int32(0))
+	testSkipListMix[T](t, bpm, keyType, 1, int32(250), int32(3), int32(0))
 
-	testSkipListMix(t, bpm, 50, int32(150), int32(10), int32(0))
-	testSkipListMix(t, bpm, 50, int32(150), int32(10), int32(300))
-	testSkipListMix(t, bpm, 50, int32(150), int32(10), int32(600))
-	testSkipListMix(t, bpm, 50, int32(200), int32(5), int32(10))
-	testSkipListMix(t, bpm, 50, int32(250), int32(5), int32(10))
-	testSkipListMix(t, bpm, 50, int32(250), int32(4), int32(0))
-	testSkipListMix(t, bpm, 50, int32(250), int32(3), int32(0))
+	testSkipListMix[T](t, bpm, keyType, 50, int32(150), int32(10), int32(0))
+	testSkipListMix[T](t, bpm, keyType, 50, int32(150), int32(10), int32(300))
+	testSkipListMix[T](t, bpm, keyType, 50, int32(150), int32(10), int32(600))
+	testSkipListMix[T](t, bpm, keyType, 50, int32(200), int32(5), int32(10))
+	testSkipListMix[T](t, bpm, keyType, 50, int32(250), int32(5), int32(10))
+	testSkipListMix[T](t, bpm, keyType, 50, int32(250), int32(4), int32(0))
+	testSkipListMix[T](t, bpm, keyType, 50, int32(250), int32(3), int32(0))
 
-	testSkipListMix(t, bpm, 100, int32(150), int32(10), int32(0))
-	testSkipListMix(t, bpm, 100, int32(150), int32(10), int32(300))
-	testSkipListMix(t, bpm, 100, int32(150), int32(10), int32(600))
-	testSkipListMix(t, bpm, 100, int32(200), int32(5), int32(10))
-	testSkipListMix(t, bpm, 100, int32(250), int32(5), int32(10))
-	testSkipListMix(t, bpm, 100, int32(250), int32(4), int32(0))
-	testSkipListMix(t, bpm, 100, int32(250), int32(3), int32(0))
+	testSkipListMix[T](t, bpm, keyType, 100, int32(150), int32(10), int32(0))
+	testSkipListMix[T](t, bpm, keyType, 100, int32(150), int32(10), int32(300))
+	testSkipListMix[T](t, bpm, keyType, 100, int32(150), int32(10), int32(600))
+	testSkipListMix[T](t, bpm, keyType, 100, int32(200), int32(5), int32(10))
+	testSkipListMix[T](t, bpm, keyType, 100, int32(250), int32(5), int32(10))
+	testSkipListMix[T](t, bpm, keyType, 100, int32(250), int32(4), int32(0))
+	testSkipListMix[T](t, bpm, keyType, 100, int32(250), int32(3), int32(0))
 
 	shi.Shutdown(true)
+}
+
+func TestSkipListMixInteger(t *testing.T) {
+	testSkipListMixRoot[int32](t, types.Integer)
 }
