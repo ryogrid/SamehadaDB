@@ -7,6 +7,7 @@ import (
 	"github.com/ryogrid/SamehadaDB/common"
 	"github.com/ryogrid/SamehadaDB/storage/access"
 	"github.com/ryogrid/SamehadaDB/storage/index"
+	"github.com/ryogrid/SamehadaDB/storage/index/index_constants"
 	"github.com/ryogrid/SamehadaDB/storage/table/schema"
 )
 
@@ -30,15 +31,27 @@ func NewTableMetadata(schema *schema.Schema, name string, table *access.TableHea
 	indexes := make([]index.Index, 0)
 	for idx, column_ := range schema.GetColumns() {
 		if column_.HasIndex() {
-			// TODO: (SDB) index bucket size is common.BucketSizeOfHashIndex (auto size extending is needed...)
-			//             note: one bucket is used pages for storing index key/value pairs for a column.
-			//                   one page can store 512 key/value pair
-			im := index.NewIndexMetadata(column_.GetColumnName()+"_index", name, schema, []uint32{uint32(idx)})
-			hidx := index.NewLinearProbeHashTableIndex(im, table.GetBufferPoolManager(), uint32(idx), common.BucketSizeOfHashIndex, column_.IndexHeaderPageId())
-			indexes = append(indexes, hidx)
-			// when first allocation of pages for index, column definition should be set indexHeaderPageID (column_.IndexHeaderPageId() == -1)
-			// first allocation occurs when table creation is processed (not launched DB instace from existing db file which has difinition of this table)
-			column_.SetIndexHeaderPageId(hidx.GetHeaderPageId())
+			switch column_.IndexKind() {
+			case index_constants.INDEX_KIND_HASH:
+				// TODO: (SDB) index bucket size is common.BucketSizeOfHashIndex (auto size extending is needed...)
+				//             note: one bucket is used pages for storing index key/value pairs for a column.
+				//                   one page can store 512 key/value pair
+				im := index.NewIndexMetadata(column_.GetColumnName()+"_index", name, schema, []uint32{uint32(idx)})
+				hIdx := index.NewLinearProbeHashTableIndex(im, table.GetBufferPoolManager(), uint32(idx), common.BucketSizeOfHashIndex, column_.IndexHeaderPageId())
+				indexes = append(indexes, hIdx)
+				// at first allocation of pages for index, column's indexHeaderPageID is -1 at above code (column_.IndexHeaderPageId() == -1)
+				// because first allocation occurs when table creation is processed (not launched DB instace from existing db file which has difinition of this table)
+				// so, for first allocation case, allocated page ID of header page need to be set to column info here
+				column_.SetIndexHeaderPageId(hIdx.GetHeaderPageId())
+			case index_constants.INDEX_KIND_SKIP_LIST:
+				// currently, SkipList Index always use new pages even if relaunch
+				im := index.NewIndexMetadata(column_.GetColumnName()+"_index", name, schema, []uint32{uint32(idx)})
+				slIdx := index.NewSkipListIndex(im, table.GetBufferPoolManager(), uint32(idx))
+				indexes = append(indexes, slIdx)
+				//column_.SetIndexHeaderPageId(slIdx.GetHeaderPageId())
+			default:
+				panic("illegal index kind!")
+			}
 		} else {
 			indexes = append(indexes, nil)
 		}

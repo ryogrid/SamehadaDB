@@ -8,6 +8,7 @@ import (
 	"github.com/ryogrid/SamehadaDB/catalog"
 	"github.com/ryogrid/SamehadaDB/samehada"
 	"github.com/ryogrid/SamehadaDB/storage/buffer"
+	"github.com/ryogrid/SamehadaDB/storage/index/index_constants"
 	"github.com/ryogrid/SamehadaDB/storage/table/column"
 	"github.com/ryogrid/SamehadaDB/storage/table/schema"
 	testingpkg "github.com/ryogrid/SamehadaDB/testing"
@@ -27,8 +28,8 @@ func TestTableCatalogReload(t *testing.T) {
 	txn := samehada_instance.GetTransactionManager().Begin(nil)
 	catalog_old := catalog.BootstrapCatalog(bpm, samehada_instance.GetLogManager(), samehada_instance.GetLockManager(), txn)
 
-	columnA := column.NewColumn("a", types.Integer, false, types.PageID(-1), nil)
-	columnB := column.NewColumn("b", types.Integer, true, types.PageID(-1), nil)
+	columnA := column.NewColumn("a", types.Integer, false, index_constants.INDEX_KIND_INVAID, types.PageID(-1), nil)
+	columnB := column.NewColumn("b", types.Integer, true, index_constants.INDEX_KIND_HASH, types.PageID(-1), nil)
 	schema_ := schema.NewSchema([]*column.Column{columnA, columnB})
 
 	catalog_old.CreateTable("test_1", schema_, txn)
@@ -47,5 +48,5 @@ func TestTableCatalogReload(t *testing.T) {
 	testingpkg.Assert(t, columnToCheck.GetType() == 4, "")
 	testingpkg.Assert(t, columnToCheck.HasIndex() == true, "")
 
-	samehada_instance.Finalize(true)
+	samehada_instance.Shutdown(true)
 }

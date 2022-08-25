@@ -4,6 +4,7 @@
 package column
 
 import (
+	"github.com/ryogrid/SamehadaDB/storage/index/index_constants"
 	"github.com/ryogrid/SamehadaDB/types"
 )
 
@@ -14,6 +15,7 @@ type Column struct {
 	variableLength    uint32 // For an inlined column, 0. Otherwise, the length of the variable length column
 	columnOffset      uint32 // Column offset in the tuple
 	hasIndex          bool   // whether the column has index data
+	indexKind         index_constants.IndexKind
 	indexHeaderPageId types.PageID
 	isLeft            bool // when temporal schema, this is used for join
 	// should be pointer of subtype of expression.Expression
@@ -21,14 +23,13 @@ type Column struct {
 	expr_ interface{}
 }
 
-// TODO: (SDB) need to add argument to set header page of index data or define new method for that
 // expr argument should be pointer of subtype of expression.Expression
-func NewColumn(name string, columnType types.TypeID, hasIndex bool, indexHeaderPageID types.PageID, expr interface{}) *Column {
+func NewColumn(name string, columnType types.TypeID, hasIndex bool, indexKind index_constants.IndexKind, indexHeaderPageID types.PageID, expr interface{}) *Column {
 	if columnType != types.Varchar {
-		return &Column{name, columnType, columnType.Size(), 0, 0, hasIndex, indexHeaderPageID, true, expr}
+		return &Column{name, columnType, columnType.Size(), 0, 0, hasIndex, indexKind, indexHeaderPageID, true, expr}
 	}
 
-	return &Column{name, types.Varchar, 4, 255, 0, hasIndex, indexHeaderPageID, true, expr}
+	return &Column{name, types.Varchar, 4, 255, 0, hasIndex, indexKind, indexHeaderPageID, true, expr}
 }
 
 func (c *Column) IsInlined() bool {
@@ -73,6 +74,14 @@ func (c *Column) HasIndex() bool {
 
 func (c *Column) SetHasIndex(hasIndex bool) {
 	c.hasIndex = hasIndex
+}
+
+func (c *Column) IndexKind() index_constants.IndexKind {
+	return c.indexKind
+}
+
+func (c *Column) SetIndexKind(kind index_constants.IndexKind) {
+	c.indexKind = kind
 }
 
 func (c *Column) IndexHeaderPageId() types.PageID {

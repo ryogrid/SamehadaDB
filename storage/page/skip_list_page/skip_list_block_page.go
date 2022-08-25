@@ -18,9 +18,9 @@ import (
 //                                free space pointer
 //
 //  Header format (size in bytes):
-//  -------------------------------------------------------------------------------------------------------------------
-//  | PageId (4)| level (4)| entryCnt (4)| isNeedDeleted (1)| forward (4 * MAX_FOWARD_LIST_LEN) | FreeSpacePointer(4) |
-//  ------------------------------------------------------------------------------------------------------------------
+//  ------------------------------------------------------------------------------------------------
+//  | PageId (4)| level (4)| entryCnt (4)| forward (4 * MAX_FOWARD_LIST_LEN) | FreeSpacePointer(4) |
+//  ------------------------------------------------------------------------------------------------
 //  -------------------------------------------------------------
 //  | Entry_0 offset (2) | Entry_0 size (2) | ..................|
 //  ------------------------------------------------------------
@@ -35,7 +35,7 @@ import (
 //
 // Note:
 //  placement order of entry location data on header doesn't match with entry data on payload
-//  because entry insertion cost is keeped lower
+//  for entry insertion cost is keeped lower
 //
 //  Entry_key format (size in bytes)
 //    = Serialized types.Value
@@ -47,19 +47,17 @@ const (
 	sizePageId                          = uint32(4)
 	sizeLevel                           = uint32(4)
 	sizeEntryCnt                        = uint32(4)
-	sizeIsNeedDeleted                   = uint32(1)
 	sizeForward                         = uint32(4 * MAX_FOWARD_LIST_LEN)
 	sizeForwardEntry                    = uint32(4) // types.PageID
 	sizeFreeSpacePointer                = uint32(4)
 	sizeEntryInfoOffset                 = uint32(2)
 	sizeEntryInfoSize                   = uint32(2)
 	sizeEntryInfo                       = sizeEntryInfoOffset + sizeEntryInfoSize
-	sizeBlockPageHeaderExceptEntryInfos = sizePageId + sizeLevel + sizeEntryCnt + sizeIsNeedDeleted + sizeForward + sizeFreeSpacePointer
+	sizeBlockPageHeaderExceptEntryInfos = sizePageId + sizeLevel + sizeEntryCnt + sizeForward + sizeFreeSpacePointer
 	offsetPageId                        = int32(0)
 	offsetLevel                         = sizePageId
 	offsetEntryCnt                      = offsetLevel + sizeLevel
-	offsetIsNeedDeleted                 = offsetEntryCnt + sizeEntryCnt
-	offsetForward                       = offsetIsNeedDeleted + sizeIsNeedDeleted
+	offsetForward                       = offsetEntryCnt + sizeEntryCnt
 	offsetFreeSpacePointer              = offsetForward + sizeForward
 	offsetEntryInfos                    = offsetFreeSpacePointer + sizeFreeSpacePointer
 	sizeEntryValue                      = uint32(4)
@@ -112,7 +110,6 @@ func NewSkipListBlockPage(bpm *buffer.BufferPoolManager, level int32, smallestLi
 	ret.SetPageId(page_.ID())
 	ret.SetEntryCnt(0)
 	ret.SetLevel(level)
-	ret.SetIsNeedDeleted(false)
 	ret.initForwardEntries()
 	ret.SetFreeSpacePointer(common.PageSize)
 	tmpSmallestListPair := smallestListPair
@@ -192,7 +189,8 @@ func (node *SkipListBlockPage) FindEntryByKey(key *types.Value) (found bool, ent
 // idx==-1 -> data's inddx become 0 (insert to head of entries)
 // idx==entryCnt -> data's index become entryCnt (insert next of last entry)
 // ATTENTION:
-//   caller should update entryCnt appropriatery after this method call
+//
+//	caller should update entryCnt appropriatery after this method call
 func (node *SkipListBlockPage) updateEntryInfosAtInsert(idx int, dataSize uint16) {
 	// entrries data backward of entry which specifed with idx arg are not changed
 	// because data of new entry is always placed tail of payload area
@@ -233,8 +231,8 @@ func (node *SkipListBlockPage) InsertInner(idx int, slp *SkipListPair) {
 
 // Attempts to insert a key and value into an index in the baccess
 // return value is whether newNode is created or not
-func (node *SkipListBlockPage) Insert(key *types.Value, value uint32, bpm *buffer.BufferPoolManager, skipPathList []types.PageID,
-	level int32, curMaxLevel int32, startNode *SkipListBlockPage) bool {
+func (node *SkipListBlockPage) Insert(key *types.Value, value uint32, bpm *buffer.BufferPoolManager, corners []types.PageID,
+	level int32) bool {
 	//fmt.Printf("Insert of SkipListBlockPage called! : key=%d\n", key.ToInteger())
 
 	found, _, foundIdx := node.FindEntryByKey(key)
@@ -259,12 +257,14 @@ func (node *SkipListBlockPage) Insert(key *types.Value, value uint32, bpm *buffe
 		if node.getFreeSpaceRemaining() < node.GetSpecifiedSLPNeedSpace(&SkipListPair{*key, value}) {
 			// this node is full. so node split is needed
 
+			// TODO: (SDB) split must be done after pass of connectivity change existance at concurrent impl
+
 			// first, split this node at center of entry list
 			// half of entries are moved to new node
 			splitIdx = node.GetEntryCnt() / 2
 			// update with this node
-			skipPathList[0] = node.GetPageId()
-			node.SplitNode(splitIdx, bpm, skipPathList, level, curMaxLevel, startNode, key.ValueType())
+			corners[0] = node.GetPageId()
+			node.SplitNode(splitIdx, bpm, corners, level, key.ValueType())
 			isMadeNewNode = true
 
 			if foundIdx > splitIdx {
@@ -293,7 +293,8 @@ func (node *SkipListBlockPage) Insert(key *types.Value, value uint32, bpm *buffe
 // remove entry info specified with idx arg from header of page
 // this method slides memory area of header using memory copy
 // ATTENTION:
-//   caller should update entryCnt appropriatery after this method call
+//
+//	caller should update entryCnt appropriatery after this method call
 func (node *SkipListBlockPage) updateEntryInfosAtRemove(idx int) {
 	dataSize := node.GetEntrySize(idx)
 	orgDataOffset := node.GetEntryOffset(idx)
@@ -333,7 +334,7 @@ func (node *SkipListBlockPage) RemoveInner(idx int) {
 	node.SetEntryCnt(node.GetEntryCnt() - 1)
 }
 
-func (node *SkipListBlockPage) Remove(key *types.Value, skipPathList []types.PageID) (isDeleted bool, level int32) {
+func (node *SkipListBlockPage) Remove(bpm *buffer.BufferPoolManager, key *types.Value, predOfCorners []types.PageID, corners []types.PageID) (isNodeShouldBeDeleted bool, isDeleted bool) {
 	found, _, foundIdx := node.FindEntryByKey(key)
 	if found && (node.GetEntryCnt() == 1) {
 		// when there are no enry without target entry
@@ -343,31 +344,24 @@ func (node *SkipListBlockPage) Remove(key *types.Value, skipPathList []types.Pag
 			panic("removing wrong entry!")
 		}
 
-		// doing connectivity cut here needs accesses to backword nodes
-		// and it needs complicated latch (lock) control
-		// so, not do connectivity cut here
+		common.ShPrintf(common.DEBUG, "node remove occured!\n")
 
-		//updateLen := int32(mathutil.Min(len(skipPathList), len(node.forward)))
-		//
-		//// try removing this node from all level of chain
-		//// but, some connectivity left often
-		//// when several connectivity is left, removing is achieved in later index accesses
-		//for ii := int32(0); ii < updateLen; ii++ {
-		//	if skipPathList[ii] != nil {
-		//		skipPathList[ii].forward[ii] = node.forward[ii]
-		//		// mark (ii+1) lebel connectivity is removed
-		//		node.forward[ii] = nil
-		//	}
-		//}
+		updateLen := int(node.GetLevel())
 
-		// this node does not block node traverse in key value compare
-		tmpEntries := make([]*SkipListPair, 0)
-		tmpEntries = append(tmpEntries, &SkipListPair{*node.GetSmallestKey(key.ValueType()).SetInfMin(), 0})
-		node.SetEntries(tmpEntries)
+		// try removing this node from all level of chain
+		// but, some connectivity left often
+		// when several connectivity is left, removing is achieved in later index accesses
+		for ii := 1; ii < updateLen; ii++ {
+			corner := FetchAndCastToBlockPage(bpm, corners[ii])
+			corner.SetForwardEntry(ii, node.GetForwardEntry(ii))
+			bpm.UnpinPage(corners[ii], true)
+		}
+		// level-1's pred is stored predOfCorners
+		pred := FetchAndCastToBlockPage(bpm, predOfCorners[0])
+		pred.SetForwardEntry(0, node.GetForwardEntry(0))
+		bpm.UnpinPage(predOfCorners[0], true)
 
-		node.SetIsNeedDeleted(true)
-
-		return true, node.GetLevel()
+		return true, true
 	} else if found {
 		if !node.GetEntry(int(foundIdx), key.ValueType()).Key.CompareEquals(*key) {
 			panic("removing wrong entry!")
@@ -375,18 +369,18 @@ func (node *SkipListBlockPage) Remove(key *types.Value, skipPathList []types.Pag
 
 		node.RemoveInner(int(foundIdx))
 
-		return true, node.GetLevel()
+		return false, true
 	} else { // found == false
 		// do nothing
-		return false, -1
+		return false, false
 	}
 }
 
 // split entries of node at entry specified with idx arg
 // new node contains entries node.entries[idx+1:]
 // (new node does not include entry node.entries[idx])
-func (node *SkipListBlockPage) SplitNode(idx int32, bpm *buffer.BufferPoolManager, skipPathList []types.PageID,
-	level int32, curMaxLevel int32, startNode *SkipListBlockPage, keyType types.TypeID) {
+func (node *SkipListBlockPage) SplitNode(idx int32, bpm *buffer.BufferPoolManager, corners []types.PageID,
+	level int32, keyType types.TypeID) {
 	//fmt.Println("<<<<<<<<<<<<<<<<<<<<<<<< SplitNode called! >>>>>>>>>>>>>>>>>>>>>>>>>>>>>>")
 
 	newNode := NewSkipListBlockPage(bpm, level, *node.GetEntry(int(idx+1), keyType))
@@ -394,12 +388,9 @@ func (node *SkipListBlockPage) SplitNode(idx int32, bpm *buffer.BufferPoolManage
 	newNode.SetLevel(level)
 	node.SetEntries(node.GetEntries(keyType)[:idx+1])
 
-	if level > curMaxLevel {
-		skipPathList[level-1] = startNode.GetPageId()
-	}
 	for ii := 0; ii < int(level); ii++ {
 		// modify forward link
-		tmpNode := FetchAndCastToBlockPage(bpm, skipPathList[ii])
+		tmpNode := FetchAndCastToBlockPage(bpm, corners[ii])
 		newNode.SetForwardEntry(ii, tmpNode.GetForwardEntry(ii))
 		tmpNode.SetForwardEntry(ii, newNode.GetPageId())
 		bpm.UnpinPage(tmpNode.GetPageId(), true)
@@ -474,18 +465,8 @@ func (node *SkipListBlockPage) GetSmallestKey(keyType types.TypeID) types.Value 
 	return node.GetEntry(0, keyType).Key
 }
 
-//func (node *SkipListBlockPage) GetForward() [MAX_FOWARD_LIST_LEN]*SkipListBlockPage {
-//	return node.forward
-//	//return nil
-//}
-
-//func (node *SkipListBlockPage) SetForward(fwd []*SkipListBlockPage) {
-//	node.forward = fwd
-//}
-
 func (node *SkipListBlockPage) GetForwardEntry(idx int) types.PageID {
 	return types.NewPageIDFromBytes(node.Data()[offsetForward+uint32(idx)*sizeForwardEntry:])
-	//return node.forward[idx]
 }
 
 func (node *SkipListBlockPage) SetForwardEntry(idx int, fwdNodeId types.PageID) {
@@ -497,7 +478,6 @@ func (node *SkipListBlockPage) SetForwardEntry(idx int, fwdNodeId types.PageID) 
 
 func (node *SkipListBlockPage) GetEntryCnt() int32 {
 	return int32(types.NewInt32FromBytes(node.Data()[offsetEntryCnt:]))
-	//return node.entryCnt
 }
 
 func (node *SkipListBlockPage) SetEntryCnt(cnt int32) {
@@ -505,7 +485,6 @@ func (node *SkipListBlockPage) SetEntryCnt(cnt int32) {
 	binary.Write(buf, binary.LittleEndian, cnt)
 	cntInBytes := buf.Bytes()
 	copy(node.Data()[offsetEntryCnt:], cntInBytes)
-	//node.entryCnt = cnt
 }
 
 func (node *SkipListBlockPage) GetEntries(keyType types.TypeID) []*SkipListPair {
@@ -545,23 +524,9 @@ func (node *SkipListBlockPage) SetEntrySize(idx int, setSize uint16) {
 	copy(node.Data()[offset:], setSizeInBytes)
 }
 
-//func (node *SkipListBlockPage) GetEntrySize(idx int) uint16 {
-//	offsetTgt := offsetEntryInfos + sizeEntryInfo*uint32(idx)
-//	tgtOffset := uint16(types.NewUInt16FromBytes(node.Data()[offsetTgt : offsetTgt+sizeEntryInfoOffset]))
-//
-//	var prevOffset uint16
-//	if idx == 0 {
-//		// last entry
-//		prevOffset = uint16(common.PageSize)
-//	} else {
-//		prevOffset = uint16(types.NewUInt16FromBytes(node.Data()[offsetTgt-sizeEntryInfoOffset : offsetTgt-sizeEntryInfoOffset+sizeEntryInfoOffset]))
-//	}
-//
-//	return prevOffset - tgtOffset
-//}
-
 // memo: freeSpacePointer value is index of buffer which points already data placed
-//       so, you can use memory Data()[someOffset:freeSpacePointer] in golang description
+//
+//	so, you can use memory Data()[someOffset:freeSpacePointer] in golang description
 func (node *SkipListBlockPage) GetFreeSpacePointer() uint32 {
 	offset := offsetFreeSpacePointer
 
@@ -583,8 +548,8 @@ func (node *SkipListBlockPage) GetEntry(idx int, keyType types.TypeID) *SkipList
 
 // ATTENTION:
 // this method can be called only when...
-//  - it is guranteed that new entry insert doesn't cause overflow of node space capacity
-//  - key of target entry doesn't exist in this node
+//   - it is guranteed that new entry insert doesn't cause overflow of node space capacity
+//   - key of target entry doesn't exist in this node
 func (node *SkipListBlockPage) SetEntry(idx int, entry *SkipListPair) {
 	// at current design,
 	// - duplicated key is not supported
@@ -636,18 +601,6 @@ func (node *SkipListBlockPage) SetEntries(entries []*SkipListPair) {
 	node.SetEntryCnt(int32(entryNum))
 }
 
-func (node *SkipListBlockPage) GetIsNeedDeleted() bool {
-	return bool(types.NewBoolFromBytes(node.Data()[offsetIsNeedDeleted:]))
-	//return node.isNeedDeleted
-}
-
-func (node *SkipListBlockPage) SetIsNeedDeleted(val bool) {
-	buf := new(bytes.Buffer)
-	binary.Write(buf, binary.LittleEndian, val)
-	valInBytes := buf.Bytes()
-	copy(node.Data()[offsetIsNeedDeleted:], valInBytes)
-}
-
 // since header space grow with insertion entry, memory size which is needed
 // for insertion is not same with size of SkipListPair object
 func (node *SkipListBlockPage) GetSpecifiedSLPNeedSpace(slp *SkipListPair) uint32 {
@@ -662,7 +615,8 @@ func (node *SkipListBlockPage) getFreeSpaceRemaining() uint32 {
 // TODO: (SDB) in concurrent impl, locking in this method is needed. and caller must do unlock (FectchAndCastToBlockPage)
 
 // Attention:
-//   caller must call UnpinPage with appropriate diaty page to the got page when page using ends
+//
+//	caller must call UnpinPage with appropriate diaty page to the got page when page using ends
 func FetchAndCastToBlockPage(bpm *buffer.BufferPoolManager, pageId types.PageID) *SkipListBlockPage {
 	bPage := bpm.FetchPage(pageId)
 	return (*SkipListBlockPage)(unsafe.Pointer(bPage))

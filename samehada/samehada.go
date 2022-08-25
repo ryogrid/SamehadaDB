@@ -13,12 +13,12 @@ import (
 	"github.com/ryogrid/SamehadaDB/samehada/samehada_util"
 	"github.com/ryogrid/SamehadaDB/storage/access"
 	"github.com/ryogrid/SamehadaDB/storage/disk"
+	"github.com/ryogrid/SamehadaDB/storage/index/index_constants"
 	"github.com/ryogrid/SamehadaDB/storage/page"
 	"github.com/ryogrid/SamehadaDB/storage/table/schema"
 	"github.com/ryogrid/SamehadaDB/storage/tuple"
 	"github.com/ryogrid/SamehadaDB/types"
 	"math"
-	"time"
 	"unsafe"
 )
 
@@ -26,53 +26,57 @@ type SamehadaDB struct {
 	shi_         *SamehadaInstance
 	catalog_     *catalog.Catalog
 	exec_engine_ *executors.ExecutionEngine
+	chkpntMgr    *concurrency.CheckpointManager
 	planner_     planner.Planner
 }
 
-func StartCheckpointThread(cpMngr *concurrency.CheckpointManager) {
-	go func() {
-		for {
-			time.Sleep(time.Minute * 5)
-			cpMngr.BeginCheckpoint()
-			cpMngr.EndCheckpoint()
-		}
-	}()
-}
-
-func reconstructIndexDataOfEachCol(t *catalog.TableMetadata, c *catalog.Catalog, dman disk.DiskManager, txn *access.Transaction) {
+func reconstructIndexDataOfATbl(t *catalog.TableMetadata, c *catalog.Catalog, dman disk.DiskManager, txn *access.Transaction) {
 	executionEngine := &executors.ExecutionEngine{}
 	executorContext := executors.NewExecutorContext(c, t.Table().GetBufferPoolManager(), txn)
-
-	// get all tuples
-	outSchema := t.Schema()
-	seqPlan := plans.NewSeqScanPlanNode(outSchema, nil, t.OID())
-	results := executionEngine.Execute(seqPlan, executorContext)
 
 	zeroClearedBuf := make([]byte, common.PageSize)
 	bpm := t.Table().GetBufferPoolManager()
 
-	// clear pages for HashTableBlockPage for avoiding conflict with reconstruction
-	// when this method is called, the pages are not fetched yet (= are not in memory)
-	// (there may be pages(on disk) which has old index entries data in current design...)
 	for colIdx, index_ := range t.Indexes() {
 		if index_ != nil {
 			column_ := t.Schema().GetColumn(uint32(colIdx))
-			indexHeaderPageId := column_.IndexHeaderPageId()
+			switch column_.IndexKind() {
+			case index_constants.INDEX_KIND_HASH:
+				// clear pages for HashTableBlockPage for avoiding conflict with reconstruction
+				// due to there may be pages (on disk) which has old index entries data in current design...
+				// note: when this method is called, the pages are not fetched yet (= are not in memory)
 
-			hPageData := bpm.FetchPage(indexHeaderPageId).Data()
-			headerPage := (*page.HashTableHeaderPage)(unsafe.Pointer(hPageData))
-			for ii := uint32(0); ii < headerPage.NumBlocks(); ii++ {
-				blockPageId := headerPage.GetBlockPageId(ii)
-				// zero clear specifed space of db file
-				dman.WritePage(blockPageId, zeroClearedBuf)
+				indexHeaderPageId := column_.IndexHeaderPageId()
+
+				hPageData := bpm.FetchPage(indexHeaderPageId).Data()
+				headerPage := (*page.HashTableHeaderPage)(unsafe.Pointer(hPageData))
+				for ii := uint32(0); ii < headerPage.NumBlocks(); ii++ {
+					blockPageId := headerPage.GetBlockPageId(ii)
+					// zero clear specifed space of db file
+					dman.WritePage(blockPageId, zeroClearedBuf)
+				}
+			case index_constants.INDEX_KIND_SKIP_LIST:
+				// do nothing here
+				// (Since SkipList index can't reuse past allocated pages, data clear of allocated pages
+				//  are not needed...)
+			default:
+				panic("invalid index kind!")
 			}
 		}
 	}
 
+	var allTuples []*tuple.Tuple = nil
+
 	// insert index entries correspond to each tuple and column to each index objects
 	for _, index_ := range t.Indexes() {
 		if index_ != nil {
-			for _, tuple_ := range results {
+			if allTuples == nil {
+				// get all tuples once
+				outSchema := t.Schema()
+				seqPlan := plans.NewSeqScanPlanNode(outSchema, nil, t.OID())
+				allTuples = executionEngine.Execute(seqPlan, executorContext)
+			}
+			for _, tuple_ := range allTuples {
 				rid := tuple_.GetRID()
 				index_.InsertEntry(tuple_, *rid, txn)
 			}
@@ -83,7 +87,7 @@ func reconstructIndexDataOfEachCol(t *catalog.TableMetadata, c *catalog.Catalog,
 func ReconstructAllIndexData(c *catalog.Catalog, dman disk.DiskManager, txn *access.Transaction) {
 	allTables := c.GetAllTables()
 	for ii := 0; ii < len(allTables); ii++ {
-		reconstructIndexDataOfEachCol(allTables[ii], c, dman, txn)
+		reconstructIndexDataOfATbl(allTables[ii], c, dman, txn)
 	}
 }
 
@@ -96,24 +100,26 @@ func NewSamehadaDB(dbName string, memKBytes int) *SamehadaDB {
 
 	shi.GetLogManager().DeactivateLogging()
 
+	var c *catalog.Catalog
 	if isExisitingDB {
 		log_recovery := log_recovery.NewLogRecovery(
 			shi.GetDiskManager(),
 			shi.GetBufferPoolManager())
-		greatestLSN := log_recovery.Redo()
-		log_recovery.Undo()
+		greatestLSN, isRedoOccured := log_recovery.Redo()
+		isUndoOccured := log_recovery.Undo()
 
 		dman := shi.GetDiskManager().(*disk.DiskManagerImpl)
 		dman.GCLogFile()
 		shi.GetLogManager().SetNextLSN(greatestLSN + 1)
-	}
 
-	var c *catalog.Catalog
-	if isExisitingDB {
 		c = catalog.RecoveryCatalogFromCatalogPage(shi.GetBufferPoolManager(), shi.GetLogManager(), shi.GetLockManager(), txn)
-		// index date reloading/recovery is not implemented yet
-		// so all index data should be recounstruct using already allocated pages
-		ReconstructAllIndexData(c, shi.GetDiskManager(), txn)
+
+		if isRedoOccured || isUndoOccured {
+			// index date reloading/recovery is not implemented yet
+			// so when db did not exit graceful, all index data should be recounstruct
+			// (hash index uses already allocated pages but skip list index deserts these...)
+			ReconstructAllIndexData(c, shi.GetDiskManager(), txn)
+		}
 	} else {
 		c = catalog.BootstrapCatalog(shi.GetBufferPoolManager(), shi.GetLogManager(), shi.GetLockManager(), txn)
 	}
@@ -126,9 +132,10 @@ func NewSamehadaDB(dbName string, memKBytes int) *SamehadaDB {
 	exec_engine := &executors.ExecutionEngine{}
 	pnner := planner.NewSimplePlanner(c, shi.GetBufferPoolManager())
 
-	StartCheckpointThread(concurrency.NewCheckpointManager(shi.GetTransactionManager(), shi.GetLogManager(), shi.GetBufferPoolManager()))
+	chkpntMgr := concurrency.NewCheckpointManager(shi.GetTransactionManager(), shi.GetLogManager(), shi.GetBufferPoolManager())
+	chkpntMgr.StartCheckpointTh()
 
-	return &SamehadaDB{shi, c, exec_engine, pnner}
+	return &SamehadaDB{shi, c, exec_engine, chkpntMgr, pnner}
 }
 
 func (sdb *SamehadaDB) ExecuteSQL(sqlStr string) (error, [][]interface{}) {
@@ -170,9 +177,11 @@ func (sdb *SamehadaDB) ExecuteSQLRetValues(sqlStr string) (error, [][]*types.Val
 	return nil, retVals
 }
 
-func (sdb *SamehadaDB) Finalize() {
-	//sdb.shi_.GetBufferPoolManager().FlushAllPages()
-	sdb.shi_.Finalize(false)
+func (sdb *SamehadaDB) Shutdown() {
+	// set a flag which is check by checkpointing thread
+	sdb.chkpntMgr.StopCheckpointTh()
+	sdb.shi_.GetBufferPoolManager().FlushAllDirtyPages()
+	sdb.shi_.Shutdown(false)
 }
 
 func ConvTupleListToValues(schema_ *schema.Schema, result []*tuple.Tuple) [][]*types.Value {

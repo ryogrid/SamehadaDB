@@ -4,6 +4,7 @@ import (
 	"bytes"
 	"fmt"
 	"github.com/ryogrid/SamehadaDB/samehada"
+	"github.com/ryogrid/SamehadaDB/storage/index/index_constants"
 	"math"
 	"math/rand"
 	"os"
@@ -172,8 +173,8 @@ func TestRedo(t *testing.T) {
 
 	var rid *page.RID
 	var rid1 *page.RID
-	col1 := column.NewColumn("a", types.Varchar, false, types.PageID(-1), nil)
-	col2 := column.NewColumn("b", types.Integer, false, types.PageID(-1), nil)
+	col1 := column.NewColumn("a", types.Varchar, false, index_constants.INDEX_KIND_INVAID, types.PageID(-1), nil)
+	col2 := column.NewColumn("b", types.Integer, false, index_constants.INDEX_KIND_INVAID, types.PageID(-1), nil)
 	cols := []*column.Column{col1, col2}
 	schema_ := schema.NewSchema(cols)
 	tuple_ := ConstructTuple(schema_)
@@ -195,7 +196,8 @@ func TestRedo(t *testing.T) {
 	fmt.Println("Commit txn")
 
 	fmt.Println("Shutdown System")
-	samehada_instance.Finalize(false)
+	//samehada_instance.Shutdown(false)
+	samehada_instance.CloseFilesForTesting()
 
 	fmt.Println("System restart...")
 	samehada_instance = samehada.NewSamehadaInstanceForTesting()
@@ -249,7 +251,7 @@ func TestRedo(t *testing.T) {
 	testingpkg.Assert(t, old_tuple1.GetValue(schema_, 0).CompareEquals(val1_0), "")
 
 	fmt.Println("Tearing down the system..")
-	samehada_instance.Finalize(true)
+	samehada_instance.Shutdown(true)
 }
 
 func TestUndo(t *testing.T) {
@@ -275,8 +277,8 @@ func TestUndo(t *testing.T) {
 		txn)
 	first_page_id := test_table.GetFirstPageId()
 
-	col1 := column.NewColumn("a", types.Varchar, false, types.PageID(-1), nil)
-	col2 := column.NewColumn("b", types.Integer, false, types.PageID(-1), nil)
+	col1 := column.NewColumn("a", types.Varchar, false, index_constants.INDEX_KIND_INVAID, types.PageID(-1), nil)
+	col2 := column.NewColumn("b", types.Integer, false, index_constants.INDEX_KIND_INVAID, types.PageID(-1), nil)
 	cols := []*column.Column{col1, col2}
 
 	schema_ := schema.NewSchema(cols)
@@ -325,7 +327,7 @@ func TestUndo(t *testing.T) {
 
 	fmt.Println("System crash before commit")
 	// delete samehada_instance
-	samehada_instance.Finalize(false)
+	samehada_instance.Shutdown(false)
 
 	fmt.Println("System restarted..")
 	samehada_instance = samehada.NewSamehadaInstanceForTesting()
@@ -392,7 +394,7 @@ func TestUndo(t *testing.T) {
 	//samehada_instance.GetTransactionManager().Commit(txn)
 
 	fmt.Println("Tearing down the system..")
-	samehada_instance.Finalize(true)
+	samehada_instance.Shutdown(true)
 }
 
 func TestCheckpoint(t *testing.T) {
@@ -416,8 +418,8 @@ func TestCheckpoint(t *testing.T) {
 		txn)
 	samehada_instance.GetTransactionManager().Commit(txn)
 
-	col1 := column.NewColumn("a", types.Varchar, false, types.PageID(-1), nil)
-	col2 := column.NewColumn("b", types.Integer, false, types.PageID(-1), nil)
+	col1 := column.NewColumn("a", types.Varchar, false, index_constants.INDEX_KIND_INVAID, types.PageID(-1), nil)
+	col2 := column.NewColumn("b", types.Integer, false, index_constants.INDEX_KIND_INVAID, types.PageID(-1), nil)
 	cols := []*column.Column{col1, col2}
 	schema_ := schema.NewSchema(cols)
 
@@ -503,7 +505,7 @@ func TestCheckpoint(t *testing.T) {
 	testingpkg.Assert(t, all_pages_lte, "")
 
 	fmt.Println("Shutdown System")
-	samehada_instance.Finalize(true)
+	samehada_instance.Shutdown(true)
 
 	fmt.Println("Tearing down the system..")
 }

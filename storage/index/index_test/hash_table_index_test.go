@@ -11,6 +11,7 @@ import (
 	"github.com/ryogrid/SamehadaDB/samehada"
 	"github.com/ryogrid/SamehadaDB/samehada/samehada_util"
 	"github.com/ryogrid/SamehadaDB/storage/disk"
+	"github.com/ryogrid/SamehadaDB/storage/index/index_constants"
 	"github.com/ryogrid/SamehadaDB/storage/table/column"
 	"github.com/ryogrid/SamehadaDB/storage/table/schema"
 	"github.com/ryogrid/SamehadaDB/types"
@@ -48,9 +49,9 @@ func TestRecounstructionOfHashIndex(t *testing.T) {
 	txn := txn_mgr.Begin(nil)
 
 	c := catalog.BootstrapCatalog(bpm, shi.GetLogManager(), shi.GetLockManager(), txn)
-	columnA := column.NewColumn("a", types.Integer, true, types.PageID(-1), nil)
-	columnB := column.NewColumn("b", types.Integer, true, types.PageID(-1), nil)
-	columnC := column.NewColumn("c", types.Varchar, true, types.PageID(-1), nil)
+	columnA := column.NewColumn("a", types.Integer, true, index_constants.INDEX_KIND_HASH, types.PageID(-1), nil)
+	columnB := column.NewColumn("b", types.Integer, true, index_constants.INDEX_KIND_HASH, types.PageID(-1), nil)
+	columnC := column.NewColumn("c", types.Varchar, true, index_constants.INDEX_KIND_HASH, types.PageID(-1), nil)
 	schema_ := schema.NewSchema([]*column.Column{columnA, columnB, columnC})
 
 	tableMetadata := c.CreateTable("test_1", schema_, txn)
@@ -137,7 +138,7 @@ func TestRecounstructionOfHashIndex(t *testing.T) {
 	}
 
 	shi.GetTransactionManager().Commit(txn)
-	shi.Finalize(false)
+	shi.Shutdown(false)
 
 	// ----------- check recovery includes index data ----------
 
@@ -149,7 +150,7 @@ func TestRecounstructionOfHashIndex(t *testing.T) {
 	log_recovery := log_recovery.NewLogRecovery(
 		shi.GetDiskManager(),
 		shi.GetBufferPoolManager())
-	greatestLSN := log_recovery.Redo()
+	greatestLSN, _ := log_recovery.Redo()
 	log_recovery.Undo()
 
 	dman := shi.GetDiskManager().(*disk.DiskManagerImpl)
@@ -217,5 +218,5 @@ func TestRecounstructionOfHashIndex(t *testing.T) {
 	}
 
 	shi.GetTransactionManager().Commit(txn)
-	shi.Finalize(false)
+	shi.Shutdown(false)
 }

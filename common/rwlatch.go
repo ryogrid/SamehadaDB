@@ -15,9 +15,6 @@ type ReaderWriterLatch interface {
 	RUnlock()
 }
 
-/**
- * Reader-Writer latch backed by sync.Mutex and sync.Cond
- */
 type readerWriterLatch struct {
 	mutex *sync.RWMutex
 }

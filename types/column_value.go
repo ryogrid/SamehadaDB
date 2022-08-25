@@ -165,6 +165,13 @@ func (v Value) CompareGreaterThan(right Value) bool {
 	} else if right.IsInfMax() {
 		return false
 	}
+	if v.IsInfMin() && right.IsInfMin() {
+		return false
+	} else if v.IsInfMin() {
+		return false
+	} else if right.IsInfMin() {
+		return true
+	}
 
 	switch v.valueType {
 	case Integer:
@@ -192,6 +199,13 @@ func (v Value) CompareGreaterThanOrEqual(right Value) bool {
 	} else if right.IsInfMax() {
 		return false
 	}
+	if v.IsInfMin() && right.IsInfMin() {
+		return true
+	} else if v.IsInfMin() {
+		return false
+	} else if right.IsInfMin() {
+		return true
+	}
 
 	switch v.valueType {
 	case Integer:
@@ -216,6 +230,13 @@ func (v Value) CompareLessThan(right Value) bool {
 		return false
 	} else if right.IsInfMax() {
 		return true
+	}
+	if v.IsInfMin() && right.IsInfMin() {
+		return false
+	} else if v.IsInfMin() {
+		return true
+	} else if right.IsInfMin() {
+		return false
 	}
 
 	switch v.valueType {
@@ -243,6 +264,13 @@ func (v Value) CompareLessThanOrEqual(right Value) bool {
 		return false
 	} else if right.IsInfMax() {
 		return true
+	}
+	if v.IsInfMin() && right.IsInfMin() {
+		return true
+	} else if v.IsInfMin() {
+		return true
+	} else if right.IsInfMin() {
+		return false
 	}
 
 	switch v.valueType {
@@ -401,7 +429,7 @@ func (v Value) SetInfMin() *Value {
 		*v.float = math.SmallestNonzeroFloat32
 		return &v
 	case Varchar:
-		*v.varchar = ""
+		*v.varchar = "SamehadaDBInfMinValue"
 		return &v
 	case Boolean:
 		*v.boolean = false
@@ -431,7 +459,7 @@ func (v Value) IsInfMin() bool {
 	case Float:
 		return *v.float == math.SmallestNonzeroFloat32
 	case Varchar:
-		return *v.varchar == ""
+		return *v.varchar == "SamehadaDBInfMinValue"
 	case Boolean:
 		return *v.boolean == false
 	}
