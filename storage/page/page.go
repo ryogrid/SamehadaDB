@@ -125,3 +125,7 @@ func (p *Page) RUnlatch() {
 	// fmt.Printf("Page::RUnlatch: page address %p\n", p)
 	p.rwlatch_.RUnlock()
 }
+
+func (p *Page) GetRWLachObj() common.ReaderWriterLatch {
+	return p.rwlatch_
+}
