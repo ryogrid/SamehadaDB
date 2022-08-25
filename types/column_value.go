@@ -43,6 +43,26 @@ func NewVarchar(value string) Value {
 	return Value{Varchar, &tmpBool, nil, nil, &value, nil}
 }
 
+func NewValue(value interface{}) Value {
+	tmpBool := false
+	switch value.(type) {
+	case int32:
+		val := value.(int32)
+		return Value{Integer, &tmpBool, &val, nil, nil, nil}
+	case float32:
+		val := value.(float32)
+		return Value{Float, &tmpBool, nil, nil, nil, &val}
+	case bool:
+		val := value.(bool)
+		return Value{Boolean, &tmpBool, nil, &val, nil, nil}
+	case string:
+		val := value.(string)
+		return Value{Varchar, &tmpBool, nil, nil, &val, nil}
+	default:
+		panic("not supported type passed")
+	}
+}
+
 // it can be used only when you can not know value type to be compared or something
 func NewNull() Value {
 	tmpTrue := true
@@ -371,6 +391,21 @@ func (v Value) ToFloat() float32 {
 // NULL value check is needed in general
 func (v Value) ToVarchar() string {
 	return *v.varchar
+}
+
+func (v Value) ToIFValue() interface{} {
+	switch v.valueType {
+	case Integer:
+		return *v.integer
+	case Boolean:
+		return *v.boolean
+	case Varchar:
+		return *v.varchar
+	case Float:
+		return *v.float
+	default:
+		panic("not supported type!")
+	}
 }
 
 func (v Value) ValueType() TypeID {
