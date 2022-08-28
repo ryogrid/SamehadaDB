@@ -1,4 +1,4 @@
-<img src="SamahadaDB_logo.png" width="500px" />
+<img src="SamehadaDB_logo.png" width="500px" />
 
 # Overview
 This code tree is based on Golang ported BusTub RDBMS codes: go-bustub.  
