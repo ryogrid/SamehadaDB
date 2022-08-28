@@ -542,40 +542,38 @@ func TestSkipListItr(t *testing.T) {
 //	})
 //}
 
-func FuzzSkipLisMixVarchar(f *testing.F) {
-	rand.Seed(3)
-
-	f.Add(int32(100), int32(150), int32(10), int32(300))
-	f.Fuzz(func(t *testing.T, bulkSize int32, opTimes int32, skipRand int32, initialEntryNum int32) {
-		if bulkSize < 0 || opTimes < 0 || skipRand < 0 || initialEntryNum < 0 {
-			return
-		}
-
-		//os.Remove("test.db")
-		//os.Remove("test.log")
-		randStr := samehada_util.GetRandomStr(20)
-
-		//shi := samehada.NewSamehadaInstanceForTesting()
-		shi := samehada.NewSamehadaInstance(*randStr, 10) // 10 frames (1 page = 4096bytes)
-		bpm := shi.GetBufferPoolManager()
-
-		testSkipListMix[string](t, bpm, types.Varchar, bulkSize, opTimes, skipRand, initialEntryNum)
-
-		//shi.CloseFilesForTesting()
-		shi.Shutdown(true)
-	})
-}
+//func FuzzSkipLisMixVarchar(f *testing.F) {
+//	f.Add(int32(100), int32(150), int32(10), int32(300))
+//	f.Fuzz(func(t *testing.T, bulkSize int32, opTimes int32, skipRand int32, initialEntryNum int32) {
+//		if bulkSize < 0 || opTimes < 0 || skipRand < 0 || initialEntryNum < 0 {
+//			return
+//		}
+//
+//		//os.Remove("test.db")
+//		//os.Remove("test.log")
+//		randStr := samehada_util.GetRandomStr(20)
+//
+//		//shi := samehada.NewSamehadaInstanceForTesting()
+//		shi := samehada.NewSamehadaInstance(*randStr, 10) // 10 frames (1 page = 4096bytes)
+//		bpm := shi.GetBufferPoolManager()
+//
+//		testSkipListMix[string](t, bpm, types.Varchar, bulkSize, opTimes, skipRand, initialEntryNum)
+//
+//		//shi.CloseFilesForTesting()
+//		shi.Shutdown(true)
+//	})
+//}
 
 //func TestFuzzerUnexpectedExitParam(t *testing.T) {
 //	os.Remove("test.db")
 //	os.Remove("test.log")
 //
-//	shi := samehada.NewSamehadaInstanceForTesting()
-//	//shi := samehada.NewSamehadaInstance("test", 10*1024) // buffer is about 40MB
+//	//shi := samehada.NewSamehadaInstanceForTesting()
+//	shi := samehada.NewSamehadaInstance("test", 10) // 10 pages
 //	bpm := shi.GetBufferPoolManager()
 //
-//	fmt.Printf("param of TestFuzzerUnexpectedExitParam: %d %d %d %d\n", int32(rune('Į')), int32(rune('Ď')), int32(rune('T')), int32(rune('Ć')))
-//	testSkipListMix(t, bpm, rune('Į'), rune('Ď'), rune('T'), rune('Ć'))
+//	fmt.Printf("param of TestFuzzerUnexpectedExitParam: %d %d %d %d\n", int32('Î'), int32('['), int32('Y'), int32('Ú'))
+//	testSkipListMix[string](t, bpm, types.Varchar, rune('Î'), rune('['), rune('Y'), rune('Ú'))
 //
 //	shi.CloseFilesForTesting()
 //}
@@ -692,8 +690,8 @@ func testSkipListMix[T int32 | float32 | string](t *testing.T, bpm *buffer.Buffe
 
 	sl := skip_list.NewSkipList(bpm, keyType)
 
-	//// override global rand seed (seed has been set on NewSkipList)
-	//rand.Seed(3)
+	// override global rand seed (seed has been set on NewSkipList)
+	rand.Seed(3)
 
 	tmpSkipRand := skipRand
 	// skip random value series
@@ -811,7 +809,8 @@ func testSkipListMixRoot[T int32 | float32 | string](t *testing.T, keyType types
 	os.Remove("test.db")
 	os.Remove("test.log")
 
-	shi := samehada.NewSamehadaInstanceForTesting()
+	shi := samehada.NewSamehadaInstance("test.db", 10)
+	//shi := samehada.NewSamehadaInstanceForTesting()
 	//shi := samehada.NewSamehadaInstance("test", 10*1024) // buffer is about 40MB
 	bpm := shi.GetBufferPoolManager()
 
@@ -839,20 +838,18 @@ func testSkipListMixRoot[T int32 | float32 | string](t *testing.T, keyType types
 	testSkipListMix[T](t, bpm, keyType, 100, int32(250), int32(4), int32(0))
 	testSkipListMix[T](t, bpm, keyType, 100, int32(250), int32(3), int32(0))
 
-	shi.Shutdown(true)
+	//shi.Shutdown(true)
+	shi.CloseFilesForTesting()
 }
 
 func TestSkipListMixInteger(t *testing.T) {
-	rand.Seed(3)
 	testSkipListMixRoot[int32](t, types.Integer)
 }
 
 func TestSkipListMixFloat(t *testing.T) {
-	rand.Seed(3)
 	testSkipListMixRoot[float32](t, types.Float)
 }
 
 func TestSkipListMixVarchar(t *testing.T) {
-	rand.Seed(3)
 	testSkipListMixRoot[string](t, types.Varchar)
 }
