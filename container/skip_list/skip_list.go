@@ -30,7 +30,7 @@ type SkipList struct {
 
 func NewSkipList(bpm *buffer.BufferPoolManager, keyType types.TypeID) *SkipList {
 	//rand.Seed(time.Now().UnixNano())
-	rand.Seed(777)
+	//rand.Seed(777)
 
 	ret := new(SkipList)
 	ret.bpm = bpm
