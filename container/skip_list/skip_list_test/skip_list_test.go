@@ -542,30 +542,30 @@ func TestSkipListItr(t *testing.T) {
 //	})
 //}
 
-func FuzzSkipLisMixVarchar(f *testing.F) {
-	f.Add(int32(100), int32(150), int32(10), int32(300))
-	f.Fuzz(func(t *testing.T, bulkSize int32, opTimes int32, skipRand int32, initialEntryNum int32) {
-		if bulkSize < 0 || opTimes < 0 || skipRand < 0 || initialEntryNum < 0 {
-			return
-		}
-
-		//os.Remove("test.db")
-		//os.Remove("test.log")
-		randStr := *samehada_util.GetRandomStr(20)
-		//fnameNum := strconv.Itoa(int(bulkSize + opTimes + skipRand + initialEntryNum))
-		//randStr := fnameNum + ".db"
-
-		//shi := samehada.NewSamehadaInstanceForTesting()
-		//shi := samehada.NewSamehadaInstance(*randStr, 10) // 10 frames (1 page = 4096bytes)
-		shi := samehada.NewSamehadaInstance(randStr, 10*1024) // 10 * 1024 frames (1 page = 4096bytes)
-		bpm := shi.GetBufferPoolManager()
-
-		testSkipListMix[string](t, bpm, types.Varchar, bulkSize, opTimes, skipRand, initialEntryNum)
-
-		//shi.CloseFilesForTesting()
-		shi.Shutdown(true)
-	})
-}
+//func FuzzSkipLisMixVarchar(f *testing.F) {
+//	f.Add(int32(100), int32(150), int32(10), int32(300))
+//	f.Fuzz(func(t *testing.T, bulkSize int32, opTimes int32, skipRand int32, initialEntryNum int32) {
+//		if bulkSize < 0 || opTimes < 0 || skipRand < 0 || initialEntryNum < 0 {
+//			return
+//		}
+//
+//		//os.Remove("test.db")
+//		//os.Remove("test.log")
+//		randStr := *samehada_util.GetRandomStr(20)
+//		//fnameNum := strconv.Itoa(int(bulkSize + opTimes + skipRand + initialEntryNum))
+//		//randStr := fnameNum + ".db"
+//
+//		//shi := samehada.NewSamehadaInstanceForTesting()
+//		//shi := samehada.NewSamehadaInstance(*randStr, 10) // 10 frames (1 page = 4096bytes)
+//		shi := samehada.NewSamehadaInstance(randStr, 10*1024) // 10 * 1024 frames (1 page = 4096bytes)
+//		bpm := shi.GetBufferPoolManager()
+//
+//		testSkipListMix[string](t, bpm, types.Varchar, bulkSize, opTimes, skipRand, initialEntryNum)
+//
+//		//shi.CloseFilesForTesting()
+//		shi.Shutdown(true)
+//	})
+//}
 
 //func TestFuzzerUnexpectedExitParam(t *testing.T) {
 //	os.Remove("test.db")
