@@ -1,3 +1,5 @@
+<img src="SamehadaDB_logo.png" width="500px" />
+
 # Overview
 This code tree is based on Golang ported BusTub RDBMS codes: go-bustub.  
 original codes of go-bustub are [here](https://github.com/brunocalza/go-bustub).
