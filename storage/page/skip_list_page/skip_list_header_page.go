@@ -111,7 +111,7 @@ func NewSkipListHeaderPage(bpm *buffer.BufferPoolManager, keyType types.TypeID) 
 	page_ := bpm.NewPage()
 	headerData := page_.Data()
 	headerPage := (*SkipListHeaderPage)(unsafe.Pointer(headerData))
-	headerPage.SetRWLatchObj(page_.GetRWLachObj())
+	//headerPage.SetRWLatchObj(page_.GetRWLachObj())
 	headerPage.SetPageId(page_.GetPageId())
 
 	headerPage.SetListStartPageId(NewSkipListStartBlockPage(bpm, keyType))
@@ -133,7 +133,7 @@ func FetchAndCastToHeaderPage(bpm *buffer.BufferPoolManager, pageId types.PageID
 	page_ := bpm.FetchPage(pageId)
 	hPageData := page_.Data()
 	hpage := (*SkipListHeaderPage)(unsafe.Pointer(hPageData))
-	hpage.SetRWLatchObj(page_.GetRWLachObj())
+	//hpage.SetRWLatchObj(page_.GetRWLachObj())
 	return hpage
 }
 
