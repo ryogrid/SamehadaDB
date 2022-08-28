@@ -522,7 +522,7 @@ func TestSkipListItr(t *testing.T) {
 	testingpkg.SimpleAssert(t, nodeCnt == 250)
 }
 
-func FuzzSkipLisMix(f *testing.F) {
+func FuzzSkipLisMixInteger(f *testing.F) {
 	f.Add(int32(100), int32(150), int32(10), int32(300))
 	f.Fuzz(func(t *testing.T, bulkSize int32, opTimes int32, skipRand int32, initialEntryNum int32) {
 		if bulkSize < 0 || opTimes < 0 || skipRand < 0 || initialEntryNum < 0 {
@@ -536,7 +536,7 @@ func FuzzSkipLisMix(f *testing.F) {
 		//shi := samehada.NewSamehadaInstance("test", 10*1024) // buffer is about 40MB
 		bpm := shi.GetBufferPoolManager()
 
-		testSkipListMix(t, bpm, bulkSize, opTimes, skipRand, initialEntryNum)
+		testSkipListMix[int32](t, bpm, types.Integer, bulkSize, opTimes, skipRand, initialEntryNum)
 
 		shi.CloseFilesForTesting()
 	})
@@ -1057,8 +1057,39 @@ const MAX_ENTRIES = 100000
 //var insValsS []string
 //var removedValsS []string
 
+func GetValueForSkipListEntry(val interface{}) uint32 {
+	var ret uint32
+	switch val.(type) {
+	case int32:
+		ret = uint32(val.(int32))
+	case float32:
+		ret = uint32(val.(float32))
+	case string:
+		ret = uint32(len(val.(string)))
+	default:
+		panic("unsupported type!")
+	}
+	return ret
+}
+
+func getRandomPrimitiveVal[T int32 | float32 | string](keyType types.TypeID) T {
+	switch keyType {
+	case types.Integer:
+		var ret interface{} = rand.Int31()
+		return ret.(T)
+	case types.Float:
+		var ret interface{} = rand.Float32()
+		return ret.(T)
+	case types.Varchar:
+		var ret interface{} = *samehada_util.GetRandomStr(20)
+		return ret.(T)
+	default:
+		panic("not supported keyType")
+	}
+}
+
 // for debug
-func isAlreadyRemoved[T int32 | string](checkVal T, removedVals []T) bool {
+func isAlreadyRemoved[T int32 | float32 | string](checkVal T, removedVals []T) bool {
 	for _, val := range removedVals {
 		if val == checkVal {
 			return true
@@ -1078,22 +1109,16 @@ func countSkipListContent(sl *skip_list.SkipList) int32 {
 	return entryCnt
 }
 
-func insertRandom[T int32 | string](sl *skip_list.SkipList, num int32, checkDupMap map[T]T, insVals *[]T, keyType types.TypeID) {
+func insertRandom[T int32 | float32 | string](sl *skip_list.SkipList, num int32, checkDupMap map[T]T, insVals *[]T, keyType types.TypeID) {
 	if int32(len(*insVals))+num < MAX_ENTRIES {
 		for ii := 0; ii < int(num); ii++ {
-			insVal := getRandomPrimitiveVal[T](keyType).(T)
+			insVal := getRandomPrimitiveVal[T](keyType)
 			for _, exist := checkDupMap[insVal]; exist; _, exist = checkDupMap[insVal] {
-				insVal = getRandomPrimitiveVal[T](keyType).(T)
+				insVal = getRandomPrimitiveVal[T](keyType)
 			}
 			checkDupMap[insVal] = insVal
 
-			var pairVal uint32
-			switch keyType {
-			case types.Integer:
-				pairVal = uint32(insVal.(int32))
-			case types.Varchar:
-				pairVal = uint32(len(insVal.(string)))
-			}
+			pairVal := GetValueForSkipListEntry(insVal)
 
 			sl.Insert(samehada_util.GetPonterOfValue(types.NewValue(insVal)), pairVal)
 			//fmt.Printf("sl.Insert at insertRandom: ii=%d, insVal=%d len(*insVals)=%d\n", ii, insVal, len(insVals))
@@ -1102,19 +1127,13 @@ func insertRandom[T int32 | string](sl *skip_list.SkipList, num int32, checkDupM
 	}
 }
 
-func removeRandom[T int32 | string](t *testing.T, sl *skip_list.SkipList, opStep int32, num int32, insVals *[]T, removedVals *[]T, keyType types.TypeID) {
+func removeRandom[T int32 | float32 | string](t *testing.T, sl *skip_list.SkipList, opStep int32, num int32, insVals *[]T, removedVals *[]T) {
 	if int32(len(*insVals))-num > 0 {
 		for ii := 0; ii < int(num); ii++ {
 			tmpIdx := int(rand.Intn(len(*insVals)))
 			insVal := (*insVals)[tmpIdx]
 
-			var pairVal uint32
-			switch keyType {
-			case types.Integer:
-				pairVal = uint32(insVal.(int32))
-			case types.Varchar:
-				pairVal = uint32(len(insVal.(string)))
-			}
+			pairVal := GetValueForSkipListEntry(insVal)
 
 			isDeleted := sl.Remove(samehada_util.GetPonterOfValue(types.NewValue(insVal)), pairVal)
 			if isAlreadyRemoved(insVal, *removedVals) {
@@ -1140,18 +1159,7 @@ func removeRandom[T int32 | string](t *testing.T, sl *skip_list.SkipList, opStep
 	}
 }
 
-func getRandomPrimitiveVal[T comparable](keyType types.TypeID) interface{} {
-	switch keyType {
-	case types.Integer:
-		return rand.Int31()
-	case types.Varchar:
-		return samehada_util.GetRandomStr(20)
-	default:
-		panic("not supported keyType")
-	}
-}
-
-func testSkipListMix[T int32 | string](t *testing.T, bpm *buffer.BufferPoolManager, keyType types.TypeID, bulkSize int32, opTimes int32, skipRand int32, initialEntryNum int32) {
+func testSkipListMix[T int32 | float32 | string](t *testing.T, bpm *buffer.BufferPoolManager, keyType types.TypeID, bulkSize int32, opTimes int32, skipRand int32, initialEntryNum int32) {
 	common.ShPrintf(common.DEBUG, "start of testSkipListMix bulkSize=%d opTimes=%d skipRand=%d initialEntryNum=%d ====================================================\n",
 		bulkSize, opTimes, skipRand, initialEntryNum)
 
@@ -1171,7 +1179,7 @@ func testSkipListMix[T int32 | string](t *testing.T, bpm *buffer.BufferPoolManag
 
 	insVals := make([]T, 0)
 	removedVals := make([]T, 0)
-	entriesOnListNum := 0
+	entriesOnListNum := int32(0)
 
 	// initial entries
 	useInitialEntryNum := int(initialEntryNum)
@@ -1179,21 +1187,15 @@ func testSkipListMix[T int32 | string](t *testing.T, bpm *buffer.BufferPoolManag
 		if entriesOnListNum+1 < MAX_ENTRIES {
 			// avoid duplication
 			//insVal := rand.Int31()
-			insVal := getRandomPrimitiveVal[T](keyType).(T)
+			insVal := getRandomPrimitiveVal[T](keyType)
 			for _, exist := checkDupMap[insVal]; exist; _, exist = checkDupMap[insVal] {
 				//insVal = rand.Int31()
-				insVal = getRandomPrimitiveVal[T](keyType).(T)
+				insVal = getRandomPrimitiveVal[T](keyType)
 			}
 			checkDupMap[insVal] = insVal
 
 			//fmt.Printf("sl.Insert at testSkipListMix for initial entry: ii=%d, insVal=%d len(*insVals)=%d len(*removedVals)=%d\n", ii, insVal, len(insVals), len(removedVals))
-			var pairVal uint32
-			switch keyType {
-			case types.Integer:
-				pairVal = uint32(insVal.(int32))
-			case types.Varchar:
-				pairVal = uint32(len(insVal.(string)))
-			}
+			pairVal := GetValueForSkipListEntry(insVal)
 
 			sl.Insert(samehada_util.GetPonterOfValue(types.NewValue(insVal)), pairVal)
 			insVals = append(insVals, insVal)
@@ -1206,7 +1208,7 @@ func testSkipListMix[T int32 | string](t *testing.T, bpm *buffer.BufferPoolManag
 	removedEntriesNum := int32(0)
 
 	// check num of stored entries on sl is same with num of initial entries (if differ, there are bug)
-	if entriesOnListNum != int(countSkipListContent(sl)) {
+	if entriesOnListNum != countSkipListContent(sl) {
 		fmt.Println("initial entries num are strange!")
 		panic("initial entries count are strange!")
 		//common.RuntimeStack()
@@ -1220,7 +1222,7 @@ func testSkipListMix[T int32 | string](t *testing.T, bpm *buffer.BufferPoolManag
 		case 0: // Insert
 			if int32(len(insVals))+bulkSize < MAX_ENTRIES {
 				//insVal := rand.Int31()
-				insertRandom(sl, bulkSize, checkDupMap, insVals, keyType)
+				insertRandom(sl, bulkSize, checkDupMap, &insVals, keyType)
 				//sl.Insert(samehada_util.GetPonterOfValue(types.NewInteger(int32(insVal))), uint32(insVal))
 				//insVals = append(insVals, insVal)
 				entriesOnListNum += bulkSize
@@ -1238,7 +1240,7 @@ func testSkipListMix[T int32 | string](t *testing.T, bpm *buffer.BufferPoolManag
 				if len(removedVals) != 0 {
 					tmpIdx := int(rand.Intn(len(removedVals)))
 					tmpVal := removedVals[tmpIdx]
-					isDeleted := sl.Remove(samehada_util.GetPonterOfValue(types.NewInteger(int32(tmpVal))), uint32(tmpVal))
+					isDeleted := sl.Remove(samehada_util.GetPonterOfValue(types.NewValue(tmpVal)), GetValueForSkipListEntry(tmpVal))
 					testingpkg.SimpleAssert(t, isDeleted == false)
 					if entriesOnListNum != countSkipListContent(sl) || entriesOnListNum != int32(len(insVals)) || removedEntriesNum != int32(len(removedVals)) {
 						fmt.Printf("entries num on list is strange! %d != (%d or %d) / %d != %d\n", entriesOnListNum, countSkipListContent(sl), len(insVals), removedEntriesNum, len(removedVals))
@@ -1248,7 +1250,7 @@ func testSkipListMix[T int32 | string](t *testing.T, bpm *buffer.BufferPoolManag
 			} else {
 				// 80% is Remove to existing entry
 				if entriesOnListNum-bulkSize > 0 {
-					removeRandom(t, sl, int32(ii), bulkSize)
+					removeRandom(t, sl, int32(ii), bulkSize, &insVals, &removedVals)
 					entriesOnListNum -= bulkSize
 					removedEntriesNum += bulkSize
 					if entriesOnListNum != countSkipListContent(sl) || entriesOnListNum != int32(len(insVals)) || removedEntriesNum != int32(len(removedVals)) {
@@ -1262,22 +1264,23 @@ func testSkipListMix[T int32 | string](t *testing.T, bpm *buffer.BufferPoolManag
 			if len(insVals) > 0 {
 				tmpIdx := int(rand.Intn(len(insVals)))
 				//fmt.Printf("sl.GetValue at testSkipListMix: ii=%d, tmpIdx=%d insVals[tmpIdx]=%d len(*insVals)=%d len(*removedVals)=%d\n", ii, tmpIdx, insVals[tmpIdx], len(insVals), len(removedVals))
-				gotVal := sl.GetValue(samehada_util.GetPonterOfValue(types.NewInteger(int32(insVals[tmpIdx]))))
+				gotVal := sl.GetValue(samehada_util.GetPonterOfValue(types.NewValue(insVals[tmpIdx])))
 				if entriesOnListNum != countSkipListContent(sl) || entriesOnListNum != int32(len(insVals)) || removedEntriesNum != int32(len(removedVals)) {
 					fmt.Printf("entries num on list is strange! %d != (%d or %d) / %d != %d\n", entriesOnListNum, countSkipListContent(sl), len(insVals), removedEntriesNum, len(removedVals))
 					panic("entries num on list is strange!")
 					//common.RuntimeStack()
 				}
 				if gotVal == math.MaxUint32 {
-					fmt.Printf("%d is not found!\n", insVals[tmpIdx])
+					fmt.Printf("%v is not found!\n", insVals[tmpIdx])
 					panic("sl.GetValue could not target key!")
 				}
-				if gotVal != uint32(insVals[tmpIdx]) {
-					fmt.Printf("gotVal is not match! %d != %d\n", gotVal, insVals[tmpIdx])
+				correctVal := GetValueForSkipListEntry(insVals[tmpIdx])
+				if gotVal != correctVal {
+					fmt.Printf("gotVal is not match! %d != %d\n", gotVal, correctVal)
 					panic("gotVal is not match!")
 					//common.RuntimeStack()
 				}
-				testingpkg.SimpleAssert(t, gotVal == uint32(insVals[tmpIdx]))
+				testingpkg.SimpleAssert(t, gotVal == correctVal)
 			}
 		}
 	}
@@ -1285,7 +1288,7 @@ func testSkipListMix[T int32 | string](t *testing.T, bpm *buffer.BufferPoolManag
 	//shi.Shutdown(false)
 }
 
-func testSkipListMixRoot[T int32 | string](t *testing.T, keyType types.TypeID) {
+func testSkipListMixRoot[T int32 | float32 | string](t *testing.T, keyType types.TypeID) {
 	os.Remove("test.db")
 	os.Remove("test.log")
 
@@ -1322,4 +1325,12 @@ func testSkipListMixRoot[T int32 | string](t *testing.T, keyType types.TypeID) {
 
 func TestSkipListMixInteger(t *testing.T) {
 	testSkipListMixRoot[int32](t, types.Integer)
+}
+
+func TestSkipListMixFloat(t *testing.T) {
+	testSkipListMixRoot[float32](t, types.Float)
+}
+
+func TestSkipListMixVarchar(t *testing.T) {
+	testSkipListMixRoot[string](t, types.Varchar)
 }
