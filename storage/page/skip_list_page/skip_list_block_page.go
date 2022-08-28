@@ -184,9 +184,9 @@ func (node *SkipListBlockPage) FindEntryByKey(key *types.Value) (found bool, ent
 
 }
 
-// insert entry locatin info to page header next of idx index entry
+// insert entry location info to page header next of idx index entry
 // this method call slides memory area of header using memory copy
-// idx==-1 -> data's inddx become 0 (insert to head of entries)
+// idx==-1 -> data's index become 0 (insert to head of entries)
 // idx==entryCnt -> data's index become entryCnt (insert next of last entry)
 // ATTENTION:
 //
@@ -194,7 +194,6 @@ func (node *SkipListBlockPage) FindEntryByKey(key *types.Value) (found bool, ent
 func (node *SkipListBlockPage) updateEntryInfosAtInsert(idx int, dataSize uint16) {
 	// entrries data backward of entry which specifed with idx arg are not changed
 	// because data of new entry is always placed tail of payload area
-	// and so, this method needs offset info of new entry on arg
 
 	// entrries info data backward of entry which specifed with idx arg is slided for
 	// new entry insertion
@@ -202,7 +201,7 @@ func (node *SkipListBlockPage) updateEntryInfosAtInsert(idx int, dataSize uint16
 	slideFromOffset := offsetEntryInfos + uint32(idx+1)*sizeEntryInfo
 	slideToOffset := offsetEntryInfos + uint32(idx+2)*sizeEntryInfo
 	slideAreaStartOffset := slideFromOffset
-	slideAreaEndOffset := offsetEntryInfos + allEntryNum*sizeEntryInfo
+	slideAreaEndOffset := slideAreaStartOffset + (allEntryNum-uint32(idx+1))*sizeEntryInfo
 	copy(node.Data()[slideToOffset:], node.Data()[slideAreaStartOffset:slideAreaEndOffset])
 
 	// set data of new entry

@@ -666,7 +666,7 @@ func testSkipListMix[T int32 | float32 | string](t *testing.T, bpm *buffer.Buffe
 
 	checkDupMap := make(map[T]T)
 
-	sl := skip_list.NewSkipList(bpm, types.Integer)
+	sl := skip_list.NewSkipList(bpm, keyType)
 
 	// override global rand seed (seed has been set on NewSkipList)
 	rand.Seed(3)

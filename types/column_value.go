@@ -100,9 +100,10 @@ func NewValueFromBytes(data []byte, valueType TypeID) (ret *Value) {
 		isNull := new(bool)
 		binary.Read(buf, binary.LittleEndian, isNull)
 		//lengthInBytes := data[0:2]
-		length := new(int16)
+		//length := new(int16)
+		length := new(uint16)
 		binary.Read(buf, binary.LittleEndian, length)
-		//binary.Read(bytes.NewBuffer(lengthInBytes), binary.LittleEndian, length)
+		//varchar := NewVarchar(string(data[1+2 : (*length + (1 + 2))]))
 		varchar := NewVarchar(string(data[1+2 : (*length + (1 + 2))]))
 		if *isNull {
 			varchar.SetNull()
