@@ -1057,15 +1057,15 @@ const MAX_ENTRIES = 100000
 //var insValsS []string
 //var removedValsS []string
 
-//// for debug
-//func isAlreadyRemoved(checkVal int32) bool {
-//	for _, val := range removedVals {
-//		if val == checkVal {
-//			return true
-//		}
-//	}
-//	return false
-//}
+// for debug
+func isAlreadyRemoved[T int32 | string](checkVal T, removedVals []T) bool {
+	for _, val := range removedVals {
+		if val == checkVal {
+			return true
+		}
+	}
+	return false
+}
 
 func countSkipListContent(sl *skip_list.SkipList) int32 {
 	entryCnt := int32(0)
@@ -1078,53 +1078,64 @@ func countSkipListContent(sl *skip_list.SkipList) int32 {
 	return entryCnt
 }
 
-func insertRandom(sl *skip_list.SkipList, num int32, checkDupMap map[int32]int32) {
-	if int32(len(insVals))+num < MAX_ENTRIES {
+func insertRandom[T int32 | string](sl *skip_list.SkipList, num int32, checkDupMap map[T]T, insVals *[]T, keyType types.TypeID) {
+	if int32(len(*insVals))+num < MAX_ENTRIES {
 		for ii := 0; ii < int(num); ii++ {
-			insVal := rand.Int31()
+			insVal := getRandomPrimitiveVal[T](keyType).(T)
 			for _, exist := checkDupMap[insVal]; exist; _, exist = checkDupMap[insVal] {
-				insVal = rand.Int31()
+				insVal = getRandomPrimitiveVal[T](keyType).(T)
 			}
 			checkDupMap[insVal] = insVal
 
-			sl.Insert(samehada_util.GetPonterOfValue(types.NewInteger(int32(insVal))), uint32(insVal))
+			var pairVal uint32
+			switch keyType {
+			case types.Integer:
+				pairVal = uint32(insVal.(int32))
+			case types.Varchar:
+				pairVal = uint32(len(insVal.(string)))
+			}
+
+			sl.Insert(samehada_util.GetPonterOfValue(types.NewValue(insVal)), pairVal)
 			//fmt.Printf("sl.Insert at insertRandom: ii=%d, insVal=%d len(*insVals)=%d\n", ii, insVal, len(insVals))
-			insVals = append(insVals, insVal)
+			*insVals = append(*insVals, insVal)
 		}
 	}
 }
 
-func removeRandom(t *testing.T, sl *skip_list.SkipList, opStep int32, num int32) {
-	if int32(len(insVals))-num > 0 {
+func removeRandom[T int32 | string](t *testing.T, sl *skip_list.SkipList, opStep int32, num int32, insVals *[]T, removedVals *[]T, keyType types.TypeID) {
+	if int32(len(*insVals))-num > 0 {
 		for ii := 0; ii < int(num); ii++ {
-			tmpIdx := int(rand.Intn(len(insVals)))
-			insVal := insVals[tmpIdx]
-			//sl.Remove(samehada_util.GetPonterOfValue(types.NewInteger(int32(insVal))), uint32(insVal))
-			//if insVal == 1933250583 {
-			//	fmt.Println("")
-			//}
-			isDeleted := sl.Remove(samehada_util.GetPonterOfValue(types.NewInteger(int32(insVal))), uint32(insVal))
-			//fmt.Printf("sl.Remove at removeRandom: ii=%d, insVal=%d len(*insVals)=%d len(*removedVals)=%d\n", ii, insVal, len(insVals), len(removedVals))
-			if isAlreadyRemoved(insVal) {
-				fmt.Printf("delete duplicated value should not be occur! opStep=%d, ii=%d tmpIdx=%d insVal=%d len(*insVals)=%d len(*removedVals)=%d\n", opStep, ii, tmpIdx, insVal, len(insVals), len(removedVals))
+			tmpIdx := int(rand.Intn(len(*insVals)))
+			insVal := (*insVals)[tmpIdx]
+
+			var pairVal uint32
+			switch keyType {
+			case types.Integer:
+				pairVal = uint32(insVal.(int32))
+			case types.Varchar:
+				pairVal = uint32(len(insVal.(string)))
+			}
+
+			isDeleted := sl.Remove(samehada_util.GetPonterOfValue(types.NewValue(insVal)), pairVal)
+			if isAlreadyRemoved(insVal, *removedVals) {
+				fmt.Printf("delete duplicated value should not be occur! opStep=%d, ii=%d tmpIdx=%d insVal=%v len(*insVals)=%d len(*removedVals)=%d\n", opStep, ii, tmpIdx, insVal, len(*insVals), len(*removedVals))
 				panic("delete duplicated value should not be occur!")
 			}
-			//if isDeleted != true && !isAlreadyRemoved(insVal) {
 			if isDeleted != true {
-				fmt.Printf("isDeleted should be true! opStep=%d, ii=%d tmpIdx=%d insVal=%d len(*insVals)=%d len(*removedVals)=%d\n", opStep, ii, tmpIdx, insVal, len(insVals), len(removedVals))
+				fmt.Printf("isDeleted should be true! opStep=%d, ii=%d tmpIdx=%d insVal=%v len(*insVals)=%d len(*removedVals)=%d\n", opStep, ii, tmpIdx, insVal, len(*insVals), len(*removedVals))
 				panic("isDeleted should be true!")
 				//common.RuntimeStack()
 			}
-			testingpkg.SimpleAssert(t, isDeleted == true || isAlreadyRemoved(insVal))
-			if len(insVals) == 1 {
+			testingpkg.SimpleAssert(t, isDeleted == true || isAlreadyRemoved(insVal, *removedVals))
+			if len(*insVals) == 1 {
 				// make empty
-				insVals = make([]int32, 0)
-			} else if len(insVals) == tmpIdx+1 {
-				insVals = insVals[:len(insVals)-1]
+				*insVals = make([]T, 0)
+			} else if len(*insVals) == tmpIdx+1 {
+				*insVals = (*insVals)[:len(*insVals)-1]
 			} else {
-				insVals = append(insVals[:tmpIdx], insVals[tmpIdx+1:]...)
+				*insVals = append((*insVals)[:tmpIdx], (*insVals)[tmpIdx+1:]...)
 			}
-			removedVals = append(removedVals, insVal)
+			*removedVals = append(*removedVals, insVal)
 		}
 	}
 }
@@ -1135,18 +1146,14 @@ func getRandomPrimitiveVal[T comparable](keyType types.TypeID) interface{} {
 		return rand.Int31()
 	case types.Varchar:
 		return samehada_util.GetRandomStr(20)
+	default:
+		panic("not supported keyType")
 	}
 }
 
-func testSkipListMix[T comparable](t *testing.T, bpm *buffer.BufferPoolManager, keyType types.TypeID, bulkSize int32, opTimes int32, skipRand int32, initialEntryNum int32) {
+func testSkipListMix[T int32 | string](t *testing.T, bpm *buffer.BufferPoolManager, keyType types.TypeID, bulkSize int32, opTimes int32, skipRand int32, initialEntryNum int32) {
 	common.ShPrintf(common.DEBUG, "start of testSkipListMix bulkSize=%d opTimes=%d skipRand=%d initialEntryNum=%d ====================================================\n",
 		bulkSize, opTimes, skipRand, initialEntryNum)
-
-	//os.Remove("test.db")
-	//os.Remove("test.log")
-	//
-	//shi := samehada.NewSamehadaInstanceForTesting()
-	//bpm := shi.GetBufferPoolManager()
 
 	checkDupMap := make(map[T]T)
 
@@ -1180,7 +1187,15 @@ func testSkipListMix[T comparable](t *testing.T, bpm *buffer.BufferPoolManager, 
 			checkDupMap[insVal] = insVal
 
 			//fmt.Printf("sl.Insert at testSkipListMix for initial entry: ii=%d, insVal=%d len(*insVals)=%d len(*removedVals)=%d\n", ii, insVal, len(insVals), len(removedVals))
-			sl.Insert(samehada_util.GetPonterOfValue(types.NewInteger(int32(insVal))), uint32(insVal))
+			var pairVal uint32
+			switch keyType {
+			case types.Integer:
+				pairVal = uint32(insVal.(int32))
+			case types.Varchar:
+				pairVal = uint32(len(insVal.(string)))
+			}
+
+			sl.Insert(samehada_util.GetPonterOfValue(types.NewValue(insVal)), pairVal)
 			insVals = append(insVals, insVal)
 			entriesOnListNum++
 		}
@@ -1191,7 +1206,7 @@ func testSkipListMix[T comparable](t *testing.T, bpm *buffer.BufferPoolManager, 
 	removedEntriesNum := int32(0)
 
 	// check num of stored entries on sl is same with num of initial entries (if differ, there are bug)
-	if entriesOnListNum != countSkipListContent(sl) {
+	if entriesOnListNum != int(countSkipListContent(sl)) {
 		fmt.Println("initial entries num are strange!")
 		panic("initial entries count are strange!")
 		//common.RuntimeStack()
@@ -1205,7 +1220,7 @@ func testSkipListMix[T comparable](t *testing.T, bpm *buffer.BufferPoolManager, 
 		case 0: // Insert
 			if int32(len(insVals))+bulkSize < MAX_ENTRIES {
 				//insVal := rand.Int31()
-				insertRandom(sl, bulkSize, checkDupMap)
+				insertRandom(sl, bulkSize, checkDupMap, insVals, keyType)
 				//sl.Insert(samehada_util.GetPonterOfValue(types.NewInteger(int32(insVal))), uint32(insVal))
 				//insVals = append(insVals, insVal)
 				entriesOnListNum += bulkSize
@@ -1270,7 +1285,7 @@ func testSkipListMix[T comparable](t *testing.T, bpm *buffer.BufferPoolManager, 
 	//shi.Shutdown(false)
 }
 
-func testSkipListMixRoot[T comparable](t *testing.T, keyType types.TypeID) {
+func testSkipListMixRoot[T int32 | string](t *testing.T, keyType types.TypeID) {
 	os.Remove("test.db")
 	os.Remove("test.log")
 
