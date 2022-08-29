@@ -48,6 +48,28 @@ func TestSerializationOfSkipLisBlockPage(t *testing.T) {
 	shi.Shutdown(false)
 }
 
+func TestSerializationOfSkipLisHeaderPage(t *testing.T) {
+	os.Remove("test.db")
+	os.Remove("test.log")
+	shi := samehada.NewSamehadaInstanceForTesting()
+	bpm := shi.GetBufferPoolManager()
+
+	hpageId := skip_list_page.NewSkipListHeaderPage(bpm, types.Integer)
+	hpage := skip_list_page.FetchAndCastToHeaderPage(bpm, hpageId)
+
+	hpage.SetPageId(7)
+	hpage.SetLSN(7)
+	hpage.SetListStartPageId(7)
+	hpage.SetKeyType(types.Varchar)
+
+	testingpkg.SimpleAssert(t, hpage.GetPageId() == 7)
+	testingpkg.SimpleAssert(t, hpage.GetLSN() == 7)
+	testingpkg.SimpleAssert(t, hpage.GetListStartPageId() == 7)
+	testingpkg.SimpleAssert(t, hpage.GetKeyType() == types.Varchar)
+
+	shi.Shutdown(false)
+}
+
 func TestInnerInsertDeleteOfBlockPageSimple(t *testing.T) {
 	os.Remove("test.db")
 	os.Remove("test.log")

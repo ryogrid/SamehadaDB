@@ -1,11 +1,22 @@
 package skip_list_page
 
 import (
-	"github.com/ryogrid/SamehadaDB/common"
+	"bytes"
+	"encoding/binary"
 	"github.com/ryogrid/SamehadaDB/storage/buffer"
+	"github.com/ryogrid/SamehadaDB/storage/page"
 	"github.com/ryogrid/SamehadaDB/types"
 	"math"
 	"unsafe"
+)
+
+const (
+	hOffsetPageId     = 0
+	offsetStartPageId = page.OffsetLSN + types.SizeOfLSN
+	offsetKeyType     = offsetStartPageId + sizeStartPageId
+	hSizePageId       = 4
+	sizeStartPageId   = 4
+	sizeKeyType       = 4
 )
 
 /**
@@ -14,9 +25,9 @@ import (
  * (Header Page is placed page memory area. so serialization/desirialization of each member is not needed)
  *
  * page format (size in byte, 12 bytes in total):
- * ----------------------------------------------------------------
- * | pageID (4) | listStartPageId (4) | keyType (4) | rwlatch (x) |
- * ----------------------------------------------------------------
+ * -----------------------------------------------------------
+ * | pageID (4) | LSN(4) | listStartPageId (4) | keyType (4) |
+ * ----------------------------------------------------------
  */
 
 const (
@@ -24,12 +35,13 @@ const (
 )
 
 type SkipListHeaderPage struct {
+	page.Page
 	// Header's successor node has all level path
 
-	pageId          types.PageID
-	listStartPageId types.PageID             //*SkipListBlockPage
-	keyType         types.TypeID             // used when load list datas from disk
-	rwlatch         common.ReaderWriterLatch // should be set obj of Fetched Page at each Fetch
+	//pageId          types.PageID
+	//pageLSN         types.LSN
+	//listStartPageId types.PageID //*SkipListBlockPage
+	//keyType         types.TypeID // used when load list datas from disk
 }
 
 func NewSkipListStartBlockPage(bpm *buffer.BufferPoolManager, keyType types.TypeID) types.PageID {
@@ -82,40 +94,45 @@ func NewSkipListStartBlockPage(bpm *buffer.BufferPoolManager, keyType types.Type
 	return ret
 }
 
-func (hp *SkipListHeaderPage) SetPageId(pageId types.PageID) {
-	hp.pageId = pageId
+func (hp *SkipListHeaderPage) GetPageId() types.PageID {
+	return types.PageID(types.NewInt32FromBytes(hp.Data()[hOffsetPageId:]))
 }
 
-func (hp *SkipListHeaderPage) GetPageId() types.PageID {
-	return hp.pageId
+func (hp *SkipListHeaderPage) SetPageId(pageId types.PageID) {
+	buf := new(bytes.Buffer)
+	binary.Write(buf, binary.LittleEndian, pageId)
+	pageIdInBytes := buf.Bytes()
+	copy(hp.Data()[hOffsetPageId:], pageIdInBytes)
 }
 
 func (hp *SkipListHeaderPage) GetListStartPageId() types.PageID {
-	return hp.listStartPageId
-	//return nil
+	return types.PageID(types.NewInt32FromBytes(hp.Data()[offsetStartPageId:]))
 }
 
-func (hp *SkipListHeaderPage) SetListStartPageId(bpId types.PageID) {
-	hp.listStartPageId = bpId
+func (hp *SkipListHeaderPage) SetListStartPageId(pageId types.PageID) {
+	buf := new(bytes.Buffer)
+	binary.Write(buf, binary.LittleEndian, pageId)
+	startPageIdInBytes := buf.Bytes()
+	copy(hp.Data()[offsetStartPageId:], startPageIdInBytes)
 }
 
 func (hp *SkipListHeaderPage) GetKeyType() types.TypeID {
-	return hp.keyType
+	return types.TypeID(types.NewInt32FromBytes(hp.Data()[offsetKeyType:]))
 }
 
 func (hp *SkipListHeaderPage) SetKeyType(ktype types.TypeID) {
-	hp.keyType = ktype
+	buf := new(bytes.Buffer)
+	binary.Write(buf, binary.LittleEndian, int32(ktype))
+	keyTypeInBytes := buf.Bytes()
+	copy(hp.Data()[offsetKeyType:], keyTypeInBytes)
 }
 
 func NewSkipListHeaderPage(bpm *buffer.BufferPoolManager, keyType types.TypeID) types.PageID {
 	page_ := bpm.NewPage()
-	headerData := page_.Data()
-	headerPage := (*SkipListHeaderPage)(unsafe.Pointer(headerData))
-	//headerPage.SetRWLatchObj(page_.GetRWLachObj())
+	headerPage := (*SkipListHeaderPage)(unsafe.Pointer(page_))
 	headerPage.SetPageId(page_.GetPageId())
-
+	headerPage.Page.SetLSN(0)
 	headerPage.SetListStartPageId(NewSkipListStartBlockPage(bpm, keyType))
-	//headerPage.SetCurMaxLevel(1)
 	headerPage.SetKeyType(keyType)
 
 	retPageID := headerPage.GetPageId()
@@ -131,28 +148,22 @@ func NewSkipListHeaderPage(bpm *buffer.BufferPoolManager, keyType types.TypeID) 
 //	caller must call UnpinPage with appropriate diaty page to the got page when page using ends
 func FetchAndCastToHeaderPage(bpm *buffer.BufferPoolManager, pageId types.PageID) *SkipListHeaderPage {
 	page_ := bpm.FetchPage(pageId)
-	hPageData := page_.Data()
-	hpage := (*SkipListHeaderPage)(unsafe.Pointer(hPageData))
-	//hpage.SetRWLatchObj(page_.GetRWLachObj())
+	hpage := (*SkipListHeaderPage)(unsafe.Pointer(page_))
 	return hpage
 }
 
-func (hp *SkipListHeaderPage) SetRWLatchObj(rwlatch_ common.ReaderWriterLatch) {
-	hp.rwlatch = rwlatch_
-}
-
 func (hp *SkipListHeaderPage) RLock() {
-	hp.rwlatch.RLock()
+	hp.Page.RLatch()
 }
 
 func (hp *SkipListHeaderPage) RUnlock() {
-	hp.rwlatch.RUnlock()
+	hp.Page.RUnlatch()
 }
 
 func (hp *SkipListHeaderPage) WLock() {
-	hp.rwlatch.WLock()
+	hp.Page.WLatch()
 }
 
 func (hp *SkipListHeaderPage) WUnlock() {
-	hp.rwlatch.WUnlock()
+	hp.Page.WUnlatch()
 }
