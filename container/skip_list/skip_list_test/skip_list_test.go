@@ -27,6 +27,7 @@ func TestSerializationOfSkipLisBlockPage(t *testing.T) {
 	})
 
 	bpage.SetPageId(7)
+	bpage.SetLSN(9)
 	bpage.SetEntryCnt(1)
 	bpage.SetLevel(4)
 	bpage.SetForwardEntry(5, types.PageID(11))
@@ -36,6 +37,7 @@ func TestSerializationOfSkipLisBlockPage(t *testing.T) {
 	bpage.SetEntry(1, &skip_list_page.SkipListPair{types.NewVarchar("abcdeff"), 12345})
 
 	testingpkg.SimpleAssert(t, bpage.GetPageId() == 7)
+	testingpkg.SimpleAssert(t, bpage.GetLSN() == 9)
 	testingpkg.SimpleAssert(t, bpage.GetEntryCnt() == 2)
 	testingpkg.SimpleAssert(t, bpage.GetLevel() == 4)
 	testingpkg.SimpleAssert(t, bpage.GetForwardEntry(5) == types.PageID(11))

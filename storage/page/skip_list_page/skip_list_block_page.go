@@ -18,9 +18,9 @@ import (
 //                                free space pointer
 //
 //  Header format (size in bytes):
-//  ------------------------------------------------------------------------------------------------
-//  | PageId (4)| level (4)| entryCnt (4)| forward (4 * MAX_FOWARD_LIST_LEN) | FreeSpacePointer(4) |
-//  ------------------------------------------------------------------------------------------------
+//  ----------------------------------------------------------------------------------------------------------
+//  | PageId (4)| LSN (4) | level (4)| entryCnt (4)| forward (4 * MAX_FOWARD_LIST_LEN) | FreeSpacePointer(4) |
+//  ---------------------------------------------------------------------------------------------------------
 //  -------------------------------------------------------------
 //  | Entry_0 offset (2) | Entry_0 size (2) | ..................|
 //  ------------------------------------------------------------
@@ -55,7 +55,7 @@ const (
 	sizeEntryInfo                       = sizeEntryInfoOffset + sizeEntryInfoSize
 	sizeBlockPageHeaderExceptEntryInfos = sizePageId + sizeLevel + sizeEntryCnt + sizeForward + sizeFreeSpacePointer
 	offsetPageId                        = int32(0)
-	offsetLevel                         = sizePageId
+	offsetLevel                         = sizePageId + types.SizeOfLSN
 	offsetEntryCnt                      = offsetLevel + sizeLevel
 	offsetForward                       = offsetEntryCnt + sizeEntryCnt
 	offsetFreeSpacePointer              = offsetForward + sizeForward
@@ -108,6 +108,7 @@ func NewSkipListBlockPage(bpm *buffer.BufferPoolManager, level int32, smallestLi
 
 	ret := (*SkipListBlockPage)(unsafe.Pointer(page_))
 	ret.SetPageId(page_.ID())
+	ret.SetLSN(0)
 	ret.SetEntryCnt(0)
 	ret.SetLevel(level)
 	ret.initForwardEntries()
