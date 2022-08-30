@@ -68,6 +68,11 @@ type SkipListPair struct {
 	Value uint32
 }
 
+type SkipListCornerInfo struct {
+	PageId        types.PageID
+	UpdateCounter types.LSN
+}
+
 func (sp SkipListPair) Serialize() []byte {
 	keyInBytes := sp.Key.Serialize()
 	valBuf := new(bytes.Buffer)
@@ -231,7 +236,7 @@ func (node *SkipListBlockPage) InsertInner(idx int, slp *SkipListPair) {
 
 // Attempts to insert a key and value into an index in the baccess
 // return value is whether newNode is created or not
-func (node *SkipListBlockPage) Insert(key *types.Value, value uint32, bpm *buffer.BufferPoolManager, corners []types.PageID,
+func (node *SkipListBlockPage) Insert(key *types.Value, value uint32, bpm *buffer.BufferPoolManager, corners []SkipListCornerInfo,
 	level int32) bool {
 	//fmt.Printf("Insert of SkipListBlockPage called! : key=%d\n", key.ToInteger())
 
@@ -251,6 +256,8 @@ func (node *SkipListBlockPage) Insert(key *types.Value, value uint32, bpm *buffe
 
 		node.SetEntry(int(foundIdx), &SkipListPair{*key, value})
 		//fmt.Printf("end of Insert of SkipListBlockPage called! : key=%d page.entryCnt=%d len(page.entries)=%d\n", key.ToInteger(), node.entryCnt, len(node.entries))
+
+		node.SetLSN(node.GetLSN() + 1)
 		return isMadeNewNode
 	} else if !found {
 		//fmt.Printf("not found at Insert of SkipListBlockPage. foundIdx=%d\n", foundIdx)
@@ -263,7 +270,7 @@ func (node *SkipListBlockPage) Insert(key *types.Value, value uint32, bpm *buffe
 			// half of entries are moved to new node
 			splitIdx = node.GetEntryCnt() / 2
 			// update with this node
-			corners[0] = node.GetPageId()
+			corners[0] = SkipListCornerInfo{node.GetPageId(), node.GetLSN()}
 			node.SplitNode(splitIdx, bpm, corners, level, key.ValueType())
 			isMadeNewNode = true
 
@@ -277,6 +284,7 @@ func (node *SkipListBlockPage) Insert(key *types.Value, value uint32, bpm *buffe
 				bpm.UnpinPage(newNode.GetPageId(), true)
 				//fmt.Printf("end of Insert of SkipListBlockPage called! : key=%d page.entryCnt=%d len(page.entries)=%d\n", key.ToInteger(), node.entryCnt, len(node.entries))
 
+				node.SetLSN(node.GetLSN() + 1)
 				return isMadeNewNode
 			} // else => insert to this node
 		}
@@ -287,6 +295,7 @@ func (node *SkipListBlockPage) Insert(key *types.Value, value uint32, bpm *buffe
 		node.InsertInner(int(foundIdx), &SkipListPair{*key, value})
 	}
 	//fmt.Printf("end of Insert of SkipListBlockPage called! : key=%d page.entryCnt=%d len(page.entries)=%d\n", key.ToInteger(), node.entryCnt, len(node.entries))
+	node.SetLSN(node.GetLSN() + 1)
 	return isMadeNewNode
 }
 
@@ -334,7 +343,7 @@ func (node *SkipListBlockPage) RemoveInner(idx int) {
 	node.SetEntryCnt(node.GetEntryCnt() - 1)
 }
 
-func (node *SkipListBlockPage) Remove(bpm *buffer.BufferPoolManager, key *types.Value, predOfCorners []types.PageID, corners []types.PageID) (isNodeShouldBeDeleted bool, isDeleted bool) {
+func (node *SkipListBlockPage) Remove(bpm *buffer.BufferPoolManager, key *types.Value, predOfCorners []SkipListCornerInfo, corners []SkipListCornerInfo) (isNodeShouldBeDeleted bool, isDeleted bool) {
 	found, _, foundIdx := node.FindEntryByKey(key)
 	if found && (node.GetEntryCnt() == 1) {
 		// when there are no enry without target entry
@@ -348,19 +357,20 @@ func (node *SkipListBlockPage) Remove(bpm *buffer.BufferPoolManager, key *types.
 
 		updateLen := int(node.GetLevel())
 
-		// try removing this node from all level of chain
-		// but, some connectivity left often
-		// when several connectivity is left, removing is achieved in later index accesses
+		// removing this node from all level of chain
 		for ii := 1; ii < updateLen; ii++ {
-			corner := FetchAndCastToBlockPage(bpm, corners[ii])
+			corner := FetchAndCastToBlockPage(bpm, corners[ii].PageId)
 			corner.SetForwardEntry(ii, node.GetForwardEntry(ii))
-			bpm.UnpinPage(corners[ii], true)
+			corner.SetLSN(corner.GetLSN() + 1)
+			bpm.UnpinPage(corners[ii].PageId, true)
 		}
 		// level-1's pred is stored predOfCorners
-		pred := FetchAndCastToBlockPage(bpm, predOfCorners[0])
+		pred := FetchAndCastToBlockPage(bpm, predOfCorners[0].PageId)
 		pred.SetForwardEntry(0, node.GetForwardEntry(0))
-		bpm.UnpinPage(predOfCorners[0], true)
+		pred.SetLSN(pred.GetLSN() + 1)
+		bpm.UnpinPage(predOfCorners[0].PageId, true)
 
+		node.SetLSN(node.GetLSN() + 1)
 		return true, true
 	} else if found {
 		if !node.GetEntry(int(foundIdx), key.ValueType()).Key.CompareEquals(*key) {
@@ -369,6 +379,7 @@ func (node *SkipListBlockPage) Remove(bpm *buffer.BufferPoolManager, key *types.
 
 		node.RemoveInner(int(foundIdx))
 
+		node.SetLSN(node.GetLSN() + 1)
 		return false, true
 	} else { // found == false
 		// do nothing
@@ -379,7 +390,7 @@ func (node *SkipListBlockPage) Remove(bpm *buffer.BufferPoolManager, key *types.
 // split entries of node at entry specified with idx arg
 // new node contains entries node.entries[idx+1:]
 // (new node does not include entry node.entries[idx])
-func (node *SkipListBlockPage) SplitNode(idx int32, bpm *buffer.BufferPoolManager, corners []types.PageID,
+func (node *SkipListBlockPage) SplitNode(idx int32, bpm *buffer.BufferPoolManager, corners []SkipListCornerInfo,
 	level int32, keyType types.TypeID) {
 	//fmt.Println("<<<<<<<<<<<<<<<<<<<<<<<< SplitNode called! >>>>>>>>>>>>>>>>>>>>>>>>>>>>>>")
 
@@ -390,9 +401,10 @@ func (node *SkipListBlockPage) SplitNode(idx int32, bpm *buffer.BufferPoolManage
 
 	for ii := 0; ii < int(level); ii++ {
 		// modify forward link
-		tmpNode := FetchAndCastToBlockPage(bpm, corners[ii])
+		tmpNode := FetchAndCastToBlockPage(bpm, corners[ii].PageId)
 		newNode.SetForwardEntry(ii, tmpNode.GetForwardEntry(ii))
 		tmpNode.SetForwardEntry(ii, newNode.GetPageId())
+		tmpNode.SetLSN(tmpNode.GetLSN() + 1)
 		bpm.UnpinPage(tmpNode.GetPageId(), true)
 	}
 	bpm.UnpinPage(newNode.GetPageId(), true)
@@ -620,4 +632,20 @@ func (node *SkipListBlockPage) getFreeSpaceRemaining() uint32 {
 func FetchAndCastToBlockPage(bpm *buffer.BufferPoolManager, pageId types.PageID) *SkipListBlockPage {
 	bPage := bpm.FetchPage(pageId)
 	return (*SkipListBlockPage)(unsafe.Pointer(bPage))
+}
+
+func (node *SkipListBlockPage) RLock() {
+	node.Page.RLatch()
+}
+
+func (node *SkipListBlockPage) RUnlock() {
+	node.Page.RUnlatch()
+}
+
+func (node *SkipListBlockPage) WLock() {
+	node.Page.WLatch()
+}
+
+func (node *SkipListBlockPage) WUnlock() {
+	node.Page.WUnlatch()
 }
