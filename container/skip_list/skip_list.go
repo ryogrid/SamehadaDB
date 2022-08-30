@@ -41,7 +41,7 @@ func NewSkipList(bpm *buffer.BufferPoolManager, keyType types.TypeID) *SkipList 
 
 // TODO: (SDB) in concurrent impl, locking in this method is needed. and caller must do unlock (SkipList::FindNode)
 
-func (sl *SkipList) FindNode(key *types.Value, opType SkipListOpType) (predOfCorners_ []types.PageID, corners_ []types.PageID, succOfCorners_ []types.PageID) {
+func (sl *SkipList) FindNode(key *types.Value, opType SkipListOpType) (predOfCorners_ []types.PageID, corners_ []types.PageID) {
 	headerPage := skip_list_page.FetchAndCastToHeaderPage(sl.bpm, sl.headerPageID)
 
 	startPageId := headerPage.GetListStartPageId()
@@ -55,7 +55,6 @@ func (sl *SkipList) FindNode(key *types.Value, opType SkipListOpType) (predOfCor
 	predOfCorners := make([]types.PageID, skip_list_page.MAX_FOWARD_LIST_LEN)
 	// entry of corners is corner node or target node
 	corners := make([]types.PageID, skip_list_page.MAX_FOWARD_LIST_LEN)
-	succOfCorners := make([]types.PageID, skip_list_page.MAX_FOWARD_LIST_LEN)
 	var curr *skip_list_page.SkipListBlockPage
 	for ii := (skip_list_page.MAX_FOWARD_LIST_LEN - 1); ii >= 0; ii-- {
 		//fmt.Printf("level %d\n", i)
@@ -81,7 +80,6 @@ func (sl *SkipList) FindNode(key *types.Value, opType SkipListOpType) (predOfCor
 			common.ShPrintf(common.DEBUG, "SkipList::FindNode: node should be removed found!\n")
 			predOfCorners[ii] = types.InvalidPageID
 			corners[ii] = predOfPredId
-			succOfCorners[ii] = pred.GetPageId()
 			sl.bpm.UnpinPage(curr.GetPageId(), false)
 			sl.bpm.UnpinPage(pred.GetPageId(), false)
 			// go backward for gathering appropriate corner nodes info
@@ -90,7 +88,6 @@ func (sl *SkipList) FindNode(key *types.Value, opType SkipListOpType) (predOfCor
 		} else {
 			predOfCorners[ii] = predOfPredId
 			corners[ii] = pred.GetPageId()
-			succOfCorners[ii] = curr.GetPageId()
 			sl.bpm.UnpinPage(curr.GetPageId(), false)
 		}
 	}
@@ -98,21 +95,21 @@ func (sl *SkipList) FindNode(key *types.Value, opType SkipListOpType) (predOfCor
 	sl.bpm.UnpinPage(headerPage.GetPageId(), false)
 	//common.ShPrintf(common.DEBUG, "SkipList::FindNode: moveCnt=%d\n", moveCnt)
 
-	return predOfCorners, corners, succOfCorners
+	return predOfCorners, corners
 }
 
-func (sl *SkipList) FindNodeWithEntryIdxForItr(key *types.Value) (idx_ int32, predOfCorners_ []types.PageID, corners_ []types.PageID, succOfCorners_ []types.PageID) {
+func (sl *SkipList) FindNodeWithEntryIdxForItr(key *types.Value) (idx_ int32, predOfCorners_ []types.PageID, corners_ []types.PageID) {
 	// get idx of target entry or one of nearest smaller entry
-	predOfCorners, corners, succOfCorners := sl.FindNode(key, SKIP_LIST_OP_GET)
+	predOfCorners, corners := sl.FindNode(key, SKIP_LIST_OP_GET)
 
 	node := skip_list_page.FetchAndCastToBlockPage(sl.bpm, corners[0])
 	_, _, idx := node.FindEntryByKey(key)
 	sl.bpm.UnpinPage(node.GetPageId(), false)
-	return idx, predOfCorners, corners, succOfCorners
+	return idx, predOfCorners, corners
 }
 
 func (sl *SkipList) GetValue(key *types.Value) uint32 {
-	_, corners, _ := sl.FindNode(key, SKIP_LIST_OP_GET)
+	_, corners := sl.FindNode(key, SKIP_LIST_OP_GET)
 	node := skip_list_page.FetchAndCastToBlockPage(sl.bpm, corners[0])
 	found, entry, _ := node.FindEntryByKey(key)
 	sl.bpm.UnpinPage(node.GetPageId(), false)
@@ -124,7 +121,7 @@ func (sl *SkipList) GetValue(key *types.Value) uint32 {
 }
 
 func (sl *SkipList) Insert(key *types.Value, value uint32) (err error) {
-	_, corners, _ := sl.FindNode(key, SKIP_LIST_OP_INSERT)
+	_, corners := sl.FindNode(key, SKIP_LIST_OP_INSERT)
 	levelWhenNodeSplitOccur := sl.GetNodeLevel()
 
 	node := skip_list_page.FetchAndCastToBlockPage(sl.bpm, corners[0])
@@ -136,7 +133,7 @@ func (sl *SkipList) Insert(key *types.Value, value uint32) (err error) {
 }
 
 func (sl *SkipList) Remove(key *types.Value, value uint32) (isDeleted_ bool) {
-	predOfCorners, corners, _ := sl.FindNode(key, SKIP_LIST_OP_REMOVE)
+	predOfCorners, corners := sl.FindNode(key, SKIP_LIST_OP_REMOVE)
 	node := skip_list_page.FetchAndCastToBlockPage(sl.bpm, corners[0])
 	isNodeShouldBeDeleted, isDeleted := node.Remove(sl.bpm, key, predOfCorners, corners)
 	sl.bpm.UnpinPage(node.GetPageId(), true)
@@ -164,7 +161,7 @@ func (sl *SkipList) Iterator(rangeStartKey *types.Value, rangeEndKey *types.Valu
 	if rangeStartKey != nil {
 		sl.bpm.UnpinPage(ret.curNode.GetPageId(), false)
 		var corners []types.PageID
-		ret.curIdx, _, corners, _ = sl.FindNodeWithEntryIdxForItr(rangeStartKey)
+		ret.curIdx, _, corners = sl.FindNodeWithEntryIdxForItr(rangeStartKey)
 		ret.curNode = skip_list_page.FetchAndCastToBlockPage(sl.bpm, corners[0])
 	}
 
