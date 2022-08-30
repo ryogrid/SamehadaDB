@@ -30,6 +30,9 @@ func (itr *SkipListIterator) Next() (done bool, err error, key *types.Value, val
 		// this Unpin is needed due to already having one pin with FindNodeWithEntryIdxForItr method call
 		itr.bpm.UnpinPage(corners[0].PageId, false)
 		// locking is not needed because already have lock with FindNodeWithEntryIdxForItr method call
+
+		// TODO: (SDB) need to deside whether throw away already having lock of itr.curNode or not
+		//             if the lock is thrown away, it is not guranteed that itr.CurNode contain rangeStartKey
 	}
 
 	if itr.curIdx+1 >= itr.curNode.GetEntryCnt() {
