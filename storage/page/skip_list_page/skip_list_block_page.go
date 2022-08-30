@@ -631,6 +631,10 @@ func (node *SkipListBlockPage) getFreeSpaceRemaining() uint32 {
 //	caller must call UnpinPage with appropriate diaty page to the got page when page using ends
 func FetchAndCastToBlockPage(bpm *buffer.BufferPoolManager, pageId types.PageID) *SkipListBlockPage {
 	bPage := bpm.FetchPage(pageId)
+	if bPage == nil {
+		// target page is physically removed (deallocated)
+		return nil
+	}
 	return (*SkipListBlockPage)(unsafe.Pointer(bPage))
 }
 
