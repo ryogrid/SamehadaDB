@@ -201,7 +201,7 @@ func (node *SkipListBlockPage) updateEntryInfosAtInsert(idx int, dataSize uint16
 	// entrries data backward of entry which specifed with idx arg are not changed
 	// because data of new entry is always placed tail of payload area
 
-	// entrries info data backward of entry which specifed with idx arg is slided for
+	// entrries info data backward of entry which specifed with idx arg are slided for
 	// new entry insertion
 	allEntryNum := uint32(node.GetEntryCnt())
 	slideFromOffset := offsetEntryInfos + uint32(idx+1)*sizeEntryInfo
@@ -269,7 +269,7 @@ func (node *SkipListBlockPage) Insert(key *types.Value, value uint32, bpm *buffe
 
 			// first, split this node at center of entry list
 
-			// set this node
+			// set this node as corner node of level-1
 			corners[0] = SkipListCornerInfo{node.GetPageId(), node.GetLSN()}
 
 			node.WUnlatch()
@@ -304,7 +304,7 @@ func (node *SkipListBlockPage) Insert(key *types.Value, value uint32, bpm *buffe
 		}
 		// insert to this node
 		// foundIdx is index of nearlest smaller key entry
-		// new entry is inserted next of nearlest smaller key entry
+		// new entry is inserted next of the entry
 
 		node.InsertInner(int(foundIdx), &SkipListPair{*key, value})
 	}
@@ -367,9 +367,12 @@ func validateNoChangeAndGetLock(bpm *buffer.BufferPoolManager, checkNodes []Skip
 	return false, nil
 }
 
-// TODO: SDB: not implemented yet (validateNoChangeAndGetLock)
 func unlockAndUnpinNodes(bpm *buffer.BufferPoolManager, checkedNodes []*SkipListBlockPage) {
-
+	for _, node := range checkedNodes {
+		pageId := node.GetPageId()
+		node.WUnlatch()
+		bpm.UnpinPage(pageId, true)
+	}
 }
 
 func (node *SkipListBlockPage) Remove(bpm *buffer.BufferPoolManager, key *types.Value, predOfCorners []SkipListCornerInfo, corners []SkipListCornerInfo) (isNodeShouldBeDeleted bool, isDeleted bool, isNeedRetry bool) {
