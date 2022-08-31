@@ -26,20 +26,22 @@ func (itr *SkipListIterator) Next() (done bool, err error, key *types.Value, val
 	if itr.rangeStartKey != nil && itr.curNode == nil {
 		var corners []skip_list_page.SkipListCornerInfo
 		itr.curIdx, _, corners = itr.sl.FindNodeWithEntryIdxForItr(itr.rangeStartKey)
+		// locking is not needed because already have lock with FindNodeWithEntryIdxForItr method call
 		itr.curNode = skip_list_page.FetchAndCastToBlockPage(itr.bpm, corners[0].PageId)
 		// this Unpin is needed due to already having one pin with FindNodeWithEntryIdxForItr method call
 		itr.bpm.UnpinPage(corners[0].PageId, false)
-		// locking is not needed because already have lock with FindNodeWithEntryIdxForItr method call
 
-		// TODO: (SDB) need to deside whether throw away already having lock of itr.curNode or not
-		//             if the lock is thrown away, it is not guranteed that itr.CurNode contain rangeStartKey
+		// release lock which is got on FindNodeWithEntryIdxForItr method
+		itr.curNode.RUnlock()
 	}
 
+	itr.curNode.RLock()
 	if itr.curIdx+1 >= itr.curNode.GetEntryCnt() {
 		prevNodeId := itr.curNode.GetPageId()
+		nextNodeId := itr.curNode.GetForwardEntry(0)
 		itr.curNode.RUnlock()
-		itr.curNode = skip_list_page.FetchAndCastToBlockPage(itr.bpm, itr.curNode.GetForwardEntry(0))
 		itr.bpm.UnpinPage(prevNodeId, false)
+		itr.curNode = skip_list_page.FetchAndCastToBlockPage(itr.bpm, nextNodeId)
 		itr.curIdx = -1
 		itr.curNode.RLock()
 		if itr.curNode.GetSmallestKey(itr.keyType).IsInfMax() {
@@ -48,11 +50,11 @@ func (itr *SkipListIterator) Next() (done bool, err error, key *types.Value, val
 			itr.bpm.UnpinPage(itr.curNode.GetPageId(), false)
 			return true, nil, nil, math.MaxUint32
 		}
-		itr.curNode.RUnlock()
 	}
 
+	// always having RLock of itr.curNode
+
 	itr.curIdx++
-	itr.curNode.RLock()
 
 	if itr.rangeEndKey != nil && itr.curNode.GetEntry(int(itr.curIdx), itr.keyType).Key.CompareGreaterThan(*itr.rangeEndKey) {
 		itr.curNode.RUnlock()
@@ -61,5 +63,6 @@ func (itr *SkipListIterator) Next() (done bool, err error, key *types.Value, val
 	}
 
 	tmpKey := itr.curNode.GetEntry(int(itr.curIdx), itr.keyType).Key
+	itr.curNode.RUnlock()
 	return false, nil, &tmpKey, itr.curNode.GetEntry(int(itr.curIdx), itr.keyType).Value
 }
