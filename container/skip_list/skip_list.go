@@ -150,14 +150,18 @@ func (sl *SkipList) GetValue(key *types.Value) uint32 {
 }
 
 func (sl *SkipList) Insert(key *types.Value, value uint32) (err error) {
-	_, corners := sl.FindNode(key, SKIP_LIST_OP_INSERT)
-	levelWhenNodeSplitOccur := sl.GetNodeLevel()
+	isNeedRetry := true
 
-	node := skip_list_page.FetchAndCastToBlockPage(sl.bpm, corners[0].PageId)
-	// locking is not needed because already have lock with FindNode method call
-	node.Insert(key, value, sl.bpm, corners, levelWhenNodeSplitOccur)
-	node.WUnlock()
-	sl.bpm.UnpinPage(node.GetPageId(), true)
+	for isNeedRetry {
+		_, corners := sl.FindNode(key, SKIP_LIST_OP_INSERT)
+		levelWhenNodeSplitOccur := sl.GetNodeLevel()
+
+		node := skip_list_page.FetchAndCastToBlockPage(sl.bpm, corners[0].PageId)
+		// locking is not needed because already have lock with FindNode method call
+		isNeedRetry = node.Insert(key, value, sl.bpm, corners, levelWhenNodeSplitOccur)
+		//node.WUnlock()
+		sl.bpm.UnpinPage(node.GetPageId(), true)
+	}
 
 	return nil
 }

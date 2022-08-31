@@ -237,11 +237,11 @@ func (node *SkipListBlockPage) InsertInner(idx int, slp *SkipListPair) {
 // Attempts to insert a key and value into an index in the baccess
 // return value is whether newNode is created or not
 func (node *SkipListBlockPage) Insert(key *types.Value, value uint32, bpm *buffer.BufferPoolManager, corners []SkipListCornerInfo,
-	level int32) bool {
+	level int32) (isNeedRetry_ bool) {
 	//fmt.Printf("Insert of SkipListBlockPage called! : key=%d\n", key.ToInteger())
 
 	found, _, foundIdx := node.FindEntryByKey(key)
-	isMadeNewNode := false
+	//isMadeNewNode := false
 	var splitIdx int32 = -1
 	if found {
 		//fmt.Println("found at Insert")
@@ -258,21 +258,29 @@ func (node *SkipListBlockPage) Insert(key *types.Value, value uint32, bpm *buffe
 		//fmt.Printf("end of Insert of SkipListBlockPage called! : key=%d page.entryCnt=%d len(page.entries)=%d\n", key.ToInteger(), node.entryCnt, len(node.entries))
 
 		node.SetLSN(node.GetLSN() + 1)
-		return isMadeNewNode
+		node.WUnlock()
+		return false
 	} else if !found {
 		//fmt.Printf("not found at Insert of SkipListBlockPage. foundIdx=%d\n", foundIdx)
 		if node.getFreeSpaceRemaining() < node.GetSpecifiedSLPNeedSpace(&SkipListPair{*key, value}) {
 			// this node is full. so node split is needed
 
-			// TODO: (SDB) split must be done after pass of connectivity change existance at concurrent impl
-
 			// first, split this node at center of entry list
+
+			// set this node
+			corners[0] = SkipListCornerInfo{node.GetPageId(), node.GetLSN()}
+
+			node.WUnlock()
+			isSuccess, lockedAndPinnedNodes := validateNoChangeAndGetLock(bpm, corners[:level])
+			if !isSuccess {
+				// already released lock of this node
+				return true
+			}
+
 			// half of entries are moved to new node
 			splitIdx = node.GetEntryCnt() / 2
-			// update with this node
-			corners[0] = SkipListCornerInfo{node.GetPageId(), node.GetLSN()}
+
 			node.SplitNode(splitIdx, bpm, corners, level, key.ValueType())
-			isMadeNewNode = true
 
 			if foundIdx > splitIdx {
 				// insert to new node
@@ -285,8 +293,10 @@ func (node *SkipListBlockPage) Insert(key *types.Value, value uint32, bpm *buffe
 				//fmt.Printf("end of Insert of SkipListBlockPage called! : key=%d page.entryCnt=%d len(page.entries)=%d\n", key.ToInteger(), node.entryCnt, len(node.entries))
 
 				node.SetLSN(node.GetLSN() + 1)
-				return isMadeNewNode
-			} // else => insert to this node
+				unlockAndUnpinNodes(bpm, lockedAndPinnedNodes)
+				return false
+			}
+			// insert to this node
 		}
 		// insert to this node
 		// foundIdx is index of nearlest smaller key entry
@@ -296,7 +306,8 @@ func (node *SkipListBlockPage) Insert(key *types.Value, value uint32, bpm *buffe
 	}
 	//fmt.Printf("end of Insert of SkipListBlockPage called! : key=%d page.entryCnt=%d len(page.entries)=%d\n", key.ToInteger(), node.entryCnt, len(node.entries))
 	node.SetLSN(node.GetLSN() + 1)
-	return isMadeNewNode
+	node.WUnlock()
+	return false
 }
 
 // remove entry info specified with idx arg from header of page
@@ -370,6 +381,7 @@ func (node *SkipListBlockPage) Remove(bpm *buffer.BufferPoolManager, key *types.
 		node.WUnlock()
 		isSuccess, lockedAndPinnedNodes := validateNoChangeAndGetLock(bpm, checkNodes)
 		if !isSuccess {
+			// already released lock of this node
 			return false, false, true
 		}
 
