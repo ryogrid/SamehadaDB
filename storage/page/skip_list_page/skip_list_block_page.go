@@ -260,7 +260,7 @@ func (node *SkipListBlockPage) Insert(key *types.Value, value uint32, bpm *buffe
 		//fmt.Printf("end of Insert of SkipListBlockPage called! : key=%d page.entryCnt=%d len(page.entries)=%d\n", key.ToInteger(), node.entryCnt, len(node.entries))
 
 		node.SetLSN(node.GetLSN() + 1)
-		node.WUnlock()
+		node.WUnlatch()
 		return false
 	} else if !found {
 		//fmt.Printf("not found at Insert of SkipListBlockPage. foundIdx=%d\n", foundIdx)
@@ -272,7 +272,7 @@ func (node *SkipListBlockPage) Insert(key *types.Value, value uint32, bpm *buffe
 			// set this node
 			corners[0] = SkipListCornerInfo{node.GetPageId(), node.GetLSN()}
 
-			node.WUnlock()
+			node.WUnlatch()
 			isSuccess, lockedAndPinnedNodes = validateNoChangeAndGetLock(bpm, corners[:level])
 			if !isSuccess {
 				// already released lock of this node
@@ -313,7 +313,7 @@ func (node *SkipListBlockPage) Insert(key *types.Value, value uint32, bpm *buffe
 	if isMadeNewNode {
 		unlockAndUnpinNodes(bpm, lockedAndPinnedNodes)
 	} else {
-		node.WUnlock()
+		node.WUnlatch()
 	}
 	return false
 }
@@ -386,7 +386,7 @@ func (node *SkipListBlockPage) Remove(bpm *buffer.BufferPoolManager, key *types.
 		checkNodes := make([]SkipListCornerInfo, 0)
 		checkNodes = append(checkNodes, predOfCorners[0])
 		checkNodes = append(checkNodes, corners[1:updateLen]...)
-		node.WUnlock()
+		node.WUnlatch()
 		isSuccess, lockedAndPinnedNodes := validateNoChangeAndGetLock(bpm, checkNodes)
 		if !isSuccess {
 			// already released lock of this node
@@ -418,10 +418,10 @@ func (node *SkipListBlockPage) Remove(bpm *buffer.BufferPoolManager, key *types.
 		node.RemoveInner(int(foundIdx))
 
 		node.SetLSN(node.GetLSN() + 1)
-		node.WUnlock()
+		node.WUnlatch()
 		return false, true, false
 	} else { // found == false
-		node.WUnlock()
+		node.WUnlatch()
 		// do nothing
 		return false, false, false
 	}
@@ -676,20 +676,4 @@ func FetchAndCastToBlockPage(bpm *buffer.BufferPoolManager, pageId types.PageID)
 		return nil
 	}
 	return (*SkipListBlockPage)(unsafe.Pointer(bPage))
-}
-
-func (node *SkipListBlockPage) RLock() {
-	node.Page.RLatch()
-}
-
-func (node *SkipListBlockPage) RUnlock() {
-	node.Page.RUnlatch()
-}
-
-func (node *SkipListBlockPage) WLock() {
-	node.Page.WLatch()
-}
-
-func (node *SkipListBlockPage) WUnlock() {
-	node.Page.WUnlatch()
 }

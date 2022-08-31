@@ -151,19 +151,3 @@ func FetchAndCastToHeaderPage(bpm *buffer.BufferPoolManager, pageId types.PageID
 	hpage := (*SkipListHeaderPage)(unsafe.Pointer(page_))
 	return hpage
 }
-
-func (hp *SkipListHeaderPage) RLock() {
-	hp.Page.RLatch()
-}
-
-func (hp *SkipListHeaderPage) RUnlock() {
-	hp.Page.RUnlatch()
-}
-
-func (hp *SkipListHeaderPage) WLock() {
-	hp.Page.WLatch()
-}
-
-func (hp *SkipListHeaderPage) WUnlock() {
-	hp.Page.WUnlatch()
-}

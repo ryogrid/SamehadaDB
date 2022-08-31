@@ -42,7 +42,7 @@ func NewSkipList(bpm *buffer.BufferPoolManager, keyType types.TypeID) *SkipList 
 // TODO: (SDB) in concurrent impl, locking in this method is needed. and caller must do unlock (SkipList::FindNode)
 
 // ATTENTION:
-// this method returns with keep having RLock or WLock of corners_[0] and not Unping corners_[0]
+// this method returns with keep having RLatch or WLatch of corners_[0] and not Unping corners_[0]
 func (sl *SkipList) FindNode(key *types.Value, opType SkipListOpType) (predOfCorners_ []skip_list_page.SkipListCornerInfo, corners_ []skip_list_page.SkipListCornerInfo) {
 	headerPage := skip_list_page.FetchAndCastToHeaderPage(sl.bpm, sl.headerPageID)
 	startPageId := headerPage.GetListStartPageId()
@@ -64,17 +64,17 @@ func (sl *SkipList) FindNode(key *types.Value, opType SkipListOpType) (predOfCor
 		for {
 			//moveCnt++
 			if ii == 0 && opType != SKIP_LIST_OP_GET {
-				// level-1 and operation is remove or insert, need WLock when reached target node
-				pred.WLock()
+				// level-1 and operation is remove or insert, need WLatch when reached target node
+				pred.WLatch()
 			} else {
-				pred.RLock()
+				pred.RLatch()
 			}
 			curr = skip_list_page.FetchAndCastToBlockPage(sl.bpm, pred.GetForwardEntry(int(ii)))
 			if curr == nil {
 				common.ShPrintf(common.FATAL, "PageID to passed FetchAndCastToBlockPage is %d\n", pred.GetForwardEntry(int(ii)))
 				panic("SkipList::FindNode: FetchAndCastToBlockPage returned nil!")
 			}
-			curr.RLock()
+			curr.RLatch()
 			if !curr.GetSmallestKey(key.ValueType()).CompareLessThanOrEqual(*key) {
 				//  (ii + 1) level's corner node or target node has been identified (= pred)
 				break
@@ -82,9 +82,9 @@ func (sl *SkipList) FindNode(key *types.Value, opType SkipListOpType) (predOfCor
 				// keep moving foward
 				predOfPredId = pred.GetPageId()
 				if ii == 0 && opType != SKIP_LIST_OP_GET {
-					pred.WUnlock()
+					pred.WUnlatch()
 				} else {
-					pred.RUnlock()
+					pred.RUnlatch()
 				}
 				sl.bpm.UnpinPage(pred.GetPageId(), false)
 				pred = curr
@@ -95,12 +95,12 @@ func (sl *SkipList) FindNode(key *types.Value, opType SkipListOpType) (predOfCor
 			common.ShPrintf(common.DEBUG, "SkipList::FindNode: node should be removed found!\n")
 			predOfCorners[ii] = skip_list_page.SkipListCornerInfo{types.InvalidPageID, -1}
 			corners[ii] = skip_list_page.SkipListCornerInfo{predOfPredId, -1}
-			curr.RUnlock()
+			curr.RUnlatch()
 			sl.bpm.UnpinPage(curr.GetPageId(), false)
 			if ii == 0 && opType != SKIP_LIST_OP_GET {
-				pred.WUnlock()
+				pred.WUnlatch()
 			} else {
-				pred.RUnlock()
+				pred.RUnlatch()
 			}
 			sl.bpm.UnpinPage(pred.GetPageId(), false)
 			// go backward for gathering appropriate corner nodes info
@@ -108,12 +108,12 @@ func (sl *SkipList) FindNode(key *types.Value, opType SkipListOpType) (predOfCor
 		} else {
 			predOfCorners[ii] = skip_list_page.SkipListCornerInfo{predOfPredId, -1}
 			corners[ii] = skip_list_page.SkipListCornerInfo{pred.GetPageId(), -1}
-			curr.RUnlock()
+			curr.RUnlatch()
 			sl.bpm.UnpinPage(curr.GetPageId(), false)
 		}
 	}
 	/*
-		pred.RUnlock()
+		pred.RUnlatch()
 		sl.bpm.UnpinPage(pred.GetPageId(), false)
 	*/
 
@@ -123,7 +123,7 @@ func (sl *SkipList) FindNode(key *types.Value, opType SkipListOpType) (predOfCor
 }
 
 // ATTENTION:
-// this method returns with keep having RLock or WLock of corners_[0] and not Unping corners_[0]
+// this method returns with keep having RLatch or WLatch of corners_[0] and not Unping corners_[0]
 func (sl *SkipList) FindNodeWithEntryIdxForItr(key *types.Value) (idx_ int32, predOfCorners_ []skip_list_page.SkipListCornerInfo, corners_ []skip_list_page.SkipListCornerInfo) {
 	// get idx of target entry or one of nearest smaller entry
 	predOfCorners, corners := sl.FindNode(key, SKIP_LIST_OP_GET)
@@ -140,7 +140,7 @@ func (sl *SkipList) GetValue(key *types.Value) uint32 {
 	node := skip_list_page.FetchAndCastToBlockPage(sl.bpm, corners[0].PageId)
 	// locking is not needed because already have lock with FindNode method call
 	found, entry, _ := node.FindEntryByKey(key)
-	node.RUnlock()
+	node.RUnlatch()
 	sl.bpm.UnpinPage(node.GetPageId(), false)
 	if found {
 		return entry.Value
@@ -159,7 +159,7 @@ func (sl *SkipList) Insert(key *types.Value, value uint32) (err error) {
 		node := skip_list_page.FetchAndCastToBlockPage(sl.bpm, corners[0].PageId)
 		// locking is not needed because already have lock with FindNode method call
 		isNeedRetry = node.Insert(key, value, sl.bpm, corners, levelWhenNodeSplitOccur)
-		//node.WUnlock()
+		//node.WUnlatch()
 		sl.bpm.UnpinPage(node.GetPageId(), true)
 	}
 
