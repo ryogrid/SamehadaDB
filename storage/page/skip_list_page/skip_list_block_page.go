@@ -241,7 +241,9 @@ func (node *SkipListBlockPage) Insert(key *types.Value, value uint32, bpm *buffe
 	//fmt.Printf("Insert of SkipListBlockPage called! : key=%d\n", key.ToInteger())
 
 	found, _, foundIdx := node.FindEntryByKey(key)
-	//isMadeNewNode := false
+	isSuccess := false
+	var lockedAndPinnedNodes []*SkipListBlockPage = nil
+	isMadeNewNode := false
 	var splitIdx int32 = -1
 	if found {
 		//fmt.Println("found at Insert")
@@ -271,11 +273,13 @@ func (node *SkipListBlockPage) Insert(key *types.Value, value uint32, bpm *buffe
 			corners[0] = SkipListCornerInfo{node.GetPageId(), node.GetLSN()}
 
 			node.WUnlock()
-			isSuccess, lockedAndPinnedNodes := validateNoChangeAndGetLock(bpm, corners[:level])
+			isSuccess, lockedAndPinnedNodes = validateNoChangeAndGetLock(bpm, corners[:level])
 			if !isSuccess {
 				// already released lock of this node
 				return true
 			}
+
+			isMadeNewNode = true
 
 			// half of entries are moved to new node
 			splitIdx = node.GetEntryCnt() / 2
@@ -306,7 +310,11 @@ func (node *SkipListBlockPage) Insert(key *types.Value, value uint32, bpm *buffe
 	}
 	//fmt.Printf("end of Insert of SkipListBlockPage called! : key=%d page.entryCnt=%d len(page.entries)=%d\n", key.ToInteger(), node.entryCnt, len(node.entries))
 	node.SetLSN(node.GetLSN() + 1)
-	node.WUnlock()
+	if isMadeNewNode {
+		unlockAndUnpinNodes(bpm, lockedAndPinnedNodes)
+	} else {
+		node.WUnlock()
+	}
 	return false
 }
 
