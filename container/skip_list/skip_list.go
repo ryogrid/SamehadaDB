@@ -163,13 +163,20 @@ func (sl *SkipList) Insert(key *types.Value, value uint32) (err error) {
 }
 
 func (sl *SkipList) Remove(key *types.Value, value uint32) (isDeleted_ bool) {
-	predOfCorners, corners := sl.FindNode(key, SKIP_LIST_OP_REMOVE)
-	node := skip_list_page.FetchAndCastToBlockPage(sl.bpm, corners[0].PageId)
-	// locking is not needed because already have lock with FindNode method call
-	isNodeShouldBeDeleted, isDeleted := node.Remove(sl.bpm, key, predOfCorners, corners)
-	sl.bpm.UnpinPage(node.GetPageId(), true)
-	if isNodeShouldBeDeleted {
-		sl.bpm.DeletePage(corners[0].PageId)
+	isNodeShouldBeDeleted := false
+	isDeleted := false
+	isNeedRetry := true
+
+	for isNeedRetry {
+		predOfCorners, corners := sl.FindNode(key, SKIP_LIST_OP_REMOVE)
+		node := skip_list_page.FetchAndCastToBlockPage(sl.bpm, corners[0].PageId)
+		// locking is not needed because already have lock with FindNode method call
+		isNodeShouldBeDeleted, isDeleted, isNeedRetry = node.Remove(sl.bpm, key, predOfCorners, corners)
+		// lock of node is released on Remove method
+		sl.bpm.UnpinPage(node.GetPageId(), true)
+		if isNodeShouldBeDeleted {
+			sl.bpm.DeletePage(corners[0].PageId)
+		}
 	}
 
 	return isDeleted

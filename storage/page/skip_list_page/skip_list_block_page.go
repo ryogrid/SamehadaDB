@@ -343,12 +343,19 @@ func (node *SkipListBlockPage) RemoveInner(idx int) {
 	node.SetEntryCnt(node.GetEntryCnt() - 1)
 }
 
-func (node *SkipListBlockPage) Remove(bpm *buffer.BufferPoolManager, key *types.Value, predOfCorners []SkipListCornerInfo, corners []SkipListCornerInfo) (isNodeShouldBeDeleted bool, isDeleted bool) {
+// TODO: SDB: not implemented yet (validateNoChangeAndGetLock)
+func validateNoChangeAndGetLock(bpm *buffer.BufferPoolManager, checkNodes []SkipListCornerInfo) (isSuccess bool, lockedAndPinnedNodes []*SkipListBlockPage) {
+	return false, nil
+}
+
+// TODO: SDB: not implemented yet (validateNoChangeAndGetLock)
+func unlockAndUnpinNodes(bpm *buffer.BufferPoolManager, checkedNodes []*SkipListBlockPage) {
+
+}
+
+func (node *SkipListBlockPage) Remove(bpm *buffer.BufferPoolManager, key *types.Value, predOfCorners []SkipListCornerInfo, corners []SkipListCornerInfo) (isNodeShouldBeDeleted bool, isDeleted bool, isNeedRetry bool) {
 	found, _, foundIdx := node.FindEntryByKey(key)
 	if found && (node.GetEntryCnt() == 1) {
-		// when there are no enry without target entry
-		// this node keep reft with no entry (but new entry can be stored)
-
 		if !node.GetEntry(0, key.ValueType()).Key.CompareEquals(*key) {
 			panic("removing wrong entry!")
 		}
@@ -356,6 +363,15 @@ func (node *SkipListBlockPage) Remove(bpm *buffer.BufferPoolManager, key *types.
 		common.ShPrintf(common.DEBUG, "node remove occured!\n")
 
 		updateLen := int(node.GetLevel())
+
+		checkNodes := make([]SkipListCornerInfo, 0)
+		checkNodes = append(checkNodes, predOfCorners[0])
+		checkNodes = append(checkNodes, corners[1:updateLen]...)
+		node.WUnlock()
+		isSuccess, lockedAndPinnedNodes := validateNoChangeAndGetLock(bpm, checkNodes)
+		if !isSuccess {
+			return false, false, true
+		}
 
 		// removing this node from all level of chain
 		for ii := 1; ii < updateLen; ii++ {
@@ -369,9 +385,11 @@ func (node *SkipListBlockPage) Remove(bpm *buffer.BufferPoolManager, key *types.
 		pred.SetForwardEntry(0, node.GetForwardEntry(0))
 		pred.SetLSN(pred.GetLSN() + 1)
 		bpm.UnpinPage(predOfCorners[0].PageId, true)
-
 		node.SetLSN(node.GetLSN() + 1)
-		return true, true
+
+		unlockAndUnpinNodes(bpm, lockedAndPinnedNodes)
+
+		return true, true, false
 	} else if found {
 		if !node.GetEntry(int(foundIdx), key.ValueType()).Key.CompareEquals(*key) {
 			panic("removing wrong entry!")
@@ -380,10 +398,12 @@ func (node *SkipListBlockPage) Remove(bpm *buffer.BufferPoolManager, key *types.
 		node.RemoveInner(int(foundIdx))
 
 		node.SetLSN(node.GetLSN() + 1)
-		return false, true
+		node.WUnlock()
+		return false, true, false
 	} else { // found == false
+		node.WUnlock()
 		// do nothing
-		return false, false
+		return false, false, false
 	}
 }
 
