@@ -88,16 +88,20 @@ func (sl *SkipList) FindNode(key *types.Value, opType SkipListOpType) (predOfCor
 				break
 			} else {
 				// keep moving foward
-				isMoveForwarded = true
 				predOfPredId = pred.GetPageId()
 				predOfPredLSN = pred.GetLSN()
 				if ii == 0 && opType != SKIP_LIST_OP_GET {
-					pred.WUnlatch()
+					if isMoveForwarded == false {
+						pred.RUnlatch()
+					} else {
+						pred.WUnlatch()
+					}
 				} else {
 					pred.RUnlatch()
 				}
 				sl.bpm.UnpinPage(pred.GetPageId(), false)
 				pred = curr
+				isMoveForwarded = true
 				//curr.RUnlatch()
 			}
 		}

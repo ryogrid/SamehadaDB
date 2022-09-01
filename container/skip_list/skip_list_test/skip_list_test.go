@@ -410,7 +410,7 @@ func TestSkipListInsertAndDeleteAll(t *testing.T) {
 	// Insert entries
 	insCnt := 0
 	for _, insVal := range insVals {
-		//fmt.Printf("insCnt: %d\n", insCnt)
+		fmt.Printf("insCnt: %d\n", insCnt)
 		insCnt++
 		sl.Insert(samehada_util.GetPonterOfValue(types.NewInteger(int32(insVal))), uint32(insVal))
 	}
