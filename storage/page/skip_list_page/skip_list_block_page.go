@@ -311,7 +311,7 @@ func (node *SkipListBlockPage) Insert(key *types.Value, value uint32, bpm *buffe
 	//fmt.Printf("end of Insert of SkipListBlockPage called! : key=%d page.entryCnt=%d len(page.entries)=%d\n", key.ToInteger(), node.entryCnt, len(node.entries))
 	node.SetLSN(node.GetLSN() + 1)
 	if isMadeNewNode {
-		unlockAndUnpinNodes(bpm, lockedAndPinnedNodes)
+		unlockAndUnpinNodes(bpm, lockedAndPinnedNodes, true)
 	} else {
 		node.WUnlatch()
 	}
@@ -364,10 +364,26 @@ func (node *SkipListBlockPage) RemoveInner(idx int) {
 
 // TODO: SDB: not implemented yet (validateNoChangeAndGetLock)
 func validateNoChangeAndGetLock(bpm *buffer.BufferPoolManager, checkNodes []SkipListCornerInfo) (isSuccess bool, lockedAndPinnedNodes []*SkipListBlockPage) {
-	return false, nil
+	checkLen := len(checkNodes)
+	checkedNodes := make([]*SkipListBlockPage, 0)
+	prevPageId := types.InvalidPageID
+	for ii := checkLen - 1; ii >= 0; ii-- {
+		if prevPageId == checkNodes[ii].PageId {
+			continue
+		}
+		prevPageId = checkNodes[ii].PageId
+		node := FetchAndCastToBlockPage(bpm, checkNodes[ii].PageId)
+		if node == nil {
+			unlockAndUnpinNodes(bpm, checkedNodes, false)
+			return false, nil
+		}
+		// check whether update counter is not changedt
+	}
+
+	return true, checkedNodes
 }
 
-func unlockAndUnpinNodes(bpm *buffer.BufferPoolManager, checkedNodes []*SkipListBlockPage) {
+func unlockAndUnpinNodes(bpm *buffer.BufferPoolManager, checkedNodes []*SkipListBlockPage, isDirty bool) {
 	for _, node := range checkedNodes {
 		pageId := node.GetPageId()
 		node.WUnlatch()
@@ -410,7 +426,7 @@ func (node *SkipListBlockPage) Remove(bpm *buffer.BufferPoolManager, key *types.
 		bpm.UnpinPage(predOfCorners[0].PageId, true)
 		node.SetLSN(node.GetLSN() + 1)
 
-		unlockAndUnpinNodes(bpm, lockedAndPinnedNodes)
+		unlockAndUnpinNodes(bpm, lockedAndPinnedNodes, true)
 
 		return true, true, false
 	} else if found {
