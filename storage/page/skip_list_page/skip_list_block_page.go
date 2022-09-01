@@ -297,7 +297,8 @@ func (node *SkipListBlockPage) Insert(key *types.Value, value uint32, bpm *buffe
 				//fmt.Printf("end of Insert of SkipListBlockPage called! : key=%d page.entryCnt=%d len(page.entries)=%d\n", key.ToInteger(), node.entryCnt, len(node.entries))
 
 				node.SetLSN(node.GetLSN() + 1)
-				unlockAndUnpinNodes(bpm, lockedAndPinnedNodes)
+				unlockAndUnpinNodes(bpm, lockedAndPinnedNodes, true)
+				// this node is already unlocked with unlockAndUnpinNodes func call
 				return false
 			}
 			// insert to this node
@@ -362,25 +363,51 @@ func (node *SkipListBlockPage) RemoveInner(idx int) {
 	node.SetEntryCnt(node.GetEntryCnt() - 1)
 }
 
-// TODO: SDB: not implemented yet (validateNoChangeAndGetLock)
+// ATTENTION:
+//
+//	nodes corresponding to checkNodes must not be locked
+//
+// return value:
+//
+// isSuscess == true
+//
+//	=> nodes on lockedAndPinnedNodes (= checkNodes) are locked and pinned
+//
+// isSuccess=false
+//
+//	=> lockedAndPinnedNodes is nil
 func validateNoChangeAndGetLock(bpm *buffer.BufferPoolManager, checkNodes []SkipListCornerInfo) (isSuccess bool, lockedAndPinnedNodes []*SkipListBlockPage) {
 	checkLen := len(checkNodes)
-	checkedNodes := make([]*SkipListBlockPage, 0)
+	validatedNodes := make([]*SkipListBlockPage, 0)
 	prevPageId := types.InvalidPageID
 	for ii := checkLen - 1; ii >= 0; ii-- {
-		if prevPageId == checkNodes[ii].PageId {
-			continue
-		}
 		prevPageId = checkNodes[ii].PageId
 		node := FetchAndCastToBlockPage(bpm, checkNodes[ii].PageId)
 		if node == nil {
-			unlockAndUnpinNodes(bpm, checkedNodes, false)
+			unlockAndUnpinNodes(bpm, validatedNodes, false)
 			return false, nil
 		}
-		// check whether update counter is not changedt
+
+		// check whether update counter is not changed
+		if prevPageId == node.GetPageId() {
+			// unpin because fetched same page
+			bpm.UnpinPage(node.GetPageId(), true)
+			// locking is not needed because it has already got
+		} else {
+			node.WLatch()
+		}
+
+		// LSN is used for update counter
+		if node.GetLSN() != checkNodes[ii].UpdateCounter {
+			unlockAndUnpinNodes(bpm, validatedNodes, false)
+			return false, nil
+		}
+
+		validatedNodes = append(validatedNodes, node)
 	}
 
-	return true, checkedNodes
+	// validation is passed
+	return true, validatedNodes
 }
 
 func unlockAndUnpinNodes(bpm *buffer.BufferPoolManager, checkedNodes []*SkipListBlockPage, isDirty bool) {
