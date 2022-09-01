@@ -49,6 +49,7 @@ func (sl *SkipList) FindNode(key *types.Value, opType SkipListOpType) (predOfCor
 	// lock of headerPage is not needed becaus its content is not changed
 	sl.bpm.UnpinPage(headerPage.GetPageId(), false)
 
+	isMoveForwarded := false
 	pred := skip_list_page.FetchAndCastToBlockPage(sl.bpm, startPageId)
 	pred.RLatch()
 	// loop invariant: pred.key < searchKey
@@ -87,6 +88,7 @@ func (sl *SkipList) FindNode(key *types.Value, opType SkipListOpType) (predOfCor
 				break
 			} else {
 				// keep moving foward
+				isMoveForwarded = true
 				predOfPredId = pred.GetPageId()
 				predOfPredLSN = pred.GetLSN()
 				if ii == 0 && opType != SKIP_LIST_OP_GET {
@@ -117,14 +119,20 @@ func (sl *SkipList) FindNode(key *types.Value, opType SkipListOpType) (predOfCor
 			curr.RUnlatch()
 			sl.bpm.UnpinPage(curr.GetPageId(), false)
 		} else {
-			predOfCorners[ii] = skip_list_page.SkipListCornerInfo{predOfPredId, -1}
-			corners[ii] = skip_list_page.SkipListCornerInfo{pred.GetPageId(), -1}
+			predOfCorners[ii] = skip_list_page.SkipListCornerInfo{predOfPredId, predOfPredLSN}
+			corners[ii] = skip_list_page.SkipListCornerInfo{pred.GetPageId(), pred.GetLSN()}
 			if ii == 0 && opType != SKIP_LIST_OP_GET {
 				curr.WUnlatch()
 			} else {
 				curr.RUnlatch()
 			}
 			sl.bpm.UnpinPage(curr.GetPageId(), false)
+			if isMoveForwarded == false && ii == 0 && opType != SKIP_LIST_OP_GET {
+				// pred's lock is not changed to WLatch
+				// so upgrade it
+				pred.RUnlatch()
+				pred.WLatch()
+			}
 		}
 	}
 	/*
