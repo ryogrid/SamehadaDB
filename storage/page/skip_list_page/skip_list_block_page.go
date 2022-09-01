@@ -414,7 +414,7 @@ func unlockAndUnpinNodes(bpm *buffer.BufferPoolManager, checkedNodes []*SkipList
 	for _, node := range checkedNodes {
 		pageId := node.GetPageId()
 		node.WUnlatch()
-		bpm.UnpinPage(pageId, true)
+		bpm.UnpinPage(pageId, isDirty)
 	}
 }
 
