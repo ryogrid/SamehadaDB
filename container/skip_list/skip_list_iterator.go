@@ -32,37 +32,37 @@ func (itr *SkipListIterator) Next() (done bool, err error, key *types.Value, val
 		itr.bpm.UnpinPage(corners[0].PageId, false)
 
 		// release lock which is got on FindNodeWithEntryIdxForItr method
-		itr.curNode.RUnlock()
+		itr.curNode.RUnlatch()
 	}
 
-	itr.curNode.RLock()
+	itr.curNode.RLatch()
 	if itr.curIdx+1 >= itr.curNode.GetEntryCnt() {
 		prevNodeId := itr.curNode.GetPageId()
 		nextNodeId := itr.curNode.GetForwardEntry(0)
-		itr.curNode.RUnlock()
+		itr.curNode.RUnlatch()
 		itr.bpm.UnpinPage(prevNodeId, false)
 		itr.curNode = skip_list_page.FetchAndCastToBlockPage(itr.bpm, nextNodeId)
 		itr.curIdx = -1
-		itr.curNode.RLock()
+		itr.curNode.RLatch()
 		if itr.curNode.GetSmallestKey(itr.keyType).IsInfMax() {
 			// reached tail node
-			itr.curNode.RUnlock()
+			itr.curNode.RUnlatch()
 			itr.bpm.UnpinPage(itr.curNode.GetPageId(), false)
 			return true, nil, nil, math.MaxUint32
 		}
 	}
 
-	// always having RLock of itr.curNode
+	// always having RLatch of itr.curNode
 
 	itr.curIdx++
 
 	if itr.rangeEndKey != nil && itr.curNode.GetEntry(int(itr.curIdx), itr.keyType).Key.CompareGreaterThan(*itr.rangeEndKey) {
-		itr.curNode.RUnlock()
+		itr.curNode.RUnlatch()
 		itr.bpm.UnpinPage(itr.curNode.GetPageId(), false)
 		return true, nil, nil, math.MaxUint32
 	}
 
 	tmpKey := itr.curNode.GetEntry(int(itr.curIdx), itr.keyType).Key
-	itr.curNode.RUnlock()
+	itr.curNode.RUnlatch()
 	return false, nil, &tmpKey, itr.curNode.GetEntry(int(itr.curIdx), itr.keyType).Value
 }
