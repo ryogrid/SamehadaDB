@@ -25,7 +25,7 @@ type SkipListIterator struct {
 func (itr *SkipListIterator) Next() (done bool, err error, key *types.Value, val uint32) {
 	if itr.rangeStartKey != nil && itr.curNode == nil {
 		var corners []skip_list_page.SkipListCornerInfo
-		itr.curIdx, _, corners = itr.sl.FindNodeWithEntryIdxForItr(itr.rangeStartKey)
+		_, itr.curIdx, _, corners = itr.sl.FindNodeWithEntryIdxForItr(itr.rangeStartKey)
 		// locking is not needed because already have lock with FindNodeWithEntryIdxForItr method call
 		itr.curNode = skip_list_page.FetchAndCastToBlockPage(itr.bpm, corners[0].PageId)
 		// this Unpin is needed due to already having one pin with FindNodeWithEntryIdxForItr method call
