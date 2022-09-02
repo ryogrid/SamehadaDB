@@ -401,7 +401,9 @@ func validateNoChangeAndGetLock(bpm *buffer.BufferPoolManager, checkNodes []Skip
 			return false, nil
 		}
 
-		validatedNodes = append(validatedNodes, node)
+		tmpNodes := make([]*SkipListBlockPage, 0)
+		tmpNodes = append(tmpNodes, node)
+		validatedNodes = append(tmpNodes, validatedNodes...)
 
 		prevPageId = checkNodes[ii].PageId
 	}
