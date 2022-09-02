@@ -124,11 +124,10 @@ func (sl *SkipList) FindNode(key *types.Value, opType SkipListOpType) (isSuccess
 			// check state of curr
 			if beforeLSN != afterLSN {
 				// updating is existed
-				pageId := curr.GetPageId()
 				latchOpWithOpType(curr, SKIP_LIST_UTIL_UNLATCH, opType)
-				sl.bpm.UnpinPage(pageId, false)
+				sl.bpm.UnpinPage(curr.GetPageId(), false)
 				latchOpWithOpType(pred, SKIP_LIST_UTIL_UNLATCH, opType)
-				sl.bpm.UnpinPage(pageId, false)
+				sl.bpm.UnpinPage(pred.GetPageId(), false)
 				return false, nil, nil
 			}
 			latchOpWithOpType(curr, SKIP_LIST_UTIL_UNLATCH, opType)
