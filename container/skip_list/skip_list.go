@@ -115,7 +115,11 @@ func (sl *SkipList) FindNode(key *types.Value, opType SkipListOpType) (predOfCor
 			} else {
 				pred.RLatch()
 			}
-			curr.RUnlatch()
+			if opType != SKIP_LIST_OP_GET {
+				curr.WUnlatch()
+			} else {
+				curr.RUnlatch()
+			}
 			sl.bpm.UnpinPage(curr.GetPageId(), false)
 		} else {
 			predOfCorners[ii] = skip_list_page.SkipListCornerInfo{predOfPredId, predOfPredLSN}
