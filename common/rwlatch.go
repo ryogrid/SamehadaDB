@@ -31,24 +31,49 @@ func NewRWLatch() ReaderWriterLatch {
 }
 
 func (l *readerWriterLatch) WLock() {
-	//SH_Assert(!l.writerEntered, "Writer is already locked")
-
 	l.mutex.Lock()
 }
 
 func (l *readerWriterLatch) WUnlock() {
-	//SH_Assert(l.writerEntered, "Writer is not locked")
 	l.mutex.Unlock()
 }
 
 func (l *readerWriterLatch) RLock() {
-	// SH_Assert(!l.writerEntered, "Writer is already locked")
-	// SH_Assert(l.readerCount == 0, "Reader is already locked")
 	l.mutex.RLock()
 }
 
 func (l *readerWriterLatch) RUnlock() {
-	// SH_Assert(l.readerCount != 0, "Reader is not locked")
-
 	l.mutex.RUnlock()
+}
+
+// for debug of cuncurrent code on single thread running
+type readerWriterLatchDummy struct {
+	readerCnt int32
+	writerCnt int32
+}
+
+func NewRWLatchDummy() ReaderWriterLatch {
+	latch := readerWriterLatchDummy{0, 0}
+
+	return &latch
+}
+
+func (l *readerWriterLatchDummy) WLock() {
+	l.writerCnt++
+	SH_Assert(l.writerCnt == 1, "double Write Lock!")
+}
+
+func (l *readerWriterLatchDummy) WUnlock() {
+	l.writerCnt--
+	SH_Assert(l.writerCnt == 0, "double Write Unlock!")
+}
+
+func (l *readerWriterLatchDummy) RLock() {
+	l.readerCnt++
+	SH_Assert(l.readerCnt == 1, "double Reader Lock!")
+}
+
+func (l *readerWriterLatchDummy) RUnlock() {
+	l.readerCnt--
+	SH_Assert(l.readerCnt == 0, "double Reader Unlock!")
 }
