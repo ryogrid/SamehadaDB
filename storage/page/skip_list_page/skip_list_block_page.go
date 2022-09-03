@@ -3,6 +3,7 @@ package skip_list_page
 import (
 	"bytes"
 	"encoding/binary"
+	"fmt"
 	"github.com/ryogrid/SamehadaDB/common"
 	"github.com/ryogrid/SamehadaDB/storage/buffer"
 	"github.com/ryogrid/SamehadaDB/storage/page"
@@ -412,6 +413,7 @@ func validateNoChangeAndGetLock(bpm *buffer.BufferPoolManager, checkNodes []Skip
 		prevPageId = checkNodes[ii].PageId
 	}
 
+	fmt.Printf("len(validatedNodes)=%d\n", len(validatedNodes))
 	// validation is passed
 	return true, validatedNodes
 }
@@ -730,8 +732,6 @@ func (node *SkipListBlockPage) GetSpecifiedSLPNeedSpace(slp *SkipListPair) uint3
 func (node *SkipListBlockPage) getFreeSpaceRemaining() uint32 {
 	return (node.GetFreeSpacePointer() - 1) - (offsetEntryInfos + (sizeEntryInfo * uint32(node.GetEntryCnt())) - 1)
 }
-
-// TODO: (SDB) in concurrent impl, locking in this method is needed. and caller must do unlock (FectchAndCastToBlockPage)
 
 // Attention:
 //

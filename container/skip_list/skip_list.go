@@ -109,29 +109,34 @@ func (sl *SkipList) FindNode(key *types.Value, opType SkipListOpType) (isSuccess
 			common.ShPrintf(common.DEBUG, "SkipList::FindNode: node should be removed found!\n")
 			predOfCorners[ii] = skip_list_page.SkipListCornerInfo{types.InvalidPageID, -1}
 			corners[ii] = skip_list_page.SkipListCornerInfo{predOfPredId, predOfPredLSN}
+
+			latchOpWithOpType(curr, SKIP_LIST_UTIL_UNLATCH, opType)
+			sl.bpm.UnpinPage(curr.GetPageId(), false)
+
+			// memory for checking update existence while no latch having period
+			beforeLSN := pred.GetLSN()
+			beforePredId := pred.GetPageId()
 			latchOpWithOpType(pred, SKIP_LIST_UTIL_UNLATCH, opType)
 			sl.bpm.UnpinPage(pred.GetPageId(), false)
 			// go backward for gathering appropriate corner nodes info
 			pred = skip_list_page.FetchAndCastToBlockPage(sl.bpm, predOfPredId)
-
-			// memory for checking update existence while no latch having period
-			beforeLSN := curr.GetLSN()
-			latchOpWithOpType(curr, SKIP_LIST_UTIL_UNLATCH, opType)
 			latchOpWithOpType(pred, SKIP_LIST_UTIL_GET_LATCH, opType)
+
 			// check updating occurred or not
-			latchOpWithOpType(curr, SKIP_LIST_UTIL_GET_LATCH, opType)
-			afterLSN := curr.GetLSN()
-			// check state of curr
+			beforePred := skip_list_page.FetchAndCastToBlockPage(sl.bpm, beforePredId)
+			latchOpWithOpType(beforePred, SKIP_LIST_UTIL_GET_LATCH, opType)
+			afterLSN := beforePred.GetLSN()
+			// check update state of beforePred (pred which was pred before sliding)
 			if beforeLSN != afterLSN {
-				// updating is existed
-				latchOpWithOpType(curr, SKIP_LIST_UTIL_UNLATCH, opType)
-				sl.bpm.UnpinPage(curr.GetPageId(), false)
+				// updating exists
 				latchOpWithOpType(pred, SKIP_LIST_UTIL_UNLATCH, opType)
 				sl.bpm.UnpinPage(pred.GetPageId(), false)
+				latchOpWithOpType(beforePred, SKIP_LIST_UTIL_UNLATCH, opType)
+				sl.bpm.UnpinPage(beforePred.GetPageId(), false)
 				return false, nil, nil
 			}
-			latchOpWithOpType(curr, SKIP_LIST_UTIL_UNLATCH, opType)
-			sl.bpm.UnpinPage(curr.GetPageId(), false)
+			latchOpWithOpType(beforePred, SKIP_LIST_UTIL_UNLATCH, opType)
+			sl.bpm.UnpinPage(beforePred.GetPageId(), false)
 		} else {
 			predOfCorners[ii] = skip_list_page.SkipListCornerInfo{predOfPredId, predOfPredLSN}
 			corners[ii] = skip_list_page.SkipListCornerInfo{pred.GetPageId(), pred.GetLSN()}
@@ -212,7 +217,7 @@ func (sl *SkipList) Remove(key *types.Value, value uint32) (isDeleted_ bool) {
 		// lock of node is released on Remove method
 		sl.bpm.UnpinPage(node.GetPageId(), true)
 		if isNodeShouldBeDeleted {
-			sl.bpm.DeletePage(corners[0].PageId)
+			//sl.bpm.DeletePage(corners[0].PageId)
 		}
 	}
 
