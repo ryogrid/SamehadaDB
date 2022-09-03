@@ -261,6 +261,7 @@ func (node *SkipListBlockPage) Insert(key *types.Value, value uint32, bpm *buffe
 
 		node.SetLSN(node.GetLSN() + 1)
 		node.WUnlatch()
+		bpm.UnpinPage(node.GetPageId(), true)
 		return false
 	} else if !found {
 		//fmt.Printf("not found at Insert of SkipListBlockPage. foundIdx=%d\n", foundIdx)
@@ -273,8 +274,8 @@ func (node *SkipListBlockPage) Insert(key *types.Value, value uint32, bpm *buffe
 			corners[0] = SkipListCornerInfo{node.GetPageId(), node.GetLSN()}
 
 			node.WUnlatch()
-			bpm.UnpinPage(node.GetPageId(), false)
 			isSuccess, lockedAndPinnedNodes = validateNoChangeAndGetLock(bpm, corners[:level])
+			bpm.UnpinPage(node.GetPageId(), false)
 			if !isSuccess {
 				// already released lock of this node
 				return true
@@ -306,7 +307,8 @@ func (node *SkipListBlockPage) Insert(key *types.Value, value uint32, bpm *buffe
 			}
 
 			newNode.WUnlatch()
-			bpm.UnpinPage(node.GetPageId(), true)
+			bpm.UnpinPage(newNode.GetPageId(), true)
+			//bpm.UnpinPage(node.GetPageId(), true)
 
 			// insert to this node
 		}
@@ -463,6 +465,9 @@ func (node *SkipListBlockPage) Remove(bpm *buffer.BufferPoolManager, key *types.
 
 		unlockAndUnpinNodes(bpm, lockedAndPinnedNodes, true)
 
+		// because WUnlatch is already called but pin is not released
+		bpm.UnpinPage(node.GetPageId(), true)
+
 		return true, true, false
 	} else if found {
 		if !node.GetEntry(int(foundIdx), key.ValueType()).Key.CompareEquals(*key) {
@@ -473,9 +478,11 @@ func (node *SkipListBlockPage) Remove(bpm *buffer.BufferPoolManager, key *types.
 
 		node.SetLSN(node.GetLSN() + 1)
 		node.WUnlatch()
+		bpm.UnpinPage(node.GetPageId(), true)
 		return false, true, false
 	} else { // found == false
 		node.WUnlatch()
+		bpm.UnpinPage(node.GetPageId(), true)
 		// do nothing
 		return false, false, false
 	}
