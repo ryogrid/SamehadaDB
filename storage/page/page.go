@@ -33,7 +33,7 @@ type Page struct {
 func (p *Page) IncPinCount() {
 	p.pinCount++
 	//// TODO: (SDB) debug print
-	//fmt.Printf("pinCount of page-%d: %d", p.GetPageId(), p.pinCount)
+	common.ShPrintf(common.DEBUG, "pinCount of page-%d at IncPinCount: %d\n", p.GetPageId(), p.pinCount)
 	//common.RuntimeStack()
 }
 
@@ -42,6 +42,8 @@ func (p *Page) DecPinCount() {
 	if p.pinCount > 0 {
 		p.pinCount--
 	}
+	//// TODO: (SDB) debug print
+	common.ShPrintf(common.DEBUG, "pinCount of page-%d at DecPinCount: %d\n", p.GetPageId(), p.pinCount)
 }
 
 // PinCount retunds the pin count

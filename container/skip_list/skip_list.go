@@ -169,6 +169,7 @@ func (sl *SkipList) FindNodeWithEntryIdxForItr(key *types.Value) (isSuccess_ boo
 }
 
 func (sl *SkipList) GetValue(key *types.Value) uint32 {
+	common.ShPrintf(common.DEBUG, "call SkipList::GetValue\n")
 	_, _, corners := sl.FindNode(key, SKIP_LIST_OP_GET)
 	node := skip_list_page.FetchAndCastToBlockPage(sl.bpm, corners[0].PageId)
 	// locking is not needed because already have lock with FindNode method call
@@ -184,6 +185,7 @@ func (sl *SkipList) GetValue(key *types.Value) uint32 {
 }
 
 func (sl *SkipList) Insert(key *types.Value, value uint32) (err error) {
+	common.ShPrintf(common.DEBUG, "call SkipList::Insert\n")
 	isNeedRetry := true
 
 	for isNeedRetry {
@@ -205,6 +207,7 @@ func (sl *SkipList) Insert(key *types.Value, value uint32) (err error) {
 }
 
 func (sl *SkipList) Remove(key *types.Value, value uint32) (isDeleted_ bool) {
+	common.ShPrintf(common.DEBUG, "call SkipList::Remove\n")
 	isNodeShouldBeDeleted := false
 	isDeleted := false
 	isNeedRetry := true

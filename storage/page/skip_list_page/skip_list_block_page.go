@@ -270,6 +270,8 @@ func (node *SkipListBlockPage) Insert(key *types.Value, value uint32, bpm *buffe
 
 			// first, split this node at center of entry list
 
+			common.ShPrintf(common.DEBUG, "SkipListBlockPage::Insert: node split occured!\n")
+
 			// set this node as corner node of level-1
 			corners[0] = SkipListCornerInfo{node.GetPageId(), node.GetLSN()}
 
@@ -435,7 +437,7 @@ func (node *SkipListBlockPage) Remove(bpm *buffer.BufferPoolManager, key *types.
 			panic("removing wrong entry!")
 		}
 
-		common.ShPrintf(common.DEBUG, "node remove occured!\n")
+		common.ShPrintf(common.DEBUG, "SkipListBlockPage::Remove: node remove occured!\n")
 
 		updateLen := int(node.GetLevel())
 
