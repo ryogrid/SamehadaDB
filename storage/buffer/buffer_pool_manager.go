@@ -14,7 +14,7 @@ import (
 	"github.com/ryogrid/SamehadaDB/types"
 )
 
-//BufferPoolManager represents the buffer pool manager
+// BufferPoolManager represents the buffer pool manager
 type BufferPoolManager struct {
 	diskManager disk.DiskManager
 	pages       []*page.Page
@@ -251,7 +251,7 @@ func (b *BufferPoolManager) GetPoolSize() int {
 	return len(b.pageTable)
 }
 
-//NewBufferPoolManager returns a empty buffer pool manager
+// NewBufferPoolManager returns a empty buffer pool manager
 func NewBufferPoolManager(poolSize uint32, DiskManager disk.DiskManager, log_manager *recovery.LogManager) *BufferPoolManager {
 	freeList := make([]FrameID, poolSize)
 	pages := make([]*page.Page, poolSize)

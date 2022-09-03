@@ -163,7 +163,7 @@ func (sl *SkipList) FindNodeWithEntryIdxForItr(key *types.Value) (isSuccess_ boo
 	node := skip_list_page.FetchAndCastToBlockPage(sl.bpm, corners[0].PageId)
 	// locking is not needed because already have lock with FindNode method call
 	_, _, idx := node.FindEntryByKey(key)
-	// this unpin is needed before fetched already pinned node
+	// this unpin is needed because node is already pinned at FindNode
 	sl.bpm.UnpinPage(node.GetPageId(), false)
 	return true, idx, predOfCorners, corners
 }
@@ -174,6 +174,7 @@ func (sl *SkipList) GetValue(key *types.Value) uint32 {
 	// locking is not needed because already have lock with FindNode method call
 	found, entry, _ := node.FindEntryByKey(key)
 	node.RUnlatch()
+	sl.bpm.UnpinPage(node.GetPageId(), false)
 	sl.bpm.UnpinPage(node.GetPageId(), false)
 	if found {
 		return entry.Value
@@ -188,6 +189,7 @@ func (sl *SkipList) Insert(key *types.Value, value uint32) (err error) {
 	for isNeedRetry {
 		isSuccess, _, corners := sl.FindNode(key, SKIP_LIST_OP_INSERT)
 		if !isSuccess {
+			// when isSuccess == false, all latch and pin is released already
 			continue
 		}
 		levelWhenNodeSplitOccur := sl.GetNodeLevel()

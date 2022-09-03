@@ -445,7 +445,7 @@ func (node *SkipListBlockPage) Remove(bpm *buffer.BufferPoolManager, key *types.
 		node.WUnlatch()
 		isSuccess, lockedAndPinnedNodes := validateNoChangeAndGetLock(bpm, checkNodes)
 		if !isSuccess {
-			// already released lock of this node
+			// already released all lock and pin which includes this node
 			return false, false, true
 		}
 

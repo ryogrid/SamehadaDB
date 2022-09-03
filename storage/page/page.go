@@ -29,9 +29,12 @@ type Page struct {
 	rwlatch_ common.ReaderWriterLatch
 }
 
-// IncPinCount decrements pin count
+// IncPinCount increments pin count
 func (p *Page) IncPinCount() {
 	p.pinCount++
+	//// TODO: (SDB) debug print
+	//fmt.Printf("pinCount of page-%d: %d", p.GetPageId(), p.pinCount)
+	//common.RuntimeStack()
 }
 
 // DecPinCount decrements pin count
