@@ -4,6 +4,7 @@
 package common
 
 import (
+	"fmt"
 	"math"
 	"sync"
 )
@@ -60,20 +61,37 @@ func NewRWLatchDummy() ReaderWriterLatch {
 
 func (l *readerWriterLatchDummy) WLock() {
 	l.writerCnt++
-	SH_Assert(l.writerCnt == 1, "double Write Lock!")
+
+	if l.writerCnt != 1 {
+		fmt.Printf("readerCnt: %d, writerCnt: %d\n", l.readerCnt, l.writerCnt)
+		panic("double Write Lock!")
+	}
 }
 
 func (l *readerWriterLatchDummy) WUnlock() {
 	l.writerCnt--
-	SH_Assert(l.writerCnt == 0, "double Write Unlock!")
+
+	if l.writerCnt != 0 {
+		fmt.Printf("readerCnt: %d, writerCnt: %d\n", l.readerCnt, l.writerCnt)
+		panic("double Write Unlock!")
+	}
 }
 
 func (l *readerWriterLatchDummy) RLock() {
 	l.readerCnt++
-	SH_Assert(l.readerCnt == 1, "double Reader Lock!")
+
+	if l.readerCnt != 1 {
+		fmt.Printf("readerCnt: %d, writerCnt: %d\n", l.readerCnt, l.writerCnt)
+		panic("double Reader Lock!")
+	}
+
 }
 
 func (l *readerWriterLatchDummy) RUnlock() {
 	l.readerCnt--
-	SH_Assert(l.readerCnt == 0, "double Reader Unlock!")
+
+	if l.readerCnt != 0 {
+		fmt.Printf("readerCnt: %d, writerCnt: %d\n", l.readerCnt, l.writerCnt)
+		panic("double Reader Unlock!")
+	}
 }
