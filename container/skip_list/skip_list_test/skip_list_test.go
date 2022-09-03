@@ -392,14 +392,15 @@ func TestSkipListInsertAndDeleteAll(t *testing.T) {
 	os.Remove("test.db")
 	os.Remove("test.log")
 
-	shi := samehada.NewSamehadaInstance("test", 100)
+	//shi := samehada.NewSamehadaInstance("test", 100)
+	shi := samehada.NewSamehadaInstance("test", 5)
 	sl := skip_list.NewSkipList(shi.GetBufferPoolManager(), types.Integer)
 
 	// override global rand seed (seed has been set on NewSkipList)
 	rand.Seed(3)
 
 	insVals := make([]int32, 0)
-	for i := 0; i < 2000; i++ {
+	for i := 0; i < 5000; i++ {
 		insVals = append(insVals, int32(i*11))
 	}
 	// shuffle value list for inserting
@@ -418,7 +419,7 @@ func TestSkipListInsertAndDeleteAll(t *testing.T) {
 	//confirmSkipListContent(t, sl, 11)
 
 	// Get entries
-	for i := 0; i < 2000; i++ {
+	for i := 0; i < 5000; i++ {
 		//fmt.Printf("get entry i=%d key=%d\n", i, i*11)
 		res := sl.GetValue(samehada_util.GetPonterOfValue(types.NewInteger(int32(i * 11))))
 		if res == math.MaxUint32 {
@@ -429,7 +430,7 @@ func TestSkipListInsertAndDeleteAll(t *testing.T) {
 	}
 
 	// delete all values
-	for i := (2000 - 1); i >= 0; i-- {
+	for i := (5000 - 1); i >= 0; i-- {
 		// delete
 		isDeleted := sl.Remove(samehada_util.GetPonterOfValue(types.NewInteger(int32(i*11))), uint32(i*11))
 		common.ShPrintf(common.DEBUG, "i=%d i*11=%d\n", i, i*11)
@@ -452,7 +453,7 @@ func TestSkipListInsertAndDeleteAll(t *testing.T) {
 	}
 
 	// Get entries
-	for i := 0; i < 2000; i++ {
+	for i := 0; i < 5000; i++ {
 		//fmt.Printf("get entry i=%d key=%d\n", i, i*11)
 		res := sl.GetValue(samehada_util.GetPonterOfValue(types.NewInteger(int32(i * 11))))
 		if res == math.MaxUint32 {
@@ -463,7 +464,7 @@ func TestSkipListInsertAndDeleteAll(t *testing.T) {
 	}
 
 	// delete all values
-	for i := 0; i < 2000; i++ {
+	for i := 0; i < 5000; i++ {
 		// delete
 		isDeleted := sl.Remove(samehada_util.GetPonterOfValue(types.NewInteger(int32(i*11))), uint32(i*11))
 		common.ShPrintf(common.DEBUG, "i=%d i*11=%d\n", i, i*11)

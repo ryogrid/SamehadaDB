@@ -3,7 +3,6 @@ package skip_list_page
 import (
 	"bytes"
 	"encoding/binary"
-	"fmt"
 	"github.com/ryogrid/SamehadaDB/common"
 	"github.com/ryogrid/SamehadaDB/storage/buffer"
 	"github.com/ryogrid/SamehadaDB/storage/page"
@@ -417,7 +416,7 @@ func validateNoChangeAndGetLock(bpm *buffer.BufferPoolManager, checkNodes []Skip
 		prevPageId = checkNodes[ii].PageId
 	}
 
-	fmt.Printf("len(validatedNodes)=%d\n", len(validatedNodes))
+	common.ShPrintf(common.DEBUG, "len(validatedNodes)=%d\n", len(validatedNodes))
 	// validation is passed
 	return true, validatedNodes
 }
