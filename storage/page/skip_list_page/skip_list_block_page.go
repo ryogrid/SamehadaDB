@@ -413,10 +413,16 @@ func validateNoChangeAndGetLock(bpm *buffer.BufferPoolManager, checkNodes []Skip
 }
 
 func unlockAndUnpinNodes(bpm *buffer.BufferPoolManager, checkedNodes []*SkipListBlockPage, isDirty bool) {
-	for _, node := range checkedNodes {
-		pageId := node.GetPageId()
-		node.WUnlatch()
-		bpm.UnpinPage(pageId, isDirty)
+	prevPageId := types.InvalidPageID
+	for _, curNode := range checkedNodes {
+		curPageId := curNode.GetPageId()
+		if curPageId == prevPageId {
+			// relase is not needed because it has been already done
+			continue
+		}
+		prevPageId = curPageId
+		curNode.WUnlatch()
+		bpm.UnpinPage(curPageId, isDirty)
 	}
 }
 
@@ -498,9 +504,16 @@ func (node *SkipListBlockPage) SplitNode(idx int32, bpm *buffer.BufferPoolManage
 	}
 
 	// release latches and pins except current updating node ("node" receiver object)
-	curNodeId := node.GetPageId()
+	modNodeId := node.GetPageId()
+	prevPageId := types.InvalidPageID
 	for ii := len(lockedAndPinnedNodes) - 1; ii > 0; ii-- {
-		if lockedAndPinnedNodes[ii].GetPageId() != curNodeId {
+		curPageId := lockedAndPinnedNodes[ii].GetPageId()
+		if curPageId == prevPageId {
+			// relase is not needed because it has been already done
+			continue
+		}
+		if curPageId != modNodeId {
+			prevPageId = lockedAndPinnedNodes[ii].GetPageId()
 			lockedAndPinnedNodes[ii].WUnlatch()
 			bpm.UnpinPage(lockedAndPinnedNodes[ii].GetPageId(), true)
 		}
