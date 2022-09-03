@@ -283,7 +283,7 @@ func (node *SkipListBlockPage) Insert(key *types.Value, value uint32, bpm *buffe
 			splitIdx = node.GetEntryCnt() / 2
 
 			newNode := node.SplitNode(splitIdx, bpm, corners, level, key.ValueType(), lockedAndPinnedNodes)
-			// keep having Wlatch and pin of newNode and this node here
+			// keep having Wlatch and pin of newNode and this node only here
 
 			if foundIdx > splitIdx {
 				// insert to new node
@@ -478,6 +478,9 @@ func (node *SkipListBlockPage) Remove(bpm *buffer.BufferPoolManager, key *types.
 // split entries of node at entry specified with idx arg
 // new node contains entries node.entries[idx+1:]
 // (new node does not include entry node.entries[idx])
+// ATTENTION:
+// after this method call current thread hold wlatch of "node" and newNode only
+// and these are pinned
 func (node *SkipListBlockPage) SplitNode(idx int32, bpm *buffer.BufferPoolManager, corners []SkipListCornerInfo,
 	level int32, keyType types.TypeID, lockedAndPinnedNodes []*SkipListBlockPage) (newNode_ *SkipListBlockPage) {
 	//fmt.Println("<<<<<<<<<<<<<<<<<<<<<<<< SplitNode called! >>>>>>>>>>>>>>>>>>>>>>>>>>>>>>")
@@ -494,17 +497,20 @@ func (node *SkipListBlockPage) SplitNode(idx int32, bpm *buffer.BufferPoolManage
 		bpm.UnpinPage(tmpNode.GetPageId(), true)
 	}
 
+	curNodeId := node.GetPageId()
 	// release latches and pins except these of level-1 node (this node)
 	for ii := len(lockedAndPinnedNodes) - 1; ii > 0; ii-- {
-		lockedAndPinnedNodes[ii].WUnlatch()
-		bpm.UnpinPage(lockedAndPinnedNodes[ii].GetPageId(), true)
+		if lockedAndPinnedNodes[ii].GetPageId() != curNodeId {
+			// unlatch except current updating node
+			lockedAndPinnedNodes[ii].WUnlatch()
+			bpm.UnpinPage(lockedAndPinnedNodes[ii].GetPageId(), true)
+		}
 	}
 
 	newNode.SetEntries(node.GetEntries(keyType)[idx+1:])
 	newNode.SetLevel(level)
 	node.SetEntries(node.GetEntries(keyType)[:idx+1])
 
-	//bpm.UnpinPage(newNode.GetPageId(), true)
 	return newNode
 }
 
