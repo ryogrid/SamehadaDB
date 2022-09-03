@@ -83,10 +83,10 @@ func New(id types.PageID, isDirty bool, data *[common.PageSize]byte) *Page {
 
 // New creates a new empty page
 func NewEmpty(id types.PageID) *Page {
-	//return &Page{id, uint32(1), false, &[common.PageSize]byte{}, common.NewRWLatch()}
+	return &Page{id, uint32(1), false, &[common.PageSize]byte{}, common.NewRWLatch()}
 
-	// TODO: (SDB) replaced to dummy for concurrent skip list debug with single thread
-	return &Page{id, uint32(1), false, &[common.PageSize]byte{}, common.NewRWLatchDummy()}
+	//// dummy for concurrent skip list debug with single thread
+	//return &Page{id, uint32(1), false, &[common.PageSize]byte{}, common.NewRWLatchDummy()}
 }
 
 /** @return the page LSN. */
