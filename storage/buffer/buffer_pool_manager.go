@@ -62,6 +62,7 @@ func (b *BufferPoolManager) FetchPage(pageID types.PageID) *page.Page {
 		b.mutex.Unlock()
 	}
 
+	b.mutex.Lock()
 	data := make([]byte, common.PageSize)
 	err := b.diskManager.ReadPage(pageID, data)
 	if err != nil {
@@ -71,7 +72,6 @@ func (b *BufferPoolManager) FetchPage(pageID types.PageID) *page.Page {
 	var pageData [common.PageSize]byte
 	copy(pageData[:], data)
 	pg := page.New(pageID, false, &pageData)
-	b.mutex.Lock()
 	b.pageTable[pageID] = *frameID
 	b.pages[*frameID] = pg
 	b.mutex.Unlock()
