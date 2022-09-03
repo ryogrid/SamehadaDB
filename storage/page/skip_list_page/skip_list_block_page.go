@@ -393,7 +393,7 @@ func validateNoChangeAndGetLock(bpm *buffer.BufferPoolManager, checkNodes []Skip
 		}
 
 		// check whether update counter is not changed
-		if prevPageId == node.GetPageId() {
+		if node.GetPageId() == prevPageId {
 			// unpin because fetched same page
 			bpm.UnpinPage(node.GetPageId(), true)
 			isPassed = true
@@ -509,6 +509,7 @@ func (node *SkipListBlockPage) SplitNode(idx int32, bpm *buffer.BufferPoolManage
 		newNode.SetForwardEntry(ii, tmpNode.GetForwardEntry(ii))
 		tmpNode.SetForwardEntry(ii, newNode.GetPageId())
 		tmpNode.SetLSN(tmpNode.GetLSN() + 1)
+		bpm.UnpinPage(tmpNode.GetPageId(), true)
 	}
 
 	// release latches and pins except current updating node ("node" receiver object)
