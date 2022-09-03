@@ -35,6 +35,8 @@ func TestTableCatalogReload(t *testing.T) {
 	catalog_old.CreateTable("test_1", schema_, txn)
 	bpm.FlushAllPages()
 
+	samehada_instance.CloseFilesForTesting()
+
 	fmt.Println("Shutdown system...")
 
 	samehada_instance_new := samehada.NewSamehadaInstanceForTesting()
@@ -48,5 +50,5 @@ func TestTableCatalogReload(t *testing.T) {
 	testingpkg.Assert(t, columnToCheck.GetType() == 4, "")
 	testingpkg.Assert(t, columnToCheck.HasIndex() == true, "")
 
-	samehada_instance.Shutdown(true)
+	//samehada_instance.Shutdown(true)
 }

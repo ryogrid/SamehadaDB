@@ -1102,31 +1102,31 @@ func testSkipListInsertGetOdd(t *testing.T, sl *skip_list.SkipList, ch chan stri
 	ch <- ""
 }
 
-func TestSkipListParallelSimpleInteger(t *testing.T) {
-	os.Remove("test.db")
-	os.Remove("test.log")
-
-	//shi := samehada.NewSamehadaInstance("test", 400)
-	shi := samehada.NewSamehadaInstance("test", 30)
-	bpm := shi.GetBufferPoolManager()
-	sl := skip_list.NewSkipList(bpm, types.Integer)
-
-	//var wg sync.WaitGroup
-	//wg.Add(2)
-
-	ch1 := make(chan string)
-	ch2 := make(chan string)
-
-	go testSkipListInsertGetEven(t, sl, ch1)
-	go testSkipListInsertGetOdd(t, sl, ch2)
-
-	//wg.Wait()
-	ch1Ret := <-ch1
-	t.Logf("%s\n", ch1Ret)
-	t.Logf("ch1 received\n")
-	ch2Ret := <-ch2
-	t.Logf("%s\n", ch2Ret)
-	t.Logf("ch2 received\n")
-
-	shi.CloseFilesForTesting()
-}
+//func TestSkipListParallelSimpleInteger(t *testing.T) {
+//	os.Remove("test.db")
+//	os.Remove("test.log")
+//
+//	//shi := samehada.NewSamehadaInstance("test", 400)
+//	shi := samehada.NewSamehadaInstance("test", 30)
+//	bpm := shi.GetBufferPoolManager()
+//	sl := skip_list.NewSkipList(bpm, types.Integer)
+//
+//	//var wg sync.WaitGroup
+//	//wg.Add(2)
+//
+//	ch1 := make(chan string)
+//	ch2 := make(chan string)
+//
+//	go testSkipListInsertGetEven(t, sl, ch1)
+//	go testSkipListInsertGetOdd(t, sl, ch2)
+//
+//	//wg.Wait()
+//	ch1Ret := <-ch1
+//	t.Logf("%s\n", ch1Ret)
+//	t.Logf("ch1 received\n")
+//	ch2Ret := <-ch2
+//	t.Logf("%s\n", ch2Ret)
+//	t.Logf("ch2 received\n")
+//
+//	shi.CloseFilesForTesting()
+//}
