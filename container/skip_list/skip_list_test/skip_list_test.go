@@ -1072,6 +1072,61 @@ func TestSkipListMixVarchar(t *testing.T) {
 	testSkipListMixRoot[string](t, types.Varchar)
 }
 
-func TestSkipListMixParallelInteger(t *testing.T) {
-	testSkipListMixParallelRoot[int32](t, types.Integer)
+//func TestSkipListMixParallelInteger(t *testing.T) {
+//	testSkipListMixParallelRoot[int32](t, types.Integer)
+//}
+
+func testSkipListInsertGetEven(t *testing.T, sl *skip_list.SkipList, ch chan string) {
+	for ii := int32(0); ii < 1000; ii = ii + 2 {
+		sl.Insert(samehada_util.GetPonterOfValue(types.NewInteger(ii)), uint32(ii))
+		gotVal := sl.GetValue(samehada_util.GetPonterOfValue(types.NewInteger(ii)))
+		if gotVal == math.MaxUint32 {
+			t.Fail()
+			fmt.Printf("value %d is not found!\n", ii)
+			panic("inserted value not found!")
+		}
+	}
+	fmt.Println("even finished.")
+	ch <- ""
+}
+
+func testSkipListInsertGetOdd(t *testing.T, sl *skip_list.SkipList, ch chan string) {
+	for ii := int32(1); ii < 1000; ii = ii + 2 {
+		sl.Insert(samehada_util.GetPonterOfValue(types.NewInteger(ii)), uint32(ii))
+		gotVal := sl.GetValue(samehada_util.GetPonterOfValue(types.NewInteger(ii)))
+		if gotVal == math.MaxUint32 {
+			fmt.Printf("value %d is not found!\n", ii)
+		}
+	}
+	fmt.Println("odd finished.")
+	ch <- ""
+}
+
+func TestSkipListParallelSimpleInteger(t *testing.T) {
+	os.Remove("test.db")
+	os.Remove("test.log")
+
+	//shi := samehada.NewSamehadaInstance("test", 400)
+	shi := samehada.NewSamehadaInstance("test", 30)
+	bpm := shi.GetBufferPoolManager()
+	sl := skip_list.NewSkipList(bpm, types.Integer)
+
+	//var wg sync.WaitGroup
+	//wg.Add(2)
+
+	ch1 := make(chan string)
+	ch2 := make(chan string)
+
+	go testSkipListInsertGetEven(t, sl, ch1)
+	go testSkipListInsertGetOdd(t, sl, ch2)
+
+	//wg.Wait()
+	ch1Ret := <-ch1
+	t.Logf("%s\n", ch1Ret)
+	t.Logf("ch1 received\n")
+	ch2Ret := <-ch2
+	t.Logf("%s\n", ch2Ret)
+	t.Logf("ch2 received\n")
+
+	shi.CloseFilesForTesting()
 }
