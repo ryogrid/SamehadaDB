@@ -494,14 +494,13 @@ func (node *SkipListBlockPage) SplitNode(idx int32, bpm *buffer.BufferPoolManage
 		newNode.SetForwardEntry(ii, tmpNode.GetForwardEntry(ii))
 		tmpNode.SetForwardEntry(ii, newNode.GetPageId())
 		tmpNode.SetLSN(tmpNode.GetLSN() + 1)
-		bpm.UnpinPage(tmpNode.GetPageId(), true)
+		//bpm.UnpinPage(tmpNode.GetPageId(), true)
 	}
 
+	// release latches and pins except current updating node ("node" receiver object)
 	curNodeId := node.GetPageId()
-	// release latches and pins except these of level-1 node (this node)
 	for ii := len(lockedAndPinnedNodes) - 1; ii > 0; ii-- {
 		if lockedAndPinnedNodes[ii].GetPageId() != curNodeId {
-			// unlatch except current updating node
 			lockedAndPinnedNodes[ii].WUnlatch()
 			bpm.UnpinPage(lockedAndPinnedNodes[ii].GetPageId(), true)
 		}
