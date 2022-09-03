@@ -15,7 +15,7 @@ import (
 	"github.com/ryogrid/SamehadaDB/types"
 )
 
-//DiskManagerImpl is the disk implementation of DiskManager
+// DiskManagerImpl is the disk implementation of DiskManager
 type DiskManagerImpl struct {
 	db           *os.File
 	fileName     string
@@ -90,6 +90,7 @@ func (d *DiskManagerImpl) WritePage(pageId types.PageID, pageData []byte) error 
 	d.db.Seek(offset, io.SeekStart)
 	bytesWritten, err := d.db.Write(pageData)
 	if err != nil {
+		fmt.Println(err)
 		panic("WritePge: d.db.Write returns err!")
 		//return err
 	}
@@ -135,7 +136,7 @@ func (d *DiskManagerImpl) ReadPage(pageID types.PageID, pageData []byte) error {
 	return nil
 }
 
-//  AllocatePage allocates a new page
+// AllocatePage allocates a new page
 func (d *DiskManagerImpl) AllocatePage() types.PageID {
 	ret := d.nextPageID
 
