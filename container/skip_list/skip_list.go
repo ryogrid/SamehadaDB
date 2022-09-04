@@ -177,7 +177,7 @@ func (sl *SkipList) FindNodeWithEntryIdxForItr(key *types.Value) (isSuccess_ boo
 }
 
 func (sl *SkipList) GetValue(key *types.Value) uint32 {
-	common.ShPrintf(common.DEBUG, "call SkipList::GetValue\n")
+	common.ShPrintf(common.DEBUG, "SkipList::GetValue: start. key=%d\n", key.ToInteger())
 	_, _, corners := sl.FindNode(key, SKIP_LIST_OP_GET)
 	node := skip_list_page.FetchAndCastToBlockPage(sl.bpm, corners[0].PageId)
 	// locking is not needed because already have lock with FindNode method call
@@ -185,6 +185,8 @@ func (sl *SkipList) GetValue(key *types.Value) uint32 {
 	node.RUnlatch()
 	sl.bpm.UnpinPage(node.GetPageId(), false)
 	sl.bpm.UnpinPage(node.GetPageId(), false)
+
+	common.ShPrintf(common.DEBUG, "SkipList::GetValue: finish. key=%d\n", key.ToInteger())
 	if found {
 		return entry.Value
 	} else {
@@ -193,13 +195,14 @@ func (sl *SkipList) GetValue(key *types.Value) uint32 {
 }
 
 func (sl *SkipList) Insert(key *types.Value, value uint32) (err error) {
-	common.ShPrintf(common.DEBUG, "call SkipList::Insert\n")
+	common.ShPrintf(common.DEBUG, "SkipList::Insert: start. key=%d\n", key.ToInteger())
 	isNeedRetry := true
 
 	for isNeedRetry {
 		isSuccess, _, corners := sl.FindNode(key, SKIP_LIST_OP_INSERT)
 		if !isSuccess {
 			// when isSuccess == false, all latch and pin is released already
+			common.ShPrintf(common.DEBUG, "SkipList::Insert: retry. key=%d\n", key.ToInteger())
 			continue
 		}
 		levelWhenNodeSplitOccur := sl.GetNodeLevel()
@@ -211,11 +214,12 @@ func (sl *SkipList) Insert(key *types.Value, value uint32) (err error) {
 		sl.bpm.UnpinPage(node.GetPageId(), true)
 	}
 
+	common.ShPrintf(common.DEBUG, "SkipList::Insert: finish. key=%d\n", key.ToInteger())
 	return nil
 }
 
 func (sl *SkipList) Remove(key *types.Value, value uint32) (isDeleted_ bool) {
-	common.ShPrintf(common.DEBUG, "call SkipList::Remove\n")
+	common.ShPrintf(common.DEBUG, "SkipList::Remove: start. key=%d\n", key.ToInteger())
 	isNodeShouldBeDeleted := false
 	isDeleted := false
 	isNeedRetry := true
@@ -236,6 +240,7 @@ func (sl *SkipList) Remove(key *types.Value, value uint32) (isDeleted_ bool) {
 		}
 	}
 
+	common.ShPrintf(common.DEBUG, "SkipList::Remove: finish. key=%d\n", key.ToInteger())
 	return isDeleted
 }
 
