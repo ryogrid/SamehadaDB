@@ -409,17 +409,17 @@ func validateNoChangeAndGetLock(bpm *buffer.BufferPoolManager, checkNodes []Skip
 			node.WLatch()
 		}
 
+		if !isPassed {
+			tmpNodes := make([]*SkipListBlockPage, 0)
+			tmpNodes = append(tmpNodes, node)
+			validatedNodes = append(tmpNodes, validatedNodes...)
+		}
+
 		// LSN is used for update counter
 		if node.GetLSN() != checkNodes[ii].UpdateCounter {
 			common.ShPrintf(common.DEBUG, "validateNoChangeAndGetLock: validation is NG: go retry. len(validatedNodes)=%d\n", len(validatedNodes))
 			unlockAndUnpinNodes(bpm, validatedNodes, false)
 			return false, nil
-		}
-
-		if !isPassed {
-			tmpNodes := make([]*SkipListBlockPage, 0)
-			tmpNodes = append(tmpNodes, node)
-			validatedNodes = append(tmpNodes, validatedNodes...)
 		}
 
 		prevPageId = checkNodes[ii].PageId

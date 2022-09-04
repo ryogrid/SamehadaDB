@@ -83,10 +83,10 @@ func New(id types.PageID, isDirty bool, data *[common.PageSize]byte) *Page {
 
 // New creates a new empty page
 func NewEmpty(id types.PageID) *Page {
-	//return &Page{id, uint32(1), false, &[common.PageSize]byte{}, common.NewRWLatch()}
+	return &Page{id, uint32(1), false, &[common.PageSize]byte{}, common.NewRWLatch()}
 
-	// TODO: (SDB) customized RWMutex for concurrent skip list debug
-	return &Page{id, uint32(1), false, &[common.PageSize]byte{}, common.NewRWLatchDebug()}
+	//// TODO: (SDB) customized RWMutex for concurrent skip list debug
+	//return &Page{id, uint32(1), false, &[common.PageSize]byte{}, common.NewRWLatchDebug()}
 }
 
 /** @return the page LSN. */
@@ -112,14 +112,19 @@ func (p *Page) GetData() *[common.PageSize]byte {
 func (p *Page) WLatch() {
 	// common.SH_Assert(!p.rwlatch_.IsWriteLocked(), "Page is already write locked")
 	// fmt.Printf("Page::WLatch: page address %p\n", p)
-	common.ShPrintf(common.DEBUG, "pageId=%d ", p.GetPageId())
+	if common.EnableDebug {
+		common.ShPrintf(common.DEBUG, "pageId=%d ", p.GetPageId())
+	}
+
 	p.rwlatch_.WLock()
 }
 
 /** Release the page write latch. */
 func (p *Page) WUnlatch() {
 	// fmt.Printf("Page::WUnlatch: page address %p\n", p)
-	common.ShPrintf(common.DEBUG, "pageId=%d ", p.GetPageId())
+	if common.EnableDebug {
+		common.ShPrintf(common.DEBUG, "pageId=%d ", p.GetPageId())
+	}
 	p.rwlatch_.WUnlock()
 }
 
@@ -127,19 +132,25 @@ func (p *Page) WUnlatch() {
 func (p *Page) RLatch() {
 	//common.SH_Assert(!p.rwlatch_.IsReadLocked(), "Page is already read locked")
 	// fmt.Printf("Page::RLatch: page address %p\n", p)
-	common.ShPrintf(common.DEBUG, "pageId=%d ", p.GetPageId())
+	if common.EnableDebug {
+		common.ShPrintf(common.DEBUG, "pageId=%d ", p.GetPageId())
+	}
 	p.rwlatch_.RLock()
 }
 
 /** Release the page read latch. */
 func (p *Page) RUnlatch() {
 	// fmt.Printf("Page::RUnlatch: page address %p\n", p)
-	common.ShPrintf(common.DEBUG, "pageId=%d ", p.GetPageId())
+	if common.EnableDebug {
+		common.ShPrintf(common.DEBUG, "pageId=%d ", p.GetPageId())
+	}
 	p.rwlatch_.RUnlock()
 }
 
 func (p *Page) PrintMutexDebugInfo() {
-	common.ShPrintf(common.DEBUG, "pageId=%d ", p.GetPageId())
+	if common.EnableDebug {
+		common.ShPrintf(common.DEBUG, "pageId=%d ", p.GetPageId())
+	}
 	p.rwlatch_.PrintDebugInfo()
 }
 
