@@ -64,7 +64,9 @@ func latchOpWithOpType(node *skip_list_page.SkipListBlockPage, getOrUnlatch Latc
 // ATTENTION:
 // this method returns with keep having RLatch or WLatch of corners_[0] and not Unping corners_[0]
 func (sl *SkipList) FindNode(key *types.Value, opType SkipListOpType) (isSuccess bool, predOfCorners_ []skip_list_page.SkipListCornerInfo, corners_ []skip_list_page.SkipListCornerInfo) {
-	common.ShPrintf(common.DEBUG, "FindNode: start. key=%d opType=%d\n", key.ToInteger(), opType)
+	if common.EnableDebug {
+		common.ShPrintf(common.DEBUG, "FindNode: start. key=%d opType=%d\n", key.ToInteger(), opType)
+	}
 
 	headerPage := skip_list_page.FetchAndCastToHeaderPage(sl.bpm, sl.headerPageID)
 	startPageId := headerPage.GetListStartPageId()
@@ -153,11 +155,13 @@ func (sl *SkipList) FindNode(key *types.Value, opType SkipListOpType) (isSuccess
 
 	//common.ShPrintf(common.DEBUG, "SkipList::FindNode: moveCnt=%d\n", moveCnt)
 
-	common.ShPrintf(common.DEBUG, "FindNode: finished without rety. key=%d opType=%d\n", key.ToInteger(), opType)
-	common.ShPrintf(common.DEBUG, "pred: ")
-	pred.PrintMutexDebugInfo()
-	common.ShPrintf(common.DEBUG, "curr: ")
-	curr.PrintMutexDebugInfo()
+	if common.EnableDebug {
+		common.ShPrintf(common.DEBUG, "FindNode: finished without rety. key=%d opType=%d\n", key.ToInteger(), opType)
+		common.ShPrintf(common.DEBUG, "pred: ")
+		pred.PrintMutexDebugInfo()
+		common.ShPrintf(common.DEBUG, "curr: ")
+		curr.PrintMutexDebugInfo()
+	}
 
 	return true, predOfCorners, corners
 }
@@ -177,7 +181,9 @@ func (sl *SkipList) FindNodeWithEntryIdxForItr(key *types.Value) (isSuccess_ boo
 }
 
 func (sl *SkipList) GetValue(key *types.Value) uint32 {
-	common.ShPrintf(common.DEBUG, "SkipList::GetValue: start. key=%d\n", key.ToInteger())
+	if common.EnableDebug {
+		common.ShPrintf(common.DEBUG, "SkipList::GetValue: start. key=%d\n", key.ToInteger())
+	}
 	_, _, corners := sl.FindNode(key, SKIP_LIST_OP_GET)
 	node := skip_list_page.FetchAndCastToBlockPage(sl.bpm, corners[0].PageId)
 	// locking is not needed because already have lock with FindNode method call
@@ -186,7 +192,9 @@ func (sl *SkipList) GetValue(key *types.Value) uint32 {
 	sl.bpm.UnpinPage(node.GetPageId(), false)
 	sl.bpm.UnpinPage(node.GetPageId(), false)
 
-	common.ShPrintf(common.DEBUG, "SkipList::GetValue: finish. key=%d\n", key.ToInteger())
+	if common.EnableDebug {
+		common.ShPrintf(common.DEBUG, "SkipList::GetValue: finish. key=%d\n", key.ToInteger())
+	}
 	if found {
 		return entry.Value
 	} else {
@@ -195,7 +203,9 @@ func (sl *SkipList) GetValue(key *types.Value) uint32 {
 }
 
 func (sl *SkipList) Insert(key *types.Value, value uint32) (err error) {
-	common.ShPrintf(common.DEBUG, "SkipList::Insert: start. key=%d\n", key.ToInteger())
+	if common.EnableDebug {
+		common.ShPrintf(common.DEBUG, "SkipList::Insert: start. key=%d\n", key.ToInteger())
+	}
 	isNeedRetry := true
 
 	for isNeedRetry {
@@ -214,12 +224,16 @@ func (sl *SkipList) Insert(key *types.Value, value uint32) (err error) {
 		sl.bpm.UnpinPage(node.GetPageId(), true)
 	}
 
-	common.ShPrintf(common.DEBUG, "SkipList::Insert: finish. key=%d\n", key.ToInteger())
+	if common.EnableDebug {
+		common.ShPrintf(common.DEBUG, "SkipList::Insert: finish. key=%d\n", key.ToInteger())
+	}
 	return nil
 }
 
 func (sl *SkipList) Remove(key *types.Value, value uint32) (isDeleted_ bool) {
-	common.ShPrintf(common.DEBUG, "SkipList::Remove: start. key=%d\n", key.ToInteger())
+	if common.EnableDebug {
+		common.ShPrintf(common.DEBUG, "SkipList::Remove: start. key=%d\n", key.ToInteger())
+	}
 	isNodeShouldBeDeleted := false
 	isDeleted := false
 	isNeedRetry := true
@@ -240,7 +254,9 @@ func (sl *SkipList) Remove(key *types.Value, value uint32) (isDeleted_ bool) {
 		}
 	}
 
-	common.ShPrintf(common.DEBUG, "SkipList::Remove: finish. key=%d\n", key.ToInteger())
+	if common.EnableDebug {
+		common.ShPrintf(common.DEBUG, "SkipList::Remove: finish. key=%d\n", key.ToInteger())
+	}
 	return isDeleted
 }
 
