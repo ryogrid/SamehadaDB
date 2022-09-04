@@ -79,6 +79,9 @@ func (p *Page) Copy(offset uint32, data []byte) {
 // New creates a new page
 func New(id types.PageID, isDirty bool, data *[common.PageSize]byte) *Page {
 	return &Page{id, uint32(1), isDirty, data, common.NewRWLatch()}
+
+	//// TODO: (SDB) customized RWMutex for concurrent skip list debug
+	//return &Page{id, uint32(1), isDirty, data, common.NewRWLatchDebug()}
 }
 
 // New creates a new empty page

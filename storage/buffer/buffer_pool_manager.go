@@ -185,6 +185,7 @@ func (b *BufferPoolManager) DeletePage(pageID types.PageID) error {
 
 	delete(b.pageTable, page.ID())
 	(*b.replacer).Pin(frameID)
+	//(*b.replacer).Unpin(frameID)
 	b.diskManager.DeallocatePage(pageID)
 	page.WUnlatch()
 
