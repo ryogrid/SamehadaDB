@@ -1126,7 +1126,7 @@ func testSkipListInsertGetInsert3stride1and3(t *testing.T, sl *skip_list.SkipLis
 	}
 	// insert 012345678...
 	//          ^  ^  ^
-	for ii := int32(0); ii < 100000; ii++ {
+	for ii := int32(0); ii < 10000; ii++ {
 		sl.Insert(samehada_util.GetPonterOfValue(types.NewInteger(3*ii+2)), uint32(3*ii+2))
 		gotVal := sl.GetValue(samehada_util.GetPonterOfValue(types.NewInteger(3*ii + 2)))
 		if gotVal == math.MaxUint32 {
@@ -1140,7 +1140,7 @@ func testSkipListInsertGetInsert3stride1and3(t *testing.T, sl *skip_list.SkipLis
 func testSkipListInsertGetRemove3stride2(t *testing.T, sl *skip_list.SkipList, ch chan string) {
 	// insert 012345678...
 	//         ^  ^  ^
-	for ii := int32(0); ii < 100000; ii++ {
+	for ii := int32(0); ii < 10000; ii++ {
 		sl.Insert(samehada_util.GetPonterOfValue(types.NewInteger(3*ii+1)), uint32(3*ii+1))
 		gotVal := sl.GetValue(samehada_util.GetPonterOfValue(types.NewInteger(3*ii + 1)))
 		if gotVal == math.MaxUint32 {
@@ -1150,7 +1150,7 @@ func testSkipListInsertGetRemove3stride2(t *testing.T, sl *skip_list.SkipList, c
 	}
 	// remove 012345678... from tail
 	//        ^^ ^^ ^^
-	for ii := int32(100000 - 1); ii >= 0; ii-- {
+	for ii := int32(10000 - 1); ii >= 0; ii-- {
 		sl.Remove(samehada_util.GetPonterOfValue(types.NewInteger(3*ii+1)), uint32(3*ii+1))
 		gotVal := sl.GetValue(samehada_util.GetPonterOfValue(types.NewInteger(3*ii + 1)))
 		if gotVal != math.MaxUint32 {

@@ -137,6 +137,13 @@ func (sl *SkipList) FindNode(key *types.Value, opType SkipListOpType) (isSuccess
 				sl.bpm.UnpinPage(pred.GetPageId(), false)
 				latchOpWithOpType(beforePred, SKIP_LIST_UTIL_UNLATCH, opType)
 				sl.bpm.UnpinPage(beforePred.GetPageId(), false)
+				if common.EnableDebug {
+					common.ShPrintf(common.DEBUG, "FindNode: finished with rety. key=%d opType=%d\n", key.ToInteger(), opType)
+					common.ShPrintf(common.DEBUG, "pred: ")
+					pred.PrintMutexDebugInfo()
+					common.ShPrintf(common.DEBUG, "curr: ")
+					curr.PrintMutexDebugInfo()
+				}
 				return false, nil, nil
 			}
 			latchOpWithOpType(beforePred, SKIP_LIST_UTIL_UNLATCH, opType)
