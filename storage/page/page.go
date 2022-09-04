@@ -32,8 +32,8 @@ type Page struct {
 // IncPinCount increments pin count
 func (p *Page) IncPinCount() {
 	p.pinCount++
-	//// TODO: (SDB) debug print
-	common.ShPrintf(common.DEBUG, "pinCount of page-%d at IncPinCount: %d\n", p.GetPageId(), p.pinCount)
+
+	//common.ShPrintf(common.DEBUG, "pinCount of page-%d at IncPinCount: %d\n", p.GetPageId(), p.pinCount)
 	//common.RuntimeStack()
 }
 
@@ -42,8 +42,8 @@ func (p *Page) DecPinCount() {
 	if p.pinCount > 0 {
 		p.pinCount--
 	}
-	//// TODO: (SDB) debug print
-	common.ShPrintf(common.DEBUG, "pinCount of page-%d at DecPinCount: %d\n", p.GetPageId(), p.pinCount)
+
+	//common.ShPrintf(common.DEBUG, "pinCount of page-%d at DecPinCount: %d\n", p.GetPageId(), p.pinCount)
 }
 
 // PinCount retunds the pin count
@@ -83,10 +83,10 @@ func New(id types.PageID, isDirty bool, data *[common.PageSize]byte) *Page {
 
 // New creates a new empty page
 func NewEmpty(id types.PageID) *Page {
-	return &Page{id, uint32(1), false, &[common.PageSize]byte{}, common.NewRWLatch()}
+	//return &Page{id, uint32(1), false, &[common.PageSize]byte{}, common.NewRWLatch()}
 
-	//// dummy for concurrent skip list debug with single thread
-	//return &Page{id, uint32(1), false, &[common.PageSize]byte{}, common.NewRWLatchDummy()}
+	// TODO: (SDB) customized RWMutex for concurrent skip list debug
+	return &Page{id, uint32(1), false, &[common.PageSize]byte{}, common.NewRWLatchDebug()}
 }
 
 /** @return the page LSN. */
@@ -132,6 +132,11 @@ func (p *Page) RLatch() {
 func (p *Page) RUnlatch() {
 	// fmt.Printf("Page::RUnlatch: page address %p\n", p)
 	p.rwlatch_.RUnlock()
+}
+
+func (p *Page) PrintMutexDebugInfo() {
+	common.ShPrintf(common.DEBUG, "pageId=%d ", p.GetPageId())
+	p.rwlatch_.PrintDebugInfo()
 }
 
 func (p *Page) GetRWLachObj() common.ReaderWriterLatch {

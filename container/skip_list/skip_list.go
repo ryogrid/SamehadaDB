@@ -64,6 +64,8 @@ func latchOpWithOpType(node *skip_list_page.SkipListBlockPage, getOrUnlatch Latc
 // ATTENTION:
 // this method returns with keep having RLatch or WLatch of corners_[0] and not Unping corners_[0]
 func (sl *SkipList) FindNode(key *types.Value, opType SkipListOpType) (isSuccess bool, predOfCorners_ []skip_list_page.SkipListCornerInfo, corners_ []skip_list_page.SkipListCornerInfo) {
+	common.ShPrintf(common.DEBUG, "FindNode: start. key=%d opType=%d\n", key.ToInteger(), opType)
+
 	headerPage := skip_list_page.FetchAndCastToHeaderPage(sl.bpm, sl.headerPageID)
 	startPageId := headerPage.GetListStartPageId()
 	// lock of headerPage is not needed becaus its content is not changed
@@ -150,6 +152,12 @@ func (sl *SkipList) FindNode(key *types.Value, opType SkipListOpType) (isSuccess
 	*/
 
 	//common.ShPrintf(common.DEBUG, "SkipList::FindNode: moveCnt=%d\n", moveCnt)
+
+	common.ShPrintf(common.DEBUG, "FindNode: finished without rety. key=%d opType=%d\n", key.ToInteger(), opType)
+	common.ShPrintf(common.DEBUG, "pred: ")
+	pred.PrintMutexDebugInfo()
+	common.ShPrintf(common.DEBUG, "curr: ")
+	curr.PrintMutexDebugInfo()
 
 	return true, predOfCorners, corners
 }

@@ -238,7 +238,7 @@ func (node *SkipListBlockPage) InsertInner(idx int, slp *SkipListPair) {
 // return value is whether newNode is created or not
 func (node *SkipListBlockPage) Insert(key *types.Value, value uint32, bpm *buffer.BufferPoolManager, corners []SkipListCornerInfo,
 	level int32) (isNeedRetry_ bool) {
-	//fmt.Printf("Insert of SkipListBlockPage called! : key=%d\n", key.ToInteger())
+	common.ShPrintf(common.DEBUG, "Insert of SkipListBlockPage called! : key=%d\n", key.ToInteger())
 
 	found, _, foundIdx := node.FindEntryByKey(key)
 	isSuccess := false
@@ -387,6 +387,7 @@ func validateNoChangeAndGetLock(bpm *buffer.BufferPoolManager, checkNodes []Skip
 		node := FetchAndCastToBlockPage(bpm, checkNodes[ii].PageId)
 		isPassed := false
 		if node == nil {
+			common.ShPrintf(common.DEBUG, "validateNoChangeAndGetLock: validation failed. go retry.\n")
 			unlockAndUnpinNodes(bpm, validatedNodes, false)
 			return false, nil
 		}
@@ -427,6 +428,7 @@ func unlockAndUnpinNodes(bpm *buffer.BufferPoolManager, checkedNodes []*SkipList
 		curNode.WUnlatch()
 		bpm.UnpinPage(curPageId, isDirty)
 	}
+	common.ShPrintf(common.DEBUG, "unlockAndUnpinNodes: finished.\n")
 }
 
 func (node *SkipListBlockPage) Remove(bpm *buffer.BufferPoolManager, key *types.Value, predOfCorners []SkipListCornerInfo, corners []SkipListCornerInfo) (isNodeShouldBeDeleted bool, isDeleted bool, isNeedRetry bool) {
