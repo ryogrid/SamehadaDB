@@ -61,7 +61,7 @@ func (b *BufferPoolManager) FetchPage(pageID types.PageID) *page.Page {
 			delete(b.pageTable, currentPage.ID())
 			b.mutex.Unlock()
 		}
-		b.mutex.Unlock()
+		//b.mutex.Unlock()
 	}
 
 	b.mutex.Lock()
