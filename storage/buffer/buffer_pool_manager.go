@@ -48,16 +48,18 @@ func (b *BufferPoolManager) FetchPage(pageID types.PageID) *page.Page {
 		// remove page from current frame
 		b.mutex.Lock()
 		currentPage := b.pages[*frameID]
+		b.mutex.Unlock()
 		if currentPage != nil {
 			if currentPage.IsDirty() {
 				b.log_manager.Flush()
-				//currentPage.WLatch()
+				currentPage.WLatch()
 				data := currentPage.Data()
 				b.diskManager.WritePage(currentPage.ID(), data[:])
-				//currentPage.WUnlatch()
+				currentPage.WUnlatch()
 			}
-
+			b.mutex.Lock()
 			delete(b.pageTable, currentPage.ID())
+			b.mutex.Unlock()
 		}
 		b.mutex.Unlock()
 	}
