@@ -33,7 +33,7 @@ type Page struct {
 func (p *Page) IncPinCount() {
 	p.pinCount++
 
-	//common.ShPrintf(common.DEBUG, "pinCount of page-%d at IncPinCount: %d\n", p.GetPageId(), p.pinCount)
+	//common.ShPrintf(common.DEBUG_INFO, "pinCount of page-%d at IncPinCount: %d\n", p.GetPageId(), p.pinCount)
 	//common.RuntimeStack()
 }
 
@@ -43,7 +43,7 @@ func (p *Page) DecPinCount() {
 		p.pinCount--
 	}
 
-	//common.ShPrintf(common.DEBUG, "pinCount of page-%d at DecPinCount: %d\n", p.GetPageId(), p.pinCount)
+	//common.ShPrintf(common.DEBUG_INFO, "pinCount of page-%d at DecPinCount: %d\n", p.GetPageId(), p.pinCount)
 }
 
 // PinCount retunds the pin count
@@ -116,7 +116,7 @@ func (p *Page) WLatch() {
 	// common.SH_Assert(!p.rwlatch_.IsWriteLocked(), "Page is already write locked")
 	// fmt.Printf("Page::WLatch: page address %p\n", p)
 	if common.EnableDebug {
-		common.ShPrintf(common.DEBUG, "pageId=%d ", p.GetPageId())
+		common.ShPrintf(common.DEBUG_INFO_DETAIL, "pageId=%d ", p.GetPageId())
 	}
 
 	p.rwlatch_.WLock()
@@ -126,7 +126,7 @@ func (p *Page) WLatch() {
 func (p *Page) WUnlatch() {
 	// fmt.Printf("Page::WUnlatch: page address %p\n", p)
 	if common.EnableDebug {
-		common.ShPrintf(common.DEBUG, "pageId=%d ", p.GetPageId())
+		common.ShPrintf(common.DEBUG_INFO_DETAIL, "pageId=%d ", p.GetPageId())
 	}
 	p.rwlatch_.WUnlock()
 }
@@ -136,7 +136,7 @@ func (p *Page) RLatch() {
 	//common.SH_Assert(!p.rwlatch_.IsReadLocked(), "Page is already read locked")
 	// fmt.Printf("Page::RLatch: page address %p\n", p)
 	if common.EnableDebug {
-		common.ShPrintf(common.DEBUG, "pageId=%d ", p.GetPageId())
+		common.ShPrintf(common.DEBUG_INFO_DETAIL, "pageId=%d ", p.GetPageId())
 	}
 	p.rwlatch_.RLock()
 }
@@ -145,16 +145,22 @@ func (p *Page) RLatch() {
 func (p *Page) RUnlatch() {
 	// fmt.Printf("Page::RUnlatch: page address %p\n", p)
 	if common.EnableDebug {
-		common.ShPrintf(common.DEBUG, "pageId=%d ", p.GetPageId())
+		common.ShPrintf(common.DEBUG_INFO_DETAIL, "pageId=%d ", p.GetPageId())
 	}
 	p.rwlatch_.RUnlock()
 }
 
 func (p *Page) PrintMutexDebugInfo() {
 	if common.EnableDebug {
-		common.ShPrintf(common.DEBUG, "pageId=%d ", p.GetPageId())
+		common.ShPrintf(common.DEBUG_INFO_DETAIL, "pageId=%d ", p.GetPageId())
 	}
 	p.rwlatch_.PrintDebugInfo()
+}
+
+func (p *Page) PrintPinCount() {
+	if common.EnableDebug {
+		common.ShPrintf(common.DEBUG_INFO, "PageId=%d PinCount=%d\n", p.id, p.pinCount)
+	}
 }
 
 func (p *Page) GetRWLachObj() common.ReaderWriterLatch {

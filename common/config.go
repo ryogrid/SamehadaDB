@@ -8,9 +8,9 @@ import (
 )
 
 var CycleDetectionInterval time.Duration
-var EnableLogging bool = false
+var EnableLogging bool = true //false
 var LogTimeout time.Duration
-var EnableDebug bool = false //true
+var EnableDebug bool = true //false
 
 const (
 	// invalid page id
@@ -31,8 +31,8 @@ const (
 	// size of hash bucket
 	BucketSizeOfHashIndex = 10
 	// probability used for determin node level on SkipList
-	SkipListProb    = 0.5  //0.25
-	LogLevelSetting = INFO //DEBUG
+	SkipListProb    = 0.5        //0.25
+	LogLevelSetting = DEBUG_INFO //DEBUGGING //INFO //
 )
 
 type TxnID int32        // transaction id type
