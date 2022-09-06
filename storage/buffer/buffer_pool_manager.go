@@ -5,6 +5,7 @@ package buffer
 
 import (
 	"errors"
+	"fmt"
 	"sync"
 
 	"github.com/ryogrid/SamehadaDB/common"
@@ -70,6 +71,7 @@ func (b *BufferPoolManager) FetchPage(pageID types.PageID) *page.Page {
 	data := make([]byte, common.PageSize)
 	err := b.diskManager.ReadPage(pageID, data)
 	if err != nil {
+		fmt.Println(err)
 		panic("ReadPage returned error!")
 		//return nil
 	}
