@@ -130,10 +130,12 @@ func (b *BufferPoolManager) FlushPage(pageID types.PageID) bool {
 		pg.DecPinCount()
 
 		data := pg.Data()
-		b.diskManager.WritePage(pageID, data[:])
 		pg.SetIsDirty(false)
 		pg.WUnlatch()
 
+		b.mutex.Lock()
+		b.diskManager.WritePage(pageID, data[:])
+		b.mutex.Unlock()
 		return true
 	}
 	b.mutex.Unlock()
