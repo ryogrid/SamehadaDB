@@ -110,11 +110,12 @@ func (b *BufferPoolManager) UnpinPage(pageID types.PageID, isDirty bool) error {
 	}
 	b.mutex.Unlock()
 
-	//return errors.New("could not find page")
 	if common.EnableDebug {
 		common.ShPrintf(common.DEBUG_INFO, "UnpinPage: couuld not find page! PageId=%d\n", pageID)
+		panic("could not find page")
 	}
-	panic("could not find page")
+	return errors.New("could not find page")
+
 }
 
 // FlushPage Flushes the target page to disk.
