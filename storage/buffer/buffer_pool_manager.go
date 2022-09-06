@@ -36,19 +36,19 @@ func (b *BufferPoolManager) FetchPage(pageID types.PageID) *page.Page {
 		b.mutex.Unlock()
 		return pg
 	}
-	b.mutex.Unlock()
 
 	// get the id from free list or from replacer
 	frameID, isFromFreeList := b.getFrameID()
 	if frameID == nil {
+		b.mutex.Unlock()
 		return nil
 	}
 
 	if !isFromFreeList {
 		// remove page from current frame
-		b.mutex.Lock()
+		//b.mutex.Lock()
 		currentPage := b.pages[*frameID]
-		b.mutex.Unlock()
+		//b.mutex.Unlock()
 		if currentPage != nil {
 			if currentPage.IsDirty() {
 				b.log_manager.Flush()
@@ -57,14 +57,14 @@ func (b *BufferPoolManager) FetchPage(pageID types.PageID) *page.Page {
 				b.diskManager.WritePage(currentPage.ID(), data[:])
 				currentPage.WUnlatch()
 			}
-			b.mutex.Lock()
+			//b.mutex.Lock()
 			delete(b.pageTable, currentPage.ID())
-			b.mutex.Unlock()
+			//b.mutex.Unlock()
 		}
 		//b.mutex.Unlock()
 	}
 
-	b.mutex.Lock()
+	//b.mutex.Lock()
 	data := make([]byte, common.PageSize)
 	err := b.diskManager.ReadPage(pageID, data)
 	if err != nil {
@@ -137,12 +137,14 @@ func (b *BufferPoolManager) FlushPage(pageID types.PageID) bool {
 
 // NewPage allocates a new page in the buffer pool with the disk manager help
 func (b *BufferPoolManager) NewPage() *page.Page {
+	b.mutex.Lock()
 	frameID, isFromFreeList := b.getFrameID()
 	if frameID == nil {
+		b.mutex.Unlock()
 		return nil // the buffer is full, it can't find a frame
 	}
 
-	b.mutex.Lock()
+	//b.mutex.Lock()
 	if !isFromFreeList {
 		// remove page from current frame
 		currentPage := b.pages[*frameID]
@@ -242,16 +244,16 @@ func (b *BufferPoolManager) FlushAllDirtyPages() {
 }
 
 func (b *BufferPoolManager) getFrameID() (*FrameID, bool) {
-	b.mutex.Lock()
+	//b.mutex.Lock()
 	if len(b.freeList) > 0 {
 		frameID, newFreeList := b.freeList[0], b.freeList[1:]
 		b.freeList = newFreeList
 
-		b.mutex.Unlock()
+		//b.mutex.Unlock()
 		return &frameID, true
 	}
 
-	b.mutex.Unlock()
+	//b.mutex.Unlock()
 	return (*b.replacer).Victim(), false
 }
 
