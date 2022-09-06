@@ -1138,6 +1138,38 @@ func TestSkipListMixParallelInteger(t *testing.T) {
 //	ch <- ""
 //}
 //
+//func testSkipListInsertGetEvenSeparate(t *testing.T, sl *skip_list.SkipList, ch chan string) {
+//	for ii := int32(0); ii < 100000; ii = ii + 2 {
+//		sl.Insert(samehada_util.GetPonterOfValue(types.NewInteger(ii)), uint32(ii))
+//	}
+//	for ii := int32(0); ii < 100000; ii = ii + 2 {
+//		gotVal := sl.GetValue(samehada_util.GetPonterOfValue(types.NewInteger(ii)))
+//		if gotVal == math.MaxUint32 {
+//			t.Fail()
+//			fmt.Printf("value %d is not found!\n", ii)
+//			panic("inserted value not found!")
+//		}
+//	}
+//	fmt.Println("even finished.")
+//	ch <- ""
+//}
+//
+//func testSkipListInsertGetOddSeparate(t *testing.T, sl *skip_list.SkipList, ch chan string) {
+//	for ii := int32(1); ii < 100000; ii = ii + 2 {
+//		sl.Insert(samehada_util.GetPonterOfValue(types.NewInteger(ii)), uint32(ii))
+//	}
+//
+//	for ii := int32(1); ii < 100000; ii = ii + 2 {
+//		gotVal := sl.GetValue(samehada_util.GetPonterOfValue(types.NewInteger(ii)))
+//		if gotVal == math.MaxUint32 {
+//			fmt.Printf("value %d is not found!\n", ii)
+//		}
+//	}
+//
+//	fmt.Println("odd finished.")
+//	ch <- ""
+//}
+//
 //func testSkipListInsertGetInsert3stride1and3(t *testing.T, sl *skip_list.SkipList, ch chan string) {
 //	// insert 012345678...
 //	//        ^  ^  ^
@@ -1203,6 +1235,31 @@ func TestSkipListMixParallelInteger(t *testing.T) {
 //
 //	go testSkipListInsertGetEven(t, sl, ch1)
 //	go testSkipListInsertGetOdd(t, sl, ch2)
+//
+//	ch1Ret := <-ch1
+//	t.Logf("%s\n", ch1Ret)
+//	t.Logf("ch1 received\n")
+//	ch2Ret := <-ch2
+//	t.Logf("%s\n", ch2Ret)
+//	t.Logf("ch2 received\n")
+//
+//	shi.CloseFilesForTesting()
+//}
+//
+//func TestSkipListParallelSimpleInteger2(t *testing.T) {
+//	os.Remove("test.db")
+//	os.Remove("test.log")
+//
+//	//shi := samehada.NewSamehadaInstance("test", 400)
+//	shi := samehada.NewSamehadaInstance("test", 30)
+//	bpm := shi.GetBufferPoolManager()
+//	sl := skip_list.NewSkipList(bpm, types.Integer)
+//
+//	ch1 := make(chan string)
+//	ch2 := make(chan string)
+//
+//	go testSkipListInsertGetEvenSeparate(t, sl, ch1)
+//	go testSkipListInsertGetOddSeparate(t, sl, ch2)
 //
 //	ch1Ret := <-ch1
 //	t.Logf("%s\n", ch1Ret)
