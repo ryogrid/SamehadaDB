@@ -1106,8 +1106,12 @@ func testSkipListMixParallelRoot[T int32 | float32 | string](t *testing.T, keyTy
 //	testSkipListMixRoot[string](t, types.Varchar)
 //}
 
-func TestSkipListMixParallelInteger(t *testing.T) {
-	testSkipListMixParallelRoot[int32](t, types.Integer)
+//func TestSkipListMixParallelInteger(t *testing.T) {
+//	testSkipListMixParallelRoot[int32](t, types.Integer)
+//}
+
+func TestSkipListMixParallelVarchar(t *testing.T) {
+	testSkipListMixParallelRoot[string](t, types.Varchar)
 }
 
 func testSkipListInsertGetEven(t *testing.T, sl *skip_list.SkipList, ch chan string) {
