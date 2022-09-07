@@ -1332,7 +1332,7 @@ func testSkipListMixParallelBulkRoot[T int32 | float32 | string](t *testing.T, k
 //}
 
 func TestSkipListMixParallelBulkInteger(t *testing.T) {
-	testSkipListMixParallelRoot[int32](t, types.Integer)
+	testSkipListMixParallelBulkRoot[int32](t, types.Integer)
 }
 
 func testSkipListInsertGetEven(t *testing.T, sl *skip_list.SkipList, ch chan string) {
