@@ -1,6 +1,7 @@
 package skip_list_test
 
 import (
+	"fmt"
 	"github.com/ryogrid/SamehadaDB/common"
 	"github.com/ryogrid/SamehadaDB/container/skip_list"
 	"github.com/ryogrid/SamehadaDB/samehada"
@@ -911,14 +912,16 @@ func testSkipListMixParallel[T int32 | float32 | string](t *testing.T, sl *skip_
 
 	useOpTimes := int(opTimes)
 	exitedThCnt := 0
+	isFirst := true
 	for ii := 1; ii < useOpTimes; ii++ {
 		// wait 20 groroutine exited
-		if ii%21 == 0 {
-			for exitedThCnt < 20 {
+		if ii%20 == 0 {
+			for exitedThCnt < 19 && isFirst || exitedThCnt < 20 && !isFirst {
 				<-ch
 				exitedThCnt++
 				common.ShPrintf(common.DEBUGGING, "exitedThCnt=%d\n", exitedThCnt)
 			}
+			isFirst = false
 		}
 		common.ShPrintf(common.DEBUGGING, "ii=%d\n", ii)
 		exitedThCnt = 0
@@ -1084,7 +1087,11 @@ func testSkipListMixParallelRoot[T int32 | float32 | string](t *testing.T, keyTy
 	bpm := shi.GetBufferPoolManager()
 	sl := skip_list.NewSkipList(bpm, keyType)
 
-	testSkipListMixParallel[T](t, sl, keyType, int32(300000), int32(10), int32(1000))
+	//testSkipListMixParallel[T](t, sl, keyType, int32(300000), int32(10), int32(1000))
+	testSkipListMixParallel[T](t, sl, keyType, int32(400000), int32(10), int32(1000))
+
+	fmt.Println("test finished.")
+
 	//testSkipListMixParallel[T](t, sl, keyType, 100, int32(150), int32(10), int32(300))
 	//testSkipListMixParallel[T](t, sl, keyType, 100, int32(150), int32(10), int32(600))
 	//testSkipListMixParallel[T](t, sl, keyType, 100, int32(200), int32(5), int32(10))
