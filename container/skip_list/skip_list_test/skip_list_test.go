@@ -1117,8 +1117,8 @@ func testSkipListMixParallelBulk[T int32 | float32 | string](t *testing.T, keyTy
 		common.ShPrintf(common.DEBUGGING, "ii=%d\n", ii)
 		exitedThCnt = 0
 
-		// get 0-2
-		opType := rand.Intn(3)
+		// get 0-3
+		opType := rand.Intn(4)
 		switch opType {
 		case 0: // Insert
 			go func() {
@@ -1144,18 +1144,19 @@ func testSkipListMixParallelBulk[T int32 | float32 | string](t *testing.T, keyTy
 					ch <- 1
 				}
 			}()
-		case 1: // Delete
-			// get 0-5 value
-			tmpRand := rand.Intn(5)
+		case 1, 2: // Delete
+			// get 0-1 value
+			tmpRand := rand.Intn(2)
 			if tmpRand == 0 {
-				// 20% is Remove to not existing entry
+				// 50% is Remove to not existing entry
 				go func() {
 					for ii := int32(0); ii < bulkSize; ii++ {
 						removedValsMutex.RLock()
 						if len(removedVals) == 0 {
 							removedValsMutex.RUnlock()
 							ch <- 1
-							return
+							continue
+							//return
 						}
 
 						tmpIdx := int(rand.Intn(len(removedVals)))
@@ -1169,14 +1170,15 @@ func testSkipListMixParallelBulk[T int32 | float32 | string](t *testing.T, keyTy
 					}
 				}()
 			} else {
-				// 80% is Remove to existing entry
+				// 50% is Remove to existing entry
 				go func() {
 					for ii := int32(0); ii < bulkSize; ii++ {
 						insValsMutex.RLock()
 						if len(insVals)-1 < 0 {
 							insValsMutex.RUnlock()
 							ch <- 1
-							return
+							continue
+							//return
 						}
 						tmpIdx := int(rand.Intn(len(insVals)))
 						insVal := (insVals)[tmpIdx]
@@ -1203,14 +1205,15 @@ func testSkipListMixParallelBulk[T int32 | float32 | string](t *testing.T, keyTy
 					}
 				}()
 			}
-		case 2: // Get
+		case 3: // Get
 			go func() {
 				for ii := int32(0); ii < bulkSize; ii++ {
 					insValsMutex.RLock()
 					if len(insVals) == 0 {
 						insValsMutex.RUnlock()
 						ch <- 1
-						return
+						continue
+						//return
 					}
 					tmpIdx := int(rand.Intn(len(insVals)))
 					//fmt.Printf("sl.GetValue at testSkipListMix: ii=%d, tmpIdx=%d insVals[tmpIdx]=%d len(*insVals)=%d len(*removedVals)=%d\n", ii, tmpIdx, insVals[tmpIdx], len(insVals), len(removedVals))
@@ -1296,7 +1299,7 @@ func testSkipListMixParallelRoot[T int32 | float32 | string](t *testing.T, keyTy
 
 func testSkipListMixParallelBulkRoot[T int32 | float32 | string](t *testing.T, keyType types.TypeID) {
 	// 4th arg should be multiple of 20
-	testSkipListMixParallelBulk[T](t, keyType, 100, 20000, 10, 1000)
+	testSkipListMixParallelBulk[T](t, keyType, 200, 1000, 11, 800)
 	//testSkipListMixParallel[T](t, keyType, int32(200000), int32(11), int32(1000))
 	//testSkipListMixParallel[T](t, keyType, int32(200000), int32(12), int32(1000))
 	//testSkipListMixParallel[T](t, keyType, int32(200000), int32(13), int32(1000))
