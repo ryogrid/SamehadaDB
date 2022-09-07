@@ -850,9 +850,18 @@ func testSkipListMix[T int32 | float32 | string](t *testing.T, keyType types.Typ
 	shi.CloseFilesForTesting()
 }
 
-func testSkipListMixParallel[T int32 | float32 | string](t *testing.T, sl *skip_list.SkipList, keyType types.TypeID, opTimes int32, skipRand int32, initialEntryNum int32) {
+func testSkipListMixParallel[T int32 | float32 | string](t *testing.T, keyType types.TypeID, opTimes int32, skipRand int32, initialEntryNum int32) {
 	common.ShPrintf(common.DEBUG_INFO, "start of testSkipListMix opTimes=%d skipRand=%d initialEntryNum=%d ====================================================\n",
 		opTimes, skipRand, initialEntryNum)
+
+	os.Remove("test.db")
+	os.Remove("test.log")
+
+	shi := samehada.NewSamehadaInstance("test", 30)
+	//shi := samehada.NewSamehadaInstanceForTesting()
+	//shi := samehada.NewSamehadaInstance("test", 10*1024) // buffer is about 40MB
+	bpm := shi.GetBufferPoolManager()
+	sl := skip_list.NewSkipList(bpm, keyType)
 
 	checkDupMap := make(map[T]T)
 
@@ -1029,6 +1038,7 @@ func testSkipListMixParallel[T int32 | float32 | string](t *testing.T, sl *skip_
 			}()
 		}
 	}
+	shi.CloseFilesForTesting()
 }
 
 func testSkipListMixRoot[T int32 | float32 | string](t *testing.T, keyType types.TypeID) {
@@ -1069,17 +1079,11 @@ func testSkipListMixRoot[T int32 | float32 | string](t *testing.T, keyType types
 }
 
 func testSkipListMixParallelRoot[T int32 | float32 | string](t *testing.T, keyType types.TypeID) {
-	os.Remove("test.db")
-	os.Remove("test.log")
-
-	shi := samehada.NewSamehadaInstance("test", 30)
-	//shi := samehada.NewSamehadaInstanceForTesting()
-	//shi := samehada.NewSamehadaInstance("test", 10*1024) // buffer is about 40MB
-	bpm := shi.GetBufferPoolManager()
-	sl := skip_list.NewSkipList(bpm, keyType)
-
 	// 4th arg should be multiple of 20
-	testSkipListMixParallel[T](t, sl, keyType, int32(200000), int32(10), int32(1000))
+	testSkipListMixParallel[T](t, keyType, int32(200000), int32(10), int32(1000))
+	testSkipListMixParallel[T](t, keyType, int32(200000), int32(11), int32(1000))
+	testSkipListMixParallel[T](t, keyType, int32(200000), int32(12), int32(1000))
+	testSkipListMixParallel[T](t, keyType, int32(200000), int32(13), int32(1000))
 
 	fmt.Println("test finished.")
 
@@ -1089,9 +1093,6 @@ func testSkipListMixParallelRoot[T int32 | float32 | string](t *testing.T, keyTy
 	//testSkipListMixParallel[T](t, sl, keyType, 100, int32(250), int32(5), int32(10))
 	//testSkipListMixParallel[T](t, sl, keyType, 100, int32(250), int32(4), int32(0))
 	//testSkipListMixParallel[T](t, sl, keyType, 100, int32(250), int32(3), int32(0))
-
-	////shi.Shutdown(true)
-	shi.CloseFilesForTesting()
 }
 
 //func TestSkipListMixInteger(t *testing.T) {
