@@ -460,7 +460,7 @@ func (node *SkipListBlockPage) Remove(bpm *buffer.BufferPoolManager, key *types.
 			panic("removing wrong entry!")
 		}
 
-		common.ShPrintf(common.DEBUG_INFO, "SkipListBlockPage::Remove: node remove occured!\n")
+		common.ShPrintf(common.INFO, "SkipListBlockPage::Remove: node remove occured!\n")
 
 		updateLen := int(node.GetLevel())
 
