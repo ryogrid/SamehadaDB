@@ -11,8 +11,10 @@ import (
 
 // TODO: (SDB) need to check query result (TestInsertAndMultiItemPredicateSelect)
 func TestInsertAndMultiItemPredicateSelect(t *testing.T) {
+	common.TempSuppressOnMemStorage = true
+
 	// clear all state of DB
-	if !common.EnableOnMemStorage {
+	if !common.EnableOnMemStorage || common.TempSuppressOnMemStorage == true {
 		os.Remove("example.db")
 		os.Remove("example.log")
 	}
@@ -36,6 +38,7 @@ func TestInsertAndMultiItemPredicateSelect(t *testing.T) {
 	samehada.PrintExecuteResults(results5)
 
 	db.Shutdown()
+	common.TempSuppressOnMemStorage = false
 }
 
 // TODO: (SDB) need to check query result (TestHasJoinSelect)
@@ -72,8 +75,9 @@ func TestHasJoinSelect(t *testing.T) {
 }
 
 func TestSimpleDelete(t *testing.T) {
+	common.TempSuppressOnMemStorage = true
 	// clear all state of DB
-	if !common.EnableOnMemStorage {
+	if !common.EnableOnMemStorage || common.TempSuppressOnMemStorage == true {
 		os.Remove("example.db")
 		os.Remove("example.log")
 	}
@@ -94,8 +98,9 @@ func TestSimpleDelete(t *testing.T) {
 }
 
 func TestSimpleUpdate(t *testing.T) {
+	common.TempSuppressOnMemStorage = true
 	// clear all state of DB
-	if !common.EnableOnMemStorage {
+	if !common.EnableOnMemStorage || common.TempSuppressOnMemStorage == true {
 		os.Remove("example.db")
 		os.Remove("example.log")
 	}
@@ -114,11 +119,14 @@ func TestSimpleUpdate(t *testing.T) {
 	testingpkg.SimpleAssert(t, len(results1) == 3)
 
 	db.Shutdown()
+	common.TempSuppressOnMemStorage = false
 }
 
 func TestRebootWithLoadAndRecovery(t *testing.T) {
+	common.TempSuppressOnMemStorage = true
+
 	// clear all state of DB
-	if !common.EnableOnMemStorage {
+	if !common.EnableOnMemStorage || common.TempSuppressOnMemStorage == true {
 		os.Remove("/tmp/todo.db")
 		os.Remove("/tmp/todo.log")
 	}
@@ -162,11 +170,15 @@ func TestRebootWithLoadAndRecovery(t *testing.T) {
 
 	// close db and log file
 	db3.Shutdown()
+
+	common.TempSuppressOnMemStorage = false
 }
 
 func TestRebootAndReturnIFValues(t *testing.T) {
+	common.TempSuppressOnMemStorage = true
+
 	// clear all state of DB
-	if !common.EnableOnMemStorage {
+	if !common.EnableOnMemStorage || common.TempSuppressOnMemStorage == true {
 		os.Remove("/tmp/todo.db")
 		os.Remove("/tmp/todo.log")
 	}
@@ -218,4 +230,6 @@ func TestRebootAndReturnIFValues(t *testing.T) {
 	testingpkg.SimpleAssert(t, len(results3) == 5)
 
 	db3.Shutdown()
+
+	common.TempSuppressOnMemStorage = false
 }

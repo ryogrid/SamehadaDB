@@ -11,6 +11,8 @@ import (
 )
 
 func TestReadWritePage(t *testing.T) {
+	common.TempSuppressOnMemStorage = true
+
 	dm := NewDiskManagerTest()
 	defer dm.ShutDown()
 
@@ -35,4 +37,6 @@ func TestReadWritePage(t *testing.T) {
 
 	// the size of disk is 24576 bytes because we have 6 pages
 	testingpkg.Equals(t, int64(24576), dm.Size())
+
+	common.TempSuppressOnMemStorage = false
 }

@@ -401,98 +401,98 @@ func TestSkipListSimple(t *testing.T) {
 	shi.Shutdown(false)
 }
 
-//func TestSkipListInsertAndDeleteAll(t *testing.T) {
-//if !common.EnableOnMemStorage {
-//	os.Remove("test.db")
-//	os.Remove("test.log")
-//}
-//
-//	//shi := samehada.NewSamehadaInstance("test", 100)
-//	shi := samehada.NewSamehadaInstance("test", 5)
-//	sl := skip_list.NewSkipList(shi.GetBufferPoolManager(), types.Integer)
-//
-//	// override global rand seed (seed has been set on NewSkipList)
-//	rand.Seed(3)
-//
-//	insVals := make([]int32, 0)
-//	for i := 0; i < 5000; i++ {
-//		insVals = append(insVals, int32(i*11))
-//	}
-//	// shuffle value list for inserting
-//	rand.Shuffle(len(insVals), func(i, j int) { insVals[i], insVals[j] = insVals[j], insVals[i] })
-//
-//	//////////// remove from tail ///////
-//
-//	// Insert entries
-//	insCnt := 0
-//	for _, insVal := range insVals {
-//		common.ShPrintf(common.DEBUG_INFO, "insCnt: %d\n", insCnt)
-//		insCnt++
-//		sl.Insert(samehada_util.GetPonterOfValue(types.NewInteger(int32(insVal))), uint32(insVal))
-//	}
-//
-//	//confirmSkipListContent(t, sl, 11)
-//
-//	// Get entries
-//	for i := 0; i < 5000; i++ {
-//		//fmt.Printf("get entry i=%d key=%d\n", i, i*11)
-//		res := sl.GetValue(samehada_util.GetPonterOfValue(types.NewInteger(int32(i * 11))))
-//		if res == math.MaxUint32 {
-//			t.Errorf("result should not be nil")
-//		} else {
-//			testingpkg.SimpleAssert(t, uint32(i*11) == res)
-//		}
-//	}
-//
-//	// delete all values
-//	for i := (5000 - 1); i >= 0; i-- {
-//		// delete
-//		isDeleted := sl.Remove(samehada_util.GetPonterOfValue(types.NewInteger(int32(i*11))), uint32(i*11))
-//		common.ShPrintf(common.DEBUG_INFO, "i=%d i*11=%d\n", i, i*11)
-//		testingpkg.SimpleAssert(t, isDeleted == true)
-//
-//		// check no existance after delete
-//		res := sl.GetValue(samehada_util.GetPonterOfValue(types.NewInteger(int32(i * 11))))
-//		common.ShPrintf(common.DEBUG_INFO, "i=%d i*11=%d res=%d\n", i, i*11, res)
-//		testingpkg.SimpleAssert(t, math.MaxUint32 == res)
-//	}
-//
-//	//////////// remove from head ///////
-//
-//	// Re-Insert entries
-//	insCnt = 0
-//	for _, insVal := range insVals {
-//		//fmt.Printf("insCnt: %d\n", insCnt)
-//		insCnt++
-//		sl.Insert(samehada_util.GetPonterOfValue(types.NewInteger(int32(insVal))), uint32(insVal))
-//	}
-//
-//	// Get entries
-//	for i := 0; i < 5000; i++ {
-//		//fmt.Printf("get entry i=%d key=%d\n", i, i*11)
-//		res := sl.GetValue(samehada_util.GetPonterOfValue(types.NewInteger(int32(i * 11))))
-//		if res == math.MaxUint32 {
-//			t.Errorf("result should not be nil")
-//		} else {
-//			testingpkg.SimpleAssert(t, uint32(i*11) == res)
-//		}
-//	}
-//
-//	// delete all values
-//	for i := 0; i < 5000; i++ {
-//		// delete
-//		isDeleted := sl.Remove(samehada_util.GetPonterOfValue(types.NewInteger(int32(i*11))), uint32(i*11))
-//		common.ShPrintf(common.DEBUG_INFO, "i=%d i*11=%d\n", i, i*11)
-//		testingpkg.SimpleAssert(t, isDeleted == true)
-//
-//		// check no existance after delete
-//		res := sl.GetValue(samehada_util.GetPonterOfValue(types.NewInteger(int32(i * 11))))
-//		common.ShPrintf(common.DEBUG_INFO, "i=%d i*11=%d res=%d\n", i, i*11, res)
-//		testingpkg.SimpleAssert(t, math.MaxUint32 == res)
-//	}
-//
-//	shi.Shutdown(false)
-//}
+func TestSkipListInsertAndDeleteAll(t *testing.T) {
+	if !common.EnableOnMemStorage {
+		os.Remove("test.db")
+		os.Remove("test.log")
+	}
+
+	//shi := samehada.NewSamehadaInstance("test", 100)
+	shi := samehada.NewSamehadaInstance("test", 5)
+	sl := skip_list.NewSkipList(shi.GetBufferPoolManager(), types.Integer)
+
+	// override global rand seed (seed has been set on NewSkipList)
+	rand.Seed(3)
+
+	insVals := make([]int32, 0)
+	for i := 0; i < 5000; i++ {
+		insVals = append(insVals, int32(i*11))
+	}
+	// shuffle value list for inserting
+	rand.Shuffle(len(insVals), func(i, j int) { insVals[i], insVals[j] = insVals[j], insVals[i] })
+
+	//////////// remove from tail ///////
+
+	// Insert entries
+	insCnt := 0
+	for _, insVal := range insVals {
+		common.ShPrintf(common.DEBUG_INFO, "insCnt: %d\n", insCnt)
+		insCnt++
+		sl.Insert(samehada_util.GetPonterOfValue(types.NewInteger(int32(insVal))), uint32(insVal))
+	}
+
+	//confirmSkipListContent(t, sl, 11)
+
+	// Get entries
+	for i := 0; i < 5000; i++ {
+		//fmt.Printf("get entry i=%d key=%d\n", i, i*11)
+		res := sl.GetValue(samehada_util.GetPonterOfValue(types.NewInteger(int32(i * 11))))
+		if res == math.MaxUint32 {
+			t.Errorf("result should not be nil")
+		} else {
+			testingpkg.SimpleAssert(t, uint32(i*11) == res)
+		}
+	}
+
+	// delete all values
+	for i := (5000 - 1); i >= 0; i-- {
+		// delete
+		isDeleted := sl.Remove(samehada_util.GetPonterOfValue(types.NewInteger(int32(i*11))), uint32(i*11))
+		common.ShPrintf(common.DEBUG_INFO, "i=%d i*11=%d\n", i, i*11)
+		testingpkg.SimpleAssert(t, isDeleted == true)
+
+		// check no existance after delete
+		res := sl.GetValue(samehada_util.GetPonterOfValue(types.NewInteger(int32(i * 11))))
+		common.ShPrintf(common.DEBUG_INFO, "i=%d i*11=%d res=%d\n", i, i*11, res)
+		testingpkg.SimpleAssert(t, math.MaxUint32 == res)
+	}
+
+	//////////// remove from head ///////
+
+	// Re-Insert entries
+	insCnt = 0
+	for _, insVal := range insVals {
+		//fmt.Printf("insCnt: %d\n", insCnt)
+		insCnt++
+		sl.Insert(samehada_util.GetPonterOfValue(types.NewInteger(int32(insVal))), uint32(insVal))
+	}
+
+	// Get entries
+	for i := 0; i < 5000; i++ {
+		//fmt.Printf("get entry i=%d key=%d\n", i, i*11)
+		res := sl.GetValue(samehada_util.GetPonterOfValue(types.NewInteger(int32(i * 11))))
+		if res == math.MaxUint32 {
+			t.Errorf("result should not be nil")
+		} else {
+			testingpkg.SimpleAssert(t, uint32(i*11) == res)
+		}
+	}
+
+	// delete all values
+	for i := 0; i < 5000; i++ {
+		// delete
+		isDeleted := sl.Remove(samehada_util.GetPonterOfValue(types.NewInteger(int32(i*11))), uint32(i*11))
+		common.ShPrintf(common.DEBUG_INFO, "i=%d i*11=%d\n", i, i*11)
+		testingpkg.SimpleAssert(t, isDeleted == true)
+
+		// check no existance after delete
+		res := sl.GetValue(samehada_util.GetPonterOfValue(types.NewInteger(int32(i * 11))))
+		common.ShPrintf(common.DEBUG_INFO, "i=%d i*11=%d res=%d\n", i, i*11, res)
+		testingpkg.SimpleAssert(t, math.MaxUint32 == res)
+	}
+
+	shi.Shutdown(false)
+}
 
 func TestSkipListItr(t *testing.T) {
 	if !common.EnableOnMemStorage {
@@ -1355,11 +1355,11 @@ func testSkipListMixParallelBulkRoot[T int32 | float32 | string](t *testing.T, k
 //func TestSkipListMixVarchar(t *testing.T) {
 //	testSkipListMixRoot[string](t, types.Varchar)
 //}
-
+//
 //func TestSkipListMixParallelInteger(t *testing.T) {
 //	testSkipListMixParallelRoot[int32](t, types.Integer)
 //}
-
+//
 //func TestSkipListMixParallelVarchar(t *testing.T) {
 //	testSkipListMixParallelRoot[string](t, types.Varchar)
 //}
@@ -1477,84 +1477,84 @@ func testSkipListInsertGetRemove3stride2(t *testing.T, sl *skip_list.SkipList, c
 	ch <- ""
 }
 
-//func TestSkipListParallelSimpleInteger(t *testing.T) {
-//if !common.EnableOnMemStorage {
-//	os.Remove("test.db")
-//	os.Remove("test.log")
-//}
-//
-//	//shi := samehada.NewSamehadaInstance("test", 400)
-//	shi := samehada.NewSamehadaInstance("test", 30)
-//	bpm := shi.GetBufferPoolManager()
-//	sl := skip_list.NewSkipList(bpm, types.Integer)
-//
-//	ch1 := make(chan string)
-//	ch2 := make(chan string)
-//
-//	go testSkipListInsertGetEven(t, sl, ch1)
-//	go testSkipListInsertGetOdd(t, sl, ch2)
-//
-//	ch1Ret := <-ch1
-//	t.Logf("%s\n", ch1Ret)
-//	t.Logf("ch1 received\n")
-//	ch2Ret := <-ch2
-//	t.Logf("%s\n", ch2Ret)
-//	t.Logf("ch2 received\n")
-//
-//	shi.CloseFilesForTesting()
-//}
-//
-//func TestSkipListParallelSimpleInteger2(t *testing.T) {
-//if !common.EnableOnMemStorage {
-//	os.Remove("test.db")
-//	os.Remove("test.log")
-//}
-//
-//	//shi := samehada.NewSamehadaInstance("test", 400)
-//	shi := samehada.NewSamehadaInstance("test", 30)
-//	bpm := shi.GetBufferPoolManager()
-//	sl := skip_list.NewSkipList(bpm, types.Integer)
-//
-//	ch1 := make(chan string)
-//	ch2 := make(chan string)
-//
-//	go testSkipListInsertGetEvenSeparate(t, sl, ch1)
-//	go testSkipListInsertGetOddSeparate(t, sl, ch2)
-//
-//	ch1Ret := <-ch1
-//	t.Logf("%s\n", ch1Ret)
-//	t.Logf("ch1 received\n")
-//	ch2Ret := <-ch2
-//	t.Logf("%s\n", ch2Ret)
-//	t.Logf("ch2 received\n")
-//
-//	shi.CloseFilesForTesting()
-//}
-//
-//func TestSkipListParallelSimpleInteger3Stride(t *testing.T) {
-//if !common.EnableOnMemStorage {
-//	os.Remove("test.db")
-//	os.Remove("test.log")
-//}
-//
-//	//shi := samehada.NewSamehadaInstance("test", 400)
-//	shi := samehada.NewSamehadaInstance("test", 30)
-//	bpm := shi.GetBufferPoolManager()
-//	sl := skip_list.NewSkipList(bpm, types.Integer)
-//
-//	ch1 := make(chan string)
-//	ch2 := make(chan string)
-//
-//	go testSkipListInsertGetInsert3stride1and3(t, sl, ch1)
-//	go testSkipListInsertGetRemove3stride2(t, sl, ch2)
-//
-//	//wg.Wait()
-//	ch1Ret := <-ch1
-//	t.Logf("%s\n", ch1Ret)
-//	t.Logf("ch1 received\n")
-//	ch2Ret := <-ch2
-//	t.Logf("%s\n", ch2Ret)
-//	t.Logf("ch2 received\n")
-//
-//	shi.CloseFilesForTesting()
-//}
+func TestSkipListParallelSimpleInteger(t *testing.T) {
+	if !common.EnableOnMemStorage {
+		os.Remove("test.db")
+		os.Remove("test.log")
+	}
+
+	//shi := samehada.NewSamehadaInstance("test", 400)
+	shi := samehada.NewSamehadaInstance("test", 30)
+	bpm := shi.GetBufferPoolManager()
+	sl := skip_list.NewSkipList(bpm, types.Integer)
+
+	ch1 := make(chan string)
+	ch2 := make(chan string)
+
+	go testSkipListInsertGetEven(t, sl, ch1)
+	go testSkipListInsertGetOdd(t, sl, ch2)
+
+	ch1Ret := <-ch1
+	t.Logf("%s\n", ch1Ret)
+	t.Logf("ch1 received\n")
+	ch2Ret := <-ch2
+	t.Logf("%s\n", ch2Ret)
+	t.Logf("ch2 received\n")
+
+	shi.CloseFilesForTesting()
+}
+
+func TestSkipListParallelSimpleInteger2(t *testing.T) {
+	if !common.EnableOnMemStorage {
+		os.Remove("test.db")
+		os.Remove("test.log")
+	}
+
+	//shi := samehada.NewSamehadaInstance("test", 400)
+	shi := samehada.NewSamehadaInstance("test", 30)
+	bpm := shi.GetBufferPoolManager()
+	sl := skip_list.NewSkipList(bpm, types.Integer)
+
+	ch1 := make(chan string)
+	ch2 := make(chan string)
+
+	go testSkipListInsertGetEvenSeparate(t, sl, ch1)
+	go testSkipListInsertGetOddSeparate(t, sl, ch2)
+
+	ch1Ret := <-ch1
+	t.Logf("%s\n", ch1Ret)
+	t.Logf("ch1 received\n")
+	ch2Ret := <-ch2
+	t.Logf("%s\n", ch2Ret)
+	t.Logf("ch2 received\n")
+
+	shi.CloseFilesForTesting()
+}
+
+func TestSkipListParallelSimpleInteger3Stride(t *testing.T) {
+	if !common.EnableOnMemStorage {
+		os.Remove("test.db")
+		os.Remove("test.log")
+	}
+
+	//shi := samehada.NewSamehadaInstance("test", 400)
+	shi := samehada.NewSamehadaInstance("test", 30)
+	bpm := shi.GetBufferPoolManager()
+	sl := skip_list.NewSkipList(bpm, types.Integer)
+
+	ch1 := make(chan string)
+	ch2 := make(chan string)
+
+	go testSkipListInsertGetInsert3stride1and3(t, sl, ch1)
+	go testSkipListInsertGetRemove3stride2(t, sl, ch2)
+
+	//wg.Wait()
+	ch1Ret := <-ch1
+	t.Logf("%s\n", ch1Ret)
+	t.Logf("ch1 received\n")
+	ch2Ret := <-ch2
+	t.Logf("%s\n", ch2Ret)
+	t.Logf("ch2 received\n")
+
+	shi.CloseFilesForTesting()
+}

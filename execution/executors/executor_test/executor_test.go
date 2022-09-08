@@ -545,8 +545,9 @@ func TestSimpleInsertAndLimitExecutionMultiTable(t *testing.T) {
 }
 
 func TestHashTableIndex(t *testing.T) {
+	common.TempSuppressOnMemStorage = true
+
 	diskManager := disk.NewDiskManagerTest()
-	defer diskManager.ShutDown()
 	log_mgr := recovery.NewLogManager(&diskManager)
 	bpm := buffer.NewBufferPoolManager(uint32(32), diskManager, log_mgr) //, recovery.NewLogManager(diskManager), access.NewLockManager(access.REGULAR, access.PREVENTION))
 
@@ -678,6 +679,8 @@ func TestHashTableIndex(t *testing.T) {
 		})
 	}
 
+	diskManager.ShutDown()
+	common.TempSuppressOnMemStorage = false
 }
 
 func TestSimpleDelete(t *testing.T) {
