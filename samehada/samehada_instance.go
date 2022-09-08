@@ -31,7 +31,7 @@ func NewSamehadaInstance(dbName string, bpoolSize int) *SamehadaInstance {
 	common.EnableLogging = true
 
 	var disk_manager disk.DiskManager
-	if !common.TempSuppressOnMemStorage || common.TempSuppressOnMemStorage {
+	if !common.EnableOnMemStorage || common.TempSuppressOnMemStorage {
 		disk_manager = disk.NewDiskManagerImpl(dbName + ".db")
 	} else {
 		disk_manager = disk.NewVirtualDiskManagerImpl(dbName + ".db")
