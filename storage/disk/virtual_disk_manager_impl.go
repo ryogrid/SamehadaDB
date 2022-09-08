@@ -89,6 +89,12 @@ func (d *VirtualDiskManagerImpl) ShutDown() {
 	//d.logFileMutex.Unlock()
 }
 
+func memset(buffer []byte, value int) {
+	for i := range buffer {
+		buffer[i] = 0
+	}
+}
+
 // Write a page to the database file
 func (d *VirtualDiskManagerImpl) WritePage(pageId types.PageID, pageData []byte) error {
 	d.dbFileMutex.Lock()
@@ -102,7 +108,16 @@ func (d *VirtualDiskManagerImpl) WritePage(pageId types.PageID, pageData []byte)
 	//	panic("WritePge: d.db.Write returns err!")
 	//	//return err
 	//}
-	copy(d.db[offset:], pageData)
+
+	writeLen := len(pageData)
+	if int(offset)+writeLen > len(d.db) {
+		tmpArr := make([]byte, int(offset)+writeLen-len(d.db))
+		memset(tmpArr, 0)
+		d.db = append(d.db, tmpArr...)
+	}
+	tmpArr := make([]byte, 0)
+	copy(tmpArr, pageData)
+	copy(d.db[offset:], tmpArr)
 
 	//if bytesWritten != common.PageSize {
 	//	panic("bytes written not equals page size")
@@ -132,7 +147,7 @@ func (d *VirtualDiskManagerImpl) ReadPage(pageID types.PageID, pageData []byte) 
 	//}
 
 	//if offset > fileInfo.Size() {
-	if offset > int64(len(d.db)) {
+	if offset > int64(len(d.db)) || offset+int64(len(pageData)) > int64(len(d.db)) {
 		return errors.New("I/O error past end of file")
 	}
 
@@ -142,8 +157,11 @@ func (d *VirtualDiskManagerImpl) ReadPage(pageID types.PageID, pageData []byte) 
 	//	return errors.New("I/O error while reading")
 	//}
 
-	bytesRead := int64(len(pageData))
-	copy(pageData, d.db[offset:offset+bytesRead])
+	//bytesRead := int64(len(pageData))
+	//reader := bytes.NewReader(d.db)
+	//reader.ReadAt(pageData, offset)
+	readLen := int64(len(pageData))
+	copy(pageData, d.db[offset:offset+readLen])
 
 	//if bytesRead < common.PageSize {
 	//	for i := 0; i < common.PageSize; i++ {
@@ -273,7 +291,15 @@ func (d *VirtualDiskManagerImpl) WriteLog(log_data []byte) {
 
 	d.numFlushes += 1
 	// sequence write
-	copy(d.log[len(d.log):], log_data)
+	writeLen := len(log_data)
+	oringLen := len(d.log)
+	padArr := make([]byte, writeLen)
+	memset(padArr, 0)
+	d.log = append(d.log, padArr...)
+
+	tmpArr := make([]byte, 0)
+	copy(tmpArr, log_data)
+	copy(d.db[oringLen:], tmpArr)
 
 	//_, err := d.log.Write(log_data)
 	//
