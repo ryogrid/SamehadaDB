@@ -127,8 +127,6 @@ func (d *DiskManagerImpl) ReadPage(pageID types.PageID, pageData []byte) error {
 
 	fileInfo, err := d.db.Stat()
 	if err != nil {
-		//d.db, _ = os.OpenFile(d.fileName, os.O_RDWR|os.O_CREATE, 0666)
-		//fileInfo, _ = d.db.Stat()
 		fmt.Println(err)
 		return errors.New("file info error")
 	}

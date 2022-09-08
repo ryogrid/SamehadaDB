@@ -6,6 +6,7 @@ package catalog_test
 import (
 	"fmt"
 	"github.com/ryogrid/SamehadaDB/catalog"
+	"github.com/ryogrid/SamehadaDB/common"
 	"github.com/ryogrid/SamehadaDB/samehada"
 	"github.com/ryogrid/SamehadaDB/storage/buffer"
 	"github.com/ryogrid/SamehadaDB/storage/index/index_constants"
@@ -19,7 +20,9 @@ import (
 
 // test reloading serialized catalog info in db file at lauching system
 func TestTableCatalogReload(t *testing.T) {
-	os.Remove("test.db")
+	if !common.EnableOnMemStorage {
+		os.Remove("test.db")
+	}
 	samehada_instance := samehada.NewSamehadaInstanceForTesting()
 	//diskManager := disk.NewDiskManagerImpl("test.db")
 	//defer diskManager.ShutDown()

@@ -1095,7 +1095,6 @@ func TestInsertUpdateMix(t *testing.T) {
 }
 
 func TestAbortWIthDeleteUpdate(t *testing.T) {
-	os.Stdout.Sync()
 	diskManager := disk.NewDiskManagerTest()
 	defer diskManager.ShutDown()
 	log_mgr := recovery.NewLogManager(&diskManager)
@@ -1237,7 +1236,6 @@ func TestAbortWIthDeleteUpdate(t *testing.T) {
 }
 
 func TestSimpleHashJoin(t *testing.T) {
-	os.Stdout.Sync()
 	diskManager := disk.NewDiskManagerTest()
 	defer diskManager.ShutDown()
 	log_mgr := recovery.NewLogManager(&diskManager)
@@ -1565,8 +1563,10 @@ func timeoutPanic() {
 }
 
 func TestConcurrentTransactionExecution(t *testing.T) {
-	os.Remove("test.db")
-	os.Remove("test.log")
+	if !common.EnableOnMemStorage {
+		os.Remove("test.db")
+		os.Remove("test.log")
+	}
 
 	shi := samehada.NewSamehadaInstanceForTesting()
 	shi.GetLogManager().ActivateLogging()
@@ -1656,8 +1656,10 @@ func TestConcurrentTransactionExecution(t *testing.T) {
 }
 
 func TestTestTableGenerator(t *testing.T) {
-	os.Remove("test.db")
-	os.Remove("test.log")
+	if !common.EnableOnMemStorage {
+		os.Remove("test.db")
+		os.Remove("test.log")
+	}
 
 	shi := samehada.NewSamehadaInstanceForTesting()
 	shi.GetLogManager().ActivateLogging()
@@ -1694,8 +1696,10 @@ func TestTestTableGenerator(t *testing.T) {
 
 func TestSimpleAggregation(t *testing.T) {
 	// SELECT COUNT(colA), SUM(colA), min(colA), max(colA) from test_1;
-	os.Remove("test.db")
-	os.Remove("test.log")
+	if !common.EnableOnMemStorage {
+		os.Remove("test.db")
+		os.Remove("test.log")
+	}
 
 	shi := samehada.NewSamehadaInstanceForTesting()
 	shi.GetLogManager().ActivateLogging()
@@ -1764,8 +1768,10 @@ func TestSimpleAggregation(t *testing.T) {
 
 func TestSimpleGroupByAggregation(t *testing.T) {
 	// SELECT count(colA), colB, sum(C) FROM test_1 Group By colB HAVING count(colA) > 100
-	os.Remove("test.db")
-	os.Remove("test.log")
+	if !common.EnableOnMemStorage {
+		os.Remove("test.db")
+		os.Remove("test.log")
+	}
 
 	shi := samehada.NewSamehadaInstanceForTesting()
 	shi.GetLogManager().ActivateLogging()
@@ -1843,8 +1849,10 @@ func TestSimpleGroupByAggregation(t *testing.T) {
 
 func TestSeqScanWithMultiItemPredicate(t *testing.T) {
 	// SELECT colA, colB colC FROM test_1 WHERE (colA > 500 AND colB < 5) OR (NOT colC >= 1000)
-	os.Remove("test.db")
-	os.Remove("test.log")
+	if !common.EnableOnMemStorage {
+		os.Remove("test.db")
+		os.Remove("test.log")
+	}
 
 	shi := samehada.NewSamehadaInstanceForTesting()
 	shi.GetLogManager().ActivateLogging()
@@ -1999,8 +2007,10 @@ func TestInsertAndSpecifiedColumnUpdate(t *testing.T) {
 }
 
 func TestInsertAndSpecifiedColumnUpdatePageMoveCase(t *testing.T) {
-	os.Remove("test.db")
-	os.Remove("test.log")
+	if !common.EnableOnMemStorage {
+		os.Remove("test.db")
+		os.Remove("test.log")
+	}
 
 	shi := samehada.NewSamehadaInstanceForTesting()
 	shi.GetLogManager().ActivateLogging()
@@ -2169,8 +2179,10 @@ func TestInsertAndSpecifiedColumnUpdatePageMoveCase(t *testing.T) {
 
 func TestSimpleSeqScanAndOrderBy(t *testing.T) {
 	// SELECT a, b, FROM test_1 ORDER BY a, b
-	os.Remove("test.db")
-	os.Remove("test.log")
+	if !common.EnableOnMemStorage {
+		os.Remove("test.db")
+		os.Remove("test.log")
+	}
 
 	shi := samehada.NewSamehadaInstanceForTesting()
 	shi.GetLogManager().ActivateLogging()
@@ -2276,8 +2288,10 @@ func TestSimpleSeqScanAndOrderBy(t *testing.T) {
 }
 
 func TestSimpleSetNullToVarchar(t *testing.T) {
-	os.Remove("test.db")
-	os.Remove("test.log")
+	if !common.EnableOnMemStorage {
+		os.Remove("test.db")
+		os.Remove("test.log")
+	}
 
 	shi := samehada.NewSamehadaInstanceForTesting()
 	shi.GetLogManager().ActivateLogging()

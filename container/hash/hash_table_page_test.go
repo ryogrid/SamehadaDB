@@ -4,6 +4,7 @@
 package hash
 
 import (
+	"github.com/ryogrid/SamehadaDB/common"
 	"github.com/ryogrid/SamehadaDB/storage/page"
 	"os"
 	"testing"
@@ -62,7 +63,9 @@ func TestHashTableHeaderPage(t *testing.T) {
 	// unpin the header page now that we are done
 	bpm.UnpinPage(headerPage.GetPageId(), true)
 	diskManager.ShutDown()
-	os.Remove("test.db")
+	if !common.EnableOnMemStorage {
+		os.Remove("test.db")
+	}
 }
 
 func TestHashTableBlockPage(t *testing.T) {
@@ -105,5 +108,7 @@ func TestHashTableBlockPage(t *testing.T) {
 
 	bpm.UnpinPage(newPage.ID(), true)
 	bpm.FlushAllPages()
-	os.Remove("test.db")
+	if !common.EnableOnMemStorage {
+		os.Remove("test.db")
+	}
 }

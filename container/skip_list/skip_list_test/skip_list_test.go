@@ -17,8 +17,10 @@ import (
 )
 
 func TestSerializationOfSkipLisBlockPage(t *testing.T) {
-	os.Remove("test.db")
-	os.Remove("test.log")
+	if !common.EnableOnMemStorage {
+		os.Remove("test.db")
+		os.Remove("test.log")
+	}
 	shi := samehada.NewSamehadaInstanceForTesting()
 	bpm := shi.GetBufferPoolManager()
 
@@ -52,8 +54,10 @@ func TestSerializationOfSkipLisBlockPage(t *testing.T) {
 }
 
 func TestSerializationOfSkipLisHeaderPage(t *testing.T) {
-	os.Remove("test.db")
-	os.Remove("test.log")
+	if !common.EnableOnMemStorage {
+		os.Remove("test.db")
+		os.Remove("test.log")
+	}
 	shi := samehada.NewSamehadaInstanceForTesting()
 	bpm := shi.GetBufferPoolManager()
 
@@ -74,8 +78,10 @@ func TestSerializationOfSkipLisHeaderPage(t *testing.T) {
 }
 
 func TestInnerInsertDeleteOfBlockPageSimple(t *testing.T) {
-	os.Remove("test.db")
-	os.Remove("test.log")
+	if !common.EnableOnMemStorage {
+		os.Remove("test.db")
+		os.Remove("test.log")
+	}
 	shi := samehada.NewSamehadaInstanceForTesting()
 	bpm := shi.GetBufferPoolManager()
 
@@ -173,8 +179,10 @@ func TestInnerInsertDeleteOfBlockPageSimple(t *testing.T) {
 }
 
 func TestBSearchOfSkipLisBlockPage(t *testing.T) {
-	os.Remove("test.db")
-	os.Remove("test.log")
+	if !common.EnableOnMemStorage {
+		os.Remove("test.db")
+		os.Remove("test.log")
+	}
 	shi := samehada.NewSamehadaInstanceForTesting()
 	bpm := shi.GetBufferPoolManager()
 
@@ -233,8 +241,10 @@ func TestBSearchOfSkipLisBlockPage(t *testing.T) {
 }
 
 func TestBSearchOfSkipLisBlockPage2(t *testing.T) {
-	os.Remove("test.db")
-	os.Remove("test.log")
+	if !common.EnableOnMemStorage {
+		os.Remove("test.db")
+		os.Remove("test.log")
+	}
 	shi := samehada.NewSamehadaInstanceForTesting()
 	bpm := shi.GetBufferPoolManager()
 
@@ -330,8 +340,10 @@ func confirmSkipListContent(t *testing.T, sl *skip_list.SkipList, step int32) in
 }
 
 func TestSkipListSimple(t *testing.T) {
-	os.Remove("test.db")
-	os.Remove("test.log")
+	if !common.EnableOnMemStorage {
+		os.Remove("test.db")
+		os.Remove("test.log")
+	}
 
 	shi := samehada.NewSamehadaInstanceForTesting()
 	sl := skip_list.NewSkipList(shi.GetBufferPoolManager(), types.Integer)
@@ -390,8 +402,10 @@ func TestSkipListSimple(t *testing.T) {
 }
 
 //func TestSkipListInsertAndDeleteAll(t *testing.T) {
+//if !common.EnableOnMemStorage {
 //	os.Remove("test.db")
 //	os.Remove("test.log")
+//}
 //
 //	//shi := samehada.NewSamehadaInstance("test", 100)
 //	shi := samehada.NewSamehadaInstance("test", 5)
@@ -481,8 +495,10 @@ func TestSkipListSimple(t *testing.T) {
 //}
 
 func TestSkipListItr(t *testing.T) {
-	os.Remove("test.db")
-	os.Remove("test.log")
+	if !common.EnableOnMemStorage {
+		os.Remove("test.db")
+		os.Remove("test.log")
+	}
 
 	shi := samehada.NewSamehadaInstanceForTesting()
 	sl := skip_list.NewSkipList(shi.GetBufferPoolManager(), types.Integer)
@@ -562,8 +578,10 @@ func TestSkipListItr(t *testing.T) {
 //			return
 //		}
 //
-//		os.Remove("test.db")
-//		os.Remove("test.log")
+//if !common.EnableOnMemStorage {
+//	os.Remove("test.db")
+//	os.Remove("test.log")
+//}
 //
 //		shi := samehada.NewSamehadaInstanceForTesting()
 //		//shi := samehada.NewSamehadaInstance("test", 10*1024) // buffer is about 40MB
@@ -582,8 +600,10 @@ func TestSkipListItr(t *testing.T) {
 //			return
 //		}
 //
-//		//os.Remove("test.db")
-//		//os.Remove("test.log")
+//if !common.EnableOnMemStorage {
+//	os.Remove("test.db")
+//	os.Remove("test.log")
+//}
 //		randStr := *samehada_util.GetRandomStr(20)
 //		//fnameNum := strconv.Itoa(int(bulkSize + opTimes + skipRand + initialEntryNum))
 //		//randStr := fnameNum + ".db"
@@ -601,8 +621,10 @@ func TestSkipListItr(t *testing.T) {
 //}
 
 //func TestFuzzerUnexpectedExitParam(t *testing.T) {
+//if !common.EnableOnMemStorage {
 //	os.Remove("test.db")
 //	os.Remove("test.log")
+//}
 //
 //	//shi := samehada.NewSamehadaInstanceForTesting()
 //	shi := samehada.NewSamehadaInstance("test", 10) // 10 pages
@@ -721,8 +743,10 @@ func testSkipListMix[T int32 | float32 | string](t *testing.T, keyType types.Typ
 	common.ShPrintf(common.DEBUG_INFO, "start of testSkipListMix bulkSize=%d opTimes=%d skipRand=%d initialEntryNum=%d ====================================================\n",
 		bulkSize, opTimes, skipRand, initialEntryNum)
 
-	os.Remove("test.db")
-	os.Remove("test.log")
+	if !common.EnableOnMemStorage {
+		os.Remove("test.db")
+		os.Remove("test.log")
+	}
 
 	//shi := samehada.NewSamehadaInstance("test", 10)
 	shi := samehada.NewSamehadaInstance("test", 10)
@@ -854,8 +878,10 @@ func testSkipListMixParallel[T int32 | float32 | string](t *testing.T, keyType t
 	common.ShPrintf(common.DEBUG_INFO, "start of testSkipListMix opTimes=%d skipRand=%d initialEntryNum=%d ====================================================\n",
 		opTimes, skipRand, initialEntryNum)
 
-	os.Remove("test.db")
-	os.Remove("test.log")
+	if !common.EnableOnMemStorage {
+		os.Remove("test.db")
+		os.Remove("test.log")
+	}
 
 	shi := samehada.NewSamehadaInstance("test", 30)
 	//shi := samehada.NewSamehadaInstanceForTesting()
@@ -1045,8 +1071,10 @@ func testSkipListMixParallelBulk[T int32 | float32 | string](t *testing.T, keyTy
 	common.ShPrintf(common.DEBUG_INFO, "start of testSkipListMix opTimes=%d skipRand=%d initialEntryNum=%d ====================================================\n",
 		opTimes, skipRand, initialEntryNum)
 
-	os.Remove("test.db")
-	os.Remove("test.log")
+	if !common.EnableOnMemStorage {
+		os.Remove("test.db")
+		os.Remove("test.log")
+	}
 
 	shi := samehada.NewSamehadaInstance("test", 30)
 	//shi := samehada.NewSamehadaInstanceForTesting()
@@ -1244,8 +1272,10 @@ func testSkipListMixParallelBulk[T int32 | float32 | string](t *testing.T, keyTy
 }
 
 func testSkipListMixRoot[T int32 | float32 | string](t *testing.T, keyType types.TypeID) {
-	//os.Remove("test.db")
-	//os.Remove("test.log")
+	//if !common.EnableOnMemStorage {
+	//	os.Remove("test.db")
+	//	os.Remove("test.log")
+	//}
 	//
 	//shi := samehada.NewSamehadaInstance("test", 10)
 	////shi := samehada.NewSamehadaInstanceForTesting()
@@ -1448,8 +1478,10 @@ func testSkipListInsertGetRemove3stride2(t *testing.T, sl *skip_list.SkipList, c
 }
 
 //func TestSkipListParallelSimpleInteger(t *testing.T) {
+//if !common.EnableOnMemStorage {
 //	os.Remove("test.db")
 //	os.Remove("test.log")
+//}
 //
 //	//shi := samehada.NewSamehadaInstance("test", 400)
 //	shi := samehada.NewSamehadaInstance("test", 30)
@@ -1473,8 +1505,10 @@ func testSkipListInsertGetRemove3stride2(t *testing.T, sl *skip_list.SkipList, c
 //}
 //
 //func TestSkipListParallelSimpleInteger2(t *testing.T) {
+//if !common.EnableOnMemStorage {
 //	os.Remove("test.db")
 //	os.Remove("test.log")
+//}
 //
 //	//shi := samehada.NewSamehadaInstance("test", 400)
 //	shi := samehada.NewSamehadaInstance("test", 30)
@@ -1498,8 +1532,10 @@ func testSkipListInsertGetRemove3stride2(t *testing.T, sl *skip_list.SkipList, c
 //}
 //
 //func TestSkipListParallelSimpleInteger3Stride(t *testing.T) {
+//if !common.EnableOnMemStorage {
 //	os.Remove("test.db")
 //	os.Remove("test.log")
+//}
 //
 //	//shi := samehada.NewSamehadaInstance("test", 400)
 //	shi := samehada.NewSamehadaInstance("test", 30)

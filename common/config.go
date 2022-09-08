@@ -3,14 +3,13 @@
 
 package common
 
-import (
-	"time"
-)
+import "time"
 
-var CycleDetectionInterval time.Duration
-var EnableLogging bool = false //true
 var LogTimeout time.Duration
-var EnableDebug bool = false //true
+
+var EnableLogging bool = false //true
+const EnableDebug bool = false //true
+const EnableOnMemStorage = false
 
 const (
 	// invalid page id

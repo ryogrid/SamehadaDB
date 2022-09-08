@@ -35,8 +35,10 @@ func TestPackAndUnpackRID(t *testing.T) {
 }
 
 func TestRecounstructionOfHashIndex(t *testing.T) {
-	os.Remove("test.db")
-	os.Remove("test.log")
+	if !common.EnableOnMemStorage {
+		os.Remove("test.db")
+		os.Remove("test.log")
+	}
 
 	shi := samehada.NewSamehadaInstanceForTesting()
 	shi.GetLogManager().ActivateLogging()
