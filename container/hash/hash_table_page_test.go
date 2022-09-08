@@ -18,7 +18,12 @@ import (
 )
 
 func TestHashTableHeaderPage(t *testing.T) {
-	diskManager := disk.NewDiskManagerImpl("test.db")
+	var diskManager disk.DiskManager
+	if !common.TempSuppressOnMemStorage || common.TempSuppressOnMemStorage {
+		diskManager = disk.NewDiskManagerImpl("test.db")
+	} else {
+		diskManager = disk.NewVirtualDiskManagerImpl("test.db")
+	}
 	//bpm := buffer.NewBufferPoolManager(diskManager, buffer.NewClockReplacer(5))
 	bpm := buffer.NewBufferPoolManager(uint32(10), diskManager, recovery.NewLogManager(&diskManager))
 
@@ -69,7 +74,13 @@ func TestHashTableHeaderPage(t *testing.T) {
 }
 
 func TestHashTableBlockPage(t *testing.T) {
-	diskManager := disk.NewDiskManagerImpl("test.db")
+	var diskManager disk.DiskManager
+	if !common.TempSuppressOnMemStorage || common.TempSuppressOnMemStorage {
+		diskManager = disk.NewDiskManagerImpl("test.db")
+	} else {
+		diskManager = disk.NewVirtualDiskManagerImpl("test.db")
+	}
+
 	//bpm := buffer.NewBufferPoolManager(diskManager, buffer.NewClockReplacer(5))
 	bpm := buffer.NewBufferPoolManager(uint32(32), diskManager, recovery.NewLogManager(&diskManager))
 
