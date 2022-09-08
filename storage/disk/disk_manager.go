@@ -25,4 +25,5 @@ type DiskManager interface {
 	WriteLog([]byte)
 	ReadLog([]byte, int32, *uint32) bool
 	GetLogFileSize() int64
+	GCLogFile() error
 }

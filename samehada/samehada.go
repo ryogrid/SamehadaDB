@@ -108,7 +108,7 @@ func NewSamehadaDB(dbName string, memKBytes int) *SamehadaDB {
 		greatestLSN, isRedoOccured := log_recovery.Redo()
 		isUndoOccured := log_recovery.Undo()
 
-		dman := shi.GetDiskManager().(*disk.DiskManagerImpl)
+		dman := shi.GetDiskManager()
 		dman.GCLogFile()
 		shi.GetLogManager().SetNextLSN(greatestLSN + 1)
 
