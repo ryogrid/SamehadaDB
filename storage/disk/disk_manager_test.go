@@ -10,6 +10,12 @@ import (
 	testingpkg "github.com/ryogrid/SamehadaDB/testing"
 )
 
+func memset(buffer []byte, value int) {
+	for i := range buffer {
+		buffer[i] = 0
+	}
+}
+
 func TestReadWritePage(t *testing.T) {
 	common.TempSuppressOnMemStorage = true
 

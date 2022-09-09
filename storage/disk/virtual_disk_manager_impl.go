@@ -1,19 +1,19 @@
 package disk
 
 import (
-	"errors"
 	"strings"
 	"sync"
 
+	"github.com/dsnet/golib/memfile"
 	"github.com/ryogrid/SamehadaDB/common"
 	"github.com/ryogrid/SamehadaDB/types"
 )
 
 // DiskManagerImpl is the disk implementation of DiskManager
 type VirtualDiskManagerImpl struct {
-	db           []byte //*os.File
+	db           *memfile.File //[]byte
 	fileName     string
-	log          []byte //*os.File
+	log          *memfile.File //[]byte
 	fileName_log string
 	nextPageID   types.PageID
 	numWrites    uint64
@@ -30,7 +30,7 @@ func NewVirtualDiskManagerImpl(dbFilename string) DiskManager {
 	//	log.Fatalln("can't open db file")
 	//	return nil
 	//}
-	file := make([]byte, 0)
+	file := memfile.New(make([]byte, 0))
 
 	period_idx := strings.LastIndex(dbFilename, ".")
 	logfname_base := dbFilename[:period_idx]
@@ -40,7 +40,7 @@ func NewVirtualDiskManagerImpl(dbFilename string) DiskManager {
 	//	log.Fatalln("can't open log file")
 	//	return nil
 	//}
-	file_1 := make([]byte, 0)
+	file_1 := memfile.New(make([]byte, 0))
 
 	//fileInfo, err := file.Stat()
 	//if err != nil {
@@ -89,12 +89,6 @@ func (d *VirtualDiskManagerImpl) ShutDown() {
 	//d.logFileMutex.Unlock()
 }
 
-func memset(buffer []byte, value int) {
-	for i := range buffer {
-		buffer[i] = 0
-	}
-}
-
 // Write a page to the database file
 func (d *VirtualDiskManagerImpl) WritePage(pageId types.PageID, pageData []byte) error {
 	d.dbFileMutex.Lock()
@@ -109,15 +103,7 @@ func (d *VirtualDiskManagerImpl) WritePage(pageId types.PageID, pageData []byte)
 	//	//return err
 	//}
 
-	writeLen := len(pageData)
-	if int(offset)+writeLen > len(d.db) {
-		tmpArr := make([]byte, int(offset)+writeLen-len(d.db))
-		memset(tmpArr, 0)
-		d.db = append(d.db, tmpArr...)
-	}
-	tmpArr := make([]byte, 0)
-	copy(tmpArr, pageData)
-	copy(d.db[offset:], tmpArr)
+	d.db.WriteAt(pageData, offset)
 
 	//if bytesWritten != common.PageSize {
 	//	panic("bytes written not equals page size")
@@ -145,11 +131,11 @@ func (d *VirtualDiskManagerImpl) ReadPage(pageID types.PageID, pageData []byte) 
 	//	fmt.Println(err)
 	//	return errors.New("file info error")
 	//}
-
 	//if offset > fileInfo.Size() {
-	if offset > int64(len(d.db)) || offset+int64(len(pageData)) > int64(len(d.db)) {
-		return errors.New("I/O error past end of file")
-	}
+
+	//if offset > int64(d.db.) || offset+int64(len(pageData)) > int64(len(d.db)) {
+	//	return errors.New("I/O error past end of file")
+	//}
 
 	//d.db.Seek(offset, io.SeekStart)
 	//bytesRead, err := d.db.Read(pageData)
@@ -160,8 +146,7 @@ func (d *VirtualDiskManagerImpl) ReadPage(pageID types.PageID, pageData []byte) 
 	//bytesRead := int64(len(pageData))
 	//reader := bytes.NewReader(d.db)
 	//reader.ReadAt(pageData, offset)
-	readLen := int64(len(pageData))
-	copy(pageData, d.db[offset:offset+readLen])
+	d.db.ReadAt(pageData, offset)
 
 	//if bytesRead < common.PageSize {
 	//	for i := 0; i < common.PageSize; i++ {
@@ -242,7 +227,7 @@ func (d *VirtualDiskManagerImpl) GCLogFile() error {
 	//d.log.Close()
 	//d.logFileMutex.Unlock()
 	//d.RemoveLogFile()
-	d.log = make([]byte, 0)
+	d.log = memfile.New(make([]byte, 0))
 	d.logFileMutex.Lock()
 	defer d.logFileMutex.Unlock()
 
@@ -291,15 +276,7 @@ func (d *VirtualDiskManagerImpl) WriteLog(log_data []byte) {
 
 	d.numFlushes += 1
 	// sequence write
-	writeLen := len(log_data)
-	oringLen := len(d.log)
-	padArr := make([]byte, writeLen)
-	memset(padArr, 0)
-	d.log = append(d.log, padArr...)
-
-	tmpArr := make([]byte, 0)
-	copy(tmpArr, log_data)
-	copy(d.db[oringLen:], tmpArr)
+	d.log.Write(log_data)
 
 	//_, err := d.log.Write(log_data)
 	//
@@ -335,7 +312,7 @@ func (d *VirtualDiskManagerImpl) ReadLog(log_data []byte, offset int32, retReadB
 	//*retReadBytes = uint32(readBytes)
 
 	readLen := int32(len(log_data))
-	copy(log_data, d.log[offset:offset+readLen])
+	d.log.ReadAt(log_data, int64(offset))
 	*retReadBytes = uint32(readLen)
 
 	//// if log file ends before reading "size"
@@ -372,5 +349,5 @@ func (d *VirtualDiskManagerImpl) GetLogFileSize() int64 {
 	//}
 	//
 	//return fileInfo.Size()
-	return int64(len(d.log))
+	return int64(len(d.log.Bytes()))
 }

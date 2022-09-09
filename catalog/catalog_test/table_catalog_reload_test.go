@@ -20,7 +20,9 @@ import (
 
 // test reloading serialized catalog info in db file at lauching system
 func TestTableCatalogReload(t *testing.T) {
-	if !common.EnableOnMemStorage {
+	common.TempSuppressOnMemStorage = true
+
+	if !common.EnableOnMemStorage || common.TempSuppressOnMemStorage {
 		os.Remove("test.db")
 	}
 	samehada_instance := samehada.NewSamehadaInstanceForTesting()
@@ -54,4 +56,5 @@ func TestTableCatalogReload(t *testing.T) {
 	testingpkg.Assert(t, columnToCheck.HasIndex() == true, "")
 
 	//samehada_instance.Shutdown(true)
+	common.TempSuppressOnMemStorage = false
 }

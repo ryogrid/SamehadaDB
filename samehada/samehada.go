@@ -92,7 +92,11 @@ func ReconstructAllIndexData(c *catalog.Catalog, dman disk.DiskManager, txn *acc
 }
 
 func NewSamehadaDB(dbName string, memKBytes int) *SamehadaDB {
-	isExisitingDB := samehada_util.FileExists(dbName + ".db")
+	isExistingDB := false
+
+	if !common.EnableOnMemStorage || common.TempSuppressOnMemStorage {
+		isExistingDB = samehada_util.FileExists(dbName + ".db")
+	}
 
 	bpoolSize := math.Floor(float64(memKBytes*1024) / float64(common.PageSize))
 	shi := NewSamehadaInstance(dbName, int(bpoolSize))
@@ -101,7 +105,7 @@ func NewSamehadaDB(dbName string, memKBytes int) *SamehadaDB {
 	shi.GetLogManager().DeactivateLogging()
 
 	var c *catalog.Catalog
-	if isExisitingDB {
+	if isExistingDB {
 		log_recovery := log_recovery.NewLogRecovery(
 			shi.GetDiskManager(),
 			shi.GetBufferPoolManager())
