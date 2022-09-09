@@ -82,12 +82,12 @@ func (d *VirtualDiskManagerImpl) AllocatePage() types.PageID {
 
 	ret := d.nextPageID
 
-	// extend db file for avoiding later ReadPage and WritePage fails
-	zeroClearedPageData := make([]byte, common.PageSize)
-
-	d.dbFileMutex.Unlock()
-	d.WritePage(ret, zeroClearedPageData)
-	d.dbFileMutex.Lock()
+	//// extend db file for avoiding later ReadPage and WritePage fails
+	//zeroClearedPageData := make([]byte, common.PageSize)
+	//
+	//d.dbFileMutex.Unlock()
+	//d.WritePage(ret, zeroClearedPageData)
+	//d.dbFileMutex.Lock()
 	defer d.dbFileMutex.Unlock()
 
 	d.nextPageID++
