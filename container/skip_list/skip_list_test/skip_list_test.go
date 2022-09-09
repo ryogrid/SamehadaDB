@@ -586,27 +586,28 @@ import (
 //	testingpkg.SimpleAssert(t, nodeCnt == 250)
 //}
 
-//func FuzzSkipLisMixInteger(f *testing.F) {
-//	f.Add(int32(100), int32(150), int32(10), int32(300))
-//	f.Fuzz(func(t *testing.T, bulkSize int32, opTimes int32, skipRand int32, initialEntryNum int32) {
-//		if bulkSize < 0 || opTimes < 0 || skipRand < 0 || initialEntryNum < 0 {
-//			return
-//		}
-//
-//		if !common.EnableOnMemStorage {
-//			os.Remove("test.db")
-//			os.Remove("test.log")
-//		}
-//
-//		//shi := samehada.NewSamehadaInstanceForTesting()
-//		////shi := samehada.NewSamehadaInstance("test", 10*1024) // buffer is about 40MB
-//		//bpm := shi.GetBufferPoolManager()
-//
-//		testSkipListMix[int32](t, types.Integer, bulkSize, opTimes, skipRand, initialEntryNum)
-//
-//		//shi.CloseFilesForTesting()
-//	})
-//}
+func FuzzSkipLisMixInteger(f *testing.F) {
+	//f.Add(int32(100), int32(150), int32(10), int32(300))
+	f.Add(int32(100), int32(15), int32(10), int32(300))
+	f.Fuzz(func(t *testing.T, bulkSize int32, opTimes int32, skipRand int32, initialEntryNum int32) {
+		if bulkSize < 0 || opTimes < 0 || opTimes > 50 || skipRand < 0 || initialEntryNum < 0 {
+			return
+		}
+
+		//if !common.EnableOnMemStorage {
+		//	os.Remove("test.db")
+		//	os.Remove("test.log")
+		//}
+
+		//shi := samehada.NewSamehadaInstanceForTesting()
+		////shi := samehada.NewSamehadaInstance("test", 10*1024) // buffer is about 40MB
+		//bpm := shi.GetBufferPoolManager()
+
+		testSkipListMix[int32](t, types.Integer, bulkSize, opTimes, skipRand, initialEntryNum)
+
+		//shi.CloseFilesForTesting()
+	})
+}
 
 //func FuzzSkipLisMixVarchar(f *testing.F) {
 //	f.Add(int32(100), int32(150), int32(10), int32(300))
@@ -758,10 +759,10 @@ func testSkipListMix[T int32 | float32 | string](t *testing.T, keyType types.Typ
 	common.ShPrintf(common.DEBUG_INFO, "start of testSkipListMix bulkSize=%d opTimes=%d skipRand=%d initialEntryNum=%d ====================================================\n",
 		bulkSize, opTimes, skipRand, initialEntryNum)
 
-	if !common.EnableOnMemStorage {
-		os.Remove("test.db")
-		os.Remove("test.log")
-	}
+	//if !common.EnableOnMemStorage {
+	//	os.Remove("test.db")
+	//	os.Remove("test.log")
+	//}
 
 	//shi := samehada.NewSamehadaInstance("test", 10)
 	shi := samehada.NewSamehadaInstance("test", 10)
@@ -1359,18 +1360,18 @@ func testSkipListMixParallelBulkRoot[T int32 | float32 | string](t *testing.T, k
 	//testSkipListMixParallel[T](t, sl, keyType, 100, int32(250), int32(3), int32(0))
 }
 
-func TestSkipListMixInteger(t *testing.T) {
-	testSkipListMixRoot[int32](t, types.Integer)
-}
-
-func TestSkipListMixFloat(t *testing.T) {
-	testSkipListMixRoot[float32](t, types.Float)
-}
-
-func TestSkipListMixVarchar(t *testing.T) {
-	testSkipListMixRoot[string](t, types.Varchar)
-}
-
+//func TestSkipListMixInteger(t *testing.T) {
+//	testSkipListMixRoot[int32](t, types.Integer)
+//}
+//
+//func TestSkipListMixFloat(t *testing.T) {
+//	testSkipListMixRoot[float32](t, types.Float)
+//}
+//
+//func TestSkipListMixVarchar(t *testing.T) {
+//	testSkipListMixRoot[string](t, types.Varchar)
+//}
+//
 //func TestSkipListMixParallelInteger(t *testing.T) {
 //	testSkipListMixParallelRoot[int32](t, types.Integer)
 //}
@@ -1378,7 +1379,7 @@ func TestSkipListMixVarchar(t *testing.T) {
 //func TestSkipListMixParallelVarchar(t *testing.T) {
 //	testSkipListMixParallelRoot[string](t, types.Varchar)
 //}
-
+//
 //func TestSkipListMixParallelBulkInteger(t *testing.T) {
 //	testSkipListMixParallelBulkRoot[int32](t, types.Integer)
 //}
