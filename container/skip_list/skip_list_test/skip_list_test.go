@@ -1382,27 +1382,27 @@ func testSkipListMixParallelStride[T int32 | float32](t *testing.T, keyType type
 		switch opType {
 		case 0: // Insert
 			go func() {
-				insVal := getRandomPrimitiveVal[T](keyType)
+				insValBase := getRandomPrimitiveVal[T](keyType)
 				checkDupMapMutex.RLock()
-				for _, exist := checkDupMap[insVal]; exist; _, exist = checkDupMap[insVal] {
-					insVal = getRandomPrimitiveVal[T](keyType)
+				for _, exist := checkDupMap[insValBase]; exist; _, exist = checkDupMap[insValBase] {
+					insValBase = getRandomPrimitiveVal[T](keyType)
 				}
 				checkDupMapMutex.RUnlock()
 				checkDupMapMutex.Lock()
-				checkDupMap[insVal] = insVal
+				checkDupMap[insValBase] = insValBase
 				checkDupMapMutex.Unlock()
 
 				for ii := int32(0); ii < stride; ii++ {
-					pairVal := GetValueForSkipListEntry(insVal*T(stride) + T(ii))
+					pairVal := GetValueForSkipListEntry(insValBase*T(stride) + T(ii))
 
 					common.ShPrintf(common.DEBUGGING, "Insert op start.")
-					sl.Insert(samehada_util.GetPonterOfValue(types.NewValue(insVal*T(stride)+T(ii))), pairVal)
-					//fmt.Printf("sl.Insert at insertRandom: ii=%d, insVal=%d len(*insVals)=%d\n", ii, insVal, len(insVals))
-					insValsMutex.Lock()
-					insVals = append(insVals, insVal)
-					insValsMutex.Unlock()
-					ch <- 1
+					sl.Insert(samehada_util.GetPonterOfValue(types.NewValue(insValBase*T(stride)+T(ii))), pairVal)
+					//fmt.Printf("sl.Insert at insertRandom: ii=%d, insValBase=%d len(*insVals)=%d\n", ii, insValBase, len(insVals))
 				}
+				insValsMutex.Lock()
+				insVals = append(insVals, insValBase)
+				insValsMutex.Unlock()
+				ch <- 1
 			}()
 		case 1, 2: // Delete
 			// get 0-1 value
@@ -1506,7 +1506,6 @@ func testSkipListMixParallelStride[T int32 | float32](t *testing.T, keyType type
 							panic("get op test failed!")
 						}
 						removedValsMutex.RUnlock()
-						panic("get op test failed!")
 					} else if gotVal != correctVal {
 						panic("returned value of get of is wrong!")
 					}
