@@ -588,9 +588,9 @@ import (
 
 func FuzzSkipLisMixInteger(f *testing.F) {
 	//f.Add(int32(100), int32(150), int32(10), int32(300))
-	f.Add(int32(100), int32(15), int32(10), int32(300))
+	f.Add(int32(100), int32(50), int32(10), int32(300))
 	f.Fuzz(func(t *testing.T, bulkSize int32, opTimes int32, skipRand int32, initialEntryNum int32) {
-		if bulkSize < 0 || opTimes < 0 || opTimes > 50 || skipRand < 0 || initialEntryNum < 0 {
+		if bulkSize < 0 || bulkSize > 400 || opTimes < 0 || opTimes > 70 || skipRand < 0 || initialEntryNum < 0 {
 			return
 		}
 
