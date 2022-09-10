@@ -826,7 +826,7 @@ func testSkipListMix[T int32 | float32 | string](t *testing.T, keyType types.Typ
 	useOpTimes := int(opTimes)
 	for ii := 0; ii < useOpTimes; ii++ {
 		if isFuzz { // for avoiding over 1sec
-			elapsedTime := startTime - time.Now().UnixNano()
+			elapsedTime := time.Now().UnixNano() - startTime
 			if elapsedTime > 1000*850 { //850ms
 				return
 			}
