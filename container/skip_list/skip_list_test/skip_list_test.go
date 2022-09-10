@@ -13,6 +13,7 @@ import (
 	"os"
 	"sync"
 	"testing"
+	"time"
 )
 
 //import (
@@ -590,7 +591,7 @@ func FuzzSkipLisMixInteger(f *testing.F) {
 	//f.Add(int32(100), int32(150), int32(10), int32(300))
 	f.Add(int32(100), int32(50), int32(10), int32(300))
 	f.Fuzz(func(t *testing.T, bulkSize int32, opTimes int32, skipRand int32, initialEntryNum int32) {
-		if bulkSize < 0 || bulkSize > 400 || opTimes < 0 || opTimes > 70 || skipRand < 0 || initialEntryNum < 0 {
+		if bulkSize < 0 || opTimes < 0 || skipRand < 0 || initialEntryNum < 0 {
 			return
 		}
 
@@ -603,7 +604,7 @@ func FuzzSkipLisMixInteger(f *testing.F) {
 		////shi := samehada.NewSamehadaInstance("test", 10*1024) // buffer is about 40MB
 		//bpm := shi.GetBufferPoolManager()
 
-		testSkipListMix[int32](t, types.Integer, bulkSize, opTimes, skipRand, initialEntryNum)
+		testSkipListMix[int32](t, types.Integer, bulkSize, opTimes, skipRand, initialEntryNum, true)
 
 		//shi.CloseFilesForTesting()
 	})
@@ -755,10 +756,14 @@ func removeRandom[T int32 | float32 | string](t *testing.T, sl *skip_list.SkipLi
 	}
 }
 
-func testSkipListMix[T int32 | float32 | string](t *testing.T, keyType types.TypeID, bulkSize int32, opTimes int32, skipRand int32, initialEntryNum int32) {
+func testSkipListMix[T int32 | float32 | string](t *testing.T, keyType types.TypeID, bulkSize int32, opTimes int32, skipRand int32, initialEntryNum int32, isFuzz bool) {
 	common.ShPrintf(common.DEBUG_INFO, "start of testSkipListMix bulkSize=%d opTimes=%d skipRand=%d initialEntryNum=%d ====================================================\n",
 		bulkSize, opTimes, skipRand, initialEntryNum)
 
+	var startTime int64
+	if isFuzz {
+		startTime = time.Now().UnixNano()
+	}
 	//if !common.EnableOnMemStorage {
 	//	os.Remove("test.db")
 	//	os.Remove("test.log")
@@ -820,6 +825,13 @@ func testSkipListMix[T int32 | float32 | string](t *testing.T, keyType types.Typ
 
 	useOpTimes := int(opTimes)
 	for ii := 0; ii < useOpTimes; ii++ {
+		if isFuzz { // for avoiding over 1sec
+			elapsedTime := startTime - time.Now().UnixNano()
+			if elapsedTime > 1000*850 { //850ms
+				return
+			}
+		}
+
 		// get 0-2
 		opType := rand.Intn(3)
 		switch opType {
@@ -1298,29 +1310,29 @@ func testSkipListMixRoot[T int32 | float32 | string](t *testing.T, keyType types
 	////shi := samehada.NewSamehadaInstance("test", 10*1024) // buffer is about 40MB
 	//bpm := shi.GetBufferPoolManager()
 
-	testSkipListMix[T](t, keyType, 1, int32(150), int32(10), int32(0))
-	testSkipListMix[T](t, keyType, 1, int32(150), int32(10), int32(300))
-	testSkipListMix[T](t, keyType, 1, int32(150), int32(10), int32(600))
-	testSkipListMix[T](t, keyType, 1, int32(200), int32(5), int32(10))
-	testSkipListMix[T](t, keyType, 1, int32(250), int32(5), int32(10))
-	testSkipListMix[T](t, keyType, 1, int32(250), int32(4), int32(0))
-	testSkipListMix[T](t, keyType, 1, int32(250), int32(3), int32(0))
+	testSkipListMix[T](t, keyType, 1, int32(150), int32(10), int32(0), false)
+	testSkipListMix[T](t, keyType, 1, int32(150), int32(10), int32(300), false)
+	testSkipListMix[T](t, keyType, 1, int32(150), int32(10), int32(600), false)
+	testSkipListMix[T](t, keyType, 1, int32(200), int32(5), int32(10), false)
+	testSkipListMix[T](t, keyType, 1, int32(250), int32(5), int32(10), false)
+	testSkipListMix[T](t, keyType, 1, int32(250), int32(4), int32(0), false)
+	testSkipListMix[T](t, keyType, 1, int32(250), int32(3), int32(0), false)
 
-	testSkipListMix[T](t, keyType, 50, int32(150), int32(10), int32(0))
-	testSkipListMix[T](t, keyType, 50, int32(150), int32(10), int32(300))
-	testSkipListMix[T](t, keyType, 50, int32(150), int32(10), int32(600))
-	testSkipListMix[T](t, keyType, 50, int32(200), int32(5), int32(10))
-	testSkipListMix[T](t, keyType, 50, int32(250), int32(5), int32(10))
-	testSkipListMix[T](t, keyType, 50, int32(250), int32(4), int32(0))
-	testSkipListMix[T](t, keyType, 50, int32(250), int32(3), int32(0))
+	testSkipListMix[T](t, keyType, 50, int32(150), int32(10), int32(0), false)
+	testSkipListMix[T](t, keyType, 50, int32(150), int32(10), int32(300), false)
+	testSkipListMix[T](t, keyType, 50, int32(150), int32(10), int32(600), false)
+	testSkipListMix[T](t, keyType, 50, int32(200), int32(5), int32(10), false)
+	testSkipListMix[T](t, keyType, 50, int32(250), int32(5), int32(10), false)
+	testSkipListMix[T](t, keyType, 50, int32(250), int32(4), int32(0), false)
+	testSkipListMix[T](t, keyType, 50, int32(250), int32(3), int32(0), false)
 
-	testSkipListMix[T](t, keyType, 100, int32(150), int32(10), int32(0))
-	testSkipListMix[T](t, keyType, 100, int32(150), int32(10), int32(300))
-	testSkipListMix[T](t, keyType, 100, int32(150), int32(10), int32(600))
-	testSkipListMix[T](t, keyType, 100, int32(200), int32(5), int32(10))
-	testSkipListMix[T](t, keyType, 100, int32(250), int32(5), int32(10))
-	testSkipListMix[T](t, keyType, 100, int32(250), int32(4), int32(0))
-	testSkipListMix[T](t, keyType, 100, int32(250), int32(3), int32(0))
+	testSkipListMix[T](t, keyType, 100, int32(150), int32(10), int32(0), false)
+	testSkipListMix[T](t, keyType, 100, int32(150), int32(10), int32(300), false)
+	testSkipListMix[T](t, keyType, 100, int32(150), int32(10), int32(600), false)
+	testSkipListMix[T](t, keyType, 100, int32(200), int32(5), int32(10), false)
+	testSkipListMix[T](t, keyType, 100, int32(250), int32(5), int32(10), false)
+	testSkipListMix[T](t, keyType, 100, int32(250), int32(4), int32(0), false)
+	testSkipListMix[T](t, keyType, 100, int32(250), int32(3), int32(0), false)
 
 	////shi.Shutdown(true)
 	//shi.CloseFilesForTesting()
