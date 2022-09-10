@@ -62,3 +62,14 @@ func GetRandomStr(maxLength int32) *string {
 
 	return &s
 }
+
+func RemovePrimitiveFromList[T int32 | float32 | string](list []T, elem T) []T {
+	list_ := append(make([]T, 0), list...)
+	for i, r := range list {
+		if r == elem {
+			list_ = append(list[:i], list[i+1:]...)
+			break
+		}
+	}
+	return list_
+}
