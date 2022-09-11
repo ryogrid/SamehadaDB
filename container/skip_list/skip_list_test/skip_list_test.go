@@ -1392,13 +1392,13 @@ func testSkipListMixParallelStride[T int32 | float32](t *testing.T, keyType type
 		case 0: // Insert
 			go func() {
 				//checkDupMapMutex.RLock()
-				checkDupMapMutex.Lock()
+				checkDupMapMutex.RLock()
 				insValBase := getRandomPrimitiveVal[T](keyType)
 				for _, exist := checkDupMap[insValBase]; exist; _, exist = checkDupMap[insValBase] {
 					insValBase = getRandomPrimitiveVal[T](keyType)
 				}
-				//checkDupMapMutex.RUnlock()
-				//checkDupMapMutex.Lock()
+				checkDupMapMutex.RUnlock()
+				checkDupMapMutex.Lock()
 				checkDupMap[insValBase] = insValBase
 				checkDupMapMutex.Unlock()
 
