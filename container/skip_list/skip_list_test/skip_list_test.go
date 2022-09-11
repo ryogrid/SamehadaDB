@@ -701,6 +701,24 @@ func isAlreadyRemoved[T int32 | float32 | string](checkVal T, removedVals []T) b
 	return false
 }
 
+func choiceValFromMap[T](m map[T]T) T {
+	l := len(m)
+	i := 0
+
+	index := rand.Intn(l)
+
+	var ans T
+	for k, _ := range m {
+		if index == i {
+			ans = k
+			break
+		} else {
+			i++
+		}
+	}
+	return ans
+}
+
 func countSkipListContent(sl *skip_list.SkipList) int32 {
 	entryCnt := int32(0)
 	itr := sl.Iterator(nil, nil)
@@ -1334,8 +1352,7 @@ func testSkipListMixParallelStride[T int32 | float32](t *testing.T, keyType type
 
 	insVals := make([]T, 0)
 
-	// TODO: (SDB) replace removedVals from slice to map (testSkipListMixParallelStride)
-	removedVals := make([]T, 0)
+	removedVals := make(map[T]T, 0)
 
 	// initial entries
 	useInitialEntryNum := int(initialEntryNum)
@@ -1438,8 +1455,9 @@ func testSkipListMixParallelStride[T int32 | float32](t *testing.T, keyType type
 
 					for ii := int32(0); ii < stride; ii++ {
 						removedValsMutex.RLock()
-						tmpIdx := int(rand.Intn(len(removedVals)))
-						delVal := removedVals[tmpIdx]
+						//tmpIdx := int(rand.Intn(len(removedVals)))
+						//delVal := removedVals[tmpIdx]
+						delVal := choiceValFromMap(removedVals)
 						removedValsMutex.RUnlock()
 
 						common.ShPrintf(common.DEBUGGING, "Remove(fail) op start.")
@@ -1474,12 +1492,14 @@ func testSkipListMixParallelStride[T int32 | float32](t *testing.T, keyType type
 						delVal := delValBase*T(stride) + T(ii)
 						pairVal := getValueForSkipListEntry(delVal)
 						common.ShPrintf(common.DEBUGGING, "Remove(success) op start.")
+
+						// append to map before doing remove op for other get op thread
+						removedValsMutex.Lock()
+						removedVals[delVal] = delVal
+						removedValsMutex.Unlock()
+
 						isDeleted := sl.Remove(samehada_util.GetPonterOfValue(types.NewValue(delVal)), pairVal)
-						if isDeleted == true {
-							removedValsMutex.Lock()
-							removedVals = append(removedVals, delVal)
-							removedValsMutex.Unlock()
-						} else {
+						if isDeleted == false {
 							//removedValsMutex.RLock()
 							//if ok := isAlreadyRemoved(delVal, removedVals); !ok {
 							//	removedValsMutex.RUnlock()
@@ -1517,13 +1537,12 @@ func testSkipListMixParallelStride[T int32 | float32](t *testing.T, keyType type
 					common.ShPrintf(common.DEBUGGING, "Get op start.")
 					gotVal := sl.GetValue(&getTgtVal)
 					if gotVal == math.MaxUint32 {
-						panic("get op test failed!")
-						//removedValsMutex.RLock()
-						//if ok := isAlreadyRemoved(getTgt, removedVals); !ok {
-						//	removedValsMutex.RUnlock()
-						//	panic("get op test failed!")
-						//}
-						//removedValsMutex.RUnlock()
+						removedValsMutex.RLock()
+						if _, ok := removedVals[getTgt]; !ok {
+							removedValsMutex.RUnlock()
+							panic("get op test failed!")
+						}
+						removedValsMutex.RUnlock()
 					} else if gotVal != correctVal {
 						panic("returned value of get of is wrong!")
 					}
