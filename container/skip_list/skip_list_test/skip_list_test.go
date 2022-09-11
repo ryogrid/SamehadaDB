@@ -701,7 +701,7 @@ func isAlreadyRemoved[T int32 | float32 | string](checkVal T, removedVals []T) b
 	return false
 }
 
-func choiceValFromMap[T](m map[T]T) T {
+func choiceValFromMap[T int32 | float32 | string, V int32 | float32 | string](m map[T]V) T {
 	l := len(m)
 	i := 0
 
