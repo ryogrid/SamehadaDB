@@ -1365,26 +1365,32 @@ func testSkipListMixParallelStride[T int32 | float32](t *testing.T, keyType type
 	ch := make(chan int32)
 
 	useOpTimes := int(opTimes)
-	exitedThCnt := 0
+	runningThCnt := 0
 	for ii := 0; ii <= useOpTimes; ii++ {
 		// wait 20 groroutine exited
 		// TODO: (SDB) modification is better: after first 20 thread invocation, when one thread ends, start one thread
 		if ii == useOpTimes {
-			for exitedThCnt < 20 {
+			for runningThCnt >= 0 {
 				<-ch
-				exitedThCnt++
-				common.ShPrintf(common.DEBUGGING, "exitedThCnt=%d\n", exitedThCnt)
+				runningThCnt--
+				common.ShPrintf(common.DEBUGGING, "runningThCnt=%d\n", runningThCnt)
 			}
 			break
-		} else if ii%20 == 0 && ii != 0 {
-			for exitedThCnt < 20 {
-				<-ch
-				exitedThCnt++
-				common.ShPrintf(common.DEBUGGING, "exitedThCnt=%d\n", exitedThCnt)
-			}
+		}
+		//else if ii%20 == 0 && ii != 0 {
+		//	for runningThCnt >= 20 {
+		//		<-ch
+		//		runningThCnt--
+		//		common.ShPrintf(common.DEBUGGING, "runningThCnt=%d\n", runningThCnt)
+		//	}
+		//}
+		for runningThCnt >= 20 {
+			<-ch
+			runningThCnt--
+			common.ShPrintf(common.DEBUGGING, "runningThCnt=%d\n", runningThCnt)
 		}
 		common.ShPrintf(common.DEBUGGING, "ii=%d\n", ii)
-		exitedThCnt = 0
+		//runningThCnt = 0
 
 		// get 0-3
 		opType := rand.Intn(4)
@@ -1525,6 +1531,7 @@ func testSkipListMixParallelStride[T int32 | float32](t *testing.T, keyType type
 				//common.SH_Assert(, "gotVal is not collect!")
 			}()
 		}
+		runningThCnt++
 	}
 	shi.CloseFilesForTesting()
 }
