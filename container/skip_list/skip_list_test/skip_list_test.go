@@ -1351,8 +1351,8 @@ func testSkipListMixParallelStride[T int32 | float32](t *testing.T, keyType type
 	}
 
 	insVals := make([]T, 0)
-
-	removedVals := make(map[T]T, 0)
+	removedValsForGet := make(map[T]T, 0)
+	removedValsForRemove := make(map[T]T, 0)
 
 	// initial entries
 	useInitialEntryNum := int(initialEntryNum)
@@ -1376,7 +1376,8 @@ func testSkipListMixParallelStride[T int32 | float32](t *testing.T, keyType type
 	}
 
 	insValsMutex := new(sync.RWMutex)
-	removedValsMutex := new(sync.RWMutex)
+	removedValsForGetMutex := new(sync.RWMutex)
+	removedValsForRemoveMutex := new(sync.RWMutex)
 	checkDupMapMutex := new(sync.RWMutex)
 
 	ch := make(chan int32)
@@ -1444,21 +1445,19 @@ func testSkipListMixParallelStride[T int32 | float32](t *testing.T, keyType type
 			if tmpRand == 0 {
 				// 50% is Remove to not existing entry
 				go func() {
-					removedValsMutex.RLock()
-					if len(removedVals) == 0 {
-						removedValsMutex.RUnlock()
+					removedValsForRemoveMutex.RLock()
+					if len(removedValsForRemove) == 0 {
+						removedValsForRemoveMutex.RUnlock()
 						ch <- 1
 						//continue
 						return
 					}
-					removedValsMutex.RUnlock()
+					removedValsForRemoveMutex.RUnlock()
 
 					for ii := int32(0); ii < stride; ii++ {
-						removedValsMutex.RLock()
-						//tmpIdx := int(rand.Intn(len(removedVals)))
-						//delVal := removedVals[tmpIdx]
-						delVal := choiceValFromMap(removedVals)
-						removedValsMutex.RUnlock()
+						removedValsForRemoveMutex.RLock()
+						delVal := choiceValFromMap(removedValsForRemove)
+						removedValsForRemoveMutex.RUnlock()
 
 						common.ShPrintf(common.DEBUGGING, "Remove(fail) op start.")
 						isDeleted := sl.Remove(samehada_util.GetPonterOfValue(types.NewValue(delVal)), getValueForSkipListEntry(delVal))
@@ -1494,19 +1493,25 @@ func testSkipListMixParallelStride[T int32 | float32](t *testing.T, keyType type
 						common.ShPrintf(common.DEBUGGING, "Remove(success) op start.")
 
 						// append to map before doing remove op for other get op thread
-						removedValsMutex.Lock()
-						removedVals[delVal] = delVal
-						removedValsMutex.Unlock()
+						removedValsForGetMutex.Lock()
+						removedValsForGet[delVal] = delVal
+						removedValsForGetMutex.Unlock()
 
 						isDeleted := sl.Remove(samehada_util.GetPonterOfValue(types.NewValue(delVal)), pairVal)
-						if isDeleted == false {
-							//removedValsMutex.RLock()
-							//if ok := isAlreadyRemoved(delVal, removedVals); !ok {
-							//	removedValsMutex.RUnlock()
+						if isDeleted == true {
+							// append to map after doing remove op for other fail remove op thread
+							removedValsForRemoveMutex.Lock()
+							removedValsForRemove[delVal] = delVal
+							removedValsForRemoveMutex.Unlock()
+						} else {
+							//removedValsForGetMutex.RLock()
+							//if ok := isAlreadyRemoved(delVal, removedValsForGet); !ok {
+							//	removedValsForGetMutex.RUnlock()
 							//	panic("remove op test failed!")
 							//}
-							//removedValsMutex.RUnlock()
+							//removedValsForGetMutex.RUnlock()
 							panic("remove op test failed!")
+
 						}
 					}
 					//insValsMutex.Lock()
@@ -1526,7 +1531,7 @@ func testSkipListMixParallelStride[T int32 | float32](t *testing.T, keyType type
 					return
 				}
 				tmpIdx := int(rand.Intn(len(insVals)))
-				//fmt.Printf("sl.GetValue at testSkipListMix: ii=%d, tmpIdx=%d insVals[tmpIdx]=%d len(*insVals)=%d len(*removedVals)=%d\n", ii, tmpIdx, insVals[tmpIdx], len(insVals), len(removedVals))
+				//fmt.Printf("sl.GetValue at testSkipListMix: ii=%d, tmpIdx=%d insVals[tmpIdx]=%d len(*insVals)=%d len(*removedValsForGet)=%d\n", ii, tmpIdx, insVals[tmpIdx], len(insVals), len(removedValsForGet))
 				getTgtBase := insVals[tmpIdx]
 				insValsMutex.RUnlock()
 				for ii := int32(0); ii < stride; ii++ {
@@ -1537,12 +1542,12 @@ func testSkipListMixParallelStride[T int32 | float32](t *testing.T, keyType type
 					common.ShPrintf(common.DEBUGGING, "Get op start.")
 					gotVal := sl.GetValue(&getTgtVal)
 					if gotVal == math.MaxUint32 {
-						removedValsMutex.RLock()
-						if _, ok := removedVals[getTgt]; !ok {
-							removedValsMutex.RUnlock()
+						removedValsForGetMutex.RLock()
+						if _, ok := removedValsForGet[getTgt]; !ok {
+							removedValsForGetMutex.RUnlock()
 							panic("get op test failed!")
 						}
-						removedValsMutex.RUnlock()
+						removedValsForGetMutex.RUnlock()
 					} else if gotVal != correctVal {
 						panic("returned value of get of is wrong!")
 					}
