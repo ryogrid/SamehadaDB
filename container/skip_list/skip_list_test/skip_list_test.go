@@ -1327,28 +1327,30 @@ func testSkipListMixParallelStride[T int32 | float32](t *testing.T, keyType type
 	}
 
 	insVals := make([]T, 0)
+
+	// TODO: (SDB) replace removedVals from slice to map (testSkipListMixParallelStride)
 	removedVals := make([]T, 0)
-	//entriesOnListNum := int32(0)
 
 	// initial entries
 	useInitialEntryNum := int(initialEntryNum)
 	for ii := 0; ii < useInitialEntryNum; ii++ {
 		// avoid duplication
-		//insVal := rand.Int31()
-		insVal := getRandomPrimitiveVal[T](keyType)
-		for _, exist := checkDupMap[insVal]; exist; _, exist = checkDupMap[insVal] {
-			//insVal = rand.Int31()
-			insVal = getRandomPrimitiveVal[T](keyType)
+		insValBase := getRandomPrimitiveVal[T](keyType)
+		for _, exist := checkDupMap[insValBase]; exist; _, exist = checkDupMap[insValBase] {
+			insValBase = getRandomPrimitiveVal[T](keyType)
 		}
-		checkDupMap[insVal] = insVal
+		checkDupMap[insValBase] = insValBase
 
-		pairVal := getValueForSkipListEntry(insVal * T(stride))
+		for ii := int32(0); ii < stride; ii++ {
+			pairVal := getValueForSkipListEntry(insValBase*T(stride) + T(ii))
 
-		sl.Insert(samehada_util.GetPonterOfValue(types.NewValue(insVal*T(stride))), pairVal)
-		insVals = append(insVals, insVal)
+			common.ShPrintf(common.DEBUGGING, "Insert op start.")
+			sl.Insert(samehada_util.GetPonterOfValue(types.NewValue(insValBase*T(stride)+T(ii))), pairVal)
+			//fmt.Printf("sl.Insert at insertRandom: ii=%d, insValBase=%d len(*insVals)=%d\n", ii, insValBase, len(insVals))
+		}
+
+		insVals = append(insVals, insValBase)
 	}
-
-	//removedEntriesNum := int32(0)
 
 	insValsMutex := new(sync.RWMutex)
 	removedValsMutex := new(sync.RWMutex)
@@ -1360,6 +1362,7 @@ func testSkipListMixParallelStride[T int32 | float32](t *testing.T, keyType type
 	exitedThCnt := 0
 	for ii := 0; ii <= useOpTimes; ii++ {
 		// wait 20 groroutine exited
+		// TODO: (SDB) modification is better: after first 20 thread invocation, when one thread ends, start one thread
 		if ii == useOpTimes {
 			for exitedThCnt < 20 {
 				<-ch
@@ -1422,11 +1425,11 @@ func testSkipListMixParallelStride[T int32 | float32](t *testing.T, keyType type
 					for ii := int32(0); ii < stride; ii++ {
 						removedValsMutex.RLock()
 						tmpIdx := int(rand.Intn(len(removedVals)))
-						tmpVal := removedVals[tmpIdx]
+						delVal := removedVals[tmpIdx]
 						removedValsMutex.RUnlock()
 
 						common.ShPrintf(common.DEBUGGING, "Remove(fail) op start.")
-						isDeleted := sl.Remove(samehada_util.GetPonterOfValue(types.NewValue(tmpVal)), getValueForSkipListEntry(tmpVal))
+						isDeleted := sl.Remove(samehada_util.GetPonterOfValue(types.NewValue(delVal)), getValueForSkipListEntry(delVal))
 						common.SH_Assert(isDeleted == false, "delete should be fail!")
 					}
 					ch <- 1
@@ -1446,7 +1449,7 @@ func testSkipListMixParallelStride[T int32 | float32](t *testing.T, keyType type
 					if len(insVals) == 1 {
 						// make empty
 						insVals = make([]T, 0)
-					} else if len(insVals) == tmpIdx+1 {
+					} else if len(insVals)-1 == tmpIdx {
 						insVals = insVals[:len(insVals)-1]
 					} else {
 						insVals = append(insVals[:tmpIdx], insVals[tmpIdx+1:]...)
@@ -1500,12 +1503,13 @@ func testSkipListMixParallelStride[T int32 | float32](t *testing.T, keyType type
 					common.ShPrintf(common.DEBUGGING, "Get op start.")
 					gotVal := sl.GetValue(&getTgtVal)
 					if gotVal == math.MaxUint32 {
-						removedValsMutex.RLock()
-						if ok := isAlreadyRemoved(getTgt, removedVals); !ok {
-							removedValsMutex.RUnlock()
-							panic("get op test failed!")
-						}
-						removedValsMutex.RUnlock()
+						panic("get op test failed!")
+						//removedValsMutex.RLock()
+						//if ok := isAlreadyRemoved(getTgt, removedVals); !ok {
+						//	removedValsMutex.RUnlock()
+						//	panic("get op test failed!")
+						//}
+						//removedValsMutex.RUnlock()
 					} else if gotVal != correctVal {
 						panic("returned value of get of is wrong!")
 					}
