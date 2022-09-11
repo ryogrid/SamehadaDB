@@ -673,7 +673,13 @@ func getValueForSkipListEntry(val interface{}) uint32 {
 func getRandomPrimitiveVal[T int32 | float32 | string](keyType types.TypeID) T {
 	switch keyType {
 	case types.Integer:
-		var ret interface{} = rand.Int31()
+		val := rand.Int31()
+		if val < 0 {
+			val = -1 * ((-1 * val) % (math.MaxInt32 >> 10))
+		} else {
+			val = val % (math.MaxInt32 >> 10)
+		}
+		var ret interface{} = val
 		return ret.(T)
 	case types.Float:
 		var ret interface{} = rand.Float32()
