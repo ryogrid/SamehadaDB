@@ -1367,10 +1367,9 @@ func testSkipListMixParallelStride[T int32 | float32](t *testing.T, keyType type
 	useOpTimes := int(opTimes)
 	runningThCnt := 0
 	for ii := 0; ii <= useOpTimes; ii++ {
-		// wait 20 groroutine exited
-		// TODO: (SDB) modification is better: after first 20 thread invocation, when one thread ends, start one thread
+		// wait last go routines finishes
 		if ii == useOpTimes {
-			for runningThCnt >= 0 {
+			for runningThCnt > 0 {
 				<-ch
 				runningThCnt--
 				common.ShPrintf(common.DEBUGGING, "runningThCnt=%d\n", runningThCnt)
@@ -1384,6 +1383,8 @@ func testSkipListMixParallelStride[T int32 | float32](t *testing.T, keyType type
 		//		common.ShPrintf(common.DEBUGGING, "runningThCnt=%d\n", runningThCnt)
 		//	}
 		//}
+
+		// wait for keeping 20 groroutine existing
 		for runningThCnt >= 20 {
 			<-ch
 			runningThCnt--
