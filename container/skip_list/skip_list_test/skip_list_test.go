@@ -1613,11 +1613,15 @@ func testSkipListMixParallelBulkRoot[T int32 | float32 | string](t *testing.T, k
 func testSkipListMixParallelStrideRoot[T int32 | float32](t *testing.T, keyType types.TypeID) {
 	// 4th arg should be multiple of 20
 	testSkipListMixParallelStride[T](t, keyType, 800, 1000, 12, 800)
-	//testSkipListMixParallel[T](t, keyType, int32(200000), int32(11), int32(1000))
-	//testSkipListMixParallel[T](t, keyType, int32(200000), int32(12), int32(1000))
-	//testSkipListMixParallel[T](t, keyType, int32(200000), int32(13), int32(1000))
-
-	fmt.Println("test finished.")
+	fmt.Println("test finished 1/5.")
+	testSkipListMixParallelStride[T](t, keyType, 1, 100000, 12, 800)
+	fmt.Println("test finished 2/5.")
+	testSkipListMixParallelStride[T](t, keyType, 300, 10000, 14, 800)
+	fmt.Println("test finished 3/5.")
+	testSkipListMixParallelStride[T](t, keyType, 300, 1000, 15, 0)
+	fmt.Println("test finished 4/5.")
+	testSkipListMixParallelStride[T](t, keyType, 8, 100000, 13, 200)
+	fmt.Println("test finished 5/5.")
 }
 
 //func TestSkipListMixInteger(t *testing.T) {
