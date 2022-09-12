@@ -234,6 +234,22 @@ func (node *SkipListBlockPage) InsertInner(idx int, slp *SkipListPair) {
 	node.SetEntryCnt(node.GetEntryCnt() + 1)
 }
 
+func (node *SkipListBlockPage) getSplitIdxForNotFixed() int32 {
+	halfOfmaxSize := int((common.PageSize - offsetEntryInfos) / 2)
+	curSize := 0
+	entryCnt := int(node.GetEntryCnt())
+	splitIdx := -1
+	for ii := 0; ii < entryCnt; ii++ {
+		curSize = curSize + int(node.GetEntrySize(ii)) + int(sizeEntryInfo)
+		if curSize >= halfOfmaxSize {
+			splitIdx = ii
+			break
+		}
+	}
+
+	return int32(splitIdx)
+}
+
 // Attempts to insert a key and value into an index in the baccess
 // return value is whether newNode is created or not
 func (node *SkipListBlockPage) Insert(key *types.Value, value uint32, bpm *buffer.BufferPoolManager, corners []SkipListCornerInfo,
@@ -292,8 +308,14 @@ func (node *SkipListBlockPage) Insert(key *types.Value, value uint32, bpm *buffe
 			}
 
 			isSplited = true
-			// half of entries are moved to new node
-			splitIdx = node.GetEntryCnt() / 2
+
+			if key.ValueType() == types.Varchar {
+				// entries located post half data space are are moved to new node
+				splitIdx = node.getSplitIdxForNotFixed()
+			} else {
+				// half of entries are moved to new node
+				splitIdx = node.GetEntryCnt() / 2
+			}
 
 			newNode := node.SplitNode(splitIdx, bpm, corners, level, key.ValueType(), lockedAndPinnedNodes)
 			// keep having Wlatch and pin of newNode and this node only here

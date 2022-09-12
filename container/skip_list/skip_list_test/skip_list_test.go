@@ -610,29 +610,6 @@ import (
 //	})
 //}
 
-func FuzzSkipLisMixVarchar(f *testing.F) {
-	//f.Add(int32(100), int32(150), int32(10), int32(300))
-	f.Add(int32(100), int32(50), int32(10), int32(300))
-	f.Fuzz(func(t *testing.T, bulkSize int32, opTimes int32, skipRand int32, initialEntryNum int32) {
-		if bulkSize < 0 || opTimes < 0 || skipRand < 0 || initialEntryNum < 0 {
-			return
-		}
-
-		//if !common.EnableOnMemStorage {
-		//	os.Remove("test.db")
-		//	os.Remove("test.log")
-		//}
-
-		//shi := samehada.NewSamehadaInstanceForTesting()
-		////shi := samehada.NewSamehadaInstance("test", 10*1024) // buffer is about 40MB
-		//bpm := shi.GetBufferPoolManager()
-
-		testSkipListMix[string](t, types.Varchar, bulkSize, opTimes, skipRand, initialEntryNum, true)
-
-		//shi.CloseFilesForTesting()
-	})
-}
-
 //func FuzzSkipLisMixVarchar(f *testing.F) {
 //	f.Add(int32(100), int32(150), int32(10), int32(300))
 //	f.Fuzz(func(t *testing.T, bulkSize int32, opTimes int32, skipRand int32, initialEntryNum int32) {
@@ -708,7 +685,9 @@ func getRandomPrimitiveVal[T int32 | float32 | string](keyType types.TypeID) T {
 		var ret interface{} = rand.Float32()
 		return ret.(T)
 	case types.Varchar:
-		var ret interface{} = *samehada_util.GetRandomStr(1000)
+		//var ret interface{} = *samehada_util.GetRandomStr(1000)
+		var ret interface{} = *samehada_util.GetRandomStr(500)
+		//var ret interface{} = *samehada_util.GetRandomStr(20)
 		return ret.(T)
 	default:
 		panic("not supported keyType")
@@ -816,10 +795,12 @@ func testSkipListMix[T int32 | float32 | string](t *testing.T, keyType types.Typ
 	//	os.Remove("test.log")
 	//}
 
-	//shi := samehada.NewSamehadaInstance("test", 10)
-	shi := samehada.NewSamehadaInstance("test", 10)
 	//shi := samehada.NewSamehadaInstanceForTesting()
+	//shi := samehada.NewSamehadaInstance("test", 10)
+
+	shi := samehada.NewSamehadaInstance("test", 10)
 	//shi := samehada.NewSamehadaInstance("test", 10*1024) // buffer is about 40MB
+
 	bpm := shi.GetBufferPoolManager()
 
 	checkDupMap := make(map[T]T)
@@ -1678,19 +1659,19 @@ func testSkipListMixParallelStrideRoot[T int32 | float32](t *testing.T, keyType 
 //func TestSkipListMixFloat(t *testing.T) {
 //	testSkipListMixRoot[float32](t, types.Float)
 //}
-//
-//func TestSkipListMixVarchar(t *testing.T) {
-//	testSkipListMixRoot[string](t, types.Varchar)
-//}
-//
+
+func TestSkipListMixVarchar(t *testing.T) {
+	testSkipListMixRoot[string](t, types.Varchar)
+}
+
 //func TestSkipListMixParallelInteger(t *testing.T) {
 //	testSkipListMixParallelRoot[int32](t, types.Integer)
 //}
-//
+
 //func TestSkipListMixParallelVarchar(t *testing.T) {
 //	testSkipListMixParallelRoot[string](t, types.Varchar)
 //}
-//
+
 //func TestSkipListMixParallelBulkInteger(t *testing.T) {
 //	testSkipListMixParallelBulkRoot[int32](t, types.Integer)
 //}
