@@ -326,7 +326,11 @@ func (node *SkipListBlockPage) Insert(key *types.Value, value uint32, bpm *buffe
 				//newNodePageId := node.GetForwardEntry(0)
 				//newNode := FetchAndCastToBlockPage(bpm, newNodePageId)
 
-				newNode.InsertInner(int(newSmallerIdx), &SkipListPair{*key, value})
+				insEntry := &SkipListPair{*key, value}
+				if key.ValueType() == types.Varchar && (newNode.GetSpecifiedSLPNeedSpace(insEntry) > newNode.getFreeSpaceRemaining()) {
+					panic("not enough space for insert (after node split)")
+				}
+				newNode.InsertInner(int(newSmallerIdx), insEntry)
 				newNode.WUnlatch()
 				bpm.UnpinPage(newNode.GetPageId(), true)
 				//fmt.Printf("end of Insert of SkipListBlockPage called! : key=%d page.entryCnt=%d len(page.entries)=%d\n", key.ToInteger(), node.entryCnt, len(node.entries))
@@ -352,7 +356,15 @@ func (node *SkipListBlockPage) Insert(key *types.Value, value uint32, bpm *buffe
 		// foundIdx is index of nearlest smaller key entry
 		// new entry is inserted next of the entry
 
-		node.InsertInner(int(foundIdx), &SkipListPair{*key, value})
+		insEntry := &SkipListPair{*key, value}
+		if key.ValueType() == types.Varchar && (node.GetSpecifiedSLPNeedSpace(insEntry) > node.getFreeSpaceRemaining()) {
+			if isSplited {
+				panic("not enough space for insert (after node split)")
+			} else {
+				panic("not enough space for insert.")
+			}
+		}
+		node.InsertInner(int(foundIdx), insEntry)
 	}
 	//fmt.Printf("end of Insert of SkipListBlockPage called! : key=%d page.entryCnt=%d len(page.entries)=%d\n", key.ToInteger(), node.entryCnt, len(node.entries))
 	node.SetLSN(node.GetLSN() + 1)
