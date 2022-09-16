@@ -4,11 +4,12 @@
 package disk
 
 import (
+	"github.com/ryogrid/SamehadaDB/common"
 	"io/ioutil"
 	"os"
 )
 
-//DiskManagerTest is the disk implementation of DiskManager for testing purposes
+// DiskManagerTest is the disk implementation of DiskManager for testing purposes
 type DiskManagerTest struct {
 	path string
 	DiskManager
@@ -25,12 +26,19 @@ func NewDiskManagerTest() DiskManager {
 	f.Close()
 	os.Remove(path)
 
-	diskManager := NewDiskManagerImpl(path)
-	return &DiskManagerTest{path, diskManager}
+	if !common.EnableOnMemStorage || common.TempSuppressOnMemStorage {
+		diskManager := NewDiskManagerImpl(path)
+		return &DiskManagerTest{path, diskManager}
+	} else {
+		diskManager := NewVirtualDiskManagerImpl(path)
+		return &DiskManagerTest{path, diskManager}
+	}
 }
 
 // ShutDown closes of the database file
 func (d *DiskManagerTest) ShutDown() {
-	defer os.Remove(d.path)
 	d.DiskManager.ShutDown()
+	if !common.EnableOnMemStorage || common.TempSuppressOnMemStorage {
+		os.Remove(d.path)
+	}
 }

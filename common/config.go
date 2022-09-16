@@ -3,14 +3,18 @@
 
 package common
 
-import (
-	"time"
-)
+import "time"
 
-var CycleDetectionInterval time.Duration
-var EnableLogging bool = false
 var LogTimeout time.Duration
-var EnableDebug bool = false
+
+var EnableLogging bool = false //true
+const EnableDebug bool = false //true
+// use virtual storage or not
+const EnableOnMemStorage = true //false
+
+// when this is true, virtual storage use is suppressed
+// for test case which can't work with virtual storage
+var TempSuppressOnMemStorage = false
 
 const (
 	// invalid page id
@@ -22,18 +26,18 @@ const (
 	// the header page id
 	HeaderPageID = 0
 	// size of a data page in byte
-	PageSize = 4096
-	// size of buffer pool
-	LogBufferPoolSize = 32
+	PageSize                     = 4096
+	BufferPoolMaxFrameNumForTest = 32
+	// number for calculate log buffer size (number of page size)
+	LogBufferSizeBase = 32
 	// size of a log buffer in byte
-	LogBufferSize = ((LogBufferPoolSize + 1) * PageSize)
-	// size of extendible hash bucket
-	BucketSize = 50
+	LogBufferSize = ((LogBufferSizeBase + 1) * PageSize)
+	// size of hash bucket
+	BucketSizeOfHashIndex = 10
+	// probability used for determin node level on SkipList
+	SkipListProb    = 0.5  //0.25
+	LogLevelSetting = INFO //DEBUGGING //DEBUG_INFO
 )
 
-//type FrameID int32 // frame id type
-//type PageID int32       // page id type
-type TxnID int32 // transaction id type
-//type LSN int32          // log sequence number
+type TxnID int32        // transaction id type
 type SlotOffset uintptr // slot offset type
-//type OID uint16

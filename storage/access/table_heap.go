@@ -154,7 +154,6 @@ func (t *TableHeap) UpdateTuple(tuple_ *tuple.Tuple, update_col_idxs []int, sche
 }
 
 func (t *TableHeap) MarkDelete(rid *page.RID, txn *Transaction) bool {
-	// TODO(Amadou): remove empty page
 	// Find the page which contains the tuple.
 	page_ := CastPageAsTablePage(t.bpm.FetchPage(rid.GetPageId()))
 	// If the page could not be found, then abort the transaction.

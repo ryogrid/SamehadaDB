@@ -6,8 +6,10 @@ package catalog_test
 import (
 	"fmt"
 	"github.com/ryogrid/SamehadaDB/catalog"
+	"github.com/ryogrid/SamehadaDB/common"
 	"github.com/ryogrid/SamehadaDB/samehada"
 	"github.com/ryogrid/SamehadaDB/storage/buffer"
+	"github.com/ryogrid/SamehadaDB/storage/index/index_constants"
 	"github.com/ryogrid/SamehadaDB/storage/table/column"
 	"github.com/ryogrid/SamehadaDB/storage/table/schema"
 	testingpkg "github.com/ryogrid/SamehadaDB/testing"
@@ -18,7 +20,11 @@ import (
 
 // test reloading serialized catalog info in db file at lauching system
 func TestTableCatalogReload(t *testing.T) {
-	os.Remove("test.db")
+	common.TempSuppressOnMemStorage = true
+
+	if !common.EnableOnMemStorage || common.TempSuppressOnMemStorage {
+		os.Remove("test.db")
+	}
 	samehada_instance := samehada.NewSamehadaInstanceForTesting()
 	//diskManager := disk.NewDiskManagerImpl("test.db")
 	//defer diskManager.ShutDown()
@@ -27,12 +33,14 @@ func TestTableCatalogReload(t *testing.T) {
 	txn := samehada_instance.GetTransactionManager().Begin(nil)
 	catalog_old := catalog.BootstrapCatalog(bpm, samehada_instance.GetLogManager(), samehada_instance.GetLockManager(), txn)
 
-	columnA := column.NewColumn("a", types.Integer, false, nil)
-	columnB := column.NewColumn("b", types.Integer, true, nil)
+	columnA := column.NewColumn("a", types.Integer, false, index_constants.INDEX_KIND_INVAID, types.PageID(-1), nil)
+	columnB := column.NewColumn("b", types.Integer, true, index_constants.INDEX_KIND_HASH, types.PageID(-1), nil)
 	schema_ := schema.NewSchema([]*column.Column{columnA, columnB})
 
 	catalog_old.CreateTable("test_1", schema_, txn)
 	bpm.FlushAllPages()
+
+	samehada_instance.CloseFilesForTesting()
 
 	fmt.Println("Shutdown system...")
 
@@ -47,5 +55,6 @@ func TestTableCatalogReload(t *testing.T) {
 	testingpkg.Assert(t, columnToCheck.GetType() == 4, "")
 	testingpkg.Assert(t, columnToCheck.HasIndex() == true, "")
 
-	samehada_instance.Finalize(true)
+	//samehada_instance.Shutdown(true)
+	common.TempSuppressOnMemStorage = false
 }

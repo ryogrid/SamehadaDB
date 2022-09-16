@@ -5,6 +5,7 @@ package access
 
 import (
 	"fmt"
+	"github.com/ryogrid/SamehadaDB/storage/index/index_constants"
 	"testing"
 
 	"github.com/ryogrid/SamehadaDB/recovery"
@@ -32,8 +33,8 @@ func TestTableHeap(t *testing.T) {
 
 	// this schema creates a tuple of size 8 bytes
 	// it means that a page can only contains 254 tuples of this schema
-	columnA := column.NewColumn("a", types.Integer, false, nil)
-	columnB := column.NewColumn("b", types.Integer, false, nil)
+	columnA := column.NewColumn("a", types.Integer, false, index_constants.INDEX_KIND_INVAID, types.PageID(-1), nil)
+	columnB := column.NewColumn("b", types.Integer, false, index_constants.INDEX_KIND_INVAID, types.PageID(-1), nil)
 	schema_ := schema.NewSchema([]*column.Column{columnA, columnB})
 
 	//// inserting 1000 tuples, means that we need at least 4 pages to insert all tuples
@@ -102,10 +103,10 @@ func TestTableHeapFourCol(t *testing.T) {
 	// this schema creates a tuple of size (4 + 1) * 4 => 20 bytes (when includes metadata at header the value is 28)
 	// it means that a page can only contains 145 tuples of this schema
 	// (4096 - 24) / 28 => 145.4285...
-	columnA := column.NewColumn("a", types.Integer, false, nil)
-	columnB := column.NewColumn("b", types.Integer, false, nil)
-	columnC := column.NewColumn("c", types.Integer, false, nil)
-	columnD := column.NewColumn("d", types.Integer, false, nil)
+	columnA := column.NewColumn("a", types.Integer, false, index_constants.INDEX_KIND_INVAID, types.PageID(-1), nil)
+	columnB := column.NewColumn("b", types.Integer, false, index_constants.INDEX_KIND_INVAID, types.PageID(-1), nil)
+	columnC := column.NewColumn("c", types.Integer, false, index_constants.INDEX_KIND_INVAID, types.PageID(-1), nil)
+	columnD := column.NewColumn("d", types.Integer, false, index_constants.INDEX_KIND_INVAID, types.PageID(-1), nil)
 
 	schema_ := schema.NewSchema([]*column.Column{columnA, columnB, columnC, columnD})
 

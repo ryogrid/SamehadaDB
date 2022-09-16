@@ -2,6 +2,7 @@ package samehada_test
 
 import (
 	"fmt"
+	"github.com/ryogrid/SamehadaDB/common"
 	"github.com/ryogrid/SamehadaDB/samehada"
 	testingpkg "github.com/ryogrid/SamehadaDB/testing"
 	"os"
@@ -10,9 +11,13 @@ import (
 
 // TODO: (SDB) need to check query result (TestInsertAndMultiItemPredicateSelect)
 func TestInsertAndMultiItemPredicateSelect(t *testing.T) {
+	common.TempSuppressOnMemStorage = true
+
 	// clear all state of DB
-	os.Remove("example.db")
-	os.Remove("example.log")
+	if !common.EnableOnMemStorage || common.TempSuppressOnMemStorage == true {
+		os.Remove("example.db")
+		os.Remove("example.log")
+	}
 
 	db := samehada.NewSamehadaDB("example", 200)
 	db.ExecuteSQLRetValues("CREATE TABLE name_age_list(name VARCHAR(256), age INT);")
@@ -32,14 +37,17 @@ func TestInsertAndMultiItemPredicateSelect(t *testing.T) {
 	_, results5 := db.ExecuteSQLRetValues("SELECT * FROM name_age_list WHERE (age = 18 OR age >= 22) AND age < 25;")
 	samehada.PrintExecuteResults(results5)
 
-	db.Finalize()
+	db.Shutdown()
+	common.TempSuppressOnMemStorage = false
 }
 
 // TODO: (SDB) need to check query result (TestHasJoinSelect)
 func TestHasJoinSelect(t *testing.T) {
 	// clear all state of DB
-	os.Remove("example.db")
-	os.Remove("example.log")
+	if !common.EnableOnMemStorage {
+		os.Remove("example.db")
+		os.Remove("example.log")
+	}
 
 	db := samehada.NewSamehadaDB("example", 200)
 	db.ExecuteSQLRetValues("CREATE TABLE id_name_list(id INT, name VARCHAR(256));")
@@ -63,13 +71,16 @@ func TestHasJoinSelect(t *testing.T) {
 	_, results4 := db.ExecuteSQLRetValues("SELECT id_name_list.id, id_buppin_list.buppin FROM id_name_list JOIN id_buppin_list ON id_name_list.id = id_buppin_list.id WHERE id_name_list.id > 1 AND id_buppin_list.id < 4;")
 	samehada.PrintExecuteResults(results4)
 
-	db.Finalize()
+	db.Shutdown()
 }
 
 func TestSimpleDelete(t *testing.T) {
+	common.TempSuppressOnMemStorage = true
 	// clear all state of DB
-	os.Remove("example.db")
-	os.Remove("example.log")
+	if !common.EnableOnMemStorage || common.TempSuppressOnMemStorage == true {
+		os.Remove("example.db")
+		os.Remove("example.log")
+	}
 
 	db := samehada.NewSamehadaDB("example", 200)
 	db.ExecuteSQLRetValues("CREATE TABLE name_age_list(name VARCHAR(256), age INT);")
@@ -83,13 +94,16 @@ func TestSimpleDelete(t *testing.T) {
 	_, results1 := db.ExecuteSQLRetValues("SELECT * FROM name_age_list;")
 	testingpkg.SimpleAssert(t, len(results1) == 3)
 
-	db.Finalize()
+	db.Shutdown()
 }
 
 func TestSimpleUpdate(t *testing.T) {
+	common.TempSuppressOnMemStorage = true
 	// clear all state of DB
-	os.Remove("example.db")
-	os.Remove("example.log")
+	if !common.EnableOnMemStorage || common.TempSuppressOnMemStorage == true {
+		os.Remove("example.db")
+		os.Remove("example.log")
+	}
 
 	db := samehada.NewSamehadaDB("example", 200)
 	db.ExecuteSQLRetValues("CREATE TABLE name_age_list(name VARCHAR(256), age INT);")
@@ -104,13 +118,18 @@ func TestSimpleUpdate(t *testing.T) {
 	samehada.PrintExecuteResults(results1)
 	testingpkg.SimpleAssert(t, len(results1) == 3)
 
-	db.Finalize()
+	db.Shutdown()
+	common.TempSuppressOnMemStorage = false
 }
 
 func TestRebootWithLoadAndRecovery(t *testing.T) {
+	common.TempSuppressOnMemStorage = true
+
 	// clear all state of DB
-	os.Remove("/tmp/todo.db")
-	os.Remove("/tmp/todo.log")
+	if !common.EnableOnMemStorage || common.TempSuppressOnMemStorage == true {
+		os.Remove("/tmp/todo.db")
+		os.Remove("/tmp/todo.log")
+	}
 
 	db := samehada.NewSamehadaDB("/tmp/todo", 200)
 	db.ExecuteSQLRetValues("CREATE TABLE name_age_list(name VARCHAR(256), age INT);")
@@ -126,7 +145,7 @@ func TestRebootWithLoadAndRecovery(t *testing.T) {
 	testingpkg.SimpleAssert(t, len(results1) == 3)
 
 	// close db and log file
-	db.Finalize()
+	db.Shutdown()
 
 	// relaunch using /tmp/todo.db and /tmp/todo.log files
 	// load of db file and redo/undo process runs
@@ -138,7 +157,7 @@ func TestRebootWithLoadAndRecovery(t *testing.T) {
 	testingpkg.SimpleAssert(t, len(results2) == 4)
 
 	// close db and log file
-	db2.Finalize()
+	db2.Shutdown()
 
 	// relaunch using /tmp/todo.db and /tmp/todo.log files
 	// load of db file and redo/undo process runs
@@ -150,13 +169,19 @@ func TestRebootWithLoadAndRecovery(t *testing.T) {
 	testingpkg.SimpleAssert(t, len(results3) == 5)
 
 	// close db and log file
-	db3.Finalize()
+	db3.Shutdown()
+
+	common.TempSuppressOnMemStorage = false
 }
 
 func TestRebootAndReturnIFValues(t *testing.T) {
+	common.TempSuppressOnMemStorage = true
+
 	// clear all state of DB
-	os.Remove("/tmp/todo.db")
-	os.Remove("/tmp/todo.log")
+	if !common.EnableOnMemStorage || common.TempSuppressOnMemStorage == true {
+		os.Remove("/tmp/todo.db")
+		os.Remove("/tmp/todo.log")
+	}
 
 	db := samehada.NewSamehadaDB("/tmp/todo", 200)
 	db.ExecuteSQL("CREATE TABLE name_age_list(name VARCHAR(256), age INT);")
@@ -175,7 +200,7 @@ func TestRebootAndReturnIFValues(t *testing.T) {
 	testingpkg.SimpleAssert(t, len(results1) == 3)
 
 	// close db and log file
-	db.Finalize()
+	db.Shutdown()
 
 	// relaunch using /tmp/todo.db and /tmp/todo.log files
 	// load of db file and redo/undo process runs
@@ -190,7 +215,7 @@ func TestRebootAndReturnIFValues(t *testing.T) {
 	testingpkg.SimpleAssert(t, len(results2) == 4)
 
 	// close db and log file
-	db2.Finalize()
+	db2.Shutdown()
 
 	// relaunch using /tmp/todo.db and /tmp/todo.log files
 	// load of db file and redo/undo process runs
@@ -204,5 +229,7 @@ func TestRebootAndReturnIFValues(t *testing.T) {
 	}
 	testingpkg.SimpleAssert(t, len(results3) == 5)
 
-	db3.Finalize()
+	db3.Shutdown()
+
+	common.TempSuppressOnMemStorage = false
 }

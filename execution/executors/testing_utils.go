@@ -4,6 +4,7 @@
 package executors
 
 import (
+	"github.com/ryogrid/SamehadaDB/storage/index/index_constants"
 	"testing"
 
 	"github.com/ryogrid/SamehadaDB/catalog"
@@ -53,7 +54,7 @@ type SeqScanTestCase struct {
 func ExecuteSeqScanTestCase(t *testing.T, testCase SeqScanTestCase) {
 	columns := []*column.Column{}
 	for _, c := range testCase.Columns {
-		columns = append(columns, column.NewColumn(c.Name, c.Kind, false, nil))
+		columns = append(columns, column.NewColumn(c.Name, c.Kind, false, index_constants.INDEX_KIND_INVAID, types.PageID(-1), nil))
 	}
 	outSchema := schema.NewSchema(columns)
 
@@ -87,7 +88,7 @@ type HashIndexScanTestCase struct {
 func ExecuteHashIndexScanTestCase(t *testing.T, testCase HashIndexScanTestCase) {
 	columns := []*column.Column{}
 	for _, c := range testCase.Columns {
-		columns = append(columns, column.NewColumn(c.Name, c.Kind, false, nil))
+		columns = append(columns, column.NewColumn(c.Name, c.Kind, true, index_constants.INDEX_KIND_HASH, types.PageID(-1), nil))
 	}
 	outSchema := schema.NewSchema(columns)
 
@@ -123,17 +124,17 @@ func ExecuteDeleteTestCase(t *testing.T, testCase DeleteTestCase) {
 
 	columns := []*column.Column{}
 	for _, c := range testCase.Columns {
-		columns = append(columns, column.NewColumn(c.Name, c.Kind, false, nil))
+		columns = append(columns, column.NewColumn(c.Name, c.Kind, false, index_constants.INDEX_KIND_INVAID, types.PageID(-1), nil))
 	}
 	outSchema := schema.NewSchema(columns)
 
 	tmpColVal_ := expression.NewColumnValue(0, testCase.TableMetadata.Schema().GetColIndex(testCase.Predicate.LeftColumn), GetValueType(testCase.Predicate.RightColumn))
 	tmpColVal := tmpColVal_.(*expression.ColumnValue)
 	expression := expression.NewComparison(tmpColVal, expression.NewConstantValue(GetValue(testCase.Predicate.RightColumn), GetValueType(testCase.Predicate.RightColumn)), testCase.Predicate.Operator, types.Boolean)
-	hashIndexScanPlan := plans.NewDeletePlanNode(expression, testCase.TableMetadata.OID())
+	deletePlan := plans.NewDeletePlanNode(expression, testCase.TableMetadata.OID())
 
 	testCase.ExecutorContext.SetTransaction(txn)
-	results := testCase.ExecutionEngine.Execute(hashIndexScanPlan, testCase.ExecutorContext)
+	results := testCase.ExecutionEngine.Execute(deletePlan, testCase.ExecutorContext)
 
 	testCase.TransactionManager.Commit(txn)
 

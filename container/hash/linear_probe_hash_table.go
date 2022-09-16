@@ -6,11 +6,11 @@ package hash
 import (
 	"encoding/binary"
 	"errors"
+	"github.com/ryogrid/SamehadaDB/storage/page"
 	"unsafe"
 
 	"github.com/ryogrid/SamehadaDB/common"
 	"github.com/ryogrid/SamehadaDB/storage/buffer"
-	"github.com/ryogrid/SamehadaDB/storage/page"
 	"github.com/ryogrid/SamehadaDB/types"
 	"github.com/spaolacci/murmur3"
 )
@@ -27,22 +27,34 @@ type LinearProbeHashTable struct {
 	table_latch  common.ReaderWriterLatch
 }
 
-func NewLinearProbeHashTable(bpm *buffer.BufferPoolManager, numBuckets int) *LinearProbeHashTable {
-	header := bpm.NewPage()
-	headerData := header.Data()
-	headerPage := (*page.HashTableHeaderPage)(unsafe.Pointer(headerData))
+func NewLinearProbeHashTable(bpm *buffer.BufferPoolManager, numBuckets int, headerPageId types.PageID) *LinearProbeHashTable {
+	if headerPageId == types.InvalidPageID {
+		header := bpm.NewPage()
+		headerData := header.Data()
+		headerPage := (*page.HashTableHeaderPage)(unsafe.Pointer(headerData))
 
-	headerPage.SetPageId(header.ID())
-	headerPage.SetSize(numBuckets * page.BlockArraySize)
+		headerPage.SetPageId(header.ID())
+		headerPage.SetSize(numBuckets * page.BlockArraySize)
 
-	for i := 0; i < numBuckets; i++ {
-		np := bpm.NewPage()
-		headerPage.AddBlockPageId(np.ID())
-		bpm.UnpinPage(np.ID(), true)
+		for i := 0; i < numBuckets; i++ {
+			np := bpm.NewPage()
+			headerPage.AddBlockPageId(np.ID())
+			bpm.UnpinPage(np.ID(), true)
+		}
+		bpm.UnpinPage(header.ID(), true)
+
+		// on current not expandable HashTable impl
+		// flush of header page is needed only creating time
+		// because, content of header page is changed only creatting time
+		bpm.FlushPage(header.ID())
+
+		return &LinearProbeHashTable{header.ID(), bpm, common.NewRWLatch()}
+	} else {
+		header := bpm.FetchPage(headerPageId)
+		bpm.UnpinPage(header.ID(), true)
+
+		return &LinearProbeHashTable{header.ID(), bpm, common.NewRWLatch()}
 	}
-	bpm.UnpinPage(header.ID(), true)
-
-	return &LinearProbeHashTable{header.ID(), bpm, common.NewRWLatch()}
 }
 
 func (ht *LinearProbeHashTable) GetValue(key []byte) []uint32 {
@@ -95,8 +107,15 @@ func (ht *LinearProbeHashTable) Insert(key []byte, value uint32) (err error) {
 	blockPage, offset := iterator.blockPage, iterator.offset
 	var bucket uint32
 	for {
-		if blockPage.IsOccupied(offset) && blockPage.ValueAt(offset) == value {
+		if blockPage.IsOccupied(offset) && blockPage.IsReadable(offset) && blockPage.ValueAt(offset) == value {
 			err = errors.New("duplicated values on the same key are not allowed")
+			break
+		}
+
+		// insert to deleted marked slot
+		if blockPage.IsOccupied(offset) && !blockPage.IsReadable(offset) {
+			blockPage.Insert(offset, hash, value)
+			err = nil
 			break
 		}
 
@@ -163,4 +182,8 @@ func (ht *LinearProbeHashTable) hash(key []byte) uint32 {
 
 	//return int(binary.LittleEndian.Uint32(hash))
 	return binary.LittleEndian.Uint32(hash)
+}
+
+func (ht *LinearProbeHashTable) GetHeaderPageId() types.PageID {
+	return ht.headerPageId
 }

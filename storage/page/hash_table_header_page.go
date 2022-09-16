@@ -9,14 +9,15 @@ import "github.com/ryogrid/SamehadaDB/types"
  *
  * Header Page for linear probing hash table.
  *
- * Header format (size in byte, 16 bytes in total):
- * -------------------------------------------------------------
- * | LSN (4) | Size (4) | PageId(4) | NextBlockIndex(4)
- * -------------------------------------------------------------
+ * Header format (size in byte, 12 bytes in total):
+ * ----------------------------------------------------------------------
+ * |  PageId(4) | NextBlockIndex(4) | Size (4) | BlockPageIds (4) x 1020
+ * ----------------------------------------------------------------------
+ * all Page content size: 12 + 4 * 1020 = 4092
  */
 type HashTableHeaderPage struct {
-	pageId       types.PageID
-	lsn          int    // log sequence number
+	pageId types.PageID
+	//lsn          int    // log sequence number
 	nextIndex    uint32 // the next index to add a new entry to blockPageIds
 	size         int    // the number of key/value pairs the hash table can hold
 	blockPageIds [1020]types.PageID
@@ -34,13 +35,13 @@ func (page *HashTableHeaderPage) SetPageId(pageId types.PageID) {
 	page.pageId = pageId
 }
 
-func (page *HashTableHeaderPage) GetLSN() int {
-	return page.lsn
-}
-
-func (page *HashTableHeaderPage) SetLSN(lsn int) {
-	page.lsn = lsn
-}
+//func (page *HashTableHeaderPage) GetLSN() int {
+//	return page.lsn
+//}
+//
+//func (page *HashTableHeaderPage) SetLSN(lsn int) {
+//	page.lsn = lsn
+//}
 
 func (page *HashTableHeaderPage) AddBlockPageId(pageId types.PageID) {
 	page.blockPageIds[page.nextIndex] = pageId

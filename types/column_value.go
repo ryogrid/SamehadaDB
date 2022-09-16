@@ -7,6 +7,7 @@ import (
 	"bytes"
 	"encoding/binary"
 	"fmt"
+	"math"
 	"strconv"
 )
 
@@ -23,19 +24,43 @@ type Value struct {
 }
 
 func NewInteger(value int32) Value {
-	return Value{Integer, new(bool), &value, nil, nil, nil}
+	tmpBool := false
+	return Value{Integer, &tmpBool, &value, nil, nil, nil}
 }
 
 func NewFloat(value float32) Value {
-	return Value{Float, new(bool), nil, nil, nil, &value}
+	tmpBool := false
+	return Value{Float, &tmpBool, nil, nil, nil, &value}
 }
 
 func NewBoolean(value bool) Value {
-	return Value{Boolean, new(bool), nil, &value, nil, nil}
+	tmpBool := false
+	return Value{Boolean, &tmpBool, nil, &value, nil, nil}
 }
 
 func NewVarchar(value string) Value {
-	return Value{Varchar, new(bool), nil, nil, &value, nil}
+	tmpBool := false
+	return Value{Varchar, &tmpBool, nil, nil, &value, nil}
+}
+
+func NewValue(value interface{}) Value {
+	tmpBool := false
+	switch value.(type) {
+	case int32:
+		val := value.(int32)
+		return Value{Integer, &tmpBool, &val, nil, nil, nil}
+	case float32:
+		val := value.(float32)
+		return Value{Float, &tmpBool, nil, nil, nil, &val}
+	case bool:
+		val := value.(bool)
+		return Value{Boolean, &tmpBool, nil, &val, nil, nil}
+	case string:
+		val := value.(string)
+		return Value{Varchar, &tmpBool, nil, nil, &val, nil}
+	default:
+		panic("not supported type passed")
+	}
 }
 
 // it can be used only when you can not know value type to be compared or something
@@ -75,9 +100,10 @@ func NewValueFromBytes(data []byte, valueType TypeID) (ret *Value) {
 		isNull := new(bool)
 		binary.Read(buf, binary.LittleEndian, isNull)
 		//lengthInBytes := data[0:2]
-		length := new(int16)
+		//length := new(int16)
+		length := new(uint16)
 		binary.Read(buf, binary.LittleEndian, length)
-		//binary.Read(bytes.NewBuffer(lengthInBytes), binary.LittleEndian, length)
+		//varchar := NewVarchar(string(data[1+2 : (*length + (1 + 2))]))
 		varchar := NewVarchar(string(data[1+2 : (*length + (1 + 2))]))
 		if *isNull {
 			varchar.SetNull()
@@ -107,6 +133,9 @@ func (v Value) CompareEquals(right Value) bool {
 	} else if v.IsNull() || right.IsNull() {
 		return false
 	}
+	if v.IsInfMax() == true && right.IsInfMax() == true {
+		return true
+	}
 
 	switch v.valueType {
 	case Integer:
@@ -127,6 +156,11 @@ func (v Value) CompareNotEquals(right Value) bool {
 	} else if v.IsNull() || right.IsNull() {
 		return true
 	}
+	if v.IsInfMax() && right.IsInfMax() {
+		return false
+	} else if v.IsInfMax() || right.IsInfMax() {
+		return true
+	}
 
 	switch v.valueType {
 	case Integer:
@@ -145,6 +179,20 @@ func (v Value) CompareGreaterThan(right Value) bool {
 	if v.IsNull() {
 		return false
 	}
+	if v.IsInfMax() && right.IsInfMax() {
+		return false
+	} else if v.IsInfMax() {
+		return true
+	} else if right.IsInfMax() {
+		return false
+	}
+	if v.IsInfMin() && right.IsInfMin() {
+		return false
+	} else if v.IsInfMin() {
+		return false
+	} else if right.IsInfMin() {
+		return true
+	}
 
 	switch v.valueType {
 	case Integer:
@@ -154,7 +202,7 @@ func (v Value) CompareGreaterThan(right Value) bool {
 	case Varchar:
 		return *v.varchar > *right.varchar
 	case Boolean:
-		return false
+		return *v.boolean == true && *right.boolean == false
 	}
 	return false
 }
@@ -165,6 +213,20 @@ func (v Value) CompareGreaterThanOrEqual(right Value) bool {
 	} else if v.IsNull() || right.IsNull() {
 		return false
 	}
+	if v.IsInfMax() && right.IsInfMax() {
+		return true
+	} else if v.IsInfMax() {
+		return true
+	} else if right.IsInfMax() {
+		return false
+	}
+	if v.IsInfMin() && right.IsInfMin() {
+		return true
+	} else if v.IsInfMin() {
+		return false
+	} else if right.IsInfMin() {
+		return true
+	}
 
 	switch v.valueType {
 	case Integer:
@@ -174,13 +236,27 @@ func (v Value) CompareGreaterThanOrEqual(right Value) bool {
 	case Varchar:
 		return *v.varchar >= *right.varchar
 	case Boolean:
-		return *v.boolean == *right.boolean
+		return *v.boolean == *right.boolean || (*v.boolean == true && *right.boolean == false)
 	}
 	return false
 }
 
 func (v Value) CompareLessThan(right Value) bool {
 	if v.IsNull() {
+		return false
+	}
+	if v.IsInfMax() && right.IsInfMax() {
+		return false
+	} else if v.IsInfMax() {
+		return false
+	} else if right.IsInfMax() {
+		return true
+	}
+	if v.IsInfMin() && right.IsInfMin() {
+		return false
+	} else if v.IsInfMin() {
+		return true
+	} else if right.IsInfMin() {
 		return false
 	}
 
@@ -192,7 +268,7 @@ func (v Value) CompareLessThan(right Value) bool {
 	case Varchar:
 		return *v.varchar < *right.varchar
 	case Boolean:
-		return false
+		return *v.boolean == false && *right.boolean == true
 	}
 	return false
 }
@@ -201,6 +277,20 @@ func (v Value) CompareLessThanOrEqual(right Value) bool {
 	if v.IsNull() && right.IsNull() {
 		return true
 	} else if v.IsNull() || right.IsNull() {
+		return false
+	}
+	if v.IsInfMax() && right.IsInfMax() {
+		return true
+	} else if v.IsInfMax() {
+		return false
+	} else if right.IsInfMax() {
+		return true
+	}
+	if v.IsInfMin() && right.IsInfMin() {
+		return true
+	} else if v.IsInfMin() {
+		return true
+	} else if right.IsInfMin() {
 		return false
 	}
 
@@ -212,11 +302,10 @@ func (v Value) CompareLessThanOrEqual(right Value) bool {
 	case Varchar:
 		return *v.varchar <= *right.varchar
 	case Boolean:
-		return *v.boolean == *right.boolean
+		return *v.boolean == *right.boolean || (*v.boolean == false && *right.boolean == true)
 	default:
 		panic("illegal valueType is passed!")
 	}
-
 }
 
 func (v Value) Serialize() []byte {
@@ -305,6 +394,21 @@ func (v Value) ToVarchar() string {
 	return *v.varchar
 }
 
+func (v Value) ToIFValue() interface{} {
+	switch v.valueType {
+	case Integer:
+		return *v.integer
+	case Boolean:
+		return *v.boolean
+	case Varchar:
+		return *v.varchar
+	case Float:
+		return *v.float
+	default:
+		panic("not supported type!")
+	}
+}
+
 func (v Value) ValueType() TypeID {
 	return v.valueType
 }
@@ -332,6 +436,70 @@ func (v Value) SetNull() *Value {
 
 func (v Value) IsNull() bool {
 	return *v.isNull
+}
+
+func (v Value) SetInfMax() *Value {
+	switch v.valueType {
+	case Integer:
+		*v.integer = math.MaxInt32
+		return &v
+	case Float:
+		*v.float = math.MaxFloat32
+		return &v
+	case Varchar:
+		*v.varchar = "SamehadaDBInfMaxValue"
+		return &v
+	case Boolean:
+		*v.boolean = true
+		return &v
+	}
+	panic("not implemented")
+}
+
+func (v Value) SetInfMin() *Value {
+	switch v.valueType {
+	case Integer:
+		*v.integer = math.MinInt32
+		return &v
+	case Float:
+		*v.float = math.SmallestNonzeroFloat32
+		return &v
+	case Varchar:
+		*v.varchar = "SamehadaDBInfMinValue"
+		return &v
+	case Boolean:
+		*v.boolean = false
+		return &v
+	}
+	panic("not implemented")
+}
+
+func (v Value) IsInfMax() bool {
+	switch v.valueType {
+	case Integer:
+		return *v.integer == math.MaxInt32
+	case Float:
+		return *v.float == math.MaxFloat32
+	case Varchar:
+		return *v.varchar == "SamehadaDBInfMaxValue"
+	case Boolean:
+		return *v.boolean == true
+	}
+	panic("not implemented")
+}
+
+func (v Value) IsInfMin() bool {
+	switch v.valueType {
+	case Integer:
+		return *v.integer == math.MinInt32
+	case Float:
+		return *v.float == math.SmallestNonzeroFloat32
+	case Varchar:
+		return *v.varchar == "SamehadaDBInfMinValue"
+	case Boolean:
+		return *v.boolean == false
+	}
+	panic("not implemented")
 }
 
 func (v Value) Add(other *Value) *Value {

@@ -19,17 +19,24 @@ type SamehadaInstance struct {
 }
 
 func NewSamehadaInstanceForTesting() *SamehadaInstance {
-	ret := NewSamehadaInstance("test", 32)
+	ret := NewSamehadaInstance("test", common.BufferPoolMaxFrameNumForTest)
 	common.EnableLogging = false
 	return ret
 }
 
 // reset program state except for variables on testcase function
 // and db/log file
+// bpoolSize: usable buffer size in frame(=page) num
 func NewSamehadaInstance(dbName string, bpoolSize int) *SamehadaInstance {
 	common.EnableLogging = true
 
-	disk_manager := disk.NewDiskManagerImpl(dbName + ".db")
+	var disk_manager disk.DiskManager
+	if !common.EnableOnMemStorage || common.TempSuppressOnMemStorage {
+		disk_manager = disk.NewDiskManagerImpl(dbName + ".db")
+	} else {
+		disk_manager = disk.NewVirtualDiskManagerImpl(dbName + ".db")
+	}
+
 	log_manager := recovery.NewLogManager(&disk_manager)
 	bpm := buffer.NewBufferPoolManager(uint32(bpoolSize), disk_manager, log_manager)
 	lock_manager := access.NewLockManager(access.STRICT, access.SS2PL_MODE)
@@ -63,12 +70,23 @@ func (si *SamehadaInstance) GetCheckpointManager() *concurrency.CheckpointManage
 	return si.checkpoint_manger
 }
 
-// functionality is Shutdown of DiskManager and action around DB file only
-func (si *SamehadaInstance) Finalize(IsRemoveFiles bool) {
-	//dm := ((*disk.DiskManagerImpl)(unsafe.Pointer(si.disk_manager)))
-	si.disk_manager.ShutDown()
+// functionality is Flushing dirty pages, shutdown of DiskManager and action around DB/Log files
+func (si *SamehadaInstance) Shutdown(IsRemoveFiles bool) {
 	if IsRemoveFiles {
+		//close
+		si.disk_manager.ShutDown()
+		//remove
 		si.disk_manager.RemoveDBFile()
 		si.disk_manager.RemoveLogFile()
+	} else {
+		// TODO: (SDB) flush only dirty pages
+		si.bpm.FlushAllPages()
+		// close only
+		si.disk_manager.ShutDown()
 	}
+}
+
+// for testing. this method does file closing only in contrast to Shutdown method
+func (si *SamehadaInstance) CloseFilesForTesting() {
+	si.disk_manager.ShutDown()
 }

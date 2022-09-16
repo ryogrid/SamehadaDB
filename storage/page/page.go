@@ -9,7 +9,7 @@ import (
 )
 
 // PageSize is the size of a page in disk (4KB)
-//const PageSize = 4096
+// const PageSize = 4096
 const SizePageHeader = 8
 const OffsetPageStart = 0
 const OffsetLSN = 4
@@ -29,9 +29,12 @@ type Page struct {
 	rwlatch_ common.ReaderWriterLatch
 }
 
-// IncPinCount decrements pin count
+// IncPinCount increments pin count
 func (p *Page) IncPinCount() {
 	p.pinCount++
+
+	//common.ShPrintf(common.DEBUG_INFO, "pinCount of page-%d at IncPinCount: %d\n", p.GetPageId(), p.pinCount)
+	//common.RuntimeStack()
 }
 
 // DecPinCount decrements pin count
@@ -39,6 +42,8 @@ func (p *Page) DecPinCount() {
 	if p.pinCount > 0 {
 		p.pinCount--
 	}
+
+	//common.ShPrintf(common.DEBUG_INFO, "pinCount of page-%d at DecPinCount: %d\n", p.GetPageId(), p.pinCount)
 }
 
 // PinCount retunds the pin count
@@ -66,7 +71,7 @@ func (p *Page) IsDirty() bool {
 	return p.isDirty
 }
 
-// Copy copies data to the page's data. It is mainly used for testing
+// Copy copies data to the page's data
 func (p *Page) Copy(offset uint32, data []byte) {
 	copy(p.data[offset:], data)
 }
@@ -74,11 +79,17 @@ func (p *Page) Copy(offset uint32, data []byte) {
 // New creates a new page
 func New(id types.PageID, isDirty bool, data *[common.PageSize]byte) *Page {
 	return &Page{id, uint32(1), isDirty, data, common.NewRWLatch()}
+
+	//// TODO: (SDB) customized RWMutex for concurrent skip list debug
+	//return &Page{id, uint32(1), isDirty, data, common.NewRWLatchDebug()}
 }
 
 // New creates a new empty page
 func NewEmpty(id types.PageID) *Page {
 	return &Page{id, uint32(1), false, &[common.PageSize]byte{}, common.NewRWLatch()}
+
+	//// TODO: (SDB) customized RWMutex for concurrent skip list debug
+	//return &Page{id, uint32(1), false, &[common.PageSize]byte{}, common.NewRWLatchDebug()}
 }
 
 /** @return the page LSN. */
@@ -104,12 +115,19 @@ func (p *Page) GetData() *[common.PageSize]byte {
 func (p *Page) WLatch() {
 	// common.SH_Assert(!p.rwlatch_.IsWriteLocked(), "Page is already write locked")
 	// fmt.Printf("Page::WLatch: page address %p\n", p)
+	if common.EnableDebug {
+		common.ShPrintf(common.DEBUG_INFO_DETAIL, "pageId=%d ", p.GetPageId())
+	}
+
 	p.rwlatch_.WLock()
 }
 
 /** Release the page write latch. */
 func (p *Page) WUnlatch() {
 	// fmt.Printf("Page::WUnlatch: page address %p\n", p)
+	if common.EnableDebug {
+		common.ShPrintf(common.DEBUG_INFO_DETAIL, "pageId=%d ", p.GetPageId())
+	}
 	p.rwlatch_.WUnlock()
 }
 
@@ -117,11 +135,34 @@ func (p *Page) WUnlatch() {
 func (p *Page) RLatch() {
 	//common.SH_Assert(!p.rwlatch_.IsReadLocked(), "Page is already read locked")
 	// fmt.Printf("Page::RLatch: page address %p\n", p)
+	if common.EnableDebug {
+		common.ShPrintf(common.DEBUG_INFO_DETAIL, "pageId=%d ", p.GetPageId())
+	}
 	p.rwlatch_.RLock()
 }
 
 /** Release the page read latch. */
 func (p *Page) RUnlatch() {
 	// fmt.Printf("Page::RUnlatch: page address %p\n", p)
+	if common.EnableDebug {
+		common.ShPrintf(common.DEBUG_INFO_DETAIL, "pageId=%d ", p.GetPageId())
+	}
 	p.rwlatch_.RUnlock()
+}
+
+func (p *Page) PrintMutexDebugInfo() {
+	if common.EnableDebug {
+		common.ShPrintf(common.DEBUG_INFO_DETAIL, "pageId=%d ", p.GetPageId())
+	}
+	p.rwlatch_.PrintDebugInfo()
+}
+
+func (p *Page) PrintPinCount() {
+	if common.EnableDebug {
+		common.ShPrintf(common.DEBUG_INFO, "PageId=%d PinCount=%d\n", p.id, p.pinCount)
+	}
+}
+
+func (p *Page) GetRWLachObj() common.ReaderWriterLatch {
+	return p.rwlatch_
 }

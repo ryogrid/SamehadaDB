@@ -4,6 +4,8 @@
 package hash
 
 import (
+	"github.com/ryogrid/SamehadaDB/common"
+	"github.com/ryogrid/SamehadaDB/storage/page"
 	"os"
 	"testing"
 	"unsafe"
@@ -11,13 +13,17 @@ import (
 	"github.com/ryogrid/SamehadaDB/recovery"
 	"github.com/ryogrid/SamehadaDB/storage/buffer"
 	"github.com/ryogrid/SamehadaDB/storage/disk"
-	"github.com/ryogrid/SamehadaDB/storage/page"
 	testingpkg "github.com/ryogrid/SamehadaDB/testing"
 	"github.com/ryogrid/SamehadaDB/types"
 )
 
 func TestHashTableHeaderPage(t *testing.T) {
-	diskManager := disk.NewDiskManagerImpl("test.db")
+	var diskManager disk.DiskManager
+	if !common.TempSuppressOnMemStorage || common.TempSuppressOnMemStorage {
+		diskManager = disk.NewDiskManagerImpl("test.db")
+	} else {
+		diskManager = disk.NewVirtualDiskManagerImpl("test.db")
+	}
 	//bpm := buffer.NewBufferPoolManager(diskManager, buffer.NewClockReplacer(5))
 	bpm := buffer.NewBufferPoolManager(uint32(10), diskManager, recovery.NewLogManager(&diskManager))
 
@@ -38,10 +44,10 @@ func TestHashTableHeaderPage(t *testing.T) {
 			t.Errorf("GetPageId shoud be %d, but got %d", types.PageID(i), headerPage.GetPageId())
 		}
 
-		headerPage.SetLSN(i)
-		if i != headerPage.GetLSN() {
-			t.Errorf("GetLSN shoud be %d, but got %d", i, headerPage.GetLSN())
-		}
+		//headerPage.SetLSN(i)
+		//if i != headerPage.GetLSN() {
+		//	t.Errorf("GetLSN shoud be %d, but got %d", i, headerPage.GetLSN())
+		//}
 	}
 
 	// add a few hypothetical block pages
@@ -62,11 +68,19 @@ func TestHashTableHeaderPage(t *testing.T) {
 	// unpin the header page now that we are done
 	bpm.UnpinPage(headerPage.GetPageId(), true)
 	diskManager.ShutDown()
-	os.Remove("test.db")
+	if !common.EnableOnMemStorage {
+		os.Remove("test.db")
+	}
 }
 
 func TestHashTableBlockPage(t *testing.T) {
-	diskManager := disk.NewDiskManagerImpl("test.db")
+	var diskManager disk.DiskManager
+	if !common.TempSuppressOnMemStorage || common.TempSuppressOnMemStorage {
+		diskManager = disk.NewDiskManagerImpl("test.db")
+	} else {
+		diskManager = disk.NewVirtualDiskManagerImpl("test.db")
+	}
+
 	//bpm := buffer.NewBufferPoolManager(diskManager, buffer.NewClockReplacer(5))
 	bpm := buffer.NewBufferPoolManager(uint32(32), diskManager, recovery.NewLogManager(&diskManager))
 
@@ -80,9 +94,7 @@ func TestHashTableBlockPage(t *testing.T) {
 	}
 
 	for i := 0; i < 10; i++ {
-		// equals(t, i, blockPage.KeyAt(i))
-		testingpkg.Assert(t, uint32(i) == blockPage.KeyAt(uint32(i)), "")
-		//equals(t, i, blockPage.ValueAt(i))
+		//testingpkg.Assert(t, uint32(i) == blockPage.KeyAt(uint32(i)), "")
 		testingpkg.Assert(t, uint32(i) == blockPage.ValueAt(uint32(i)), "")
 	}
 
@@ -107,5 +119,7 @@ func TestHashTableBlockPage(t *testing.T) {
 
 	bpm.UnpinPage(newPage.ID(), true)
 	bpm.FlushAllPages()
-	os.Remove("test.db")
+	if !common.EnableOnMemStorage {
+		os.Remove("test.db")
+	}
 }
