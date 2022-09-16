@@ -6,6 +6,7 @@ package catalog_test
 import (
 	"fmt"
 	"github.com/ryogrid/SamehadaDB/catalog"
+	"github.com/ryogrid/SamehadaDB/common"
 	"github.com/ryogrid/SamehadaDB/samehada"
 	"github.com/ryogrid/SamehadaDB/storage/buffer"
 	"github.com/ryogrid/SamehadaDB/storage/index/index_constants"
@@ -19,7 +20,11 @@ import (
 
 // test reloading serialized catalog info in db file at lauching system
 func TestTableCatalogReload(t *testing.T) {
-	os.Remove("test.db")
+	common.TempSuppressOnMemStorage = true
+
+	if !common.EnableOnMemStorage || common.TempSuppressOnMemStorage {
+		os.Remove("test.db")
+	}
 	samehada_instance := samehada.NewSamehadaInstanceForTesting()
 	//diskManager := disk.NewDiskManagerImpl("test.db")
 	//defer diskManager.ShutDown()
@@ -35,6 +40,8 @@ func TestTableCatalogReload(t *testing.T) {
 	catalog_old.CreateTable("test_1", schema_, txn)
 	bpm.FlushAllPages()
 
+	samehada_instance.CloseFilesForTesting()
+
 	fmt.Println("Shutdown system...")
 
 	samehada_instance_new := samehada.NewSamehadaInstanceForTesting()
@@ -48,5 +55,6 @@ func TestTableCatalogReload(t *testing.T) {
 	testingpkg.Assert(t, columnToCheck.GetType() == 4, "")
 	testingpkg.Assert(t, columnToCheck.HasIndex() == true, "")
 
-	samehada_instance.Shutdown(true)
+	//samehada_instance.Shutdown(true)
+	common.TempSuppressOnMemStorage = false
 }

@@ -153,8 +153,11 @@ func TestLogSererializeAndDeserialize(t *testing.T) {
 */
 
 func TestRedo(t *testing.T) {
-	os.Remove("test.db")
-	os.Remove("test.log")
+	common.TempSuppressOnMemStorage = true
+	if !common.EnableOnMemStorage || common.TempSuppressOnMemStorage {
+		os.Remove("test.db")
+		os.Remove("test.log")
+	}
 
 	samehada_instance := samehada.NewSamehadaInstanceForTesting()
 
@@ -252,12 +255,16 @@ func TestRedo(t *testing.T) {
 
 	fmt.Println("Tearing down the system..")
 	samehada_instance.Shutdown(true)
+
+	common.TempSuppressOnMemStorage = false
 }
 
 func TestUndo(t *testing.T) {
-	os.Stdout.Sync()
-	os.Remove("test.db")
-	os.Remove("test.log")
+	common.TempSuppressOnMemStorage = true
+	if !common.EnableOnMemStorage || common.TempSuppressOnMemStorage {
+		os.Remove("test.db")
+		os.Remove("test.log")
+	}
 
 	samehada_instance := samehada.NewSamehadaInstanceForTesting()
 
@@ -395,11 +402,15 @@ func TestUndo(t *testing.T) {
 
 	fmt.Println("Tearing down the system..")
 	samehada_instance.Shutdown(true)
+
+	common.TempSuppressOnMemStorage = false
 }
 
 func TestCheckpoint(t *testing.T) {
-	os.Remove("test.db")
-	os.Remove("test.log")
+	if !common.EnableOnMemStorage {
+		os.Remove("test.db")
+		os.Remove("test.log")
+	}
 	samehada_instance := samehada.NewSamehadaInstanceForTesting()
 
 	testingpkg.AssertFalse(t, common.EnableLogging, "")

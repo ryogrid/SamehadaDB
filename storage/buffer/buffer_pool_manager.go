@@ -5,6 +5,7 @@ package buffer
 
 import (
 	"errors"
+	"fmt"
 	"sync"
 
 	"github.com/ryogrid/SamehadaDB/common"
@@ -14,7 +15,7 @@ import (
 	"github.com/ryogrid/SamehadaDB/types"
 )
 
-//BufferPoolManager represents the buffer pool manager
+// BufferPoolManager represents the buffer pool manager
 type BufferPoolManager struct {
 	diskManager disk.DiskManager
 	pages       []*page.Page
@@ -36,42 +37,47 @@ func (b *BufferPoolManager) FetchPage(pageID types.PageID) *page.Page {
 		b.mutex.Unlock()
 		return pg
 	}
-	b.mutex.Unlock()
 
+	//b.mutex.Unlock()
 	// get the id from free list or from replacer
 	frameID, isFromFreeList := b.getFrameID()
+	//b.mutex.Lock()
 	if frameID == nil {
+		b.mutex.Unlock()
 		return nil
 	}
 
 	if !isFromFreeList {
 		// remove page from current frame
-		b.mutex.Lock()
+		//b.mutex.Lock()
 		currentPage := b.pages[*frameID]
+		//b.mutex.Unlock()
 		if currentPage != nil {
 			if currentPage.IsDirty() {
 				b.log_manager.Flush()
-				//currentPage.WLatch()
+				currentPage.WLatch()
 				data := currentPage.Data()
 				b.diskManager.WritePage(currentPage.ID(), data[:])
-				//currentPage.WUnlatch()
+				currentPage.WUnlatch()
 			}
-
+			//b.mutex.Lock()
 			delete(b.pageTable, currentPage.ID())
+			//b.mutex.Unlock()
 		}
-		b.mutex.Unlock()
+		//b.mutex.Unlock()
 	}
 
+	//b.mutex.Lock()
 	data := make([]byte, common.PageSize)
 	err := b.diskManager.ReadPage(pageID, data)
 	if err != nil {
+		fmt.Println(err)
 		panic("ReadPage returned error!")
 		//return nil
 	}
 	var pageData [common.PageSize]byte
 	copy(pageData[:], data)
 	pg := page.New(pageID, false, &pageData)
-	b.mutex.Lock()
 	b.pageTable[pageID] = *frameID
 	b.pages[*frameID] = pg
 	b.mutex.Unlock()
@@ -98,10 +104,20 @@ func (b *BufferPoolManager) UnpinPage(pageID types.PageID, isDirty bool) error {
 		}
 
 		b.mutex.Unlock()
+
+		if common.EnableDebug {
+			common.ShPrintf(common.DEBUG_INFO, "UnpinPage: PageId=%d PinCount=%d\n", pg.GetPageId(), pg.PinCount())
+		}
 		return nil
 	}
 	b.mutex.Unlock()
+
+	if common.EnableDebug {
+		common.ShPrintf(common.DEBUG_INFO, "UnpinPage: couuld not find page! PageId=%d\n", pageID)
+		panic("could not find page")
+	}
 	return errors.New("could not find page")
+
 }
 
 // FlushPage Flushes the target page to disk.
@@ -114,10 +130,12 @@ func (b *BufferPoolManager) FlushPage(pageID types.PageID) bool {
 		pg.DecPinCount()
 
 		data := pg.Data()
-		b.diskManager.WritePage(pageID, data[:])
 		pg.SetIsDirty(false)
 		pg.WUnlatch()
 
+		b.mutex.Lock()
+		b.diskManager.WritePage(pageID, data[:])
+		b.mutex.Unlock()
 		return true
 	}
 	b.mutex.Unlock()
@@ -126,12 +144,14 @@ func (b *BufferPoolManager) FlushPage(pageID types.PageID) bool {
 
 // NewPage allocates a new page in the buffer pool with the disk manager help
 func (b *BufferPoolManager) NewPage() *page.Page {
+
+	b.mutex.Lock()
 	frameID, isFromFreeList := b.getFrameID()
 	if frameID == nil {
+		b.mutex.Unlock()
 		return nil // the buffer is full, it can't find a frame
 	}
 
-	b.mutex.Lock()
 	if !isFromFreeList {
 		// remove page from current frame
 		currentPage := b.pages[*frameID]
@@ -155,7 +175,7 @@ func (b *BufferPoolManager) NewPage() *page.Page {
 
 	b.mutex.Unlock()
 
-	common.ShPrintf(common.DEBUG, "NewPage: returned pageID: %d\n", pageID)
+	common.ShPrintf(common.DEBUG_INFO, "NewPage: returned pageID: %d\n", pageID)
 	return pg
 }
 
@@ -230,17 +250,18 @@ func (b *BufferPoolManager) FlushAllDirtyPages() {
 }
 
 func (b *BufferPoolManager) getFrameID() (*FrameID, bool) {
-	b.mutex.Lock()
+	//b.mutex.Lock()
 	if len(b.freeList) > 0 {
 		frameID, newFreeList := b.freeList[0], b.freeList[1:]
 		b.freeList = newFreeList
 
-		b.mutex.Unlock()
+		//b.mutex.Unlock()
 		return &frameID, true
 	}
 
-	b.mutex.Unlock()
-	return (*b.replacer).Victim(), false
+	ret := (*b.replacer).Victim()
+	//b.mutex.Unlock()
+	return ret, false
 }
 
 func (b *BufferPoolManager) GetPages() []*page.Page {
@@ -251,7 +272,7 @@ func (b *BufferPoolManager) GetPoolSize() int {
 	return len(b.pageTable)
 }
 
-//NewBufferPoolManager returns a empty buffer pool manager
+// NewBufferPoolManager returns a empty buffer pool manager
 func NewBufferPoolManager(poolSize uint32, DiskManager disk.DiskManager, log_manager *recovery.LogManager) *BufferPoolManager {
 	freeList := make([]FrameID, poolSize)
 	pages := make([]*page.Page, poolSize)

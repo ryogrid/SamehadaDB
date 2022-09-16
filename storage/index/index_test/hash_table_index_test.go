@@ -10,7 +10,6 @@ import (
 	"github.com/ryogrid/SamehadaDB/recovery/log_recovery"
 	"github.com/ryogrid/SamehadaDB/samehada"
 	"github.com/ryogrid/SamehadaDB/samehada/samehada_util"
-	"github.com/ryogrid/SamehadaDB/storage/disk"
 	"github.com/ryogrid/SamehadaDB/storage/index/index_constants"
 	"github.com/ryogrid/SamehadaDB/storage/table/column"
 	"github.com/ryogrid/SamehadaDB/storage/table/schema"
@@ -36,8 +35,12 @@ func TestPackAndUnpackRID(t *testing.T) {
 }
 
 func TestRecounstructionOfHashIndex(t *testing.T) {
-	os.Remove("test.db")
-	os.Remove("test.log")
+	common.TempSuppressOnMemStorage = true
+
+	if !common.EnableOnMemStorage || common.TempSuppressOnMemStorage {
+		os.Remove("test.db")
+		os.Remove("test.log")
+	}
 
 	shi := samehada.NewSamehadaInstanceForTesting()
 	shi.GetLogManager().ActivateLogging()
@@ -153,7 +156,7 @@ func TestRecounstructionOfHashIndex(t *testing.T) {
 	greatestLSN, _ := log_recovery.Redo()
 	log_recovery.Undo()
 
-	dman := shi.GetDiskManager().(*disk.DiskManagerImpl)
+	dman := shi.GetDiskManager()
 	dman.GCLogFile()
 	shi.GetLogManager().SetNextLSN(greatestLSN + 1)
 	c = catalog.RecoveryCatalogFromCatalogPage(shi.GetBufferPoolManager(), shi.GetLogManager(), shi.GetLockManager(), txn)
@@ -219,4 +222,6 @@ func TestRecounstructionOfHashIndex(t *testing.T) {
 
 	shi.GetTransactionManager().Commit(txn)
 	shi.Shutdown(false)
+
+	common.TempSuppressOnMemStorage = false
 }

@@ -16,10 +16,11 @@ import (
 )
 
 func TestBinaryData(t *testing.T) {
+	common.TempSuppressOnMemStorage = true
+
 	poolSize := uint32(10)
 
 	dm := disk.NewDiskManagerTest()
-	defer dm.ShutDown()
 	bpm := NewBufferPoolManager(poolSize, dm, recovery.NewLogManager(&dm))
 
 	page0 := bpm.NewPage()
@@ -68,13 +69,17 @@ func TestBinaryData(t *testing.T) {
 	page0 = bpm.FetchPage(types.PageID(0))
 	testingpkg.Equals(t, fixedRandomBinaryData, *page0.Data())
 	testingpkg.Ok(t, bpm.UnpinPage(types.PageID(0), true))
+
+	dm.ShutDown()
+	common.TempSuppressOnMemStorage = false
 }
 
 func TestSample(t *testing.T) {
+	common.TempSuppressOnMemStorage = true
+
 	poolSize := uint32(10)
 
 	dm := disk.NewDiskManagerTest()
-	defer dm.ShutDown()
 	bpm := NewBufferPoolManager(poolSize, dm, recovery.NewLogManager(&dm))
 
 	page0 := bpm.NewPage()
@@ -117,4 +122,7 @@ func TestSample(t *testing.T) {
 	testingpkg.Equals(t, types.PageID(14), bpm.NewPage().ID())
 	testingpkg.Equals(t, (*page.Page)(nil), bpm.NewPage())
 	testingpkg.Equals(t, (*page.Page)(nil), bpm.FetchPage(types.PageID(0)))
+
+	dm.ShutDown()
+	common.TempSuppressOnMemStorage = false
 }

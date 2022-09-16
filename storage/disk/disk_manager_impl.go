@@ -10,12 +10,13 @@ import (
 	"log"
 	"os"
 	"strings"
+	"sync"
 
 	"github.com/ryogrid/SamehadaDB/common"
 	"github.com/ryogrid/SamehadaDB/types"
 )
 
-//DiskManagerImpl is the disk implementation of DiskManager
+// DiskManagerImpl is the disk implementation of DiskManager
 type DiskManagerImpl struct {
 	db           *os.File
 	fileName     string
@@ -26,6 +27,8 @@ type DiskManagerImpl struct {
 	size         int64
 	flush_log    bool
 	numFlushes   uint64
+	dbFileMutex  *sync.Mutex
+	logFileMutex *sync.Mutex
 }
 
 // NewDiskManagerImpl returns a DiskManager instance
@@ -67,29 +70,37 @@ func NewDiskManagerImpl(dbFilename string) DiskManager {
 		nextPageID = types.PageID(int32(nPages + 1))
 	}
 
-	return &DiskManagerImpl{file, dbFilename, file_1, logfname, nextPageID, 0, fileSize, false, 0}
+	return &DiskManagerImpl{file, dbFilename, file_1, logfname, nextPageID, 0, fileSize, false, 0, new(sync.Mutex), new(sync.Mutex)}
 }
 
 // ShutDown closes of the database file
 func (d *DiskManagerImpl) ShutDown() {
+	d.dbFileMutex.Lock()
 	err := d.db.Close()
 	if err != nil {
 		fmt.Println(err)
 		panic("close of db file failed")
 	}
+	d.dbFileMutex.Unlock()
+	d.logFileMutex.Lock()
 	err = d.log.Close()
 	if err != nil {
 		fmt.Println(err)
 		panic("close of log file failed")
 	}
+	d.logFileMutex.Unlock()
 }
 
 // Write a page to the database file
 func (d *DiskManagerImpl) WritePage(pageId types.PageID, pageData []byte) error {
+	d.dbFileMutex.Lock()
+	defer d.dbFileMutex.Unlock()
+
 	offset := int64(pageId * common.PageSize)
 	d.db.Seek(offset, io.SeekStart)
 	bytesWritten, err := d.db.Write(pageData)
 	if err != nil {
+		fmt.Println(err)
 		panic("WritePge: d.db.Write returns err!")
 		//return err
 	}
@@ -109,10 +120,14 @@ func (d *DiskManagerImpl) WritePage(pageId types.PageID, pageData []byte) error 
 
 // Read a page from the database file
 func (d *DiskManagerImpl) ReadPage(pageID types.PageID, pageData []byte) error {
+	d.dbFileMutex.Lock()
+	defer d.dbFileMutex.Unlock()
+
 	offset := int64(pageID * common.PageSize)
 
 	fileInfo, err := d.db.Stat()
 	if err != nil {
+		fmt.Println(err)
 		return errors.New("file info error")
 	}
 
@@ -135,13 +150,19 @@ func (d *DiskManagerImpl) ReadPage(pageID types.PageID, pageData []byte) error {
 	return nil
 }
 
-//  AllocatePage allocates a new page
+// AllocatePage allocates a new page
 func (d *DiskManagerImpl) AllocatePage() types.PageID {
+	d.dbFileMutex.Lock()
+
 	ret := d.nextPageID
 
-	// extend db file for avoiding later ReadPage and WritePage fails
-	zeroClearedPageData := make([]byte, common.PageSize)
-	d.WritePage(ret, zeroClearedPageData)
+	//// extend db file for avoiding later ReadPage and WritePage fails
+	//zeroClearedPageData := make([]byte, common.PageSize)
+	//
+	//d.dbFileMutex.Unlock()
+	//d.WritePage(ret, zeroClearedPageData)
+	//d.dbFileMutex.Lock()
+	defer d.dbFileMutex.Unlock()
 
 	d.nextPageID++
 	return ret
@@ -159,11 +180,16 @@ func (d *DiskManagerImpl) GetNumWrites() uint64 {
 
 // Size returns the size of the file in disk
 func (d *DiskManagerImpl) Size() int64 {
+	d.dbFileMutex.Lock()
+	defer d.dbFileMutex.Unlock()
 	return d.size
 }
 
 // ATTENTION: this method can be call after calling of Shutdown method
 func (d *DiskManagerImpl) RemoveDBFile() {
+	d.dbFileMutex.Lock()
+	defer d.dbFileMutex.Unlock()
+
 	err := os.Remove(d.fileName)
 	if err != nil {
 		fmt.Println(err)
@@ -173,6 +199,9 @@ func (d *DiskManagerImpl) RemoveDBFile() {
 
 // ATTENTION: this method can be call after calling of Shutdown method
 func (d *DiskManagerImpl) RemoveLogFile() {
+	d.logFileMutex.Lock()
+	defer d.logFileMutex.Unlock()
+
 	err := os.Remove(d.fileName_log)
 	if err != nil {
 		fmt.Println(err)
@@ -183,8 +212,13 @@ func (d *DiskManagerImpl) RemoveLogFile() {
 // erase needless data from log file (use this when db recovery finishes or snapshot finishes)
 // file content becomes empty
 func (d *DiskManagerImpl) GCLogFile() error {
+	d.logFileMutex.Lock()
+
 	d.log.Close()
+	d.logFileMutex.Unlock()
 	d.RemoveLogFile()
+	d.logFileMutex.Lock()
+	defer d.logFileMutex.Unlock()
 
 	logfname := d.fileName_log
 	file_, err := os.OpenFile(logfname, os.O_RDWR|os.O_CREATE, 0666)
@@ -209,6 +243,9 @@ func (d *DiskManagerImpl) GCLogFile() error {
  * Only return when sync is done, and only perform sequence write
  */
 func (d *DiskManagerImpl) WriteLog(log_data []byte) {
+	d.logFileMutex.Lock()
+	defer d.logFileMutex.Unlock()
+
 	// enforce swap log buffer
 
 	//assert(log_data != buffer_used)
@@ -255,6 +292,9 @@ func (d *DiskManagerImpl) ReadLog(log_data []byte, offset int32, retReadBytes *u
 		return false
 	}
 
+	d.logFileMutex.Lock()
+	defer d.logFileMutex.Unlock()
+
 	d.log.Seek(int64(offset), io.SeekStart)
 	readBytes, err := d.log.Read(log_data)
 	*retReadBytes = uint32(readBytes)
@@ -279,6 +319,9 @@ func (d *DiskManagerImpl) ReadLog(log_data []byte, offset int32, retReadBytes *u
  * Private helper function to get disk file size
  */
 func (d *DiskManagerImpl) GetLogFileSize() int64 {
+	d.logFileMutex.Lock()
+	defer d.logFileMutex.Unlock()
+
 	/*
 		struct stat stat_buf;
 		int rc = stat(file_name.c_str(), &stat_buf);

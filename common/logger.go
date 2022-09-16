@@ -5,7 +5,9 @@ import "fmt"
 type LogLevel int32
 
 const (
-	DEBUG LogLevel = iota
+	DEBUG_INFO_DETAIL LogLevel = iota
+	DEBUG_INFO
+	DEBUGGING
 	INFO
 	WARN
 	ERROR

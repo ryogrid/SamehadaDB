@@ -4,6 +4,7 @@
 package hash
 
 import (
+	"github.com/ryogrid/SamehadaDB/common"
 	"github.com/ryogrid/SamehadaDB/storage/page"
 	"os"
 	"testing"
@@ -17,7 +18,12 @@ import (
 )
 
 func TestHashTableHeaderPage(t *testing.T) {
-	diskManager := disk.NewDiskManagerImpl("test.db")
+	var diskManager disk.DiskManager
+	if !common.TempSuppressOnMemStorage || common.TempSuppressOnMemStorage {
+		diskManager = disk.NewDiskManagerImpl("test.db")
+	} else {
+		diskManager = disk.NewVirtualDiskManagerImpl("test.db")
+	}
 	//bpm := buffer.NewBufferPoolManager(diskManager, buffer.NewClockReplacer(5))
 	bpm := buffer.NewBufferPoolManager(uint32(10), diskManager, recovery.NewLogManager(&diskManager))
 
@@ -62,11 +68,19 @@ func TestHashTableHeaderPage(t *testing.T) {
 	// unpin the header page now that we are done
 	bpm.UnpinPage(headerPage.GetPageId(), true)
 	diskManager.ShutDown()
-	os.Remove("test.db")
+	if !common.EnableOnMemStorage {
+		os.Remove("test.db")
+	}
 }
 
 func TestHashTableBlockPage(t *testing.T) {
-	diskManager := disk.NewDiskManagerImpl("test.db")
+	var diskManager disk.DiskManager
+	if !common.TempSuppressOnMemStorage || common.TempSuppressOnMemStorage {
+		diskManager = disk.NewDiskManagerImpl("test.db")
+	} else {
+		diskManager = disk.NewVirtualDiskManagerImpl("test.db")
+	}
+
 	//bpm := buffer.NewBufferPoolManager(diskManager, buffer.NewClockReplacer(5))
 	bpm := buffer.NewBufferPoolManager(uint32(32), diskManager, recovery.NewLogManager(&diskManager))
 
@@ -105,5 +119,7 @@ func TestHashTableBlockPage(t *testing.T) {
 
 	bpm.UnpinPage(newPage.ID(), true)
 	bpm.FlushAllPages()
-	os.Remove("test.db")
+	if !common.EnableOnMemStorage {
+		os.Remove("test.db")
+	}
 }

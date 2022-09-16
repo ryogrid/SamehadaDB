@@ -3,14 +3,18 @@
 
 package common
 
-import (
-	"time"
-)
+import "time"
 
-var CycleDetectionInterval time.Duration
-var EnableLogging bool = false
 var LogTimeout time.Duration
-var EnableDebug bool = false
+
+var EnableLogging bool = false //true
+const EnableDebug bool = false //true
+// use virtual storage or not
+const EnableOnMemStorage = true //false
+
+// when this is true, virtual storage use is suppressed
+// for test case which can't work with virtual storage
+var TempSuppressOnMemStorage = false
 
 const (
 	// invalid page id
@@ -32,7 +36,7 @@ const (
 	BucketSizeOfHashIndex = 10
 	// probability used for determin node level on SkipList
 	SkipListProb    = 0.5  //0.25
-	LogLevelSetting = INFO //DEBUG
+	LogLevelSetting = INFO //DEBUGGING //DEBUG_INFO
 )
 
 type TxnID int32        // transaction id type

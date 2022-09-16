@@ -30,7 +30,13 @@ func NewSamehadaInstanceForTesting() *SamehadaInstance {
 func NewSamehadaInstance(dbName string, bpoolSize int) *SamehadaInstance {
 	common.EnableLogging = true
 
-	disk_manager := disk.NewDiskManagerImpl(dbName + ".db")
+	var disk_manager disk.DiskManager
+	if !common.EnableOnMemStorage || common.TempSuppressOnMemStorage {
+		disk_manager = disk.NewDiskManagerImpl(dbName + ".db")
+	} else {
+		disk_manager = disk.NewVirtualDiskManagerImpl(dbName + ".db")
+	}
+
 	log_manager := recovery.NewLogManager(&disk_manager)
 	bpm := buffer.NewBufferPoolManager(uint32(bpoolSize), disk_manager, log_manager)
 	lock_manager := access.NewLockManager(access.STRICT, access.SS2PL_MODE)
