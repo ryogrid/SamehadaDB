@@ -153,7 +153,8 @@ func TestLogSererializeAndDeserialize(t *testing.T) {
 */
 
 func TestRedo(t *testing.T) {
-	if !common.EnableOnMemStorage {
+	common.TempSuppressOnMemStorage = true
+	if !common.EnableOnMemStorage || common.TempSuppressOnMemStorage {
 		os.Remove("test.db")
 		os.Remove("test.log")
 	}
@@ -254,10 +255,13 @@ func TestRedo(t *testing.T) {
 
 	fmt.Println("Tearing down the system..")
 	samehada_instance.Shutdown(true)
+
+	common.TempSuppressOnMemStorage = false
 }
 
 func TestUndo(t *testing.T) {
-	if !common.EnableOnMemStorage {
+	common.TempSuppressOnMemStorage = true
+	if !common.EnableOnMemStorage || common.TempSuppressOnMemStorage {
 		os.Remove("test.db")
 		os.Remove("test.log")
 	}
@@ -398,6 +402,8 @@ func TestUndo(t *testing.T) {
 
 	fmt.Println("Tearing down the system..")
 	samehada_instance.Shutdown(true)
+
+	common.TempSuppressOnMemStorage = false
 }
 
 func TestCheckpoint(t *testing.T) {

@@ -35,7 +35,9 @@ func TestPackAndUnpackRID(t *testing.T) {
 }
 
 func TestRecounstructionOfHashIndex(t *testing.T) {
-	if !common.EnableOnMemStorage {
+	common.TempSuppressOnMemStorage = true
+
+	if !common.EnableOnMemStorage || common.TempSuppressOnMemStorage {
 		os.Remove("test.db")
 		os.Remove("test.log")
 	}
@@ -220,4 +222,6 @@ func TestRecounstructionOfHashIndex(t *testing.T) {
 
 	shi.GetTransactionManager().Commit(txn)
 	shi.Shutdown(false)
+
+	common.TempSuppressOnMemStorage = false
 }
