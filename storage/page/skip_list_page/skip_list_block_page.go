@@ -307,7 +307,7 @@ func (node *SkipListBlockPage) Insert(key *types.Value, value uint32, bpm *buffe
 			if !isSuccess {
 				// already released lock of this node
 				if common.EnableDebug {
-					common.ShPrintf(common.DEBUG_INFO, "SkipListBlockPage::Insert: finish (validation NG). key=%d\n", key.ToInteger())
+					common.ShPrintf(common.DEBUG_INFO, "SkipListBlockPage::Insert: finish (validation NG). key=%v\n", key.ToIFValue())
 				}
 				return true
 			}
@@ -530,7 +530,7 @@ func unlockAndUnpinNodes(bpm *buffer.BufferPoolManager, checkedNodes []*SkipList
 
 func (node *SkipListBlockPage) Remove(bpm *buffer.BufferPoolManager, key *types.Value, predOfCorners []SkipListCornerInfo, corners []SkipListCornerInfo) (isNodeShouldBeDeleted bool, isDeleted bool, isNeedRetry bool) {
 	if common.EnableDebug {
-		common.ShPrintf(common.DEBUG_INFO, "SkipListBlockPage::Remove: start. key=%d\n", key.ToInteger())
+		common.ShPrintf(common.DEBUG_INFO, "SkipListBlockPage::Remove: start. key=%v\n", key.ToIFValue())
 	}
 	found, _, foundIdx := node.FindEntryByKey(key)
 	if found && (node.GetEntryCnt() == 1) {
