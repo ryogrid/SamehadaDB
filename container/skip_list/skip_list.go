@@ -65,7 +65,7 @@ func latchOpWithOpType(node *skip_list_page.SkipListBlockPage, getOrUnlatch Latc
 // this method returns with keep having RLatch or WLatch of corners_[0] and not Unping corners_[0]
 func (sl *SkipList) FindNode(key *types.Value, opType SkipListOpType) (isSuccess bool, foundNode *skip_list_page.SkipListBlockPage, predOfCorners_ []skip_list_page.SkipListCornerInfo, corners_ []skip_list_page.SkipListCornerInfo) {
 	if common.EnableDebug {
-		common.ShPrintf(common.DEBUG_INFO, "FindNode: start. key=%d opType=%d\n", key.ToInteger(), opType)
+		common.ShPrintf(common.DEBUG_INFO, "FindNode: start. key=%v opType=%d\n", key.ToIFValue(), opType)
 	}
 
 	headerPage := skip_list_page.FetchAndCastToHeaderPage(sl.bpm, sl.headerPageID)
@@ -163,7 +163,7 @@ func (sl *SkipList) FindNode(key *types.Value, opType SkipListOpType) (isSuccess
 	//common.ShPrintf(common.DEBUG_INFO, "SkipList::FindNode: moveCnt=%d\n", moveCnt)
 
 	if common.EnableDebug {
-		common.ShPrintf(common.DEBUG_INFO, "FindNode: finished without rety. key=%d opType=%d\n", key.ToInteger(), opType)
+		common.ShPrintf(common.DEBUG_INFO, "FindNode: finished without rety. key=%v opType=%d\n", key.ToIFValue(), opType)
 		common.ShPrintf(common.DEBUG_INFO, "pred: ")
 		pred.PrintMutexDebugInfo()
 		pred.PrintPinCount()
@@ -213,7 +213,7 @@ func (sl *SkipList) GetValue(key *types.Value) uint32 {
 
 func (sl *SkipList) Insert(key *types.Value, value uint32) (err error) {
 	if common.EnableDebug {
-		common.ShPrintf(common.DEBUG_INFO, "SkipList::Insert: start. key=%d\n", key.ToInteger())
+		common.ShPrintf(common.DEBUG_INFO, "SkipList::Insert: start. key=%v\n", key.ToIFValue())
 	}
 	isNeedRetry := true
 
@@ -234,14 +234,14 @@ func (sl *SkipList) Insert(key *types.Value, value uint32) (err error) {
 	}
 
 	if common.EnableDebug {
-		common.ShPrintf(common.DEBUG_INFO, "SkipList::Insert: finish. key=%d\n", key.ToInteger())
+		common.ShPrintf(common.DEBUG_INFO, "SkipList::Insert: finish. key=%v\n", key.ToIFValue())
 	}
 	return nil
 }
 
 func (sl *SkipList) Remove(key *types.Value, value uint32) (isDeleted_ bool) {
 	if common.EnableDebug {
-		common.ShPrintf(common.DEBUG_INFO, "SkipList::Remove: start. key=%d\n", key.ToInteger())
+		common.ShPrintf(common.DEBUG_INFO, "SkipList::Remove: start. key=%v\n", key.ToIFValue())
 	}
 	isNodeShouldBeDeleted := false
 	isDeleted := false
@@ -264,7 +264,7 @@ func (sl *SkipList) Remove(key *types.Value, value uint32) (isDeleted_ bool) {
 	}
 
 	if common.EnableDebug {
-		common.ShPrintf(common.DEBUG_INFO, "SkipList::Remove: finish. key=%d\n", key.ToInteger())
+		common.ShPrintf(common.DEBUG_INFO, "SkipList::Remove: finish. key=%v\n", key.ToIFValue())
 	}
 	return isDeleted
 }

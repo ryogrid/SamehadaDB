@@ -260,7 +260,7 @@ func (node *SkipListBlockPage) getSplitIdxForNotFixed() (splitIdx_ int32, isNeed
 func (node *SkipListBlockPage) Insert(key *types.Value, value uint32, bpm *buffer.BufferPoolManager, corners []SkipListCornerInfo,
 	level int32) (isNeedRetry_ bool) {
 	if common.EnableDebug {
-		common.ShPrintf(common.DEBUG_INFO, "Insert of SkipListBlockPage called! : key=%d\n", key.ToInteger())
+		common.ShPrintf(common.DEBUG_INFO, "Insert of SkipListBlockPage called! : key=%v\n", key.ToIFValue())
 	}
 
 	found, _, foundIdx := node.FindEntryByKey(key)
@@ -286,7 +286,7 @@ func (node *SkipListBlockPage) Insert(key *types.Value, value uint32, bpm *buffe
 		node.WUnlatch()
 		bpm.UnpinPage(node.GetPageId(), true)
 		if common.EnableDebug {
-			common.ShPrintf(common.DEBUG_INFO, "SkipListBlockPage::Insert: finish (replace). key=%d\n", key.ToInteger())
+			common.ShPrintf(common.DEBUG_INFO, "SkipListBlockPage::Insert: finish (replace). key=%v\n", key.ToIFValue())
 		}
 		return false
 	} else if !found {
@@ -396,7 +396,7 @@ func (node *SkipListBlockPage) Insert(key *types.Value, value uint32, bpm *buffe
 	node.WUnlatch()
 	bpm.UnpinPage(node.GetPageId(), true)
 	if common.EnableDebug {
-		common.ShPrintf(common.DEBUG_INFO, "SkipListBlockPage::Insert: finish (split=%t and insert existing node). key=%d\n", isSplited, key.ToInteger())
+		common.ShPrintf(common.DEBUG_INFO, "SkipListBlockPage::Insert: finish (split=%t and insert existing node). key=%v\n", isSplited, key.ToIFValue())
 	}
 	return false
 }
@@ -573,7 +573,7 @@ func (node *SkipListBlockPage) Remove(bpm *buffer.BufferPoolManager, key *types.
 		bpm.UnpinPage(node.GetPageId(), true)
 
 		if common.EnableDebug {
-			common.ShPrintf(common.DEBUG_INFO, "SkipListBlockPage::Remove: finished (node remove). key=%d\n", key.ToInteger())
+			common.ShPrintf(common.DEBUG_INFO, "SkipListBlockPage::Remove: finished (node remove). key=%v\n", key.ToIFValue())
 		}
 		// because WUnlatch is already called once before validateNoChangeAndGetLock func call, but  pin is not released
 		bpm.UnpinPage(node.GetPageId(), true)
@@ -590,7 +590,7 @@ func (node *SkipListBlockPage) Remove(bpm *buffer.BufferPoolManager, key *types.
 		node.WUnlatch()
 		bpm.UnpinPage(node.GetPageId(), true)
 		if common.EnableDebug {
-			common.ShPrintf(common.DEBUG_INFO, "SkipListBlockPage::Remove: finished (found). key=%d\n", key.ToInteger())
+			common.ShPrintf(common.DEBUG_INFO, "SkipListBlockPage::Remove: finished (found). key=%v\n", key.ToIFValue())
 		}
 		return false, true, false
 	} else { // found == false
@@ -598,7 +598,7 @@ func (node *SkipListBlockPage) Remove(bpm *buffer.BufferPoolManager, key *types.
 		bpm.UnpinPage(node.GetPageId(), true)
 		// do nothing
 		if common.EnableDebug {
-			common.ShPrintf(common.DEBUG_INFO, "SkipListBlockPage::Remove: finished (not found). key=%d\n", key.ToInteger())
+			common.ShPrintf(common.DEBUG_INFO, "SkipListBlockPage::Remove: finished (not found). key=%v\n", key.ToIFValue())
 		}
 		return false, false, false
 	}

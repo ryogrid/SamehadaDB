@@ -35,6 +35,9 @@ func (b *BufferPoolManager) FetchPage(pageID types.PageID) *page.Page {
 		pg.IncPinCount()
 		(*b.replacer).Pin(frameID)
 		b.mutex.Unlock()
+		if common.EnableDebug {
+			common.ShPrintf(common.DEBUG_INFO, "FetchPage: PageId=%d PinCount=%d\n", pg.GetPageId(), pg.PinCount())
+		}
 		return pg
 	}
 
@@ -61,6 +64,9 @@ func (b *BufferPoolManager) FetchPage(pageID types.PageID) *page.Page {
 				currentPage.WUnlatch()
 			}
 			//b.mutex.Lock()
+			if common.EnableDebug {
+				common.ShPrintf(common.DEBUG_INFO, "FetchPage: page=%d is removed from pageTable.\n", currentPage.ID())
+			}
 			delete(b.pageTable, currentPage.ID())
 			//b.mutex.Unlock()
 		}
@@ -82,6 +88,9 @@ func (b *BufferPoolManager) FetchPage(pageID types.PageID) *page.Page {
 	b.pages[*frameID] = pg
 	b.mutex.Unlock()
 
+	if common.EnableDebug {
+		common.ShPrintf(common.DEBUG_INFO, "FetchPage: PageId=%d PinCount=%d\n", pg.GetPageId(), pg.PinCount())
+	}
 	return pg
 }
 
@@ -113,7 +122,7 @@ func (b *BufferPoolManager) UnpinPage(pageID types.PageID, isDirty bool) error {
 	b.mutex.Unlock()
 
 	if common.EnableDebug {
-		common.ShPrintf(common.DEBUG_INFO, "UnpinPage: couuld not find page! PageId=%d\n", pageID)
+		common.ShPrintf(common.DEBUG_INFO, "UnpinPage: could not find page! PageId=%d\n", pageID)
 		panic("could not find page")
 	}
 	return errors.New("could not find page")
@@ -162,6 +171,9 @@ func (b *BufferPoolManager) NewPage() *page.Page {
 				b.diskManager.WritePage(currentPage.ID(), data[:])
 			}
 
+			if common.EnableDebug {
+				common.ShPrintf(common.DEBUG_INFO, "NewPage: page=%d is removed from pageTable.\n", currentPage.ID())
+			}
 			delete(b.pageTable, currentPage.ID())
 		}
 	}
@@ -175,7 +187,10 @@ func (b *BufferPoolManager) NewPage() *page.Page {
 
 	b.mutex.Unlock()
 
-	common.ShPrintf(common.DEBUG_INFO, "NewPage: returned pageID: %d\n", pageID)
+	if common.EnableDebug {
+		common.ShPrintf(common.DEBUG_INFO, "NewPage: returned pageID: %d\n", pageID)
+	}
+
 	return pg
 }
 
@@ -263,6 +278,10 @@ func (b *BufferPoolManager) getFrameID() (*FrameID, bool) {
 
 	ret := (*b.replacer).Victim()
 	//b.mutex.Unlock()
+	if ret == nil {
+		fmt.Printf("getFrameID: Victime page is nil! len(b.freeList)=%d\n", len(b.freeList))
+		panic("getFrameID: Victime page is nil!")
+	}
 	return ret, false
 }
 
