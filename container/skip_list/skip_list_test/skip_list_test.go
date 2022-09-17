@@ -1442,13 +1442,6 @@ func testSkipListMixParallelStride[T int32 | float32 | string](t *testing.T, key
 			}
 			break
 		}
-		//else if ii%20 == 0 && ii != 0 {
-		//	for runningThCnt >= 20 {
-		//		<-ch
-		//		runningThCnt--
-		//		common.ShPrintf(common.DEBUGGING, "runningThCnt=%d\n", runningThCnt)
-		//	}
-		//}
 
 		// wait for keeping 20 groroutine existing
 		for runningThCnt >= 20 {
@@ -1554,19 +1547,9 @@ func testSkipListMixParallelStride[T int32 | float32 | string](t *testing.T, key
 							removedValsForRemove[delVal] = delVal
 							removedValsForRemoveMutex.Unlock()
 						} else {
-							//removedValsForGetMutex.RLock()
-							//if ok := isAlreadyRemoved(delVal, removedValsForGet); !ok {
-							//	removedValsForGetMutex.RUnlock()
-							//	panic("remove op test failed!")
-							//}
-							//removedValsForGetMutex.RUnlock()
 							panic("remove op test failed!")
-
 						}
 					}
-					//insValsMutex.Lock()
-					//samehada_util.RemoveFromList(insVals, delValBase)
-					//insValsMutex.Unlock()
 					ch <- 1
 					//common.SH_Assert(isDeleted == true, "remove should be success!")
 				}()
@@ -1726,122 +1709,122 @@ func testSkipListMixParallelStrideRoot[T int32 | float32 | string](t *testing.T,
 //	testSkipListMixParallelBulkRoot[string](t, types.Varchar)
 //}
 
-func TestSkipListMixParallelStrideInteger(t *testing.T) {
-	testSkipListMixParallelStrideRoot[int32](t, types.Integer)
-}
-
-//func TestSkipListMixParallelStrideVarchar(t *testing.T) {
-//	testSkipListMixParallelStrideRoot[string](t, types.Varchar)
+//func TestSkipListMixParallelStrideInteger(t *testing.T) {
+//	testSkipListMixParallelStrideRoot[int32](t, types.Integer)
 //}
 
-func testSkipListInsertGetEven(t *testing.T, sl *skip_list.SkipList, ch chan string) {
-	for ii := int32(0); ii < 10000; ii = ii + 2 {
-		sl.Insert(samehada_util.GetPonterOfValue(types.NewInteger(ii)), uint32(ii))
-		gotVal := sl.GetValue(samehada_util.GetPonterOfValue(types.NewInteger(ii)))
-		if gotVal == math.MaxUint32 {
-			t.Fail()
-			fmt.Printf("value %d is not found!\n", ii)
-			panic("inserted value not found!")
-		}
-	}
-	fmt.Println("even finished.")
-	ch <- ""
+func TestSkipListMixParallelStrideVarchar(t *testing.T) {
+	testSkipListMixParallelStrideRoot[string](t, types.Varchar)
 }
 
-func testSkipListInsertGetOdd(t *testing.T, sl *skip_list.SkipList, ch chan string) {
-	for ii := int32(1); ii < 10000; ii = ii + 2 {
-		sl.Insert(samehada_util.GetPonterOfValue(types.NewInteger(ii)), uint32(ii))
-		gotVal := sl.GetValue(samehada_util.GetPonterOfValue(types.NewInteger(ii)))
-		if gotVal == math.MaxUint32 {
-			fmt.Printf("value %d is not found!\n", ii)
-		}
-	}
-	fmt.Println("odd finished.")
-	ch <- ""
-}
-
-func testSkipListInsertGetEvenSeparate(t *testing.T, sl *skip_list.SkipList, ch chan string) {
-	for ii := int32(0); ii < 100000; ii = ii + 2 {
-		sl.Insert(samehada_util.GetPonterOfValue(types.NewInteger(ii)), uint32(ii))
-	}
-	for ii := int32(0); ii < 100000; ii = ii + 2 {
-		gotVal := sl.GetValue(samehada_util.GetPonterOfValue(types.NewInteger(ii)))
-		if gotVal == math.MaxUint32 {
-			t.Fail()
-			fmt.Printf("value %d is not found!\n", ii)
-			panic("inserted value not found!")
-		}
-	}
-	fmt.Println("even finished.")
-	ch <- ""
-}
-
-func testSkipListInsertGetOddSeparate(t *testing.T, sl *skip_list.SkipList, ch chan string) {
-	for ii := int32(1); ii < 100000; ii = ii + 2 {
-		sl.Insert(samehada_util.GetPonterOfValue(types.NewInteger(ii)), uint32(ii))
-	}
-
-	for ii := int32(1); ii < 100000; ii = ii + 2 {
-		gotVal := sl.GetValue(samehada_util.GetPonterOfValue(types.NewInteger(ii)))
-		if gotVal == math.MaxUint32 {
-			fmt.Printf("value %d is not found!\n", ii)
-		}
-	}
-
-	fmt.Println("odd finished.")
-	ch <- ""
-}
-
-func testSkipListInsertGetInsert3stride1and3(t *testing.T, sl *skip_list.SkipList, ch chan string) {
-	// insert 012345678...
-	//        ^  ^  ^
-	for ii := int32(0); ii < 10000; ii++ {
-		sl.Insert(samehada_util.GetPonterOfValue(types.NewInteger(3*ii)), uint32(3*ii))
-		gotVal := sl.GetValue(samehada_util.GetPonterOfValue(types.NewInteger(3 * ii)))
-		if gotVal == math.MaxUint32 {
-			fmt.Printf("value %d is not found!\n", ii)
-		}
-	}
-	// insert 012345678...
-	//          ^  ^  ^
-	for ii := int32(0); ii < 10000; ii++ {
-		sl.Insert(samehada_util.GetPonterOfValue(types.NewInteger(3*ii+2)), uint32(3*ii+2))
-		gotVal := sl.GetValue(samehada_util.GetPonterOfValue(types.NewInteger(3*ii + 2)))
-		if gotVal == math.MaxUint32 {
-			fmt.Printf("value %d is not found!\n", ii)
-		}
-	}
-	fmt.Println("1and3 finished.")
-	ch <- ""
-}
-
-func testSkipListInsertGetRemove3stride2(t *testing.T, sl *skip_list.SkipList, ch chan string) {
-	// insert 012345678...
-	//         ^  ^  ^
-	for ii := int32(0); ii < 10000; ii++ {
-		sl.Insert(samehada_util.GetPonterOfValue(types.NewInteger(3*ii+1)), uint32(3*ii+1))
-		gotVal := sl.GetValue(samehada_util.GetPonterOfValue(types.NewInteger(3*ii + 1)))
-		if gotVal == math.MaxUint32 {
-			fmt.Printf("value %d is not found!\n", ii)
-			panic("inserted value not found!")
-		}
-	}
-	// remove 012345678... from tail
-	//        ^^ ^^ ^^
-	for ii := int32(10000 - 1); ii >= 0; ii-- {
-		sl.Remove(samehada_util.GetPonterOfValue(types.NewInteger(3*ii+1)), uint32(3*ii+1))
-		gotVal := sl.GetValue(samehada_util.GetPonterOfValue(types.NewInteger(3*ii + 1)))
-		if gotVal != math.MaxUint32 {
-			fmt.Printf("value %d should be not found!\n", 3*ii+1)
-			panic("remove should be failed!")
-		}
-		sl.Remove(samehada_util.GetPonterOfValue(types.NewInteger(3*ii)), uint32(3*ii))
-		// no check because another thread have not finished insert
-	}
-
-	fmt.Println("2 finished.")
-	ch <- ""
-}
+//func testSkipListInsertGetEven(t *testing.T, sl *skip_list.SkipList, ch chan string) {
+//	for ii := int32(0); ii < 10000; ii = ii + 2 {
+//		sl.Insert(samehada_util.GetPonterOfValue(types.NewInteger(ii)), uint32(ii))
+//		gotVal := sl.GetValue(samehada_util.GetPonterOfValue(types.NewInteger(ii)))
+//		if gotVal == math.MaxUint32 {
+//			t.Fail()
+//			fmt.Printf("value %d is not found!\n", ii)
+//			panic("inserted value not found!")
+//		}
+//	}
+//	fmt.Println("even finished.")
+//	ch <- ""
+//}
+//
+//func testSkipListInsertGetOdd(t *testing.T, sl *skip_list.SkipList, ch chan string) {
+//	for ii := int32(1); ii < 10000; ii = ii + 2 {
+//		sl.Insert(samehada_util.GetPonterOfValue(types.NewInteger(ii)), uint32(ii))
+//		gotVal := sl.GetValue(samehada_util.GetPonterOfValue(types.NewInteger(ii)))
+//		if gotVal == math.MaxUint32 {
+//			fmt.Printf("value %d is not found!\n", ii)
+//		}
+//	}
+//	fmt.Println("odd finished.")
+//	ch <- ""
+//}
+//
+//func testSkipListInsertGetEvenSeparate(t *testing.T, sl *skip_list.SkipList, ch chan string) {
+//	for ii := int32(0); ii < 100000; ii = ii + 2 {
+//		sl.Insert(samehada_util.GetPonterOfValue(types.NewInteger(ii)), uint32(ii))
+//	}
+//	for ii := int32(0); ii < 100000; ii = ii + 2 {
+//		gotVal := sl.GetValue(samehada_util.GetPonterOfValue(types.NewInteger(ii)))
+//		if gotVal == math.MaxUint32 {
+//			t.Fail()
+//			fmt.Printf("value %d is not found!\n", ii)
+//			panic("inserted value not found!")
+//		}
+//	}
+//	fmt.Println("even finished.")
+//	ch <- ""
+//}
+//
+//func testSkipListInsertGetOddSeparate(t *testing.T, sl *skip_list.SkipList, ch chan string) {
+//	for ii := int32(1); ii < 100000; ii = ii + 2 {
+//		sl.Insert(samehada_util.GetPonterOfValue(types.NewInteger(ii)), uint32(ii))
+//	}
+//
+//	for ii := int32(1); ii < 100000; ii = ii + 2 {
+//		gotVal := sl.GetValue(samehada_util.GetPonterOfValue(types.NewInteger(ii)))
+//		if gotVal == math.MaxUint32 {
+//			fmt.Printf("value %d is not found!\n", ii)
+//		}
+//	}
+//
+//	fmt.Println("odd finished.")
+//	ch <- ""
+//}
+//
+//func testSkipListInsertGetInsert3stride1and3(t *testing.T, sl *skip_list.SkipList, ch chan string) {
+//	// insert 012345678...
+//	//        ^  ^  ^
+//	for ii := int32(0); ii < 10000; ii++ {
+//		sl.Insert(samehada_util.GetPonterOfValue(types.NewInteger(3*ii)), uint32(3*ii))
+//		gotVal := sl.GetValue(samehada_util.GetPonterOfValue(types.NewInteger(3 * ii)))
+//		if gotVal == math.MaxUint32 {
+//			fmt.Printf("value %d is not found!\n", ii)
+//		}
+//	}
+//	// insert 012345678...
+//	//          ^  ^  ^
+//	for ii := int32(0); ii < 10000; ii++ {
+//		sl.Insert(samehada_util.GetPonterOfValue(types.NewInteger(3*ii+2)), uint32(3*ii+2))
+//		gotVal := sl.GetValue(samehada_util.GetPonterOfValue(types.NewInteger(3*ii + 2)))
+//		if gotVal == math.MaxUint32 {
+//			fmt.Printf("value %d is not found!\n", ii)
+//		}
+//	}
+//	fmt.Println("1and3 finished.")
+//	ch <- ""
+//}
+//
+//func testSkipListInsertGetRemove3stride2(t *testing.T, sl *skip_list.SkipList, ch chan string) {
+//	// insert 012345678...
+//	//         ^  ^  ^
+//	for ii := int32(0); ii < 10000; ii++ {
+//		sl.Insert(samehada_util.GetPonterOfValue(types.NewInteger(3*ii+1)), uint32(3*ii+1))
+//		gotVal := sl.GetValue(samehada_util.GetPonterOfValue(types.NewInteger(3*ii + 1)))
+//		if gotVal == math.MaxUint32 {
+//			fmt.Printf("value %d is not found!\n", ii)
+//			panic("inserted value not found!")
+//		}
+//	}
+//	// remove 012345678... from tail
+//	//        ^^ ^^ ^^
+//	for ii := int32(10000 - 1); ii >= 0; ii-- {
+//		sl.Remove(samehada_util.GetPonterOfValue(types.NewInteger(3*ii+1)), uint32(3*ii+1))
+//		gotVal := sl.GetValue(samehada_util.GetPonterOfValue(types.NewInteger(3*ii + 1)))
+//		if gotVal != math.MaxUint32 {
+//			fmt.Printf("value %d should be not found!\n", 3*ii+1)
+//			panic("remove should be failed!")
+//		}
+//		sl.Remove(samehada_util.GetPonterOfValue(types.NewInteger(3*ii)), uint32(3*ii))
+//		// no check because another thread have not finished insert
+//	}
+//
+//	fmt.Println("2 finished.")
+//	ch <- ""
+//}
 
 //func TestSkipListParallelSimpleInteger(t *testing.T) {
 //	if !common.EnableOnMemStorage {
