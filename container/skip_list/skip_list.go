@@ -191,7 +191,7 @@ func (sl *SkipList) FindNodeWithEntryIdxForItr(key *types.Value) (isSuccess_ boo
 
 func (sl *SkipList) GetValue(key *types.Value) uint32 {
 	if common.EnableDebug {
-		common.ShPrintf(common.DEBUG_INFO, "SkipList::GetValue: start. key=%d\n", key.ToInteger())
+		common.ShPrintf(common.DEBUG_INFO, "SkipList::GetValue: start. key=%v\n", key.ToIFValue())
 	}
 	_, node, _, _ := sl.FindNode(key, SKIP_LIST_OP_GET)
 	//node := skip_list_page.FetchAndCastToBlockPage(sl.bpm, corners[0].PageId)
@@ -202,7 +202,7 @@ func (sl *SkipList) GetValue(key *types.Value) uint32 {
 	//sl.bpm.UnpinPage(node.GetPageId(), false)
 
 	if common.EnableDebug {
-		common.ShPrintf(common.DEBUG_INFO, "SkipList::GetValue: finish. key=%d\n", key.ToInteger())
+		common.ShPrintf(common.DEBUG_INFO, "SkipList::GetValue: finish. key=%v\n", key.ToIFValue())
 	}
 	if found {
 		return entry.Value
@@ -221,7 +221,7 @@ func (sl *SkipList) Insert(key *types.Value, value uint32) (err error) {
 		isSuccess, node, _, corners := sl.FindNode(key, SKIP_LIST_OP_INSERT)
 		if !isSuccess {
 			// when isSuccess == false, all latch and pin is released already
-			common.ShPrintf(common.DEBUG_INFO, "SkipList::Insert: retry. key=%d\n", key.ToInteger())
+			common.ShPrintf(common.DEBUG_INFO, "SkipList::Insert: retry. key=%v\n", key.ToIFValue())
 			continue
 		}
 		levelWhenNodeSplitOccur := sl.GetNodeLevel()
