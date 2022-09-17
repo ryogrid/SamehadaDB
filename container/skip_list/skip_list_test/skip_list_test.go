@@ -1196,6 +1196,7 @@ func testSkipListMixParallelBulk[T int32 | float32 | string](t *testing.T, keyTy
 	removedVals := make([]T, 0)
 	//entriesOnListNum := int32(0)
 
+	threadNum := 20
 	// initial entries
 	useInitialEntryNum := int(initialEntryNum)
 	for ii := 0; ii < useInitialEntryNum; ii++ {
@@ -1227,14 +1228,14 @@ func testSkipListMixParallelBulk[T int32 | float32 | string](t *testing.T, keyTy
 	for ii := 0; ii <= useOpTimes; ii++ {
 		// wait 20 groroutine exited
 		if ii == useOpTimes {
-			for exitedThCnt < 20*int(bulkSize) {
+			for exitedThCnt < threadNum*int(bulkSize) {
 				<-ch
 				exitedThCnt++
 				common.ShPrintf(common.DEBUGGING, "exitedThCnt=%d\n", exitedThCnt)
 			}
 			break
-		} else if ii%20 == 0 && ii != 0 {
-			for exitedThCnt < 20*int(bulkSize) {
+		} else if ii%threadNum == 0 && ii != 0 {
+			for exitedThCnt < threadNum*int(bulkSize) {
 				<-ch
 				exitedThCnt++
 				common.ShPrintf(common.DEBUGGING, "exitedThCnt=%d\n", exitedThCnt)
@@ -1450,8 +1451,8 @@ func testSkipListMixParallelStride[T int32 | float32 | string](t *testing.T, key
 		//}
 
 		// wait for keeping 20 groroutine existing
-		//for runningThCnt >= 20 {
-		for runningThCnt > 0 { // serial execution
+		for runningThCnt >= 20 {
+			//for runningThCnt > 0 { // serial execution
 			<-ch
 			runningThCnt--
 			common.ShPrintf(common.DEBUGGING, "runningThCnt=%d\n", runningThCnt)
@@ -1725,13 +1726,13 @@ func testSkipListMixParallelStrideRoot[T int32 | float32 | string](t *testing.T,
 //	testSkipListMixParallelBulkRoot[string](t, types.Varchar)
 //}
 
-//func TestSkipListMixParallelStrideInteger(t *testing.T) {
-//	testSkipListMixParallelStrideRoot[int32](t, types.Integer)
-//}
-
-func TestSkipListMixParallelStrideVarchar(t *testing.T) {
-	testSkipListMixParallelStrideRoot[string](t, types.Varchar)
+func TestSkipListMixParallelStrideInteger(t *testing.T) {
+	testSkipListMixParallelStrideRoot[int32](t, types.Integer)
 }
+
+//func TestSkipListMixParallelStrideVarchar(t *testing.T) {
+//	testSkipListMixParallelStrideRoot[string](t, types.Varchar)
+//}
 
 func testSkipListInsertGetEven(t *testing.T, sl *skip_list.SkipList, ch chan string) {
 	for ii := int32(0); ii < 10000; ii = ii + 2 {
