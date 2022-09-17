@@ -10,7 +10,7 @@ import (
 	testingpkg "github.com/ryogrid/SamehadaDB/testing"
 )
 
-func memset(buffer []byte, value int) {
+func zeroClear(buffer []byte) {
 	for i := range buffer {
 		buffer[i] = 0
 	}
@@ -34,7 +34,7 @@ func TestReadWritePage(t *testing.T) {
 	testingpkg.Equals(t, int64(4096), dm.Size())
 	testingpkg.Equals(t, data, buffer)
 
-	memset(buffer, 0)
+	zeroClear(buffer)
 	copy(data, "Another test string.")
 
 	dm.WritePage(5, data)

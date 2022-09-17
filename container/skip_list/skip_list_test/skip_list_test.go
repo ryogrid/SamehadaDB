@@ -686,11 +686,45 @@ func getRandomPrimitiveVal[T int32 | float32 | string](keyType types.TypeID) T {
 		//var ret interface{} = *samehada_util.GetRandomStr(1000)
 		var ret interface{} = *samehada_util.GetRandomStr(500)
 		//var ret interface{} = *samehada_util.GetRandomStr(700)
-		//var ret interface{} = *samehada_util.GetRandomStr(400) //pass
+		//var ret interface{} = *samehada_util.GetRandomStr(300)
 		//var ret interface{} = *samehada_util.GetRandomStr(20)
 		return ret.(T)
 	default:
 		panic("not supported keyType")
+	}
+}
+
+func memset(buffer []byte, value int) {
+	for i := range buffer {
+		buffer[i] = byte(value)
+	}
+}
+
+func strideAdd(base interface{}, k interface{}) interface{} {
+	switch base.(type) {
+	case int32:
+		return base.(int32) + k.(int32)
+	case float32:
+		return base.(float32) + k.(float32)
+	case string:
+		buf := make([]byte, k.(int32))
+		memset(buf, 'Z')
+		return base.(string) + string(buf)
+	default:
+		panic("not supported type")
+	}
+}
+
+func strideMul(base interface{}, k interface{}) interface{} {
+	switch base.(type) {
+	case int32:
+		return base.(int32) * k.(int32)
+	case float32:
+		return base.(float32) * k.(float32)
+	case string:
+		return "DEADBEAF" + base.(string)
+	default:
+		panic("not supported type")
 	}
 }
 
@@ -1335,7 +1369,7 @@ func testSkipListMixParallelBulk[T int32 | float32 | string](t *testing.T, keyTy
 	shi.CloseFilesForTesting()
 }
 
-func testSkipListMixParallelStride[T int32 | float32](t *testing.T, keyType types.TypeID, stride int32, opTimes int32, skipRand int32, initialEntryNum int32) {
+func testSkipListMixParallelStride[T int32 | float32 | string](t *testing.T, keyType types.TypeID, stride int32, opTimes int32, skipRand int32, initialEntryNum int32) {
 	common.ShPrintf(common.DEBUG_INFO, "start of testSkipListMixParallelStride stride=%d opTimes=%d skipRand=%d initialEntryNum=%d ====================================================\n",
 		stride, opTimes, skipRand, initialEntryNum)
 
@@ -1377,10 +1411,11 @@ func testSkipListMixParallelStride[T int32 | float32](t *testing.T, keyType type
 		checkDupMap[insValBase] = insValBase
 
 		for ii := int32(0); ii < stride; ii++ {
-			pairVal := getValueForSkipListEntry(insValBase*T(stride) + T(ii))
+			insVal := strideAdd(strideMul(insValBase, stride), ii)
+			pairVal := getValueForSkipListEntry(insVal)
 
 			common.ShPrintf(common.DEBUGGING, "Insert op start.")
-			sl.Insert(samehada_util.GetPonterOfValue(types.NewValue(insValBase*T(stride)+T(ii))), pairVal)
+			sl.Insert(samehada_util.GetPonterOfValue(types.NewValue(insVal)), pairVal)
 			//fmt.Printf("sl.Insert at insertRandom: ii=%d, insValBase=%d len(*insVals)=%d\n", ii, insValBase, len(insVals))
 		}
 
@@ -1440,10 +1475,11 @@ func testSkipListMixParallelStride[T int32 | float32](t *testing.T, keyType type
 				checkDupMapMutex.Unlock()
 
 				for ii := int32(0); ii < stride; ii++ {
-					pairVal := getValueForSkipListEntry(insValBase*T(stride) + T(ii))
+					insVal := strideAdd(strideMul(insValBase, stride), ii)
+					pairVal := getValueForSkipListEntry(insVal)
 
 					common.ShPrintf(common.DEBUGGING, "Insert op start.")
-					sl.Insert(samehada_util.GetPonterOfValue(types.NewValue(insValBase*T(stride)+T(ii))), pairVal)
+					sl.Insert(samehada_util.GetPonterOfValue(types.NewValue(insVal)), pairVal)
 					//fmt.Printf("sl.Insert at insertRandom: ii=%d, insValBase=%d len(*insVals)=%d\n", ii, insValBase, len(insVals))
 				}
 				insValsMutex.Lock()
@@ -1500,7 +1536,7 @@ func testSkipListMixParallelStride[T int32 | float32](t *testing.T, keyType type
 					insValsMutex.Unlock()
 
 					for ii := int32(0); ii < stride; ii++ {
-						delVal := delValBase*T(stride) + T(ii)
+						delVal := strideAdd(strideMul(delValBase, stride), ii).(T)
 						pairVal := getValueForSkipListEntry(delVal)
 						common.ShPrintf(common.DEBUGGING, "Remove(success) op start.")
 
@@ -1547,7 +1583,7 @@ func testSkipListMixParallelStride[T int32 | float32](t *testing.T, keyType type
 				getTgtBase := insVals[tmpIdx]
 				insValsMutex.RUnlock()
 				for ii := int32(0); ii < stride; ii++ {
-					getTgt := getTgtBase*T(stride) + T(ii)
+					getTgt := strideAdd(strideMul(getTgtBase, stride), ii).(T)
 					getTgtVal := types.NewValue(getTgt)
 					correctVal := getValueForSkipListEntry(getTgt)
 
@@ -1646,7 +1682,7 @@ func testSkipListMixParallelBulkRoot[T int32 | float32 | string](t *testing.T, k
 	//testSkipListMixParallel[T](t, sl, keyType, 100, int32(250), int32(3), int32(0))
 }
 
-func testSkipListMixParallelStrideRoot[T int32 | float32](t *testing.T, keyType types.TypeID) {
+func testSkipListMixParallelStrideRoot[T int32 | float32 | string](t *testing.T, keyType types.TypeID) {
 	// 4th arg should be multiple of 20
 	testSkipListMixParallelStride[T](t, keyType, 800, 1000, 12, 800)
 	fmt.Println("test finished 1/5.")
@@ -1684,13 +1720,13 @@ func testSkipListMixParallelStrideRoot[T int32 | float32](t *testing.T, keyType 
 //	testSkipListMixParallelBulkRoot[int32](t, types.Integer)
 //}
 
-func TestSkipListMixParallelBulkVarchar(t *testing.T) {
-	testSkipListMixParallelBulkRoot[string](t, types.Varchar)
-}
-
-//func TestSkipListMixParallelStrideInteger(t *testing.T) {
-//	testSkipListMixParallelStrideRoot[int32](t, types.Integer)
+//func TestSkipListMixParallelBulkVarchar(t *testing.T) {
+//	testSkipListMixParallelBulkRoot[string](t, types.Varchar)
 //}
+
+func TestSkipListMixParallelStrideInteger(t *testing.T) {
+	testSkipListMixParallelStrideRoot[int32](t, types.Integer)
+}
 
 //func TestSkipListMixParallelStrideVarchar(t *testing.T) {
 //	testSkipListMixParallelStrideRoot[string](t, types.Varchar)
