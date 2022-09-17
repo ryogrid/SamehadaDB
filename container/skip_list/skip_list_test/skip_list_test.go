@@ -1688,7 +1688,7 @@ func testSkipListMixParallelStrideRoot[T int32 | float32 | string](t *testing.T,
 	fmt.Println("test finished 1/5.")
 	testSkipListMixParallelStride[T](t, keyType, 1, 100000, 12, 800)
 	fmt.Println("test finished 2/5.")
-	testSkipListMixParallelStride[T](t, keyType, 300, 10000, 14, 800)
+	testSkipListMixParallelStride[T](t, keyType, 300, 1000, 14, 800)
 	fmt.Println("test finished 3/5.")
 	testSkipListMixParallelStride[T](t, keyType, 300, 1000, 15, 0)
 	fmt.Println("test finished 4/5.")
@@ -1724,13 +1724,13 @@ func testSkipListMixParallelStrideRoot[T int32 | float32 | string](t *testing.T,
 //	testSkipListMixParallelBulkRoot[string](t, types.Varchar)
 //}
 
-func TestSkipListMixParallelStrideInteger(t *testing.T) {
-	testSkipListMixParallelStrideRoot[int32](t, types.Integer)
-}
-
-//func TestSkipListMixParallelStrideVarchar(t *testing.T) {
-//	testSkipListMixParallelStrideRoot[string](t, types.Varchar)
+//func TestSkipListMixParallelStrideInteger(t *testing.T) {
+//	testSkipListMixParallelStrideRoot[int32](t, types.Integer)
 //}
+
+func TestSkipListMixParallelStrideVarchar(t *testing.T) {
+	testSkipListMixParallelStrideRoot[string](t, types.Varchar)
+}
 
 func testSkipListInsertGetEven(t *testing.T, sl *skip_list.SkipList, ch chan string) {
 	for ii := int32(0); ii < 10000; ii = ii + 2 {
