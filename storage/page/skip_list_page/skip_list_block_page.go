@@ -634,7 +634,7 @@ func (node *SkipListBlockPage) SplitNode(idx int32, bpm *buffer.BufferPoolManage
 	// having lock and pin of newNode here
 
 	newNode.SetEntries(node.GetEntries(keyType)[idx+1:])
-	newNode.SetLevel(level)
+	//newNode.SetLevel(level)
 	node.SetEntries(node.GetEntries(keyType)[:idx+1])
 
 	return newNode

@@ -1724,13 +1724,13 @@ func testSkipListMixParallelStrideRoot[T int32 | float32 | string](t *testing.T,
 //	testSkipListMixParallelBulkRoot[string](t, types.Varchar)
 //}
 
-//func TestSkipListMixParallelStrideInteger(t *testing.T) {
-//	testSkipListMixParallelStrideRoot[int32](t, types.Integer)
-//}
-
-func TestSkipListMixParallelStrideVarchar(t *testing.T) {
-	testSkipListMixParallelStrideRoot[string](t, types.Varchar)
+func TestSkipListMixParallelStrideInteger(t *testing.T) {
+	testSkipListMixParallelStrideRoot[int32](t, types.Integer)
 }
+
+//func TestSkipListMixParallelStrideVarchar(t *testing.T) {
+//	testSkipListMixParallelStrideRoot[string](t, types.Varchar)
+//}
 
 func testSkipListInsertGetEven(t *testing.T, sl *skip_list.SkipList, ch chan string) {
 	for ii := int32(0); ii < 10000; ii = ii + 2 {
