@@ -1450,7 +1450,8 @@ func testSkipListMixParallelStride[T int32 | float32 | string](t *testing.T, key
 		//}
 
 		// wait for keeping 20 groroutine existing
-		for runningThCnt >= 20 {
+		//for runningThCnt >= 20 {
+		for runningThCnt > 0 { // serial execution
 			<-ch
 			runningThCnt--
 			common.ShPrintf(common.DEBUGGING, "runningThCnt=%d\n", runningThCnt)
@@ -1724,13 +1725,13 @@ func testSkipListMixParallelStrideRoot[T int32 | float32 | string](t *testing.T,
 //	testSkipListMixParallelBulkRoot[string](t, types.Varchar)
 //}
 
-func TestSkipListMixParallelStrideInteger(t *testing.T) {
-	testSkipListMixParallelStrideRoot[int32](t, types.Integer)
-}
-
-//func TestSkipListMixParallelStrideVarchar(t *testing.T) {
-//	testSkipListMixParallelStrideRoot[string](t, types.Varchar)
+//func TestSkipListMixParallelStrideInteger(t *testing.T) {
+//	testSkipListMixParallelStrideRoot[int32](t, types.Integer)
 //}
+
+func TestSkipListMixParallelStrideVarchar(t *testing.T) {
+	testSkipListMixParallelStrideRoot[string](t, types.Varchar)
+}
 
 func testSkipListInsertGetEven(t *testing.T, sl *skip_list.SkipList, ch chan string) {
 	for ii := int32(0); ii < 10000; ii = ii + 2 {
