@@ -3,13 +3,15 @@
 
 package page
 
+import "github.com/ryogrid/SamehadaDB/common"
+
 type HashTablePair struct {
 	key   uint32
 	value uint32
 }
 
 const sizeOfHashTablePair = 8
-const BlockArraySize = 4 * 4096 / (4*sizeOfHashTablePair + 1) //496
+const BlockArraySize = 4 * common.PageSize / (4*sizeOfHashTablePair + 1) //496
 
 /**
  * Store indexed key and value together within block page. Supports

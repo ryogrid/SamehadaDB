@@ -31,7 +31,7 @@ func TestReadWritePage(t *testing.T) {
 	dm.WritePage(0, data)
 	err := dm.ReadPage(0, buffer)
 	testingpkg.Equals(t, err, nil)
-	testingpkg.Equals(t, int64(4096), dm.Size())
+	testingpkg.Equals(t, int64(common.PageSize), dm.Size())
 	testingpkg.Equals(t, data, buffer)
 
 	zeroClear(buffer)
