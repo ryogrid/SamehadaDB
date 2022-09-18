@@ -1370,7 +1370,7 @@ func testSkipListMixParallelBulk[T int32 | float32 | string](t *testing.T, keyTy
 	shi.CloseFilesForTesting()
 }
 
-func testSkipListMixParallelStride[T int32 | float32 | string](t *testing.T, keyType types.TypeID, stride int32, opTimes int32, skipRand int32, initialEntryNum int32) {
+func testSkipListMixParallelStride[T int32 | float32 | string](t *testing.T, keyType types.TypeID, stride int32, opTimes int32, skipRand int32, initialEntryNum int32, bpoolSize int32) {
 	common.ShPrintf(common.DEBUG_INFO, "start of testSkipListMixParallelStride stride=%d opTimes=%d skipRand=%d initialEntryNum=%d ====================================================\n",
 		stride, opTimes, skipRand, initialEntryNum)
 
@@ -1381,7 +1381,7 @@ func testSkipListMixParallelStride[T int32 | float32 | string](t *testing.T, key
 
 	const threadNum = 20
 
-	shi := samehada.NewSamehadaInstance("test", 200)
+	shi := samehada.NewSamehadaInstance("test", int(bpoolSize))
 	//shi := samehada.NewSamehadaInstance("test", 30)
 	//shi := samehada.NewSamehadaInstance("test", 60)
 
@@ -1673,16 +1673,18 @@ func testSkipListMixParallelBulkRoot[T int32 | float32 | string](t *testing.T, k
 }
 
 func testSkipListMixParallelStrideRoot[T int32 | float32 | string](t *testing.T, keyType types.TypeID) {
+	bpoolSize := int32(200)
+
 	// 4th arg should be multiple of 20
-	testSkipListMixParallelStride[T](t, keyType, 800, 1000, 12, 800)
+	testSkipListMixParallelStride[T](t, keyType, 800, 1000, 12, 800, bpoolSize)
 	fmt.Println("test finished 1/5.")
-	testSkipListMixParallelStride[T](t, keyType, 1, 100000, 12, 800)
+	testSkipListMixParallelStride[T](t, keyType, 1, 100000, 12, 800, bpoolSize)
 	fmt.Println("test finished 2/5.")
-	testSkipListMixParallelStride[T](t, keyType, 300, 1000, 14, 800)
+	testSkipListMixParallelStride[T](t, keyType, 300, 1000, 14, 800, bpoolSize)
 	fmt.Println("test finished 3/5.")
-	testSkipListMixParallelStride[T](t, keyType, 300, 1000, 15, 0)
+	testSkipListMixParallelStride[T](t, keyType, 300, 1000, 15, 0, bpoolSize)
 	fmt.Println("test finished 4/5.")
-	testSkipListMixParallelStride[T](t, keyType, 8, 100000, 13, 200)
+	testSkipListMixParallelStride[T](t, keyType, 8, 100000, 13, 200, bpoolSize)
 	fmt.Println("test finished 5/5.")
 }
 
@@ -1718,8 +1720,13 @@ func testSkipListMixParallelStrideRoot[T int32 | float32 | string](t *testing.T,
 //	testSkipListMixParallelStrideRoot[int32](t, types.Integer)
 //}
 
-func TestSkipListMixParallelStrideVarchar(t *testing.T) {
-	testSkipListMixParallelStrideRoot[string](t, types.Varchar)
+//func TestSkipListMixParallelStrideVarchar(t *testing.T) {
+//	testSkipListMixParallelStrideRoot[string](t, types.Varchar)
+//}
+
+func TestSkipListMixParallsStrideVarcharLongRun(t *testing.T) {
+	// assumed running time is about 12h
+	testSkipListMixParallelStride[string](t, types.Varchar, 300, 3000*12, 15, 0, 200)
 }
 
 //func testSkipListInsertGetEven(t *testing.T, sl *skip_list.SkipList, ch chan string) {
