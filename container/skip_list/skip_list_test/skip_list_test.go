@@ -655,7 +655,7 @@ func FuzzSkipLisMixParallelStrideVarchar(f *testing.F) {
 		// check timeout
 		for {
 			elapsedTime := time.Now().UnixNano() - startTime
-			if elapsedTime > 1000*900 { //9000ms
+			if elapsedTime > 1000*800 { //8000ms
 				return
 			}
 			time.Sleep(time.Microsecond * 3) // 3ms
