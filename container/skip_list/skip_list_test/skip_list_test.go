@@ -640,7 +640,7 @@ import (
 func FuzzSkipLisMixParallelStrideVarchar(f *testing.F) {
 	f.Add(int32(30), int32(100), int32(10), int32(100))
 	f.Fuzz(func(t *testing.T, stride int32, opTimes int32, skipRand int32, initialEntryNum int32) {
-		if stride < 0 || stride > 60 || opTimes < 0 || opTimes > 200 || initialEntryNum < 0 {
+		if stride < 0 || stride > 60 || opTimes < 0 || opTimes > 200 || skipRand < 0 || initialEntryNum < 0 {
 			return
 		}
 
