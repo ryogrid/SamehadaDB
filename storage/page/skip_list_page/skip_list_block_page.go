@@ -121,6 +121,7 @@ func NewSkipListBlockPage(bpm *buffer.BufferPoolManager, level int32, smallestLi
 	tmpSmallestListPair := smallestListPair
 	// EntryCnt is incremented to 1
 	ret.SetEntry(0, &tmpSmallestListPair)
+	bpm.FlushPage(ret.GetPageId())
 
 	return ret
 }

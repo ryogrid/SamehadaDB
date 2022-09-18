@@ -140,11 +140,11 @@ func (b *BufferPoolManager) FlushPage(pageID types.PageID) bool {
 
 		data := pg.Data()
 		pg.SetIsDirty(false)
-		pg.WUnlatch()
 
-		b.mutex.Lock()
+		//b.mutex.Lock()
 		b.diskManager.WritePage(pageID, data[:])
-		b.mutex.Unlock()
+		pg.WUnlatch()
+		//b.mutex.Unlock()
 		return true
 	}
 	b.mutex.Unlock()

@@ -87,7 +87,6 @@ func (t *TableHeap) InsertTuple(tuple_ *tuple.Tuple, txn *Transaction) (rid *pag
 			//currentPage.SetNextPageId(p.ID())
 			currentPage.RLatch()
 			newPage.Init(p.ID(), currentPage.GetTablePageId(), t.log_manager, t.lock_manager, txn)
-			// flush page for recovery process works...
 			t.bpm.FlushPage(newPage.GetPageId())
 			t.bpm.UnpinPage(currentPage.GetTablePageId(), true)
 			currentPage.RUnlatch()
