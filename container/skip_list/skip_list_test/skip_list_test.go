@@ -638,13 +638,28 @@ import (
 //}
 
 func FuzzSkipLisMixParallelStrideVarchar(f *testing.F) {
-	f.Add(int32(30), int32(100), int32(10), int32(100))
+	f.Add(int32(30), int32(100), int32(10), int32(0))
+	f.Add(int32(1), int32(200), int32(11), int32(100))
 	f.Fuzz(func(t *testing.T, stride int32, opTimes int32, skipRand int32, initialEntryNum int32) {
+		startTime := time.Now().UnixNano()
+
 		if stride < 1 || stride > 60 || opTimes < 1 || opTimes > 200 || skipRand < 0 || initialEntryNum < 0 {
 			return
 		}
 
-		testSkipListMixParallelStride[string](t, types.Varchar, stride, opTimes, skipRand, initialEntryNum, 500, true)
+		// launch test with passed paramaters
+		go func(stride_ int32, opTimes_ int32, skipRand_ int32, initialEntryNum_ int32) {
+			testSkipListMixParallelStride[string](t, types.Varchar, stride_, opTimes_, skipRand_, initialEntryNum_, 500, false)
+		}(stride, opTimes, skipRand, initialEntryNum)
+
+		// check timeout
+		for {
+			elapsedTime := time.Now().UnixNano() - startTime
+			if elapsedTime > 1000*900 { //9000ms
+				return
+			}
+			time.Sleep(time.Microsecond * 3) // 3ms
+		}
 	})
 }
 
@@ -1386,10 +1401,10 @@ func testSkipListMixParallelStride[T int32 | float32 | string](t *testing.T, key
 	common.ShPrintf(common.DEBUG_INFO, "start of testSkipListMixParallelStride stride=%d opTimes=%d skipRand=%d initialEntryNum=%d ====================================================\n",
 		stride, opTimes, skipRand, initialEntryNum)
 
-	var startTime int64
-	if isFuzz {
-		startTime = time.Now().UnixNano()
-	}
+	//var startTime int64
+	//if isFuzz {
+	//	startTime = time.Now().UnixNano()
+	//}
 
 	if !common.EnableOnMemStorage {
 		os.Remove("test.db")
@@ -1475,12 +1490,12 @@ func testSkipListMixParallelStride[T int32 | float32 | string](t *testing.T, key
 		common.ShPrintf(common.DEBUGGING, "ii=%d\n", ii)
 		//runningThCnt = 0
 
-		if isFuzz { // for avoiding over 1sec
-			elapsedTime := time.Now().UnixNano() - startTime
-			if elapsedTime > 1000*750 { //750ms
-				return
-			}
-		}
+		//if isFuzz { // for avoiding over 1sec
+		//	elapsedTime := time.Now().UnixNano() - startTime
+		//	if elapsedTime > 1000*750 { //750ms
+		//		return
+		//	}
+		//}
 
 		// get 0-3
 		opType := rand.Intn(4)
@@ -1499,13 +1514,13 @@ func testSkipListMixParallelStride[T int32 | float32 | string](t *testing.T, key
 				checkDupMapMutex.Unlock()
 
 				for ii := int32(0); ii < stride; ii++ {
-					if isFuzz { // for avoiding over 1sec
-						elapsedTime := time.Now().UnixNano() - startTime
-						if elapsedTime > 1000*750 { //750ms
-							ch <- 1
-							return
-						}
-					}
+					//if isFuzz { // for avoiding over 1sec
+					//	elapsedTime := time.Now().UnixNano() - startTime
+					//	if elapsedTime > 1000*750 { //750ms
+					//		ch <- 1
+					//		return
+					//	}
+					//}
 
 					insVal := strideAdd(strideMul(insValBase, stride), ii)
 					pairVal := getValueForSkipListEntry(insVal)
@@ -1535,13 +1550,13 @@ func testSkipListMixParallelStride[T int32 | float32 | string](t *testing.T, key
 					removedValsForRemoveMutex.RUnlock()
 
 					for ii := int32(0); ii < stride; ii++ {
-						if isFuzz { // for avoiding over 1sec
-							elapsedTime := time.Now().UnixNano() - startTime
-							if elapsedTime > 1000*750 { //850ms
-								ch <- 1
-								return
-							}
-						}
+						//if isFuzz { // for avoiding over 1sec
+						//	elapsedTime := time.Now().UnixNano() - startTime
+						//	if elapsedTime > 1000*750 { //850ms
+						//		ch <- 1
+						//		return
+						//	}
+						//}
 
 						removedValsForRemoveMutex.RLock()
 						delVal := choiceValFromMap(removedValsForRemove)
@@ -1576,13 +1591,13 @@ func testSkipListMixParallelStride[T int32 | float32 | string](t *testing.T, key
 					insValsMutex.Unlock()
 
 					for ii := int32(0); ii < stride; ii++ {
-						if isFuzz { // for avoiding over 1sec
-							elapsedTime := time.Now().UnixNano() - startTime
-							if elapsedTime > 1000*750 { //750ms
-								ch <- 1
-								return
-							}
-						}
+						//if isFuzz { // for avoiding over 1sec
+						//	elapsedTime := time.Now().UnixNano() - startTime
+						//	if elapsedTime > 1000*750 { //750ms
+						//		ch <- 1
+						//		return
+						//	}
+						//}
 						delVal := strideAdd(strideMul(delValBase, stride), ii).(T)
 						pairVal := getValueForSkipListEntry(delVal)
 						common.ShPrintf(common.DEBUGGING, "Remove(success) op start.")
@@ -1620,13 +1635,13 @@ func testSkipListMixParallelStride[T int32 | float32 | string](t *testing.T, key
 				getTgtBase := insVals[tmpIdx]
 				insValsMutex.RUnlock()
 				for ii := int32(0); ii < stride; ii++ {
-					if isFuzz { // for avoiding over 1sec
-						elapsedTime := time.Now().UnixNano() - startTime
-						if elapsedTime > 1000*750 { //850ms
-							ch <- 1
-							return
-						}
-					}
+					//if isFuzz { // for avoiding over 1sec
+					//	elapsedTime := time.Now().UnixNano() - startTime
+					//	if elapsedTime > 1000*750 { //850ms
+					//		ch <- 1
+					//		return
+					//	}
+					//}
 					getTgt := strideAdd(strideMul(getTgtBase, stride), ii).(T)
 					getTgtVal := types.NewValue(getTgt)
 					correctVal := getValueForSkipListEntry(getTgt)
