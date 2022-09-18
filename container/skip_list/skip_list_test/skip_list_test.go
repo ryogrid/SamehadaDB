@@ -1379,9 +1379,11 @@ func testSkipListMixParallelStride[T int32 | float32 | string](t *testing.T, key
 		os.Remove("test.log")
 	}
 
-	//shi := samehada.NewSamehadaInstance("test", 200)
+	const threadNum = 20
+
+	shi := samehada.NewSamehadaInstance("test", 200)
 	//shi := samehada.NewSamehadaInstance("test", 30)
-	shi := samehada.NewSamehadaInstance("test", 60)
+	//shi := samehada.NewSamehadaInstance("test", 60)
 
 	//shi := samehada.NewSamehadaInstanceForTesting()
 	//shi := samehada.NewSamehadaInstance("test", 10*1024) // buffer is about 40MB
@@ -1446,8 +1448,8 @@ func testSkipListMixParallelStride[T int32 | float32 | string](t *testing.T, key
 			break
 		}
 
-		// wait for keeping 20 groroutine existing
-		for runningThCnt >= 20 {
+		// wait for keeping threadNum groroutine existing
+		for runningThCnt >= threadNum {
 			//for runningThCnt > 0 { // serial execution
 			<-ch
 			runningThCnt--

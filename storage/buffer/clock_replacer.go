@@ -5,7 +5,7 @@ package buffer
 
 import "sync"
 
-//FrameID is the type for frame id
+// FrameID is the type for frame id
 type FrameID uint32
 
 /**
@@ -22,6 +22,7 @@ func (c *ClockReplacer) Victim() *FrameID {
 	c.mutex.Lock()
 	defer c.mutex.Unlock()
 	if c.cList.size == 0 {
+		panic("Victim: page which can be cache out is not exist!")
 		return nil
 	}
 
@@ -43,7 +44,7 @@ func (c *ClockReplacer) Victim() *FrameID {
 	}
 }
 
-//Unpin unpins a frame, indicating that it can now be victimized
+// Unpin unpins a frame, indicating that it can now be victimized
 func (c *ClockReplacer) Unpin(id FrameID) {
 	c.mutex.Lock()
 	defer c.mutex.Unlock()
@@ -55,7 +56,7 @@ func (c *ClockReplacer) Unpin(id FrameID) {
 	}
 }
 
-//Pin pins a frame, indicating that it should not be victimized until it is unpinned
+// Pin pins a frame, indicating that it should not be victimized until it is unpinned
 func (c *ClockReplacer) Pin(id FrameID) {
 	c.mutex.Lock()
 	defer c.mutex.Unlock()
@@ -71,14 +72,14 @@ func (c *ClockReplacer) Pin(id FrameID) {
 
 }
 
-//Size returns the size of the clock
+// Size returns the size of the clock
 func (c *ClockReplacer) Size() uint32 {
 	c.mutex.Lock()
 	defer c.mutex.Unlock()
 	return c.cList.size
 }
 
-//NewClockReplacer instantiates a new clock replacer
+// NewClockReplacer instantiates a new clock replacer
 func NewClockReplacer(poolSize uint32) *ClockReplacer {
 	cList := newCircularList(poolSize)
 	return &ClockReplacer{cList, &cList.head, new(sync.Mutex)}
