@@ -2,6 +2,7 @@ package disk
 
 import (
 	"errors"
+	"fmt"
 	"strings"
 	"sync"
 
@@ -67,13 +68,21 @@ func (d *VirtualDiskManagerImpl) ReadPage(pageID types.PageID, pageData []byte) 
 
 	offset := int64(pageID * common.PageSize)
 
-	currentSize := int64(len(d.db.Bytes()))
-	if offset > currentSize || offset+int64(len(pageData)) > currentSize {
+	//currentSize := int64(len(d.db.Bytes()))
+	//if offset > currentSize || offset+int64(len(pageData)) > currentSize {
+	//	return errors.New("I/O error past end of file")
+	//}
+
+	if offset > d.size || offset+int64(len(pageData)) > d.size {
 		return errors.New("I/O error past end of file")
 	}
 
-	d.db.ReadAt(pageData, offset)
-	return nil
+	_, err := d.db.ReadAt(pageData, offset)
+	if err != nil {
+		fmt.Println(err)
+		panic("file read error!")
+	}
+	return err
 }
 
 // AllocatePage allocates a new page
@@ -127,7 +136,6 @@ func (d *VirtualDiskManagerImpl) GCLogFile() error {
 	d.logFileMutex.Lock()
 
 	d.log = memfile.New(make([]byte, 0))
-	d.logFileMutex.Lock()
 	defer d.logFileMutex.Unlock()
 
 	return nil

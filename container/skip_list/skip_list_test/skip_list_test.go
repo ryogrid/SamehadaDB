@@ -1379,7 +1379,8 @@ func testSkipListMixParallelStride[T int32 | float32 | string](t *testing.T, key
 		os.Remove("test.log")
 	}
 
-	shi := samehada.NewSamehadaInstance("test", 30)
+	shi := samehada.NewSamehadaInstance("test", 200)
+	//shi := samehada.NewSamehadaInstance("test", 30)
 	//shi := samehada.NewSamehadaInstanceForTesting()
 	//shi := samehada.NewSamehadaInstance("test", 10*1024) // buffer is about 40MB
 	bpm := shi.GetBufferPoolManager()
