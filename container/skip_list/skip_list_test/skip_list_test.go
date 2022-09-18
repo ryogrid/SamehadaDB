@@ -1477,7 +1477,7 @@ func testSkipListMixParallelStride[T int32 | float32 | string](t *testing.T, key
 
 		if isFuzz { // for avoiding over 1sec
 			elapsedTime := time.Now().UnixNano() - startTime
-			if elapsedTime > 1000*850 { //850ms
+			if elapsedTime > 1000*750 { //750ms
 				return
 			}
 		}
