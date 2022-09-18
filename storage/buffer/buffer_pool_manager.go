@@ -59,9 +59,9 @@ func (b *BufferPoolManager) FetchPage(pageID types.PageID) *page.Page {
 			if currentPage.IsDirty() {
 				b.log_manager.Flush()
 				currentPage.WLatch()
-				data := currentPage.Data()
-				b.diskManager.WritePage(currentPage.ID(), data[:])
+				data := *currentPage.Data()
 				currentPage.WUnlatch()
+				b.diskManager.WritePage(currentPage.ID(), data[:])
 			}
 			//b.mutex.Lock()
 			if common.EnableDebug {
