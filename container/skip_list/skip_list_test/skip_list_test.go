@@ -1477,7 +1477,7 @@ func testSkipListMixParallelStride[T int32 | float32 | string](t *testing.T, key
 
 		if isFuzz { // for avoiding over 1sec
 			elapsedTime := time.Now().UnixNano() - startTime
-			if elapsedTime > 1000*750 { //750ms
+			if elapsedTime > 1000*850 { //750ms
 				return
 			}
 		}
@@ -1499,6 +1499,13 @@ func testSkipListMixParallelStride[T int32 | float32 | string](t *testing.T, key
 				checkDupMapMutex.Unlock()
 
 				for ii := int32(0); ii < stride; ii++ {
+					if isFuzz { // for avoiding over 1sec
+						elapsedTime := time.Now().UnixNano() - startTime
+						if elapsedTime > 1000*850 { //850ms
+							return
+						}
+					}
+
 					insVal := strideAdd(strideMul(insValBase, stride), ii)
 					pairVal := getValueForSkipListEntry(insVal)
 
@@ -1527,6 +1534,13 @@ func testSkipListMixParallelStride[T int32 | float32 | string](t *testing.T, key
 					removedValsForRemoveMutex.RUnlock()
 
 					for ii := int32(0); ii < stride; ii++ {
+						if isFuzz { // for avoiding over 1sec
+							elapsedTime := time.Now().UnixNano() - startTime
+							if elapsedTime > 1000*850 { //850ms
+								return
+							}
+						}
+
 						removedValsForRemoveMutex.RLock()
 						delVal := choiceValFromMap(removedValsForRemove)
 						removedValsForRemoveMutex.RUnlock()
@@ -1560,6 +1574,12 @@ func testSkipListMixParallelStride[T int32 | float32 | string](t *testing.T, key
 					insValsMutex.Unlock()
 
 					for ii := int32(0); ii < stride; ii++ {
+						if isFuzz { // for avoiding over 1sec
+							elapsedTime := time.Now().UnixNano() - startTime
+							if elapsedTime > 1000*850 { //850ms
+								return
+							}
+						}
 						delVal := strideAdd(strideMul(delValBase, stride), ii).(T)
 						pairVal := getValueForSkipListEntry(delVal)
 						common.ShPrintf(common.DEBUGGING, "Remove(success) op start.")
@@ -1597,6 +1617,12 @@ func testSkipListMixParallelStride[T int32 | float32 | string](t *testing.T, key
 				getTgtBase := insVals[tmpIdx]
 				insValsMutex.RUnlock()
 				for ii := int32(0); ii < stride; ii++ {
+					if isFuzz { // for avoiding over 1sec
+						elapsedTime := time.Now().UnixNano() - startTime
+						if elapsedTime > 1000*850 { //850ms
+							return
+						}
+					}
 					getTgt := strideAdd(strideMul(getTgtBase, stride), ii).(T)
 					getTgtVal := types.NewValue(getTgt)
 					correctVal := getValueForSkipListEntry(getTgt)
