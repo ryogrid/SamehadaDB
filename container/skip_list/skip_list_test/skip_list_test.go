@@ -1726,7 +1726,7 @@ func testSkipListMixParallelStrideRoot[T int32 | float32 | string](t *testing.T,
 
 func TestSkipListMixParallsStrideVarcharLongRun(t *testing.T) {
 	// assumed running time is about 12h
-	testSkipListMixParallelStride[string](t, types.Varchar, 300, 3000*12, 15, 0, 200)
+	testSkipListMixParallelStride[string](t, types.Varchar, 300, 3000*12, 15, 0, 500)
 }
 
 //func testSkipListInsertGetEven(t *testing.T, sl *skip_list.SkipList, ch chan string) {
