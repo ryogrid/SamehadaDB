@@ -637,6 +637,17 @@ import (
 //	})
 //}
 
+func FuzzSkipLisMixParallelStrideVarchar(f *testing.F) {
+	f.Add(int32(30), int32(100), int32(10), int32(100))
+	f.Fuzz(func(t *testing.T, stride int32, opTimes int32, skipRand int32, initialEntryNum int32) {
+		if stride < 0 || stride > 60 || opTimes < 0 || opTimes > 200 || initialEntryNum < 0 {
+			return
+		}
+
+		testSkipListMixParallelStride[string](t, types.Varchar, stride, opTimes, skipRand, initialEntryNum, 500, true)
+	})
+}
+
 //func TestFuzzerUnexpectedExitParam(t *testing.T) {
 //if !common.EnableOnMemStorage {
 //	os.Remove("test.db")
@@ -684,10 +695,11 @@ func getRandomPrimitiveVal[T int32 | float32 | string](keyType types.TypeID) T {
 		return ret.(T)
 	case types.Varchar:
 		//var ret interface{} = *samehada_util.GetRandomStr(1000)
-		var ret interface{} = *samehada_util.GetRandomStr(500)
+		//var ret interface{} = *samehada_util.GetRandomStr(500)
 		//var ret interface{} = *samehada_util.GetRandomStr(700)
 		//var ret interface{} = *samehada_util.GetRandomStr(300)
 		//var ret interface{} = *samehada_util.GetRandomStr(20)
+		var ret interface{} = *samehada_util.GetRandomStr(50)
 		return ret.(T)
 	default:
 		panic("not supported keyType")
@@ -1370,9 +1382,14 @@ func testSkipListMixParallelBulk[T int32 | float32 | string](t *testing.T, keyTy
 	shi.CloseFilesForTesting()
 }
 
-func testSkipListMixParallelStride[T int32 | float32 | string](t *testing.T, keyType types.TypeID, stride int32, opTimes int32, skipRand int32, initialEntryNum int32, bpoolSize int32) {
+func testSkipListMixParallelStride[T int32 | float32 | string](t *testing.T, keyType types.TypeID, stride int32, opTimes int32, skipRand int32, initialEntryNum int32, bpoolSize int32, isFuzz bool) {
 	common.ShPrintf(common.DEBUG_INFO, "start of testSkipListMixParallelStride stride=%d opTimes=%d skipRand=%d initialEntryNum=%d ====================================================\n",
 		stride, opTimes, skipRand, initialEntryNum)
+
+	var startTime int64
+	if isFuzz {
+		startTime = time.Now().UnixNano()
+	}
 
 	if !common.EnableOnMemStorage {
 		os.Remove("test.db")
@@ -1457,6 +1474,13 @@ func testSkipListMixParallelStride[T int32 | float32 | string](t *testing.T, key
 		}
 		common.ShPrintf(common.DEBUGGING, "ii=%d\n", ii)
 		//runningThCnt = 0
+
+		if isFuzz { // for avoiding over 1sec
+			elapsedTime := time.Now().UnixNano() - startTime
+			if elapsedTime > 1000*850 { //850ms
+				return
+			}
+		}
 
 		// get 0-3
 		opType := rand.Intn(4)
@@ -1676,15 +1700,15 @@ func testSkipListMixParallelStrideRoot[T int32 | float32 | string](t *testing.T,
 	bpoolSize := int32(200)
 
 	// 4th arg should be multiple of 20
-	testSkipListMixParallelStride[T](t, keyType, 800, 1000, 12, 800, bpoolSize)
+	testSkipListMixParallelStride[T](t, keyType, 800, 1000, 12, 800, bpoolSize, false)
 	fmt.Println("test finished 1/5.")
-	testSkipListMixParallelStride[T](t, keyType, 1, 100000, 12, 800, bpoolSize)
+	testSkipListMixParallelStride[T](t, keyType, 1, 100000, 12, 800, bpoolSize, false)
 	fmt.Println("test finished 2/5.")
-	testSkipListMixParallelStride[T](t, keyType, 300, 1000, 14, 800, bpoolSize)
+	testSkipListMixParallelStride[T](t, keyType, 300, 1000, 14, 800, bpoolSize, false)
 	fmt.Println("test finished 3/5.")
-	testSkipListMixParallelStride[T](t, keyType, 300, 1000, 15, 0, bpoolSize)
+	testSkipListMixParallelStride[T](t, keyType, 300, 1000, 15, 0, bpoolSize, false)
 	fmt.Println("test finished 4/5.")
-	testSkipListMixParallelStride[T](t, keyType, 8, 100000, 13, 200, bpoolSize)
+	testSkipListMixParallelStride[T](t, keyType, 8, 100000, 13, 200, bpoolSize, false)
 	fmt.Println("test finished 5/5.")
 }
 
@@ -1724,10 +1748,10 @@ func testSkipListMixParallelStrideRoot[T int32 | float32 | string](t *testing.T,
 //	testSkipListMixParallelStrideRoot[string](t, types.Varchar)
 //}
 
-func TestSkipListMixParallsStrideVarcharLongRun(t *testing.T) {
-	// assumed running time is about 12h
-	testSkipListMixParallelStride[string](t, types.Varchar, 300, 3000*12, 15, 0, 500)
-}
+//func TestSkipListMixParallsStrideVarcharLongRun(t *testing.T) {
+//	// assumed running time is about 12h
+//	testSkipListMixParallelStride[string](t, types.Varchar, 300, 3000*12, 15, 0, 500, false)
+//}
 
 //func testSkipListInsertGetEven(t *testing.T, sl *skip_list.SkipList, ch chan string) {
 //	for ii := int32(0); ii < 10000; ii = ii + 2 {

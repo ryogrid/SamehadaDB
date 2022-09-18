@@ -8,7 +8,7 @@ import "time"
 var LogTimeout time.Duration
 
 var EnableLogging bool = false //true
-const EnableDebug bool = true  //false
+const EnableDebug bool = false //true
 // use virtual storage or not
 const EnableOnMemStorage = true //false
 
@@ -26,7 +26,7 @@ const (
 	// the header page id
 	HeaderPageID = 0
 	// size of a data page in byte
-	PageSize                     = 4096
+	PageSize                     = 512 //4096
 	BufferPoolMaxFrameNumForTest = 32
 	// number for calculate log buffer size (number of page size)
 	LogBufferSizeBase = 32
