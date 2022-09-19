@@ -26,7 +26,7 @@ const (
 	// the header page id
 	HeaderPageID = 0
 	// size of a data page in byte
-	PageSize                     = 512 //4096
+	PageSize                     = 4096 //512
 	BufferPoolMaxFrameNumForTest = 32
 	// number for calculate log buffer size (number of page size)
 	LogBufferSizeBase = 32

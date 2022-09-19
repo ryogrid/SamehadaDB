@@ -280,7 +280,7 @@ func (b *BufferPoolManager) getFrameID() (*FrameID, bool) {
 	//b.mutex.Unlock()
 	if ret == nil {
 		fmt.Printf("getFrameID: Victime page is nil! len(b.freeList)=%d\n", len(b.freeList))
-		panic("getFrameID: Victime page is nil!")
+		//panic("getFrameID: Victime page is nil!")
 	}
 	return ret, false
 }

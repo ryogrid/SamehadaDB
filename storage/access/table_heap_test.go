@@ -5,6 +5,7 @@ package access
 
 import (
 	"fmt"
+	"github.com/ryogrid/SamehadaDB/common"
 	"github.com/ryogrid/SamehadaDB/storage/index/index_constants"
 	"testing"
 
@@ -20,6 +21,9 @@ import (
 )
 
 func TestTableHeap(t *testing.T) {
+	common.TempSuppressOnMemStorage = true
+	defer func() { common.TempSuppressOnMemStorage = false }()
+
 	dm := disk.NewDiskManagerTest()
 	defer dm.ShutDown()
 	log_manager := recovery.NewLogManager(&dm)
@@ -60,6 +64,7 @@ func TestTableHeap(t *testing.T) {
 		//// (4096 - 24) / (8 + (4 * 2)) => 254.5
 		//rid.Set(types.PageID(i/254), uint32(i%254))
 		// (4096 - 24) / (8 + (5 * 2)) => 226.222...
+
 		rid.Set(types.PageID(i/226), uint32(i%226))
 		tuple := th.GetTuple(rid, txn)
 		testingpkg.Equals(t, int32(i*2), tuple.GetValue(schema_, 0).ToInteger())

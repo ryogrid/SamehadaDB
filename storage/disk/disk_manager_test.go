@@ -41,8 +41,8 @@ func TestReadWritePage(t *testing.T) {
 	dm.ReadPage(5, buffer)
 	testingpkg.Equals(t, data, buffer)
 
-	// the size of disk is 24576 bytes because we have 6 pages
-	testingpkg.Equals(t, int64(24576), dm.Size())
+	// the size of disk is 6 * PageSize bytes because we have 6 pages
+	testingpkg.Equals(t, int64(6*common.PageSize), dm.Size())
 
 	common.TempSuppressOnMemStorage = false
 }

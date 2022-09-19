@@ -3,7 +3,10 @@
 
 package buffer
 
-import "sync"
+import (
+	"fmt"
+	"sync"
+)
 
 // FrameID is the type for frame id
 type FrameID uint32
@@ -22,7 +25,8 @@ func (c *ClockReplacer) Victim() *FrameID {
 	c.mutex.Lock()
 	defer c.mutex.Unlock()
 	if c.cList.size == 0 {
-		panic("Victim: page which can be cache out is not exist!")
+		fmt.Println("Victim: page which can be cache out is not exist!")
+		//panic("Victim: page which can be cache out is not exist!")
 		return nil
 	}
 
