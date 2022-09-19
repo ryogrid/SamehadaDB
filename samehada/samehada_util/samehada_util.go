@@ -8,6 +8,7 @@ import (
 	"math"
 	"math/rand"
 	"os"
+	"runtime"
 )
 
 func FileExists(filename string) bool {
@@ -72,4 +73,9 @@ func RemovePrimitiveFromList[T int32 | float32 | string](list []T, elem T) []T {
 		}
 	}
 	return list_
+}
+
+func GetParentFuncName() string {
+	_, name, _, _ := runtime.Caller(0)
+	return name
 }

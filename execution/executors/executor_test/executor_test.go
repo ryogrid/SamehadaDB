@@ -7,6 +7,7 @@ import (
 	"fmt"
 	"github.com/ryogrid/SamehadaDB/execution/executors"
 	"github.com/ryogrid/SamehadaDB/samehada"
+	"github.com/ryogrid/SamehadaDB/samehada/samehada_util"
 	"github.com/ryogrid/SamehadaDB/storage/index/index_constants"
 	"os"
 	"testing"
@@ -1567,11 +1568,11 @@ func timeoutPanic() {
 
 func TestConcurrentTransactionExecution(t *testing.T) {
 	if !common.EnableOnMemStorage {
-		os.Remove("test.db")
-		os.Remove("test.log")
+		os.Remove(samehada_util.GetParentFuncName() + ".db")
+		os.Remove(samehada_util.GetParentFuncName() + ".log")
 	}
 
-	shi := samehada.NewSamehadaInstanceForTesting()
+	shi := samehada.NewSamehadaInstance(samehada_util.GetParentFuncName(), common.BufferPoolMaxFrameNumForTest)
 	shi.GetLogManager().ActivateLogging()
 	testingpkg.Assert(t, common.EnableLogging, "")
 	fmt.Println("System logging is active.")
@@ -1660,11 +1661,11 @@ func TestConcurrentTransactionExecution(t *testing.T) {
 
 func TestTestTableGenerator(t *testing.T) {
 	if !common.EnableOnMemStorage {
-		os.Remove("test.db")
-		os.Remove("test.log")
+		os.Remove(samehada_util.GetParentFuncName() + ".db")
+		os.Remove(samehada_util.GetParentFuncName() + ".log")
 	}
 
-	shi := samehada.NewSamehadaInstanceForTesting()
+	shi := samehada.NewSamehadaInstance(samehada_util.GetParentFuncName(), common.BufferPoolMaxFrameNumForTest)
 	shi.GetLogManager().ActivateLogging()
 	testingpkg.Assert(t, common.EnableLogging, "")
 	fmt.Println("System logging is active.")
@@ -1700,11 +1701,11 @@ func TestTestTableGenerator(t *testing.T) {
 func TestSimpleAggregation(t *testing.T) {
 	// SELECT COUNT(colA), SUM(colA), min(colA), max(colA) from test_1;
 	if !common.EnableOnMemStorage {
-		os.Remove("test.db")
-		os.Remove("test.log")
+		os.Remove(samehada_util.GetParentFuncName() + ".db")
+		os.Remove(samehada_util.GetParentFuncName() + ".log")
 	}
 
-	shi := samehada.NewSamehadaInstanceForTesting()
+	shi := samehada.NewSamehadaInstance(samehada_util.GetParentFuncName(), common.BufferPoolMaxFrameNumForTest)
 	shi.GetLogManager().ActivateLogging()
 	testingpkg.Assert(t, common.EnableLogging, "")
 	fmt.Println("System logging is active.")
@@ -1772,11 +1773,11 @@ func TestSimpleAggregation(t *testing.T) {
 func TestSimpleGroupByAggregation(t *testing.T) {
 	// SELECT count(colA), colB, sum(C) FROM test_1 Group By colB HAVING count(colA) > 100
 	if !common.EnableOnMemStorage {
-		os.Remove("test.db")
-		os.Remove("test.log")
+		os.Remove(samehada_util.GetParentFuncName() + ".db")
+		os.Remove(samehada_util.GetParentFuncName() + ".log")
 	}
 
-	shi := samehada.NewSamehadaInstanceForTesting()
+	shi := samehada.NewSamehadaInstance(samehada_util.GetParentFuncName(), common.BufferPoolMaxFrameNumForTest)
 	shi.GetLogManager().ActivateLogging()
 	testingpkg.Assert(t, common.EnableLogging, "")
 	fmt.Println("System logging is active.")
@@ -1853,11 +1854,11 @@ func TestSimpleGroupByAggregation(t *testing.T) {
 func TestSeqScanWithMultiItemPredicate(t *testing.T) {
 	// SELECT colA, colB colC FROM test_1 WHERE (colA > 500 AND colB < 5) OR (NOT colC >= 1000)
 	if !common.EnableOnMemStorage {
-		os.Remove("test.db")
-		os.Remove("test.log")
+		os.Remove(samehada_util.GetParentFuncName() + ".db")
+		os.Remove(samehada_util.GetParentFuncName() + ".log")
 	}
 
-	shi := samehada.NewSamehadaInstanceForTesting()
+	shi := samehada.NewSamehadaInstance(samehada_util.GetParentFuncName(), common.BufferPoolMaxFrameNumForTest)
 	shi.GetLogManager().ActivateLogging()
 	testingpkg.Assert(t, common.EnableLogging, "")
 	fmt.Println("System logging is active.")
@@ -2011,11 +2012,11 @@ func TestInsertAndSpecifiedColumnUpdate(t *testing.T) {
 
 func TestInsertAndSpecifiedColumnUpdatePageMoveCase(t *testing.T) {
 	if !common.EnableOnMemStorage {
-		os.Remove("test.db")
-		os.Remove("test.log")
+		os.Remove(samehada_util.GetParentFuncName() + ".db")
+		os.Remove(samehada_util.GetParentFuncName() + ".log")
 	}
 
-	shi := samehada.NewSamehadaInstanceForTesting()
+	shi := samehada.NewSamehadaInstance(samehada_util.GetParentFuncName(), common.BufferPoolMaxFrameNumForTest)
 	shi.GetLogManager().ActivateLogging()
 	testingpkg.Assert(t, common.EnableLogging, "")
 	fmt.Println("System logging is active.")
@@ -2097,10 +2098,10 @@ func TestInsertAndSpecifiedColumnUpdatePageMoveCase(t *testing.T) {
 
 //// used for debugging Insert of SkipListIndex
 //func TestInsertAndSpecifiedColumnUpdatePageMoveCaseUseSLIdx(t *testing.T) {
-//	os.Remove("test.db")
-//	os.Remove("test.log")
+//	os.Remove(samehada_util.GetParentFuncName() + ".db")
+//	os.Remove(samehada_util.GetParentFuncName() + ".log")
 //
-//	shi := samehada.NewSamehadaInstanceForTesting()
+//	shi := samehada.NewSamehadaInstance(samehada_util.GetParentFuncName(), common.BufferPoolMaxFrameNumForTest)
 //	shi.GetLogManager().ActivateLogging()
 //	testingpkg.Assert(t, common.EnableLogging, "")
 //	fmt.Println("System logging is active.")
@@ -2183,11 +2184,11 @@ func TestInsertAndSpecifiedColumnUpdatePageMoveCase(t *testing.T) {
 func TestSimpleSeqScanAndOrderBy(t *testing.T) {
 	// SELECT a, b, FROM test_1 ORDER BY a, b
 	if !common.EnableOnMemStorage {
-		os.Remove("test.db")
-		os.Remove("test.log")
+		os.Remove(samehada_util.GetParentFuncName() + ".db")
+		os.Remove(samehada_util.GetParentFuncName() + ".log")
 	}
 
-	shi := samehada.NewSamehadaInstanceForTesting()
+	shi := samehada.NewSamehadaInstance(samehada_util.GetParentFuncName(), common.BufferPoolMaxFrameNumForTest)
 	shi.GetLogManager().ActivateLogging()
 	testingpkg.Assert(t, common.EnableLogging, "")
 	fmt.Println("System logging is active.")
@@ -2292,11 +2293,11 @@ func TestSimpleSeqScanAndOrderBy(t *testing.T) {
 
 func TestSimpleSetNullToVarchar(t *testing.T) {
 	if !common.EnableOnMemStorage {
-		os.Remove("test.db")
-		os.Remove("test.log")
+		os.Remove(samehada_util.GetParentFuncName() + ".db")
+		os.Remove(samehada_util.GetParentFuncName() + ".log")
 	}
 
-	shi := samehada.NewSamehadaInstanceForTesting()
+	shi := samehada.NewSamehadaInstance(samehada_util.GetParentFuncName(), common.BufferPoolMaxFrameNumForTest)
 	shi.GetLogManager().ActivateLogging()
 	testingpkg.Assert(t, common.EnableLogging, "")
 	fmt.Println("System logging is active.")

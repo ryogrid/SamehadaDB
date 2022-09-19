@@ -38,11 +38,11 @@ func TestRecounstructionOfHashIndex(t *testing.T) {
 	common.TempSuppressOnMemStorage = true
 
 	if !common.EnableOnMemStorage || common.TempSuppressOnMemStorage {
-		os.Remove("test.db")
-		os.Remove("test.log")
+		os.Remove(samehada_util.GetParentFuncName() + ".db")
+		os.Remove(samehada_util.GetParentFuncName() + ".log")
 	}
 
-	shi := samehada.NewSamehadaInstanceForTesting()
+	shi := samehada.NewSamehadaInstance(samehada_util.GetParentFuncName(), common.BufferPoolMaxFrameNumForTest)
 	shi.GetLogManager().ActivateLogging()
 	testingpkg.Assert(t, common.EnableLogging, "")
 	fmt.Println("System logging is active.")
@@ -146,7 +146,7 @@ func TestRecounstructionOfHashIndex(t *testing.T) {
 	// ----------- check recovery includes index data ----------
 
 	// recovery catalog data and tuple datas
-	shi = samehada.NewSamehadaInstanceForTesting()
+	shi = samehada.NewSamehadaInstance(samehada_util.GetParentFuncName(), common.BufferPoolMaxFrameNumForTest)
 	shi.GetLogManager().DeactivateLogging()
 	txn = shi.GetTransactionManager().Begin(nil)
 
