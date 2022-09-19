@@ -1707,7 +1707,7 @@ func testSkipListMixParallelBulkRoot[T int32 | float32 | string](t *testing.T, k
 }
 
 func testSkipListMixParallelStrideRoot[T int32 | float32 | string](t *testing.T, keyType types.TypeID) {
-	bpoolSize := int32(200)
+	bpoolSize := int32(500)
 
 	// 4th arg should be multiple of 20
 	testSkipListMixParallelStride[T](t, keyType, 800, 1000, 12, 800, bpoolSize)
