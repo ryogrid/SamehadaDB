@@ -5,7 +5,6 @@ go 1.18
 require (
 	github.com/devlights/gomy v0.4.0
 	github.com/dsnet/golib/memfile v1.0.0
-	github.com/leanovate/gopter v0.2.9
 	github.com/pingcap/parser v0.0.0-20200623164729-3a18f1e5dceb
 	github.com/pingcap/tidb v1.1.0-beta.0.20200630082100-328b6d0a955c
 	github.com/spaolacci/murmur3 v1.1.0
