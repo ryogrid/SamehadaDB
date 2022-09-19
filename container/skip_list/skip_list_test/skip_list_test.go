@@ -34,6 +34,7 @@ import (
 //)
 
 func TestSerializationOfSkipLisBlockPage(t *testing.T) {
+	t.Parallel()
 	if !common.EnableOnMemStorage {
 		os.Remove(samehada_util.GetParentFuncName() + ".db")
 		os.Remove(samehada_util.GetParentFuncName() + ".log")
@@ -72,6 +73,7 @@ func TestSerializationOfSkipLisBlockPage(t *testing.T) {
 }
 
 func TestSerializationOfSkipLisHeaderPage(t *testing.T) {
+	t.Parallel()
 	if !common.EnableOnMemStorage {
 		os.Remove(samehada_util.GetParentFuncName() + ".db")
 		os.Remove(samehada_util.GetParentFuncName() + ".log")
@@ -96,6 +98,7 @@ func TestSerializationOfSkipLisHeaderPage(t *testing.T) {
 }
 
 func TestInnerInsertDeleteOfBlockPageSimple(t *testing.T) {
+	t.Parallel()
 	if !common.EnableOnMemStorage {
 		os.Remove(samehada_util.GetParentFuncName() + ".db")
 		os.Remove(samehada_util.GetParentFuncName() + ".log")
@@ -197,6 +200,7 @@ func TestInnerInsertDeleteOfBlockPageSimple(t *testing.T) {
 }
 
 func TestBSearchOfSkipLisBlockPage(t *testing.T) {
+	t.Parallel()
 	if !common.EnableOnMemStorage {
 		os.Remove(samehada_util.GetParentFuncName() + ".db")
 		os.Remove(samehada_util.GetParentFuncName() + ".log")
@@ -259,6 +263,7 @@ func TestBSearchOfSkipLisBlockPage(t *testing.T) {
 }
 
 func TestBSearchOfSkipLisBlockPage2(t *testing.T) {
+	t.Parallel()
 	if !common.EnableOnMemStorage {
 		os.Remove(samehada_util.GetParentFuncName() + ".db")
 		os.Remove(samehada_util.GetParentFuncName() + ".log")
@@ -358,6 +363,7 @@ func confirmSkipListContent(t *testing.T, sl *skip_list.SkipList, step int32) in
 }
 
 func TestSkipListSimple(t *testing.T) {
+	t.Parallel()
 	if !common.EnableOnMemStorage {
 		os.Remove(samehada_util.GetParentFuncName() + ".db")
 		os.Remove(samehada_util.GetParentFuncName() + ".log")
@@ -420,6 +426,7 @@ func TestSkipListSimple(t *testing.T) {
 }
 
 func TestSkipListInsertAndDeleteAll(t *testing.T) {
+	t.Parallel()
 	if !common.EnableOnMemStorage {
 		os.Remove(samehada_util.GetParentFuncName() + ".db")
 		os.Remove(samehada_util.GetParentFuncName() + ".log")
@@ -513,6 +520,7 @@ func TestSkipListInsertAndDeleteAll(t *testing.T) {
 }
 
 func TestSkipListItr(t *testing.T) {
+	t.Parallel()
 	if !common.EnableOnMemStorage {
 		os.Remove(samehada_util.GetParentFuncName() + ".db")
 		os.Remove(samehada_util.GetParentFuncName() + ".log")
@@ -1715,18 +1723,22 @@ func testSkipListMixParallelStrideRoot[T int32 | float32 | string](t *testing.T,
 }
 
 func TestSkipListMixInteger(t *testing.T) {
+	t.Parallel()
 	testSkipListMixRoot[int32](t, types.Integer)
 }
 
 func TestSkipListMixFloat(t *testing.T) {
+	t.Parallel()
 	testSkipListMixRoot[float32](t, types.Float)
 }
 
 func TestSkipListMixVarchar(t *testing.T) {
+	t.Parallel()
 	testSkipListMixRoot[string](t, types.Varchar)
 }
 
 func TestSkipListMixParallelInteger(t *testing.T) {
+	t.Parallel()
 	if testing.Short() {
 		t.Skip("skip this in short mode.")
 	}
@@ -1734,6 +1746,7 @@ func TestSkipListMixParallelInteger(t *testing.T) {
 }
 
 func TestSkipListMixParallelVarchar(t *testing.T) {
+	t.Parallel()
 	if testing.Short() {
 		t.Skip("skip this in short mode.")
 	}
@@ -1741,6 +1754,7 @@ func TestSkipListMixParallelVarchar(t *testing.T) {
 }
 
 func TestSkipListMixParallelBulkInteger(t *testing.T) {
+	t.Parallel()
 	if testing.Short() {
 		t.Skip("skip this in short mode.")
 	}
@@ -1748,6 +1762,7 @@ func TestSkipListMixParallelBulkInteger(t *testing.T) {
 }
 
 func TestSkipListMixParallelBulkVarchar(t *testing.T) {
+	t.Parallel()
 	if testing.Short() {
 		t.Skip("skip this in short mode.")
 	}
@@ -1755,6 +1770,7 @@ func TestSkipListMixParallelBulkVarchar(t *testing.T) {
 }
 
 func TestSkipListMixParallelStrideInteger(t *testing.T) {
+	t.Parallel()
 	if testing.Short() {
 		t.Skip("skip this in short mode.")
 	}
@@ -1762,6 +1778,7 @@ func TestSkipListMixParallelStrideInteger(t *testing.T) {
 }
 
 func TestSkipListMixParallelStrideVarchar(t *testing.T) {
+	t.Parallel()
 	if testing.Short() {
 		t.Skip("skip this in short mode.")
 	}
@@ -1769,6 +1786,7 @@ func TestSkipListMixParallelStrideVarchar(t *testing.T) {
 }
 
 func TestSkipListMixParallsStrideVarcharLongRun(t *testing.T) {
+	t.Parallel()
 	if testing.Short() {
 		t.Skip("skip this in short mode.")
 	}
@@ -1886,6 +1904,7 @@ func testSkipListInsertGetRemove3stride2(t *testing.T, sl *skip_list.SkipList, c
 }
 
 func TestSkipListParallelSimpleInteger(t *testing.T) {
+	t.Parallel()
 	if !common.EnableOnMemStorage {
 		os.Remove(samehada_util.GetParentFuncName() + ".db")
 		os.Remove(samehada_util.GetParentFuncName() + ".log")
@@ -1913,6 +1932,7 @@ func TestSkipListParallelSimpleInteger(t *testing.T) {
 }
 
 func TestSkipListParallelSimpleInteger2(t *testing.T) {
+	t.Parallel()
 	if !common.EnableOnMemStorage {
 		os.Remove(samehada_util.GetParentFuncName() + ".db")
 		os.Remove(samehada_util.GetParentFuncName() + ".log")
@@ -1940,6 +1960,7 @@ func TestSkipListParallelSimpleInteger2(t *testing.T) {
 }
 
 func TestSkipListParallelSimpleInteger3Stride(t *testing.T) {
+	t.Parallel()
 	if !common.EnableOnMemStorage {
 		os.Remove(samehada_util.GetParentFuncName() + ".db")
 		os.Remove(samehada_util.GetParentFuncName() + ".log")
