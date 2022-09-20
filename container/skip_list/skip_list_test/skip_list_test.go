@@ -1,339 +1,326 @@
 package skip_list_test
 
 import (
-	"fmt"
 	"github.com/ryogrid/SamehadaDB/common"
-	"github.com/ryogrid/SamehadaDB/container/skip_list"
 	"github.com/ryogrid/SamehadaDB/samehada"
 	"github.com/ryogrid/SamehadaDB/samehada/samehada_util"
-	"github.com/ryogrid/SamehadaDB/storage/page/skip_list_page"
 	testingpkg "github.com/ryogrid/SamehadaDB/testing"
 	"github.com/ryogrid/SamehadaDB/types"
 	"math"
-	"math/rand"
 	"os"
-	"sync"
+	"runtime"
 	"testing"
+)
+
+import (
+	"fmt"
+	"github.com/ryogrid/SamehadaDB/container/skip_list"
+	"math/rand"
+	"sync"
 	"time"
 )
 
-//import (
-//	"fmt"
-//	"github.com/ryogrid/SamehadaDB/common"
-//	"github.com/ryogrid/SamehadaDB/container/skip_list"
-//	"github.com/ryogrid/SamehadaDB/samehada"
-//	"github.com/ryogrid/SamehadaDB/samehada/samehada_util"
-//	"github.com/ryogrid/SamehadaDB/storage/page/skip_list_page"
-//	testingpkg "github.com/ryogrid/SamehadaDB/testing"
-//	"github.com/ryogrid/SamehadaDB/types"
-//	"math"
-//	"math/rand"
-//	"os"
-//	"sync"
-//	"testing"
-//)
-
-func TestSerializationOfSkipLisBlockPage(t *testing.T) {
-	t.Parallel()
-	if !common.EnableOnMemStorage {
-		os.Remove(samehada_util.GetParentFuncName() + ".db")
-		os.Remove(samehada_util.GetParentFuncName() + ".log")
-	}
-	//shi := samehada.NewSamehadaInstance(samehada_util.GetParentFuncName(), common.BufferPoolMaxFrameNumForTest)
-	shi := samehada.NewSamehadaInstance(samehada_util.GetParentFuncName(), common.BufferPoolMaxFrameNumForTest)
-	bpm := shi.GetBufferPoolManager()
-
-	bpage := skip_list_page.NewSkipListBlockPage(bpm, 1, skip_list_page.SkipListPair{
-		Key:   types.NewInteger(math.MinInt32),
-		Value: 0,
-	})
-
-	bpage.SetPageId(7)
-	bpage.SetLSN(9)
-	bpage.SetEntryCnt(1)
-	bpage.SetLevel(4)
-	bpage.SetForwardEntry(5, types.PageID(11))
-	bpage.SetFreeSpacePointer(common.PageSize - 9)
-	// EntryCnt is incremented to 2
-	// freeSpacePointer is decremented size of entry (1+2+7+4 => 14)
-	bpage.SetEntry(1, &skip_list_page.SkipListPair{types.NewVarchar("abcdeff"), 12345})
-
-	testingpkg.SimpleAssert(t, bpage.GetPageId() == 7)
-	testingpkg.SimpleAssert(t, bpage.GetLSN() == 9)
-	testingpkg.SimpleAssert(t, bpage.GetEntryCnt() == 2)
-	testingpkg.SimpleAssert(t, bpage.GetLevel() == 4)
-	testingpkg.SimpleAssert(t, bpage.GetForwardEntry(5) == types.PageID(11))
-
-	testingpkg.SimpleAssert(t, bpage.GetFreeSpacePointer() == (common.PageSize-9-14))
-	entry := bpage.GetEntry(1, types.Varchar)
-	testingpkg.SimpleAssert(t, entry.Key.CompareEquals(types.NewVarchar("abcdeff")))
-	testingpkg.SimpleAssert(t, entry.Value == 12345)
-
-	shi.Shutdown(false)
-}
-
-func TestSerializationOfSkipLisHeaderPage(t *testing.T) {
-	t.Parallel()
-	if !common.EnableOnMemStorage {
-		os.Remove(samehada_util.GetParentFuncName() + ".db")
-		os.Remove(samehada_util.GetParentFuncName() + ".log")
-	}
-	shi := samehada.NewSamehadaInstance(samehada_util.GetParentFuncName(), common.BufferPoolMaxFrameNumForTest)
-	bpm := shi.GetBufferPoolManager()
-
-	hpageId := skip_list_page.NewSkipListHeaderPage(bpm, types.Integer)
-	hpage := skip_list_page.FetchAndCastToHeaderPage(bpm, hpageId)
-
-	hpage.SetPageId(7)
-	hpage.SetLSN(7)
-	hpage.SetListStartPageId(7)
-	hpage.SetKeyType(types.Varchar)
-
-	testingpkg.SimpleAssert(t, hpage.GetPageId() == 7)
-	testingpkg.SimpleAssert(t, hpage.GetLSN() == 7)
-	testingpkg.SimpleAssert(t, hpage.GetListStartPageId() == 7)
-	testingpkg.SimpleAssert(t, hpage.GetKeyType() == types.Varchar)
-
-	shi.Shutdown(false)
-}
-
-func TestInnerInsertDeleteOfBlockPageSimple(t *testing.T) {
-	t.Parallel()
-	if !common.EnableOnMemStorage {
-		os.Remove(samehada_util.GetParentFuncName() + ".db")
-		os.Remove(samehada_util.GetParentFuncName() + ".log")
-	}
-	shi := samehada.NewSamehadaInstance(samehada_util.GetParentFuncName(), common.BufferPoolMaxFrameNumForTest)
-	bpm := shi.GetBufferPoolManager()
-
-	// ---------- test RemoveInner --------
-	// setup a page
-	bpage1 := skip_list_page.NewSkipListBlockPage(bpm, 1, skip_list_page.SkipListPair{
-		Key:   types.NewVarchar("abcd"),
-		Value: 1,
-	})
-
-	initialEntries := make([]*skip_list_page.SkipListPair, 0)
-	initialEntries = append(initialEntries, bpage1.GetEntry(0, types.Varchar))
-	initialEntries = append(initialEntries, &skip_list_page.SkipListPair{
-		Key:   types.NewVarchar("abcde"),
-		Value: 2,
-	})
-	initialEntries = append(initialEntries, &skip_list_page.SkipListPair{
-		Key:   types.NewVarchar("abcdef"),
-		Value: 3,
-	})
-	initialEntries = append(initialEntries, &skip_list_page.SkipListPair{
-		Key:   types.NewVarchar("abcdefg"),
-		Value: 4,
-	})
-	initialEntries = append(initialEntries, &skip_list_page.SkipListPair{
-		Key:   types.NewVarchar("abcdefgh"),
-		Value: 5,
-	})
-	bpage1.SetEntries(initialEntries)
-
-	// remove entries
-	bpage1.RemoveInner(0)
-	bpage1.RemoveInner(2)
-
-	// check entry datas
-	testingpkg.SimpleAssert(t, bpage1.GetEntryCnt() == 3)
-	testingpkg.SimpleAssert(t, bpage1.GetEntry(0, types.Varchar).Key.CompareEquals(types.NewVarchar("abcde")))
-	testingpkg.SimpleAssert(t, bpage1.GetEntry(1, types.Varchar).Key.CompareEquals(types.NewVarchar("abcdef")))
-	testingpkg.SimpleAssert(t, bpage1.GetEntry(2, types.Varchar).Key.CompareEquals(types.NewVarchar("abcdefgh")))
-
-	bpm.UnpinPage(bpage1.GetPageId(), true)
-
-	// ---------- test InsertInner --------
-	// setup a page
-	bpage2 := skip_list_page.NewSkipListBlockPage(bpm, 1, skip_list_page.SkipListPair{
-		Key:   types.NewVarchar("abcd"),
-		Value: 0,
-	})
-
-	initialEntries = make([]*skip_list_page.SkipListPair, 0)
-	initialEntries = append(initialEntries, bpage2.GetEntry(0, types.Varchar))
-	initialEntries = append(initialEntries, &skip_list_page.SkipListPair{
-		Key:   types.NewVarchar("abcde"),
-		Value: 1,
-	})
-	initialEntries = append(initialEntries, &skip_list_page.SkipListPair{
-		Key:   types.NewVarchar("abcdef"),
-		Value: 2,
-	})
-	bpage2.SetEntries(initialEntries)
-
-	// insert entries
-	bpage2.InsertInner(-1, &skip_list_page.SkipListPair{
-		Key:   types.NewVarchar("abc"),
-		Value: 0,
-	})
-	bpage2.InsertInner(2, &skip_list_page.SkipListPair{
-		Key:   types.NewVarchar("abcdee"),
-		Value: 22,
-	})
-	bpage2.InsertInner(4, &skip_list_page.SkipListPair{
-		Key:   types.NewVarchar("abcdeff"),
-		Value: 33,
-	})
-
-	// check entry datas
-	entryCnt := bpage2.GetEntryCnt()
-	testingpkg.SimpleAssert(t, entryCnt == 6)
-	entry := bpage2.GetEntry(0, types.Varchar)
-	testingpkg.SimpleAssert(t, entry.Key.CompareEquals(types.NewVarchar("abc")))
-	entry = bpage2.GetEntry(1, types.Varchar)
-	testingpkg.SimpleAssert(t, entry.Key.CompareEquals(types.NewVarchar("abcd")))
-	entry = bpage2.GetEntry(2, types.Varchar)
-	testingpkg.SimpleAssert(t, entry.Key.CompareEquals(types.NewVarchar("abcde")))
-	entry = bpage2.GetEntry(3, types.Varchar)
-	testingpkg.SimpleAssert(t, entry.Key.CompareEquals(types.NewVarchar("abcdee")))
-	entry = bpage2.GetEntry(4, types.Varchar)
-	testingpkg.SimpleAssert(t, entry.Key.CompareEquals(types.NewVarchar("abcdef")))
-	entry = bpage2.GetEntry(5, types.Varchar)
-	testingpkg.SimpleAssert(t, entry.Key.CompareEquals(types.NewVarchar("abcdeff")))
-
-	bpm.UnpinPage(bpage2.GetPageId(), true)
-
-	shi.Shutdown(false)
-}
-
-func TestBSearchOfSkipLisBlockPage(t *testing.T) {
-	t.Parallel()
-	if !common.EnableOnMemStorage {
-		os.Remove(samehada_util.GetParentFuncName() + ".db")
-		os.Remove(samehada_util.GetParentFuncName() + ".log")
-	}
-	shi := samehada.NewSamehadaInstance(samehada_util.GetParentFuncName(), common.BufferPoolMaxFrameNumForTest)
-	bpm := shi.GetBufferPoolManager()
-
-	bpage := skip_list_page.NewSkipListBlockPage(bpm, 1, skip_list_page.SkipListPair{
-		Key:   types.NewInteger(math.MinInt32),
-		Value: 0,
-	})
-
-	// ------- when element num is even number -----
-	bpage.SetEntries(make([]*skip_list_page.SkipListPair, 0))
-	bpage.SetEntries(append(bpage.GetEntries(types.Integer), &skip_list_page.SkipListPair{
-		Key:   types.NewInteger(math.MinInt32),
-		Value: 0,
-	}))
-	// set entries
-	for ii := 1; ii < 50; ii++ {
-		bpage.SetEntries(append(bpage.GetEntries(types.Integer), &skip_list_page.SkipListPair{types.NewInteger(int32(ii * 10)), uint32(ii * 10)}))
-	}
-	bpage.SetEntryCnt(int32(len(bpage.GetEntries(types.Integer))))
-
-	for ii := 1; ii < 100; ii++ {
-		key := types.NewInteger(int32(ii * 5))
-		found, entry, idx := bpage.FindEntryByKey(&key)
-		//fmt.Println(ii)
-		if ii%2 == 0 {
-			testingpkg.SimpleAssert(t, found == true && entry.Value == uint32(key.ToInteger()))
-		} else {
-			testingpkg.SimpleAssert(t, found == false && uint32(key.ToInteger())-bpage.ValueAt(idx, types.Integer) == 5)
-		}
-	}
-
-	// ------- when element num is odd number -----
-	bpage.SetEntries(make([]*skip_list_page.SkipListPair, 0))
-	bpage.SetEntries(append(bpage.GetEntries(types.Integer), &skip_list_page.SkipListPair{
-		Key:   types.NewInteger(math.MinInt32),
-		Value: 0,
-	}))
-	// set entries
-	for ii := 1; ii < 51; ii++ {
-		bpage.SetEntries(append(bpage.GetEntries(types.Integer), &skip_list_page.SkipListPair{types.NewInteger(int32(ii * 10)), uint32(ii * 10)}))
-	}
-	bpage.SetEntryCnt(int32(len(bpage.GetEntries(types.Integer))))
-
-	for ii := 1; ii < 102; ii++ {
-		key := types.NewInteger(int32(ii * 5))
-		found, entry, idx := bpage.FindEntryByKey(&key)
-		//fmt.Println(ii)
-		if ii%2 == 0 {
-			testingpkg.SimpleAssert(t, found == true && entry.Value == uint32(key.ToInteger()))
-		} else {
-			testingpkg.SimpleAssert(t, found == false && uint32(key.ToInteger())-bpage.ValueAt(idx, types.Integer) == 5)
-		}
-	}
-
-	shi.Shutdown(false)
-}
-
-func TestBSearchOfSkipLisBlockPage2(t *testing.T) {
-	t.Parallel()
-	if !common.EnableOnMemStorage {
-		os.Remove(samehada_util.GetParentFuncName() + ".db")
-		os.Remove(samehada_util.GetParentFuncName() + ".log")
-	}
-	shi := samehada.NewSamehadaInstance(samehada_util.GetParentFuncName(), common.BufferPoolMaxFrameNumForTest)
-	bpm := shi.GetBufferPoolManager()
-
-	bpage := skip_list_page.NewSkipListBlockPage(bpm, 1, skip_list_page.SkipListPair{
-		Key:   types.NewInteger(math.MinInt32),
-		Value: 0,
-	})
-
-	// ------- when element num is even number -----
-	bpage.SetEntries(make([]*skip_list_page.SkipListPair, 0))
-	bpage.SetEntries(append(bpage.GetEntries(types.Integer), &skip_list_page.SkipListPair{
-		Key:   types.NewInteger(math.MinInt32),
-		Value: 0,
-	}))
-	// set entries
-	for ii := 1; ii < 50; ii++ {
-		bpage.WLatch()
-		bpage.Insert(samehada_util.GetPonterOfValue(types.NewInteger(int32(ii*10))), uint32(ii*10), bpm, nil, 1)
-		//bpage.SetEntries(append(bpage.GetEntries(types.Integer), &skip_list_page.SkipListPair{types.NewInteger(int32(ii * 10)), uint32(ii * 10)}))
-	}
-	bpage.WLatch()
-	bpage.SetEntryCnt(int32(len(bpage.GetEntries(types.Integer))))
-
-	for ii := 1; ii < 100; ii++ {
-		key := types.NewInteger(int32(ii * 5))
-		found, entry, idx := bpage.FindEntryByKey(&key)
-		//fmt.Println(ii)
-		if ii%2 == 0 {
-			testingpkg.SimpleAssert(t, found == true && entry.Value == uint32(key.ToInteger()))
-		} else {
-			testingpkg.SimpleAssert(t, found == false && uint32(key.ToInteger())-bpage.ValueAt(idx, types.Integer) == 5)
-		}
-	}
-	bpage.WUnlatch()
-
-	// ------- when element num is odd number -----
-	bpage.WLatch()
-	bpage.SetEntries(make([]*skip_list_page.SkipListPair, 0))
-	bpage.SetEntries(append(bpage.GetEntries(types.Integer), &skip_list_page.SkipListPair{
-		Key:   types.NewInteger(math.MinInt32),
-		Value: 0,
-	}))
-	bpage.WUnlatch()
-	// set entries
-	for ii := 1; ii < 51; ii++ {
-		bpage.WLatch()
-		bpage.Insert(samehada_util.GetPonterOfValue(types.NewInteger(int32(ii*10))), uint32(ii*10), bpm, nil, 1)
-		//bpage.SetEntries(append(bpage.GetEntries(types.Integer), &skip_list_page.SkipListPair{types.NewInteger(int32(ii * 10)), uint32(ii * 10)}))
-	}
-	bpage.WLatch()
-	bpage.SetEntryCnt(int32(len(bpage.GetEntries(types.Integer))))
-
-	for ii := 1; ii < 102; ii++ {
-		key := types.NewInteger(int32(ii * 5))
-		found, entry, idx := bpage.FindEntryByKey(&key)
-		//fmt.Println(ii)
-		if ii%2 == 0 {
-			testingpkg.SimpleAssert(t, found == true && entry.Value == uint32(key.ToInteger()))
-		} else {
-			testingpkg.SimpleAssert(t, found == false && uint32(key.ToInteger())-bpage.ValueAt(idx, types.Integer) == 5)
-		}
-	}
-	bpage.WUnlatch()
-
-	shi.Shutdown(false)
-}
+//func TestSerializationOfSkipLisBlockPage(t *testing.T) {
+//	t.Parallel()
+//	if !common.EnableOnMemStorage {
+//		os.Remove(samehada_util.GetParentFuncName() + ".db")
+//		os.Remove(samehada_util.GetParentFuncName() + ".log")
+//	}
+//	//shi := samehada.NewSamehadaInstance(samehada_util.GetParentFuncName(), common.BufferPoolMaxFrameNumForTest)
+//	shi := samehada.NewSamehadaInstance(samehada_util.GetParentFuncName(), common.BufferPoolMaxFrameNumForTest)
+//	bpm := shi.GetBufferPoolManager()
+//
+//	bpage := skip_list_page.NewSkipListBlockPage(bpm, 1, skip_list_page.SkipListPair{
+//		Key:   types.NewInteger(math.MinInt32),
+//		Value: 0,
+//	})
+//
+//	bpage.SetPageId(7)
+//	bpage.SetLSN(9)
+//	bpage.SetEntryCnt(1)
+//	bpage.SetLevel(4)
+//	bpage.SetForwardEntry(5, types.PageID(11))
+//	bpage.SetFreeSpacePointer(common.PageSize - 9)
+//	// EntryCnt is incremented to 2
+//	// freeSpacePointer is decremented size of entry (1+2+7+4 => 14)
+//	bpage.SetEntry(1, &skip_list_page.SkipListPair{types.NewVarchar("abcdeff"), 12345})
+//
+//	testingpkg.SimpleAssert(t, bpage.GetPageId() == 7)
+//	testingpkg.SimpleAssert(t, bpage.GetLSN() == 9)
+//	testingpkg.SimpleAssert(t, bpage.GetEntryCnt() == 2)
+//	testingpkg.SimpleAssert(t, bpage.GetLevel() == 4)
+//	testingpkg.SimpleAssert(t, bpage.GetForwardEntry(5) == types.PageID(11))
+//
+//	testingpkg.SimpleAssert(t, bpage.GetFreeSpacePointer() == (common.PageSize-9-14))
+//	entry := bpage.GetEntry(1, types.Varchar)
+//	testingpkg.SimpleAssert(t, entry.Key.CompareEquals(types.NewVarchar("abcdeff")))
+//	testingpkg.SimpleAssert(t, entry.Value == 12345)
+//
+//	shi.Shutdown(false)
+//}
+//
+//func TestSerializationOfSkipLisHeaderPage(t *testing.T) {
+//	t.Parallel()
+//	if !common.EnableOnMemStorage {
+//		os.Remove(samehada_util.GetParentFuncName() + ".db")
+//		os.Remove(samehada_util.GetParentFuncName() + ".log")
+//	}
+//	shi := samehada.NewSamehadaInstance(samehada_util.GetParentFuncName(), common.BufferPoolMaxFrameNumForTest)
+//	bpm := shi.GetBufferPoolManager()
+//
+//	hpageId := skip_list_page.NewSkipListHeaderPage(bpm, types.Integer)
+//	hpage := skip_list_page.FetchAndCastToHeaderPage(bpm, hpageId)
+//
+//	hpage.SetPageId(7)
+//	hpage.SetLSN(7)
+//	hpage.SetListStartPageId(7)
+//	hpage.SetKeyType(types.Varchar)
+//
+//	testingpkg.SimpleAssert(t, hpage.GetPageId() == 7)
+//	testingpkg.SimpleAssert(t, hpage.GetLSN() == 7)
+//	testingpkg.SimpleAssert(t, hpage.GetListStartPageId() == 7)
+//	testingpkg.SimpleAssert(t, hpage.GetKeyType() == types.Varchar)
+//
+//	shi.Shutdown(false)
+//}
+//
+//func TestInnerInsertDeleteOfBlockPageSimple(t *testing.T) {
+//	t.Parallel()
+//	if !common.EnableOnMemStorage {
+//		os.Remove(samehada_util.GetParentFuncName() + ".db")
+//		os.Remove(samehada_util.GetParentFuncName() + ".log")
+//	}
+//	shi := samehada.NewSamehadaInstance(samehada_util.GetParentFuncName(), common.BufferPoolMaxFrameNumForTest)
+//	bpm := shi.GetBufferPoolManager()
+//
+//	// ---------- test RemoveInner --------
+//	// setup a page
+//	bpage1 := skip_list_page.NewSkipListBlockPage(bpm, 1, skip_list_page.SkipListPair{
+//		Key:   types.NewVarchar("abcd"),
+//		Value: 1,
+//	})
+//
+//	initialEntries := make([]*skip_list_page.SkipListPair, 0)
+//	initialEntries = append(initialEntries, bpage1.GetEntry(0, types.Varchar))
+//	initialEntries = append(initialEntries, &skip_list_page.SkipListPair{
+//		Key:   types.NewVarchar("abcde"),
+//		Value: 2,
+//	})
+//	initialEntries = append(initialEntries, &skip_list_page.SkipListPair{
+//		Key:   types.NewVarchar("abcdef"),
+//		Value: 3,
+//	})
+//	initialEntries = append(initialEntries, &skip_list_page.SkipListPair{
+//		Key:   types.NewVarchar("abcdefg"),
+//		Value: 4,
+//	})
+//	initialEntries = append(initialEntries, &skip_list_page.SkipListPair{
+//		Key:   types.NewVarchar("abcdefgh"),
+//		Value: 5,
+//	})
+//	bpage1.SetEntries(initialEntries)
+//
+//	// remove entries
+//	bpage1.RemoveInner(0)
+//	bpage1.RemoveInner(2)
+//
+//	// check entry datas
+//	testingpkg.SimpleAssert(t, bpage1.GetEntryCnt() == 3)
+//	testingpkg.SimpleAssert(t, bpage1.GetEntry(0, types.Varchar).Key.CompareEquals(types.NewVarchar("abcde")))
+//	testingpkg.SimpleAssert(t, bpage1.GetEntry(1, types.Varchar).Key.CompareEquals(types.NewVarchar("abcdef")))
+//	testingpkg.SimpleAssert(t, bpage1.GetEntry(2, types.Varchar).Key.CompareEquals(types.NewVarchar("abcdefgh")))
+//
+//	bpm.UnpinPage(bpage1.GetPageId(), true)
+//
+//	// ---------- test InsertInner --------
+//	// setup a page
+//	bpage2 := skip_list_page.NewSkipListBlockPage(bpm, 1, skip_list_page.SkipListPair{
+//		Key:   types.NewVarchar("abcd"),
+//		Value: 0,
+//	})
+//
+//	initialEntries = make([]*skip_list_page.SkipListPair, 0)
+//	initialEntries = append(initialEntries, bpage2.GetEntry(0, types.Varchar))
+//	initialEntries = append(initialEntries, &skip_list_page.SkipListPair{
+//		Key:   types.NewVarchar("abcde"),
+//		Value: 1,
+//	})
+//	initialEntries = append(initialEntries, &skip_list_page.SkipListPair{
+//		Key:   types.NewVarchar("abcdef"),
+//		Value: 2,
+//	})
+//	bpage2.SetEntries(initialEntries)
+//
+//	// insert entries
+//	bpage2.InsertInner(-1, &skip_list_page.SkipListPair{
+//		Key:   types.NewVarchar("abc"),
+//		Value: 0,
+//	})
+//	bpage2.InsertInner(2, &skip_list_page.SkipListPair{
+//		Key:   types.NewVarchar("abcdee"),
+//		Value: 22,
+//	})
+//	bpage2.InsertInner(4, &skip_list_page.SkipListPair{
+//		Key:   types.NewVarchar("abcdeff"),
+//		Value: 33,
+//	})
+//
+//	// check entry datas
+//	entryCnt := bpage2.GetEntryCnt()
+//	testingpkg.SimpleAssert(t, entryCnt == 6)
+//	entry := bpage2.GetEntry(0, types.Varchar)
+//	testingpkg.SimpleAssert(t, entry.Key.CompareEquals(types.NewVarchar("abc")))
+//	entry = bpage2.GetEntry(1, types.Varchar)
+//	testingpkg.SimpleAssert(t, entry.Key.CompareEquals(types.NewVarchar("abcd")))
+//	entry = bpage2.GetEntry(2, types.Varchar)
+//	testingpkg.SimpleAssert(t, entry.Key.CompareEquals(types.NewVarchar("abcde")))
+//	entry = bpage2.GetEntry(3, types.Varchar)
+//	testingpkg.SimpleAssert(t, entry.Key.CompareEquals(types.NewVarchar("abcdee")))
+//	entry = bpage2.GetEntry(4, types.Varchar)
+//	testingpkg.SimpleAssert(t, entry.Key.CompareEquals(types.NewVarchar("abcdef")))
+//	entry = bpage2.GetEntry(5, types.Varchar)
+//	testingpkg.SimpleAssert(t, entry.Key.CompareEquals(types.NewVarchar("abcdeff")))
+//
+//	bpm.UnpinPage(bpage2.GetPageId(), true)
+//
+//	shi.Shutdown(false)
+//}
+//
+//func TestBSearchOfSkipLisBlockPage(t *testing.T) {
+//	t.Parallel()
+//	if !common.EnableOnMemStorage {
+//		os.Remove(samehada_util.GetParentFuncName() + ".db")
+//		os.Remove(samehada_util.GetParentFuncName() + ".log")
+//	}
+//	shi := samehada.NewSamehadaInstance(samehada_util.GetParentFuncName(), common.BufferPoolMaxFrameNumForTest)
+//	bpm := shi.GetBufferPoolManager()
+//
+//	bpage := skip_list_page.NewSkipListBlockPage(bpm, 1, skip_list_page.SkipListPair{
+//		Key:   types.NewInteger(math.MinInt32),
+//		Value: 0,
+//	})
+//
+//	// ------- when element num is even number -----
+//	bpage.SetEntries(make([]*skip_list_page.SkipListPair, 0))
+//	bpage.SetEntries(append(bpage.GetEntries(types.Integer), &skip_list_page.SkipListPair{
+//		Key:   types.NewInteger(math.MinInt32),
+//		Value: 0,
+//	}))
+//	// set entries
+//	for ii := 1; ii < 50; ii++ {
+//		bpage.SetEntries(append(bpage.GetEntries(types.Integer), &skip_list_page.SkipListPair{types.NewInteger(int32(ii * 10)), uint32(ii * 10)}))
+//	}
+//	bpage.SetEntryCnt(int32(len(bpage.GetEntries(types.Integer))))
+//
+//	for ii := 1; ii < 100; ii++ {
+//		key := types.NewInteger(int32(ii * 5))
+//		found, entry, idx := bpage.FindEntryByKey(&key)
+//		//fmt.Println(ii)
+//		if ii%2 == 0 {
+//			testingpkg.SimpleAssert(t, found == true && entry.Value == uint32(key.ToInteger()))
+//		} else {
+//			testingpkg.SimpleAssert(t, found == false && uint32(key.ToInteger())-bpage.ValueAt(idx, types.Integer) == 5)
+//		}
+//	}
+//
+//	// ------- when element num is odd number -----
+//	bpage.SetEntries(make([]*skip_list_page.SkipListPair, 0))
+//	bpage.SetEntries(append(bpage.GetEntries(types.Integer), &skip_list_page.SkipListPair{
+//		Key:   types.NewInteger(math.MinInt32),
+//		Value: 0,
+//	}))
+//	// set entries
+//	for ii := 1; ii < 51; ii++ {
+//		bpage.SetEntries(append(bpage.GetEntries(types.Integer), &skip_list_page.SkipListPair{types.NewInteger(int32(ii * 10)), uint32(ii * 10)}))
+//	}
+//	bpage.SetEntryCnt(int32(len(bpage.GetEntries(types.Integer))))
+//
+//	for ii := 1; ii < 102; ii++ {
+//		key := types.NewInteger(int32(ii * 5))
+//		found, entry, idx := bpage.FindEntryByKey(&key)
+//		//fmt.Println(ii)
+//		if ii%2 == 0 {
+//			testingpkg.SimpleAssert(t, found == true && entry.Value == uint32(key.ToInteger()))
+//		} else {
+//			testingpkg.SimpleAssert(t, found == false && uint32(key.ToInteger())-bpage.ValueAt(idx, types.Integer) == 5)
+//		}
+//	}
+//
+//	shi.Shutdown(false)
+//}
+//
+//func TestBSearchOfSkipLisBlockPage2(t *testing.T) {
+//	t.Parallel()
+//	if !common.EnableOnMemStorage {
+//		os.Remove(samehada_util.GetParentFuncName() + ".db")
+//		os.Remove(samehada_util.GetParentFuncName() + ".log")
+//	}
+//	shi := samehada.NewSamehadaInstance(samehada_util.GetParentFuncName(), common.BufferPoolMaxFrameNumForTest)
+//	bpm := shi.GetBufferPoolManager()
+//
+//	bpage := skip_list_page.NewSkipListBlockPage(bpm, 1, skip_list_page.SkipListPair{
+//		Key:   types.NewInteger(math.MinInt32),
+//		Value: 0,
+//	})
+//
+//	// ------- when element num is even number -----
+//	bpage.SetEntries(make([]*skip_list_page.SkipListPair, 0))
+//	bpage.SetEntries(append(bpage.GetEntries(types.Integer), &skip_list_page.SkipListPair{
+//		Key:   types.NewInteger(math.MinInt32),
+//		Value: 0,
+//	}))
+//	// set entries
+//	for ii := 1; ii < 50; ii++ {
+//		bpage.WLatch()
+//		bpage.Insert(samehada_util.GetPonterOfValue(types.NewInteger(int32(ii*10))), uint32(ii*10), bpm, nil, 1)
+//		//bpage.SetEntries(append(bpage.GetEntries(types.Integer), &skip_list_page.SkipListPair{types.NewInteger(int32(ii * 10)), uint32(ii * 10)}))
+//	}
+//	bpage.WLatch()
+//	bpage.SetEntryCnt(int32(len(bpage.GetEntries(types.Integer))))
+//
+//	for ii := 1; ii < 100; ii++ {
+//		key := types.NewInteger(int32(ii * 5))
+//		found, entry, idx := bpage.FindEntryByKey(&key)
+//		//fmt.Println(ii)
+//		if ii%2 == 0 {
+//			testingpkg.SimpleAssert(t, found == true && entry.Value == uint32(key.ToInteger()))
+//		} else {
+//			testingpkg.SimpleAssert(t, found == false && uint32(key.ToInteger())-bpage.ValueAt(idx, types.Integer) == 5)
+//		}
+//	}
+//	bpage.WUnlatch()
+//
+//	// ------- when element num is odd number -----
+//	bpage.WLatch()
+//	bpage.SetEntries(make([]*skip_list_page.SkipListPair, 0))
+//	bpage.SetEntries(append(bpage.GetEntries(types.Integer), &skip_list_page.SkipListPair{
+//		Key:   types.NewInteger(math.MinInt32),
+//		Value: 0,
+//	}))
+//	bpage.WUnlatch()
+//	// set entries
+//	for ii := 1; ii < 51; ii++ {
+//		bpage.WLatch()
+//		bpage.Insert(samehada_util.GetPonterOfValue(types.NewInteger(int32(ii*10))), uint32(ii*10), bpm, nil, 1)
+//		//bpage.SetEntries(append(bpage.GetEntries(types.Integer), &skip_list_page.SkipListPair{types.NewInteger(int32(ii * 10)), uint32(ii * 10)}))
+//	}
+//	bpage.WLatch()
+//	bpage.SetEntryCnt(int32(len(bpage.GetEntries(types.Integer))))
+//
+//	for ii := 1; ii < 102; ii++ {
+//		key := types.NewInteger(int32(ii * 5))
+//		found, entry, idx := bpage.FindEntryByKey(&key)
+//		//fmt.Println(ii)
+//		if ii%2 == 0 {
+//			testingpkg.SimpleAssert(t, found == true && entry.Value == uint32(key.ToInteger()))
+//		} else {
+//			testingpkg.SimpleAssert(t, found == false && uint32(key.ToInteger())-bpage.ValueAt(idx, types.Integer) == 5)
+//		}
+//	}
+//	bpage.WUnlatch()
+//
+//	shi.Shutdown(false)
+//}
 
 func confirmSkipListContent(t *testing.T, sl *skip_list.SkipList, step int32) int32 {
 	entryCnt := int32(0)
@@ -362,327 +349,327 @@ func confirmSkipListContent(t *testing.T, sl *skip_list.SkipList, step int32) in
 	return entryCnt
 }
 
-func TestSkipListSimple(t *testing.T) {
-	t.Parallel()
-	if !common.EnableOnMemStorage {
-		os.Remove(samehada_util.GetParentFuncName() + ".db")
-		os.Remove(samehada_util.GetParentFuncName() + ".log")
-	}
-
-	shi := samehada.NewSamehadaInstance(samehada_util.GetParentFuncName(), common.BufferPoolMaxFrameNumForTest)
-	sl := skip_list.NewSkipList(shi.GetBufferPoolManager(), types.Integer)
-
-	// override global rand seed (seed has been set on NewSkipList)
-	rand.Seed(3)
-
-	insVals := make([]int32, 0)
-	for i := 0; i < 250; i++ {
-		insVals = append(insVals, int32(i*11))
-	}
-	// shuffle value list for inserting
-	rand.Shuffle(len(insVals), func(i, j int) { insVals[i], insVals[j] = insVals[j], insVals[i] })
-
-	// Insert entries
-	insCnt := 0
-	for _, insVal := range insVals {
-		//fmt.Printf("insCnt: %d\n", insCnt)
-		insCnt++
-		sl.Insert(samehada_util.GetPonterOfValue(types.NewInteger(int32(insVal))), uint32(insVal))
-	}
-
-	//confirmSkipListContent(t, sl, 11)
-
-	// Get entries
-	for i := 0; i < 250; i++ {
-		//fmt.Printf("get entry i=%d key=%d\n", i, i*11)
-		res := sl.GetValue(samehada_util.GetPonterOfValue(types.NewInteger(int32(i * 11))))
-		if res == math.MaxUint32 {
-			t.Errorf("result should not be nil")
-		} else {
-			testingpkg.SimpleAssert(t, uint32(i*11) == res)
-		}
-	}
-
-	// delete some values
-	for i := 0; i < 100; i++ {
-		// check existance before delete
-		res := sl.GetValue(samehada_util.GetPonterOfValue(types.NewInteger(int32(i * 11))))
-		if res == math.MaxUint32 {
-			panic("result should not be nil")
-		} else {
-			testingpkg.SimpleAssert(t, uint32(i*11) == res)
-		}
-
-		// check no existance after delete
-		sl.Remove(samehada_util.GetPonterOfValue(types.NewInteger(int32(i*11))), uint32(i*11))
-
-		res = sl.GetValue(samehada_util.GetPonterOfValue(types.NewInteger(int32(i * 11))))
-		testingpkg.SimpleAssert(t, math.MaxUint32 == res)
-		//fmt.Println("contents listing after delete")
-		//confirmSkipListContent(t, sl, -1)
-	}
-
-	shi.Shutdown(false)
-}
-
-func TestSkipListInsertAndDeleteAll(t *testing.T) {
-	t.Parallel()
-	if !common.EnableOnMemStorage {
-		os.Remove(samehada_util.GetParentFuncName() + ".db")
-		os.Remove(samehada_util.GetParentFuncName() + ".log")
-	}
-
-	//shi := samehada.NewSamehadaInstance(samehada_util.GetParentFuncName(), 100)
-	shi := samehada.NewSamehadaInstance(samehada_util.GetParentFuncName(), 5)
-	sl := skip_list.NewSkipList(shi.GetBufferPoolManager(), types.Integer)
-
-	// override global rand seed (seed has been set on NewSkipList)
-	rand.Seed(3)
-
-	insVals := make([]int32, 0)
-	for i := 0; i < 5000; i++ {
-		insVals = append(insVals, int32(i*11))
-	}
-	// shuffle value list for inserting
-	rand.Shuffle(len(insVals), func(i, j int) { insVals[i], insVals[j] = insVals[j], insVals[i] })
-
-	//////////// remove from tail ///////
-
-	// Insert entries
-	insCnt := 0
-	for _, insVal := range insVals {
-		common.ShPrintf(common.DEBUG_INFO, "insCnt: %d\n", insCnt)
-		insCnt++
-		sl.Insert(samehada_util.GetPonterOfValue(types.NewInteger(int32(insVal))), uint32(insVal))
-	}
-
-	//confirmSkipListContent(t, sl, 11)
-
-	// Get entries
-	for i := 0; i < 5000; i++ {
-		//fmt.Printf("get entry i=%d key=%d\n", i, i*11)
-		res := sl.GetValue(samehada_util.GetPonterOfValue(types.NewInteger(int32(i * 11))))
-		if res == math.MaxUint32 {
-			t.Errorf("result should not be nil")
-		} else {
-			testingpkg.SimpleAssert(t, uint32(i*11) == res)
-		}
-	}
-
-	// delete all values
-	for i := (5000 - 1); i >= 0; i-- {
-		// delete
-		isDeleted := sl.Remove(samehada_util.GetPonterOfValue(types.NewInteger(int32(i*11))), uint32(i*11))
-		common.ShPrintf(common.DEBUG_INFO, "i=%d i*11=%d\n", i, i*11)
-		testingpkg.SimpleAssert(t, isDeleted == true)
-
-		// check no existance after delete
-		res := sl.GetValue(samehada_util.GetPonterOfValue(types.NewInteger(int32(i * 11))))
-		common.ShPrintf(common.DEBUG_INFO, "i=%d i*11=%d res=%d\n", i, i*11, res)
-		testingpkg.SimpleAssert(t, math.MaxUint32 == res)
-	}
-
-	//////////// remove from head ///////
-
-	// Re-Insert entries
-	insCnt = 0
-	for _, insVal := range insVals {
-		//fmt.Printf("insCnt: %d\n", insCnt)
-		insCnt++
-		sl.Insert(samehada_util.GetPonterOfValue(types.NewInteger(int32(insVal))), uint32(insVal))
-	}
-
-	// Get entries
-	for i := 0; i < 5000; i++ {
-		//fmt.Printf("get entry i=%d key=%d\n", i, i*11)
-		res := sl.GetValue(samehada_util.GetPonterOfValue(types.NewInteger(int32(i * 11))))
-		if res == math.MaxUint32 {
-			t.Errorf("result should not be nil")
-		} else {
-			testingpkg.SimpleAssert(t, uint32(i*11) == res)
-		}
-	}
-
-	// delete all values
-	for i := 0; i < 5000; i++ {
-		// delete
-		isDeleted := sl.Remove(samehada_util.GetPonterOfValue(types.NewInteger(int32(i*11))), uint32(i*11))
-		common.ShPrintf(common.DEBUG_INFO, "i=%d i*11=%d\n", i, i*11)
-		testingpkg.SimpleAssert(t, isDeleted == true)
-
-		// check no existance after delete
-		res := sl.GetValue(samehada_util.GetPonterOfValue(types.NewInteger(int32(i * 11))))
-		common.ShPrintf(common.DEBUG_INFO, "i=%d i*11=%d res=%d\n", i, i*11, res)
-		testingpkg.SimpleAssert(t, math.MaxUint32 == res)
-	}
-
-	shi.Shutdown(false)
-}
-
-func TestSkipListItr(t *testing.T) {
-	t.Parallel()
-	if !common.EnableOnMemStorage {
-		os.Remove(samehada_util.GetParentFuncName() + ".db")
-		os.Remove(samehada_util.GetParentFuncName() + ".log")
-	}
-
-	shi := samehada.NewSamehadaInstance(samehada_util.GetParentFuncName(), common.BufferPoolMaxFrameNumForTest)
-	sl := skip_list.NewSkipList(shi.GetBufferPoolManager(), types.Integer)
-
-	insVals := make([]int32, 0)
-	for i := 0; i < 250; i++ {
-		insVals = append(insVals, int32(i*11))
-	}
-	// shuffle value list for inserting
-	rand.Shuffle(len(insVals), func(i, j int) { insVals[i], insVals[j] = insVals[j], insVals[i] })
-
-	for _, insVal := range insVals {
-		//fmt.Println(insVal)
-		sl.Insert(samehada_util.GetPonterOfValue(types.NewInteger(int32(insVal))), uint32(insVal))
-	}
-
-	//fmt.Println("--------------")
-	//sl.CheckElemListOnMem()
-
-	//fmt.Println("--------------")
-	lastKeyVal := int32(0)
-	startVal := int32(77777)
-	endVal := int32(math.MaxInt32 / 2)
-	startValP := samehada_util.GetPonterOfValue(types.NewInteger(startVal))
-	endValP := samehada_util.GetPonterOfValue(types.NewInteger(endVal))
-
-	itr1 := sl.Iterator(startValP, endValP)
-	for done, _, key, _ := itr1.Next(); !done; done, _, key, _ = itr1.Next() {
-		testingpkg.SimpleAssert(t, startVal <= key.ToInteger() && key.ToInteger() <= endVal && lastKeyVal <= key.ToInteger())
-		//fmt.Println(key.ToInteger())
-		lastKeyVal = key.ToInteger()
-	}
-
-	//fmt.Println("--------------")
-	lastKeyVal = int32(0)
-	startValP = nil
-	endValP = samehada_util.GetPonterOfValue(types.NewInteger(endVal))
-	itr2 := sl.Iterator(startValP, endValP)
-	for done, _, key, _ := itr2.Next(); !done; done, _, key, _ = itr2.Next() {
-		testingpkg.SimpleAssert(t, key.ToInteger() <= endVal && lastKeyVal <= key.ToInteger())
-		//fmt.Println(key.ToInteger())
-		lastKeyVal = key.ToInteger()
-	}
-
-	//fmt.Println("--------------")
-	lastKeyVal = int32(0)
-	startValP = samehada_util.GetPonterOfValue(types.NewInteger(startVal))
-	endValP = nil
-	itr3 := sl.Iterator(startValP, endValP)
-	for done, _, key, _ := itr3.Next(); !done; done, _, key, _ = itr3.Next() {
-		testingpkg.SimpleAssert(t, startVal <= key.ToInteger() && lastKeyVal <= key.ToInteger())
-		//fmt.Println(key.ToInteger())
-		lastKeyVal = key.ToInteger()
-	}
-
-	//fmt.Println("--------------")
-	lastKeyVal = int32(0)
-	startValP = nil
-	endValP = nil
-	nodeCnt := 0
-	itr4 := sl.Iterator(startValP, endValP)
-	for done, _, key, _ := itr4.Next(); !done; done, _, key, _ = itr4.Next() {
-		//fmt.Printf("lastKeyVal=%d curVal=%d nodeCnt=%d\n", lastKeyVal, key.ToInteger(), nodeCnt)
-		testingpkg.SimpleAssert(t, lastKeyVal <= key.ToInteger())
-		lastKeyVal = key.ToInteger()
-		nodeCnt++
-	}
-
-	//fmt.Printf("nodeCnt=%d\n", nodeCnt)
-	testingpkg.SimpleAssert(t, nodeCnt == 250)
-}
-
-func FuzzSkipLisMixInteger(f *testing.F) {
-	if testing.Short() {
-		f.Skip("skip this in short mode.")
-	}
-	//f.Add(int32(100), int32(150), int32(10), int32(300))
-	f.Add(int32(100), int32(50), int32(10), int32(300))
-	f.Fuzz(func(t *testing.T, bulkSize int32, opTimes int32, skipRand int32, initialEntryNum int32) {
-		if bulkSize < 0 || opTimes < 0 || skipRand < 0 || initialEntryNum < 0 {
-			return
-		}
-
-		//if !common.EnableOnMemStorage {
-		//	os.Remove(samehada_util.GetParentFuncName() + ".db")
-		//	os.Remove(samehada_util.GetParentFuncName() + ".log")
-		//}
-
-		//shi := samehada.NewSamehadaInstance(samehada_util.GetParentFuncName(), common.BufferPoolMaxFrameNumForTest)
-		////shi := samehada.NewSamehadaInstance(samehada_util.GetParentFuncName(), 10*1024) // buffer is about 40MB
-		//bpm := shi.GetBufferPoolManager()
-
-		testSkipListMix[int32](t, types.Integer, bulkSize, opTimes, skipRand, initialEntryNum, true)
-
-		//shi.CloseFilesForTesting()
-	})
-}
-
-func FuzzSkipLisMixVarchar(f *testing.F) {
-	if testing.Short() {
-		f.Skip("skip this in short mode.")
-	}
-	f.Add(int32(100), int32(150), int32(10), int32(300))
-	f.Fuzz(func(t *testing.T, bulkSize int32, opTimes int32, skipRand int32, initialEntryNum int32) {
-		if bulkSize < 0 || opTimes < 0 || skipRand < 0 || initialEntryNum < 0 {
-			return
-		}
-
-		//if !common.EnableOnMemStorage {
-		//	os.Remove(samehada_util.GetParentFuncName() + ".db")
-		//	os.Remove(samehada_util.GetParentFuncName() + ".log")
-		//}
-		//randStr := *samehada_util.GetRandomStr(20)
-		////fnameNum := strconv.Itoa(int(bulkSize + opTimes + skipRand + initialEntryNum))
-		////randStr := fnameNum + ".db"
-		//
-		////shi := samehada.NewSamehadaInstance(samehada_util.GetParentFuncName(), common.BufferPoolMaxFrameNumForTest)
-		////shi := samehada.NewSamehadaInstance(*randStr, 10) // 10 frames (1 page = 4096bytes)
-		//shi := samehada.NewSamehadaInstance(randStr, 10*1024) // 10 * 1024 frames (1 page = 4096bytes)
-		//bpm := shi.GetBufferPoolManager()
-
-		testSkipListMix[string](t, types.Varchar, bulkSize, opTimes, skipRand, initialEntryNum, true)
-
-		////shi.CloseFilesForTesting()
-		//shi.Shutdown(true)
-	})
-}
-
-func FuzzSkipLisMixParallelStrideVarchar(f *testing.F) {
-	if testing.Short() {
-		f.Skip("skip this in short mode.")
-	}
-	f.Add(int32(30), int32(100), int32(10), int32(0))
-	f.Add(int32(1), int32(200), int32(11), int32(100))
-	f.Fuzz(func(t *testing.T, stride int32, opTimes int32, skipRand int32, initialEntryNum int32) {
-		//startTime := time.Now().UnixNano()
-
-		if stride < 1 || stride > 60 || opTimes < 1 || opTimes > 200 || skipRand < 0 || initialEntryNum < 0 || initialEntryNum > 20 {
-			return
-		}
-
-		testSkipListMixParallelStride[string](t, types.Varchar, stride, opTimes, skipRand, initialEntryNum, 500)
-
-		//// launch test with passed paramaters
-		//go func(stride_ int32, opTimes_ int32, skipRand_ int32, initialEntryNum_ int32) {
-		//	testSkipListMixParallelStride[string](t, types.Varchar, stride_, opTimes_, skipRand_, initialEntryNum_, 500, false)
-		//}(stride, opTimes, skipRand, initialEntryNum)
-		//
-		//// check timeout
-		//for {
-		//	elapsedTime := time.Now().UnixNano() - startTime
-		//	if elapsedTime > 1000*1000*800 { //800ms
-		//		return
-		//	}
-		//	time.Sleep(time.Millisecond * 10) // 5ms
-		//}
-	})
-}
+//func TestSkipListSimple(t *testing.T) {
+//	t.Parallel()
+//	if !common.EnableOnMemStorage {
+//		os.Remove(samehada_util.GetParentFuncName() + ".db")
+//		os.Remove(samehada_util.GetParentFuncName() + ".log")
+//	}
+//
+//	shi := samehada.NewSamehadaInstance(samehada_util.GetParentFuncName(), common.BufferPoolMaxFrameNumForTest)
+//	sl := skip_list.NewSkipList(shi.GetBufferPoolManager(), types.Integer)
+//
+//	// override global rand seed (seed has been set on NewSkipList)
+//	rand.Seed(3)
+//
+//	insVals := make([]int32, 0)
+//	for i := 0; i < 250; i++ {
+//		insVals = append(insVals, int32(i*11))
+//	}
+//	// shuffle value list for inserting
+//	rand.Shuffle(len(insVals), func(i, j int) { insVals[i], insVals[j] = insVals[j], insVals[i] })
+//
+//	// Insert entries
+//	insCnt := 0
+//	for _, insVal := range insVals {
+//		//fmt.Printf("insCnt: %d\n", insCnt)
+//		insCnt++
+//		sl.Insert(samehada_util.GetPonterOfValue(types.NewInteger(int32(insVal))), uint32(insVal))
+//	}
+//
+//	//confirmSkipListContent(t, sl, 11)
+//
+//	// Get entries
+//	for i := 0; i < 250; i++ {
+//		//fmt.Printf("get entry i=%d key=%d\n", i, i*11)
+//		res := sl.GetValue(samehada_util.GetPonterOfValue(types.NewInteger(int32(i * 11))))
+//		if res == math.MaxUint32 {
+//			t.Errorf("result should not be nil")
+//		} else {
+//			testingpkg.SimpleAssert(t, uint32(i*11) == res)
+//		}
+//	}
+//
+//	// delete some values
+//	for i := 0; i < 100; i++ {
+//		// check existance before delete
+//		res := sl.GetValue(samehada_util.GetPonterOfValue(types.NewInteger(int32(i * 11))))
+//		if res == math.MaxUint32 {
+//			panic("result should not be nil")
+//		} else {
+//			testingpkg.SimpleAssert(t, uint32(i*11) == res)
+//		}
+//
+//		// check no existance after delete
+//		sl.Remove(samehada_util.GetPonterOfValue(types.NewInteger(int32(i*11))), uint32(i*11))
+//
+//		res = sl.GetValue(samehada_util.GetPonterOfValue(types.NewInteger(int32(i * 11))))
+//		testingpkg.SimpleAssert(t, math.MaxUint32 == res)
+//		//fmt.Println("contents listing after delete")
+//		//confirmSkipListContent(t, sl, -1)
+//	}
+//
+//	shi.Shutdown(false)
+//}
+//
+//func TestSkipListInsertAndDeleteAll(t *testing.T) {
+//	t.Parallel()
+//	if !common.EnableOnMemStorage {
+//		os.Remove(samehada_util.GetParentFuncName() + ".db")
+//		os.Remove(samehada_util.GetParentFuncName() + ".log")
+//	}
+//
+//	//shi := samehada.NewSamehadaInstance(samehada_util.GetParentFuncName(), 100)
+//	shi := samehada.NewSamehadaInstance(samehada_util.GetParentFuncName(), 5)
+//	sl := skip_list.NewSkipList(shi.GetBufferPoolManager(), types.Integer)
+//
+//	// override global rand seed (seed has been set on NewSkipList)
+//	rand.Seed(3)
+//
+//	insVals := make([]int32, 0)
+//	for i := 0; i < 5000; i++ {
+//		insVals = append(insVals, int32(i*11))
+//	}
+//	// shuffle value list for inserting
+//	rand.Shuffle(len(insVals), func(i, j int) { insVals[i], insVals[j] = insVals[j], insVals[i] })
+//
+//	//////////// remove from tail ///////
+//
+//	// Insert entries
+//	insCnt := 0
+//	for _, insVal := range insVals {
+//		common.ShPrintf(common.DEBUG_INFO, "insCnt: %d\n", insCnt)
+//		insCnt++
+//		sl.Insert(samehada_util.GetPonterOfValue(types.NewInteger(int32(insVal))), uint32(insVal))
+//	}
+//
+//	//confirmSkipListContent(t, sl, 11)
+//
+//	// Get entries
+//	for i := 0; i < 5000; i++ {
+//		//fmt.Printf("get entry i=%d key=%d\n", i, i*11)
+//		res := sl.GetValue(samehada_util.GetPonterOfValue(types.NewInteger(int32(i * 11))))
+//		if res == math.MaxUint32 {
+//			t.Errorf("result should not be nil")
+//		} else {
+//			testingpkg.SimpleAssert(t, uint32(i*11) == res)
+//		}
+//	}
+//
+//	// delete all values
+//	for i := (5000 - 1); i >= 0; i-- {
+//		// delete
+//		isDeleted := sl.Remove(samehada_util.GetPonterOfValue(types.NewInteger(int32(i*11))), uint32(i*11))
+//		common.ShPrintf(common.DEBUG_INFO, "i=%d i*11=%d\n", i, i*11)
+//		testingpkg.SimpleAssert(t, isDeleted == true)
+//
+//		// check no existance after delete
+//		res := sl.GetValue(samehada_util.GetPonterOfValue(types.NewInteger(int32(i * 11))))
+//		common.ShPrintf(common.DEBUG_INFO, "i=%d i*11=%d res=%d\n", i, i*11, res)
+//		testingpkg.SimpleAssert(t, math.MaxUint32 == res)
+//	}
+//
+//	//////////// remove from head ///////
+//
+//	// Re-Insert entries
+//	insCnt = 0
+//	for _, insVal := range insVals {
+//		//fmt.Printf("insCnt: %d\n", insCnt)
+//		insCnt++
+//		sl.Insert(samehada_util.GetPonterOfValue(types.NewInteger(int32(insVal))), uint32(insVal))
+//	}
+//
+//	// Get entries
+//	for i := 0; i < 5000; i++ {
+//		//fmt.Printf("get entry i=%d key=%d\n", i, i*11)
+//		res := sl.GetValue(samehada_util.GetPonterOfValue(types.NewInteger(int32(i * 11))))
+//		if res == math.MaxUint32 {
+//			t.Errorf("result should not be nil")
+//		} else {
+//			testingpkg.SimpleAssert(t, uint32(i*11) == res)
+//		}
+//	}
+//
+//	// delete all values
+//	for i := 0; i < 5000; i++ {
+//		// delete
+//		isDeleted := sl.Remove(samehada_util.GetPonterOfValue(types.NewInteger(int32(i*11))), uint32(i*11))
+//		common.ShPrintf(common.DEBUG_INFO, "i=%d i*11=%d\n", i, i*11)
+//		testingpkg.SimpleAssert(t, isDeleted == true)
+//
+//		// check no existance after delete
+//		res := sl.GetValue(samehada_util.GetPonterOfValue(types.NewInteger(int32(i * 11))))
+//		common.ShPrintf(common.DEBUG_INFO, "i=%d i*11=%d res=%d\n", i, i*11, res)
+//		testingpkg.SimpleAssert(t, math.MaxUint32 == res)
+//	}
+//
+//	shi.Shutdown(false)
+//}
+//
+//func TestSkipListItr(t *testing.T) {
+//	t.Parallel()
+//	if !common.EnableOnMemStorage {
+//		os.Remove(samehada_util.GetParentFuncName() + ".db")
+//		os.Remove(samehada_util.GetParentFuncName() + ".log")
+//	}
+//
+//	shi := samehada.NewSamehadaInstance(samehada_util.GetParentFuncName(), common.BufferPoolMaxFrameNumForTest)
+//	sl := skip_list.NewSkipList(shi.GetBufferPoolManager(), types.Integer)
+//
+//	insVals := make([]int32, 0)
+//	for i := 0; i < 250; i++ {
+//		insVals = append(insVals, int32(i*11))
+//	}
+//	// shuffle value list for inserting
+//	rand.Shuffle(len(insVals), func(i, j int) { insVals[i], insVals[j] = insVals[j], insVals[i] })
+//
+//	for _, insVal := range insVals {
+//		//fmt.Println(insVal)
+//		sl.Insert(samehada_util.GetPonterOfValue(types.NewInteger(int32(insVal))), uint32(insVal))
+//	}
+//
+//	//fmt.Println("--------------")
+//	//sl.CheckElemListOnMem()
+//
+//	//fmt.Println("--------------")
+//	lastKeyVal := int32(0)
+//	startVal := int32(77777)
+//	endVal := int32(math.MaxInt32 / 2)
+//	startValP := samehada_util.GetPonterOfValue(types.NewInteger(startVal))
+//	endValP := samehada_util.GetPonterOfValue(types.NewInteger(endVal))
+//
+//	itr1 := sl.Iterator(startValP, endValP)
+//	for done, _, key, _ := itr1.Next(); !done; done, _, key, _ = itr1.Next() {
+//		testingpkg.SimpleAssert(t, startVal <= key.ToInteger() && key.ToInteger() <= endVal && lastKeyVal <= key.ToInteger())
+//		//fmt.Println(key.ToInteger())
+//		lastKeyVal = key.ToInteger()
+//	}
+//
+//	//fmt.Println("--------------")
+//	lastKeyVal = int32(0)
+//	startValP = nil
+//	endValP = samehada_util.GetPonterOfValue(types.NewInteger(endVal))
+//	itr2 := sl.Iterator(startValP, endValP)
+//	for done, _, key, _ := itr2.Next(); !done; done, _, key, _ = itr2.Next() {
+//		testingpkg.SimpleAssert(t, key.ToInteger() <= endVal && lastKeyVal <= key.ToInteger())
+//		//fmt.Println(key.ToInteger())
+//		lastKeyVal = key.ToInteger()
+//	}
+//
+//	//fmt.Println("--------------")
+//	lastKeyVal = int32(0)
+//	startValP = samehada_util.GetPonterOfValue(types.NewInteger(startVal))
+//	endValP = nil
+//	itr3 := sl.Iterator(startValP, endValP)
+//	for done, _, key, _ := itr3.Next(); !done; done, _, key, _ = itr3.Next() {
+//		testingpkg.SimpleAssert(t, startVal <= key.ToInteger() && lastKeyVal <= key.ToInteger())
+//		//fmt.Println(key.ToInteger())
+//		lastKeyVal = key.ToInteger()
+//	}
+//
+//	//fmt.Println("--------------")
+//	lastKeyVal = int32(0)
+//	startValP = nil
+//	endValP = nil
+//	nodeCnt := 0
+//	itr4 := sl.Iterator(startValP, endValP)
+//	for done, _, key, _ := itr4.Next(); !done; done, _, key, _ = itr4.Next() {
+//		//fmt.Printf("lastKeyVal=%d curVal=%d nodeCnt=%d\n", lastKeyVal, key.ToInteger(), nodeCnt)
+//		testingpkg.SimpleAssert(t, lastKeyVal <= key.ToInteger())
+//		lastKeyVal = key.ToInteger()
+//		nodeCnt++
+//	}
+//
+//	//fmt.Printf("nodeCnt=%d\n", nodeCnt)
+//	testingpkg.SimpleAssert(t, nodeCnt == 250)
+//}
+//
+//func FuzzSkipLisMixInteger(f *testing.F) {
+//	if testing.Short() {
+//		f.Skip("skip this in short mode.")
+//	}
+//	//f.Add(int32(100), int32(150), int32(10), int32(300))
+//	f.Add(int32(100), int32(50), int32(10), int32(300))
+//	f.Fuzz(func(t *testing.T, bulkSize int32, opTimes int32, skipRand int32, initialEntryNum int32) {
+//		if bulkSize < 0 || opTimes < 0 || skipRand < 0 || initialEntryNum < 0 {
+//			return
+//		}
+//
+//		//if !common.EnableOnMemStorage {
+//		//	os.Remove(samehada_util.GetParentFuncName() + ".db")
+//		//	os.Remove(samehada_util.GetParentFuncName() + ".log")
+//		//}
+//
+//		//shi := samehada.NewSamehadaInstance(samehada_util.GetParentFuncName(), common.BufferPoolMaxFrameNumForTest)
+//		////shi := samehada.NewSamehadaInstance(samehada_util.GetParentFuncName(), 10*1024) // buffer is about 40MB
+//		//bpm := shi.GetBufferPoolManager()
+//
+//		testSkipListMix[int32](t, types.Integer, bulkSize, opTimes, skipRand, initialEntryNum, true)
+//
+//		//shi.CloseFilesForTesting()
+//	})
+//}
+//
+//func FuzzSkipLisMixVarchar(f *testing.F) {
+//	if testing.Short() {
+//		f.Skip("skip this in short mode.")
+//	}
+//	f.Add(int32(100), int32(150), int32(10), int32(300))
+//	f.Fuzz(func(t *testing.T, bulkSize int32, opTimes int32, skipRand int32, initialEntryNum int32) {
+//		if bulkSize < 0 || opTimes < 0 || skipRand < 0 || initialEntryNum < 0 {
+//			return
+//		}
+//
+//		//if !common.EnableOnMemStorage {
+//		//	os.Remove(samehada_util.GetParentFuncName() + ".db")
+//		//	os.Remove(samehada_util.GetParentFuncName() + ".log")
+//		//}
+//		//randStr := *samehada_util.GetRandomStr(20)
+//		////fnameNum := strconv.Itoa(int(bulkSize + opTimes + skipRand + initialEntryNum))
+//		////randStr := fnameNum + ".db"
+//		//
+//		////shi := samehada.NewSamehadaInstance(samehada_util.GetParentFuncName(), common.BufferPoolMaxFrameNumForTest)
+//		////shi := samehada.NewSamehadaInstance(*randStr, 10) // 10 frames (1 page = 4096bytes)
+//		//shi := samehada.NewSamehadaInstance(randStr, 10*1024) // 10 * 1024 frames (1 page = 4096bytes)
+//		//bpm := shi.GetBufferPoolManager()
+//
+//		testSkipListMix[string](t, types.Varchar, bulkSize, opTimes, skipRand, initialEntryNum, true)
+//
+//		////shi.CloseFilesForTesting()
+//		//shi.Shutdown(true)
+//	})
+//}
+//
+//func FuzzSkipLisMixParallelStrideVarchar(f *testing.F) {
+//	if testing.Short() {
+//		f.Skip("skip this in short mode.")
+//	}
+//	f.Add(int32(30), int32(100), int32(10), int32(0))
+//	f.Add(int32(1), int32(200), int32(11), int32(100))
+//	f.Fuzz(func(t *testing.T, stride int32, opTimes int32, skipRand int32, initialEntryNum int32) {
+//		//startTime := time.Now().UnixNano()
+//
+//		if stride < 1 || stride > 60 || opTimes < 1 || opTimes > 200 || skipRand < 0 || initialEntryNum < 0 || initialEntryNum > 20 {
+//			return
+//		}
+//
+//		testSkipListMixParallelStride[string](t, types.Varchar, stride, opTimes, skipRand, initialEntryNum, 500)
+//
+//		//// launch test with passed paramaters
+//		//go func(stride_ int32, opTimes_ int32, skipRand_ int32, initialEntryNum_ int32) {
+//		//	testSkipListMixParallelStride[string](t, types.Varchar, stride_, opTimes_, skipRand_, initialEntryNum_, 500, false)
+//		//}(stride, opTimes, skipRand, initialEntryNum)
+//		//
+//		//// check timeout
+//		//for {
+//		//	elapsedTime := time.Now().UnixNano() - startTime
+//		//	if elapsedTime > 1000*1000*800 { //800ms
+//		//		return
+//		//	}
+//		//	time.Sleep(time.Millisecond * 10) // 5ms
+//		//}
+//	})
+//}
 
 func getValueForSkipListEntry(val interface{}) uint32 {
 	var ret uint32
@@ -715,11 +702,11 @@ func getRandomPrimitiveVal[T int32 | float32 | string](keyType types.TypeID) T {
 		return ret.(T)
 	case types.Varchar:
 		//var ret interface{} = *samehada_util.GetRandomStr(1000)
-		var ret interface{} = *samehada_util.GetRandomStr(500)
+		//var ret interface{} = *samehada_util.GetRandomStr(500)
 		//var ret interface{} = *samehada_util.GetRandomStr(700)
 		//var ret interface{} = *samehada_util.GetRandomStr(300)
 		//var ret interface{} = *samehada_util.GetRandomStr(20)
-		//var ret interface{} = *samehada_util.GetRandomStr(50)
+		var ret interface{} = *samehada_util.GetRandomStr(50)
 		return ret.(T)
 	default:
 		panic("not supported keyType")
@@ -1722,76 +1709,119 @@ func testSkipListMixParallelStrideRoot[T int32 | float32 | string](t *testing.T,
 	fmt.Println("test finished 5/5.")
 }
 
-func TestSkipListMixInteger(t *testing.T) {
-	t.Parallel()
-	testSkipListMixRoot[int32](t, types.Integer)
-}
+//func TestSkipListMixInteger(t *testing.T) {
+//	t.Parallel()
+//	testSkipListMixRoot[int32](t, types.Integer)
+//}
+//
+//func TestSkipListMixFloat(t *testing.T) {
+//	t.Parallel()
+//	testSkipListMixRoot[float32](t, types.Float)
+//}
+//
+//func TestSkipListMixVarchar(t *testing.T) {
+//	t.Parallel()
+//	testSkipListMixRoot[string](t, types.Varchar)
+//}
+//
+//func TestSkipListMixParallelInteger(t *testing.T) {
+//	t.Parallel()
+//	if testing.Short() {
+//		t.Skip("skip this in short mode.")
+//	}
+//	testSkipListMixParallelRoot[int32](t, types.Integer)
+//}
+//
+//func TestSkipListMixParallelVarchar(t *testing.T) {
+//	t.Parallel()
+//	if testing.Short() {
+//		t.Skip("skip this in short mode.")
+//	}
+//	testSkipListMixParallelRoot[string](t, types.Varchar)
+//}
+//
+//func TestSkipListMixParallelBulkInteger(t *testing.T) {
+//	t.Parallel()
+//	if testing.Short() {
+//		t.Skip("skip this in short mode.")
+//	}
+//	testSkipListMixParallelBulkRoot[int32](t, types.Integer)
+//}
+//
+//func TestSkipListMixParallelBulkVarchar(t *testing.T) {
+//	t.Parallel()
+//	if testing.Short() {
+//		t.Skip("skip this in short mode.")
+//	}
+//	testSkipListMixParallelBulkRoot[string](t, types.Varchar)
+//}
+//
+//func TestSkipListMixParallelStrideInteger(t *testing.T) {
+//	t.Parallel()
+//	if testing.Short() {
+//		t.Skip("skip this in short mode.")
+//	}
+//	testSkipListMixParallelStrideRoot[int32](t, types.Integer)
+//}
+//
+//func TestSkipListMixParallelStrideVarchar(t *testing.T) {
+//	t.Parallel()
+//	if testing.Short() {
+//		t.Skip("skip this in short mode.")
+//	}
+//	testSkipListMixParallelStrideRoot[string](t, types.Varchar)
+//}
+//
+//func TestSkipListMixParallsStrideVarcharLongRun(t *testing.T) {
+//	t.Parallel()
+//	if testing.Short() {
+//		t.Skip("skip this in short mode.")
+//	}
+//	// assumed running time is about 12h
+//	testSkipListMixParallelStride[string](t, types.Varchar, 300, 3000*12, 15, 0, 500)
+//}
 
-func TestSkipListMixFloat(t *testing.T) {
-	t.Parallel()
-	testSkipListMixRoot[float32](t, types.Float)
-}
-
-func TestSkipListMixVarchar(t *testing.T) {
-	t.Parallel()
-	testSkipListMixRoot[string](t, types.Varchar)
-}
-
-func TestSkipListMixParallelInteger(t *testing.T) {
+func TestSkipListMixParallsStrideVarcharLikeFuzzer(t *testing.T) {
 	t.Parallel()
 	if testing.Short() {
 		t.Skip("skip this in short mode.")
 	}
-	testSkipListMixParallelRoot[int32](t, types.Integer)
-}
 
-func TestSkipListMixParallelVarchar(t *testing.T) {
-	t.Parallel()
-	if testing.Short() {
-		t.Skip("skip this in short mode.")
-	}
-	testSkipListMixParallelRoot[string](t, types.Varchar)
-}
+	runtime.GOMAXPROCS(50)
 
-func TestSkipListMixParallelBulkInteger(t *testing.T) {
-	t.Parallel()
-	if testing.Short() {
-		t.Skip("skip this in short mode.")
-	}
-	testSkipListMixParallelBulkRoot[int32](t, types.Integer)
-}
+	const THREAD_NUM = 50
 
-func TestSkipListMixParallelBulkVarchar(t *testing.T) {
-	t.Parallel()
-	if testing.Short() {
-		t.Skip("skip this in short mode.")
-	}
-	testSkipListMixParallelBulkRoot[string](t, types.Varchar)
-}
+	startTime := time.Now()
 
-func TestSkipListMixParallelStrideInteger(t *testing.T) {
-	t.Parallel()
-	if testing.Short() {
-		t.Skip("skip this in short mode.")
-	}
-	testSkipListMixParallelStrideRoot[int32](t, types.Integer)
-}
+	ch := make(chan int32)
+	finishedCase := 0
+	runningThCnt := 0
+	for {
+		// wait for keeping THREAD_NUM groroutine existing
+		for runningThCnt >= THREAD_NUM {
+			//for runningThCnt > 0 { // serial execution
+			<-ch
+			runningThCnt--
+			finishedCase++
+		}
 
-func TestSkipListMixParallelStrideVarchar(t *testing.T) {
-	t.Parallel()
-	if testing.Short() {
-		t.Skip("skip this in short mode.")
-	}
-	testSkipListMixParallelStrideRoot[string](t, types.Varchar)
-}
+		if finishedCase%5 == 0 {
+			d := time.Since(startTime)
+			fmt.Printf("elapse %v: %d case executed\n", d, finishedCase)
+		}
 
-func TestSkipListMixParallsStrideVarcharLongRun(t *testing.T) {
-	t.Parallel()
-	if testing.Short() {
-		t.Skip("skip this in short mode.")
+		stride := 1 + (rand.Uint32() % 60)
+		opTimes := 1 + (rand.Uint32() % 200)
+		skipRand := rand.Uint32() % math.MaxInt32
+		initialEntryNum := 1 + (rand.Uint32() % 20)
+
+		go func(stride_ int32, opTimes_ int32, skipRand_ int32, initialEntryNum_ int32) {
+			testSkipListMixParallelStride[string](t, types.Varchar, stride_, opTimes_, skipRand_, initialEntryNum_, 500)
+			ch <- 1
+		}(int32(stride), int32(opTimes), int32(skipRand), int32(initialEntryNum))
+
+		runningThCnt++
 	}
-	// assumed running time is about 12h
-	testSkipListMixParallelStride[string](t, types.Varchar, 300, 3000*12, 15, 0, 500)
 }
 
 func testSkipListInsertGetEven(t *testing.T, sl *skip_list.SkipList, ch chan string) {
@@ -1903,87 +1933,87 @@ func testSkipListInsertGetRemove3stride2(t *testing.T, sl *skip_list.SkipList, c
 	ch <- ""
 }
 
-func TestSkipListParallelSimpleInteger(t *testing.T) {
-	t.Parallel()
-	if !common.EnableOnMemStorage {
-		os.Remove(samehada_util.GetParentFuncName() + ".db")
-		os.Remove(samehada_util.GetParentFuncName() + ".log")
-	}
-
-	//shi := samehada.NewSamehadaInstance(samehada_util.GetParentFuncName(), 400)
-	shi := samehada.NewSamehadaInstance(samehada_util.GetParentFuncName(), 30)
-	bpm := shi.GetBufferPoolManager()
-	sl := skip_list.NewSkipList(bpm, types.Integer)
-
-	ch1 := make(chan string)
-	ch2 := make(chan string)
-
-	go testSkipListInsertGetEven(t, sl, ch1)
-	go testSkipListInsertGetOdd(t, sl, ch2)
-
-	ch1Ret := <-ch1
-	t.Logf("%s\n", ch1Ret)
-	t.Logf("ch1 received\n")
-	ch2Ret := <-ch2
-	t.Logf("%s\n", ch2Ret)
-	t.Logf("ch2 received\n")
-
-	shi.CloseFilesForTesting()
-}
-
-func TestSkipListParallelSimpleInteger2(t *testing.T) {
-	t.Parallel()
-	if !common.EnableOnMemStorage {
-		os.Remove(samehada_util.GetParentFuncName() + ".db")
-		os.Remove(samehada_util.GetParentFuncName() + ".log")
-	}
-
-	//shi := samehada.NewSamehadaInstance(samehada_util.GetParentFuncName(), 400)
-	shi := samehada.NewSamehadaInstance(samehada_util.GetParentFuncName(), 30)
-	bpm := shi.GetBufferPoolManager()
-	sl := skip_list.NewSkipList(bpm, types.Integer)
-
-	ch1 := make(chan string)
-	ch2 := make(chan string)
-
-	go testSkipListInsertGetEvenSeparate(t, sl, ch1)
-	go testSkipListInsertGetOddSeparate(t, sl, ch2)
-
-	ch1Ret := <-ch1
-	t.Logf("%s\n", ch1Ret)
-	t.Logf("ch1 received\n")
-	ch2Ret := <-ch2
-	t.Logf("%s\n", ch2Ret)
-	t.Logf("ch2 received\n")
-
-	shi.CloseFilesForTesting()
-}
-
-func TestSkipListParallelSimpleInteger3Stride(t *testing.T) {
-	t.Parallel()
-	if !common.EnableOnMemStorage {
-		os.Remove(samehada_util.GetParentFuncName() + ".db")
-		os.Remove(samehada_util.GetParentFuncName() + ".log")
-	}
-
-	//shi := samehada.NewSamehadaInstance(samehada_util.GetParentFuncName(), 400)
-	shi := samehada.NewSamehadaInstance(samehada_util.GetParentFuncName(), 30)
-	bpm := shi.GetBufferPoolManager()
-	sl := skip_list.NewSkipList(bpm, types.Integer)
-
-	ch1 := make(chan string)
-	ch2 := make(chan string)
-
-	go testSkipListInsertGetInsert3stride1and3(t, sl, ch1)
-	go testSkipListInsertGetRemove3stride2(t, sl, ch2)
-
-	//wg.Wait()
-	ch1Ret := <-ch1
-	t.Logf("%s\n", ch1Ret)
-	t.Logf("ch1 received\n")
-	ch2Ret := <-ch2
-	t.Logf("%s\n", ch2Ret)
-	t.Logf("ch2 received\n")
-
-	shi.CloseFilesForTesting()
-}
+//func TestSkipListParallelSimpleInteger(t *testing.T) {
+//	t.Parallel()
+//	if !common.EnableOnMemStorage {
+//		os.Remove(samehada_util.GetParentFuncName() + ".db")
+//		os.Remove(samehada_util.GetParentFuncName() + ".log")
+//	}
+//
+//	//shi := samehada.NewSamehadaInstance(samehada_util.GetParentFuncName(), 400)
+//	shi := samehada.NewSamehadaInstance(samehada_util.GetParentFuncName(), 30)
+//	bpm := shi.GetBufferPoolManager()
+//	sl := skip_list.NewSkipList(bpm, types.Integer)
+//
+//	ch1 := make(chan string)
+//	ch2 := make(chan string)
+//
+//	go testSkipListInsertGetEven(t, sl, ch1)
+//	go testSkipListInsertGetOdd(t, sl, ch2)
+//
+//	ch1Ret := <-ch1
+//	t.Logf("%s\n", ch1Ret)
+//	t.Logf("ch1 received\n")
+//	ch2Ret := <-ch2
+//	t.Logf("%s\n", ch2Ret)
+//	t.Logf("ch2 received\n")
+//
+//	shi.CloseFilesForTesting()
+//}
+//
+//func TestSkipListParallelSimpleInteger2(t *testing.T) {
+//	t.Parallel()
+//	if !common.EnableOnMemStorage {
+//		os.Remove(samehada_util.GetParentFuncName() + ".db")
+//		os.Remove(samehada_util.GetParentFuncName() + ".log")
+//	}
+//
+//	//shi := samehada.NewSamehadaInstance(samehada_util.GetParentFuncName(), 400)
+//	shi := samehada.NewSamehadaInstance(samehada_util.GetParentFuncName(), 30)
+//	bpm := shi.GetBufferPoolManager()
+//	sl := skip_list.NewSkipList(bpm, types.Integer)
+//
+//	ch1 := make(chan string)
+//	ch2 := make(chan string)
+//
+//	go testSkipListInsertGetEvenSeparate(t, sl, ch1)
+//	go testSkipListInsertGetOddSeparate(t, sl, ch2)
+//
+//	ch1Ret := <-ch1
+//	t.Logf("%s\n", ch1Ret)
+//	t.Logf("ch1 received\n")
+//	ch2Ret := <-ch2
+//	t.Logf("%s\n", ch2Ret)
+//	t.Logf("ch2 received\n")
+//
+//	shi.CloseFilesForTesting()
+//}
+//
+//func TestSkipListParallelSimpleInteger3Stride(t *testing.T) {
+//	t.Parallel()
+//	if !common.EnableOnMemStorage {
+//		os.Remove(samehada_util.GetParentFuncName() + ".db")
+//		os.Remove(samehada_util.GetParentFuncName() + ".log")
+//	}
+//
+//	//shi := samehada.NewSamehadaInstance(samehada_util.GetParentFuncName(), 400)
+//	shi := samehada.NewSamehadaInstance(samehada_util.GetParentFuncName(), 30)
+//	bpm := shi.GetBufferPoolManager()
+//	sl := skip_list.NewSkipList(bpm, types.Integer)
+//
+//	ch1 := make(chan string)
+//	ch2 := make(chan string)
+//
+//	go testSkipListInsertGetInsert3stride1and3(t, sl, ch1)
+//	go testSkipListInsertGetRemove3stride2(t, sl, ch2)
+//
+//	//wg.Wait()
+//	ch1Ret := <-ch1
+//	t.Logf("%s\n", ch1Ret)
+//	t.Logf("ch1 received\n")
+//	ch2Ret := <-ch2
+//	t.Logf("%s\n", ch2Ret)
+//	t.Logf("ch2 received\n")
+//
+//	shi.CloseFilesForTesting()
+//}
