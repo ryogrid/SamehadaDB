@@ -257,6 +257,8 @@ func (sl *SkipList) Remove(key *types.Value, value uint32) (isDeleted_ bool) {
 		// locking is not needed because already have lock with FindNode method call
 		isNodeShouldBeDeleted, isDeleted, isNeedRetry = node.Remove(sl.bpm, key, predOfCorners, corners)
 		// lock and pin which is got FindNode is released on Remove method
+		// except isNodeShouldBeDeleted == true case
+
 		//sl.bpm.UnpinPage(node.GetPageId(), true)
 		if isNodeShouldBeDeleted {
 			sl.bpm.DeletePage(corners[0].PageId)

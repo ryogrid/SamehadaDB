@@ -194,6 +194,9 @@ func (b *BufferPoolManager) NewPage() *page.Page {
 	return pg
 }
 
+// ATTENTION:
+// caller should have WLatch and one pin of target page
+
 // DeletePage deletes a page from the buffer pool.
 func (b *BufferPoolManager) DeletePage(pageID types.PageID) error {
 	// 0.   Make sure you call DiskManager::DeallocatePage!
@@ -207,7 +210,8 @@ func (b *BufferPoolManager) DeletePage(pageID types.PageID) error {
 	b.mutex.Lock()
 	if frameID, ok = b.pageTable[pageID]; !ok {
 		b.mutex.Unlock()
-		return nil
+		panic("delete target page not found on pageTable")
+		//return nil
 	}
 	//if _, ok := b.pageTable[pageID]; !ok {
 	//	b.mutex.Unlock()
@@ -218,21 +222,26 @@ func (b *BufferPoolManager) DeletePage(pageID types.PageID) error {
 	delete(b.pageTable, pageID)
 
 	page := b.pages[frameID]
-	page.WLatch()
+	//page.WLatch()
 	if page.GetPageId() == pageID {
-		if page.PinCount() > 0 {
-			page.WUnlatch()
+		if page.PinCount() > 1 {
+			//page.WUnlatch()
 			b.mutex.Unlock()
+			page.WUnlatch()
 			panic("Pin count greater than 0")
 			//return errors.New("Pin count greater than 0")
 		}
 		b.pages[frameID] = nil
 		//(*b.replacer).Unpin(frameID)
 		//(*b.replacer).Pin(frameID)
+		b.mutex.Unlock()
+		b.UnpinPage(pageID, false)
+		b.mutex.Lock()
 		b.freeList = append(b.freeList, frameID)
 	}
-	page.WUnlatch()
+	//page.WUnlatch()
 	b.mutex.Unlock()
+	page.WUnlatch()
 
 	return nil
 }
