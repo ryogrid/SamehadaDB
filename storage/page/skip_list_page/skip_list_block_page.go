@@ -278,9 +278,9 @@ func (node *SkipListBlockPage) Insert(key *types.Value, value uint32, bpm *buffe
 			panic("overwriting wrong entry!")
 		}
 
-		if node.GetEntry(int(foundIdx), key.ValueType()).Key.CompareEquals(*key) {
-			panic("key duplication is not supported yet!")
-		}
+		//if node.GetEntry(int(foundIdx), key.ValueType()).Key.CompareEquals(*key) {
+		//	panic("key duplication is not supported yet!")
+		//}
 
 		node.SetEntry(int(foundIdx), &SkipListPair{*key, value})
 		//fmt.Printf("end of Insert of SkipListBlockPage called! : key=%d page.entryCnt=%d len(page.entries)=%d\n", key.ToInteger(), node.entryCnt, len(node.entries))
