@@ -1789,7 +1789,7 @@ func TestSkipListMixParallsStrideVarcharLikeFuzzer(t *testing.T) {
 
 	runtime.GOMAXPROCS(50)
 
-	const THREAD_NUM = 50
+	const THREAD_NUM = 15
 
 	startTime := time.Now()
 
