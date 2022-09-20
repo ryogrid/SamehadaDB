@@ -1818,7 +1818,7 @@ func TestSkipListMixParallsStrideVarcharLikeFuzzer(t *testing.T) {
 		skipRand := rand.Uint32() % 1000
 		initialEntryNum := 1 + (rand.Uint32() % 20)
 
-		fmt.Printf("%d %d %d %d\n", stride, opTimes, skipRand, initialEntryNum)
+		//fmt.Printf("%d %d %d %d\n", stride, opTimes, skipRand, initialEntryNum)
 		go func(stride_ int32, opTimes_ int32, skipRand_ int32, initialEntryNum_ int32) {
 
 			testSkipListMixParallelStride[string](t, types.Varchar, stride_, opTimes_, skipRand_, initialEntryNum_, 500)
