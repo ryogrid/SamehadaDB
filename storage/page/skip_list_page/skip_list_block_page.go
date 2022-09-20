@@ -511,9 +511,11 @@ func validateNoChangeAndGetLock(bpm *buffer.BufferPoolManager, checkNodes []Skip
 		if node.GetLSN() != additonalCheckNode.UpdateCounter {
 			common.ShPrintf(common.DEBUG_INFO, "validateNoChangeAndGetLock: validation of additionalCheckNode is NG: go retry. len(validatedNodes)=%d\n", len(validatedNodes))
 			node.WUnlatch()
+			bpm.UnpinPage(node.GetPageId(), true)
 			unlockAndUnpinNodes(bpm, validatedNodes, false)
 			return false, nil
 		}
+		bpm.UnpinPage(node.GetPageId(), true)
 	}
 
 	common.ShPrintf(common.DEBUG_INFO, "validateNoChangeAndGetLock: finish. len(validatedNodes)=%d\n", len(validatedNodes))
@@ -553,7 +555,11 @@ func (node *SkipListBlockPage) Remove(bpm *buffer.BufferPoolManager, key *types.
 		node.WUnlatch()
 		isSuccess, lockedAndPinnedNodes := validateNoChangeAndGetLock(bpm, checkNodes, additionalCheckNode)
 		if !isSuccess {
-			// already released all lock and pin which includes this node
+			// already released all lock and pin which includes this node except "node"
+
+			// because WUnlatch is already called once before validateNoChangeAndGetLock func call, but  pin is not released
+			bpm.UnpinPage(node.GetPageId(), true)
+
 			return false, false, true
 		}
 
@@ -572,8 +578,8 @@ func (node *SkipListBlockPage) Remove(bpm *buffer.BufferPoolManager, key *types.
 		node.SetLSN(node.GetLSN() + 1)
 
 		unlockAndUnpinNodes(bpm, lockedAndPinnedNodes, true)
-		node.WUnlatch()
 		bpm.UnpinPage(node.GetPageId(), true)
+		node.WUnlatch()
 
 		if common.EnableDebug {
 			common.ShPrintf(common.DEBUG_INFO, "SkipListBlockPage::Remove: finished (node remove). key=%v\n", key.ToIFValue())
