@@ -261,7 +261,7 @@ func (sl *SkipList) Remove(key *types.Value, value uint32) (isDeleted_ bool) {
 
 		//sl.bpm.UnpinPage(node.GetPageId(), true)
 		if isNodeShouldBeDeleted {
-			sl.bpm.DeletePage(corners[0].PageId)
+			//sl.bpm.DeletePage(corners[0].PageId)
 		}
 	}
 
