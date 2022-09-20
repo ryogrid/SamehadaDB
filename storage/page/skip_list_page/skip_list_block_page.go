@@ -278,6 +278,7 @@ func (node *SkipListBlockPage) Insert(key *types.Value, value uint32, bpm *buffe
 			panic("overwriting wrong entry!")
 		}
 
+		// TODO: (SDB) need to re-enable after TestSkipListMixParallsStrideVarcharLikeFuzzer testcase running
 		//if node.GetEntry(int(foundIdx), key.ValueType()).Key.CompareEquals(*key) {
 		//	panic("key duplication is not supported yet!")
 		//}
