@@ -286,6 +286,11 @@ func (node *SkipListBlockPage) Insert(key *types.Value, value uint32, bpm *buffe
 		node.SetEntry(int(foundIdx), &SkipListPair{*key, value})
 		//fmt.Printf("end of Insert of SkipListBlockPage called! : key=%d page.entryCnt=%d len(page.entries)=%d\n", key.ToInteger(), node.entryCnt, len(node.entries))
 
+		// TODO: (SDB) need to remove after TestSkipListMixParallsStrideVarcharLikeFuzzer testcase running
+		if node.GetEntry(int(foundIdx), key.ValueType()).Key.CompareEquals(*key) {
+			node.SetEntryCnt(node.GetEntryCnt() - 1)
+		}
+
 		node.SetLSN(node.GetLSN() + 1)
 		node.WUnlatch()
 		bpm.UnpinPage(node.GetPageId(), true)
