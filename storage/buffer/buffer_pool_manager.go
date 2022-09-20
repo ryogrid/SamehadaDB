@@ -205,43 +205,41 @@ func (b *BufferPoolManager) DeletePage(pageID types.PageID) error {
 	// 2.   If P exists, but has a non-zero pin-count, return false. Someone is using the page.
 	// 3.   Otherwise, P can be deleted. Remove P from the page table, reset its metadata and return it to the free list.
 
-	var frameID FrameID
-	var ok bool
+	//var frameID FrameID
+	//var ok bool
 	b.mutex.Lock()
-	if frameID, ok = b.pageTable[pageID]; !ok {
-		b.mutex.Unlock()
-		panic("delete target page not found on pageTable")
-		//return nil
-	}
-	//if _, ok := b.pageTable[pageID]; !ok {
+	//if frameID, ok = b.pageTable[pageID]; !ok {
 	//	b.mutex.Unlock()
-	//	return nil
+	//	panic("delete target page not found on pageTable")
+	//	//return nil
 	//}
 
 	b.diskManager.DeallocatePage(pageID)
 	delete(b.pageTable, pageID)
 
-	page := b.pages[frameID]
-	//page.WLatch()
-	if page.GetPageId() == pageID {
-		if page.PinCount() > 1 {
-			//page.WUnlatch()
-			b.mutex.Unlock()
-			page.WUnlatch()
-			panic("Pin count greater than 0")
-			//return errors.New("Pin count greater than 0")
-		}
-		b.pages[frameID] = nil
-		//(*b.replacer).Unpin(frameID)
-		//(*b.replacer).Pin(frameID)
+	// TODO: (SDB) codes below should be collectly rewrote (DeletePage)
+
+	if _, ok := b.pageTable[pageID]; !ok {
 		b.mutex.Unlock()
-		b.UnpinPage(pageID, false)
-		b.mutex.Lock()
-		b.freeList = append(b.freeList, frameID)
+		return nil
 	}
-	//page.WUnlatch()
+
+	//page := b.pages[frameID]
+	//page.WLatch()
+	//if page.GetPageId() == pageID {
+	//	if page.PinCount() > 1 {
+	//		page.WUnlatch()
+	//		b.mutex.Unlock()
+	//		panic("Pin count greater than 0")
+	//		//return errors.New("Pin count greater than 0")
+	//	}
+	//	b.pages[frameID] = nil
+	//	//(*b.replacer).Unpin(frameID)
+	//	(*b.replacer).Pin(frameID)
+	//	b.freeList = append(b.freeList, frameID)
+	//}
+	////page.WUnlatch()
 	b.mutex.Unlock()
-	page.WUnlatch()
 
 	return nil
 }
