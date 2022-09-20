@@ -741,7 +741,10 @@ func strideMul(base interface{}, k interface{}) interface{} {
 	case float32:
 		return base.(float32) * k.(float32)
 	case string:
-		return "DEADBEAF" + base.(string)
+		//return "DEADBEAF" + base.(string)
+		buf := make([]byte, k.(int32))
+		memset(buf, 'A')
+		return base.(string) + string(buf)
 	default:
 		panic("not supported type")
 	}
@@ -1805,17 +1808,19 @@ func TestSkipListMixParallsStrideVarcharLikeFuzzer(t *testing.T) {
 			finishedCase++
 		}
 
-		if finishedCase%5 == 0 {
+		if finishedCase%10 == 0 {
 			d := time.Since(startTime)
 			fmt.Printf("elapse %v: %d case executed\n", d, finishedCase)
 		}
 
 		stride := 1 + (rand.Uint32() % 60)
 		opTimes := 1 + (rand.Uint32() % 200)
-		skipRand := rand.Uint32() % math.MaxInt32
+		skipRand := rand.Uint32() % 1000
 		initialEntryNum := 1 + (rand.Uint32() % 20)
 
+		fmt.Printf("%d %d %d %d\n", stride, opTimes, skipRand, initialEntryNum)
 		go func(stride_ int32, opTimes_ int32, skipRand_ int32, initialEntryNum_ int32) {
+
 			testSkipListMixParallelStride[string](t, types.Varchar, stride_, opTimes_, skipRand_, initialEntryNum_, 500)
 			ch <- 1
 		}(int32(stride), int32(opTimes), int32(skipRand), int32(initialEntryNum))
