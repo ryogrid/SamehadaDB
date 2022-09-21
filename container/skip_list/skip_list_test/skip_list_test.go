@@ -1427,7 +1427,7 @@ func testSkipListMixParallelStride[T int32 | float32 | string](t *testing.T, key
 	//}
 
 	insVals := make([]T, 0)
-	removedValsForGet := make(map[T]T, 0)
+	removedValsForGetAndRemove := make(map[T]T, 0)
 	removedValsForRemove := make(map[T]T, 0)
 
 	// initial entries
@@ -1567,7 +1567,7 @@ func testSkipListMixParallelStride[T int32 | float32 | string](t *testing.T, key
 
 						// append to map before doing remove op for other get op thread
 						removedValsForGetMutex.Lock()
-						removedValsForGet[delVal] = delVal
+						removedValsForGetAndRemove[delVal] = delVal
 						removedValsForGetMutex.Unlock()
 
 						isDeleted := sl.Remove(samehada_util.GetPonterOfValue(types.NewValue(delVal)), pairVal)
@@ -1577,7 +1577,12 @@ func testSkipListMixParallelStride[T int32 | float32 | string](t *testing.T, key
 							removedValsForRemove[delVal] = delVal
 							removedValsForRemoveMutex.Unlock()
 						} else {
-							panic("remove op test failed!")
+							if _, ok := removedValsForGetAndRemove[delVal]; !ok {
+								removedValsForGetMutex.RUnlock()
+								panic("remove op test failed!")
+							}
+							removedValsForGetMutex.RUnlock()
+							//panic("remove op test failed!")
 						}
 					}
 					ch <- 1
@@ -1594,7 +1599,7 @@ func testSkipListMixParallelStride[T int32 | float32 | string](t *testing.T, key
 					return
 				}
 				tmpIdx := int(rand.Intn(len(insVals)))
-				//fmt.Printf("sl.GetValue at testSkipListMix: ii=%d, tmpIdx=%d insVals[tmpIdx]=%d len(*insVals)=%d len(*removedValsForGet)=%d\n", ii, tmpIdx, insVals[tmpIdx], len(insVals), len(removedValsForGet))
+				//fmt.Printf("sl.GetValue at testSkipListMix: ii=%d, tmpIdx=%d insVals[tmpIdx]=%d len(*insVals)=%d len(*removedValsForGetAndRemove)=%d\n", ii, tmpIdx, insVals[tmpIdx], len(insVals), len(removedValsForGetAndRemove))
 				getTgtBase := insVals[tmpIdx]
 				insValsMutex.RUnlock()
 				for ii := int32(0); ii < stride; ii++ {
@@ -1606,7 +1611,7 @@ func testSkipListMixParallelStride[T int32 | float32 | string](t *testing.T, key
 					gotVal := sl.GetValue(&getTgtVal)
 					if gotVal == math.MaxUint32 {
 						removedValsForGetMutex.RLock()
-						if _, ok := removedValsForGet[getTgt]; !ok {
+						if _, ok := removedValsForGetAndRemove[getTgt]; !ok {
 							removedValsForGetMutex.RUnlock()
 							panic("get op test failed!")
 						}
