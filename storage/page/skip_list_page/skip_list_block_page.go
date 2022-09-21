@@ -324,7 +324,7 @@ func (node *SkipListBlockPage) Insert(key *types.Value, value uint32, bpm *buffe
 
 				node.WUnlatch()
 				isSuccess, lockedAndPinnedNodes = validateNoChangeAndGetLock(bpm, corners[:level], nil)
-				//bpm.UnpinPage(node.GetPageId(), false)
+				bpm.UnpinPage(node.GetPageId(), false)
 				if !isSuccess {
 					// already released lock of this node
 					if common.EnableDebug {
@@ -536,6 +536,7 @@ func validateNoChangeAndGetLock(bpm *buffer.BufferPoolManager, checkNodes []Skip
 			common.ShPrintf(common.DEBUG_INFO, "validateNoChangeAndGetLock: validation of additionalCheckNode is NG: go retry. len(validatedNodes)=%d\n", len(validatedNodes))
 			node.WUnlatch()
 			bpm.UnpinPage(node.GetPageId(), true)
+			bpm.UnpinPage(node.GetPageId(), true)
 			unlockAndUnpinNodes(bpm, validatedNodes, false)
 			return false, nil
 		}
@@ -580,10 +581,10 @@ func (node *SkipListBlockPage) Remove(bpm *buffer.BufferPoolManager, key *types.
 		node.WUnlatch()
 		isSuccess, lockedAndPinnedNodes := validateNoChangeAndGetLock(bpm, checkNodes, additionalCheckNode)
 		if !isSuccess {
-			// already released all lock and pin which includes this node except "node"
+			// already released all lock and pin which includes this node
 
-			// because WUnlatch is already called once before validateNoChangeAndGetLock func call, but  pin is not released
-			bpm.UnpinPage(node.GetPageId(), true)
+			//// because WUnlatch is already called once before validateNoChangeAndGetLock func call, but  pin is not released
+			//bpm.UnpinPage(node.GetPageId(), true)
 
 			return false, false, true
 		}
