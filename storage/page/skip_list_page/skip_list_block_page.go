@@ -312,7 +312,7 @@ func (node *SkipListBlockPage) Insert(key *types.Value, value uint32, bpm *buffe
 
 			node.WUnlatch()
 			isSuccess, lockedAndPinnedNodes = validateNoChangeAndGetLock(bpm, corners[:level], nil)
-			bpm.UnpinPage(node.GetPageId(), false)
+			//bpm.UnpinPage(node.GetPageId(), false)
 			if !isSuccess {
 				// already released lock of this node
 				if common.EnableDebug {
