@@ -744,7 +744,7 @@ func strideMul(base interface{}, k interface{}) interface{} {
 		//return "DEADBEAF" + base.(string)
 		buf := make([]byte, k.(int32))
 		memset(buf, 'A')
-		return base.(string) + string(buf)
+		return "DEADBEAF" + base.(string) + string(buf)
 	default:
 		panic("not supported type")
 	}
