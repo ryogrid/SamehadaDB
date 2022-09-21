@@ -1393,9 +1393,9 @@ func testSkipListMixParallelBulk[T int32 | float32 | string](t *testing.T, keyTy
 	shi.CloseFilesForTesting()
 }
 
-func testSkipListMixParallelStride[T int32 | float32 | string](t *testing.T, keyType types.TypeID, stride int32, opTimes int32, skipRand int32, initialEntryNum int32, bpoolSize int32) {
-	common.ShPrintf(common.DEBUG_INFO, "start of testSkipListMixParallelStride stride=%d opTimes=%d skipRand=%d initialEntryNum=%d ====================================================\n",
-		stride, opTimes, skipRand, initialEntryNum)
+func testSkipListMixParallelStride[T int32 | float32 | string](t *testing.T, keyType types.TypeID, stride int32, opTimes int32, seedVal int32, initialEntryNum int32, bpoolSize int32) {
+	common.ShPrintf(common.DEBUG_INFO, "start of testSkipListMixParallelStride stride=%d opTimes=%d seedVal=%d initialEntryNum=%d ====================================================\n",
+		stride, opTimes, seedVal, initialEntryNum)
 
 	if !common.EnableOnMemStorage {
 		os.Remove(samehada_util.GetParentFuncName() + ".db")
@@ -1416,14 +1416,15 @@ func testSkipListMixParallelStride[T int32 | float32 | string](t *testing.T, key
 	checkDupMap := make(map[T]T)
 
 	// override global rand seed (seed has been set on NewSkipList)
-	rand.Seed(3)
+	//rand.Seed(3)
+	rand.Seed(int64(seedVal))
 
-	tmpSkipRand := skipRand
-	// skip random value series
-	for tmpSkipRand > 0 {
-		rand.Int31()
-		tmpSkipRand--
-	}
+	//tmpSkipRand := seedVal
+	//// skip random value series
+	//for tmpSkipRand > 0 {
+	//	rand.Int31()
+	//	tmpSkipRand--
+	//}
 
 	insVals := make([]T, 0)
 	removedValsForGet := make(map[T]T, 0)
@@ -1815,15 +1816,15 @@ func TestSkipListMixParallsStrideVarcharLikeFuzzer(t *testing.T) {
 
 		stride := 1 + (rand.Uint32() % 60)
 		opTimes := 1 + (rand.Uint32() % 200)
-		skipRand := rand.Uint32() % 1000
+		seedVal := rand.Uint32() % 1000
 		initialEntryNum := 1 + (rand.Uint32() % 20)
 
-		//fmt.Printf("%d %d %d %d\n", stride, opTimes, skipRand, initialEntryNum)
-		go func(stride_ int32, opTimes_ int32, skipRand_ int32, initialEntryNum_ int32) {
+		//fmt.Printf("%d %d %d %d\n", stride, opTimes, seedVal, initialEntryNum)
+		go func(stride_ int32, opTimes_ int32, seedVal_ int32, initialEntryNum_ int32) {
 
-			testSkipListMixParallelStride[string](t, types.Varchar, stride_, opTimes_, skipRand_, initialEntryNum_, 500)
+			testSkipListMixParallelStride[string](t, types.Varchar, stride_, opTimes_, seedVal_, initialEntryNum_, 500)
 			ch <- 1
-		}(int32(stride), int32(opTimes), int32(skipRand), int32(initialEntryNum))
+		}(int32(stride), int32(opTimes), int32(seedVal), int32(initialEntryNum))
 
 		runningThCnt++
 	}

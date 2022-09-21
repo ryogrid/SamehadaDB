@@ -610,8 +610,8 @@ func (node *SkipListBlockPage) Remove(bpm *buffer.BufferPoolManager, key *types.
 		if common.EnableDebug {
 			common.ShPrintf(common.DEBUG_INFO, "SkipListBlockPage::Remove: finished (node remove). key=%v\n", key.ToIFValue())
 		}
-		// because WUnlatch is already called once before validateNoChangeAndGetLock func call, but  pin is not released ???
-		bpm.UnpinPage(node.GetPageId(), true)
+		//// because WUnlatch is already called once before validateNoChangeAndGetLock func call, but  pin is not released ???
+		//bpm.UnpinPage(node.GetPageId(), true)
 
 		return true, true, false
 	} else if found {
