@@ -1576,7 +1576,9 @@ func testSkipListMixParallelStride[T int32 | float32 | string](t *testing.T, key
 							removedValsForRemoveMutex.Lock()
 							removedValsForRemove[delVal] = delVal
 							removedValsForRemoveMutex.Unlock()
+
 						} else {
+							removedValsForGetMutex.RLock()
 							if _, ok := removedValsForGetAndRemove[delVal]; !ok {
 								removedValsForGetMutex.RUnlock()
 								panic("remove op test failed!")
