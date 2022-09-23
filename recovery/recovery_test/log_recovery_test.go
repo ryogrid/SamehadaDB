@@ -4,6 +4,7 @@ import (
 	"bytes"
 	"fmt"
 	"github.com/ryogrid/SamehadaDB/samehada"
+	"github.com/ryogrid/SamehadaDB/samehada/samehada_util"
 	"github.com/ryogrid/SamehadaDB/storage/index/index_constants"
 	"math"
 	"math/rand"
@@ -24,12 +25,12 @@ import (
 
 /*
 func TestLogSererializeAndDeserialize(t *testing.T) {
-	os.Remove("test.log")
+	os.Remove(samehada_util.GetParentFuncName() + ".log")
 
 	// on this test, EnableLogging should no be true
 	common.EnableLogging = false
 
-	dm := disk.NewDiskManagerImpl("test.log")
+	dm := disk.NewDiskManagerImpl(samehada_util.GetParentFuncName() + ".log")
 	lm := recovery.NewLogManager(&dm)
 	lr := log_recovery.NewLogRecovery(&dm, nil)
 	tm := access.NewTransactionManager(lm)
@@ -155,12 +156,13 @@ func TestLogSererializeAndDeserialize(t *testing.T) {
 func TestRedo(t *testing.T) {
 	common.TempSuppressOnMemStorage = true
 	if !common.EnableOnMemStorage || common.TempSuppressOnMemStorage {
-		os.Remove("test.db")
-		os.Remove("test.log")
+		os.Remove(samehada_util.GetParentFuncName() + ".db")
+		os.Remove(samehada_util.GetParentFuncName() + ".log")
 	}
 
-	samehada_instance := samehada.NewSamehadaInstanceForTesting()
+	samehada_instance := samehada.NewSamehadaInstance(samehada_util.GetParentFuncName(), common.BufferPoolMaxFrameNumForTest)
 
+	common.EnableLogging = false
 	testingpkg.AssertFalse(t, common.EnableLogging, "")
 	fmt.Println("Skip system recovering...")
 
@@ -203,7 +205,7 @@ func TestRedo(t *testing.T) {
 	samehada_instance.CloseFilesForTesting()
 
 	fmt.Println("System restart...")
-	samehada_instance = samehada.NewSamehadaInstanceForTesting()
+	samehada_instance = samehada.NewSamehadaInstance(samehada_util.GetParentFuncName(), common.BufferPoolMaxFrameNumForTest)
 
 	samehada_instance.GetLogManager().DeactivateLogging()
 	testingpkg.AssertFalse(t, common.EnableLogging, "")
@@ -262,12 +264,13 @@ func TestRedo(t *testing.T) {
 func TestUndo(t *testing.T) {
 	common.TempSuppressOnMemStorage = true
 	if !common.EnableOnMemStorage || common.TempSuppressOnMemStorage {
-		os.Remove("test.db")
-		os.Remove("test.log")
+		os.Remove(samehada_util.GetParentFuncName() + ".db")
+		os.Remove(samehada_util.GetParentFuncName() + ".log")
 	}
 
-	samehada_instance := samehada.NewSamehadaInstanceForTesting()
+	samehada_instance := samehada.NewSamehadaInstance(samehada_util.GetParentFuncName(), common.BufferPoolMaxFrameNumForTest)
 
+	common.EnableLogging = false
 	testingpkg.AssertFalse(t, common.EnableLogging, "")
 	fmt.Println("Skip system recovering...")
 
@@ -337,7 +340,7 @@ func TestUndo(t *testing.T) {
 	samehada_instance.Shutdown(false)
 
 	fmt.Println("System restarted..")
-	samehada_instance = samehada.NewSamehadaInstanceForTesting()
+	samehada_instance = samehada.NewSamehadaInstance(samehada_util.GetParentFuncName(), common.BufferPoolMaxFrameNumForTest)
 	txn = samehada_instance.GetTransactionManager().Begin(nil)
 
 	test_table = access.NewTableHeap(
@@ -362,6 +365,7 @@ func TestUndo(t *testing.T) {
 	old_tuple3 := test_table.GetTuple(rid3, txn)
 	testingpkg.Assert(t, old_tuple3 != nil, "")
 
+	common.EnableLogging = false
 	testingpkg.AssertFalse(t, common.EnableLogging, "common.EnableLogging is not false!")
 
 	fmt.Println("Recovery started..")
@@ -408,11 +412,12 @@ func TestUndo(t *testing.T) {
 
 func TestCheckpoint(t *testing.T) {
 	if !common.EnableOnMemStorage {
-		os.Remove("test.db")
-		os.Remove("test.log")
+		os.Remove(samehada_util.GetParentFuncName() + ".db")
+		os.Remove(samehada_util.GetParentFuncName() + ".log")
 	}
-	samehada_instance := samehada.NewSamehadaInstanceForTesting()
+	samehada_instance := samehada.NewSamehadaInstance(samehada_util.GetParentFuncName(), common.BufferPoolMaxFrameNumForTest)
 
+	common.EnableLogging = false
 	testingpkg.AssertFalse(t, common.EnableLogging, "")
 	fmt.Println("Skip system recovering...")
 

@@ -8,6 +8,7 @@ import (
 	"github.com/ryogrid/SamehadaDB/catalog"
 	"github.com/ryogrid/SamehadaDB/common"
 	"github.com/ryogrid/SamehadaDB/samehada"
+	"github.com/ryogrid/SamehadaDB/samehada/samehada_util"
 	"github.com/ryogrid/SamehadaDB/storage/buffer"
 	"github.com/ryogrid/SamehadaDB/storage/index/index_constants"
 	"github.com/ryogrid/SamehadaDB/storage/table/column"
@@ -23,10 +24,10 @@ func TestTableCatalogReload(t *testing.T) {
 	common.TempSuppressOnMemStorage = true
 
 	if !common.EnableOnMemStorage || common.TempSuppressOnMemStorage {
-		os.Remove("test.db")
+		os.Remove(samehada_util.GetParentFuncName() + ".db")
 	}
-	samehada_instance := samehada.NewSamehadaInstanceForTesting()
-	//diskManager := disk.NewDiskManagerImpl("test.db")
+	samehada_instance := samehada.NewSamehadaInstance(samehada_util.GetParentFuncName(), common.BufferPoolMaxFrameNumForTest)
+	//diskManager := disk.NewDiskManagerImpl(samehada_util.GetParentFuncName() + ".db")
 	//defer diskManager.ShutDown()
 	bpm := buffer.NewBufferPoolManager(uint32(32), samehada_instance.GetDiskManager(), samehada_instance.GetLogManager())
 
@@ -44,7 +45,7 @@ func TestTableCatalogReload(t *testing.T) {
 
 	fmt.Println("Shutdown system...")
 
-	samehada_instance_new := samehada.NewSamehadaInstanceForTesting()
+	samehada_instance_new := samehada.NewSamehadaInstance(samehada_util.GetParentFuncName(), common.BufferPoolMaxFrameNumForTest)
 	txn_new := samehada_instance_new.GetTransactionManager().Begin(nil)
 	//catalog := GetCatalog(bpm)
 	catalog_recov := catalog.RecoveryCatalogFromCatalogPage(samehada_instance_new.GetBufferPoolManager(), samehada_instance_new.GetLogManager(), samehada_instance_new.GetLockManager(), txn_new)

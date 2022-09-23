@@ -5,6 +5,7 @@ package hash
 
 import (
 	"github.com/ryogrid/SamehadaDB/common"
+	"github.com/ryogrid/SamehadaDB/samehada/samehada_util"
 	"github.com/ryogrid/SamehadaDB/storage/page"
 	"os"
 	"testing"
@@ -20,9 +21,9 @@ import (
 func TestHashTableHeaderPage(t *testing.T) {
 	var diskManager disk.DiskManager
 	if !common.TempSuppressOnMemStorage || common.TempSuppressOnMemStorage {
-		diskManager = disk.NewDiskManagerImpl("test.db")
+		diskManager = disk.NewDiskManagerImpl(samehada_util.GetParentFuncName() + ".db")
 	} else {
-		diskManager = disk.NewVirtualDiskManagerImpl("test.db")
+		diskManager = disk.NewVirtualDiskManagerImpl(samehada_util.GetParentFuncName() + ".db")
 	}
 	//bpm := buffer.NewBufferPoolManager(diskManager, buffer.NewClockReplacer(5))
 	bpm := buffer.NewBufferPoolManager(uint32(10), diskManager, recovery.NewLogManager(&diskManager))
@@ -69,16 +70,16 @@ func TestHashTableHeaderPage(t *testing.T) {
 	bpm.UnpinPage(headerPage.GetPageId(), true)
 	diskManager.ShutDown()
 	if !common.EnableOnMemStorage {
-		os.Remove("test.db")
+		os.Remove(samehada_util.GetParentFuncName() + ".db")
 	}
 }
 
 func TestHashTableBlockPage(t *testing.T) {
 	var diskManager disk.DiskManager
 	if !common.TempSuppressOnMemStorage || common.TempSuppressOnMemStorage {
-		diskManager = disk.NewDiskManagerImpl("test.db")
+		diskManager = disk.NewDiskManagerImpl(samehada_util.GetParentFuncName() + ".db")
 	} else {
-		diskManager = disk.NewVirtualDiskManagerImpl("test.db")
+		diskManager = disk.NewVirtualDiskManagerImpl(samehada_util.GetParentFuncName() + ".db")
 	}
 
 	//bpm := buffer.NewBufferPoolManager(diskManager, buffer.NewClockReplacer(5))
@@ -120,6 +121,6 @@ func TestHashTableBlockPage(t *testing.T) {
 	bpm.UnpinPage(newPage.ID(), true)
 	bpm.FlushAllPages()
 	if !common.EnableOnMemStorage {
-		os.Remove("test.db")
+		os.Remove(samehada_util.GetParentFuncName() + ".db")
 	}
 }

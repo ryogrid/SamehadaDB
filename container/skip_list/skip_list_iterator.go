@@ -40,6 +40,7 @@ func (itr *SkipListIterator) Next() (done bool, err error, key *types.Value, val
 		prevNodeId := itr.curNode.GetPageId()
 		nextNodeId := itr.curNode.GetForwardEntry(0)
 		itr.curNode.RUnlatch()
+		// TODO: (SDB) maybe there is case which should pass true as dirty flasg
 		itr.bpm.UnpinPage(prevNodeId, false)
 		itr.curNode = skip_list_page.FetchAndCastToBlockPage(itr.bpm, nextNodeId)
 		itr.curIdx = -1

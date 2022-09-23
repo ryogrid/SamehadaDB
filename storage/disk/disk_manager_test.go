@@ -10,7 +10,7 @@ import (
 	testingpkg "github.com/ryogrid/SamehadaDB/testing"
 )
 
-func memset(buffer []byte, value int) {
+func zeroClear(buffer []byte) {
 	for i := range buffer {
 		buffer[i] = 0
 	}
@@ -31,18 +31,18 @@ func TestReadWritePage(t *testing.T) {
 	dm.WritePage(0, data)
 	err := dm.ReadPage(0, buffer)
 	testingpkg.Equals(t, err, nil)
-	testingpkg.Equals(t, int64(4096), dm.Size())
+	testingpkg.Equals(t, int64(common.PageSize), dm.Size())
 	testingpkg.Equals(t, data, buffer)
 
-	memset(buffer, 0)
+	zeroClear(buffer)
 	copy(data, "Another test string.")
 
 	dm.WritePage(5, data)
 	dm.ReadPage(5, buffer)
 	testingpkg.Equals(t, data, buffer)
 
-	// the size of disk is 24576 bytes because we have 6 pages
-	testingpkg.Equals(t, int64(24576), dm.Size())
+	// the size of disk is 6 * PageSize bytes because we have 6 pages
+	testingpkg.Equals(t, int64(6*common.PageSize), dm.Size())
 
 	common.TempSuppressOnMemStorage = false
 }

@@ -26,7 +26,7 @@ const (
 	// the header page id
 	HeaderPageID = 0
 	// size of a data page in byte
-	PageSize                     = 4096
+	PageSize                     = 1024 //512 //4096
 	BufferPoolMaxFrameNumForTest = 32
 	// number for calculate log buffer size (number of page size)
 	LogBufferSizeBase = 32
@@ -36,7 +36,7 @@ const (
 	BucketSizeOfHashIndex = 10
 	// probability used for determin node level on SkipList
 	SkipListProb    = 0.5  //0.25
-	LogLevelSetting = INFO //DEBUGGING //DEBUG_INFO
+	LogLevelSetting = INFO //DEBUG_INFO // //DEBUGGING
 )
 
 type TxnID int32        // transaction id type

@@ -3,6 +3,7 @@ package skip_list_page
 import (
 	"bytes"
 	"encoding/binary"
+	"fmt"
 	"github.com/ryogrid/SamehadaDB/common"
 	"github.com/ryogrid/SamehadaDB/storage/buffer"
 	"github.com/ryogrid/SamehadaDB/storage/page"
@@ -121,6 +122,9 @@ func NewSkipListBlockPage(bpm *buffer.BufferPoolManager, level int32, smallestLi
 	tmpSmallestListPair := smallestListPair
 	// EntryCnt is incremented to 1
 	ret.SetEntry(0, &tmpSmallestListPair)
+	bpm.FlushPage(ret.GetPageId())
+	// increment pin count because pin count is decremented on FlushPage
+	ret.IncPinCount()
 
 	return ret
 }
@@ -234,7 +238,7 @@ func (node *SkipListBlockPage) InsertInner(idx int, slp *SkipListPair) {
 	node.SetEntryCnt(node.GetEntryCnt() + 1)
 }
 
-func (node *SkipListBlockPage) getSplitIdxForNotFixed() int32 {
+func (node *SkipListBlockPage) getSplitIdxForNotFixed() (splitIdx_ int32, isNeedSplit bool) {
 	halfOfmaxSize := int((common.PageSize - offsetEntryInfos) / 2)
 	curSize := 0
 	entryCnt := int(node.GetEntryCnt())
@@ -247,7 +251,12 @@ func (node *SkipListBlockPage) getSplitIdxForNotFixed() int32 {
 		}
 	}
 
-	return int32(splitIdx)
+	if splitIdx == entryCnt-1 {
+		return int32(splitIdx), false
+	} else {
+		return int32(splitIdx), true
+	}
+
 }
 
 // Attempts to insert a key and value into an index in the baccess
@@ -255,7 +264,7 @@ func (node *SkipListBlockPage) getSplitIdxForNotFixed() int32 {
 func (node *SkipListBlockPage) Insert(key *types.Value, value uint32, bpm *buffer.BufferPoolManager, corners []SkipListCornerInfo,
 	level int32) (isNeedRetry_ bool) {
 	if common.EnableDebug {
-		common.ShPrintf(common.DEBUG_INFO, "Insert of SkipListBlockPage called! : key=%d\n", key.ToInteger())
+		common.ShPrintf(common.DEBUG_INFO, "Insert of SkipListBlockPage called! : key=%v\n", key.ToIFValue())
 	}
 
 	found, _, foundIdx := node.FindEntryByKey(key)
@@ -270,21 +279,27 @@ func (node *SkipListBlockPage) Insert(key *types.Value, value uint32, bpm *buffe
 			panic("overwriting wrong entry!")
 		}
 
-		if node.GetEntry(int(foundIdx), key.ValueType()).Key.CompareEquals(*key) {
-			panic("key duplication is not supported yet!")
-		}
-
-		node.SetEntry(int(foundIdx), &SkipListPair{*key, value})
-		//fmt.Printf("end of Insert of SkipListBlockPage called! : key=%d page.entryCnt=%d len(page.entries)=%d\n", key.ToInteger(), node.entryCnt, len(node.entries))
-
-		node.SetLSN(node.GetLSN() + 1)
+		fmt.Println("Remove: key duplicatin occured")
+		// TODO: (SDB) for concurrent running test
+		//if node.GetEntry(int(foundIdx), key.ValueType()).Key.CompareEquals(*key) {
+		//	panic("key duplication is not supported yet!")
+		//}
+		//
+		//node.SetEntry(int(foundIdx), &SkipListPair{*key, value})
+		////fmt.Printf("end of Insert of SkipListBlockPage called! : key=%d page.entryCnt=%d len(page.entries)=%d\n", key.ToInteger(), node.entryCnt, len(node.entries))
+		//
+		//if node.GetEntry(int(foundIdx), key.ValueType()).Key.CompareEquals(*key) {
+		//	node.SetEntryCnt(node.GetEntryCnt() - 1)
+		//}
+		//
+		//node.SetLSN(node.GetLSN() + 1)
 		node.WUnlatch()
 		bpm.UnpinPage(node.GetPageId(), true)
 		if common.EnableDebug {
-			common.ShPrintf(common.DEBUG_INFO, "SkipListBlockPage::Insert: finish (replace). key=%d\n", key.ToInteger())
+			common.ShPrintf(common.DEBUG_INFO, "SkipListBlockPage::Insert: finish (replace). key=%v\n", key.ToIFValue())
 		}
 		return false
-	} else if !found {
+	} else { // !found
 		//fmt.Printf("not found at Insert of SkipListBlockPage. foundIdx=%d\n", foundIdx)
 		if node.getFreeSpaceRemaining() < node.GetSpecifiedSLPNeedSpace(&SkipListPair{*key, value}) {
 			// this node is full. so node split is needed
@@ -293,88 +308,125 @@ func (node *SkipListBlockPage) Insert(key *types.Value, value uint32, bpm *buffe
 
 			common.ShPrintf(common.DEBUG_INFO, "SkipListBlockPage::Insert: node split occured!\n")
 
-			// set this node as corner node of level-1
-			corners[0] = SkipListCornerInfo{node.GetPageId(), node.GetLSN()}
-
-			node.WUnlatch()
-			isSuccess, lockedAndPinnedNodes = validateNoChangeAndGetLock(bpm, corners[:level], nil)
-			bpm.UnpinPage(node.GetPageId(), false)
-			if !isSuccess {
-				// already released lock of this node
-				if common.EnableDebug {
-					common.ShPrintf(common.DEBUG_INFO, "SkipListBlockPage::Insert: finish (validation NG). key=%d\n", key.ToInteger())
-				}
-				return true
-			}
-
 			isSplited = true
+			isNeedSplitWithEntryMove := true
 
 			if key.ValueType() == types.Varchar {
 				// entries located post half data space are are moved to new node
-				splitIdx = node.getSplitIdxForNotFixed()
+				splitIdx, isNeedSplitWithEntryMove = node.getSplitIdxForNotFixed()
 			} else {
 				// half of entries are moved to new node
 				splitIdx = node.GetEntryCnt() / 2
 			}
 
-			newNode := node.SplitNode(splitIdx, bpm, corners, level, key.ValueType(), lockedAndPinnedNodes)
-			// keep having Wlatch and pin of newNode and this node only here
+			if isNeedSplitWithEntryMove {
+				// set this node as corner node of level-1
+				corners[0] = SkipListCornerInfo{node.GetPageId(), node.GetLSN()}
 
-			if foundIdx > splitIdx {
-				// insert to new node
-				newSmallerIdx := foundIdx - splitIdx - 1
-				//newNodePageId := node.GetForwardEntry(0)
-				//newNode := FetchAndCastToBlockPage(bpm, newNodePageId)
-
-				insEntry := &SkipListPair{*key, value}
-				if key.ValueType() == types.Varchar && (newNode.GetSpecifiedSLPNeedSpace(insEntry) > newNode.getFreeSpaceRemaining()) {
-					panic("not enough space for insert (after node split)")
+				node.WUnlatch()
+				isSuccess, lockedAndPinnedNodes = validateNoChangeAndGetLock(bpm, corners[:level], nil)
+				bpm.UnpinPage(node.GetPageId(), false)
+				if !isSuccess {
+					// already released lock of this node
+					if common.EnableDebug {
+						common.ShPrintf(common.DEBUG_INFO, "SkipListBlockPage::Insert: finish (validation NG). key=%v\n", key.ToIFValue())
+					}
+					return true
 				}
-				newNode.InsertInner(int(newSmallerIdx), insEntry)
+
+				newNode := node.SplitNode(splitIdx, bpm, corners, level, key.ValueType(), lockedAndPinnedNodes)
+				// keep having Wlatch and pin of newNode and this node only here
+
+				if foundIdx > splitIdx {
+					// insert to new node
+					newSmallerIdx := foundIdx - splitIdx - 1
+					//newNodePageId := node.GetForwardEntry(0)
+					//newNode := FetchAndCastToBlockPage(bpm, newNodePageId)
+
+					insEntry := &SkipListPair{*key, value}
+					if key.ValueType() == types.Varchar && (newNode.GetSpecifiedSLPNeedSpace(insEntry) > newNode.getFreeSpaceRemaining()) {
+						panic("not enough space for insert (after node split)")
+					}
+					newNode.InsertInner(int(newSmallerIdx), insEntry)
+					newNode.WUnlatch()
+					bpm.UnpinPage(newNode.GetPageId(), true)
+					//fmt.Printf("end of Insert of SkipListBlockPage called! : key=%d page.entryCnt=%d len(page.entries)=%d\n", key.ToInteger(), node.entryCnt, len(node.entries))
+
+					//node.SetLSN(node.GetLSN() + 1)
+					//unlockAndUnpinNodes(bpm, lockedAndPinnedNodes, true)
+
+					node.WUnlatch()
+					bpm.UnpinPage(node.GetPageId(), true)
+					if common.EnableDebug {
+						common.ShPrintf(common.DEBUG_INFO, "SkipListBlockPage::Insert: finish (split & insert to new node). key=%v\n", key.ToIFValue())
+					}
+					return false
+				} else {
+					// insert to this node
+					// foundIdx is index of nearlest smaller key entry
+					// new entry is inserted next of the entry
+
+					insEntry := &SkipListPair{*key, value}
+					if key.ValueType() == types.Varchar && (node.GetSpecifiedSLPNeedSpace(insEntry) > node.getFreeSpaceRemaining()) {
+						if isSplited {
+							panic("not enough space for insert (after node split)")
+						} else {
+							panic("not enough space for insert.")
+						}
+					}
+					node.InsertInner(int(foundIdx), insEntry)
+
+					//unlockAndUnpinNodes(bpm, lockedAndPinnedNodes, true)
+
+					newNode.WUnlatch()
+					bpm.UnpinPage(newNode.GetPageId(), true)
+					node.WUnlatch()
+					bpm.UnpinPage(node.GetPageId(), true)
+
+					if common.EnableDebug {
+						common.ShPrintf(common.DEBUG_INFO, "SkipListBlockPage::Insert: finish (new ently only split). key=%v\n", key.ToIFValue())
+					}
+
+					return false
+				}
+			} else {
+				// new entry only inserted new node
+
+				corners[0] = SkipListCornerInfo{node.GetPageId(), node.GetLSN()}
+				node.WUnlatch()
+				insEntry := &SkipListPair{*key, value}
+				newNode := node.newNodeWithoutSplit(bpm, corners, level, key.ValueType(), lockedAndPinnedNodes, insEntry)
+				// keep having Wlatch and pin of newNode and this node only here
+
 				newNode.WUnlatch()
 				bpm.UnpinPage(newNode.GetPageId(), true)
-				//fmt.Printf("end of Insert of SkipListBlockPage called! : key=%d page.entryCnt=%d len(page.entries)=%d\n", key.ToInteger(), node.entryCnt, len(node.entries))
 
-				node.SetLSN(node.GetLSN() + 1)
 				//unlockAndUnpinNodes(bpm, lockedAndPinnedNodes, true)
 
 				node.WUnlatch()
 				bpm.UnpinPage(node.GetPageId(), true)
 				if common.EnableDebug {
-					common.ShPrintf(common.DEBUG_INFO, "SkipListBlockPage::Insert: finish (split & insert to new node). key=%d\n", key.ToInteger())
+					common.ShPrintf(common.DEBUG_INFO, "SkipListBlockPage::Insert: finish (new node without split). key=%v\n", key.ToIFValue())
 				}
 				return false
 			}
+		} else {
+			// no split
 
-			newNode.WUnlatch()
-			bpm.UnpinPage(newNode.GetPageId(), true)
-			//bpm.UnpinPage(node.GetPageId(), true)
+			//fmt.Printf("end of Insert of SkipListBlockPage called! : key=%d page.entryCnt=%d len(page.entries)=%d\n", key.ToInteger(), node.entryCnt, len(node.entries))
+			node.SetLSN(node.GetLSN() + 1)
 
-			// insert to this node
-		}
-		// insert to this node
-		// foundIdx is index of nearlest smaller key entry
-		// new entry is inserted next of the entry
+			insEntry := &SkipListPair{*key, value}
+			node.InsertInner(int(foundIdx), insEntry)
 
-		insEntry := &SkipListPair{*key, value}
-		if key.ValueType() == types.Varchar && (node.GetSpecifiedSLPNeedSpace(insEntry) > node.getFreeSpaceRemaining()) {
-			if isSplited {
-				panic("not enough space for insert (after node split)")
-			} else {
-				panic("not enough space for insert.")
+			node.WUnlatch()
+			bpm.UnpinPage(node.GetPageId(), true)
+			if common.EnableDebug {
+				common.ShPrintf(common.DEBUG_INFO, "SkipListBlockPage::Insert: finish (no split). key=%v\n", key.ToIFValue())
 			}
+			return false
 		}
-		node.InsertInner(int(foundIdx), insEntry)
 	}
-	//fmt.Printf("end of Insert of SkipListBlockPage called! : key=%d page.entryCnt=%d len(page.entries)=%d\n", key.ToInteger(), node.entryCnt, len(node.entries))
-	node.SetLSN(node.GetLSN() + 1)
-
-	node.WUnlatch()
-	bpm.UnpinPage(node.GetPageId(), true)
-	if common.EnableDebug {
-		common.ShPrintf(common.DEBUG_INFO, "SkipListBlockPage::Insert: finish (split=%t and insert existing node). key=%d\n", isSplited, key.ToInteger())
-	}
-	return false
 }
 
 // remove entry info specified with idx arg from header of page
@@ -484,9 +536,13 @@ func validateNoChangeAndGetLock(bpm *buffer.BufferPoolManager, checkNodes []Skip
 		if node.GetLSN() != additonalCheckNode.UpdateCounter {
 			common.ShPrintf(common.DEBUG_INFO, "validateNoChangeAndGetLock: validation of additionalCheckNode is NG: go retry. len(validatedNodes)=%d\n", len(validatedNodes))
 			node.WUnlatch()
+			bpm.UnpinPage(node.GetPageId(), true)
+			bpm.UnpinPage(node.GetPageId(), true)
 			unlockAndUnpinNodes(bpm, validatedNodes, false)
 			return false, nil
 		}
+		bpm.UnpinPage(node.GetPageId(), true)
+		validatedNodes = append(validatedNodes, node)
 	}
 
 	common.ShPrintf(common.DEBUG_INFO, "validateNoChangeAndGetLock: finish. len(validatedNodes)=%d\n", len(validatedNodes))
@@ -506,7 +562,7 @@ func unlockAndUnpinNodes(bpm *buffer.BufferPoolManager, checkedNodes []*SkipList
 
 func (node *SkipListBlockPage) Remove(bpm *buffer.BufferPoolManager, key *types.Value, predOfCorners []SkipListCornerInfo, corners []SkipListCornerInfo) (isNodeShouldBeDeleted bool, isDeleted bool, isNeedRetry bool) {
 	if common.EnableDebug {
-		common.ShPrintf(common.DEBUG_INFO, "SkipListBlockPage::Remove: start. key=%d\n", key.ToInteger())
+		common.ShPrintf(common.DEBUG_INFO, "SkipListBlockPage::Remove: start. key=%v\n", key.ToIFValue())
 	}
 	found, _, foundIdx := node.FindEntryByKey(key)
 	if found && (node.GetEntryCnt() == 1) {
@@ -527,6 +583,10 @@ func (node *SkipListBlockPage) Remove(bpm *buffer.BufferPoolManager, key *types.
 		isSuccess, lockedAndPinnedNodes := validateNoChangeAndGetLock(bpm, checkNodes, additionalCheckNode)
 		if !isSuccess {
 			// already released all lock and pin which includes this node
+
+			//// because WUnlatch is already called once before validateNoChangeAndGetLock func call, but  pin is not released
+			//bpm.UnpinPage(node.GetPageId(), true)
+
 			return false, false, true
 		}
 
@@ -545,14 +605,14 @@ func (node *SkipListBlockPage) Remove(bpm *buffer.BufferPoolManager, key *types.
 		node.SetLSN(node.GetLSN() + 1)
 
 		unlockAndUnpinNodes(bpm, lockedAndPinnedNodes, true)
-		node.WUnlatch()
-		bpm.UnpinPage(node.GetPageId(), true)
+		//node.WUnlatch()
+		//bpm.UnpinPage(node.GetPageId(), true)
 
 		if common.EnableDebug {
-			common.ShPrintf(common.DEBUG_INFO, "SkipListBlockPage::Remove: finished (node remove). key=%d\n", key.ToInteger())
+			common.ShPrintf(common.DEBUG_INFO, "SkipListBlockPage::Remove: finished (node remove). key=%v\n", key.ToIFValue())
 		}
-		// because WUnlatch is already called once before validateNoChangeAndGetLock func call, but  pin is not released
-		bpm.UnpinPage(node.GetPageId(), true)
+		//// because WUnlatch is already called once before validateNoChangeAndGetLock func call, but  pin is not released ???
+		//bpm.UnpinPage(node.GetPageId(), true)
 
 		return true, true, false
 	} else if found {
@@ -566,7 +626,7 @@ func (node *SkipListBlockPage) Remove(bpm *buffer.BufferPoolManager, key *types.
 		node.WUnlatch()
 		bpm.UnpinPage(node.GetPageId(), true)
 		if common.EnableDebug {
-			common.ShPrintf(common.DEBUG_INFO, "SkipListBlockPage::Remove: finished (found). key=%d\n", key.ToInteger())
+			common.ShPrintf(common.DEBUG_INFO, "SkipListBlockPage::Remove: finished (found). key=%v\n", key.ToIFValue())
 		}
 		return false, true, false
 	} else { // found == false
@@ -574,10 +634,26 @@ func (node *SkipListBlockPage) Remove(bpm *buffer.BufferPoolManager, key *types.
 		bpm.UnpinPage(node.GetPageId(), true)
 		// do nothing
 		if common.EnableDebug {
-			common.ShPrintf(common.DEBUG_INFO, "SkipListBlockPage::Remove: finished (not found). key=%d\n", key.ToInteger())
+			common.ShPrintf(common.DEBUG_INFO, "SkipListBlockPage::Remove: finished (not found). key=%v\n", key.ToIFValue())
 		}
 		return false, false, false
 	}
+}
+
+// create new node and update chain
+// ATTENTION:
+// after this method call current thread hold wlatch of "node" and newNode only
+// and these are pinned
+func (node *SkipListBlockPage) newNodeWithoutSplit(bpm *buffer.BufferPoolManager, corners []SkipListCornerInfo,
+	level int32, keyType types.TypeID, lockedAndPinnedNodes []*SkipListBlockPage, insertEntry *SkipListPair) (newNode_ *SkipListBlockPage) {
+	//fmt.Println("<<<<<<<<<<<<<<<<<<<<<<<< SplitNode called! >>>>>>>>>>>>>>>>>>>>>>>>>>>>>>")
+
+	newNode := node.newNodeAndUpdateChain(-1, bpm, corners, level, keyType, lockedAndPinnedNodes, insertEntry)
+	// having lock and pin of "node" and newNode here
+
+	newNode.SetLevel(level)
+
+	return newNode
 }
 
 // split entries of node at entry specified with idx arg
@@ -590,7 +666,24 @@ func (node *SkipListBlockPage) SplitNode(idx int32, bpm *buffer.BufferPoolManage
 	level int32, keyType types.TypeID, lockedAndPinnedNodes []*SkipListBlockPage) (newNode_ *SkipListBlockPage) {
 	//fmt.Println("<<<<<<<<<<<<<<<<<<<<<<<< SplitNode called! >>>>>>>>>>>>>>>>>>>>>>>>>>>>>>")
 
-	newNode := NewSkipListBlockPage(bpm, level, *node.GetEntry(int(idx+1), keyType))
+	newNode := node.newNodeAndUpdateChain(idx, bpm, corners, level, keyType, lockedAndPinnedNodes, nil)
+	// having lock and pin of newNode here
+
+	newNode.SetEntries(node.GetEntries(keyType)[idx+1:])
+	//newNode.SetLevel(level)
+	node.SetEntries(node.GetEntries(keyType)[:idx+1])
+
+	return newNode
+}
+
+func (node *SkipListBlockPage) newNodeAndUpdateChain(idx int32, bpm *buffer.BufferPoolManager, corners []SkipListCornerInfo, level int32, keyType types.TypeID, lockedAndPinnedNodes []*SkipListBlockPage, insertEntry *SkipListPair) *SkipListBlockPage {
+	var newNode *SkipListBlockPage
+	if insertEntry != nil {
+		newNode = NewSkipListBlockPage(bpm, level, *insertEntry)
+	} else {
+		newNode = NewSkipListBlockPage(bpm, level, *node.GetEntry(int(idx+1), keyType))
+	}
+
 	newNode.WLatch()
 
 	for ii := 0; ii < int(level); ii++ {
@@ -611,11 +704,6 @@ func (node *SkipListBlockPage) SplitNode(idx int32, bpm *buffer.BufferPoolManage
 			bpm.UnpinPage(lockedAndPinnedNodes[ii].GetPageId(), true)
 		}
 	}
-
-	newNode.SetEntries(node.GetEntries(keyType)[idx+1:])
-	newNode.SetLevel(level)
-	node.SetEntries(node.GetEntries(keyType)[:idx+1])
-
 	return newNode
 }
 
