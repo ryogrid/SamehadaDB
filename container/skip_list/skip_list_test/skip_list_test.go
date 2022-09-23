@@ -1792,6 +1792,7 @@ func testSkipListMixParallelStrideRoot[T int32 | float32 | string](t *testing.T,
 //	testSkipListMixParallelStride[string](t, types.Varchar, 300, 3000*12, 15, 0, 500)
 //}
 
+// 24h running had been succeeded at 220923
 func TestSkipListMixParallsStrideVarcharLikeFuzzer(t *testing.T) {
 	t.Parallel()
 	if testing.Short() {
