@@ -1793,6 +1793,7 @@ func testSkipListMixParallelStrideRoot[T int32 | float32 | string](t *testing.T,
 //}
 
 // 24h running had been succeeded at 220923
+// \SamehadaDB\container\skip_list\skip_list_test>go test . -race -timeout 24h -v 2>&1 > fuzzlikelog-parallel2.txt
 func TestSkipListMixParallsStrideVarcharLikeFuzzer(t *testing.T) {
 	t.Parallel()
 	if testing.Short() {
