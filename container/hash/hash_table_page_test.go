@@ -19,8 +19,12 @@ import (
 )
 
 func TestHashTableHeaderPage(t *testing.T) {
+	common.TempSuppressOnMemStorageMutex.Lock()
+	common.TempSuppressOnMemStorage = true
+
 	var diskManager disk.DiskManager
 	if !common.TempSuppressOnMemStorage || common.TempSuppressOnMemStorage {
+		os.Remove(samehada_util.GetParentFuncName() + ".db")
 		diskManager = disk.NewDiskManagerImpl(samehada_util.GetParentFuncName() + ".db")
 	} else {
 		diskManager = disk.NewVirtualDiskManagerImpl(samehada_util.GetParentFuncName() + ".db")
@@ -67,11 +71,15 @@ func TestHashTableHeaderPage(t *testing.T) {
 	}
 
 	// unpin the header page now that we are done
-	bpm.UnpinPage(headerPage.GetPageId(), true)
+	//bpm.UnpinPage(headerPage.GetPageId(), true)
+	bpm.UnpinPage(0, true)
 	diskManager.ShutDown()
-	if !common.EnableOnMemStorage {
+	if !common.EnableOnMemStorage || common.TempSuppressOnMemStorage {
 		os.Remove(samehada_util.GetParentFuncName() + ".db")
 	}
+
+	common.TempSuppressOnMemStorage = false
+	common.TempSuppressOnMemStorageMutex.Unlock()
 }
 
 func TestHashTableBlockPage(t *testing.T) {

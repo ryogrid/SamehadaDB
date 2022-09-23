@@ -35,6 +35,7 @@ func TestPackAndUnpackRID(t *testing.T) {
 }
 
 func TestRecounstructionOfHashIndex(t *testing.T) {
+	common.TempSuppressOnMemStorageMutex.Lock()
 	common.TempSuppressOnMemStorage = true
 
 	if !common.EnableOnMemStorage || common.TempSuppressOnMemStorage {
@@ -221,7 +222,8 @@ func TestRecounstructionOfHashIndex(t *testing.T) {
 	}
 
 	shi.GetTransactionManager().Commit(txn)
-	shi.Shutdown(false)
 
 	common.TempSuppressOnMemStorage = false
+	shi.Shutdown(false)
+	common.TempSuppressOnMemStorageMutex.Unlock()
 }

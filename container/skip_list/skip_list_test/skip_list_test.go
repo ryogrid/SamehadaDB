@@ -702,11 +702,8 @@ func getRandomPrimitiveVal[T int32 | float32 | string](keyType types.TypeID) T {
 		return ret.(T)
 	case types.Varchar:
 		//var ret interface{} = *samehada_util.GetRandomStr(1000)
-		//var ret interface{} = *samehada_util.GetRandomStr(500)
-		//var ret interface{} = *samehada_util.GetRandomStr(700)
-		//var ret interface{} = *samehada_util.GetRandomStr(300)
-		//var ret interface{} = *samehada_util.GetRandomStr(20)
-		var ret interface{} = *samehada_util.GetRandomStr(50)
+		var ret interface{} = *samehada_util.GetRandomStr(500)
+		//var ret interface{} = *samehada_util.GetRandomStr(50)
 		return ret.(T)
 	default:
 		panic("not supported keyType")

@@ -17,6 +17,7 @@ func zeroClear(buffer []byte) {
 }
 
 func TestReadWritePage(t *testing.T) {
+	common.TempSuppressOnMemStorageMutex.Lock()
 	common.TempSuppressOnMemStorage = true
 
 	dm := NewDiskManagerTest()
@@ -45,4 +46,5 @@ func TestReadWritePage(t *testing.T) {
 	testingpkg.Equals(t, int64(6*common.PageSize), dm.Size())
 
 	common.TempSuppressOnMemStorage = false
+	common.TempSuppressOnMemStorageMutex.Unlock()
 }

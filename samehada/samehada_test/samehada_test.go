@@ -11,6 +11,7 @@ import (
 
 // TODO: (SDB) need to check query result (TestInsertAndMultiItemPredicateSelect)
 func TestInsertAndMultiItemPredicateSelect(t *testing.T) {
+	common.TempSuppressOnMemStorageMutex.Lock()
 	common.TempSuppressOnMemStorage = true
 
 	// clear all state of DB
@@ -37,8 +38,9 @@ func TestInsertAndMultiItemPredicateSelect(t *testing.T) {
 	_, results5 := db.ExecuteSQLRetValues("SELECT * FROM name_age_list WHERE (age = 18 OR age >= 22) AND age < 25;")
 	samehada.PrintExecuteResults(results5)
 
-	db.Shutdown()
 	common.TempSuppressOnMemStorage = false
+	db.Shutdown()
+	common.TempSuppressOnMemStorageMutex.Unlock()
 }
 
 // TODO: (SDB) need to check query result (TestHasJoinSelect)
@@ -75,6 +77,7 @@ func TestHasJoinSelect(t *testing.T) {
 }
 
 func TestSimpleDelete(t *testing.T) {
+	common.TempSuppressOnMemStorageMutex.Lock()
 	common.TempSuppressOnMemStorage = true
 	// clear all state of DB
 	if !common.EnableOnMemStorage || common.TempSuppressOnMemStorage == true {
@@ -94,10 +97,13 @@ func TestSimpleDelete(t *testing.T) {
 	_, results1 := db.ExecuteSQLRetValues("SELECT * FROM name_age_list;")
 	testingpkg.SimpleAssert(t, len(results1) == 3)
 
+	common.TempSuppressOnMemStorage = false
 	db.Shutdown()
+	common.TempSuppressOnMemStorageMutex.Unlock()
 }
 
 func TestSimpleUpdate(t *testing.T) {
+	common.TempSuppressOnMemStorageMutex.Lock()
 	common.TempSuppressOnMemStorage = true
 	// clear all state of DB
 	if !common.EnableOnMemStorage || common.TempSuppressOnMemStorage == true {
@@ -118,11 +124,13 @@ func TestSimpleUpdate(t *testing.T) {
 	samehada.PrintExecuteResults(results1)
 	testingpkg.SimpleAssert(t, len(results1) == 3)
 
-	db.Shutdown()
 	common.TempSuppressOnMemStorage = false
+	db.Shutdown()
+	common.TempSuppressOnMemStorageMutex.Unlock()
 }
 
 func TestRebootWithLoadAndRecovery(t *testing.T) {
+	common.TempSuppressOnMemStorageMutex.Lock()
 	common.TempSuppressOnMemStorage = true
 
 	// clear all state of DB
@@ -168,13 +176,14 @@ func TestRebootWithLoadAndRecovery(t *testing.T) {
 	samehada.PrintExecuteResults(results3)
 	testingpkg.SimpleAssert(t, len(results3) == 5)
 
+	common.TempSuppressOnMemStorage = false
 	// close db and log file
 	db3.Shutdown()
-
-	common.TempSuppressOnMemStorage = false
+	common.TempSuppressOnMemStorageMutex.Unlock()
 }
 
 func TestRebootAndReturnIFValues(t *testing.T) {
+	common.TempSuppressOnMemStorageMutex.Lock()
 	common.TempSuppressOnMemStorage = true
 
 	// clear all state of DB
@@ -229,7 +238,7 @@ func TestRebootAndReturnIFValues(t *testing.T) {
 	}
 	testingpkg.SimpleAssert(t, len(results3) == 5)
 
-	db3.Shutdown()
-
 	common.TempSuppressOnMemStorage = false
+	db3.Shutdown()
+	common.TempSuppressOnMemStorageMutex.Unlock()
 }

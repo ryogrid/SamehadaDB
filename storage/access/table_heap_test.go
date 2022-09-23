@@ -21,8 +21,8 @@ import (
 )
 
 func TestTableHeap(t *testing.T) {
+	common.TempSuppressOnMemStorageMutex.Lock()
 	common.TempSuppressOnMemStorage = true
-	defer func() { common.TempSuppressOnMemStorage = false }()
 
 	dm := disk.NewDiskManagerTest()
 	defer dm.ShutDown()
@@ -91,6 +91,9 @@ func TestTableHeap(t *testing.T) {
 	testingpkg.Assert(t, tuple_cnt == 1000, "quontity of returned tuples differ one of expected.")
 
 	txn_mgr.Commit(txn)
+
+	common.TempSuppressOnMemStorage = false
+	common.TempSuppressOnMemStorageMutex.Unlock()
 }
 
 func TestTableHeapFourCol(t *testing.T) {

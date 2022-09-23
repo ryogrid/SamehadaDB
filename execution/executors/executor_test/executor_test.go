@@ -546,6 +546,7 @@ func TestSimpleInsertAndLimitExecutionMultiTable(t *testing.T) {
 }
 
 func TestHashTableIndex(t *testing.T) {
+	common.TempSuppressOnMemStorageMutex.Lock()
 	common.TempSuppressOnMemStorage = true
 
 	diskManager := disk.NewDiskManagerTest()
@@ -680,8 +681,9 @@ func TestHashTableIndex(t *testing.T) {
 		})
 	}
 
-	diskManager.ShutDown()
 	common.TempSuppressOnMemStorage = false
+	diskManager.ShutDown()
+	common.TempSuppressOnMemStorageMutex.Unlock()
 }
 
 func TestSimpleDelete(t *testing.T) {
@@ -1696,6 +1698,7 @@ func TestTestTableGenerator(t *testing.T) {
 	testingpkg.Assert(t, len(results) == int(executors.TEST1_SIZE), "generated table or testcase is wrong.")
 
 	txn_mgr.Commit(txn)
+	shi.Shutdown(true)
 }
 
 func TestSimpleAggregation(t *testing.T) {
@@ -1768,6 +1771,7 @@ func TestSimpleAggregation(t *testing.T) {
 	testingpkg.Assert(t, tuple_ == nil && done == true && err == nil, "second call of AggregationExecutor::Next() failed")
 
 	txn_mgr.Commit(txn)
+	shi.Shutdown(true)
 }
 
 func TestSimpleGroupByAggregation(t *testing.T) {
@@ -1849,6 +1853,7 @@ func TestSimpleGroupByAggregation(t *testing.T) {
 	}
 
 	txn_mgr.Commit(txn)
+	shi.Shutdown(true)
 }
 
 func TestSeqScanWithMultiItemPredicate(t *testing.T) {
@@ -1923,6 +1928,8 @@ func TestSeqScanWithMultiItemPredicate(t *testing.T) {
 	}
 
 	txn_mgr.Commit(txn)
+
+	shi.Shutdown(true)
 }
 
 func TestInsertAndSpecifiedColumnUpdate(t *testing.T) {
@@ -2094,6 +2101,8 @@ func TestInsertAndSpecifiedColumnUpdatePageMoveCase(t *testing.T) {
 
 	testingpkg.Assert(t, types.NewInteger(99).CompareEquals(results[0].GetValue(outSchema, 0)), "value should be 99")
 	testingpkg.Assert(t, types.NewVarchar("updated_xxxxxxxxxxxxxxxxxxxxxxxxx").CompareEquals(results[0].GetValue(outSchema, 1)), "value should be 'updated_xxxxxxxxxxxxxxxxxxxxxxxxx'")
+
+	shi.Shutdown(true)
 }
 
 //// used for debugging Insert of SkipListIndex
@@ -2289,6 +2298,7 @@ func TestSimpleSeqScanAndOrderBy(t *testing.T) {
 	testingpkg.Assert(t, types.NewVarchar("daylight").CompareEquals(results[2].GetValue(scan_schema, 1)), "value should be 'daylight'")
 
 	txn_mgr.Commit(txn)
+	shi.Shutdown(true)
 }
 
 func TestSimpleSetNullToVarchar(t *testing.T) {
@@ -2375,6 +2385,7 @@ func TestSimpleSetNullToVarchar(t *testing.T) {
 	testingpkg.Assert(t, types.NewVarchar("daylight").CompareEquals(results[2].GetValue(scan_schema, 1)), "value should be 'daylight'")
 
 	txn_mgr.Commit(txn)
+	shi.Shutdown(true)
 }
 
 func TestInsertNullValueAndSeqScanWithNullComparison(t *testing.T) {

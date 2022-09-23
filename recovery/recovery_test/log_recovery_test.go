@@ -154,6 +154,7 @@ func TestLogSererializeAndDeserialize(t *testing.T) {
 */
 
 func TestRedo(t *testing.T) {
+	common.TempSuppressOnMemStorageMutex.Lock()
 	common.TempSuppressOnMemStorage = true
 	if !common.EnableOnMemStorage || common.TempSuppressOnMemStorage {
 		os.Remove(samehada_util.GetParentFuncName() + ".db")
@@ -256,12 +257,14 @@ func TestRedo(t *testing.T) {
 	testingpkg.Assert(t, old_tuple1.GetValue(schema_, 0).CompareEquals(val1_0), "")
 
 	fmt.Println("Tearing down the system..")
-	samehada_instance.Shutdown(true)
 
 	common.TempSuppressOnMemStorage = false
+	samehada_instance.Shutdown(true)
+	common.TempSuppressOnMemStorageMutex.Unlock()
 }
 
 func TestUndo(t *testing.T) {
+	common.TempSuppressOnMemStorageMutex.Lock()
 	common.TempSuppressOnMemStorage = true
 	if !common.EnableOnMemStorage || common.TempSuppressOnMemStorage {
 		os.Remove(samehada_util.GetParentFuncName() + ".db")
@@ -405,13 +408,16 @@ func TestUndo(t *testing.T) {
 	//samehada_instance.GetTransactionManager().Commit(txn)
 
 	fmt.Println("Tearing down the system..")
-	samehada_instance.Shutdown(true)
 
 	common.TempSuppressOnMemStorage = false
+	samehada_instance.Shutdown(true)
+	common.TempSuppressOnMemStorageMutex.Unlock()
 }
 
 func TestCheckpoint(t *testing.T) {
-	if !common.EnableOnMemStorage {
+	common.TempSuppressOnMemStorageMutex.Lock()
+	common.TempSuppressOnMemStorage = true
+	if !common.EnableOnMemStorage || common.TempSuppressOnMemStorage {
 		os.Remove(samehada_util.GetParentFuncName() + ".db")
 		os.Remove(samehada_util.GetParentFuncName() + ".log")
 	}
@@ -521,9 +527,11 @@ func TestCheckpoint(t *testing.T) {
 	testingpkg.Assert(t, all_pages_lte, "")
 
 	fmt.Println("Shutdown System")
-	samehada_instance.Shutdown(true)
-
 	fmt.Println("Tearing down the system..")
+
+	common.TempSuppressOnMemStorage = false
+	samehada_instance.Shutdown(true)
+	common.TempSuppressOnMemStorageMutex.Unlock()
 }
 
 // use a fixed schema to construct a random tuple

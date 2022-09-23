@@ -16,6 +16,7 @@ import (
 )
 
 func TestBinaryData(t *testing.T) {
+	common.TempSuppressOnMemStorageMutex.Lock()
 	common.TempSuppressOnMemStorage = true
 
 	poolSize := uint32(10)
@@ -70,11 +71,13 @@ func TestBinaryData(t *testing.T) {
 	testingpkg.Equals(t, fixedRandomBinaryData, *page0.Data())
 	testingpkg.Ok(t, bpm.UnpinPage(types.PageID(0), true))
 
-	dm.ShutDown()
 	common.TempSuppressOnMemStorage = false
+	dm.ShutDown()
+	common.TempSuppressOnMemStorageMutex.Unlock()
 }
 
 func TestSample(t *testing.T) {
+	common.TempSuppressOnMemStorageMutex.Lock()
 	common.TempSuppressOnMemStorage = true
 
 	poolSize := uint32(10)
@@ -123,6 +126,7 @@ func TestSample(t *testing.T) {
 	testingpkg.Equals(t, (*page.Page)(nil), bpm.NewPage())
 	testingpkg.Equals(t, (*page.Page)(nil), bpm.FetchPage(types.PageID(0)))
 
-	dm.ShutDown()
 	common.TempSuppressOnMemStorage = false
+	dm.ShutDown()
+	common.TempSuppressOnMemStorageMutex.Unlock()
 }

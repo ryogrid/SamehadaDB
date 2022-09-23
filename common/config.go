@@ -3,18 +3,22 @@
 
 package common
 
-import "time"
+import (
+	"sync"
+	"time"
+)
 
 var LogTimeout time.Duration
 
 var EnableLogging bool = false //true
-const EnableDebug bool = false //true
+const EnableDebug bool = true  //false
 // use virtual storage or not
 const EnableOnMemStorage = true //false
 
 // when this is true, virtual storage use is suppressed
 // for test case which can't work with virtual storage
 var TempSuppressOnMemStorage = false
+var TempSuppressOnMemStorageMutex sync.Mutex
 
 const (
 	// invalid page id
@@ -26,7 +30,7 @@ const (
 	// the header page id
 	HeaderPageID = 0
 	// size of a data page in byte
-	PageSize                     = 1024 //512 //4096
+	PageSize                     = 4096 //1024 //512
 	BufferPoolMaxFrameNumForTest = 32
 	// number for calculate log buffer size (number of page size)
 	LogBufferSizeBase = 32
