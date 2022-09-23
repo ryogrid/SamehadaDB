@@ -1,0 +1,134 @@
+package skip_list_bench
+
+import (
+	"fmt"
+	"github.com/ryogrid/SamehadaDB/container/skip_list"
+	"github.com/ryogrid/SamehadaDB/samehada"
+	"github.com/ryogrid/SamehadaDB/samehada/samehada_util"
+	"github.com/ryogrid/SamehadaDB/types"
+	"math/rand"
+	"runtime"
+	"sync"
+	"testing"
+	"time"
+)
+
+const INITIAL_VAL_NUM = 300000
+const WORK_NUM = INITIAL_VAL_NUM / 10
+const PASS_WORK_NUM = 100
+
+type opTypeAndVal struct {
+	OpType skip_list.SkipListOpType
+	Val    *types.Value
+}
+
+type workArray struct {
+	arr        [WORK_NUM]*opTypeAndVal
+	pos        int32
+	posForInit int32
+	mutex      sync.Mutex
+}
+
+func (arr *workArray) GetNewWork() (work []*opTypeAndVal, done bool) {
+	arr.mutex.Lock()
+	defer arr.mutex.Unlock()
+	arr.pos = arr.pos + PASS_WORK_NUM
+	if arr.pos+PASS_WORK_NUM < WORK_NUM-1 {
+		return arr.arr[arr.pos : arr.pos+PASS_WORK_NUM], false
+	} else {
+		return nil, true
+	}
+}
+
+func NewWorkArray() *workArray {
+	ret := new(workArray)
+	ret.pos = -1 * PASS_WORK_NUM
+	ret.posForInit = -1
+	return ret
+}
+
+func (arr *workArray) Append(val *types.Value) {
+	arr.posForInit++
+	randVal := rand.Intn(10)
+	if randVal < 2 {
+		arr.arr[arr.posForInit] = &opTypeAndVal{skip_list.SKIP_LIST_OP_REMOVE, val}
+	} else {
+		arr.arr[arr.posForInit] = &opTypeAndVal{skip_list.SKIP_LIST_OP_GET, val}
+	}
+}
+
+func (arr *workArray) Shuffle() {
+	rand.Shuffle(len(arr.arr), func(i, j int) { arr.arr[i], arr.arr[j] = arr.arr[j], arr.arr[i] })
+}
+
+// // get:remove = 8:2
+//
+//get:remove = 9:1
+//get:remove = 10:0
+func TestSkipListBench82(t *testing.T) {
+	runtime.GOMAXPROCS(50)
+
+	threadNumArr := []int{1, 2, 3, 4, 5, 6, 12, 20, 50, 100}
+
+	ch := make(chan int)
+	// measure in each thread num
+	for ii := 0; ii < 10; ii++ {
+		sl, wArray := genInitialSLAndWorkArr(t.Name())
+		fmt.Println("setuped data.")
+		threadNum := threadNumArr[ii]
+		for jj := 0; jj < threadNum; jj++ {
+			go func() {
+				for {
+					work, done := wArray.GetNewWork()
+					if done {
+						ch <- 1
+						break
+					}
+					for _, wk := range work {
+						switch wk.OpType {
+						case skip_list.SKIP_LIST_OP_REMOVE:
+							sl.Remove(wk.Val, uint32(wk.Val.ToInteger()))
+						case skip_list.SKIP_LIST_OP_GET:
+							sl.GetValue(wk.Val)
+						default:
+							panic("illegal operation")
+						}
+					}
+				}
+			}()
+		}
+		fmt.Println("start measure.")
+		startTime := time.Now()
+		// wait finish of threads
+		for jj := 0; jj < threadNum; jj++ {
+			<-ch
+		}
+		d := time.Since(startTime)
+		fmt.Printf("threadNum=%d: elapsed %v\n", threadNum, d)
+	}
+}
+
+func genInitialSLAndWorkArr(dbName string) (*skip_list.SkipList, *workArray) {
+	rand.Seed(5)
+
+	shi := samehada.NewSamehadaInstance(dbName, 1024*10) //10MB
+	bpm := shi.GetBufferPoolManager()
+
+	sl := skip_list.NewSkipList(bpm, types.Integer)
+	wArray := NewWorkArray()
+
+	// insert initial values and fill work array
+	for ii := 0; ii < INITIAL_VAL_NUM; ii++ {
+		tmpValBase := ii //rand.Int31()
+		tmpVal := samehada_util.GetPonterOfValue(types.NewInteger(int32(tmpValBase)))
+		sl.Insert(tmpVal, uint32(tmpValBase))
+		if ii%WORK_NUM == 0 {
+			fmt.Printf("genInitialSLAndWorkArr: %d entries inserted.\n", ii)
+		}
+		if ii < WORK_NUM {
+			wArray.Append(tmpVal)
+		}
+	}
+	wArray.Shuffle()
+	return sl, wArray
+}

@@ -1718,77 +1718,77 @@ func testSkipListMixParallelStrideRoot[T int32 | float32 | string](t *testing.T,
 	fmt.Println("test finished 5/5.")
 }
 
-//func TestSkipListMixInteger(t *testing.T) {
-//	t.Parallel()
-//	testSkipListMixRoot[int32](t, types.Integer)
-//}
-//
-//func TestSkipListMixFloat(t *testing.T) {
-//	t.Parallel()
-//	testSkipListMixRoot[float32](t, types.Float)
-//}
-//
-//func TestSkipListMixVarchar(t *testing.T) {
-//	t.Parallel()
-//	testSkipListMixRoot[string](t, types.Varchar)
-//}
-//
-//func TestSkipListMixParallelInteger(t *testing.T) {
-//	t.Parallel()
-//	if testing.Short() {
-//		t.Skip("skip this in short mode.")
-//	}
-//	testSkipListMixParallelRoot[int32](t, types.Integer)
-//}
-//
-//func TestSkipListMixParallelVarchar(t *testing.T) {
-//	t.Parallel()
-//	if testing.Short() {
-//		t.Skip("skip this in short mode.")
-//	}
-//	testSkipListMixParallelRoot[string](t, types.Varchar)
-//}
-//
-//func TestSkipListMixParallelBulkInteger(t *testing.T) {
-//	t.Parallel()
-//	if testing.Short() {
-//		t.Skip("skip this in short mode.")
-//	}
-//	testSkipListMixParallelBulkRoot[int32](t, types.Integer)
-//}
-//
-//func TestSkipListMixParallelBulkVarchar(t *testing.T) {
-//	t.Parallel()
-//	if testing.Short() {
-//		t.Skip("skip this in short mode.")
-//	}
-//	testSkipListMixParallelBulkRoot[string](t, types.Varchar)
-//}
-//
-//func TestSkipListMixParallelStrideInteger(t *testing.T) {
-//	t.Parallel()
-//	if testing.Short() {
-//		t.Skip("skip this in short mode.")
-//	}
-//	testSkipListMixParallelStrideRoot[int32](t, types.Integer)
-//}
-//
-//func TestSkipListMixParallelStrideVarchar(t *testing.T) {
-//	t.Parallel()
-//	if testing.Short() {
-//		t.Skip("skip this in short mode.")
-//	}
-//	testSkipListMixParallelStrideRoot[string](t, types.Varchar)
-//}
-//
-//func TestSkipListMixParallsStrideVarcharLongRun(t *testing.T) {
-//	t.Parallel()
-//	if testing.Short() {
-//		t.Skip("skip this in short mode.")
-//	}
-//	// assumed running time is about 12h
-//	testSkipListMixParallelStride[string](t, types.Varchar, 300, 3000*12, 15, 0, 500)
-//}
+func TestSkipListMixInteger(t *testing.T) {
+	t.Parallel()
+	testSkipListMixRoot[int32](t, types.Integer)
+}
+
+func TestSkipListMixFloat(t *testing.T) {
+	t.Parallel()
+	testSkipListMixRoot[float32](t, types.Float)
+}
+
+func TestSkipListMixVarchar(t *testing.T) {
+	t.Parallel()
+	testSkipListMixRoot[string](t, types.Varchar)
+}
+
+func TestSkipListMixParallelInteger(t *testing.T) {
+	t.Parallel()
+	if testing.Short() {
+		t.Skip("skip this in short mode.")
+	}
+	testSkipListMixParallelRoot[int32](t, types.Integer)
+}
+
+func TestSkipListMixParallelVarchar(t *testing.T) {
+	t.Parallel()
+	if testing.Short() {
+		t.Skip("skip this in short mode.")
+	}
+	testSkipListMixParallelRoot[string](t, types.Varchar)
+}
+
+func TestSkipListMixParallelBulkInteger(t *testing.T) {
+	t.Parallel()
+	if testing.Short() {
+		t.Skip("skip this in short mode.")
+	}
+	testSkipListMixParallelBulkRoot[int32](t, types.Integer)
+}
+
+func TestSkipListMixParallelBulkVarchar(t *testing.T) {
+	t.Parallel()
+	if testing.Short() {
+		t.Skip("skip this in short mode.")
+	}
+	testSkipListMixParallelBulkRoot[string](t, types.Varchar)
+}
+
+func TestSkipListMixParallelStrideInteger(t *testing.T) {
+	t.Parallel()
+	if testing.Short() {
+		t.Skip("skip this in short mode.")
+	}
+	testSkipListMixParallelStrideRoot[int32](t, types.Integer)
+}
+
+func TestSkipListMixParallelStrideVarchar(t *testing.T) {
+	t.Parallel()
+	if testing.Short() {
+		t.Skip("skip this in short mode.")
+	}
+	testSkipListMixParallelStrideRoot[string](t, types.Varchar)
+}
+
+func TestSkipListMixParallsStrideVarcharLongRun(t *testing.T) {
+	t.Parallel()
+	if testing.Short() {
+		t.Skip("skip this in short mode.")
+	}
+	// assumed running time is about 12h
+	testSkipListMixParallelStride[string](t, types.Varchar, 300, 3000*12, 15, 0, 500)
+}
 
 // 24h running had been succeeded at 220923
 // \SamehadaDB\container\skip_list\skip_list_test>go test . -race -timeout 24h -v 2>&1 > fuzzlikelog-parallel2.txt
