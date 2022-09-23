@@ -212,9 +212,6 @@ func (d *DiskManagerImpl) RemoveLogFile() {
 // erase needless data from log file (use this when db recovery finishes or snapshot finishes)
 // file content becomes empty
 func (d *DiskManagerImpl) GCLogFile() error {
-	if common.EnableOnMemStorage && !common.TempSuppressOnMemStorage {
-		return nil
-	}
 	d.logFileMutex.Lock()
 
 	d.log.Close()

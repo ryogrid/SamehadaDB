@@ -23,11 +23,11 @@ import (
 //func TestSerializationOfSkipLisBlockPage(t *testing.T) {
 //	t.Parallel()
 //	if !common.EnableOnMemStorage {
-//		os.Remove(samehada_util.GetParentFuncName() + ".db")
-//		os.Remove(samehada_util.GetParentFuncName() + ".log")
+//		os.Remove(t.Name() + ".db")
+//		os.Remove(t.Name() + ".log")
 //	}
-//	//shi := samehada.NewSamehadaInstance(samehada_util.GetParentFuncName(), common.BufferPoolMaxFrameNumForTest)
-//	shi := samehada.NewSamehadaInstance(samehada_util.GetParentFuncName(), common.BufferPoolMaxFrameNumForTest)
+//	//shi := samehada.NewSamehadaInstance(t.Name(), common.BufferPoolMaxFrameNumForTest)
+//	shi := samehada.NewSamehadaInstance(t.Name(), common.BufferPoolMaxFrameNumForTest)
 //	bpm := shi.GetBufferPoolManager()
 //
 //	bpage := skip_list_page.NewSkipListBlockPage(bpm, 1, skip_list_page.SkipListPair{
@@ -62,10 +62,10 @@ import (
 //func TestSerializationOfSkipLisHeaderPage(t *testing.T) {
 //	t.Parallel()
 //	if !common.EnableOnMemStorage {
-//		os.Remove(samehada_util.GetParentFuncName() + ".db")
-//		os.Remove(samehada_util.GetParentFuncName() + ".log")
+//		os.Remove(t.Name() + ".db")
+//		os.Remove(t.Name() + ".log")
 //	}
-//	shi := samehada.NewSamehadaInstance(samehada_util.GetParentFuncName(), common.BufferPoolMaxFrameNumForTest)
+//	shi := samehada.NewSamehadaInstance(t.Name(), common.BufferPoolMaxFrameNumForTest)
 //	bpm := shi.GetBufferPoolManager()
 //
 //	hpageId := skip_list_page.NewSkipListHeaderPage(bpm, types.Integer)
@@ -87,10 +87,10 @@ import (
 //func TestInnerInsertDeleteOfBlockPageSimple(t *testing.T) {
 //	t.Parallel()
 //	if !common.EnableOnMemStorage {
-//		os.Remove(samehada_util.GetParentFuncName() + ".db")
-//		os.Remove(samehada_util.GetParentFuncName() + ".log")
+//		os.Remove(t.Name() + ".db")
+//		os.Remove(t.Name() + ".log")
 //	}
-//	shi := samehada.NewSamehadaInstance(samehada_util.GetParentFuncName(), common.BufferPoolMaxFrameNumForTest)
+//	shi := samehada.NewSamehadaInstance(t.Name(), common.BufferPoolMaxFrameNumForTest)
 //	bpm := shi.GetBufferPoolManager()
 //
 //	// ---------- test RemoveInner --------
@@ -189,10 +189,10 @@ import (
 //func TestBSearchOfSkipLisBlockPage(t *testing.T) {
 //	t.Parallel()
 //	if !common.EnableOnMemStorage {
-//		os.Remove(samehada_util.GetParentFuncName() + ".db")
-//		os.Remove(samehada_util.GetParentFuncName() + ".log")
+//		os.Remove(t.Name() + ".db")
+//		os.Remove(t.Name() + ".log")
 //	}
-//	shi := samehada.NewSamehadaInstance(samehada_util.GetParentFuncName(), common.BufferPoolMaxFrameNumForTest)
+//	shi := samehada.NewSamehadaInstance(t.Name(), common.BufferPoolMaxFrameNumForTest)
 //	bpm := shi.GetBufferPoolManager()
 //
 //	bpage := skip_list_page.NewSkipListBlockPage(bpm, 1, skip_list_page.SkipListPair{
@@ -252,10 +252,10 @@ import (
 //func TestBSearchOfSkipLisBlockPage2(t *testing.T) {
 //	t.Parallel()
 //	if !common.EnableOnMemStorage {
-//		os.Remove(samehada_util.GetParentFuncName() + ".db")
-//		os.Remove(samehada_util.GetParentFuncName() + ".log")
+//		os.Remove(t.Name() + ".db")
+//		os.Remove(t.Name() + ".log")
 //	}
-//	shi := samehada.NewSamehadaInstance(samehada_util.GetParentFuncName(), common.BufferPoolMaxFrameNumForTest)
+//	shi := samehada.NewSamehadaInstance(t.Name(), common.BufferPoolMaxFrameNumForTest)
 //	bpm := shi.GetBufferPoolManager()
 //
 //	bpage := skip_list_page.NewSkipListBlockPage(bpm, 1, skip_list_page.SkipListPair{
@@ -352,11 +352,11 @@ func confirmSkipListContent(t *testing.T, sl *skip_list.SkipList, step int32) in
 //func TestSkipListSimple(t *testing.T) {
 //	t.Parallel()
 //	if !common.EnableOnMemStorage {
-//		os.Remove(samehada_util.GetParentFuncName() + ".db")
-//		os.Remove(samehada_util.GetParentFuncName() + ".log")
+//		os.Remove(t.Name() + ".db")
+//		os.Remove(t.Name() + ".log")
 //	}
 //
-//	shi := samehada.NewSamehadaInstance(samehada_util.GetParentFuncName(), common.BufferPoolMaxFrameNumForTest)
+//	shi := samehada.NewSamehadaInstance(t.Name(), common.BufferPoolMaxFrameNumForTest)
 //	sl := skip_list.NewSkipList(shi.GetBufferPoolManager(), types.Integer)
 //
 //	// override global rand seed (seed has been set on NewSkipList)
@@ -415,12 +415,12 @@ func confirmSkipListContent(t *testing.T, sl *skip_list.SkipList, step int32) in
 //func TestSkipListInsertAndDeleteAll(t *testing.T) {
 //	t.Parallel()
 //	if !common.EnableOnMemStorage {
-//		os.Remove(samehada_util.GetParentFuncName() + ".db")
-//		os.Remove(samehada_util.GetParentFuncName() + ".log")
+//		os.Remove(t.Name() + ".db")
+//		os.Remove(t.Name() + ".log")
 //	}
 //
-//	//shi := samehada.NewSamehadaInstance(samehada_util.GetParentFuncName(), 100)
-//	shi := samehada.NewSamehadaInstance(samehada_util.GetParentFuncName(), 5)
+//	//shi := samehada.NewSamehadaInstance(t.Name(), 100)
+//	shi := samehada.NewSamehadaInstance(t.Name(), 5)
 //	sl := skip_list.NewSkipList(shi.GetBufferPoolManager(), types.Integer)
 //
 //	// override global rand seed (seed has been set on NewSkipList)
@@ -509,11 +509,11 @@ func confirmSkipListContent(t *testing.T, sl *skip_list.SkipList, step int32) in
 //func TestSkipListItr(t *testing.T) {
 //	t.Parallel()
 //	if !common.EnableOnMemStorage {
-//		os.Remove(samehada_util.GetParentFuncName() + ".db")
-//		os.Remove(samehada_util.GetParentFuncName() + ".log")
+//		os.Remove(t.Name() + ".db")
+//		os.Remove(t.Name() + ".log")
 //	}
 //
-//	shi := samehada.NewSamehadaInstance(samehada_util.GetParentFuncName(), common.BufferPoolMaxFrameNumForTest)
+//	shi := samehada.NewSamehadaInstance(t.Name(), common.BufferPoolMaxFrameNumForTest)
 //	sl := skip_list.NewSkipList(shi.GetBufferPoolManager(), types.Integer)
 //
 //	insVals := make([]int32, 0)
@@ -596,12 +596,12 @@ func confirmSkipListContent(t *testing.T, sl *skip_list.SkipList, step int32) in
 //		}
 //
 //		//if !common.EnableOnMemStorage {
-//		//	os.Remove(samehada_util.GetParentFuncName() + ".db")
-//		//	os.Remove(samehada_util.GetParentFuncName() + ".log")
+//		//	os.Remove(t.Name() + ".db")
+//		//	os.Remove(t.Name() + ".log")
 //		//}
 //
-//		//shi := samehada.NewSamehadaInstance(samehada_util.GetParentFuncName(), common.BufferPoolMaxFrameNumForTest)
-//		////shi := samehada.NewSamehadaInstance(samehada_util.GetParentFuncName(), 10*1024) // buffer is about 40MB
+//		//shi := samehada.NewSamehadaInstance(t.Name(), common.BufferPoolMaxFrameNumForTest)
+//		////shi := samehada.NewSamehadaInstance(t.Name(), 10*1024) // buffer is about 40MB
 //		//bpm := shi.GetBufferPoolManager()
 //
 //		testSkipListMix[int32](t, types.Integer, bulkSize, opTimes, skipRand, initialEntryNum, true)
@@ -621,14 +621,14 @@ func confirmSkipListContent(t *testing.T, sl *skip_list.SkipList, step int32) in
 //		}
 //
 //		//if !common.EnableOnMemStorage {
-//		//	os.Remove(samehada_util.GetParentFuncName() + ".db")
-//		//	os.Remove(samehada_util.GetParentFuncName() + ".log")
+//		//	os.Remove(t.Name() + ".db")
+//		//	os.Remove(t.Name() + ".log")
 //		//}
 //		//randStr := *samehada_util.GetRandomStr(20)
 //		////fnameNum := strconv.Itoa(int(bulkSize + opTimes + skipRand + initialEntryNum))
 //		////randStr := fnameNum + ".db"
 //		//
-//		////shi := samehada.NewSamehadaInstance(samehada_util.GetParentFuncName(), common.BufferPoolMaxFrameNumForTest)
+//		////shi := samehada.NewSamehadaInstance(t.Name(), common.BufferPoolMaxFrameNumForTest)
 //		////shi := samehada.NewSamehadaInstance(*randStr, 10) // 10 frames (1 page = 4096bytes)
 //		//shi := samehada.NewSamehadaInstance(randStr, 10*1024) // 10 * 1024 frames (1 page = 4096bytes)
 //		//bpm := shi.GetBufferPoolManager()
@@ -856,15 +856,15 @@ func testSkipListMix[T int32 | float32 | string](t *testing.T, keyType types.Typ
 		startTime = time.Now().UnixNano()
 	}
 	//if !common.EnableOnMemStorage {
-	//	os.Remove(samehada_util.GetParentFuncName() + ".db")
-	//	os.Remove(samehada_util.GetParentFuncName() + ".log")
+	//	os.Remove(t.Name() + ".db")
+	//	os.Remove(t.Name() + ".log")
 	//}
 
-	//shi := samehada.NewSamehadaInstance(samehada_util.GetParentFuncName(), common.BufferPoolMaxFrameNumForTest)
-	//shi := samehada.NewSamehadaInstance(samehada_util.GetParentFuncName(), 10)
+	//shi := samehada.NewSamehadaInstance(t.Name(), common.BufferPoolMaxFrameNumForTest)
+	//shi := samehada.NewSamehadaInstance(t.Name(), 10)
 
-	shi := samehada.NewSamehadaInstance(samehada_util.GetParentFuncName(), 10)
-	//shi := samehada.NewSamehadaInstance(samehada_util.GetParentFuncName(), 10*1024) // buffer is about 40MB
+	shi := samehada.NewSamehadaInstance(t.Name(), 10)
+	//shi := samehada.NewSamehadaInstance(t.Name(), 10*1024) // buffer is about 40MB
 
 	bpm := shi.GetBufferPoolManager()
 
@@ -996,14 +996,14 @@ func testSkipListMixParallel[T int32 | float32 | string](t *testing.T, keyType t
 		opTimes, skipRand, initialEntryNum)
 
 	if !common.EnableOnMemStorage {
-		os.Remove(samehada_util.GetParentFuncName() + ".db")
-		os.Remove(samehada_util.GetParentFuncName() + ".log")
+		os.Remove(t.Name() + ".db")
+		os.Remove(t.Name() + ".log")
 	}
 
-	//shi := samehada.NewSamehadaInstance(samehada_util.GetParentFuncName(), 30)
-	shi := samehada.NewSamehadaInstance(samehada_util.GetParentFuncName(), common.BufferPoolMaxFrameNumForTest)
-	//shi := samehada.NewSamehadaInstance(samehada_util.GetParentFuncName(), common.BufferPoolMaxFrameNumForTest)
-	//shi := samehada.NewSamehadaInstance(samehada_util.GetParentFuncName(), 10*1024) // buffer is about 40MB
+	//shi := samehada.NewSamehadaInstance(t.Name(), 30)
+	shi := samehada.NewSamehadaInstance(t.Name(), common.BufferPoolMaxFrameNumForTest)
+	//shi := samehada.NewSamehadaInstance(t.Name(), common.BufferPoolMaxFrameNumForTest)
+	//shi := samehada.NewSamehadaInstance(t.Name(), 10*1024) // buffer is about 40MB
 	bpm := shi.GetBufferPoolManager()
 	sl := skip_list.NewSkipList(bpm, keyType)
 
@@ -1190,13 +1190,13 @@ func testSkipListMixParallelBulk[T int32 | float32 | string](t *testing.T, keyTy
 		opTimes, skipRand, initialEntryNum)
 
 	if !common.EnableOnMemStorage {
-		os.Remove(samehada_util.GetParentFuncName() + ".db")
-		os.Remove(samehada_util.GetParentFuncName() + ".log")
+		os.Remove(t.Name() + ".db")
+		os.Remove(t.Name() + ".log")
 	}
 
-	shi := samehada.NewSamehadaInstance(samehada_util.GetParentFuncName(), 30)
-	//shi := samehada.NewSamehadaInstance(samehada_util.GetParentFuncName(), common.BufferPoolMaxFrameNumForTest)
-	//shi := samehada.NewSamehadaInstance(samehada_util.GetParentFuncName(), 10*1024) // buffer is about 40MB
+	shi := samehada.NewSamehadaInstance(t.Name(), 30)
+	//shi := samehada.NewSamehadaInstance(t.Name(), common.BufferPoolMaxFrameNumForTest)
+	//shi := samehada.NewSamehadaInstance(t.Name(), 10*1024) // buffer is about 40MB
 	bpm := shi.GetBufferPoolManager()
 	sl := skip_list.NewSkipList(bpm, keyType)
 
@@ -1395,18 +1395,18 @@ func testSkipListMixParallelStride[T int32 | float32 | string](t *testing.T, key
 		stride, opTimes, seedVal, initialEntryNum)
 
 	if !common.EnableOnMemStorage {
-		os.Remove(samehada_util.GetParentFuncName() + ".db")
-		os.Remove(samehada_util.GetParentFuncName() + ".log")
+		os.Remove(t.Name() + ".db")
+		os.Remove(t.Name() + ".log")
 	}
 
 	const THREAD_NUM = 20
 
-	shi := samehada.NewSamehadaInstance(samehada_util.GetParentFuncName(), int(bpoolSize))
-	//shi := samehada.NewSamehadaInstance(samehada_util.GetParentFuncName(), 30)
-	//shi := samehada.NewSamehadaInstance(samehada_util.GetParentFuncName(), 60)
+	shi := samehada.NewSamehadaInstance(t.Name(), int(bpoolSize))
+	//shi := samehada.NewSamehadaInstance(t.Name(), 30)
+	//shi := samehada.NewSamehadaInstance(t.Name(), 60)
 
-	//shi := samehada.NewSamehadaInstance(samehada_util.GetParentFuncName(), common.BufferPoolMaxFrameNumForTest)
-	//shi := samehada.NewSamehadaInstance(samehada_util.GetParentFuncName(), 10*1024) // buffer is about 40MB
+	//shi := samehada.NewSamehadaInstance(t.Name(), common.BufferPoolMaxFrameNumForTest)
+	//shi := samehada.NewSamehadaInstance(t.Name(), 10*1024) // buffer is about 40MB
 	bpm := shi.GetBufferPoolManager()
 	sl := skip_list.NewSkipList(bpm, keyType)
 
@@ -1630,13 +1630,13 @@ func testSkipListMixParallelStride[T int32 | float32 | string](t *testing.T, key
 
 func testSkipListMixRoot[T int32 | float32 | string](t *testing.T, keyType types.TypeID) {
 	//if !common.EnableOnMemStorage {
-	//	os.Remove(samehada_util.GetParentFuncName() + ".db")
-	//	os.Remove(samehada_util.GetParentFuncName() + ".log")
+	//	os.Remove(t.Name() + ".db")
+	//	os.Remove(t.Name() + ".log")
 	//}
 	//
-	//shi := samehada.NewSamehadaInstance(samehada_util.GetParentFuncName(), 10)
-	////shi := samehada.NewSamehadaInstance(samehada_util.GetParentFuncName(), common.BufferPoolMaxFrameNumForTest)
-	////shi := samehada.NewSamehadaInstance(samehada_util.GetParentFuncName(), 10*1024) // buffer is about 40MB
+	//shi := samehada.NewSamehadaInstance(t.Name(), 10)
+	////shi := samehada.NewSamehadaInstance(t.Name(), common.BufferPoolMaxFrameNumForTest)
+	////shi := samehada.NewSamehadaInstance(t.Name(), 10*1024) // buffer is about 40MB
 	//bpm := shi.GetBufferPoolManager()
 
 	testSkipListMix[T](t, keyType, 1, int32(150), int32(10), int32(0), false)
@@ -1948,12 +1948,12 @@ func testSkipListInsertGetRemove3stride2(t *testing.T, sl *skip_list.SkipList, c
 //func TestSkipListParallelSimpleInteger(t *testing.T) {
 //	t.Parallel()
 //	if !common.EnableOnMemStorage {
-//		os.Remove(samehada_util.GetParentFuncName() + ".db")
-//		os.Remove(samehada_util.GetParentFuncName() + ".log")
+//		os.Remove(t.Name() + ".db")
+//		os.Remove(t.Name() + ".log")
 //	}
 //
-//	//shi := samehada.NewSamehadaInstance(samehada_util.GetParentFuncName(), 400)
-//	shi := samehada.NewSamehadaInstance(samehada_util.GetParentFuncName(), 30)
+//	//shi := samehada.NewSamehadaInstance(t.Name(), 400)
+//	shi := samehada.NewSamehadaInstance(t.Name(), 30)
 //	bpm := shi.GetBufferPoolManager()
 //	sl := skip_list.NewSkipList(bpm, types.Integer)
 //
@@ -1976,12 +1976,12 @@ func testSkipListInsertGetRemove3stride2(t *testing.T, sl *skip_list.SkipList, c
 //func TestSkipListParallelSimpleInteger2(t *testing.T) {
 //	t.Parallel()
 //	if !common.EnableOnMemStorage {
-//		os.Remove(samehada_util.GetParentFuncName() + ".db")
-//		os.Remove(samehada_util.GetParentFuncName() + ".log")
+//		os.Remove(t.Name() + ".db")
+//		os.Remove(t.Name() + ".log")
 //	}
 //
-//	//shi := samehada.NewSamehadaInstance(samehada_util.GetParentFuncName(), 400)
-//	shi := samehada.NewSamehadaInstance(samehada_util.GetParentFuncName(), 30)
+//	//shi := samehada.NewSamehadaInstance(t.Name(), 400)
+//	shi := samehada.NewSamehadaInstance(t.Name(), 30)
 //	bpm := shi.GetBufferPoolManager()
 //	sl := skip_list.NewSkipList(bpm, types.Integer)
 //
@@ -2004,12 +2004,12 @@ func testSkipListInsertGetRemove3stride2(t *testing.T, sl *skip_list.SkipList, c
 //func TestSkipListParallelSimpleInteger3Stride(t *testing.T) {
 //	t.Parallel()
 //	if !common.EnableOnMemStorage {
-//		os.Remove(samehada_util.GetParentFuncName() + ".db")
-//		os.Remove(samehada_util.GetParentFuncName() + ".log")
+//		os.Remove(t.Name() + ".db")
+//		os.Remove(t.Name() + ".log")
 //	}
 //
-//	//shi := samehada.NewSamehadaInstance(samehada_util.GetParentFuncName(), 400)
-//	shi := samehada.NewSamehadaInstance(samehada_util.GetParentFuncName(), 30)
+//	//shi := samehada.NewSamehadaInstance(t.Name(), 400)
+//	shi := samehada.NewSamehadaInstance(t.Name(), 30)
 //	bpm := shi.GetBufferPoolManager()
 //	sl := skip_list.NewSkipList(bpm, types.Integer)
 //

@@ -134,12 +134,12 @@ func TestRebootWithLoadAndRecovery(t *testing.T) {
 	common.TempSuppressOnMemStorage = true
 
 	// clear all state of DB
-	if !common.EnableOnMemStorage || common.TempSuppressOnMemStorage == true {
-		os.Remove("/tmp/todo.db")
-		os.Remove("/tmp/todo.log")
+	if !common.EnableOnMemStorage || common.TempSuppressOnMemStorage {
+		os.Remove(t.Name() + ".db")
+		os.Remove(t.Name() + ".log")
 	}
 
-	db := samehada.NewSamehadaDB("/tmp/todo", 200)
+	db := samehada.NewSamehadaDB("TestRebootWithLoadAndRecovery", 200)
 	db.ExecuteSQLRetValues("CREATE TABLE name_age_list(name VARCHAR(256), age INT);")
 	db.ExecuteSQLRetValues("INSERT INTO name_age_list(name, age) VALUES ('鈴木', 20);")
 	db.ExecuteSQLRetValues("INSERT INTO name_age_list(name, age) VALUES ('青木', 22);")
@@ -155,10 +155,10 @@ func TestRebootWithLoadAndRecovery(t *testing.T) {
 	// close db and log file
 	db.Shutdown()
 
-	// relaunch using /tmp/todo.db and /tmp/todo.log files
+	// relaunch using TestRebootWithLoadAndRecovery.log files
 	// load of db file and redo/undo process runs
 	// and remove needless log data
-	db2 := samehada.NewSamehadaDB("/tmp/todo", 200)
+	db2 := samehada.NewSamehadaDB(t.Name(), 200)
 	db2.ExecuteSQLRetValues("INSERT INTO name_age_list(name, age) VALUES ('鮫肌', 18);")
 	_, results2 := db2.ExecuteSQLRetValues("SELECT * FROM name_age_list WHERE name = '鮫肌';")
 	samehada.PrintExecuteResults(results2)
@@ -167,10 +167,10 @@ func TestRebootWithLoadAndRecovery(t *testing.T) {
 	// close db and log file
 	db2.Shutdown()
 
-	// relaunch using /tmp/todo.db and /tmp/todo.log files
+	// relaunch using TestRebootWithLoadAndRecovery.db and TestRebootWithLoadAndRecovery.log files
 	// load of db file and redo/undo process runs
 	// and remove needless log data
-	db3 := samehada.NewSamehadaDB("/tmp/todo", 200)
+	db3 := samehada.NewSamehadaDB(t.Name(), 200)
 	db3.ExecuteSQLRetValues("INSERT INTO name_age_list(name, age) VALUES ('鮫肌', 15);")
 	_, results3 := db3.ExecuteSQLRetValues("SELECT * FROM name_age_list WHERE name = '鮫肌';")
 	samehada.PrintExecuteResults(results3)
@@ -188,11 +188,11 @@ func TestRebootAndReturnIFValues(t *testing.T) {
 
 	// clear all state of DB
 	if !common.EnableOnMemStorage || common.TempSuppressOnMemStorage == true {
-		os.Remove("/tmp/todo.db")
-		os.Remove("/tmp/todo.log")
+		os.Remove(t.Name() + ".db")
+		os.Remove(t.Name() + ".log")
 	}
 
-	db := samehada.NewSamehadaDB("/tmp/todo", 200)
+	db := samehada.NewSamehadaDB(t.Name(), 200)
 	db.ExecuteSQL("CREATE TABLE name_age_list(name VARCHAR(256), age INT);")
 	db.ExecuteSQL("INSERT INTO name_age_list(name, age) VALUES ('鈴木', 20);")
 	db.ExecuteSQL("INSERT INTO name_age_list(name, age) VALUES ('青木', 22);")
@@ -214,7 +214,7 @@ func TestRebootAndReturnIFValues(t *testing.T) {
 	// relaunch using /tmp/todo.db and /tmp/todo.log files
 	// load of db file and redo/undo process runs
 	// and remove needless log data
-	db2 := samehada.NewSamehadaDB("/tmp/todo", 200)
+	db2 := samehada.NewSamehadaDB(t.Name(), 200)
 	db2.ExecuteSQL("INSERT INTO name_age_list(name, age) VALUES ('鮫肌', 18);")
 	_, results2 := db2.ExecuteSQL("SELECT * FROM name_age_list WHERE name = '鮫肌';")
 	fmt.Println("---")
@@ -229,7 +229,7 @@ func TestRebootAndReturnIFValues(t *testing.T) {
 	// relaunch using /tmp/todo.db and /tmp/todo.log files
 	// load of db file and redo/undo process runs
 	// and remove needless log data
-	db3 := samehada.NewSamehadaDB("/tmp/todo", 200)
+	db3 := samehada.NewSamehadaDB(t.Name(), 200)
 	db3.ExecuteSQL("INSERT INTO name_age_list(name, age) VALUES ('鮫肌', 15);")
 	_, results3 := db3.ExecuteSQL("SELECT * FROM name_age_list WHERE name = '鮫肌';")
 	fmt.Println("---")
