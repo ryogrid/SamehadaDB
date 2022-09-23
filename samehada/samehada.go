@@ -108,7 +108,8 @@ func NewSamehadaDB(dbName string, memKBytes int) *SamehadaDB {
 	if isExistingDB {
 		log_recovery := log_recovery.NewLogRecovery(
 			shi.GetDiskManager(),
-			shi.GetBufferPoolManager())
+			shi.GetBufferPoolManager(),
+			shi.GetLogManager())
 		greatestLSN, isRedoOccured := log_recovery.Redo()
 		isUndoOccured := log_recovery.Undo()
 

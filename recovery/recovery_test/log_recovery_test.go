@@ -225,7 +225,8 @@ func TestRedo(t *testing.T) {
 	fmt.Println("Begin recovery")
 	log_recovery := log_recovery.NewLogRecovery(
 		samehada_instance.GetDiskManager(),
-		samehada_instance.GetBufferPoolManager())
+		samehada_instance.GetBufferPoolManager(),
+		samehada_instance.GetLogManager())
 
 	testingpkg.AssertFalse(t, samehada_instance.GetLogManager().IsEnabledLogging(), "")
 
@@ -373,7 +374,8 @@ func TestUndo(t *testing.T) {
 	fmt.Println("Recovery started..")
 	log_recovery := log_recovery.NewLogRecovery(
 		samehada_instance.GetDiskManager(),
-		samehada_instance.GetBufferPoolManager())
+		samehada_instance.GetBufferPoolManager(),
+		samehada_instance.GetLogManager())
 
 	samehada_instance.GetLogManager().DeactivateLogging()
 	testingpkg.AssertFalse(t, samehada_instance.GetLogManager().IsEnabledLogging(), "")

@@ -20,6 +20,7 @@ import (
 type LogRecovery struct {
 	disk_manager        disk.DiskManager          //__attribute__((__unused__))
 	buffer_pool_manager *buffer.BufferPoolManager //__attribute__((__unused__))
+	log_manager         *recovery.LogManager
 
 	/** Maintain active transactions and its corresponding latest lsn. */
 	active_txn map[types.TxnID]types.LSN
@@ -30,8 +31,8 @@ type LogRecovery struct {
 	log_buffer []byte
 }
 
-func NewLogRecovery(disk_manager disk.DiskManager, buffer_pool_manager *buffer.BufferPoolManager) *LogRecovery {
-	return &LogRecovery{disk_manager, buffer_pool_manager, make(map[types.TxnID]types.LSN), make(map[types.LSN]int), 0, make([]byte, common.LogBufferSize)}
+func NewLogRecovery(disk_manager disk.DiskManager, buffer_pool_manager *buffer.BufferPoolManager, log_manager *recovery.LogManager) *LogRecovery {
+	return &LogRecovery{disk_manager, buffer_pool_manager, log_manager, make(map[types.TxnID]types.LSN), make(map[types.LSN]int), 0, make([]byte, common.LogBufferSize)}
 }
 
 /*
@@ -140,7 +141,7 @@ func (log_recovery *LogRecovery) Redo() (types.LSN, bool) {
 					access.CastPageAsTablePage(log_recovery.buffer_pool_manager.FetchPage(log_record.Insert_rid.GetPageId()))
 				if page_.GetLSN() < log_record.GetLSN() {
 					log_record.Insert_tuple.SetRID(&log_record.Insert_rid)
-					page_.InsertTuple(&log_record.Insert_tuple, nil, nil, nil)
+					page_.InsertTuple(&log_record.Insert_tuple, log_recovery.log_manager, nil, nil)
 					page_.SetLSN(log_record.GetLSN())
 					isRedoOccured = true
 				}
@@ -158,7 +159,7 @@ func (log_recovery *LogRecovery) Redo() (types.LSN, bool) {
 				page_ :=
 					access.CastPageAsTablePage(log_recovery.buffer_pool_manager.FetchPage(log_record.Delete_rid.GetPageId()))
 				if page_.GetLSN() < log_record.GetLSN() {
-					page_.MarkDelete(&log_record.Delete_rid, nil, nil, nil)
+					page_.MarkDelete(&log_record.Delete_rid, nil, nil, log_recovery.log_manager)
 					page_.SetLSN(log_record.GetLSN())
 					isRedoOccured = true
 				}
@@ -167,7 +168,7 @@ func (log_recovery *LogRecovery) Redo() (types.LSN, bool) {
 				page_ :=
 					access.CastPageAsTablePage(log_recovery.buffer_pool_manager.FetchPage(log_record.Delete_rid.GetPageId()))
 				if page_.GetLSN() < log_record.GetLSN() {
-					page_.RollbackDelete(&log_record.Delete_rid, nil, nil)
+					page_.RollbackDelete(&log_record.Delete_rid, nil, log_recovery.log_manager)
 					page_.SetLSN(log_record.GetLSN())
 					isRedoOccured = true
 				}
@@ -178,7 +179,7 @@ func (log_recovery *LogRecovery) Redo() (types.LSN, bool) {
 				if page_.GetLSN() < log_record.GetLSN() {
 					// UpdateTuple overwrites Old_tuple argument
 					// but it is no problem because log_record is read from log file again in Undo phase
-					page_.UpdateTuple(&log_record.New_tuple, nil, nil, &log_record.Old_tuple, &log_record.Update_rid, nil, nil, nil)
+					page_.UpdateTuple(&log_record.New_tuple, nil, nil, &log_record.Old_tuple, &log_record.Update_rid, nil, nil, log_recovery.log_manager)
 					page_.SetLSN(log_record.GetLSN())
 					isRedoOccured = true
 				}
@@ -195,7 +196,7 @@ func (log_recovery *LogRecovery) Redo() (types.LSN, bool) {
 				new_page := access.CastPageAsTablePage(log_recovery.buffer_pool_manager.NewPage())
 				page_id = new_page.GetPageId()
 				// fmt.Printf("page_id: %d\n", page_id)
-				new_page.Init(page_id, log_record.Prev_page_id, nil, nil, nil)
+				new_page.Init(page_id, log_record.Prev_page_id, log_recovery.log_manager, nil, nil)
 				//log_recovery.buffer_pool_manager.FlushPage(page_id)
 				log_recovery.buffer_pool_manager.UnpinPage(page_id, true)
 			}
@@ -232,32 +233,32 @@ func (log_recovery *LogRecovery) Undo() bool {
 				page_ :=
 					access.CastPageAsTablePage(log_recovery.buffer_pool_manager.FetchPage(log_record.Insert_rid.GetPageId()))
 				// fmt.Printf("insert log type, page lsn:%d, log lsn:%d", page.GetLSN(), log_record.GetLSN())
-				page_.ApplyDelete(&log_record.Insert_rid, nil, nil)
+				page_.ApplyDelete(&log_record.Insert_rid, nil, log_recovery.log_manager)
 				log_recovery.buffer_pool_manager.UnpinPage(log_record.Insert_rid.GetPageId(), true)
 				isUndoOccured = true
 			} else if log_record.Log_record_type == recovery.APPLYDELETE {
 				page_ :=
 					access.CastPageAsTablePage(log_recovery.buffer_pool_manager.FetchPage(log_record.Delete_rid.GetPageId()))
 				log_record.Delete_tuple.SetRID(&log_record.Delete_rid)
-				page_.InsertTuple(&log_record.Delete_tuple, nil, nil, nil)
+				page_.InsertTuple(&log_record.Delete_tuple, log_recovery.log_manager, nil, nil)
 				log_recovery.buffer_pool_manager.UnpinPage(log_record.Delete_rid.GetPageId(), true)
 				isUndoOccured = true
 			} else if log_record.Log_record_type == recovery.MARKDELETE {
 				page_ :=
 					access.CastPageAsTablePage(log_recovery.buffer_pool_manager.FetchPage(log_record.Delete_rid.GetPageId()))
-				page_.RollbackDelete(&log_record.Delete_rid, nil, nil)
+				page_.RollbackDelete(&log_record.Delete_rid, nil, log_recovery.log_manager)
 				log_recovery.buffer_pool_manager.UnpinPage(log_record.Delete_rid.GetPageId(), true)
 				isUndoOccured = true
 			} else if log_record.Log_record_type == recovery.ROLLBACKDELETE {
 				page_ :=
 					access.CastPageAsTablePage(log_recovery.buffer_pool_manager.FetchPage(log_record.Delete_rid.GetPageId()))
-				page_.MarkDelete(&log_record.Delete_rid, nil, nil, nil)
+				page_.MarkDelete(&log_record.Delete_rid, nil, nil, log_recovery.log_manager)
 				log_recovery.buffer_pool_manager.UnpinPage(log_record.Delete_rid.GetPageId(), true)
 				isUndoOccured = true
 			} else if log_record.Log_record_type == recovery.UPDATE {
 				page_ :=
 					access.CastPageAsTablePage(log_recovery.buffer_pool_manager.FetchPage(log_record.Update_rid.GetPageId()))
-				page_.UpdateTuple(&log_record.Old_tuple, nil, nil, &log_record.New_tuple, &log_record.Update_rid, nil, nil, nil)
+				page_.UpdateTuple(&log_record.Old_tuple, nil, nil, &log_record.New_tuple, &log_record.Update_rid, nil, nil, log_recovery.log_manager)
 				log_recovery.buffer_pool_manager.UnpinPage(log_record.Update_rid.GetPageId(), true)
 				isUndoOccured = true
 			}
