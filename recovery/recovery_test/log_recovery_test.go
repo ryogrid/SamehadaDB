@@ -163,12 +163,12 @@ func TestRedo(t *testing.T) {
 
 	samehada_instance := samehada.NewSamehadaInstance(samehada_util.GetParentFuncName(), common.BufferPoolMaxFrameNumForTest)
 
-	common.EnableLogging = false
-	testingpkg.AssertFalse(t, common.EnableLogging, "")
+	samehada_instance.GetLogManager().DeactivateLogging()
+	testingpkg.AssertFalse(t, samehada_instance.GetLogManager().IsEnabledLogging(), "")
 	fmt.Println("Skip system recovering...")
 
 	samehada_instance.GetLogManager().ActivateLogging()
-	testingpkg.Assert(t, common.EnableLogging, "")
+	testingpkg.Assert(t, samehada_instance.GetLogManager().IsEnabledLogging(), "")
 	fmt.Println("System logging thread running...")
 
 	fmt.Println("Create a test table")
@@ -209,7 +209,7 @@ func TestRedo(t *testing.T) {
 	samehada_instance = samehada.NewSamehadaInstance(samehada_util.GetParentFuncName(), common.BufferPoolMaxFrameNumForTest)
 
 	samehada_instance.GetLogManager().DeactivateLogging()
-	testingpkg.AssertFalse(t, common.EnableLogging, "")
+	testingpkg.AssertFalse(t, samehada_instance.GetLogManager().IsEnabledLogging(), "")
 	fmt.Println("Check if tuple is not in table before recovery")
 	txn = samehada_instance.GetTransactionManager().Begin(nil)
 	test_table = access.NewTableHeap(
@@ -228,7 +228,7 @@ func TestRedo(t *testing.T) {
 		samehada_instance.GetDiskManager(),
 		samehada_instance.GetBufferPoolManager())
 
-	testingpkg.AssertFalse(t, common.EnableLogging, "")
+	testingpkg.AssertFalse(t, samehada_instance.GetLogManager().IsEnabledLogging(), "")
 
 	fmt.Println("Redo underway...")
 	log_recovery.Redo()
@@ -273,12 +273,12 @@ func TestUndo(t *testing.T) {
 
 	samehada_instance := samehada.NewSamehadaInstance(samehada_util.GetParentFuncName(), common.BufferPoolMaxFrameNumForTest)
 
-	common.EnableLogging = false
-	testingpkg.AssertFalse(t, common.EnableLogging, "")
+	samehada_instance.GetLogManager().DeactivateLogging()
+	testingpkg.AssertFalse(t, samehada_instance.GetLogManager().IsEnabledLogging(), "")
 	fmt.Println("Skip system recovering...")
 
 	samehada_instance.GetLogManager().ActivateLogging()
-	testingpkg.Assert(t, common.EnableLogging, "")
+	testingpkg.Assert(t, samehada_instance.GetLogManager().IsEnabledLogging(), "")
 	//fmt.Println("System logging thread running...")
 
 	fmt.Println("Create a test table")
@@ -368,8 +368,8 @@ func TestUndo(t *testing.T) {
 	old_tuple3 := test_table.GetTuple(rid3, txn)
 	testingpkg.Assert(t, old_tuple3 != nil, "")
 
-	common.EnableLogging = false
-	testingpkg.AssertFalse(t, common.EnableLogging, "common.EnableLogging is not false!")
+	samehada_instance.GetLogManager().DeactivateLogging()
+	testingpkg.AssertFalse(t, samehada_instance.GetLogManager().IsEnabledLogging(), "common.EnableLogging is not false!")
 
 	fmt.Println("Recovery started..")
 	log_recovery := log_recovery.NewLogRecovery(
@@ -377,7 +377,7 @@ func TestUndo(t *testing.T) {
 		samehada_instance.GetBufferPoolManager())
 
 	samehada_instance.GetLogManager().DeactivateLogging()
-	testingpkg.AssertFalse(t, common.EnableLogging, "")
+	testingpkg.AssertFalse(t, samehada_instance.GetLogManager().IsEnabledLogging(), "")
 
 	log_recovery.Redo()
 	fmt.Println("Redo underway...")
@@ -423,12 +423,12 @@ func TestCheckpoint(t *testing.T) {
 	}
 	samehada_instance := samehada.NewSamehadaInstance(samehada_util.GetParentFuncName(), common.BufferPoolMaxFrameNumForTest)
 
-	common.EnableLogging = false
-	testingpkg.AssertFalse(t, common.EnableLogging, "")
+	samehada_instance.GetLogManager().DeactivateLogging()
+	testingpkg.AssertFalse(t, samehada_instance.GetLogManager().IsEnabledLogging(), "")
 	fmt.Println("Skip system recovering...")
 
 	samehada_instance.GetLogManager().ActivateLogging()
-	testingpkg.Assert(t, common.EnableLogging, "")
+	testingpkg.Assert(t, samehada_instance.GetLogManager().IsEnabledLogging(), "")
 	fmt.Println("System logging thread running...")
 
 	fmt.Println("Create a test table")

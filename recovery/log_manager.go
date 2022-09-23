@@ -33,7 +33,8 @@ type LogManager struct {
 	wlog_mutex     *sync.Mutex
 	//flush_thread   *thread //__attribute__((__unused__));
 	//cv           condition_variable
-	disk_manager *disk.DiskManager //__attribute__((__unused__));
+	disk_manager    *disk.DiskManager //__attribute__((__unused__));
+	isEnableLogging bool
 }
 
 func NewLogManager(disk_manager *disk.DiskManager) *LogManager {
@@ -46,6 +47,7 @@ func NewLogManager(disk_manager *disk.DiskManager) *LogManager {
 	ret.latch = common.NewRWLatch()
 	ret.wlog_mutex = new(sync.Mutex)
 	ret.offset = 0
+	ret.isEnableLogging = false
 	return ret
 }
 
@@ -93,12 +95,14 @@ func (log_manager *LogManager) Flush() {
 * manager wants to force flush (it only happens when the flushed page has a
 * larger LSN than persistent LSN)
  */
-func (log_manager *LogManager) ActivateLogging() { common.EnableLogging = true }
+func (log_manager *LogManager) ActivateLogging() { log_manager.isEnableLogging = true }
 
 /*
 * Stop and join the flush thread, set enable_logging = false
  */
-func (log_manager *LogManager) DeactivateLogging() { common.EnableLogging = false }
+func (log_manager *LogManager) DeactivateLogging() { log_manager.isEnableLogging = false }
+
+func (log_manager *LogManager) IsEnabledLogging() bool { return log_manager.isEnableLogging }
 
 /*
 * append a log record into log buffer

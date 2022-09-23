@@ -1,7 +1,7 @@
 // this code is from https://github.com/brunocalza/go-bustub
 // there is license and copyright notice in licenses/go-bustub dir
 
-//package tablepage
+// package tablepage
 package access
 
 import (
@@ -18,7 +18,7 @@ import (
 	"github.com/ryogrid/SamehadaDB/types"
 )
 
-//static constexpr uint64_t DELETE_MASK = (1U << (8 * sizeof(uint32_t) - 1));
+// static constexpr uint64_t DELETE_MASK = (1U << (8 * sizeof(uint32_t) - 1));
 const deleteMask = uint32(1 << ((8 * 4) - 1))
 
 const sizeTablePageHeader = uint32(24)
@@ -35,18 +35,19 @@ const ErrNotEnoughSpace = errors.Error("there is not enough space")
 const ErrNoFreeSlot = errors.Error("could not find a free slot")
 
 // Slotted page format:
-//  ---------------------------------------------------------
-//  | HEADER | ... FREE SPACE ... | ... INSERTED TUPLES ... |
-//  ---------------------------------------------------------
-//                                ^
-//                                free space pointer
-//  Header format (size in bytes):
-//  ----------------------------------------------------------------------------
-//  | PageId (4)| LSN (4)| PrevPageId (4)| NextPageId (4)| FreeSpacePointer(4) |
-//  ----------------------------------------------------------------------------
-//  ----------------------------------------------------------------
-//  | TupleCount (4) | Tuple_1 offset (4) | Tuple_1 size (4) | ... |
-//  ----------------------------------------------------------------
+//
+//	---------------------------------------------------------
+//	| HEADER | ... FREE SPACE ... | ... INSERTED TUPLES ... |
+//	---------------------------------------------------------
+//	                              ^
+//	                              free space pointer
+//	Header format (size in bytes):
+//	----------------------------------------------------------------------------
+//	| PageId (4)| LSN (4)| PrevPageId (4)| NextPageId (4)| FreeSpacePointer(4) |
+//	----------------------------------------------------------------------------
+//	----------------------------------------------------------------
+//	| TupleCount (4) | Tuple_1 offset (4) | Tuple_1 size (4) | ... |
+//	----------------------------------------------------------------
 type TablePage struct {
 	page.Page
 	//rwlatch_ common.ReaderWriterLatch
@@ -87,7 +88,7 @@ func (tp *TablePage) InsertTuple(tuple *tuple.Tuple, log_manager *recovery.LogMa
 	rid := &page.RID{}
 	rid.Set(tp.GetTablePageId(), slot)
 
-	if common.EnableLogging {
+	if log_manager.IsEnabledLogging() {
 		// Acquire an exclusive lock on the new tuple.
 		locked := lock_manager.LockExclusive(txn, rid)
 		if !locked {
@@ -110,7 +111,7 @@ func (tp *TablePage) InsertTuple(tuple *tuple.Tuple, log_manager *recovery.LogMa
 	}
 
 	// Write the log record.
-	if common.EnableLogging {
+	if log_manager.IsEnabledLogging() {
 		//common.SH_Assert(!txn.IsSharedLocked(rid) && !txn.IsExclusiveLocked(rid), "A new tuple should not be locked.")
 		//common.SH_Assert(locked, "Locking a new tuple should always work.")
 		log_record := recovery.NewLogRecordInsertDelete(txn.GetTransactionId(), txn.GetPrevLSN(), recovery.INSERT, *rid, tuple)
@@ -131,7 +132,7 @@ func (tp *TablePage) UpdateTuple(new_tuple *tuple.Tuple, update_col_idxs []int, 
 	slot_num := rid.GetSlotNum()
 	// If the slot number is invalid, abort the transaction.
 	if slot_num >= tp.GetTupleCount() {
-		if common.EnableLogging {
+		if log_manager.IsEnabledLogging() {
 			txn.SetState(ABORTED)
 		}
 		return false, nil, nil
@@ -139,7 +140,7 @@ func (tp *TablePage) UpdateTuple(new_tuple *tuple.Tuple, update_col_idxs []int, 
 	tuple_size := tp.GetTupleSize(slot_num)
 	// If the tuple is deleted, abort the transaction.
 	if IsDeleted(tuple_size) {
-		if common.EnableLogging {
+		if log_manager.IsEnabledLogging() {
 			txn.SetState(ABORTED)
 		}
 		return false, nil, nil
@@ -181,7 +182,7 @@ func (tp *TablePage) UpdateTuple(new_tuple *tuple.Tuple, update_col_idxs []int, 
 		return false, ErrNotEnoughSpace, update_tuple
 	}
 
-	if common.EnableLogging {
+	if log_manager.IsEnabledLogging() {
 		// Acquire an exclusive lock, upgrading from shared if necessary.
 		if txn.IsSharedLocked(rid) {
 			if !lock_manager.LockUpgrade(txn, rid) {
@@ -222,7 +223,7 @@ func (tp *TablePage) MarkDelete(rid *page.RID, txn *Transaction, lock_manager *L
 	slot_num := rid.GetSlotNum()
 	// If the slot number is invalid, abort the transaction.
 	if slot_num >= tp.GetTupleCount() {
-		if common.EnableLogging {
+		if log_manager.IsEnabledLogging() {
 			txn.SetState(ABORTED)
 		}
 		return false
@@ -231,13 +232,13 @@ func (tp *TablePage) MarkDelete(rid *page.RID, txn *Transaction, lock_manager *L
 	tuple_size := tp.GetTupleSize(slot_num)
 	// If the tuple is already deleted, abort the transaction.
 	if IsDeleted(tuple_size) {
-		if common.EnableLogging {
+		if log_manager.IsEnabledLogging() {
 			txn.SetState(ABORTED)
 		}
 		return false
 	}
 
-	if common.EnableLogging {
+	if log_manager.IsEnabledLogging() {
 		// Acquire an exclusive lock, upgrading from a shared lock if necessary.
 		if txn.IsSharedLocked(rid) {
 			if !lock_manager.LockUpgrade(txn, rid) {
@@ -283,7 +284,7 @@ func (table_page *TablePage) ApplyDelete(rid *page.RID, txn *Transaction, log_ma
 	delete_tuple.SetRID(rid)
 	//delete_tuple.allocated = true
 
-	if common.EnableLogging {
+	if log_manager.IsEnabledLogging() {
 		common.SH_Assert(txn.IsExclusiveLocked(rid), "We must own the exclusive lock!")
 		log_record := recovery.NewLogRecordInsertDelete(txn.GetTransactionId(), txn.GetPrevLSN(), recovery.APPLYDELETE, *rid, delete_tuple)
 		lsn := log_manager.AppendLogRecord(log_record)
@@ -314,7 +315,7 @@ func (table_page *TablePage) ApplyDelete(rid *page.RID, txn *Transaction, log_ma
 
 func (tp *TablePage) RollbackDelete(rid *page.RID, txn *Transaction, log_manager *recovery.LogManager) {
 	// Log the rollback.
-	if common.EnableLogging {
+	if log_manager.IsEnabledLogging() {
 		common.SH_Assert(txn.IsExclusiveLocked(rid), "We must own an exclusive lock on the RID.")
 		dummy_tuple := new(tuple.Tuple)
 		log_record := recovery.NewLogRecordInsertDelete(txn.GetTransactionId(), txn.GetPrevLSN(), recovery.ROLLBACKDELETE, *rid, dummy_tuple)
@@ -336,7 +337,7 @@ func (tp *TablePage) RollbackDelete(rid *page.RID, txn *Transaction, log_manager
 // Init initializes the table header
 func (tp *TablePage) Init(pageId types.PageID, prevPageId types.PageID, log_manager *recovery.LogManager, lock_manager *LockManager, txn *Transaction) {
 	// Log that we are creating a new page.
-	if common.EnableLogging {
+	if log_manager.IsEnabledLogging() {
 		//txn_ := (*Transaction)(unsafe.Pointer(&txn))
 		log_record := recovery.NewLogRecordNewPage(txn.GetTransactionId(), txn.GetPrevLSN(), recovery.NEWPAGE, prevPageId)
 		lsn := log_manager.AppendLogRecord(log_record)
@@ -426,7 +427,7 @@ func (tp *TablePage) GetFreeSpacePointer() uint32 {
 func (tp *TablePage) GetTuple(rid *page.RID, log_manager *recovery.LogManager, lock_manager *LockManager, txn *Transaction) *tuple.Tuple {
 	// If somehow we have more slots than tuples, abort transaction
 	if rid.GetSlotNum() >= tp.GetTupleCount() {
-		if common.EnableLogging {
+		if log_manager.IsEnabledLogging() {
 			txn.SetState(ABORTED)
 		}
 		return nil
@@ -438,14 +439,14 @@ func (tp *TablePage) GetTuple(rid *page.RID, log_manager *recovery.LogManager, l
 
 	// If the tuple is deleted, abort the access.
 	if IsDeleted(tupleSize) {
-		if common.EnableLogging {
+		if log_manager.IsEnabledLogging() {
 			txn.SetState(ABORTED)
 		}
 		return nil
 	}
 
 	// Otherwise we have a valid tuple, try to acquire at least a shared access.
-	if common.EnableLogging {
+	if log_manager.IsEnabledLogging() {
 		if !txn.IsSharedLocked(rid) && !txn.IsExclusiveLocked(rid) && !lock_manager.LockShared(txn, rid) {
 			txn.SetState(ABORTED)
 			return nil

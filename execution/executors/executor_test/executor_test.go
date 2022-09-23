@@ -1169,7 +1169,7 @@ func TestAbortWIthDeleteUpdate(t *testing.T) {
 	deletePlanNode := plans.NewDeletePlanNode(expression_, tableMetadata.OID())
 	executionEngine.Execute(deletePlanNode, executorContext)
 
-	common.EnableLogging = false
+	log_mgr.DeactivateLogging()
 
 	fmt.Println("select and check value before Abort...")
 
@@ -1576,7 +1576,7 @@ func TestConcurrentTransactionExecution(t *testing.T) {
 
 	shi := samehada.NewSamehadaInstance(samehada_util.GetParentFuncName(), common.BufferPoolMaxFrameNumForTest)
 	shi.GetLogManager().ActivateLogging()
-	testingpkg.Assert(t, common.EnableLogging, "")
+	testingpkg.Assert(t, shi.GetLogManager().IsEnabledLogging(), "")
 	fmt.Println("System logging is active.")
 
 	txn_mgr := shi.GetTransactionManager()
@@ -1669,7 +1669,7 @@ func TestTestTableGenerator(t *testing.T) {
 
 	shi := samehada.NewSamehadaInstance(samehada_util.GetParentFuncName(), common.BufferPoolMaxFrameNumForTest)
 	shi.GetLogManager().ActivateLogging()
-	testingpkg.Assert(t, common.EnableLogging, "")
+	testingpkg.Assert(t, shi.GetLogManager().IsEnabledLogging(), "")
 	fmt.Println("System logging is active.")
 
 	txn_mgr := shi.GetTransactionManager()
@@ -1710,7 +1710,7 @@ func TestSimpleAggregation(t *testing.T) {
 
 	shi := samehada.NewSamehadaInstance(samehada_util.GetParentFuncName(), common.BufferPoolMaxFrameNumForTest)
 	shi.GetLogManager().ActivateLogging()
-	testingpkg.Assert(t, common.EnableLogging, "")
+	testingpkg.Assert(t, shi.GetLogManager().IsEnabledLogging(), "")
 	fmt.Println("System logging is active.")
 
 	txn_mgr := shi.GetTransactionManager()
@@ -1783,7 +1783,7 @@ func TestSimpleGroupByAggregation(t *testing.T) {
 
 	shi := samehada.NewSamehadaInstance(samehada_util.GetParentFuncName(), common.BufferPoolMaxFrameNumForTest)
 	shi.GetLogManager().ActivateLogging()
-	testingpkg.Assert(t, common.EnableLogging, "")
+	testingpkg.Assert(t, shi.GetLogManager().IsEnabledLogging(), "")
 	fmt.Println("System logging is active.")
 
 	txn_mgr := shi.GetTransactionManager()
@@ -1865,7 +1865,7 @@ func TestSeqScanWithMultiItemPredicate(t *testing.T) {
 
 	shi := samehada.NewSamehadaInstance(samehada_util.GetParentFuncName(), common.BufferPoolMaxFrameNumForTest)
 	shi.GetLogManager().ActivateLogging()
-	testingpkg.Assert(t, common.EnableLogging, "")
+	testingpkg.Assert(t, shi.GetLogManager().IsEnabledLogging(), "")
 	fmt.Println("System logging is active.")
 
 	txn_mgr := shi.GetTransactionManager()
@@ -1938,7 +1938,7 @@ func TestInsertAndSpecifiedColumnUpdate(t *testing.T) {
 	log_mgr := recovery.NewLogManager(&diskManager)
 
 	log_mgr.ActivateLogging()
-	testingpkg.Assert(t, common.EnableLogging, "")
+	testingpkg.Assert(t, log_mgr.IsEnabledLogging(), "")
 
 	bpm := buffer.NewBufferPoolManager(uint32(32), diskManager, log_mgr)
 	lock_mgr := access.NewLockManager(access.REGULAR, access.SS2PL_MODE)
@@ -2025,7 +2025,7 @@ func TestInsertAndSpecifiedColumnUpdatePageMoveCase(t *testing.T) {
 
 	shi := samehada.NewSamehadaInstance(samehada_util.GetParentFuncName(), common.BufferPoolMaxFrameNumForTest)
 	shi.GetLogManager().ActivateLogging()
-	testingpkg.Assert(t, common.EnableLogging, "")
+	testingpkg.Assert(t, shi.GetLogManager().IsEnabledLogging(), "")
 	fmt.Println("System logging is active.")
 
 	log_mgr := shi.GetLogManager()
@@ -2199,7 +2199,7 @@ func TestSimpleSeqScanAndOrderBy(t *testing.T) {
 
 	shi := samehada.NewSamehadaInstance(samehada_util.GetParentFuncName(), common.BufferPoolMaxFrameNumForTest)
 	shi.GetLogManager().ActivateLogging()
-	testingpkg.Assert(t, common.EnableLogging, "")
+	testingpkg.Assert(t, shi.GetLogManager().IsEnabledLogging(), "")
 	fmt.Println("System logging is active.")
 
 	txn_mgr := shi.GetTransactionManager()
@@ -2309,7 +2309,7 @@ func TestSimpleSetNullToVarchar(t *testing.T) {
 
 	shi := samehada.NewSamehadaInstance(samehada_util.GetParentFuncName(), common.BufferPoolMaxFrameNumForTest)
 	shi.GetLogManager().ActivateLogging()
-	testingpkg.Assert(t, common.EnableLogging, "")
+	testingpkg.Assert(t, shi.GetLogManager().IsEnabledLogging(), "")
 	fmt.Println("System logging is active.")
 
 	txn_mgr := shi.GetTransactionManager()

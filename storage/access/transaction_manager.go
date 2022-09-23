@@ -41,7 +41,7 @@ func (transaction_manager *TransactionManager) Begin(txn *Transaction) *Transact
 		//fmt.Printf("new transactin ID: %d\n", transaction_manager.next_txn_id)
 	}
 
-	if common.EnableLogging {
+	if transaction_manager.log_manager.IsEnabledLogging() {
 		log_record := recovery.NewLogRecordTxn(txn_ret.GetTransactionId(), txn_ret.GetPrevLSN(), recovery.BEGIN)
 		lsn := transaction_manager.log_manager.AppendLogRecord(log_record)
 		txn_ret.SetPrevLSN(lsn)
@@ -74,7 +74,7 @@ func (transaction_manager *TransactionManager) Commit(txn *Transaction) {
 	}
 	txn.SetWriteSet(write_set)
 
-	if common.EnableLogging {
+	if transaction_manager.log_manager.IsEnabledLogging() {
 		log_record := recovery.NewLogRecordTxn(txn.GetTransactionId(), txn.GetPrevLSN(), recovery.COMMIT)
 		lsn := transaction_manager.log_manager.AppendLogRecord(log_record)
 		txn.SetPrevLSN(lsn)
@@ -114,7 +114,7 @@ func (transaction_manager *TransactionManager) Abort(txn *Transaction) {
 	}
 	txn.SetWriteSet(write_set)
 
-	if common.EnableLogging {
+	if transaction_manager.log_manager.IsEnabledLogging() {
 		log_record := recovery.NewLogRecordTxn(txn.GetTransactionId(), txn.GetPrevLSN(), recovery.ABORT)
 		lsn := transaction_manager.log_manager.AppendLogRecord(log_record)
 		txn.SetPrevLSN(lsn)

@@ -58,7 +58,6 @@ func TestTableCatalogReload(t *testing.T) {
 	testingpkg.Assert(t, columnToCheck.HasIndex() == true, "")
 
 	common.TempSuppressOnMemStorage = false
-	common.EnableLogging = false
 	//samehada_instance.Shutdown(true)
 	common.TempSuppressOnMemStorageMutex.Unlock()
 }

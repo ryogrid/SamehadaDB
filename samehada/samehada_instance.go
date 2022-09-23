@@ -20,7 +20,7 @@ type SamehadaInstance struct {
 
 func NewSamehadaInstanceForTesting() *SamehadaInstance {
 	ret := NewSamehadaInstance("test", common.BufferPoolMaxFrameNumForTest)
-	common.EnableLogging = false
+	ret.GetLogManager().DeactivateLogging()
 	return ret
 }
 
@@ -28,8 +28,6 @@ func NewSamehadaInstanceForTesting() *SamehadaInstance {
 // and db/log file
 // bpoolSize: usable buffer size in frame(=page) num
 func NewSamehadaInstance(dbName string, bpoolSize int) *SamehadaInstance {
-	common.EnableLogging = true
-
 	var disk_manager disk.DiskManager
 	if !common.EnableOnMemStorage || common.TempSuppressOnMemStorage {
 		disk_manager = disk.NewDiskManagerImpl(dbName + ".db")
@@ -38,6 +36,7 @@ func NewSamehadaInstance(dbName string, bpoolSize int) *SamehadaInstance {
 	}
 
 	log_manager := recovery.NewLogManager(&disk_manager)
+	log_manager.ActivateLogging()
 	bpm := buffer.NewBufferPoolManager(uint32(bpoolSize), disk_manager, log_manager)
 	lock_manager := access.NewLockManager(access.STRICT, access.SS2PL_MODE)
 	transaction_manager := access.NewTransactionManager(lock_manager, log_manager)
@@ -84,15 +83,9 @@ func (si *SamehadaInstance) Shutdown(IsRemoveFiles bool) {
 		// close only
 		si.disk_manager.ShutDown()
 	}
-	if !common.TempSuppressOnMemStorage {
-		common.EnableLogging = false
-	}
 }
 
 // for testing. this method does file closing only in contrast to Shutdown method
 func (si *SamehadaInstance) CloseFilesForTesting() {
 	si.disk_manager.ShutDown()
-	if !common.TempSuppressOnMemStorage {
-		common.EnableLogging = false
-	}
 }

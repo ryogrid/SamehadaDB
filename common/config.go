@@ -10,8 +10,8 @@ import (
 
 var LogTimeout time.Duration
 
-var EnableLogging bool = false //true
-const EnableDebug bool = true  //false
+// var EnableLogging bool = false //true
+const EnableDebug bool = true //false
 // use virtual storage or not
 const EnableOnMemStorage = true //false
 

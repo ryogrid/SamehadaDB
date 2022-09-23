@@ -45,7 +45,7 @@ func TestRecounstructionOfHashIndex(t *testing.T) {
 
 	shi := samehada.NewSamehadaInstance(samehada_util.GetParentFuncName(), common.BufferPoolMaxFrameNumForTest)
 	shi.GetLogManager().ActivateLogging()
-	testingpkg.Assert(t, common.EnableLogging, "")
+	testingpkg.Assert(t, shi.GetLogManager().IsEnabledLogging(), "")
 	fmt.Println("System logging is active.")
 
 	txn_mgr := shi.GetTransactionManager()
@@ -171,7 +171,7 @@ func TestRecounstructionOfHashIndex(t *testing.T) {
 	txn = shi.GetTransactionManager().Begin(nil)
 
 	shi.GetLogManager().ActivateLogging()
-	testingpkg.Assert(t, common.EnableLogging, "")
+	testingpkg.Assert(t, shi.GetLogManager().IsEnabledLogging(), "")
 	fmt.Println("System logging is active.")
 
 	executionEngine = &executors.ExecutionEngine{}
