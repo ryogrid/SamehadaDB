@@ -402,9 +402,9 @@ func (node *SkipListBlockPage) Insert(key *types.Value, value uint32, bpm *buffe
 				bpm.UnpinPage(newNode.GetPageId(), true)
 
 				//unlockAndUnpinNodes(bpm, lockedAndPinnedNodes, true)
-
 				node.WUnlatch()
 				bpm.UnpinPage(node.GetPageId(), true)
+
 				if common.EnableDebug {
 					common.ShPrintf(common.DEBUG_INFO, "SkipListBlockPage::Insert: finish (new node without split). key=%v\n", key.ToIFValue())
 				}

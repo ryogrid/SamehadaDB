@@ -77,7 +77,7 @@ func (c *ClockReplacer) Pin(id FrameID) {
 		c.clockHand = &(*c.clockHand).next
 	}
 	c.cList.remove(id)
-	delete(c.cList.supportMap, id)
+	//delete(c.cList.supportMap, id)
 }
 
 // Size returns the size of the clock

@@ -81,6 +81,7 @@ func (c *circularList) insert(key FrameID, value bool) error {
 	c.head.prev = c.tail
 
 	c.size++
+	c.supportMap[key] = newNode
 
 	return nil
 }
@@ -98,6 +99,7 @@ func (c *circularList) remove(key FrameID) {
 		c.head = nil
 		c.tail = nil
 		c.size--
+		delete(c.supportMap, key)
 		return
 	}
 
