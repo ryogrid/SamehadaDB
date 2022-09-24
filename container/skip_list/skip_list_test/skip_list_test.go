@@ -69,8 +69,8 @@ func TestSerializationOfSkipLisHeaderPage(t *testing.T) {
 	shi := samehada.NewSamehadaInstance(t.Name(), common.BufferPoolMaxFrameNumForTest)
 	bpm := shi.GetBufferPoolManager()
 
-	hpageId := skip_list_page.NewSkipListHeaderPage(bpm, types.Integer)
-	hpage := skip_list_page.FetchAndCastToHeaderPage(bpm, hpageId)
+	hpage, _, _ := skip_list_page.NewSkipListHeaderPage(bpm, types.Integer)
+	//hpage := skip_list_page.FetchAndCastToHeaderPage(bpm, hpageId)
 
 	hpage.SetPageId(7)
 	hpage.SetLSN(7)
@@ -1948,6 +1948,10 @@ func testSkipListInsertGetRemove3stride2(t *testing.T, sl *skip_list.SkipList, c
 
 func TestSkipListParallelSimpleInteger(t *testing.T) {
 	t.Parallel()
+	if testing.Short() {
+		t.Skip("skip this in short mode.")
+	}
+
 	if !common.EnableOnMemStorage {
 		os.Remove(t.Name() + ".db")
 		os.Remove(t.Name() + ".log")

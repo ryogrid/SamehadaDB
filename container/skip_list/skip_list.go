@@ -29,7 +29,10 @@ const (
  */
 
 type SkipList struct {
-	headerPageID    types.PageID //*skip_list_page.SkipListHeaderPage
+	//headerPageID_   types.PageID //*skip_list_page.SkipListHeaderPage
+	headerPage      *skip_list_page.SkipListHeaderPage
+	startNode       *skip_list_page.SkipListBlockPage
+	SentinelNodeID  types.PageID
 	bpm             *buffer.BufferPoolManager
 	headerPageLatch common.ReaderWriterLatch
 }
@@ -40,9 +43,19 @@ func NewSkipList(bpm *buffer.BufferPoolManager, keyType types.TypeID) *SkipList 
 
 	ret := new(SkipList)
 	ret.bpm = bpm
-	ret.headerPageID = skip_list_page.NewSkipListHeaderPage(bpm, keyType) //header.ID()
+	var sentinelNode *skip_list_page.SkipListBlockPage
+	ret.headerPage, ret.startNode, sentinelNode = skip_list_page.NewSkipListHeaderPage(bpm, keyType) //header.ID()
+	ret.SentinelNodeID = sentinelNode.GetPageId()
 
 	return ret
+}
+
+func (sl *SkipList) getHeaderPage() *skip_list_page.SkipListHeaderPage {
+	return sl.headerPage
+}
+
+func (sl *SkipList) getStartNode() *skip_list_page.SkipListBlockPage {
+	return sl.startNode
 }
 
 func latchOpWithOpType(node *skip_list_page.SkipListBlockPage, getOrUnlatch LatchOpCase, opType SkipListOpType) {
@@ -68,12 +81,14 @@ func (sl *SkipList) FindNode(key *types.Value, opType SkipListOpType) (isSuccess
 		common.ShPrintf(common.DEBUG_INFO, "FindNode: start. key=%v opType=%d\n", key.ToIFValue(), opType)
 	}
 
-	headerPage := skip_list_page.FetchAndCastToHeaderPage(sl.bpm, sl.headerPageID)
-	startPageId := headerPage.GetListStartPageId()
+	//headerPage := skip_list_page.FetchAndCastToHeaderPage(sl.bpm, sl.headerPageID)
+	//headerPage := sl.getHeaderPage()
+	//startPageId := headerPage.GetListStartPageId()
 	// lock of headerPage is not needed becaus its content is not changed
-	sl.bpm.UnpinPage(headerPage.GetPageId(), false)
+	//sl.bpm.UnpinPage(headerPage.GetPageId(), false)
 
-	pred := skip_list_page.FetchAndCastToBlockPage(sl.bpm, startPageId)
+	//pred := skip_list_page.FetchAndCastToBlockPage(sl.bpm, startPageId)
+	pred := sl.getStartNode()
 	latchOpWithOpType(pred, SKIP_LIST_UTIL_GET_LATCH, opType)
 
 	// loop invariant: pred.key < searchKey
@@ -85,11 +100,14 @@ func (sl *SkipList) FindNode(key *types.Value, opType SkipListOpType) (isSuccess
 	predOfCorners := make([]skip_list_page.SkipListCornerInfo, skip_list_page.MAX_FOWARD_LIST_LEN)
 	// entry of corners is corner node or target node
 	corners := make([]skip_list_page.SkipListCornerInfo, skip_list_page.MAX_FOWARD_LIST_LEN)
-	var curr *skip_list_page.SkipListBlockPage
+	var curr *skip_list_page.SkipListBlockPage = nil
 	for ii := (skip_list_page.MAX_FOWARD_LIST_LEN - 1); ii >= 0; ii-- {
 		//fmt.Printf("level %d\n", i)
 		for {
 			//moveCnt++
+			if pred == sl.startNode && pred.GetForwardEntry(ii) == sl.SentinelNodeID {
+				break
+			}
 			curr = skip_list_page.FetchAndCastToBlockPage(sl.bpm, pred.GetForwardEntry(int(ii)))
 			if curr == nil {
 				common.ShPrintf(common.FATAL, "PageID to passed FetchAndCastToBlockPage is %d\n", pred.GetForwardEntry(int(ii)))
@@ -104,7 +122,9 @@ func (sl *SkipList) FindNode(key *types.Value, opType SkipListOpType) (isSuccess
 				predOfPredId = pred.GetPageId()
 				predOfPredLSN = pred.GetLSN()
 				latchOpWithOpType(pred, SKIP_LIST_UTIL_UNLATCH, opType)
-				sl.bpm.UnpinPage(pred.GetPageId(), false)
+				if pred.GetPageId() != sl.getStartNode().GetPageId() {
+					sl.bpm.UnpinPage(pred.GetPageId(), false)
+				}
 				pred = curr
 			}
 		}
@@ -121,7 +141,9 @@ func (sl *SkipList) FindNode(key *types.Value, opType SkipListOpType) (isSuccess
 			beforeLSN := pred.GetLSN()
 			beforePredId := pred.GetPageId()
 			latchOpWithOpType(pred, SKIP_LIST_UTIL_UNLATCH, opType)
-			sl.bpm.UnpinPage(pred.GetPageId(), false)
+			if pred.GetPageId() != sl.getStartNode().GetPageId() {
+				sl.bpm.UnpinPage(pred.GetPageId(), false)
+			}
 			// go backward for gathering appropriate corner nodes info
 			pred = skip_list_page.FetchAndCastToBlockPage(sl.bpm, predOfPredId)
 			latchOpWithOpType(pred, SKIP_LIST_UTIL_GET_LATCH, opType)
@@ -151,8 +173,10 @@ func (sl *SkipList) FindNode(key *types.Value, opType SkipListOpType) (isSuccess
 		} else {
 			predOfCorners[ii] = skip_list_page.SkipListCornerInfo{predOfPredId, predOfPredLSN}
 			corners[ii] = skip_list_page.SkipListCornerInfo{pred.GetPageId(), pred.GetLSN()}
-			latchOpWithOpType(curr, SKIP_LIST_UTIL_UNLATCH, opType)
-			sl.bpm.UnpinPage(curr.GetPageId(), false)
+			if curr != nil {
+				latchOpWithOpType(curr, SKIP_LIST_UTIL_UNLATCH, opType)
+				sl.bpm.UnpinPage(curr.GetPageId(), false)
+			}
 		}
 	}
 	/*
@@ -276,22 +300,24 @@ func (sl *SkipList) Remove(key *types.Value, value uint32) (isDeleted_ bool) {
 func (sl *SkipList) Iterator(rangeStartKey *types.Value, rangeEndKey *types.Value) *SkipListIterator {
 	ret := new(SkipListIterator)
 
-	headerPage := skip_list_page.FetchAndCastToHeaderPage(sl.bpm, sl.headerPageID)
+	//headerPage := skip_list_page.FetchAndCastToHeaderPage(sl.bpm, sl.headerPageID)
+	headerPage := sl.getHeaderPage()
 
 	ret.sl = sl
 	ret.bpm = sl.bpm
-	ret.curNode = skip_list_page.FetchAndCastToBlockPage(sl.bpm, headerPage.GetListStartPageId())
+	//ret.curNode = skip_list_page.FetchAndCastToBlockPage(sl.bpm, headerPage.GetListStartPageId())
+	ret.curNode = sl.getStartNode()
 	ret.curIdx = 0
 	ret.rangeStartKey = rangeStartKey
 	ret.rangeEndKey = rangeEndKey
 	ret.keyType = headerPage.GetKeyType()
 
 	if rangeStartKey != nil {
-		sl.bpm.UnpinPage(headerPage.GetListStartPageId(), false)
+		//sl.bpm.UnpinPage(headerPage.GetListStartPageId(), false)
 		ret.curNode = nil
 	}
 
-	sl.bpm.UnpinPage(sl.headerPageID, false)
+	//sl.bpm.UnpinPage(sl.headerPageID, false)
 
 	return ret
 }
@@ -309,5 +335,5 @@ func (sl *SkipList) GetNodeLevel() int32 {
 }
 
 func (sl *SkipList) GetHeaderPageId() types.PageID {
-	return sl.headerPageID
+	return sl.headerPage.GetPageId()
 }

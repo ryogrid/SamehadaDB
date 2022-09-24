@@ -41,14 +41,18 @@ func (itr *SkipListIterator) Next() (done bool, err error, key *types.Value, val
 		nextNodeId := itr.curNode.GetForwardEntry(0)
 		itr.curNode.RUnlatch()
 		// TODO: (SDB) maybe there is case which should pass true as dirty flasg
-		itr.bpm.UnpinPage(prevNodeId, false)
+		if prevNodeId != itr.sl.getStartNode().GetPageId() {
+			itr.bpm.UnpinPage(prevNodeId, false)
+		}
 		itr.curNode = skip_list_page.FetchAndCastToBlockPage(itr.bpm, nextNodeId)
 		itr.curIdx = -1
 		itr.curNode.RLatch()
 		if itr.curNode.GetSmallestKey(itr.keyType).IsInfMax() {
 			// reached tail node
 			itr.curNode.RUnlatch()
-			itr.bpm.UnpinPage(itr.curNode.GetPageId(), false)
+			if itr.curNode.GetPageId() != itr.sl.getStartNode().GetPageId() {
+				itr.bpm.UnpinPage(itr.curNode.GetPageId(), false)
+			}
 			return true, nil, nil, math.MaxUint32
 		}
 	}

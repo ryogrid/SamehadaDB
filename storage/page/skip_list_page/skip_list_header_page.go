@@ -44,7 +44,7 @@ type SkipListHeaderPage struct {
 	//keyType         types.TypeID // used when load list datas from disk
 }
 
-func NewSkipListStartBlockPage(bpm *buffer.BufferPoolManager, keyType types.TypeID) types.PageID {
+func NewSkipListStartBlockPage(bpm *buffer.BufferPoolManager, keyType types.TypeID) (startNode_ *SkipListBlockPage, sentinelNode_ *SkipListBlockPage) {
 	//startPage.ID()
 	var startNode *SkipListBlockPage = nil
 	switch keyType {
@@ -87,11 +87,11 @@ func NewSkipListStartBlockPage(bpm *buffer.BufferPoolManager, keyType types.Type
 		startNode.SetForwardEntry(ii, sentinelNode.GetPageId())
 	}
 
-	ret := startNode.GetPageId()
-	bpm.UnpinPage(startNode.GetPageId(), true)
-	bpm.UnpinPage(sentinelNode.GetPageId(), true)
+	//ret := startNode.GetPageId()
+	//bpm.UnpinPage(startNode.GetPageId(), true)
+	//bpm.UnpinPage(sentinelNode.GetPageId(), true)
 
-	return ret
+	return startNode, sentinelNode
 }
 
 func (hp *SkipListHeaderPage) GetPageId() types.PageID {
@@ -127,18 +127,20 @@ func (hp *SkipListHeaderPage) SetKeyType(ktype types.TypeID) {
 	copy(hp.Data()[offsetKeyType:], keyTypeInBytes)
 }
 
-func NewSkipListHeaderPage(bpm *buffer.BufferPoolManager, keyType types.TypeID) types.PageID {
+func NewSkipListHeaderPage(bpm *buffer.BufferPoolManager, keyType types.TypeID) (headerPage_ *SkipListHeaderPage, startNode_ *SkipListBlockPage, sentinelNode_ *SkipListBlockPage) {
 	page_ := bpm.NewPage()
 	headerPage := (*SkipListHeaderPage)(unsafe.Pointer(page_))
 	headerPage.SetPageId(page_.GetPageId())
 	headerPage.Page.SetLSN(0)
-	headerPage.SetListStartPageId(NewSkipListStartBlockPage(bpm, keyType))
+	startNode, sentinelNode := NewSkipListStartBlockPage(bpm, keyType)
+	headerPage.SetListStartPageId(startNode.GetPageId())
 	headerPage.SetKeyType(keyType)
 
-	retPageID := headerPage.GetPageId()
-	bpm.UnpinPage(headerPage.GetPageId(), true)
+	//retPageID := headerPage.GetPageId()
+	//bpm.UnpinPage(headerPage.GetPageId(), true)
 
-	return retPageID
+	//return retPageID
+	return headerPage, startNode, sentinelNode
 }
 
 // Attention:
