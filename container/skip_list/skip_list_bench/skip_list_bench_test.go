@@ -15,7 +15,7 @@ import (
 
 const INITIAL_VAL_NUM = 300000
 const WORK_NUM = INITIAL_VAL_NUM / 10
-const PASS_WORK_NUM = 100
+const PASS_WORK_NUM = 200
 
 type opTypeAndVal struct {
 	OpType skip_list.SkipListOpType
@@ -49,12 +49,12 @@ func NewWorkArray() *workArray {
 
 func (arr *workArray) Append(val *types.Value) {
 	arr.posForInit++
-	randVal := rand.Intn(10)
-	if randVal < 2 {
-		arr.arr[arr.posForInit] = &opTypeAndVal{skip_list.SKIP_LIST_OP_REMOVE, val}
-	} else {
-		arr.arr[arr.posForInit] = &opTypeAndVal{skip_list.SKIP_LIST_OP_GET, val}
-	}
+	//randVal := rand.Intn(10)
+	//if randVal < 2 {
+	//	arr.arr[arr.posForInit] = &opTypeAndVal{skip_list.SKIP_LIST_OP_REMOVE, val}
+	//} else {
+	arr.arr[arr.posForInit] = &opTypeAndVal{skip_list.SKIP_LIST_OP_GET, val}
+	//}
 }
 
 func (arr *workArray) Shuffle() {
@@ -111,7 +111,8 @@ func TestSkipListBench82(t *testing.T) {
 func genInitialSLAndWorkArr(dbName string) (*skip_list.SkipList, *workArray) {
 	rand.Seed(5)
 
-	shi := samehada.NewSamehadaInstance(dbName, 1024*10) //10MB
+	//shi := samehada.NewSamehadaInstance(dbName, 1024*1024) //4GB
+	shi := samehada.NewSamehadaInstance(dbName, 2000) //cover about 10% filled data
 	bpm := shi.GetBufferPoolManager()
 
 	sl := skip_list.NewSkipList(bpm, types.Integer)
