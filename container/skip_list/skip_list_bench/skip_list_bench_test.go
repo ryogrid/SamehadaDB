@@ -15,7 +15,8 @@ import (
 
 const INITIAL_VAL_NUM = 300000
 const WORK_NUM = INITIAL_VAL_NUM / 10
-const PASS_WORK_NUM = 200
+
+//const PASS_WORK_NUM = 200
 
 type opTypeAndVal struct {
 	OpType skip_list.SkipListOpType
@@ -29,20 +30,24 @@ type workArray struct {
 	mutex      sync.Mutex
 }
 
-func (arr *workArray) GetNewWork() (work []*opTypeAndVal, done bool) {
+func (arr *workArray) GetNewWork(threadNum int32) (work []*opTypeAndVal, done bool) {
 	arr.mutex.Lock()
 	defer arr.mutex.Unlock()
-	arr.pos = arr.pos + PASS_WORK_NUM
-	if arr.pos+PASS_WORK_NUM < WORK_NUM-1 {
-		return arr.arr[arr.pos : arr.pos+PASS_WORK_NUM], false
+	splitedWorkNum := (WORK_NUM / threadNum)
+
+	if arr.pos+splitedWorkNum <= WORK_NUM {
+		retArr := arr.arr[arr.pos : arr.pos+splitedWorkNum]
+		arr.pos = arr.pos + splitedWorkNum
+		return retArr, false
 	} else {
 		return nil, true
 	}
+
 }
 
 func NewWorkArray() *workArray {
 	ret := new(workArray)
-	ret.pos = -1 * PASS_WORK_NUM
+	ret.pos = 0
 	ret.posForInit = -1
 	return ret
 }
@@ -65,7 +70,7 @@ func (arr *workArray) Shuffle() {
 //
 //get:remove = 9:1
 //get:remove = 10:0
-func TestSkipListBench82(t *testing.T) {
+func TestSkipListBench10_0(t *testing.T) {
 	runtime.GOMAXPROCS(50)
 
 	threadNumArr := []int{1, 2, 3, 4, 5, 6, 12, 20, 50, 100}
@@ -79,7 +84,7 @@ func TestSkipListBench82(t *testing.T) {
 		for jj := 0; jj < threadNum; jj++ {
 			go func() {
 				for {
-					work, done := wArray.GetNewWork()
+					work, done := wArray.GetNewWork(int32(threadNum))
 					if done {
 						ch <- 1
 						break
@@ -112,7 +117,8 @@ func genInitialSLAndWorkArr(dbName string) (*skip_list.SkipList, *workArray) {
 	rand.Seed(5)
 
 	//shi := samehada.NewSamehadaInstance(dbName, 1024*1024) //4GB
-	shi := samehada.NewSamehadaInstance(dbName, 2000) //cover about 10% filled data
+	//shi := samehada.NewSamehadaInstance(dbName, 2000) //cover about 10% filled data
+	shi := samehada.NewSamehadaInstance(dbName, 4000) //cover 100% of filled data
 	bpm := shi.GetBufferPoolManager()
 
 	sl := skip_list.NewSkipList(bpm, types.Integer)
