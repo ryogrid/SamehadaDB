@@ -54,12 +54,12 @@ func NewWorkArray() *workArray {
 
 func (arr *workArray) Append(val *types.Value) {
 	arr.posForInit++
-	//randVal := rand.Intn(10)
-	//if randVal < 2 {
-	//	arr.arr[arr.posForInit] = &opTypeAndVal{skip_list.SKIP_LIST_OP_REMOVE, val}
-	//} else {
-	arr.arr[arr.posForInit] = &opTypeAndVal{skip_list.SKIP_LIST_OP_GET, val}
-	//}
+	randVal := rand.Intn(10)
+	if randVal < 2 {
+		arr.arr[arr.posForInit] = &opTypeAndVal{skip_list.SKIP_LIST_OP_REMOVE, val}
+	} else {
+		arr.arr[arr.posForInit] = &opTypeAndVal{skip_list.SKIP_LIST_OP_GET, val}
+	}
 }
 
 func (arr *workArray) Shuffle() {
@@ -70,7 +70,7 @@ func (arr *workArray) Shuffle() {
 //
 //get:remove = 9:1
 //get:remove = 10:0
-func TestSkipListBench10_0(t *testing.T) {
+func TestSkipListBench8_2(t *testing.T) {
 	if testing.Short() {
 		t.Skip("skip this in short mode.")
 	}
