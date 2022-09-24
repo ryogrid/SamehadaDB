@@ -75,18 +75,22 @@ func TestSkipListBench10_0(t *testing.T) {
 
 	threadNumArr := []int{1, 2, 3, 4, 5, 6, 12, 20, 50, 100}
 
-	ch := make(chan int)
+	masterCh := make(chan int)
 	// measure in each thread num
 	for ii := 0; ii < 10; ii++ {
 		sl, wArray := genInitialSLAndWorkArr(t.Name())
 		fmt.Println("setuped data.")
 		threadNum := threadNumArr[ii]
+		chanArr := make([]chan int, 0)
 		for jj := 0; jj < threadNum; jj++ {
-			go func() {
+			ch := make(chan int)
+			chanArr = append(chanArr, ch)
+			go func(startCh chan int) {
+				<-startCh
 				for {
 					work, done := wArray.GetNewWork(int32(threadNum))
 					if done {
-						ch <- 1
+						masterCh <- 1
 						break
 					}
 					for _, wk := range work {
@@ -100,13 +104,17 @@ func TestSkipListBench10_0(t *testing.T) {
 						}
 					}
 				}
-			}()
+			}(ch)
+		}
+		// lauched thread start operation
+		for jj := 0; jj < threadNum; jj++ {
+			chanArr[jj] <- 1
 		}
 		fmt.Println("start measure.")
 		startTime := time.Now()
 		// wait finish of threads
 		for jj := 0; jj < threadNum; jj++ {
-			<-ch
+			<-masterCh
 		}
 		d := time.Since(startTime)
 		fmt.Printf("threadNum=%d: elapsed %v\n", threadNum, d)
