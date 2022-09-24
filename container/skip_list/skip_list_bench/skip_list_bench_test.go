@@ -73,11 +73,13 @@ func (arr *workArray) Shuffle() {
 func TestSkipListBench10_0(t *testing.T) {
 	runtime.GOMAXPROCS(50)
 
-	threadNumArr := []int{1, 2, 3, 4, 5, 6, 12, 20, 50, 100}
+	//threadNumArr := []int{1, 2, 3, 4, 5, 6, 12, 20, 50, 100}
+	threadNumArr := []int{6}
 
 	masterCh := make(chan int)
 	// measure in each thread num
-	for ii := 0; ii < 10; ii++ {
+	//for ii := 0; ii < 10; ii++ {
+	for ii := 0; ii < 1; ii++ {
 		sl, wArray := genInitialSLAndWorkArr(t.Name())
 		fmt.Println("setuped data.")
 		threadNum := threadNumArr[ii]
