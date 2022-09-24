@@ -23,23 +23,27 @@ type BufferPoolManager struct {
 	freeList    []FrameID
 	pageTable   map[types.PageID]FrameID
 	log_manager *recovery.LogManager
-	mutex       *sync.Mutex
+	mutex       *sync.RWMutex
 }
 
 // FetchPage fetches the requested page from the buffer pool.
 func (b *BufferPoolManager) FetchPage(pageID types.PageID) *page.Page {
 	// if it is on buffer pool return it
-	b.mutex.Lock()
+	//b.mutex.Lock()
+	b.mutex.RLock()
 	if frameID, ok := b.pageTable[pageID]; ok {
 		pg := b.pages[frameID]
+		b.mutex.RUnlock()
 		pg.IncPinCount()
 		(*b.replacer).Pin(frameID)
-		b.mutex.Unlock()
 		if common.EnableDebug {
 			common.ShPrintf(common.DEBUG_INFO, "FetchPage: PageId=%d PinCount=%d\n", pg.GetPageId(), pg.PinCount())
 		}
 		return pg
 	}
+
+	b.mutex.RUnlock()
+	b.mutex.Lock()
 
 	//b.mutex.Unlock()
 	// get the id from free list or from replacer
@@ -96,10 +100,12 @@ func (b *BufferPoolManager) FetchPage(pageID types.PageID) *page.Page {
 
 // UnpinPage unpins the target page from the buffer pool.
 func (b *BufferPoolManager) UnpinPage(pageID types.PageID, isDirty bool) error {
-	b.mutex.Lock()
 
+	//b.mutex.Lock()
+	b.mutex.RLock()
 	if frameID, ok := b.pageTable[pageID]; ok {
 		pg := b.pages[frameID]
+		b.mutex.RUnlock()
 		pg.DecPinCount()
 
 		//if pg.PinCount() < 0 {
@@ -116,14 +122,13 @@ func (b *BufferPoolManager) UnpinPage(pageID types.PageID, isDirty bool) error {
 			pg.SetIsDirty(false)
 		}
 
-		b.mutex.Unlock()
-
 		if common.EnableDebug {
 			common.ShPrintf(common.DEBUG_INFO, "UnpinPage: PageId=%d PinCount=%d\n", pg.GetPageId(), pg.PinCount())
 		}
 		return nil
 	}
-	b.mutex.Unlock()
+	//b.mutex.Unlock()
+	b.mutex.RUnlock()
 
 	if common.EnableDebug {
 		common.ShPrintf(common.DEBUG_INFO, "UnpinPage: could not find page! PageId=%d\n", pageID)
@@ -318,5 +323,6 @@ func NewBufferPoolManager(poolSize uint32, DiskManager disk.DiskManager, log_man
 	}
 
 	replacer := NewClockReplacer(poolSize)
-	return &BufferPoolManager{DiskManager, pages, replacer, freeList, make(map[types.PageID]FrameID), log_manager, new(sync.Mutex)}
+	//return &BufferPoolManager{DiskManager, pages, replacer, freeList, make(map[types.PageID]FrameID), log_manager, new(sync.Mutex)}
+	return &BufferPoolManager{DiskManager, pages, replacer, freeList, make(map[types.PageID]FrameID), log_manager, new(sync.RWMutex)}
 }

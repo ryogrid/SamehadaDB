@@ -6,6 +6,7 @@ package page
 import (
 	"github.com/ryogrid/SamehadaDB/common"
 	"github.com/ryogrid/SamehadaDB/types"
+	"sync/atomic"
 )
 
 // PageSize is the size of a page in disk (4KB)
@@ -23,7 +24,7 @@ const OffsetLSN = 4
 // Page represents an abstract page on disk
 type Page struct {
 	id       types.PageID           // idenfies the page. It is used to find the offset of the page on disk
-	pinCount uint32                 // counts how many goroutines are acessing it
+	pinCount int32                  //int32                 // counts how many goroutines are acessing it
 	isDirty  bool                   // the page was modified but not flushed
 	data     *[common.PageSize]byte // bytes stored in disk
 	rwlatch_ common.ReaderWriterLatch
@@ -31,7 +32,8 @@ type Page struct {
 
 // IncPinCount increments pin count
 func (p *Page) IncPinCount() {
-	p.pinCount++
+	///p.pinCount++
+	atomic.AddInt32(&p.pinCount, 1)
 
 	//common.ShPrintf(common.DEBUG_INFO, "pinCount of page-%d at IncPinCount: %d\n", p.GetPageId(), p.pinCount)
 	//common.RuntimeStack()
@@ -40,14 +42,14 @@ func (p *Page) IncPinCount() {
 // DecPinCount decrements pin count
 func (p *Page) DecPinCount() {
 	if p.pinCount > 0 {
-		p.pinCount--
+		atomic.AddInt32(&p.pinCount, -1)
 	}
 
 	//common.ShPrintf(common.DEBUG_INFO, "pinCount of page-%d at DecPinCount: %d\n", p.GetPageId(), p.pinCount)
 }
 
 // PinCount retunds the pin count
-func (p *Page) PinCount() uint32 {
+func (p *Page) PinCount() int32 {
 	return p.pinCount
 }
 
@@ -78,7 +80,7 @@ func (p *Page) Copy(offset uint32, data []byte) {
 
 // New creates a new page
 func New(id types.PageID, isDirty bool, data *[common.PageSize]byte) *Page {
-	return &Page{id, uint32(1), isDirty, data, common.NewRWLatch()}
+	return &Page{id, int32(1), isDirty, data, common.NewRWLatch()}
 
 	//// TODO: (SDB) customized RWMutex for concurrent skip list debug
 	//return &Page{id, uint32(1), isDirty, data, common.NewRWLatchDebug()}
@@ -86,7 +88,7 @@ func New(id types.PageID, isDirty bool, data *[common.PageSize]byte) *Page {
 
 // New creates a new empty page
 func NewEmpty(id types.PageID) *Page {
-	return &Page{id, uint32(1), false, &[common.PageSize]byte{}, common.NewRWLatch()}
+	return &Page{id, int32(1), false, &[common.PageSize]byte{}, common.NewRWLatch()}
 
 	//// TODO: (SDB) customized RWMutex for concurrent skip list debug
 	//return &Page{id, uint32(1), false, &[common.PageSize]byte{}, common.NewRWLatchDebug()}
