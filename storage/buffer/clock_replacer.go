@@ -66,10 +66,10 @@ func (c *ClockReplacer) Unpin(id FrameID) {
 func (c *ClockReplacer) Pin(id FrameID) {
 	c.mutex.Lock()
 	defer c.mutex.Unlock()
-	node := c.cList.find(id)
-	if node == nil {
-		//node, ok := c.cList.supportMap[id]
-		//if !ok {
+	//node := c.cList.find(id)
+	//if node == nil {
+	node, ok := c.cList.supportMap[id]
+	if !ok {
 		return
 	}
 
@@ -77,7 +77,7 @@ func (c *ClockReplacer) Pin(id FrameID) {
 		c.clockHand = &(*c.clockHand).next
 	}
 	c.cList.remove(id)
-	//delete(c.cList.supportMap, id)
+	delete(c.cList.supportMap, id)
 }
 
 // Size returns the size of the clock
