@@ -1648,21 +1648,21 @@ func testSkipListMixRoot[T int32 | float32 | string](t *testing.T, keyType types
 	testSkipListMix[T](t, keyType, 1, int32(250), int32(4), int32(0), false)
 	testSkipListMix[T](t, keyType, 1, int32(250), int32(3), int32(0), false)
 
-	testSkipListMix[T](t, keyType, 50, int32(150), int32(10), int32(0), false)
-	testSkipListMix[T](t, keyType, 50, int32(150), int32(10), int32(300), false)
-	testSkipListMix[T](t, keyType, 50, int32(150), int32(10), int32(600), false)
-	testSkipListMix[T](t, keyType, 50, int32(200), int32(5), int32(10), false)
+	//testSkipListMix[T](t, keyType, 50, int32(150), int32(10), int32(0), false)
+	//testSkipListMix[T](t, keyType, 50, int32(150), int32(10), int32(300), false)
+	//testSkipListMix[T](t, keyType, 50, int32(150), int32(10), int32(600), false)
+	//testSkipListMix[T](t, keyType, 50, int32(200), int32(5), int32(10), false)
 	testSkipListMix[T](t, keyType, 50, int32(250), int32(5), int32(10), false)
 	testSkipListMix[T](t, keyType, 50, int32(250), int32(4), int32(0), false)
 	testSkipListMix[T](t, keyType, 50, int32(250), int32(3), int32(0), false)
 
-	testSkipListMix[T](t, keyType, 100, int32(150), int32(10), int32(0), false)
-	testSkipListMix[T](t, keyType, 100, int32(150), int32(10), int32(300), false)
-	testSkipListMix[T](t, keyType, 100, int32(150), int32(10), int32(600), false)
-	testSkipListMix[T](t, keyType, 100, int32(200), int32(5), int32(10), false)
-	testSkipListMix[T](t, keyType, 100, int32(250), int32(5), int32(10), false)
-	testSkipListMix[T](t, keyType, 100, int32(250), int32(4), int32(0), false)
-	testSkipListMix[T](t, keyType, 100, int32(250), int32(3), int32(0), false)
+	//testSkipListMix[T](t, keyType, 100, int32(150), int32(10), int32(0), false)
+	//testSkipListMix[T](t, keyType, 100, int32(150), int32(10), int32(300), false)
+	//testSkipListMix[T](t, keyType, 100, int32(150), int32(10), int32(600), false)
+	//testSkipListMix[T](t, keyType, 100, int32(200), int32(5), int32(10), false)
+	//testSkipListMix[T](t, keyType, 100, int32(250), int32(5), int32(10), false)
+	//testSkipListMix[T](t, keyType, 100, int32(250), int32(4), int32(0), false)
+	//testSkipListMix[T](t, keyType, 100, int32(250), int32(3), int32(0), false)
 
 	////shi.Shutdown(true)
 	//shi.CloseFilesForTesting()
@@ -1720,11 +1720,17 @@ func testSkipListMixParallelStrideRoot[T int32 | float32 | string](t *testing.T,
 
 func TestSkipListMixInteger(t *testing.T) {
 	t.Parallel()
+	if testing.Short() {
+		t.Skip("skip this in short mode.")
+	}
 	testSkipListMixRoot[int32](t, types.Integer)
 }
 
 func TestSkipListMixFloat(t *testing.T) {
 	t.Parallel()
+	if testing.Short() {
+		t.Skip("skip this in short mode.")
+	}
 	testSkipListMixRoot[float32](t, types.Float)
 }
 
