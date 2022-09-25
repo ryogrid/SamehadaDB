@@ -159,9 +159,9 @@ func (d *DiskManagerImpl) AllocatePage() types.PageID {
 	//// extend db file for avoiding later ReadPage and WritePage fails
 	//zeroClearedPageData := make([]byte, common.PageSize)
 	//
-	//d.dbFileMutex.Unlock()
+	//d.dbFileMutex.WUnlock()
 	//d.WritePage(ret, zeroClearedPageData)
-	//d.dbFileMutex.Lock()
+	//d.dbFileMutex.WLock()
 	defer d.dbFileMutex.Unlock()
 
 	d.nextPageID++

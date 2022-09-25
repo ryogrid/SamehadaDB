@@ -1,0 +1,15 @@
+<component name="ProjectRunConfigurationManager">
+  <configuration default="false" name="go test recovery" type="GoTestRunConfiguration" factoryName="Go Test">
+    <module name="SamehadaDB" />
+    <working_directory value="$PROJECT_DIR$/recovery/recovery_test" />
+    <go_parameters value=". -v" />
+    <kind value="PACKAGE" />
+    <package value="github.com/ryogrid/SamehadaDB/recovery/recovery_test" />
+    <directory value="$PROJECT_DIR$/execution/executors" />
+    <filePath value="$PROJECT_DIR$" />
+    <framework value="gotest" />
+    <method v="2">
+      <option name="GoBeforeRunTask" command="clean -testcache" />
+    </method>
+  </configuration>
+</component>

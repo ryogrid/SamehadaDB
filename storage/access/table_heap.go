@@ -180,7 +180,7 @@ func (t *TableHeap) ApplyDelete(rid *page.RID, txn *Transaction) {
 	// Delete the tuple from the page.
 	page_.WLatch()
 	page_.ApplyDelete(rid, txn, t.log_manager)
-	//t.lock_manager.Unlock(txn, []page.RID{*rid})
+	//t.lock_manager.WUnlock(txn, []page.RID{*rid})
 	page_.WUnlatch()
 	t.bpm.UnpinPage(page_.GetTablePageId(), true)
 }

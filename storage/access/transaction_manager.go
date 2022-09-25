@@ -142,6 +142,6 @@ func (transaction_manager *TransactionManager) releaseLocks(txn *Transaction) {
 	lock_set = append(lock_set, txn.GetSharedLockSet()...)
 	transaction_manager.lock_manager.Unlock(txn, lock_set)
 	// for _, locked_rid := range lock_set {
-	// 	transaction_manager.lock_manager.Unlock(txn, &locked_rid)
+	// 	transaction_manager.lock_manager.WUnlock(txn, &locked_rid)
 	// }
 }

@@ -65,7 +65,7 @@ type LockManager struct {
 	enable_cycle_detection bool
 	//cycle_detection_thread *std::thread
 
-	// /** Lock table for lock requests. */
+	// /** WLock table for lock requests. */
 	// lock_table map[page.RID]*LockRequestQueue
 	// /** Waits-for graph representation. */
 	// waits_for map[types.TxnID][]types.TxnID
@@ -286,8 +286,8 @@ func (lock_manager *LockManager) Unlock(txn *Transaction, rid_list []page.RID) b
 }
 
 func (lock_manager *LockManager) PrintLockTables() {
-	fmt.Printf("len of shared_lock_table at Unlock %d\n", len(lock_manager.shared_lock_table))
-	fmt.Printf("len of exclusive_lock_table at Unlock %d\n", len(lock_manager.exclusive_lock_table))
+	fmt.Printf("len of shared_lock_table at WUnlock %d\n", len(lock_manager.shared_lock_table))
+	fmt.Printf("len of exclusive_lock_table at WUnlock %d\n", len(lock_manager.exclusive_lock_table))
 	for k, v := range lock_manager.shared_lock_table {
 		fmt.Printf("%v: %v\n", k, v)
 	}

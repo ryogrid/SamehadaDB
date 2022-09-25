@@ -29,7 +29,7 @@ type BufferPoolManager struct {
 // FetchPage fetches the requested page from the buffer pool.
 func (b *BufferPoolManager) FetchPage(pageID types.PageID) *page.Page {
 	// if it is on buffer pool return it
-	//b.mutex.Lock()
+	//b.mutex.WLock()
 	b.mutex.Lock()
 	if frameID, ok := b.pageTable[pageID]; ok {
 		pg := b.pages[frameID]
@@ -42,10 +42,10 @@ func (b *BufferPoolManager) FetchPage(pageID types.PageID) *page.Page {
 		return pg
 	}
 
-	//b.mutex.Unlock()
+	//b.mutex.WUnlock()
 	// get the id from free list or from replacer
 	frameID, isFromFreeList := b.getFrameID()
-	//b.mutex.Lock()
+	//b.mutex.WLock()
 	if frameID == nil {
 		b.mutex.Unlock()
 		return nil
@@ -53,9 +53,9 @@ func (b *BufferPoolManager) FetchPage(pageID types.PageID) *page.Page {
 
 	if !isFromFreeList {
 		// remove page from current frame
-		//b.mutex.Lock()
+		//b.mutex.WLock()
 		currentPage := b.pages[*frameID]
-		//b.mutex.Unlock()
+		//b.mutex.WUnlock()
 		if currentPage != nil {
 			if currentPage.IsDirty() {
 				b.log_manager.Flush()
@@ -64,17 +64,17 @@ func (b *BufferPoolManager) FetchPage(pageID types.PageID) *page.Page {
 				currentPage.WUnlatch()
 				b.diskManager.WritePage(currentPage.ID(), data[:])
 			}
-			//b.mutex.Lock()
+			//b.mutex.WLock()
 			if common.EnableDebug {
 				common.ShPrintf(common.DEBUG_INFO, "FetchPage: page=%d is removed from pageTable.\n", currentPage.ID())
 			}
 			delete(b.pageTable, currentPage.ID())
-			//b.mutex.Unlock()
+			//b.mutex.WUnlock()
 		}
-		//b.mutex.Unlock()
+		//b.mutex.WUnlock()
 	}
 
-	//b.mutex.Lock()
+	//b.mutex.WLock()
 	data := make([]byte, common.PageSize)
 	err := b.diskManager.ReadPage(pageID, data)
 	if err != nil {
@@ -148,10 +148,10 @@ func (b *BufferPoolManager) FlushPage(pageID types.PageID) bool {
 		data := pg.Data()
 		pg.SetIsDirty(false)
 
-		//b.mutex.Lock()
+		//b.mutex.WLock()
 		b.diskManager.WritePage(pageID, data[:])
 		pg.WUnlatch()
-		//b.mutex.Unlock()
+		//b.mutex.WUnlock()
 		return true
 	}
 	b.mutex.Unlock()
@@ -285,17 +285,17 @@ func (b *BufferPoolManager) FlushAllDirtyPages() {
 }
 
 func (b *BufferPoolManager) getFrameID() (*FrameID, bool) {
-	//b.mutex.Lock()
+	//b.mutex.WLock()
 	if len(b.freeList) > 0 {
 		frameID, newFreeList := b.freeList[0], b.freeList[1:]
 		b.freeList = newFreeList
 
-		//b.mutex.Unlock()
+		//b.mutex.WUnlock()
 		return &frameID, true
 	}
 
 	ret := (*b.replacer).Victim()
-	//b.mutex.Unlock()
+	//b.mutex.WUnlock()
 	if ret == nil {
 		fmt.Printf("getFrameID: Victime page is nil! len(b.freeList)=%d\n", len(b.freeList))
 		//panic("getFrameID: Victime page is nil!")

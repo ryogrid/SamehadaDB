@@ -15,6 +15,7 @@ type ReaderWriterLatch interface {
 	WUnlock()
 	RLock()
 	RUnlock()
+	Upgrade() bool
 	PrintDebugInfo()
 }
 
@@ -49,6 +50,11 @@ func (l *readerWriterLatch) RUnlock() {
 	l.mutex.RUnlock()
 }
 
+func (l *readerWriterLatch) Upgrade() bool {
+	//do nothing
+	return false
+}
+
 func (l *readerWriterLatch) PrintDebugInfo() {
 	//do nothing
 }
@@ -70,7 +76,7 @@ func (l *readerWriterLatchDummy) WLock() {
 
 	if l.writerCnt != 1 {
 		fmt.Printf("readerCnt: %d, writerCnt: %d\n", l.readerCnt, l.writerCnt)
-		panic("double Write Lock!")
+		panic("double Write WLock!")
 	}
 }
 
@@ -79,7 +85,7 @@ func (l *readerWriterLatchDummy) WUnlock() {
 
 	if l.writerCnt != 0 {
 		fmt.Printf("readerCnt: %d, writerCnt: %d\n", l.readerCnt, l.writerCnt)
-		panic("double Write Unlock!")
+		panic("double Write WUnlock!")
 	}
 }
 
@@ -88,7 +94,7 @@ func (l *readerWriterLatchDummy) RLock() {
 
 	if l.readerCnt != 1 {
 		fmt.Printf("readerCnt: %d, writerCnt: %d\n", l.readerCnt, l.writerCnt)
-		panic("double Reader Lock!")
+		panic("double Reader WLock!")
 	}
 
 }
@@ -98,8 +104,13 @@ func (l *readerWriterLatchDummy) RUnlock() {
 
 	if l.readerCnt != 0 {
 		fmt.Printf("readerCnt: %d, writerCnt: %d\n", l.readerCnt, l.writerCnt)
-		panic("double Reader Unlock!")
+		panic("double Reader WUnlock!")
 	}
+}
+
+func (l *readerWriterLatchDummy) Upgrade() bool {
+	//do nothing
+	return false
 }
 
 func (l *readerWriterLatchDummy) PrintDebugInfo() {
@@ -129,7 +140,7 @@ func (l *readerWriterLatchDebug) WLock() {
 func (l *readerWriterLatchDebug) WUnlock() {
 	atomic.AddInt32(&l.writerCnt, -1)
 	//l.writerCnt--
-	fmt.Printf("WUnlock: readerCnt=%d, writerCnt=%d\n", l.readerCnt, l.writerCnt)
+	fmt.Printf("WLock: readerCnt=%d, writerCnt=%d\n", l.readerCnt, l.writerCnt)
 
 	l.mutex.Unlock()
 }
@@ -148,6 +159,11 @@ func (l *readerWriterLatchDebug) RUnlock() {
 	fmt.Printf("RUnlock: readerCnt=%d, writerCnt=%d\n", l.readerCnt, l.writerCnt)
 
 	l.mutex.RUnlock()
+}
+
+func (l *readerWriterLatchDebug) Upgrade() bool {
+	fmt.Printf("Upgrade: readerCnt=%d, writerCnt=%d\n", l.readerCnt, l.writerCnt)
+	return false
 }
 
 func (l *readerWriterLatchDebug) PrintDebugInfo() {
