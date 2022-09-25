@@ -15,7 +15,6 @@ type ReaderWriterLatch interface {
 	WUnlock()
 	RLock()
 	RUnlock()
-	Upgrade() bool
 	PrintDebugInfo()
 }
 
@@ -48,11 +47,6 @@ func (l *readerWriterLatch) RLock() {
 
 func (l *readerWriterLatch) RUnlock() {
 	l.mutex.RUnlock()
-}
-
-func (l *readerWriterLatch) Upgrade() bool {
-	//do nothing
-	return false
 }
 
 func (l *readerWriterLatch) PrintDebugInfo() {
@@ -108,11 +102,6 @@ func (l *readerWriterLatchDummy) RUnlock() {
 	}
 }
 
-func (l *readerWriterLatchDummy) Upgrade() bool {
-	//do nothing
-	return false
-}
-
 func (l *readerWriterLatchDummy) PrintDebugInfo() {
 	//do nothing
 }
@@ -159,11 +148,6 @@ func (l *readerWriterLatchDebug) RUnlock() {
 	fmt.Printf("RUnlock: readerCnt=%d, writerCnt=%d\n", l.readerCnt, l.writerCnt)
 
 	l.mutex.RUnlock()
-}
-
-func (l *readerWriterLatchDebug) Upgrade() bool {
-	fmt.Printf("Upgrade: readerCnt=%d, writerCnt=%d\n", l.readerCnt, l.writerCnt)
-	return false
 }
 
 func (l *readerWriterLatchDebug) PrintDebugInfo() {

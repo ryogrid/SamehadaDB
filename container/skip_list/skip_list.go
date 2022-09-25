@@ -21,6 +21,7 @@ const (
 const (
 	SKIP_LIST_UTIL_GET_LATCH LatchOpCase = iota
 	SKIP_LIST_UTIL_UNLATCH
+	SKIP_LIST_UTIL_UPGRADE
 )
 
 /**
@@ -58,19 +59,26 @@ func (sl *SkipList) getStartNode() *skip_list_page.SkipListBlockPage {
 	return sl.startNode
 }
 
-func latchOpWithOpType(node *skip_list_page.SkipListBlockPage, getOrUnlatch LatchOpCase, opType SkipListOpType) {
-	if opType != SKIP_LIST_OP_GET {
-		if getOrUnlatch == SKIP_LIST_UTIL_GET_LATCH {
-			node.WLatch()
-		} else {
-			node.WUnlatch()
-		}
-	} else {
+func latchOpWithOpType(node *skip_list_page.SkipListBlockPage, getOrUnlatch LatchOpCase, opType SkipListOpType) (success bool) {
+	switch opType {
+	case SKIP_LIST_OP_GET:
 		if getOrUnlatch == SKIP_LIST_UTIL_GET_LATCH {
 			node.RLatch()
-		} else {
+		} else if getOrUnlatch == SKIP_LIST_UTIL_UNLATCH {
 			node.RUnlatch()
+		} else { //upgrade
+			// do nothing
 		}
+		return true
+	default:
+		if getOrUnlatch == SKIP_LIST_UTIL_GET_LATCH {
+			node.RLatch()
+		} else if getOrUnlatch == SKIP_LIST_UTIL_UNLATCH {
+			node.RUnlatch()
+		} else { // upgrade
+			return node.Upgrade()
+		}
+		return true
 	}
 }
 
@@ -172,12 +180,54 @@ func (sl *SkipList) FindNode(key *types.Value, opType SkipListOpType) (isSuccess
 			latchOpWithOpType(beforePred, SKIP_LIST_UTIL_UNLATCH, opType)
 			sl.bpm.UnpinPage(beforePred.GetPageId(), false)
 		} else {
-			predOfCorners[ii] = skip_list_page.SkipListCornerInfo{predOfPredId, predOfPredLSN}
-			corners[ii] = skip_list_page.SkipListCornerInfo{pred.GetPageId(), pred.GetLSN()}
 			if curr != nil {
 				latchOpWithOpType(curr, SKIP_LIST_UTIL_UNLATCH, opType)
 				sl.bpm.UnpinPage(curr.GetPageId(), false)
 			}
+			if ii == 0 {
+				if opType != SKIP_LIST_OP_GET {
+					// try upgrade lock from RLock to WRlock
+
+					origLSN := pred.GetLSN()
+					predPageId := pred.GetPageId()
+					pred.RUnlatch()
+
+					pred := skip_list_page.FetchAndCastToBlockPage(sl.bpm, predPageId)
+					pred.WLatch()
+					// check update
+					if pred.GetLSN() != origLSN {
+						// pred node is updated, so need retry
+						pred.WUnlatch()
+						// originaly having pin
+						sl.bpm.UnpinPage(predPageId, false)
+						// additionaly got pin at Fetch
+						sl.bpm.UnpinPage(predPageId, false)
+						return false, nil, nil, nil
+					}
+					// additionaly got pin at Fetch
+					sl.bpm.UnpinPage(predPageId, false)
+				}
+
+				//// when reaching target on level-1, if operation is insert or remove, upgrade lock of node from RLock to WLock at
+				//upgraded := latchOpWithOpType(pred, SKIP_LIST_UTIL_UPGRADE, opType)
+				//if !upgraded {
+				//	//// release RLock (when upgrade fails, RLock is keeped)
+				//	//latchOpWithOpType(pred, SKIP_LIST_UTIL_UNLATCH, opType)
+				//	// if pred is start node, unpin is ok here
+				//	sl.bpm.UnpinPage(pred.GetPageId(), false)
+				//	latchOpWithOpType(pred, SKIP_LIST_UTIL_UNLATCH, opType)
+				//
+				//	fmt.Println("upgrade fail")
+				//	// retry operation from start...
+				//	return false, nil, nil, nil
+				//}
+			}
+			predOfCorners[ii] = skip_list_page.SkipListCornerInfo{predOfPredId, predOfPredLSN}
+			corners[ii] = skip_list_page.SkipListCornerInfo{pred.GetPageId(), pred.GetLSN()}
+			//if curr != nil {
+			//	latchOpWithOpType(curr, SKIP_LIST_UTIL_UNLATCH, opType)
+			//	sl.bpm.UnpinPage(curr.GetPageId(), false)
+			//}
 		}
 	}
 	/*

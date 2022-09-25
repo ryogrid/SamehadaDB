@@ -80,9 +80,9 @@ func (p *Page) Copy(offset uint32, data []byte) {
 
 // New creates a new page
 func New(id types.PageID, isDirty bool, data *[common.PageSize]byte) *Page {
-	return &Page{id, int32(1), isDirty, data, common.NewUpgradableMutex()}
+	//return &Page{id, int32(1), isDirty, data, common.NewUpgradableMutex()}
 
-	//return &Page{id, int32(1), isDirty, data, common.NewRWLatch()}
+	return &Page{id, int32(1), isDirty, data, common.NewRWLatch()}
 
 	//// TODO: (SDB) customized RWMutex for concurrent skip list debug
 	//return &Page{id, uint32(1), isDirty, data, common.NewRWLatchDebug()}
@@ -90,6 +90,8 @@ func New(id types.PageID, isDirty bool, data *[common.PageSize]byte) *Page {
 
 // New creates a new empty page
 func NewEmpty(id types.PageID) *Page {
+	//return &Page{id, int32(1), false, &[common.PageSize]byte{}, common.NewUpgradableMutex()}
+
 	return &Page{id, int32(1), false, &[common.PageSize]byte{}, common.NewRWLatch()}
 
 	//// TODO: (SDB) customized RWMutex for concurrent skip list debug
@@ -152,6 +154,14 @@ func (p *Page) RUnlatch() {
 		common.ShPrintf(common.DEBUG_INFO_DETAIL, "pageId=%d ", p.GetPageId())
 	}
 	p.rwlatch_.RUnlock()
+}
+
+func (p *Page) Upgrade() (success bool) {
+	// fmt.Printf("Page::RUnlatch: page address %p\n", p)
+	if common.EnableDebug {
+		common.ShPrintf(common.DEBUG_INFO_DETAIL, "pageId=%d ", p.GetPageId())
+	}
+	return p.rwlatch_.Upgrade()
 }
 
 func (p *Page) PrintMutexDebugInfo() {
