@@ -90,6 +90,7 @@ func (sl *SkipList) FindNode(key *types.Value, opType SkipListOpType) (isSuccess
 	//pred := skip_list_page.FetchAndCastToBlockPage(sl.bpm, sl.headerPage.GetListStartPageId())
 	pred := sl.getStartNode()
 	latchOpWithOpType(pred, SKIP_LIST_UTIL_GET_LATCH, opType)
+	pred.IncPinCount()
 
 	// loop invariant: pred.key < searchKey
 	//fmt.Println("---")
@@ -192,7 +193,9 @@ func (sl *SkipList) FindNode(key *types.Value, opType SkipListOpType) (isSuccess
 		pred.PrintMutexDebugInfo()
 		pred.PrintPinCount()
 		common.ShPrintf(common.DEBUG_INFO, "curr: ")
-		curr.PrintMutexDebugInfo()
+		if curr != nil {
+			curr.PrintMutexDebugInfo()
+		}
 		pred.PrintPinCount()
 	}
 

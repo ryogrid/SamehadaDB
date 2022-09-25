@@ -66,10 +66,10 @@ func (c *ClockReplacer) Unpin(id FrameID) {
 func (c *ClockReplacer) Pin(id FrameID) {
 	c.mutex.Lock()
 	defer c.mutex.Unlock()
-	//node := c.cList.find(id)
-	node, ok := c.cList.supportMap[id]
-	//if node == nil {
-	if !ok {
+	node := c.cList.find(id)
+	if node == nil {
+		//node, ok := c.cList.supportMap[id]
+		//if !ok {
 		return
 	}
 
