@@ -196,13 +196,13 @@ func (sl *SkipList) FindNode(key *types.Value, opType SkipListOpType) (isSuccess
 						// pred node is updated, so need retry
 						pred.WUnlatch()
 						// originaly having pin
-						sl.bpm.UnpinPage(predPageId, false)
+						sl.bpm.UnpinPage(pred.GetPageId(), false)
 						// additionaly got pin at Fetch
-						sl.bpm.UnpinPage(predPageId, false)
+						sl.bpm.UnpinPage(pred.GetPageId(), false)
 						return false, nil, nil, nil
 					}
 					// additionaly got pin at Fetch
-					sl.bpm.UnpinPage(predPageId, false)
+					sl.bpm.UnpinPage(pred.GetPageId(), false)
 				}
 
 				//// when reaching target on level-1, if operation is insert or remove, upgrade lock of node from RLock to WLock at
