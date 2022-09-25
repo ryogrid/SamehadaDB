@@ -9,37 +9,42 @@ import (
 )
 
 type node struct {
-	key   interface{}
-	value interface{}
+	key   FrameID //interface{}
+	value bool    //interface{}
 	next  *node
 	prev  *node
 }
 
 type circularList struct {
-	head     *node
-	tail     *node
-	size     uint32
-	capacity uint32
+	head       *node
+	tail       *node
+	size       uint32
+	capacity   uint32
+	supportMap map[FrameID]*node
 }
 
-func (c *circularList) find(key interface{}) *node {
-	ptr := c.head
-	for i := uint32(0); i < c.size; i++ {
-		if ptr.key == key {
-			return ptr
-		}
+//func (c *circularList) find(key FrameID) *node {
+//	ptr := c.head
+//	for i := uint32(0); i < c.size; i++ {
+//		if ptr.key == key {
+//			return ptr
+//		}
+//
+//		ptr = ptr.next
+//	}
+//
+//	return nil
+//}
 
-		ptr = ptr.next
-	}
-
-	return nil
+// func (c *circularList) hasKey(key interface{}) bool {
+func (c *circularList) hasKey(key FrameID) bool {
+	//return c.find(key) != nil
+	_, ok := c.supportMap[key]
+	return ok
 }
 
-func (c *circularList) hasKey(key interface{}) bool {
-	return c.find(key) != nil
-}
-
-func (c *circularList) insert(key interface{}, value interface{}) error {
+// func (c *circularList) insert(key interface{}, value interface{}) error {
+func (c *circularList) insert(key FrameID, value bool) error {
 	if c.size == c.capacity {
 		return errors.New("capacity is full")
 	}
@@ -51,11 +56,14 @@ func (c *circularList) insert(key interface{}, value interface{}) error {
 		c.head = newNode
 		c.tail = newNode
 		c.size++
+		c.supportMap[key] = newNode
 		return nil
 	}
 
-	node := c.find(key)
-	if node != nil {
+	//node := c.find(key)
+	//if node != nil {
+	node, ok := c.supportMap[key]
+	if ok {
 		node.value = value
 		return nil
 	}
@@ -72,13 +80,17 @@ func (c *circularList) insert(key interface{}, value interface{}) error {
 	c.head.prev = c.tail
 
 	c.size++
+	c.supportMap[key] = newNode
 
 	return nil
 }
 
-func (c *circularList) remove(key interface{}) {
-	node := c.find(key)
-	if node == nil {
+// func (c *circularList) remove(key interface{}) {
+func (c *circularList) remove(key FrameID) {
+	//node := c.find(key)
+	//if node == nil {
+	node, ok := c.supportMap[key]
+	if !ok {
 		return
 	}
 
@@ -86,6 +98,7 @@ func (c *circularList) remove(key interface{}) {
 		c.head = nil
 		c.tail = nil
 		c.size--
+		delete(c.supportMap, key)
 		return
 	}
 
@@ -101,6 +114,7 @@ func (c *circularList) remove(key interface{}) {
 	node.prev.next = node.next
 
 	c.size--
+	delete(c.supportMap, key)
 }
 
 func (c *circularList) isFull() bool {
@@ -119,5 +133,5 @@ func (c *circularList) print() {
 }
 
 func newCircularList(maxSize uint32) *circularList {
-	return &circularList{nil, nil, 0, maxSize}
+	return &circularList{nil, nil, 0, maxSize, make(map[FrameID]*node)}
 }

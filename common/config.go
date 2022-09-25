@@ -13,7 +13,7 @@ var LogTimeout time.Duration
 // var EnableLogging bool = false //true
 const EnableDebug bool = false //true
 // use virtual storage or not
-const EnableOnMemStorage = false // true
+const EnableOnMemStorage = true //false
 
 // when this is true, virtual storage use is suppressed
 // for test case which can't work with virtual storage
@@ -40,7 +40,7 @@ const (
 	BucketSizeOfHashIndex = 10
 	// probability used for determin node level on SkipList
 	SkipListProb    = 0.5  //0.25
-	LogLevelSetting = INFO //DEBUG_INFO // //DEBUGGING
+	LogLevelSetting = INFO //DEBUG_INFO_DETAIL //DEBUG_INFO //DEBUGGING
 )
 
 type TxnID int32        // transaction id type
