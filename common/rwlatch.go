@@ -129,7 +129,7 @@ func (l *readerWriterLatchDebug) WLock() {
 func (l *readerWriterLatchDebug) WUnlock() {
 	atomic.AddInt32(&l.writerCnt, -1)
 	//l.writerCnt--
-	fmt.Printf("WLock: readerCnt=%d, writerCnt=%d\n", l.readerCnt, l.writerCnt)
+	fmt.Printf("WUnlock: readerCnt=%d, writerCnt=%d\n", l.readerCnt, l.writerCnt)
 
 	l.mutex.Unlock()
 }

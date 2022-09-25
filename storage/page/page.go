@@ -156,14 +156,6 @@ func (p *Page) RUnlatch() {
 	p.rwlatch_.RUnlock()
 }
 
-func (p *Page) Upgrade() (success bool) {
-	// fmt.Printf("Page::RUnlatch: page address %p\n", p)
-	if common.EnableDebug {
-		common.ShPrintf(common.DEBUG_INFO_DETAIL, "pageId=%d ", p.GetPageId())
-	}
-	return p.rwlatch_.Upgrade()
-}
-
 func (p *Page) PrintMutexDebugInfo() {
 	if common.EnableDebug {
 		common.ShPrintf(common.DEBUG_INFO_DETAIL, "pageId=%d ", p.GetPageId())
