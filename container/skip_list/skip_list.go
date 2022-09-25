@@ -21,7 +21,6 @@ const (
 const (
 	SKIP_LIST_UTIL_GET_LATCH LatchOpCase = iota
 	SKIP_LIST_UTIL_UNLATCH
-	SKIP_LIST_UTIL_UPGRADE
 )
 
 /**
@@ -59,26 +58,24 @@ func (sl *SkipList) getStartNode() *skip_list_page.SkipListBlockPage {
 	return sl.startNode
 }
 
-func latchOpWithOpType(node *skip_list_page.SkipListBlockPage, getOrUnlatch LatchOpCase, opType SkipListOpType) (success bool) {
+func latchOpWithOpType(node *skip_list_page.SkipListBlockPage, getOrUnlatch LatchOpCase, opType SkipListOpType) {
 	switch opType {
 	case SKIP_LIST_OP_GET:
 		if getOrUnlatch == SKIP_LIST_UTIL_GET_LATCH {
 			node.RLatch()
 		} else if getOrUnlatch == SKIP_LIST_UTIL_UNLATCH {
 			node.RUnlatch()
-		} else { //upgrade
-			// do nothing
+		} else {
+			panic("unknown latch operaton")
 		}
-		return true
 	default:
 		if getOrUnlatch == SKIP_LIST_UTIL_GET_LATCH {
 			node.RLatch()
 		} else if getOrUnlatch == SKIP_LIST_UTIL_UNLATCH {
 			node.RUnlatch()
-		} else { // upgrade
-			return node.Upgrade()
+		} else {
+			panic("unknown latch operaton")
 		}
-		return true
 	}
 }
 
