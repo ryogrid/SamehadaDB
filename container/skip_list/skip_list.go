@@ -194,11 +194,13 @@ func (sl *SkipList) FindNode(key *types.Value, opType SkipListOpType) (isSuccess
 					// check update
 					if pred.GetLSN() != origLSN {
 						// pred node is updated, so need retry
-						pred.WUnlatch()
+
 						// originaly having pin
-						sl.bpm.UnpinPage(pred.GetPageId(), false)
+						//sl.bpm.UnpinPage(pred.GetPageId(), false)
+						pred.DecPinCount()
 						// additionaly got pin at Fetch
 						sl.bpm.UnpinPage(pred.GetPageId(), false)
+						pred.WUnlatch()
 						return false, nil, nil, nil
 					}
 					// additionaly got pin at Fetch
