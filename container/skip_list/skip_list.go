@@ -127,10 +127,10 @@ func (sl *SkipList) FindNode(key *types.Value, opType SkipListOpType) (isSuccess
 				// keep moving foward
 				predOfPredId = pred.GetPageId()
 				predOfPredLSN = pred.GetLSN()
-				latchOpWithOpType(pred, SKIP_LIST_UTIL_UNLATCH, opType)
 				if pred.GetPageId() != sl.getStartNode().GetPageId() {
 					sl.bpm.UnpinPage(pred.GetPageId(), false)
 				}
+				latchOpWithOpType(pred, SKIP_LIST_UTIL_UNLATCH, opType)
 				pred = curr
 			}
 		}
@@ -140,16 +140,17 @@ func (sl *SkipList) FindNode(key *types.Value, opType SkipListOpType) (isSuccess
 			predOfCorners[ii] = skip_list_page.SkipListCornerInfo{types.InvalidPageID, -1}
 			corners[ii] = skip_list_page.SkipListCornerInfo{predOfPredId, predOfPredLSN}
 
-			latchOpWithOpType(curr, SKIP_LIST_UTIL_UNLATCH, opType)
 			sl.bpm.UnpinPage(curr.GetPageId(), false)
+			latchOpWithOpType(curr, SKIP_LIST_UTIL_UNLATCH, opType)
 
 			// memory for checking update existence while no latch having period
 			beforeLSN := pred.GetLSN()
 			beforePredId := pred.GetPageId()
-			latchOpWithOpType(pred, SKIP_LIST_UTIL_UNLATCH, opType)
 			if pred.GetPageId() != sl.getStartNode().GetPageId() {
 				sl.bpm.UnpinPage(pred.GetPageId(), false)
 			}
+			latchOpWithOpType(pred, SKIP_LIST_UTIL_UNLATCH, opType)
+
 			// go backward for gathering appropriate corner nodes info
 			pred = skip_list_page.FetchAndCastToBlockPage(sl.bpm, predOfPredId)
 			latchOpWithOpType(pred, SKIP_LIST_UTIL_GET_LATCH, opType)
@@ -161,10 +162,10 @@ func (sl *SkipList) FindNode(key *types.Value, opType SkipListOpType) (isSuccess
 			// check update state of beforePred (pred which was pred before sliding)
 			if beforeLSN != afterLSN {
 				// updating exists
-				latchOpWithOpType(pred, SKIP_LIST_UTIL_UNLATCH, opType)
 				sl.bpm.UnpinPage(pred.GetPageId(), false)
-				latchOpWithOpType(beforePred, SKIP_LIST_UTIL_UNLATCH, opType)
+				latchOpWithOpType(pred, SKIP_LIST_UTIL_UNLATCH, opType)
 				sl.bpm.UnpinPage(beforePred.GetPageId(), false)
+				latchOpWithOpType(beforePred, SKIP_LIST_UTIL_UNLATCH, opType)
 				if common.EnableDebug {
 					common.ShPrintf(common.DEBUG_INFO, "FindNode: finished with rety. key=%v opType=%d\n", key.ToIFValue(), opType)
 					common.ShPrintf(common.DEBUG_INFO, "pred: ")
@@ -174,12 +175,12 @@ func (sl *SkipList) FindNode(key *types.Value, opType SkipListOpType) (isSuccess
 				}
 				return false, nil, nil, nil
 			}
-			latchOpWithOpType(beforePred, SKIP_LIST_UTIL_UNLATCH, opType)
 			sl.bpm.UnpinPage(beforePred.GetPageId(), false)
+			latchOpWithOpType(beforePred, SKIP_LIST_UTIL_UNLATCH, opType)
 		} else {
 			if curr != nil {
-				latchOpWithOpType(curr, SKIP_LIST_UTIL_UNLATCH, opType)
 				sl.bpm.UnpinPage(curr.GetPageId(), false)
+				latchOpWithOpType(curr, SKIP_LIST_UTIL_UNLATCH, opType)
 			}
 			if ii == 0 {
 				if opType != SKIP_LIST_OP_GET {
@@ -204,7 +205,8 @@ func (sl *SkipList) FindNode(key *types.Value, opType SkipListOpType) (isSuccess
 						return false, nil, nil, nil
 					}
 					// additionaly got pin at Fetch
-					sl.bpm.UnpinPage(pred.GetPageId(), false)
+					//sl.bpm.UnpinPage(pred.GetPageId(), false)
+					pred.DecPinCount()
 				}
 
 				//// when reaching target on level-1, if operation is insert or remove, upgrade lock of node from RLock to WLock at
@@ -273,8 +275,8 @@ func (sl *SkipList) GetValue(key *types.Value) uint32 {
 	//node := skip_list_page.FetchAndCastToBlockPage(sl.bpm, corners[0].PageId)
 	// locking is not needed because already have lock with FindNode method call
 	found, entry, _ := node.FindEntryByKey(key)
-	node.RUnlatch()
 	sl.bpm.UnpinPage(node.GetPageId(), false)
+	node.RUnlatch()
 	//sl.bpm.UnpinPage(node.GetPageId(), false)
 
 	if common.EnableDebug {

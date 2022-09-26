@@ -61,8 +61,8 @@ func (b *BufferPoolManager) FetchPage(pageID types.PageID) *page.Page {
 				b.log_manager.Flush()
 				currentPage.WLatch()
 				data := *currentPage.Data()
-				currentPage.WUnlatch()
 				b.diskManager.WritePage(currentPage.ID(), data[:])
+				currentPage.WUnlatch()
 			}
 			//b.mutex.WLock()
 			if common.EnableDebug {
