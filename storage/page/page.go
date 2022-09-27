@@ -21,6 +21,12 @@ const OffsetLSN = 4
  * pin count, dirty flag, page id, etc.
  */
 
+// currently used for SkipList only
+type PageIF interface {
+	DecPinCount()
+	IncPinCount()
+}
+
 // Page represents an abstract page on disk
 type Page struct {
 	id       types.PageID           // idenfies the page. It is used to find the offset of the page on disk

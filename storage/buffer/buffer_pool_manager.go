@@ -136,6 +136,22 @@ func (b *BufferPoolManager) UnpinPage(pageID types.PageID, isDirty bool) error {
 
 }
 
+// Decrement pincount of passed page (this can be used only when a thread has pin of page more than 1
+// this get WLock of BufferPoolManager but overhead is smaller than UnpinPage
+func (b *BufferPoolManager) IncPinOfPage(page_ page.PageIF) {
+	b.mutex.Lock()
+	page_.IncPinCount()
+	b.mutex.Unlock()
+}
+
+// Decrement pin count of passed page (this can be used only when a thread has pin of page more than 1
+// this get WLock of BufferPoolManager but overhead is smaller than UnpinPage
+func (b *BufferPoolManager) DecPinOfPage(page_ page.PageIF) {
+	b.mutex.Lock()
+	page_.DecPinCount()
+	b.mutex.Unlock()
+}
+
 // FlushPage Flushes the target page to disk.
 func (b *BufferPoolManager) FlushPage(pageID types.PageID) bool {
 	b.mutex.Lock()

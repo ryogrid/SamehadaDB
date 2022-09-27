@@ -95,7 +95,8 @@ func (sl *SkipList) FindNode(key *types.Value, opType SkipListOpType) (isSuccess
 	//pred := skip_list_page.FetchAndCastToBlockPage(sl.bpm, sl.headerPage.GetListStartPageId())
 	pred := sl.getStartNode()
 	latchOpWithOpType(pred, SKIP_LIST_UTIL_GET_LATCH, opType)
-	pred.IncPinCount()
+	//pred.IncPinCount()
+	sl.bpm.IncPinOfPage(pred)
 
 	// loop invariant: pred.key < searchKey
 	//fmt.Println("---")
@@ -198,7 +199,8 @@ func (sl *SkipList) FindNode(key *types.Value, opType SkipListOpType) (isSuccess
 
 						// originaly having pin
 						//sl.bpm.UnpinPage(pred.GetPageId(), false)
-						pred.DecPinCount()
+						//pred.DecPinCount()
+						sl.bpm.DecPinOfPage(pred)
 						// additionaly got pin at Fetch
 						sl.bpm.UnpinPage(pred.GetPageId(), false)
 						pred.WUnlatch()
@@ -206,7 +208,8 @@ func (sl *SkipList) FindNode(key *types.Value, opType SkipListOpType) (isSuccess
 					}
 					// additionaly got pin at Fetch
 					//sl.bpm.UnpinPage(pred.GetPageId(), false)
-					pred.DecPinCount()
+					//pred.DecPinCount()
+					sl.bpm.DecPinOfPage(pred)
 				}
 
 				//// when reaching target on level-1, if operation is insert or remove, upgrade lock of node from RLock to WLock at
