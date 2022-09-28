@@ -16,7 +16,7 @@ original codes of go-bustub are [here](https://github.com/brunocalza/go-bustub).
   - Above demo uses SamehadaDB on backend API server
     - [Modification for migration from postgreSQL to SamehadaDB we did](https://github.com/ryogrid/TODO-Fullstack-App-Go-Gin-Postgres-React/commit/48e7a9f25570e15e29a279ebc24396698bf1d80a)
     - [All app codes](https://github.com/ryogrid/TODO-Fullstack-App-Go-Gin-Postgres-React/tree/6f00e7beb2a452522fd8818d326e7572c77cf4aa)
-- **ATTENTION: SamehadaDB is not developed for productional use! There are no waranties!**
+- **ATTENTION: SamehadaDB is not developed for productional use! There are no warranties!**
 - By the way, procedure described on next section executes all defined unit tests
 
 ## Procedure of Executing SamehadaDB (unit tests are executed)
