@@ -1,7 +1,7 @@
 <img src="SamehadaDB_logo.png" width="500px" />
 
 # Overview
-- Simple Relational Database implemented in Golang
+- Simple Relational Database Implemented in Golang
 - This code tree is based on Golang ported BusTub RDBMS codes: go-bustub
   - original codes of go-bustub are [here](https://github.com/brunocalza/go-bustub)
 
