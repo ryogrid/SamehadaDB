@@ -2,8 +2,8 @@
 
 # Overview
 - Simple Relational Database Implemented in Golang
-- This code tree is based on Golang ported BusTub RDBMS codes: go-bustub
-  - original codes of go-bustub are [here](https://github.com/brunocalza/go-bustub)
+- This code tree is based on Golang ported [BusTub](https://github.com/cmu-db/bustub) RDBMS: go-bustub
+  - original code of go-bustub is [here](https://github.com/brunocalza/go-bustub)
 
 # What is Samehada?
 - Samehada, which literally means shark skin, is a tool used to grate wasabi, usually for sushi, but also for other Japanese cuisines
@@ -18,7 +18,7 @@
     - [Modification for migration from PostgreSQL to SamehadaDB we did](https://github.com/ryogrid/TODO-Fullstack-App-Go-Gin-Postgres-React/commit/48e7a9f25570e15e29a279ebc24396698bf1d80a)
     - [All app codes](https://github.com/ryogrid/TODO-Fullstack-App-Go-Gin-Postgres-React/tree/6f00e7beb2a452522fd8818d326e7572c77cf4aa)
 - **ATTENTION: SamehadaDB is not developed for productional use! There are no warranties!**
-- By the way, procedure described on next section executes all defined unit tests
+- By the way, procedure described on next section executes all defined unit tests except these of taking long time
 
 ## Procedure of Executing SamehadaDB (unit tests are executed)
 - Please install golang environment with package system your OS has (apt, yum, brew ...etc)
@@ -28,7 +28,7 @@
 - Executing all unit tests which test several features and components of SamehadaDB
   - $ git clone https://github.com/ryogrid/SamehadaDB.git
   - $ cd SamehadaDB
-  - $ go clean -testcache; go test ./... -v
+  - $ go clean -testcache; go test ./... -short -v
 
 ## Roadmap
 
@@ -36,7 +36,7 @@
 - [x] Multiple Item on Predicate: AND, OR
 - [x] Predicates: <, >, <=, >=
 - [x] Null
-- [ ] Inline types (<del>integer, varchar, float</del>, bigint, smallint, decimal, timestamp, datetime)
+- [ ] Inline types (<del>integer, varchar, float, boolean</del>, bigint, smallint, decimal, timestamp, datetime and etc)
 - [x] Delete Tuple
 - [x] Update Tuple
   - <del>RESTRICTION: a condition which update transaction aborts on exists</del>
@@ -68,7 +68,7 @@
 - [x] Sort (ORDER BY clause) 
 - [x] Tuple Level Locking With Strong Strict 2-Phase Locking (SS2PL) Protocol
 - [x] Concurrent Execution of Transactions
-  - Gap Lock is not implemented yet
+  - Gap Lock is not implemented yet (phantom problem occurs...)
 - [ ] <del>Execution Planning from hard coded SQL like method call I/F (like some kind of embedded DB)</del>
 - [x] Execution Planning from Query Description text (SQL)
 - [x] Frontend Impl as Embedded DB Library (like SQLite)
