@@ -72,7 +72,7 @@ original codes of go-bustub are [here](https://github.com/brunocalza/go-bustub).
 - [x] Execution Planning from Query Description text (SQL)
 - [x] Frontend Impl as Embedded DB Library (like SQLite)
   - Currently, functions of the library are not thread safe and concurrent transaction is not supported
-- [ ] Eliminate Duplication (Distinct)
+- [ ] Deduplication of Result Records (Distinct)
 - [ ] Query Optimization
 - [ ] AS clause (View Management)
 - [ ] JOIN (more than two tables)
