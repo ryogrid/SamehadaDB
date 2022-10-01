@@ -67,13 +67,14 @@ original codes of go-bustub are [here](https://github.com/brunocalza/go-bustub).
 - [x] Sort (ORDER BY clause) 
 - [x] Tuple Level Locking With Strong Strict 2-Phase Locking (SS2PL) Protocol
 - [x] Concurrent Execution of Transactions
+  - Gap Lock is not implemented yet
 - [ ] <del>Execution Planning from hard coded SQL like method call I/F (like some kind of embedded DB)</del>
 - [x] Execution Planning from Query Description text (SQL)
 - [x] Frontend Impl as Embedded DB Library (like SQLite)
   - Currently, functions of the library are not thread safe and concurrent transaction is not supported
 - [ ] Eliminate Duplication (Distinct)
 - [ ] Query Optimization
-- [ ] AS clause
+- [ ] AS clause (View Management)
 - [ ] JOIN (more than two tables)
 - [ ] Nested Query
 - [ ] DB Connector (Driver) or Other Kind Access Interface
