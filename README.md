@@ -1,8 +1,9 @@
 <img src="SamehadaDB_logo.png" width="500px" />
 
 # Overview
-This code tree is based on Golang ported BusTub RDBMS codes: go-bustub.  
-original codes of go-bustub are [here](https://github.com/brunocalza/go-bustub).
+- Simple Relational Database implemented in Golang
+- This code tree is based on Golang ported BusTub RDBMS codes: go-bustub
+  - original codes of go-bustub are [here](https://github.com/brunocalza/go-bustub)
 
 # What is Samehada?
 - Samehada, which literally means shark skin, is a tool used to grate wasabi, usually for sushi, but also for other Japanese cuisines
