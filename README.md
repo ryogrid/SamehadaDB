@@ -18,7 +18,7 @@
     - [Modification for migration from PostgreSQL to SamehadaDB we did](https://github.com/ryogrid/TODO-Fullstack-App-Go-Gin-Postgres-React/commit/48e7a9f25570e15e29a279ebc24396698bf1d80a)
     - [All app codes](https://github.com/ryogrid/TODO-Fullstack-App-Go-Gin-Postgres-React/tree/6f00e7beb2a452522fd8818d326e7572c77cf4aa)
 - **ATTENTION: SamehadaDB is not developed for productional use! There are no warranties!**
-- By the way, procedure described on next section executes all defined unit tests except these of taking long time
+- By the way, procedure described on next section executes almost all defined unit tests except these of taking long time
 
 ## Procedure of Executing SamehadaDB (unit tests are executed)
 - Please install golang environment with package system your OS has (apt, yum, brew ...etc)
