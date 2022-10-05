@@ -1875,7 +1875,7 @@ func testSkipListMixParallelStrideAddedIterator[T int32 | float32 | string](t *t
 				rangeStartBase := insVals[tmpIdx]
 				insValsMutex.RUnlock()
 				rangeStartVal := types.NewValue(rangeStartBase)
-				rangeEndBase := strideAdd(rangeStartBase, ii).(T)
+				rangeEndBase := strideAdd(rangeStartBase, stride).(T)
 				rangeEndVal := types.NewValue(rangeEndBase)
 				itr := sl.Iterator(&rangeStartVal, &rangeEndVal)
 				for done, _, _, _ := itr.Next(); !done; done, _, _, _ = itr.Next() {
