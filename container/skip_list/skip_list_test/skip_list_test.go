@@ -2080,6 +2080,14 @@ func TestSkipListMixParallelStrideAddedIteratorInteger(t *testing.T) {
 	testSkipListMixParallelStrideAddedIteratorRoot[int32](t, types.Integer)
 }
 
+func TestSkipListMixParallelStrideAddedIteratorVarchar(t *testing.T) {
+	t.Parallel()
+	if testing.Short() {
+		t.Skip("skip this in short mode.")
+	}
+	testSkipListMixParallelStrideAddedIteratorRoot[string](t, types.Varchar)
+}
+
 // 24h running had been succeeded at 220923
 // \SamehadaDB\container\skip_list\skip_list_test>go test . -race -timeout 24h -v 2>&1 > fuzzlikelog-parallel2.txt
 func TestSkipListMixParallsStrideVarcharLikeFuzzer(t *testing.T) {
