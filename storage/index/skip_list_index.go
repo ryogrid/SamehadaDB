@@ -26,25 +26,6 @@ func NewSkipListIndex(metadata *IndexMetadata, buffer_pool_manager *buffer.Buffe
 	return ret
 }
 
-// Return the metadata object associated with the index
-func (slidx *SkipListIndex) GetMetadata() *IndexMetadata { return slidx.metadata }
-
-func (slidx *SkipListIndex) GetIndexColumnCount() uint32 {
-	return slidx.metadata.GetIndexColumnCount()
-}
-
-func (slidx *SkipListIndex) GetName() *string { return slidx.metadata.GetName() }
-
-func (slidx *SkipListIndex) GetTupleSchema() *schema.Schema {
-	return slidx.metadata.GetTupleSchema()
-}
-
-func (slidx *SkipListIndex) GetKeyAttrs() []uint32 { return slidx.metadata.GetKeyAttrs() }
-
-func (slidx *SkipListIndex) GetHeaderPageId() types.PageID {
-	return slidx.container.GetHeaderPageId()
-}
-
 func (slidx *SkipListIndex) InsertEntry(key *tuple.Tuple, rid page.RID, transaction *access.Transaction) {
 	tupleSchema_ := slidx.GetTupleSchema()
 	keyVal := key.GetValue(tupleSchema_, slidx.col_idx)
@@ -85,4 +66,23 @@ func (slidx *SkipListIndex) Iterator(start_key *tuple.Tuple, end_key *tuple.Tupl
 	}
 
 	return slidx.container.Iterator(start_val, end_val)
+}
+
+// Return the metadata object associated with the index
+func (slidx *SkipListIndex) GetMetadata() *IndexMetadata { return slidx.metadata }
+
+func (slidx *SkipListIndex) GetIndexColumnCount() uint32 {
+	return slidx.metadata.GetIndexColumnCount()
+}
+
+func (slidx *SkipListIndex) GetName() *string { return slidx.metadata.GetName() }
+
+func (slidx *SkipListIndex) GetTupleSchema() *schema.Schema {
+	return slidx.metadata.GetTupleSchema()
+}
+
+func (slidx *SkipListIndex) GetKeyAttrs() []uint32 { return slidx.metadata.GetKeyAttrs() }
+
+func (slidx *SkipListIndex) GetHeaderPageId() types.PageID {
+	return slidx.container.GetHeaderPageId()
 }
