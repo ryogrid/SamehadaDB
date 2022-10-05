@@ -10,10 +10,11 @@ import (
 )
 
 type SkipListIterator struct {
-	sl             *SkipList
-	bpm            *buffer.BufferPoolManager
-	curNode        *skip_list_page.SkipListBlockPage
-	curEntry       *skip_list_page.SkipListPair
+	sl       *SkipList
+	bpm      *buffer.BufferPoolManager
+	curNode  *skip_list_page.SkipListBlockPage
+	curEntry *skip_list_page.SkipListPair
+	// TODO: (SDB) curPageSlotIdx should be change to method local variable
 	curPageSlotIdx int32
 	rangeStartKey  *types.Value
 	rangeEndKey    *types.Value
