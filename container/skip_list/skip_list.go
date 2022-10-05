@@ -225,13 +225,13 @@ func (sl *SkipList) FindNode(key *types.Value, opType SkipListOpType) (isSuccess
 
 // ATTENTION:
 // this method returns with keep having RLatch of corners_[0] and pinned corners_[0]
-func (sl *SkipList) FindNodeWithEntryIdxForItr(key *types.Value) (isSuccess_ bool, idx_ int32, predOfCorners_ []skip_list_page.SkipListCornerInfo, corners_ []skip_list_page.SkipListCornerInfo) {
+func (sl *SkipList) FindNodeWithEntryIdxForItr(key *types.Value) (found_ bool, node_ *skip_list_page.SkipListBlockPage, idx_ int32) {
 	// get idx of target entry or one of nearest smaller entry
-	_, node, predOfCorners, corners := sl.FindNode(key, SKIP_LIST_OP_GET)
+	_, node, _, _ := sl.FindNode(key, SKIP_LIST_OP_GET)
 
 	// locking is not needed because already have lock with FindNode method call
-	_, _, idx := node.FindEntryByKey(key)
-	return true, idx, predOfCorners, corners
+	found, _, idx := node.FindEntryByKey(key)
+	return found, node, idx
 }
 
 func (sl *SkipList) GetValue(key *types.Value) uint32 {

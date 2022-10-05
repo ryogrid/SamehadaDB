@@ -54,33 +54,34 @@ func (itr *SkipListIterator) initRIDList(sl *SkipList) {
 	curPageSlotIdx := int32(0)
 	// set appropriate start position
 	if itr.rangeStartKey != nil {
-		var corners []skip_list_page.SkipListCornerInfo
-		_, curPageSlotIdx, _, corners = itr.sl.FindNodeWithEntryIdxForItr(itr.rangeStartKey)
+		found, node, slotIdx := itr.sl.FindNodeWithEntryIdxForItr(itr.rangeStartKey)
 		// locking is not needed because already have lock with FindNodeWithEntryIdxForItr method call
-		itr.curNode = skip_list_page.FetchAndCastToBlockPage(itr.bpm, corners[0].PageId)
-
-		// this Unpin is needed due to already having one pin with FindNodeWithEntryIdxForItr method call
-		itr.bpm.UnpinPage(corners[0].PageId, false)
-		//// release lock which is got on FindNodeWithEntryIdxForItr method
-		//itr.curNode.RUnlatch()
+		if found {
+			// considering increment of curPageSlotIdx after here
+			// because slotIdx is match indx of rangeStartKey
+			curPageSlotIdx = slotIdx - 1
+		} else {
+			// considering increment of curPageSlotIdx after here
+			// because slotIdx is nearest smaller key of rangeStartKey
+			curPageSlotIdx = slotIdx
+		}
+		itr.curNode = node
 	} else {
 		itr.curNode = sl.getStartNode()
 		// for keepping pin count is one after iterator finishd using startNode
 		sl.bpm.IncPinOfPage(itr.curNode)
+		itr.curNode.RLatch()
 	}
 
-	itr.curNode.RLatch()
 	for {
 		if curPageSlotIdx+1 >= itr.curNode.GetEntryCnt() {
 			prevNodeId := itr.curNode.GetPageId()
 			nextNodeId := itr.curNode.GetForwardEntry(0)
-			if prevNodeId != itr.sl.getStartNode().GetPageId() {
-				itr.bpm.UnpinPage(prevNodeId, false)
-			}
+			itr.bpm.UnpinPage(prevNodeId, false)
 			itr.curNode.RUnlatch()
 			itr.curNode = skip_list_page.FetchAndCastToBlockPage(itr.bpm, nextNodeId)
-			curPageSlotIdx = -1
 			itr.curNode.RLatch()
+			curPageSlotIdx = -1
 			if itr.curNode.GetSmallestKey(itr.keyType).IsInfMax() {
 				// reached tail node
 				itr.bpm.UnpinPage(itr.curNode.GetPageId(), false)
