@@ -6,7 +6,6 @@ import (
 	"github.com/ryogrid/SamehadaDB/storage/page"
 	"github.com/ryogrid/SamehadaDB/storage/page/skip_list_page"
 	"github.com/ryogrid/SamehadaDB/types"
-	"math"
 )
 
 type SkipListIterator struct {
@@ -15,12 +14,12 @@ type SkipListIterator struct {
 	curNode  *skip_list_page.SkipListBlockPage
 	curEntry *skip_list_page.SkipListPair
 	// TODO: (SDB) curPageSlotIdx should be change to method local variable
-	curPageSlotIdx int32
-	rangeStartKey  *types.Value
-	rangeEndKey    *types.Value
-	keyType        types.TypeID
-	ridList        []page.RID
-	curRIDIdx      int32
+	//curPageSlotIdx int32
+	rangeStartKey *types.Value
+	rangeEndKey   *types.Value
+	keyType       types.TypeID
+	ridList       []page.RID
+	curRIDIdx     int32
 }
 
 // TODO: (SDB) cuncurrent iterator need RID list when iterator is created
@@ -35,7 +34,6 @@ func NewSkipListIterator(sl *SkipList, rangeStartKey *types.Value, rangeEndKey *
 	ret.bpm = sl.bpm
 	//ret.curNode = skip_list_page.FetchAndCastToBlockPage(sl.bpm, headerPage.GetListStartPageId())
 
-	ret.curPageSlotIdx = 0
 	ret.rangeStartKey = rangeStartKey
 	ret.rangeEndKey = rangeEndKey
 	ret.keyType = headerPage.GetKeyType()
@@ -53,28 +51,27 @@ func NewSkipListIterator(sl *SkipList, rangeStartKey *types.Value, rangeEndKey *
 }
 
 func (itr *SkipListIterator) initRIDList(sl *SkipList) {
-	// TODO: (SDB) need modify latching granularity
-
+	curPageSlotIdx := int32(0)
 	// set appropriate start position
 	if itr.rangeStartKey != nil {
 		var corners []skip_list_page.SkipListCornerInfo
-		_, itr.curPageSlotIdx, _, corners = itr.sl.FindNodeWithEntryIdxForItr(itr.rangeStartKey)
+		_, curPageSlotIdx, _, corners = itr.sl.FindNodeWithEntryIdxForItr(itr.rangeStartKey)
 		// locking is not needed because already have lock with FindNodeWithEntryIdxForItr method call
 		itr.curNode = skip_list_page.FetchAndCastToBlockPage(itr.bpm, corners[0].PageId)
 
 		// this Unpin is needed due to already having one pin with FindNodeWithEntryIdxForItr method call
 		itr.bpm.UnpinPage(corners[0].PageId, false)
-		// release lock which is got on FindNodeWithEntryIdxForItr method
-		itr.curNode.RUnlatch()
+		//// release lock which is got on FindNodeWithEntryIdxForItr method
+		//itr.curNode.RUnlatch()
 	} else {
 		itr.curNode = sl.getStartNode()
 		// for keepping pin count is one after iterator finishd using startNode
 		sl.bpm.IncPinOfPage(itr.curNode)
 	}
 
+	itr.curNode.RLatch()
 	for {
-		itr.curNode.RLatch()
-		if itr.curPageSlotIdx+1 >= itr.curNode.GetEntryCnt() {
+		if curPageSlotIdx+1 >= itr.curNode.GetEntryCnt() {
 			prevNodeId := itr.curNode.GetPageId()
 			nextNodeId := itr.curNode.GetForwardEntry(0)
 			if prevNodeId != itr.sl.getStartNode().GetPageId() {
@@ -82,13 +79,11 @@ func (itr *SkipListIterator) initRIDList(sl *SkipList) {
 			}
 			itr.curNode.RUnlatch()
 			itr.curNode = skip_list_page.FetchAndCastToBlockPage(itr.bpm, nextNodeId)
-			itr.curPageSlotIdx = -1
+			curPageSlotIdx = -1
 			itr.curNode.RLatch()
 			if itr.curNode.GetSmallestKey(itr.keyType).IsInfMax() {
 				// reached tail node
-				if itr.curNode.GetPageId() != itr.sl.getStartNode().GetPageId() {
-					itr.bpm.UnpinPage(itr.curNode.GetPageId(), false)
-				}
+				itr.bpm.UnpinPage(itr.curNode.GetPageId(), false)
 				itr.curNode.RUnlatch()
 				//return true, nil, nil, math.MaxUint32
 				break
@@ -97,17 +92,16 @@ func (itr *SkipListIterator) initRIDList(sl *SkipList) {
 
 		// always having RLatch of itr.curNode
 
-		itr.curPageSlotIdx++
+		curPageSlotIdx++
 
-		if itr.rangeEndKey != nil && itr.curNode.GetEntry(int(itr.curPageSlotIdx), itr.keyType).Key.CompareGreaterThan(*itr.rangeEndKey) {
+		if itr.rangeEndKey != nil && itr.curNode.GetEntry(int(curPageSlotIdx), itr.keyType).Key.CompareGreaterThan(*itr.rangeEndKey) {
 			itr.bpm.UnpinPage(itr.curNode.GetPageId(), false)
 			itr.curNode.RUnlatch()
 			//return true, nil, nil, math.MaxUint32
 			break
 		}
 
-		tmpVal := itr.curNode.GetEntry(int(itr.curPageSlotIdx), itr.keyType).Value
-		itr.curNode.RUnlatch()
+		tmpVal := itr.curNode.GetEntry(int(curPageSlotIdx), itr.keyType).Value
 		itr.ridList = append(itr.ridList, samehada_util.UnpackUint32toRID(tmpVal))
 		//return false, nil, &tmpKey, itr.curNode.GetEntry(int(itr.curPageSlotIdx), itr.keyType).Value
 	}
@@ -165,7 +159,12 @@ func (itr *SkipListIterator) initRIDList(sl *SkipList) {
 //	return false, nil, &tmpKey, itr.curNode.GetEntry(int(itr.curPageSlotIdx), itr.keyType).Value
 //}
 
-func (itr *SkipListIterator) Next() (done bool, err error, key *types.Value, val uint32) {
-	// TODO: (SDB) not implemented yet (SkipListIterator::Next)
-	return true, nil, nil, math.MaxUint32
+func (itr *SkipListIterator) Next() (done bool, err error, key *types.Value, rid *page.RID) {
+	if itr.curRIDIdx < int32(len(itr.ridList)) {
+		ret := itr.ridList[itr.curRIDIdx]
+		itr.curRIDIdx++
+		return false, nil, nil, &ret
+	} else {
+		return true, nil, nil, nil
+	}
 }
