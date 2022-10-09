@@ -10,6 +10,7 @@ import (
 	"math"
 	"os"
 	"runtime"
+	"strconv"
 	"testing"
 )
 
@@ -724,9 +725,9 @@ func strideAdd(base interface{}, k interface{}) interface{} {
 	case float32:
 		return base.(float32) + k.(float32)
 	case string:
-		buf := make([]byte, k.(int32))
-		memset(buf, 'Z')
-		return base.(string) + string(buf)
+		//buf := make([]byte, k.(int32))
+		//memset(buf, 'Z')
+		return base.(string) + "+" + strconv.Itoa(int(k.(int32)))
 	default:
 		panic("not supported type")
 	}
@@ -740,9 +741,9 @@ func strideMul(base interface{}, k interface{}) interface{} {
 		return base.(float32) * k.(float32)
 	case string:
 		//return "DEADBEAF" + base.(string)
-		buf := make([]byte, k.(int32))
-		memset(buf, 'A')
-		return "DEADBEAF" + base.(string) + string(buf)
+		//buf := make([]byte, k.(int32))
+		//memset(buf, 'A')
+		return base.(string) + "*" + strconv.Itoa(int(k.(int32)))
 	default:
 		panic("not supported type")
 	}
