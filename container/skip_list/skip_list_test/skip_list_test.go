@@ -328,7 +328,7 @@ func confirmSkipListContent(t *testing.T, sl *skip_list.SkipList, step int32) in
 	entryCnt := int32(0)
 	lastKeyVal := int32(-1)
 	dupCheckMap := make(map[int32]int32)
-	itr := sl.Iterator(nil, nil)
+	itr := sl.Iterator(nil, nil, nil)
 	for done, _, key, _ := itr.Next(); !done; done, _, key, _ = itr.Next() {
 		curVal := key.ToInteger()
 		//fmt.Printf("lastKeyVal=%d curVal=%d entryCnt=%d\n", lastKeyVal, curVal, entryCnt)
@@ -540,7 +540,7 @@ func confirmSkipListContent(t *testing.T, sl *skip_list.SkipList, step int32) in
 //	startValP := samehada_util.GetPonterOfValue(types.NewInteger(startVal))
 //	endValP := samehada_util.GetPonterOfValue(types.NewInteger(endVal))
 //
-//	itr1 := sl.Iterator(startValP, endValP)
+//	itr1 := sl.GetRangeScanIterator(startValP, endValP)
 //	for done, _, key, _ := itr1.Next(); !done; done, _, key, _ = itr1.Next() {
 //		testingpkg.SimpleAssert(t, startVal <= key.ToInteger() && key.ToInteger() <= endVal && lastKeyVal <= key.ToInteger())
 //		//fmt.Println(key.ToInteger())
@@ -551,7 +551,7 @@ func confirmSkipListContent(t *testing.T, sl *skip_list.SkipList, step int32) in
 //	lastKeyVal = int32(0)
 //	startValP = nil
 //	endValP = samehada_util.GetPonterOfValue(types.NewInteger(endVal))
-//	itr2 := sl.Iterator(startValP, endValP)
+//	itr2 := sl.GetRangeScanIterator(startValP, endValP)
 //	for done, _, key, _ := itr2.Next(); !done; done, _, key, _ = itr2.Next() {
 //		testingpkg.SimpleAssert(t, key.ToInteger() <= endVal && lastKeyVal <= key.ToInteger())
 //		//fmt.Println(key.ToInteger())
@@ -562,7 +562,7 @@ func confirmSkipListContent(t *testing.T, sl *skip_list.SkipList, step int32) in
 //	lastKeyVal = int32(0)
 //	startValP = samehada_util.GetPonterOfValue(types.NewInteger(startVal))
 //	endValP = nil
-//	itr3 := sl.Iterator(startValP, endValP)
+//	itr3 := sl.GetRangeScanIterator(startValP, endValP)
 //	for done, _, key, _ := itr3.Next(); !done; done, _, key, _ = itr3.Next() {
 //		testingpkg.SimpleAssert(t, startVal <= key.ToInteger() && lastKeyVal <= key.ToInteger())
 //		//fmt.Println(key.ToInteger())
@@ -574,7 +574,7 @@ func confirmSkipListContent(t *testing.T, sl *skip_list.SkipList, step int32) in
 //	startValP = nil
 //	endValP = nil
 //	nodeCnt := 0
-//	itr4 := sl.Iterator(startValP, endValP)
+//	itr4 := sl.GetRangeScanIterator(startValP, endValP)
 //	for done, _, key, _ := itr4.Next(); !done; done, _, key, _ = itr4.Next() {
 //		//fmt.Printf("lastKeyVal=%d curVal=%d nodeCnt=%d\n", lastKeyVal, key.ToInteger(), nodeCnt)
 //		testingpkg.SimpleAssert(t, lastKeyVal <= key.ToInteger())
@@ -778,7 +778,7 @@ func choiceValFromMap[T int32 | float32 | string, V int32 | float32 | string](m 
 
 func countSkipListContent(sl *skip_list.SkipList) int32 {
 	entryCnt := int32(0)
-	itr := sl.Iterator(nil, nil)
+	itr := sl.Iterator(nil, nil, nil)
 	for done, _, _, _ := itr.Next(); !done; done, _, _, _ = itr.Next() {
 		entryCnt++
 	}
@@ -1862,7 +1862,7 @@ func testSkipListMixParallelStrideAddedIterator[T int32 | float32 | string](t *t
 				ch <- 1
 				//common.SH_Assert(, "gotVal is not collect!")
 			}()
-		case 4: //Iterator
+		case 4: //GetRangeScanIterator
 			go func() {
 				insValsMutex.RLock()
 				if len(insVals) == 0 {
@@ -1878,7 +1878,7 @@ func testSkipListMixParallelStrideAddedIterator[T int32 | float32 | string](t *t
 				rangeStartVal := types.NewValue(rangeStartBase)
 				rangeEndBase := strideAdd(rangeStartBase, stride).(T)
 				rangeEndVal := types.NewValue(rangeEndBase)
-				itr := sl.Iterator(&rangeStartVal, &rangeEndVal)
+				itr := sl.Iterator(&rangeStartVal, &rangeEndVal, nil)
 				for done, _, _, _ := itr.Next(); !done; done, _, _, _ = itr.Next() {
 				}
 

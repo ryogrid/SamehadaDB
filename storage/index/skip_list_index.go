@@ -53,7 +53,7 @@ func (slidx *SkipListIndex) ScanKey(key *tuple.Tuple, transaction *access.Transa
 // get iterator which iterates entry in key sorted order
 // and iterates specified key range.
 // when start_key arg is nil , start point is head of entry list. when end_key, end point is tail of the list
-func (slidx *SkipListIndex) Iterator(start_key *tuple.Tuple, end_key *tuple.Tuple, transaction *access.Transaction) *skip_list.SkipListIterator {
+func (slidx *SkipListIndex) GetRangeScanIterator(start_key *tuple.Tuple, end_key *tuple.Tuple, txn *access.Transaction) IndexRangeScanIterator {
 	tupleSchema_ := slidx.GetTupleSchema()
 	var start_val *types.Value = nil
 	if start_key != nil {
@@ -65,7 +65,7 @@ func (slidx *SkipListIndex) Iterator(start_key *tuple.Tuple, end_key *tuple.Tupl
 		end_val = samehada_util.GetPonterOfValue(end_key.GetValue(tupleSchema_, slidx.col_idx))
 	}
 
-	return slidx.container.Iterator(start_val, end_val)
+	return slidx.container.Iterator(start_val, end_val, txn)
 }
 
 // Return the metadata object associated with the index

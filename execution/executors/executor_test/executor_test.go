@@ -600,7 +600,7 @@ func TestHashTableIndex(t *testing.T) {
 
 	txn_mgr.Commit(txn)
 
-	cases := []executors.HashIndexScanTestCase{{
+	cases := []executors.IndexPointScanTestCase{{
 		"select a ... WHERE b = 55",
 		executionEngine,
 		executorContext,
@@ -676,7 +676,148 @@ func TestHashTableIndex(t *testing.T) {
 
 	for _, test := range cases {
 		t.Run(test.Description, func(t *testing.T) {
-			executors.ExecuteHashIndexScanTestCase(t, test)
+			executors.ExecuteIndexPointScanTestCase(t, test, index_constants.INDEX_KIND_HASH)
+		})
+	}
+
+	common.TempSuppressOnMemStorage = false
+	diskManager.ShutDown()
+	common.TempSuppressOnMemStorageMutex.Unlock()
+}
+
+func TestSkipListIndexPointScan(t *testing.T) {
+	common.TempSuppressOnMemStorageMutex.Lock()
+	common.TempSuppressOnMemStorage = true
+
+	diskManager := disk.NewDiskManagerTest()
+	log_mgr := recovery.NewLogManager(&diskManager)
+	bpm := buffer.NewBufferPoolManager(uint32(32), diskManager, log_mgr) //, recovery.NewLogManager(diskManager), access.NewLockManager(access.REGULAR, access.PREVENTION))
+
+	txn_mgr := access.NewTransactionManager(access.NewLockManager(access.REGULAR, access.DETECTION), log_mgr)
+	txn := txn_mgr.Begin(nil)
+
+	c := catalog.BootstrapCatalog(bpm, log_mgr, access.NewLockManager(access.REGULAR, access.PREVENTION), txn)
+
+	columnA := column.NewColumn("a", types.Integer, true, index_constants.INDEX_KIND_SKIP_LIST, types.PageID(-1), nil)
+	columnB := column.NewColumn("b", types.Integer, true, index_constants.INDEX_KIND_SKIP_LIST, types.PageID(-1), nil)
+	columnC := column.NewColumn("c", types.Varchar, true, index_constants.INDEX_KIND_SKIP_LIST, types.PageID(-1), nil)
+	schema_ := schema.NewSchema([]*column.Column{columnA, columnB, columnC})
+
+	tableMetadata := c.CreateTable("test_1", schema_, txn)
+
+	row1 := make([]types.Value, 0)
+	row1 = append(row1, types.NewInteger(20))
+	row1 = append(row1, types.NewInteger(22))
+	row1 = append(row1, types.NewVarchar("foo"))
+
+	row2 := make([]types.Value, 0)
+	row2 = append(row2, types.NewInteger(99))
+	row2 = append(row2, types.NewInteger(55))
+	row2 = append(row2, types.NewVarchar("bar"))
+
+	row3 := make([]types.Value, 0)
+	row3 = append(row3, types.NewInteger(1225))
+	row3 = append(row3, types.NewInteger(712))
+	row3 = append(row3, types.NewVarchar("baz"))
+
+	row4 := make([]types.Value, 0)
+	row4 = append(row4, types.NewInteger(1225))
+	row4 = append(row4, types.NewInteger(712))
+	row4 = append(row4, types.NewVarchar("baz"))
+
+	rows := make([][]types.Value, 0)
+	rows = append(rows, row1)
+	rows = append(rows, row2)
+	rows = append(rows, row3)
+	rows = append(rows, row4)
+
+	insertPlanNode := plans.NewInsertPlanNode(rows, tableMetadata.OID())
+
+	executionEngine := &executors.ExecutionEngine{}
+	executorContext := executors.NewExecutorContext(c, bpm, txn)
+	executionEngine.Execute(insertPlanNode, executorContext)
+
+	bpm.FlushAllPages()
+
+	txn_mgr.Commit(txn)
+
+	cases := []executors.IndexPointScanTestCase{{
+		"select a ... WHERE b = 55",
+		executionEngine,
+		executorContext,
+		tableMetadata,
+		[]executors.Column{{"a", types.Integer}},
+		executors.Predicate{"b", expression.Equal, 55},
+		[]executors.Assertion{{"a", 99}},
+		1,
+	}, {
+		"select b ... WHERE b = 55",
+		executionEngine,
+		executorContext,
+		tableMetadata,
+		[]executors.Column{{"b", types.Integer}},
+		executors.Predicate{"b", expression.Equal, 55},
+		[]executors.Assertion{{"b", 55}},
+		1,
+	}, {
+		"select a, b ... WHERE a = 20",
+		executionEngine,
+		executorContext,
+		tableMetadata,
+		[]executors.Column{{"a", types.Integer}, {"b", types.Integer}},
+		executors.Predicate{"a", expression.Equal, 20},
+		[]executors.Assertion{{"a", 20}, {"b", 22}},
+		1,
+	}, {
+		"select a, b ... WHERE a = 99",
+		executionEngine,
+		executorContext,
+		tableMetadata,
+		[]executors.Column{{"a", types.Integer}, {"b", types.Integer}},
+		executors.Predicate{"a", expression.Equal, 99},
+		[]executors.Assertion{{"a", 99}, {"b", 55}},
+		1,
+	}, {
+		"select a, b ... WHERE a = 100",
+		executionEngine,
+		executorContext,
+		tableMetadata,
+		[]executors.Column{{"a", types.Integer}, {"b", types.Integer}},
+		executors.Predicate{"a", expression.Equal, 100},
+		[]executors.Assertion{},
+		0,
+	}, {
+		"select a, b ... WHERE b = 55",
+		executionEngine,
+		executorContext,
+		tableMetadata,
+		[]executors.Column{{"a", types.Integer}, {"b", types.Integer}},
+		executors.Predicate{"b", expression.Equal, 55},
+		[]executors.Assertion{{"a", 99}, {"b", 55}},
+		1,
+	}, {
+		"select a, b, c ... WHERE c = 'foo'",
+		executionEngine,
+		executorContext,
+		tableMetadata,
+		[]executors.Column{{"a", types.Integer}, {"b", types.Integer}, {"c", types.Varchar}},
+		executors.Predicate{"c", expression.Equal, "foo"},
+		[]executors.Assertion{{"a", 20}, {"b", 22}, {"c", "foo"}},
+		1,
+	}, {
+		"select a, b ... WHERE c = 'baz'",
+		executionEngine,
+		executorContext,
+		tableMetadata,
+		[]executors.Column{{"a", types.Integer}, {"b", types.Integer}},
+		executors.Predicate{"c", expression.Equal, "baz"},
+		[]executors.Assertion{{"a", 1225}, {"b", 712}},
+		2,
+	}}
+
+	for _, test := range cases {
+		t.Run(test.Description, func(t *testing.T) {
+			executors.ExecuteIndexPointScanTestCase(t, test, index_constants.INDEX_KIND_HASH)
 		})
 	}
 

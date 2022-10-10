@@ -47,8 +47,8 @@ func (im *IndexMetadata) GetTupleSchema() *schema.Schema { return im.tuple_schem
 // because it uses the member of catalog::Schema which is not known here
 func (im *IndexMetadata) GetIndexColumnCount() uint32 { return uint32(len(im.key_attrs)) }
 
-//  Returns the mapping relation between indexed columns  and base table
-//  columns
+// Returns the mapping relation between indexed columns  and base table
+// columns
 func (im *IndexMetadata) GetKeyAttrs() []uint32 { return im.key_attrs }
 
 /*
@@ -102,6 +102,8 @@ type Index interface {
 	// delete the index entry linked to given tuple
 	DeleteEntry(*tuple.Tuple, page.RID, *access.Transaction)
 	ScanKey(*tuple.Tuple, *access.Transaction) []page.RID
+	// pass start key and end key. nil is also ok.
+	GetRangeScanIterator(*tuple.Tuple, *tuple.Tuple, *access.Transaction) IndexRangeScanIterator
 
 	/*
 	      // Get a string representation for debugging

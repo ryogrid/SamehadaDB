@@ -173,7 +173,7 @@ func (aht *SimpleAggregationHashTable) Begin() *AggregateHTIterator {
 		agg_key_list = append(agg_key_list, aht.ht_key[hval])
 		agg_val_list = append(agg_val_list, val)
 	}
-	//return Iterator{ht.cbegin()}
+	//return GetRangeScanIterator{ht.cbegin()}
 	return NewAggregateHTIteratorIterator(agg_key_list, agg_val_list)
 }
 

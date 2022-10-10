@@ -97,7 +97,7 @@ func TestRecounstructionOfHashIndex(t *testing.T) {
 
 	txn = shi.GetTransactionManager().Begin(nil)
 
-	cases := []executors.HashIndexScanTestCase{{
+	cases := []executors.IndexPointScanTestCase{{
 		"select a ... WHERE b = 55",
 		executionEngine,
 		executorContext,
@@ -137,7 +137,7 @@ func TestRecounstructionOfHashIndex(t *testing.T) {
 
 	for _, test := range cases {
 		t.Run(test.Description, func(t *testing.T) {
-			executors.ExecuteHashIndexScanTestCase(t, test)
+			executors.ExecuteIndexPointScanTestCase(t, test)
 		})
 	}
 
@@ -178,7 +178,7 @@ func TestRecounstructionOfHashIndex(t *testing.T) {
 	executionEngine = &executors.ExecutionEngine{}
 	executorContext = executors.NewExecutorContext(c, shi.GetBufferPoolManager(), txn)
 
-	cases = []executors.HashIndexScanTestCase{{
+	cases = []executors.IndexPointScanTestCase{{
 		"select a ... WHERE b = 55",
 		executionEngine,
 		executorContext,
@@ -218,7 +218,7 @@ func TestRecounstructionOfHashIndex(t *testing.T) {
 
 	for _, test := range cases {
 		t.Run(test.Description, func(t *testing.T) {
-			executors.ExecuteHashIndexScanTestCase(t, test)
+			executors.ExecuteIndexPointScanTestCase(t, test)
 		})
 	}
 

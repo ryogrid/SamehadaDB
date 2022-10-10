@@ -2,6 +2,7 @@ package skip_list
 
 import (
 	"github.com/ryogrid/SamehadaDB/common"
+	"github.com/ryogrid/SamehadaDB/storage/access"
 	"github.com/ryogrid/SamehadaDB/storage/buffer"
 	"github.com/ryogrid/SamehadaDB/storage/page/skip_list_page"
 	"github.com/ryogrid/SamehadaDB/types"
@@ -25,7 +26,7 @@ const (
 
 /**
  * Implementation of skip list that is backed by a buffer pool
- * manager. Non-unique keys are not supported yet. Supports insert, delete and Iterator.
+ * manager. Non-unique keys are not supported yet. Supports insert, delete and GetRangeScanIterator.
  */
 
 type SkipList struct {
@@ -314,7 +315,7 @@ func (sl *SkipList) Remove(key *types.Value, value uint32) (isDeleted_ bool) {
 	return isDeleted
 }
 
-//func (sl *SkipList) Iterator(rangeStartKey *types.Value, rangeEndKey *types.Value) *SkipListIterator {
+//func (sl *SkipList) GetRangeScanIterator(rangeStartKey *types.Value, rangeEndKey *types.Value) *SkipListIterator {
 //	ret := new(SkipListIterator)
 //
 //	//headerPage := skip_list_page.FetchAndCastToHeaderPage(sl.bpm, sl.headerPageID)
@@ -339,7 +340,7 @@ func (sl *SkipList) Remove(key *types.Value, value uint32) (isDeleted_ bool) {
 //	return ret
 //}
 
-func (sl *SkipList) Iterator(rangeStartKey *types.Value, rangeEndKey *types.Value) *SkipListIterator {
+func (sl *SkipList) Iterator(rangeStartKey *types.Value, rangeEndKey *types.Value, txn *access.Transaction) *SkipListIterator {
 	return NewSkipListIterator(sl, rangeStartKey, rangeEndKey)
 }
 

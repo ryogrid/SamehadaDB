@@ -10,7 +10,7 @@ import (
 
 // ExecutionEngine is the query execution engine.
 //
-// It is an implementation of the Iterator Model (also called Pipeline model or Volcano)
+// It is an implementation of the GetRangeScanIterator Model (also called Pipeline model or Volcano)
 // It receives a Plan, create a Executor for that plan and execute it
 // All executors follow the same pattern implementing the Executor interface
 // Executors are the operators in relation algebra
@@ -42,8 +42,8 @@ func (e *ExecutionEngine) CreateExecutor(plan plans.Plan, context *ExecutorConte
 		return NewInsertExecutor(context, p)
 	case *plans.SeqScanPlanNode:
 		return NewSeqScanExecutor(context, p)
-	case *plans.HashScanIndexPlanNode:
-		return NewHashScanIndexExecutor(context, p)
+	case *plans.PointScanWithIndexPlanNode:
+		return NewPointScanWithIndexExecutor(context, p)
 	case *plans.LimitPlanNode:
 		return NewLimitExecutor(context, p, e.CreateExecutor(plan.GetChildAt(0), context))
 	case *plans.DeletePlanNode:

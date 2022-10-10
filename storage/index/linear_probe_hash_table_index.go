@@ -69,6 +69,10 @@ func (htidx *LinearProbeHashTableIndex) ScanKey(key *tuple.Tuple, transaction *a
 	return ret_arr
 }
 
+func (htidx *LinearProbeHashTableIndex) GetRangeScanIterator(startkey *tuple.Tuple, endKey *tuple.Tuple, txn *access.Transaction) IndexRangeScanIterator {
+	return nil
+}
+
 func (htidx *LinearProbeHashTableIndex) GetHeaderPageId() types.PageID {
 	return htidx.container.GetHeaderPageId()
 }
