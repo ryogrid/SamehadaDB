@@ -15,7 +15,8 @@ const (
 	Insert
 	Delete
 	Limit
-	HashScanIndex
+	IndexPointScan
+	IndexRangeScan
 	HashJoin
 	Aggregation
 	Orderby

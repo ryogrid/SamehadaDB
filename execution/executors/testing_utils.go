@@ -85,7 +85,18 @@ type IndexPointScanTestCase struct {
 	TotalHits       uint32
 }
 
-func fillColumnsForIndexScanTestCase(testCase IndexPointScanTestCase, indexType index_constants.IndexKind) []*column.Column {
+type IndexRangeScanTestCase struct {
+	Description     string
+	ExecutionEngine *ExecutionEngine
+	ExecutorContext *ExecutorContext
+	TableMetadata   *catalog.TableMetadata
+	Columns         []Column
+	KeyColumn       []Column
+	ScanRange       []types.Value
+	TotalHits       uint32
+}
+
+func fillColumnsForIndexScanTestCase[T IndexPointScanTestCase | IndexRangeScanTestCase](testCase T, indexType index_constants.IndexKind) []*column.Column {
 	columns := []*column.Column{}
 	for _, c := range testCase.Columns {
 		//columns = append(columns, column.NewColumn(c.Name, c.Kind, true, index_constants.INDEX_KIND_HASH, types.PageID(-1), nil))
@@ -111,6 +122,21 @@ func ExecuteIndexPointScanTestCase(t *testing.T, testCase IndexPointScanTestCase
 		colIndex := outSchema.GetColIndex(assert.Column)
 		testingpkg.Assert(t, GetValue(assert.Exp).CompareEquals(results[0].GetValue(outSchema, colIndex)), "value should be %v but was %v", assert.Exp, results[0].GetValue(outSchema, colIndex))
 	}
+}
+
+func ExecuteIndexRangeScanTestCase(t *testing.T, testCase IndexRangeScanTestCase, indexType index_constants.IndexKind) {
+	columns := fillColumnsForIndexScanTestCase(testCase, indexType)
+	outSchema := schema.NewSchema(columns)
+
+	//tmpColVal_ := expression.NewColumnValue(0, testCase.TableMetadata.Schema().GetColIndex(testCase.Predicate.LeftColumn), GetValueType(testCase.Predicate.RightColumn))
+	//tmpColVal := tmpColVal_.(*expression.ColumnValue)
+
+	//expression_ := expression.NewComparison(tmpColVal, expression.NewConstantValue(GetValue(testCase.Predicate.RightColumn), GetValueType(testCase.Predicate.RightColumn)), testCase.Predicate.Operator, types.Boolean)
+	IndexRangeScanPlan := plans.NewRangeScanWithIndexPlanNode(outSchema, testCase.TableMetadata.OID(), testCase.ScanRange[0], testCase.ScanRange[1])
+
+	results := testCase.ExecutionEngine.Execute(IndexRangeScanPlan, testCase.ExecutorContext)
+
+	testingpkg.Equals(t, testCase.TotalHits, uint32(len(results)))
 }
 
 type DeleteTestCase struct {

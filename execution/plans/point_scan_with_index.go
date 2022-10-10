@@ -30,5 +30,5 @@ func (p *PointScanWithIndexPlanNode) GetTableOID() uint32 {
 }
 
 func (p *PointScanWithIndexPlanNode) GetType() PlanType {
-	return HashScanIndex
+	return IndexPointScan
 }

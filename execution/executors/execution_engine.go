@@ -44,6 +44,8 @@ func (e *ExecutionEngine) CreateExecutor(plan plans.Plan, context *ExecutorConte
 		return NewSeqScanExecutor(context, p)
 	case *plans.PointScanWithIndexPlanNode:
 		return NewPointScanWithIndexExecutor(context, p)
+	case *plans.RangeScanWithIndexPlanNode:
+		return NewRangeScanWithIndexExecutor(context, p)
 	case *plans.LimitPlanNode:
 		return NewLimitExecutor(context, p, e.CreateExecutor(plan.GetChildAt(0), context))
 	case *plans.DeletePlanNode:
