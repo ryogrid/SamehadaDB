@@ -721,9 +721,9 @@ func TestSkipListIndexPointScan(t *testing.T) {
 	row3 = append(row3, types.NewVarchar("baz"))
 
 	row4 := make([]types.Value, 0)
-	row4 = append(row4, types.NewInteger(1225))
-	row4 = append(row4, types.NewInteger(712))
-	row4 = append(row4, types.NewVarchar("baz"))
+	row4 = append(row4, types.NewInteger(1226))
+	row4 = append(row4, types.NewInteger(713))
+	row4 = append(row4, types.NewVarchar("bazz"))
 
 	rows := make([][]types.Value, 0)
 	rows = append(rows, row1)
@@ -812,12 +812,12 @@ func TestSkipListIndexPointScan(t *testing.T) {
 		[]executors.Column{{"a", types.Integer}, {"b", types.Integer}},
 		executors.Predicate{"c", expression.Equal, "baz"},
 		[]executors.Assertion{{"a", 1225}, {"b", 712}},
-		2,
+		1,
 	}}
 
 	for _, test := range cases {
 		t.Run(test.Description, func(t *testing.T) {
-			executors.ExecuteIndexPointScanTestCase(t, test, index_constants.INDEX_KIND_HASH)
+			executors.ExecuteIndexPointScanTestCase(t, test, index_constants.INDEX_KIND_SKIP_LIST)
 		})
 	}
 

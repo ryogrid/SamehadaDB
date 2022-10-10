@@ -9,6 +9,7 @@ import (
 	"github.com/ryogrid/SamehadaDB/storage/table/schema"
 	"github.com/ryogrid/SamehadaDB/storage/tuple"
 	"github.com/ryogrid/SamehadaDB/types"
+	"math"
 )
 
 type SkipListIndex struct {
@@ -44,9 +45,12 @@ func (slidx *SkipListIndex) ScanKey(key *tuple.Tuple, transaction *access.Transa
 	tupleSchema_ := slidx.GetTupleSchema()
 	keyVal := key.GetValue(tupleSchema_, slidx.col_idx)
 
+	ret_arr := make([]page.RID, 0)
 	packed_value := slidx.container.GetValue(&keyVal)
-	var ret_arr []page.RID
-	ret_arr = append(ret_arr, samehada_util.UnpackUint32toRID(packed_value))
+	if packed_value != math.MaxUint32 {
+		// when packed_vale == math.MaxUint32 => true, keyVal is not found on index
+		ret_arr = append(ret_arr, samehada_util.UnpackUint32toRID(packed_value))
+	}
 	return ret_arr
 }
 
