@@ -8,6 +8,7 @@ import (
 	"github.com/ryogrid/SamehadaDB/execution/executors"
 	"github.com/ryogrid/SamehadaDB/samehada"
 	"github.com/ryogrid/SamehadaDB/storage/index/index_constants"
+	"math"
 	"os"
 	"testing"
 
@@ -892,71 +893,27 @@ func TestSkipListSerialIndexRangeScan(t *testing.T) {
 		int32(tableMetadata.Schema().GetColIndex("a")),
 		[]types.Value{types.NewInteger(20), types.NewInteger(1225)},
 		3,
+	}, {
+		"select a ... WHERE a >= 20 and a <= 2147483647",
+		executionEngine,
+		executorContext,
+		tableMetadata,
+		[]executors.Column{{"a", types.Integer}},
+		executors.Predicate{"a", expression.GreaterThanOrEqual, 20},
+		int32(tableMetadata.Schema().GetColIndex("a")),
+		[]types.Value{types.NewInteger(20), types.NewInteger(math.MaxInt32)},
+		4,
+	}, {
+		"select a ... WHERE a >= -2147483647 and a <= 1225",
+		executionEngine,
+		executorContext,
+		tableMetadata,
+		[]executors.Column{{"a", types.Integer}},
+		executors.Predicate{"a", expression.GreaterThanOrEqual, 20},
+		int32(tableMetadata.Schema().GetColIndex("a")),
+		[]types.Value{types.NewInteger(math.MinInt32), types.NewInteger(1225)},
+		3,
 	}}
-	//, {
-	//	"select b ... WHERE b = 55",
-	//	executionEngine,
-	//	executorContext,
-	//	tableMetadata,
-	//	[]executors.Column{{"b", types.Integer}},
-	//	executors.Predicate{"b", expression.Equal, 55},
-	//	[]executors.Assertion{{"b", 55}},
-	//	1,
-	//}, {
-	//	"select a, b ... WHERE a = 20",
-	//	executionEngine,
-	//	executorContext,
-	//	tableMetadata,
-	//	[]executors.Column{{"a", types.Integer}, {"b", types.Integer}},
-	//	executors.Predicate{"a", expression.Equal, 20},
-	//	[]executors.Assertion{{"a", 20}, {"b", 22}},
-	//	1,
-	//}, {
-	//	"select a, b ... WHERE a = 99",
-	//	executionEngine,
-	//	executorContext,
-	//	tableMetadata,
-	//	[]executors.Column{{"a", types.Integer}, {"b", types.Integer}},
-	//	executors.Predicate{"a", expression.Equal, 99},
-	//	[]executors.Assertion{{"a", 99}, {"b", 55}},
-	//	1,
-	//}, {
-	//	"select a, b ... WHERE a = 100",
-	//	executionEngine,
-	//	executorContext,
-	//	tableMetadata,
-	//	[]executors.Column{{"a", types.Integer}, {"b", types.Integer}},
-	//	executors.Predicate{"a", expression.Equal, 100},
-	//	[]executors.Assertion{},
-	//	0,
-	//}, {
-	//	"select a, b ... WHERE b = 55",
-	//	executionEngine,
-	//	executorContext,
-	//	tableMetadata,
-	//	[]executors.Column{{"a", types.Integer}, {"b", types.Integer}},
-	//	executors.Predicate{"b", expression.Equal, 55},
-	//	[]executors.Assertion{{"a", 99}, {"b", 55}},
-	//	1,
-	//}, {
-	//	"select a, b, c ... WHERE c = 'foo'",
-	//	executionEngine,
-	//	executorContext,
-	//	tableMetadata,
-	//	[]executors.Column{{"a", types.Integer}, {"b", types.Integer}, {"c", types.Varchar}},
-	//	executors.Predicate{"c", expression.Equal, "foo"},
-	//	[]executors.Assertion{{"a", 20}, {"b", 22}, {"c", "foo"}},
-	//	1,
-	//}, {
-	//	"select a, b ... WHERE c = 'baz'",
-	//	executionEngine,
-	//	executorContext,
-	//	tableMetadata,
-	//	[]executors.Column{{"a", types.Integer}, {"b", types.Integer}},
-	//	executors.Predicate{"c", expression.Equal, "baz"},
-	//	[]executors.Assertion{{"a", 1225}, {"b", 712}},
-	//	1,
-	//}}
 
 	for _, test := range cases {
 		t.Run(test.Description, func(t *testing.T) {
