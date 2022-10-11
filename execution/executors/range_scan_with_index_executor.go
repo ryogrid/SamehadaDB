@@ -104,16 +104,13 @@ func (e *RangeScanWithIndexExecutor) Next() (*tuple.Tuple, Done, error) {
 			return nil, true, err
 		}
 
-		// check range constraints
-		if e.plan.GetStartRange() != nil && !key.CompareGreaterThanOrEqual(*e.plan.GetStartRange()) {
+		// check value update after getting iterator which contains snapshot of RIDs and Keys which were Index
+		curKeyVal := tuple_.GetValue(e.tableMetadata.Schema(), uint32(e.plan.GetColIdx()))
+		if !curKeyVal.CompareEquals(*key) {
+			// column value corresponding index key is updated
 			e.txn.SetState(access.ABORTED)
-			return nil, true, errors.New("read illigal value at range scan. Transaction should be aborted.")
+			return nil, true, errors.New("detect value update after iterator created. Transaction should be aborted.")
 		}
-		if e.plan.GetEndRange() != nil && !key.CompareLessThanOrEqual(*e.plan.GetEndRange()) {
-			e.txn.SetState(access.ABORTED)
-			return nil, true, errors.New("read illigal value at range scan. Transaction should be aborted.")
-		}
-
 		// check predicate
 		if e.selects(tuple_, e.plan.GetPredicate()) {
 			tuple_.SetRID(rid)
