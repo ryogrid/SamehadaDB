@@ -4,6 +4,7 @@
 package plans
 
 import (
+	"github.com/ryogrid/SamehadaDB/execution/expression"
 	"github.com/ryogrid/SamehadaDB/storage/table/schema"
 	"github.com/ryogrid/SamehadaDB/types"
 )
@@ -13,14 +14,27 @@ import (
  */
 type RangeScanWithIndexPlanNode struct {
 	*AbstractPlanNode
-	//predicate *expression.Comparison
+	predicate  *expression.Comparison
 	tableOID   uint32
+	colIdx     int32 // column idx which has index to be used
 	startRange *types.Value
 	endRange   *types.Value
 }
 
-func NewRangeScanWithIndexPlanNode(schema *schema.Schema, tableOID uint32, startRange *types.Value, endRange *types.Value) Plan {
-	return &RangeScanWithIndexPlanNode{&AbstractPlanNode{schema, nil}, tableOID, startRange, endRange}
+func NewRangeScanWithIndexPlanNode(schema *schema.Schema, tableOID uint32, colIdx int32, predicate *expression.Comparison, startRange *types.Value, endRange *types.Value) Plan {
+	return &RangeScanWithIndexPlanNode{&AbstractPlanNode{schema, nil}, predicate, tableOID, colIdx, startRange, endRange}
+}
+
+func (p *RangeScanWithIndexPlanNode) GetPredicate() *expression.Comparison {
+	return p.predicate
+}
+
+func (p *RangeScanWithIndexPlanNode) GetTableOID() uint32 {
+	return p.tableOID
+}
+
+func (p *RangeScanWithIndexPlanNode) GetColIdx() int32 {
+	return p.colIdx
 }
 
 func (p *RangeScanWithIndexPlanNode) GetStartRange() *types.Value {
@@ -29,10 +43,6 @@ func (p *RangeScanWithIndexPlanNode) GetStartRange() *types.Value {
 
 func (p *RangeScanWithIndexPlanNode) GetEndRange() *types.Value {
 	return p.endRange
-}
-
-func (p *RangeScanWithIndexPlanNode) GetTableOID() uint32 {
-	return p.tableOID
 }
 
 func (p *RangeScanWithIndexPlanNode) GetType() PlanType {

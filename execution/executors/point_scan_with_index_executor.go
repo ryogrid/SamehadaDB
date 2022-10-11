@@ -2,6 +2,7 @@ package executors
 
 import (
 	"fmt"
+	"github.com/ryogrid/SamehadaDB/samehada/samehada_util"
 
 	"github.com/ryogrid/SamehadaDB/catalog"
 	"github.com/ryogrid/SamehadaDB/execution/plans"
@@ -63,7 +64,7 @@ func (e *PointScanWithIndexExecutor) Init() {
 		break
 	}
 
-	dummyTuple := tuple.GenTupleForHashIndexSearch(schema_, uint32(indexColNum), comparison.GetRightSideValue(nil, schema_))
+	dummyTuple := tuple.GenTupleForIndexSearch(schema_, uint32(indexColNum), samehada_util.GetPonterOfValue(comparison.GetRightSideValue(nil, schema_)))
 	rids := index_.ScanKey(dummyTuple, e.txn)
 	for _, rid := range rids {
 		tuple_ := e.tableMetadata.Table().GetTuple(&rid, e.txn)

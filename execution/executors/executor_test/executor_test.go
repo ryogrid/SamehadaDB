@@ -883,12 +883,13 @@ func TestSkipListSerialIndexRangeScan(t *testing.T) {
 	txn_mgr.Commit(txn)
 
 	cases := []executors.IndexRangeScanTestCase{{
-		"select a ... WHERE a <= 20 and a <= 1225",
+		"select a ... WHERE a >= 20 and a <= 1225",
 		executionEngine,
 		executorContext,
 		tableMetadata,
 		[]executors.Column{{"a", types.Integer}},
-		executors.Column{"a", types.Integer},
+		executors.Predicate{"a", expression.GreaterThanOrEqual, 20},
+		int32(tableMetadata.Schema().GetColIndex("a")),
 		[]types.Value{types.NewInteger(20), types.NewInteger(1225)},
 		3,
 	}}

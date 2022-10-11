@@ -91,22 +91,31 @@ type IndexRangeScanTestCase struct {
 	ExecutorContext *ExecutorContext
 	TableMetadata   *catalog.TableMetadata
 	Columns         []Column
-	KeyColumn       []Column
+	Predicate       Predicate
+	ColIdx          int32 // column idx of column which has index to be used on scan
 	ScanRange       []types.Value
 	TotalHits       uint32
 }
 
-func fillColumnsForIndexScanTestCase[T IndexPointScanTestCase | IndexRangeScanTestCase](testCase T, indexType index_constants.IndexKind) []*column.Column {
+func fillColumnsForIndexScanTestCase[T IndexPointScanTestCase | IndexRangeScanTestCase](testCase interface{}, indexType index_constants.IndexKind) []*column.Column {
 	columns := []*column.Column{}
-	for _, c := range testCase.Columns {
-		//columns = append(columns, column.NewColumn(c.Name, c.Kind, true, index_constants.INDEX_KIND_HASH, types.PageID(-1), nil))
+
+	var castedColumns []Column
+	switch testCase.(type) {
+	case IndexPointScanTestCase:
+		castedColumns = testCase.(IndexPointScanTestCase).Columns
+	case IndexRangeScanTestCase:
+		castedColumns = testCase.(IndexRangeScanTestCase).Columns
+	}
+	for _, c := range castedColumns {
 		columns = append(columns, column.NewColumn(c.Name, c.Kind, true, indexType, types.PageID(-1), nil))
 	}
+
 	return columns
 }
 
 func ExecuteIndexPointScanTestCase(t *testing.T, testCase IndexPointScanTestCase, indexType index_constants.IndexKind) {
-	columns := fillColumnsForIndexScanTestCase(testCase, indexType)
+	columns := fillColumnsForIndexScanTestCase[IndexPointScanTestCase](testCase, indexType)
 	outSchema := schema.NewSchema(columns)
 
 	tmpColVal_ := expression.NewColumnValue(0, testCase.TableMetadata.Schema().GetColIndex(testCase.Predicate.LeftColumn), GetValueType(testCase.Predicate.RightColumn))
@@ -125,14 +134,14 @@ func ExecuteIndexPointScanTestCase(t *testing.T, testCase IndexPointScanTestCase
 }
 
 func ExecuteIndexRangeScanTestCase(t *testing.T, testCase IndexRangeScanTestCase, indexType index_constants.IndexKind) {
-	columns := fillColumnsForIndexScanTestCase(testCase, indexType)
+	columns := fillColumnsForIndexScanTestCase[IndexRangeScanTestCase](testCase, indexType)
 	outSchema := schema.NewSchema(columns)
 
-	//tmpColVal_ := expression.NewColumnValue(0, testCase.TableMetadata.Schema().GetColIndex(testCase.Predicate.LeftColumn), GetValueType(testCase.Predicate.RightColumn))
-	//tmpColVal := tmpColVal_.(*expression.ColumnValue)
+	tmpColVal_ := expression.NewColumnValue(0, testCase.TableMetadata.Schema().GetColIndex(testCase.Predicate.LeftColumn), GetValueType(testCase.Predicate.RightColumn))
+	tmpColVal := tmpColVal_.(*expression.ColumnValue)
 
-	//expression_ := expression.NewComparison(tmpColVal, expression.NewConstantValue(GetValue(testCase.Predicate.RightColumn), GetValueType(testCase.Predicate.RightColumn)), testCase.Predicate.Operator, types.Boolean)
-	IndexRangeScanPlan := plans.NewRangeScanWithIndexPlanNode(outSchema, testCase.TableMetadata.OID(), testCase.ScanRange[0], testCase.ScanRange[1])
+	expression_ := expression.NewComparison(tmpColVal, expression.NewConstantValue(GetValue(testCase.Predicate.RightColumn), GetValueType(testCase.Predicate.RightColumn)), testCase.Predicate.Operator, types.Boolean)
+	IndexRangeScanPlan := plans.NewRangeScanWithIndexPlanNode(outSchema, testCase.TableMetadata.OID(), testCase.ColIdx, expression_.(*expression.Comparison), &testCase.ScanRange[0], &testCase.ScanRange[1])
 
 	results := testCase.ExecutionEngine.Execute(IndexRangeScanPlan, testCase.ExecutorContext)
 
