@@ -7,6 +7,7 @@ import (
 	"fmt"
 	"github.com/ryogrid/SamehadaDB/execution/executors"
 	"github.com/ryogrid/SamehadaDB/samehada"
+	"github.com/ryogrid/SamehadaDB/samehada/samehada_util"
 	"github.com/ryogrid/SamehadaDB/storage/index/index_constants"
 	"math"
 	"os"
@@ -891,7 +892,7 @@ func TestSkipListSerialIndexRangeScan(t *testing.T) {
 		[]executors.Column{{"a", types.Integer}},
 		executors.Predicate{"a", expression.GreaterThanOrEqual, 20},
 		int32(tableMetadata.Schema().GetColIndex("a")),
-		[]types.Value{types.NewInteger(20), types.NewInteger(1225)},
+		[]*types.Value{samehada_util.GetPonterOfValue(types.NewInteger(20)), samehada_util.GetPonterOfValue(types.NewInteger(1225))},
 		3,
 	}, {
 		"select a ... WHERE a >= 20 and a <= 2147483647",
@@ -901,7 +902,7 @@ func TestSkipListSerialIndexRangeScan(t *testing.T) {
 		[]executors.Column{{"a", types.Integer}},
 		executors.Predicate{"a", expression.GreaterThanOrEqual, 20},
 		int32(tableMetadata.Schema().GetColIndex("a")),
-		[]types.Value{types.NewInteger(20), types.NewInteger(math.MaxInt32)},
+		[]*types.Value{samehada_util.GetPonterOfValue(types.NewInteger(20)), samehada_util.GetPonterOfValue(types.NewInteger(math.MaxInt32))},
 		4,
 	}, {
 		"select a ... WHERE a >= -2147483646 and a <= 1225",
@@ -911,8 +912,38 @@ func TestSkipListSerialIndexRangeScan(t *testing.T) {
 		[]executors.Column{{"a", types.Integer}},
 		executors.Predicate{"a", expression.GreaterThanOrEqual, 20},
 		int32(tableMetadata.Schema().GetColIndex("a")),
-		[]types.Value{types.NewInteger(math.MinInt32 + 1), types.NewInteger(1225)},
+		[]*types.Value{samehada_util.GetPonterOfValue(types.NewInteger(math.MinInt32 + 1)), samehada_util.GetPonterOfValue(types.NewInteger(1225))},
 		3,
+	}, {
+		"select a ... WHERE a >= -2147483646",
+		executionEngine,
+		executorContext,
+		tableMetadata,
+		[]executors.Column{{"a", types.Integer}},
+		executors.Predicate{"a", expression.GreaterThanOrEqual, 20},
+		int32(tableMetadata.Schema().GetColIndex("a")),
+		[]*types.Value{samehada_util.GetPonterOfValue(types.NewInteger(math.MinInt32 + 1)), nil},
+		4,
+	}, {
+		"select a ... WHERE a <= 1225",
+		executionEngine,
+		executorContext,
+		tableMetadata,
+		[]executors.Column{{"a", types.Integer}},
+		executors.Predicate{"a", expression.GreaterThanOrEqual, 20},
+		int32(tableMetadata.Schema().GetColIndex("a")),
+		[]*types.Value{nil, samehada_util.GetPonterOfValue(types.NewInteger(1225))},
+		3,
+	}, {
+		"select a ... ",
+		executionEngine,
+		executorContext,
+		tableMetadata,
+		[]executors.Column{{"a", types.Integer}},
+		executors.Predicate{"a", expression.GreaterThanOrEqual, 20},
+		int32(tableMetadata.Schema().GetColIndex("a")),
+		[]*types.Value{nil, nil},
+		4,
 	}}
 	/*, {
 		"select a ... WHERE a >= -2147483647 and a <= 1225", // fail because restriction of current SkipList Index impl?

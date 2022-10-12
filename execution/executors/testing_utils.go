@@ -93,7 +93,7 @@ type IndexRangeScanTestCase struct {
 	Columns         []Column
 	Predicate       Predicate
 	ColIdx          int32 // column idx of column which has index to be used on scan
-	ScanRange       []types.Value
+	ScanRange       []*types.Value
 	TotalHits       uint32
 }
 
@@ -141,7 +141,7 @@ func ExecuteIndexRangeScanTestCase(t *testing.T, testCase IndexRangeScanTestCase
 	tmpColVal := tmpColVal_.(*expression.ColumnValue)
 
 	expression_ := expression.NewComparison(tmpColVal, expression.NewConstantValue(GetValue(testCase.Predicate.RightColumn), GetValueType(testCase.Predicate.RightColumn)), testCase.Predicate.Operator, types.Boolean)
-	IndexRangeScanPlan := plans.NewRangeScanWithIndexPlanNode(outSchema, testCase.TableMetadata.OID(), testCase.ColIdx, expression_.(*expression.Comparison), &testCase.ScanRange[0], &testCase.ScanRange[1])
+	IndexRangeScanPlan := plans.NewRangeScanWithIndexPlanNode(outSchema, testCase.TableMetadata.OID(), testCase.ColIdx, expression_.(*expression.Comparison), testCase.ScanRange[0], testCase.ScanRange[1])
 
 	results := testCase.ExecutionEngine.Execute(IndexRangeScanPlan, testCase.ExecutorContext)
 
