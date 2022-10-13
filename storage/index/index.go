@@ -1,7 +1,6 @@
 package index
 
 import (
-	"github.com/ryogrid/SamehadaDB/storage/access"
 	"github.com/ryogrid/SamehadaDB/storage/page"
 	"github.com/ryogrid/SamehadaDB/storage/table/schema"
 	"github.com/ryogrid/SamehadaDB/storage/tuple"
@@ -98,12 +97,12 @@ type Index interface {
 	// Point Modification
 	///////////////////////////////////////////////////////////////////
 	// designed for secondary indexes.
-	InsertEntry(*tuple.Tuple, page.RID, *access.Transaction)
+	InsertEntry(*tuple.Tuple, page.RID, interface{})
 	// delete the index entry linked to given tuple
-	DeleteEntry(*tuple.Tuple, page.RID, *access.Transaction)
-	ScanKey(*tuple.Tuple, *access.Transaction) []page.RID
+	DeleteEntry(*tuple.Tuple, page.RID, interface{})
+	ScanKey(*tuple.Tuple, interface{}) []page.RID
 	// pass start key and end key. nil is also ok.
-	GetRangeScanIterator(*tuple.Tuple, *tuple.Tuple, *access.Transaction) IndexRangeScanIterator
+	GetRangeScanIterator(*tuple.Tuple, *tuple.Tuple, interface{}) IndexRangeScanIterator
 
 	/*
 	      // Get a string representation for debugging

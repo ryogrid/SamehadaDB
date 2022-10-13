@@ -3,7 +3,6 @@ package index
 import (
 	"github.com/ryogrid/SamehadaDB/container/skip_list"
 	"github.com/ryogrid/SamehadaDB/samehada/samehada_util"
-	"github.com/ryogrid/SamehadaDB/storage/access"
 	"github.com/ryogrid/SamehadaDB/storage/buffer"
 	"github.com/ryogrid/SamehadaDB/storage/page"
 	"github.com/ryogrid/SamehadaDB/storage/table/schema"
@@ -27,21 +26,21 @@ func NewSkipListIndex(metadata *IndexMetadata, buffer_pool_manager *buffer.Buffe
 	return ret
 }
 
-func (slidx *SkipListIndex) InsertEntry(key *tuple.Tuple, rid page.RID, transaction *access.Transaction) {
+func (slidx *SkipListIndex) InsertEntry(key *tuple.Tuple, rid page.RID, transaction interface{}) {
 	tupleSchema_ := slidx.GetTupleSchema()
 	keyVal := key.GetValue(tupleSchema_, slidx.col_idx)
 
 	slidx.container.Insert(&keyVal, samehada_util.PackRIDtoUint32(&rid))
 }
 
-func (slidx *SkipListIndex) DeleteEntry(key *tuple.Tuple, rid page.RID, transaction *access.Transaction) {
+func (slidx *SkipListIndex) DeleteEntry(key *tuple.Tuple, rid page.RID, transaction interface{}) {
 	tupleSchema_ := slidx.GetTupleSchema()
 	keyVal := key.GetValue(tupleSchema_, slidx.col_idx)
 
 	slidx.container.Remove(&keyVal, samehada_util.PackRIDtoUint32(&rid))
 }
 
-func (slidx *SkipListIndex) ScanKey(key *tuple.Tuple, transaction *access.Transaction) []page.RID {
+func (slidx *SkipListIndex) ScanKey(key *tuple.Tuple, transaction interface{}) []page.RID {
 	tupleSchema_ := slidx.GetTupleSchema()
 	keyVal := key.GetValue(tupleSchema_, slidx.col_idx)
 
@@ -57,7 +56,7 @@ func (slidx *SkipListIndex) ScanKey(key *tuple.Tuple, transaction *access.Transa
 // get iterator which iterates entry in key sorted order
 // and iterates specified key range.
 // when start_key arg is nil , start point is head of entry list. when end_key, end point is tail of the list
-func (slidx *SkipListIndex) GetRangeScanIterator(start_key *tuple.Tuple, end_key *tuple.Tuple, txn *access.Transaction) IndexRangeScanIterator {
+func (slidx *SkipListIndex) GetRangeScanIterator(start_key *tuple.Tuple, end_key *tuple.Tuple, transaction interface{}) IndexRangeScanIterator {
 	tupleSchema_ := slidx.GetTupleSchema()
 	var start_val *types.Value = nil
 	if start_key != nil {

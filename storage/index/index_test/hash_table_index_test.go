@@ -137,7 +137,7 @@ func TestRecounstructionOfHashIndex(t *testing.T) {
 
 	for _, test := range cases {
 		t.Run(test.Description, func(t *testing.T) {
-			executors.ExecuteIndexPointScanTestCase(t, test)
+			executors.ExecuteIndexPointScanTestCase(t, test, index_constants.INDEX_KIND_HASH)
 		})
 	}
 
@@ -218,7 +218,7 @@ func TestRecounstructionOfHashIndex(t *testing.T) {
 
 	for _, test := range cases {
 		t.Run(test.Description, func(t *testing.T) {
-			executors.ExecuteIndexPointScanTestCase(t, test)
+			executors.ExecuteIndexPointScanTestCase(t, test, index_constants.INDEX_KIND_HASH)
 		})
 	}
 

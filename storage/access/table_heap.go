@@ -133,7 +133,7 @@ func (t *TableHeap) UpdateTuple(tuple_ *tuple.Tuple, update_col_idxs []int, sche
 		}
 
 		var err error = nil
-		new_rid, err = t.InsertTuple(need_follow_tuple, txn, -1)
+		new_rid, err = t.InsertTuple(need_follow_tuple, txn, oid)
 		if err != nil {
 			fmt.Println("TableHeap::UpdateTuple(): InsertTuple failed")
 			txn.SetState(ABORTED)

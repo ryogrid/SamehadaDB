@@ -5,7 +5,6 @@ import (
 	"github.com/ryogrid/SamehadaDB/types"
 
 	hash "github.com/ryogrid/SamehadaDB/container/hash"
-	"github.com/ryogrid/SamehadaDB/storage/access"
 	"github.com/ryogrid/SamehadaDB/storage/buffer"
 	"github.com/ryogrid/SamehadaDB/storage/page"
 	"github.com/ryogrid/SamehadaDB/storage/table/schema"
@@ -43,21 +42,21 @@ func (htidx *LinearProbeHashTableIndex) GetTupleSchema() *schema.Schema {
 }
 func (htidx *LinearProbeHashTableIndex) GetKeyAttrs() []uint32 { return htidx.metadata.GetKeyAttrs() }
 
-func (htidx *LinearProbeHashTableIndex) InsertEntry(key *tuple.Tuple, rid page.RID, transaction *access.Transaction) {
+func (htidx *LinearProbeHashTableIndex) InsertEntry(key *tuple.Tuple, rid page.RID, transaction interface{}) {
 	tupleSchema_ := htidx.GetTupleSchema()
 	keyDataInBytes := key.GetValueInBytes(tupleSchema_, htidx.col_idx)
 
 	htidx.container.Insert(keyDataInBytes, samehada_util.PackRIDtoUint32(&rid))
 }
 
-func (htidx *LinearProbeHashTableIndex) DeleteEntry(key *tuple.Tuple, rid page.RID, transaction *access.Transaction) {
+func (htidx *LinearProbeHashTableIndex) DeleteEntry(key *tuple.Tuple, rid page.RID, transaction interface{}) {
 	tupleSchema_ := htidx.GetTupleSchema()
 	keyDataInBytes := key.GetValueInBytes(tupleSchema_, htidx.col_idx)
 
 	htidx.container.Remove(keyDataInBytes, samehada_util.PackRIDtoUint32(&rid))
 }
 
-func (htidx *LinearProbeHashTableIndex) ScanKey(key *tuple.Tuple, transaction *access.Transaction) []page.RID {
+func (htidx *LinearProbeHashTableIndex) ScanKey(key *tuple.Tuple, transaction interface{}) []page.RID {
 	tupleSchema_ := htidx.GetTupleSchema()
 	keyDataInBytes := key.GetValueInBytes(tupleSchema_, htidx.col_idx)
 
@@ -69,7 +68,7 @@ func (htidx *LinearProbeHashTableIndex) ScanKey(key *tuple.Tuple, transaction *a
 	return ret_arr
 }
 
-func (htidx *LinearProbeHashTableIndex) GetRangeScanIterator(startkey *tuple.Tuple, endKey *tuple.Tuple, txn *access.Transaction) IndexRangeScanIterator {
+func (htidx *LinearProbeHashTableIndex) GetRangeScanIterator(startkey *tuple.Tuple, endKey *tuple.Tuple, txn interface{}) IndexRangeScanIterator {
 	return nil
 }
 

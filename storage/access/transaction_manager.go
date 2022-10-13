@@ -128,7 +128,7 @@ func (transaction_manager *TransactionManager) Abort(catalog_ catalog_interface.
 		} else if item.wtype == UPDATE {
 			beforRollbackTuple_ := item.table.GetTuple(&item.rid, txn)
 			// rollback record data
-			table.UpdateTuple(item.tuple, nil, nil, -1, item.rid, txn)
+			table.UpdateTuple(item.tuple, nil, nil, item.oid, item.rid, txn)
 			// rollback index data
 			indexes := catalog_.GetRollbackNeededIndexes(indexMap, item.oid)
 			tuple_ := item.table.GetTuple(&item.rid, txn)
