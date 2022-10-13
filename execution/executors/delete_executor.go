@@ -51,7 +51,7 @@ func (e *DeleteExecutor) Next() (*tuple.Tuple, Done, error) {
 				defer e.it.Next()
 			}
 			rid := e.it.Current().GetRID()
-			is_marked := e.tableMetadata.Table().MarkDelete(rid, e.txn)
+			is_marked := e.tableMetadata.Table().MarkDelete(rid, e.tableMetadata.OID(), e.txn)
 			if !is_marked {
 				err := errors.New("tuple update failed. PageId:SlotNum = " + string(rid.GetPageId()) + ":" + fmt.Sprint(rid.GetSlotNum()))
 				return nil, false, err

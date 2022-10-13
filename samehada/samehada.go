@@ -165,7 +165,7 @@ func (sdb *SamehadaDB) ExecuteSQLRetValues(sqlStr string) (error, [][]*types.Val
 	result := sdb.exec_engine_.Execute(plan, context)
 
 	if txn.GetState() == access.ABORTED {
-		sdb.shi_.GetTransactionManager().Abort(txn)
+		sdb.shi_.GetTransactionManager().Abort(sdb.catalog_, txn)
 		// TODO: (SDB) when concurrent execution of transaction is activated, appropriate handling of aborted transactions is needed
 	} else {
 		sdb.shi_.GetTransactionManager().Commit(txn)

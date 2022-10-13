@@ -1,6 +1,8 @@
 package access
 
 import (
+	"github.com/ryogrid/SamehadaDB/catalog"
+	"github.com/ryogrid/SamehadaDB/storage/index"
 	"sync"
 
 	"github.com/ryogrid/SamehadaDB/common"
@@ -89,17 +91,38 @@ func (transaction_manager *TransactionManager) Commit(txn *Transaction) {
 	transaction_manager.global_txn_latch.RUnlock()
 }
 
-func (transaction_manager *TransactionManager) Abort(txn *Transaction) {
+func getRollbackNeededIndexes(catalog_ *catalog.Catalog, indexMap map[uint32][]index.Index, oid uint32) []index.Index {
+	if indexes, found := indexMap[oid]; found {
+		return indexes
+	} else {
+		indexes_ := catalog_.GetTableByOID(oid).Indexes()
+		indexMap[oid] = indexes_
+		return indexes_
+	}
+}
+
+func (transaction_manager *TransactionManager) Abort(catalog_ *catalog.Catalog, txn *Transaction) {
 	txn.SetState(ABORTED)
 
-	// Rollback before releasing the access.
+	indexMap := make(map[uint32][]index.Index, 0)
 	write_set := txn.GetWriteSet()
+
+	// Rollback before releasing the access.
 	for len(write_set) != 0 {
 		item := write_set[len(write_set)-1]
 		table := item.table
 		if item.wtype == DELETE {
+			// rollback record data
 			table.RollbackDelete(&item.rid, txn)
+			// rollback index data
+			indexes := getRollbackNeededIndexes(catalog_, indexMap, item.oid)
+			tuple_ := item.table.GetTuple(&item.rid, txn)
+			for _, index_ := range indexes {
+				index_.InsertEntry(tuple_, item.rid, txn)
+			}
 		} else if item.wtype == INSERT {
+			insertedTuple := item.table.GetTuple(&item.rid, txn)
+			// rollback record data
 			rid := item.rid
 			// Note that this also releases the lock when holding the page latch.
 			pageID := rid.GetPageId()
@@ -107,8 +130,22 @@ func (transaction_manager *TransactionManager) Abort(txn *Transaction) {
 			tpage.WLatch()
 			tpage.ApplyDelete(&item.rid, txn, transaction_manager.log_manager)
 			tpage.WUnlatch()
+			// rollback index data
+			indexes := getRollbackNeededIndexes(catalog_, indexMap, item.oid)
+			for _, index_ := range indexes {
+				index_.DeleteEntry(insertedTuple, item.rid, txn)
+			}
 		} else if item.wtype == UPDATE {
-			table.UpdateTuple(item.tuple, nil, nil, item.rid, txn)
+			beforRollbackTuple_ := item.table.GetTuple(&item.rid, txn)
+			// rollback record data
+			table.UpdateTuple(item.tuple, nil, nil, -1, item.rid, txn)
+			// rollback index data
+			indexes := getRollbackNeededIndexes(catalog_, indexMap, item.oid)
+			tuple_ := item.table.GetTuple(&item.rid, txn)
+			for _, index_ := range indexes {
+				index_.DeleteEntry(beforRollbackTuple_, item.rid, txn)
+				index_.InsertEntry(tuple_, item.rid, txn)
+			}
 		}
 		write_set = write_set[:len(write_set)-1]
 	}

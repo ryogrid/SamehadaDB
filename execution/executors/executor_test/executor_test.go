@@ -1202,7 +1202,7 @@ func TestAbortWIthDeleteUpdate(t *testing.T) {
 
 	testingpkg.Assert(t, len(results) == 0, "")
 
-	txn_mgr.Abort(txn)
+	txn_mgr.Abort(c, txn)
 
 	fmt.Println("select and check value after Abort...")
 
@@ -1514,7 +1514,7 @@ func rowInsertTransaction(t *testing.T, shi *samehada.SamehadaInstance, c *catal
 	executorContext := executors.NewExecutorContext(c, shi.GetBufferPoolManager(), txn)
 	executionEngine.Execute(insertPlanNode, executorContext)
 
-	ret := handleFnishTxn(shi.GetTransactionManager(), txn)
+	ret := handleFnishTxn(c, shi.GetTransactionManager(), txn)
 	master_ch <- ret
 }
 
@@ -1526,7 +1526,7 @@ func deleteAllRowTransaction(t *testing.T, shi *samehada.SamehadaInstance, c *ca
 	executorContext := executors.NewExecutorContext(c, shi.GetBufferPoolManager(), txn)
 	executionEngine.Execute(deletePlan, executorContext)
 
-	ret := handleFnishTxn(shi.GetTransactionManager(), txn)
+	ret := handleFnishTxn(c, shi.GetTransactionManager(), txn)
 	master_ch <- ret
 }
 
@@ -1542,16 +1542,16 @@ func selectAllRowTransaction(t *testing.T, shi *samehada.SamehadaInstance, c *ca
 
 	executionEngine.Execute(seqPlan, executorContext)
 
-	ret := handleFnishTxn(shi.GetTransactionManager(), txn)
+	ret := handleFnishTxn(c, shi.GetTransactionManager(), txn)
 	master_ch <- ret
 }
 
-func handleFnishTxn(txn_mgr *access.TransactionManager, txn *access.Transaction) int32 {
+func handleFnishTxn(catalog_ *catalog.Catalog, txn_mgr *access.TransactionManager, txn *access.Transaction) int32 {
 	// fmt.Println(txn.GetState())
 	if txn.GetState() == access.ABORTED {
 		// fmt.Println(txn.GetSharedLockSet())
 		// fmt.Println(txn.GetExclusiveLockSet())
-		txn_mgr.Abort(txn)
+		txn_mgr.Abort(catalog_, txn)
 		return 0
 	} else {
 		// fmt.Println(txn.GetSharedLockSet())

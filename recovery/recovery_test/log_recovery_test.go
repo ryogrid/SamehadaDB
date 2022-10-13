@@ -190,10 +190,10 @@ func TestRedo(t *testing.T) {
 	val1_1 := tuple1_.GetValue(schema_, 1)
 	val1_0 := tuple1_.GetValue(schema_, 0)
 
-	rid, _ = test_table.InsertTuple(tuple_, txn)
+	rid, _ = test_table.InsertTuple(tuple_, txn, -1)
 	// TODO: (SDB) insert index entry if needed
 	testingpkg.Assert(t, rid != nil, "")
-	rid1, _ = test_table.InsertTuple(tuple1_, txn)
+	rid1, _ = test_table.InsertTuple(tuple1_, txn, -1)
 	// TODO: (SDB) insert index entry if needed
 	testingpkg.Assert(t, rid != nil, "")
 
@@ -299,7 +299,7 @@ func TestUndo(t *testing.T) {
 	val1_0 := tuple1.GetValue(schema_, 0)
 	val1_1 := tuple1.GetValue(schema_, 1)
 	var rid1 *page.RID
-	rid1, _ = test_table.InsertTuple(tuple1, txn)
+	rid1, _ = test_table.InsertTuple(tuple1, txn, -1)
 	testingpkg.Assert(t, rid1 != nil, "")
 
 	tuple2 := ConstructTuple(schema_)
@@ -307,7 +307,7 @@ func TestUndo(t *testing.T) {
 	val2_1 := tuple2.GetValue(schema_, 1)
 
 	var rid2 *page.RID
-	rid2, _ = test_table.InsertTuple(tuple2, txn)
+	rid2, _ = test_table.InsertTuple(tuple2, txn, -1)
 	testingpkg.Assert(t, rid2 != nil, "")
 
 	fmt.Println("Log page content is written to disk")
@@ -318,18 +318,18 @@ func TestUndo(t *testing.T) {
 	txn = samehada_instance.GetTransactionManager().Begin(nil)
 
 	// tuple deletion (rid1)
-	test_table.MarkDelete(rid1, txn)
+	test_table.MarkDelete(rid1, -1, txn)
 
 	// tuple updating (rid2)
 	row1 := make([]types.Value, 0)
 	row1 = append(row1, types.NewVarchar("updated"))
 	row1 = append(row1, types.NewInteger(256))
-	test_table.UpdateTuple(tuple.NewTupleFromSchema(row1, schema_), nil, nil, *rid2, txn)
+	test_table.UpdateTuple(tuple.NewTupleFromSchema(row1, schema_), nil, nil, -1, *rid2, txn)
 
 	// tuple insertion (rid3)
 	tuple3 := ConstructTuple(schema_)
 	var rid3 *page.RID
-	rid3, _ = test_table.InsertTuple(tuple3, txn)
+	rid3, _ = test_table.InsertTuple(tuple3, txn, -1)
 	// TODO: (SDB) insert index entry if needed
 	testingpkg.Assert(t, rid3 != nil, "")
 
@@ -458,7 +458,7 @@ func TestCheckpoint(t *testing.T) {
 	txn1 := samehada_instance.GetTransactionManager().Begin(nil)
 	for i := 0; i < 1000; i++ {
 		//var rid *page.RID = nil
-		rid, err := test_table.InsertTuple(tuple_, txn1)
+		rid, err := test_table.InsertTuple(tuple_, txn1, -1)
 		if err != nil {
 			fmt.Println(err)
 		}

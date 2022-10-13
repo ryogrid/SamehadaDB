@@ -54,7 +54,7 @@ func (t *TableHeap) GetFirstPageId() types.PageID {
 // If the tuple is too large (>= page_size):
 // 1. It tries to insert in the next page
 // 2. If there is no next page, it creates a new page and insert in it
-func (t *TableHeap) InsertTuple(tuple_ *tuple.Tuple, txn *Transaction) (rid *page.RID, err error) {
+func (t *TableHeap) InsertTuple(tuple_ *tuple.Tuple, txn *Transaction, oid uint32) (rid *page.RID, err error) {
 	currentPage := CastPageAsTablePage(t.bpm.FetchPage(t.firstPageId))
 
 	// Insert into the first page with enough space. If no such page exists, create a new page and insert into that.
@@ -97,13 +97,13 @@ func (t *TableHeap) InsertTuple(tuple_ *tuple.Tuple, txn *Transaction) (rid *pag
 
 	t.bpm.UnpinPage(currentPage.GetTablePageId(), true)
 	// Update the transaction's write set.
-	txn.AddIntoWriteSet(NewWriteRecord(*rid, INSERT, new(tuple.Tuple), t))
+	txn.AddIntoWriteSet(NewWriteRecord(*rid, INSERT, new(tuple.Tuple), t, oid))
 	return rid, nil
 }
 
 // if specified nil to update_col_idxs and schema_, all data of existed tuple is replaced one of new_tuple
 // if specified not nil, new_tuple also should have all columns defined in schema. but not update target value can be dummy value
-func (t *TableHeap) UpdateTuple(tuple_ *tuple.Tuple, update_col_idxs []int, schema_ *schema.Schema, rid page.RID, txn *Transaction) (bool, *page.RID) {
+func (t *TableHeap) UpdateTuple(tuple_ *tuple.Tuple, update_col_idxs []int, schema_ *schema.Schema, oid uint32, rid page.RID, txn *Transaction) (bool, *page.RID) {
 	// Find the page which contains the tuple.
 	page_ := CastPageAsTablePage(t.bpm.FetchPage(rid.GetPageId()))
 	// If the page could not be found, then abort the transaction.
@@ -125,7 +125,7 @@ func (t *TableHeap) UpdateTuple(tuple_ *tuple.Tuple, update_col_idxs []int, sche
 		// delete and insert need_follow_tuple as updating
 
 		// first, delete target tuple (old data)
-		is_deleted := t.MarkDelete(&rid, txn)
+		is_deleted := t.MarkDelete(&rid, oid, txn)
 		if !is_deleted {
 			fmt.Println("TableHeap::UpdateTuple(): MarkDelete failed")
 			txn.SetState(ABORTED)
@@ -133,7 +133,7 @@ func (t *TableHeap) UpdateTuple(tuple_ *tuple.Tuple, update_col_idxs []int, sche
 		}
 
 		var err error = nil
-		new_rid, err = t.InsertTuple(need_follow_tuple, txn)
+		new_rid, err = t.InsertTuple(need_follow_tuple, txn, -1)
 		if err != nil {
 			fmt.Println("TableHeap::UpdateTuple(): InsertTuple failed")
 			txn.SetState(ABORTED)
@@ -147,12 +147,12 @@ func (t *TableHeap) UpdateTuple(tuple_ *tuple.Tuple, update_col_idxs []int, sche
 
 	// Update the transaction's write set.
 	if is_updated && txn.GetState() != ABORTED {
-		txn.AddIntoWriteSet(NewWriteRecord(rid, UPDATE, old_tuple, t))
+		txn.AddIntoWriteSet(NewWriteRecord(rid, UPDATE, old_tuple, t, oid))
 	}
 	return is_updated, new_rid
 }
 
-func (t *TableHeap) MarkDelete(rid *page.RID, txn *Transaction) bool {
+func (t *TableHeap) MarkDelete(rid *page.RID, oid uint32, txn *Transaction) bool {
 	// Find the page which contains the tuple.
 	page_ := CastPageAsTablePage(t.bpm.FetchPage(rid.GetPageId()))
 	// If the page could not be found, then abort the transaction.
@@ -167,7 +167,7 @@ func (t *TableHeap) MarkDelete(rid *page.RID, txn *Transaction) bool {
 	t.bpm.UnpinPage(page_.GetTablePageId(), true)
 	if is_marked {
 		// Update the transaction's write set.
-		txn.AddIntoWriteSet(NewWriteRecord(*rid, DELETE, new(tuple.Tuple), t))
+		txn.AddIntoWriteSet(NewWriteRecord(*rid, DELETE, new(tuple.Tuple), t, oid))
 	}
 
 	return is_marked

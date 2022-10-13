@@ -1,15 +1,12 @@
 package executor_test
 
 import (
-	"fmt"
 	"github.com/ryogrid/SamehadaDB/catalog"
 	"github.com/ryogrid/SamehadaDB/common"
-	"github.com/ryogrid/SamehadaDB/container/skip_list"
 	"github.com/ryogrid/SamehadaDB/execution/executors"
 	"github.com/ryogrid/SamehadaDB/execution/expression"
 	"github.com/ryogrid/SamehadaDB/execution/plans"
 	"github.com/ryogrid/SamehadaDB/recovery"
-	"github.com/ryogrid/SamehadaDB/samehada"
 	"github.com/ryogrid/SamehadaDB/samehada/samehada_util"
 	"github.com/ryogrid/SamehadaDB/storage/access"
 	"github.com/ryogrid/SamehadaDB/storage/buffer"
@@ -17,12 +14,8 @@ import (
 	"github.com/ryogrid/SamehadaDB/storage/index/index_constants"
 	"github.com/ryogrid/SamehadaDB/storage/table/column"
 	"github.com/ryogrid/SamehadaDB/storage/table/schema"
-	testingpkg "github.com/ryogrid/SamehadaDB/testing"
 	"github.com/ryogrid/SamehadaDB/types"
 	"math"
-	"math/rand"
-	"os"
-	"sync"
 	"testing"
 )
 
@@ -308,6 +301,7 @@ func TestSkipListSerialIndexRangeScan(t *testing.T) {
 	common.TempSuppressOnMemStorageMutex.Unlock()
 }
 
+/*
 func getRandomPrimitiveVal[T int32 | float32 | string](keyType types.TypeID) T {
 	switch keyType {
 	case types.Integer:
@@ -774,3 +768,4 @@ func testSkipListMixParallelStrideAddedIterator[T int32 | float32 | string](t *t
 	}
 	shi.CloseFilesForTesting()
 }
+*/

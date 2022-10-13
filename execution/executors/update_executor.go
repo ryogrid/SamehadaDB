@@ -58,9 +58,9 @@ func (e *UpdateExecutor) Next() (*tuple.Tuple, Done, error) {
 			var is_updated bool = false
 			var new_rid *page.RID = nil
 			if e.plan.GetUpdateColIdxs() == nil {
-				is_updated, new_rid = e.tableMetadata.Table().UpdateTuple(new_tuple, nil, nil, *rid, e.txn)
+				is_updated, new_rid = e.tableMetadata.Table().UpdateTuple(new_tuple, nil, nil, e.tableMetadata.OID(), *rid, e.txn)
 			} else {
-				is_updated, new_rid = e.tableMetadata.Table().UpdateTuple(new_tuple, e.plan.GetUpdateColIdxs(), e.tableMetadata.Schema(), *rid, e.txn)
+				is_updated, new_rid = e.tableMetadata.Table().UpdateTuple(new_tuple, e.plan.GetUpdateColIdxs(), e.tableMetadata.Schema(), e.tableMetadata.OID(), *rid, e.txn)
 			}
 
 			if !is_updated {
