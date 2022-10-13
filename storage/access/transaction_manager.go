@@ -1,7 +1,7 @@
 package access
 
 import (
-	"github.com/ryogrid/SamehadaDB/catalog"
+	"github.com/ryogrid/SamehadaDB/catalog/catalog_interface"
 	"github.com/ryogrid/SamehadaDB/storage/index"
 	"sync"
 
@@ -91,17 +91,7 @@ func (transaction_manager *TransactionManager) Commit(txn *Transaction) {
 	transaction_manager.global_txn_latch.RUnlock()
 }
 
-func getRollbackNeededIndexes(catalog_ *catalog.Catalog, indexMap map[uint32][]index.Index, oid uint32) []index.Index {
-	if indexes, found := indexMap[oid]; found {
-		return indexes
-	} else {
-		indexes_ := catalog_.GetTableByOID(oid).Indexes()
-		indexMap[oid] = indexes_
-		return indexes_
-	}
-}
-
-func (transaction_manager *TransactionManager) Abort(catalog_ *catalog.Catalog, txn *Transaction) {
+func (transaction_manager *TransactionManager) Abort(catalog_ catalog_interface.CatalogInterface, txn *Transaction) {
 	txn.SetState(ABORTED)
 
 	indexMap := make(map[uint32][]index.Index, 0)
@@ -115,7 +105,7 @@ func (transaction_manager *TransactionManager) Abort(catalog_ *catalog.Catalog, 
 			// rollback record data
 			table.RollbackDelete(&item.rid, txn)
 			// rollback index data
-			indexes := getRollbackNeededIndexes(catalog_, indexMap, item.oid)
+			indexes := catalog_.GetRollbackNeededIndexes(indexMap, item.oid)
 			tuple_ := item.table.GetTuple(&item.rid, txn)
 			for _, index_ := range indexes {
 				index_.InsertEntry(tuple_, item.rid, txn)
@@ -131,7 +121,7 @@ func (transaction_manager *TransactionManager) Abort(catalog_ *catalog.Catalog, 
 			tpage.ApplyDelete(&item.rid, txn, transaction_manager.log_manager)
 			tpage.WUnlatch()
 			// rollback index data
-			indexes := getRollbackNeededIndexes(catalog_, indexMap, item.oid)
+			indexes := catalog_.GetRollbackNeededIndexes(indexMap, item.oid)
 			for _, index_ := range indexes {
 				index_.DeleteEntry(insertedTuple, item.rid, txn)
 			}
@@ -140,7 +130,7 @@ func (transaction_manager *TransactionManager) Abort(catalog_ *catalog.Catalog, 
 			// rollback record data
 			table.UpdateTuple(item.tuple, nil, nil, -1, item.rid, txn)
 			// rollback index data
-			indexes := getRollbackNeededIndexes(catalog_, indexMap, item.oid)
+			indexes := catalog_.GetRollbackNeededIndexes(indexMap, item.oid)
 			tuple_ := item.table.GetTuple(&item.rid, txn)
 			for _, index_ := range indexes {
 				index_.DeleteEntry(beforRollbackTuple_, item.rid, txn)

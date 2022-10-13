@@ -2,7 +2,6 @@ package skip_list
 
 import (
 	"github.com/ryogrid/SamehadaDB/common"
-	"github.com/ryogrid/SamehadaDB/storage/access"
 	"github.com/ryogrid/SamehadaDB/storage/buffer"
 	"github.com/ryogrid/SamehadaDB/storage/page/skip_list_page"
 	"github.com/ryogrid/SamehadaDB/types"
@@ -340,7 +339,7 @@ func (sl *SkipList) Remove(key *types.Value, value uint32) (isDeleted_ bool) {
 //	return ret
 //}
 
-func (sl *SkipList) Iterator(rangeStartKey *types.Value, rangeEndKey *types.Value, txn *access.Transaction) *SkipListIterator {
+func (sl *SkipList) Iterator(rangeStartKey *types.Value, rangeEndKey *types.Value) *SkipListIterator {
 	return NewSkipListIterator(sl, rangeStartKey, rangeEndKey)
 }
 

@@ -328,7 +328,7 @@ func confirmSkipListContent(t *testing.T, sl *skip_list.SkipList, step int32) in
 	entryCnt := int32(0)
 	lastKeyVal := int32(-1)
 	dupCheckMap := make(map[int32]int32)
-	itr := sl.Iterator(nil, nil, nil)
+	itr := sl.Iterator(nil, nil)
 	for done, _, key, _ := itr.Next(); !done; done, _, key, _ = itr.Next() {
 		curVal := key.ToInteger()
 		//fmt.Printf("lastKeyVal=%d curVal=%d entryCnt=%d\n", lastKeyVal, curVal, entryCnt)
@@ -778,7 +778,7 @@ func choiceValFromMap[T int32 | float32 | string, V int32 | float32 | string](m 
 
 func countSkipListContent(sl *skip_list.SkipList) int32 {
 	entryCnt := int32(0)
-	itr := sl.Iterator(nil, nil, nil)
+	itr := sl.Iterator(nil, nil)
 	for done, _, _, _ := itr.Next(); !done; done, _, _, _ = itr.Next() {
 		entryCnt++
 	}
@@ -1878,7 +1878,7 @@ func testSkipListMixParallelStrideAddedIterator[T int32 | float32 | string](t *t
 				rangeStartVal := types.NewValue(rangeStartBase)
 				rangeEndBase := strideAdd(rangeStartBase, stride).(T)
 				rangeEndVal := types.NewValue(rangeEndBase)
-				itr := sl.Iterator(&rangeStartVal, &rangeEndVal, nil)
+				itr := sl.Iterator(&rangeStartVal, &rangeEndVal)
 				for done, _, _, _ := itr.Next(); !done; done, _, _, _ = itr.Next() {
 				}
 

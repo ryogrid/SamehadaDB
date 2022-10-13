@@ -69,7 +69,7 @@ func (slidx *SkipListIndex) GetRangeScanIterator(start_key *tuple.Tuple, end_key
 		end_val = samehada_util.GetPonterOfValue(end_key.GetValue(tupleSchema_, slidx.col_idx))
 	}
 
-	return slidx.container.Iterator(start_val, end_val, txn)
+	return slidx.container.Iterator(start_val, end_val)
 }
 
 // Return the metadata object associated with the index

@@ -4,6 +4,7 @@
 package catalog
 
 import (
+	"github.com/ryogrid/SamehadaDB/storage/index"
 	"github.com/ryogrid/SamehadaDB/storage/index/index_constants"
 	"sync/atomic"
 
@@ -183,4 +184,15 @@ func (c *Catalog) insertTable(tableMetadata *TableMetadata, txn *access.Transact
 	c.bpm.FlushPage(TableCatalogPageId)
 	// flush a page having columns definitions on table
 	c.bpm.FlushPage(ColumnsCatalogPageId)
+}
+
+// for Redo/Undo
+func (c *Catalog) GetRollbackNeededIndexes(indexMap map[uint32][]index.Index, oid uint32) []index.Index {
+	if indexes, found := indexMap[oid]; found {
+		return indexes
+	} else {
+		indexes_ := c.GetTableByOID(oid).Indexes()
+		indexMap[oid] = indexes_
+		return indexes_
+	}
 }
