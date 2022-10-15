@@ -108,7 +108,9 @@ func (transaction_manager *TransactionManager) Abort(catalog_ catalog_interface.
 			indexes := catalog_.GetRollbackNeededIndexes(indexMap, item.oid)
 			tuple_ := item.table.GetTuple(&item.rid, txn)
 			for _, index_ := range indexes {
-				index_.InsertEntry(tuple_, item.rid, txn)
+				if index_ != nil {
+					index_.InsertEntry(tuple_, item.rid, txn)
+				}
 			}
 		} else if item.wtype == INSERT {
 			insertedTuple := item.table.GetTuple(&item.rid, txn)
@@ -123,7 +125,9 @@ func (transaction_manager *TransactionManager) Abort(catalog_ catalog_interface.
 			// rollback index data
 			indexes := catalog_.GetRollbackNeededIndexes(indexMap, item.oid)
 			for _, index_ := range indexes {
-				index_.DeleteEntry(insertedTuple, item.rid, txn)
+				if index_ != nil {
+					index_.DeleteEntry(insertedTuple, item.rid, txn)
+				}
 			}
 		} else if item.wtype == UPDATE {
 			beforRollbackTuple_ := item.table.GetTuple(&item.rid, txn)
@@ -133,8 +137,10 @@ func (transaction_manager *TransactionManager) Abort(catalog_ catalog_interface.
 			indexes := catalog_.GetRollbackNeededIndexes(indexMap, item.oid)
 			tuple_ := item.table.GetTuple(&item.rid, txn)
 			for _, index_ := range indexes {
-				index_.DeleteEntry(beforRollbackTuple_, item.rid, txn)
-				index_.InsertEntry(tuple_, item.rid, txn)
+				if index_ != nil {
+					index_.DeleteEntry(beforRollbackTuple_, item.rid, txn)
+					index_.InsertEntry(tuple_, item.rid, txn)
+				}
 			}
 		}
 		write_set = write_set[:len(write_set)-1]

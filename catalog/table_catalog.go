@@ -187,6 +187,9 @@ func (c *Catalog) insertTable(tableMetadata *TableMetadata, txn *access.Transact
 }
 
 // for Redo/Undo
+//
+// returned list's length is same with column num of table.
+// value of elements corresponding to columns which doesn't have index is nil.
 func (c *Catalog) GetRollbackNeededIndexes(indexMap map[uint32][]index.Index, oid uint32) []index.Index {
 	if indexes, found := indexMap[oid]; found {
 		return indexes

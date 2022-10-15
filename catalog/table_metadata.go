@@ -87,6 +87,9 @@ func (t *TableMetadata) GetColumnNum() uint32 {
 	return t.schema.GetColumnCount()
 }
 
+// return list of indexes
+// ATTENTION: returned list's length is same with column num of table.
+//            value of elements corresponding to columns which doesn't have index is nil
 func (t *TableMetadata) Indexes() []index.Index {
 	return t.indexes
 }
