@@ -69,6 +69,7 @@
 - [x] Tuple Level Locking With Strong Strict 2-Phase Locking (SS2PL) Protocol
 - [x] Concurrent Execution of Transactions
   - Avoidance of phantom problem is not implemented yet
+    - So, current transaction isolation level is **"REPEATABLE READ"**
 - [ ] <del>Execution Planning from hard coded SQL like method call I/F (like some kind of embedded DB)</del>
 - [x] Execution Planning from Query Description text (SQL)
 - [x] Frontend Impl as Embedded DB Library (like SQLite)
