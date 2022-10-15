@@ -1,6 +1,7 @@
 package executor_test
 
 import (
+	"fmt"
 	"github.com/ryogrid/SamehadaDB/catalog"
 	"github.com/ryogrid/SamehadaDB/common"
 	"github.com/ryogrid/SamehadaDB/execution/executors"
@@ -14,6 +15,7 @@ import (
 	"github.com/ryogrid/SamehadaDB/storage/index/index_constants"
 	"github.com/ryogrid/SamehadaDB/storage/table/column"
 	"github.com/ryogrid/SamehadaDB/storage/table/schema"
+	testingpkg "github.com/ryogrid/SamehadaDB/testing"
 	"github.com/ryogrid/SamehadaDB/types"
 	"math"
 	"testing"
@@ -299,6 +301,148 @@ func TestSkipListSerialIndexRangeScan(t *testing.T) {
 	common.TempSuppressOnMemStorage = false
 	diskManager.ShutDown()
 	common.TempSuppressOnMemStorageMutex.Unlock()
+}
+
+// TODO: (SDB) for this test, Executors for Delete and Update which can apply operation to tuples given from other Executor (TestAbortWthDeleteUpdateUsingIndexCase)
+func TestAbortWthDeleteUpdateUsingIndexCase(t *testing.T) {
+	diskManager := disk.NewDiskManagerTest()
+	defer diskManager.ShutDown()
+	log_mgr := recovery.NewLogManager(&diskManager)
+	bpm := buffer.NewBufferPoolManager(uint32(32), diskManager, log_mgr)
+	txn_mgr := access.NewTransactionManager(access.NewLockManager(access.REGULAR, access.DETECTION), log_mgr)
+	txn := txn_mgr.Begin(nil)
+
+	c := catalog.BootstrapCatalog(bpm, log_mgr, access.NewLockManager(access.REGULAR, access.PREVENTION), txn)
+
+	columnA := column.NewColumn("a", types.Integer, false, index_constants.INDEX_KIND_SKIP_LIST, types.PageID(-1), nil)
+	columnB := column.NewColumn("b", types.Varchar, false, index_constants.INDEX_KIND_SKIP_LIST, types.PageID(-1), nil)
+	schema_ := schema.NewSchema([]*column.Column{columnA, columnB})
+
+	tableMetadata := c.CreateTable("test_1", schema_, txn)
+
+	row1 := make([]types.Value, 0)
+	row1 = append(row1, types.NewInteger(20))
+	row1 = append(row1, types.NewVarchar("hoge"))
+
+	row2 := make([]types.Value, 0)
+	row2 = append(row2, types.NewInteger(99))
+	row2 = append(row2, types.NewVarchar("foo"))
+
+	row3 := make([]types.Value, 0)
+	row3 = append(row3, types.NewInteger(777))
+	row3 = append(row3, types.NewVarchar("bar"))
+
+	rows := make([][]types.Value, 0)
+	rows = append(rows, row1)
+	rows = append(rows, row2)
+	rows = append(rows, row3)
+
+	insertPlanNode := plans.NewInsertPlanNode(rows, tableMetadata.OID())
+
+	executionEngine := &executors.ExecutionEngine{}
+	executorContext := executors.NewExecutorContext(c, bpm, txn)
+	executionEngine.Execute(insertPlanNode, executorContext)
+
+	txn_mgr.Commit(txn)
+
+	fmt.Println("update and delete rows...")
+	txn = txn_mgr.Begin(nil)
+	executorContext.SetTransaction(txn)
+
+	// update
+	row1 = make([]types.Value, 0)
+	row1 = append(row1, types.NewInteger(99))
+	row1 = append(row1, types.NewVarchar("updated"))
+
+	pred := executors.Predicate{"b", expression.Equal, "foo"}
+	tmpColVal := new(expression.ColumnValue)
+	tmpColVal.SetTupleIndex(0)
+	tmpColVal.SetColIndex(tableMetadata.Schema().GetColIndex(pred.LeftColumn))
+	expression_ := expression.NewComparison(tmpColVal, expression.NewConstantValue(executors.GetValue(pred.RightColumn), executors.GetValueType(pred.RightColumn)), pred.Operator, types.Boolean)
+
+	updatePlanNode := plans.NewUpdatePlanNode(row1, []int{0, 1}, expression_, tableMetadata.OID())
+	executionEngine.Execute(updatePlanNode, executorContext)
+
+	// delete
+	pred = executors.Predicate{"b", expression.Equal, "bar"}
+	tmpColVal = new(expression.ColumnValue)
+	tmpColVal.SetTupleIndex(0)
+	tmpColVal.SetColIndex(tableMetadata.Schema().GetColIndex(pred.LeftColumn))
+	expression_ = expression.NewComparison(tmpColVal, expression.NewConstantValue(executors.GetValue(pred.RightColumn), executors.GetValueType(pred.RightColumn)), pred.Operator, types.Boolean)
+
+	deletePlanNode := plans.NewDeletePlanNode(expression_, tableMetadata.OID())
+	executionEngine.Execute(deletePlanNode, executorContext)
+
+	log_mgr.DeactivateLogging()
+
+	fmt.Println("select and check value before Abort...")
+
+	// check updated row
+	outColumnB := column.NewColumn("b", types.Varchar, false, index_constants.INDEX_KIND_INVAID, types.PageID(-1), nil)
+	outSchema := schema.NewSchema([]*column.Column{outColumnB})
+
+	pred = executors.Predicate{"a", expression.Equal, 99}
+	tmpColVal = new(expression.ColumnValue)
+	tmpColVal.SetTupleIndex(0)
+	tmpColVal.SetColIndex(tableMetadata.Schema().GetColIndex(pred.LeftColumn))
+	expression_ = expression.NewComparison(tmpColVal, expression.NewConstantValue(executors.GetValue(pred.RightColumn), executors.GetValueType(pred.RightColumn)), pred.Operator, types.Boolean)
+
+	seqPlan := plans.NewSeqScanPlanNode(outSchema, expression_, tableMetadata.OID())
+	results := executionEngine.Execute(seqPlan, executorContext)
+
+	testingpkg.Assert(t, types.NewVarchar("updated").CompareEquals(results[0].GetValue(outSchema, 0)), "value should be 'updated'")
+
+	// check deleted row
+	outColumnB = column.NewColumn("b", types.Integer, false, index_constants.INDEX_KIND_INVAID, types.PageID(-1), nil)
+	outSchema = schema.NewSchema([]*column.Column{outColumnB})
+
+	pred = executors.Predicate{"b", expression.Equal, "bar"}
+	tmpColVal = new(expression.ColumnValue)
+	tmpColVal.SetTupleIndex(0)
+	tmpColVal.SetColIndex(tableMetadata.Schema().GetColIndex(pred.LeftColumn))
+	expression_ = expression.NewComparison(tmpColVal, expression.NewConstantValue(executors.GetValue(pred.RightColumn), executors.GetValueType(pred.RightColumn)), pred.Operator, types.Boolean)
+
+	seqPlan = plans.NewSeqScanPlanNode(outSchema, expression_, tableMetadata.OID())
+	results = executionEngine.Execute(seqPlan, executorContext)
+
+	testingpkg.Assert(t, len(results) == 0, "")
+
+	txn_mgr.Abort(c, txn)
+
+	fmt.Println("select and check value after Abort...")
+
+	txn = txn_mgr.Begin(nil)
+	executorContext.SetTransaction(txn)
+
+	// check updated row
+	outColumnB = column.NewColumn("b", types.Varchar, false, index_constants.INDEX_KIND_INVAID, types.PageID(-1), nil)
+	outSchema = schema.NewSchema([]*column.Column{outColumnB})
+
+	pred = executors.Predicate{"a", expression.Equal, 99}
+	tmpColVal = new(expression.ColumnValue)
+	tmpColVal.SetTupleIndex(0)
+	tmpColVal.SetColIndex(tableMetadata.Schema().GetColIndex(pred.LeftColumn))
+	expression_ = expression.NewComparison(tmpColVal, expression.NewConstantValue(executors.GetValue(pred.RightColumn), executors.GetValueType(pred.RightColumn)), pred.Operator, types.Boolean)
+
+	seqPlan = plans.NewSeqScanPlanNode(outSchema, expression_, tableMetadata.OID())
+	results = executionEngine.Execute(seqPlan, executorContext)
+
+	testingpkg.Assert(t, types.NewVarchar("foo").CompareEquals(results[0].GetValue(outSchema, 0)), "value should be 'foo'")
+
+	// check deleted row
+	outColumnB = column.NewColumn("b", types.Integer, false, index_constants.INDEX_KIND_INVAID, types.PageID(-1), nil)
+	outSchema = schema.NewSchema([]*column.Column{outColumnB})
+
+	pred = executors.Predicate{"b", expression.Equal, "bar"}
+	tmpColVal = new(expression.ColumnValue)
+	tmpColVal.SetTupleIndex(0)
+	tmpColVal.SetColIndex(tableMetadata.Schema().GetColIndex(pred.LeftColumn))
+	expression_ = expression.NewComparison(tmpColVal, expression.NewConstantValue(executors.GetValue(pred.RightColumn), executors.GetValueType(pred.RightColumn)), pred.Operator, types.Boolean)
+
+	seqPlan = plans.NewSeqScanPlanNode(outSchema, expression_, tableMetadata.OID())
+	results = executionEngine.Execute(seqPlan, executorContext)
+
+	testingpkg.Assert(t, len(results) == 1, "")
 }
 
 /*
