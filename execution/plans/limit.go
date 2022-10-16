@@ -24,3 +24,7 @@ func (p *LimitPlanNode) GetOffset() uint32 {
 func (p *LimitPlanNode) GetType() PlanType {
 	return Limit
 }
+
+func (p *LimitPlanNode) GetTableOID() uint32 {
+	return p.children[0].GetTableOID()
+}

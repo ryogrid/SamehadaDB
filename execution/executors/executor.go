@@ -4,6 +4,7 @@
 package executors
 
 import (
+	"github.com/ryogrid/SamehadaDB/catalog"
 	"github.com/ryogrid/SamehadaDB/storage/table/schema"
 	"github.com/ryogrid/SamehadaDB/storage/tuple"
 )
@@ -20,4 +21,5 @@ type Executor interface {
 	Init()
 	Next() (*tuple.Tuple, Done, error)
 	GetOutputSchema() *schema.Schema
+	GetTableMetaData() *catalog.TableMetadata
 }

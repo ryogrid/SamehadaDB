@@ -151,3 +151,7 @@ func (e *RangeScanWithIndexExecutor) projects(tuple_ *tuple.Tuple) *tuple.Tuple 
 func (e *RangeScanWithIndexExecutor) GetOutputSchema() *schema.Schema {
 	return e.plan.OutputSchema()
 }
+
+func (e *RangeScanWithIndexExecutor) GetTableMetaData() *catalog.TableMetadata {
+	return e.tableMetadata
+}

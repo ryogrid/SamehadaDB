@@ -102,3 +102,7 @@ func (e *UpdateExecutor) selects(tuple *tuple.Tuple, predicate expression.Expres
 func (e *UpdateExecutor) GetOutputSchema() *schema.Schema {
 	return e.plan.OutputSchema()
 }
+
+func (e *UpdateExecutor) GetTableMetaData() *catalog.TableMetadata {
+	return e.tableMetadata
+}

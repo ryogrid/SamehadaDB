@@ -2,6 +2,7 @@ package executors
 
 import (
 	"fmt"
+	"github.com/ryogrid/SamehadaDB/catalog"
 	"github.com/ryogrid/SamehadaDB/execution/plans"
 	"github.com/ryogrid/SamehadaDB/storage/table/schema"
 	"github.com/ryogrid/SamehadaDB/storage/tuple"
@@ -112,4 +113,8 @@ func (e *OrderbyExecutor) Next() (*tuple.Tuple, Done, error) {
 	} else {
 		return nil, true, nil
 	}
+}
+
+func (e *OrderbyExecutor) GetTableMetaData() *catalog.TableMetadata {
+	return e.child_[0].GetTableMetaData()
 }

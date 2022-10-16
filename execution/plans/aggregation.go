@@ -84,6 +84,10 @@ func (p *AggregationPlanNode) GetAggregates() []expression.Expression { return p
 /** @return the aggregate types */
 func (p *AggregationPlanNode) GetAggregateTypes() []AggregationType { return p.agg_types_ }
 
+func (p *AggregationPlanNode) GetTableOID() uint32 {
+	return p.children[0].GetTableOID()
+}
+
 type AggregateKey struct {
 	Group_bys_ []*types.Value
 }

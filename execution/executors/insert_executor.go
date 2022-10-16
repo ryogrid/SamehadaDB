@@ -63,3 +63,5 @@ func (e *InsertExecutor) Next() (*tuple.Tuple, Done, error) {
 func (e *InsertExecutor) GetOutputSchema() *schema.Schema {
 	return e.plan.OutputSchema()
 }
+
+func (e *InsertExecutor) GetTableMetaData() *catalog.TableMetadata { return e.tableMetadata }

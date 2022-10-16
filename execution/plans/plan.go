@@ -28,6 +28,7 @@ type Plan interface {
 	GetChildAt(childIndex uint32) Plan
 	GetChildren() []Plan
 	GetType() PlanType
+	GetTableOID() uint32
 }
 
 /**

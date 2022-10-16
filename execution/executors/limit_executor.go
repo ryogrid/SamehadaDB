@@ -5,6 +5,7 @@ package executors
 
 import (
 	"errors"
+	"github.com/ryogrid/SamehadaDB/catalog"
 
 	"github.com/ryogrid/SamehadaDB/execution/plans"
 	"github.com/ryogrid/SamehadaDB/storage/table/schema"
@@ -57,3 +58,5 @@ func (e *LimitExecutor) Next() (*tuple.Tuple, Done, error) {
 func (e *LimitExecutor) GetOutputSchema() *schema.Schema {
 	return e.plan.OutputSchema()
 }
+
+func (e *LimitExecutor) GetTableMetaData() *catalog.TableMetadata { return e.child.GetTableMetaData() }

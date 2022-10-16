@@ -2,6 +2,7 @@ package executors
 
 import (
 	"errors"
+	"github.com/ryogrid/SamehadaDB/catalog"
 	"github.com/ryogrid/SamehadaDB/execution/expression"
 	"github.com/ryogrid/SamehadaDB/execution/plans"
 	"github.com/ryogrid/SamehadaDB/storage/table/schema"
@@ -68,3 +69,5 @@ func (e *FilterExecutor) projects(tuple_ *tuple.Tuple) *tuple.Tuple {
 
 	return tuple.NewTupleFromSchema(values, filterSchema)
 }
+
+func (e *FilterExecutor) GetTableMetaData() *catalog.TableMetadata { return e.child.GetTableMetaData() }

@@ -2,6 +2,7 @@ package executors
 
 import (
 	"fmt"
+	"github.com/ryogrid/SamehadaDB/catalog"
 	"math"
 
 	"github.com/ryogrid/SamehadaDB/container/hash"
@@ -270,4 +271,8 @@ func (e *AggregationExecutor) MakeVal(tuple_ *tuple.Tuple) *plans.AggregateValue
 		vals = append(vals, &tmp_val)
 	}
 	return &plans.AggregateValue{Aggregates_: vals}
+}
+
+func (e *AggregationExecutor) GetTableMetaData() *catalog.TableMetadata {
+	return e.child_[0].GetTableMetaData()
 }

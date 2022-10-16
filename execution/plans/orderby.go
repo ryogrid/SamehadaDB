@@ -61,3 +61,7 @@ func (p *OrderbyPlanNode) GetColIdxs() []int { return p.col_idxs_ }
 
 /** @return the Order type ASC or DESC */
 func (p *OrderbyPlanNode) GetOrderbyTypes() []OrderbyType { return p.orderby_types_ }
+
+func (p *OrderbyPlanNode) GetTableOID() uint32 {
+	return p.children[0].GetTableOID()
+}

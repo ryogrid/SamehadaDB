@@ -103,3 +103,7 @@ func (e *PointScanWithIndexExecutor) projects(tuple_ *tuple.Tuple) *tuple.Tuple 
 func (e *PointScanWithIndexExecutor) GetOutputSchema() *schema.Schema {
 	return e.plan.OutputSchema()
 }
+
+func (e *PointScanWithIndexExecutor) GetTableMetaData() *catalog.TableMetadata {
+	return e.tableMetadata
+}

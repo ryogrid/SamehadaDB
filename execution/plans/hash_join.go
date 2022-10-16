@@ -4,6 +4,7 @@ import (
 	"github.com/ryogrid/SamehadaDB/common"
 	"github.com/ryogrid/SamehadaDB/execution/expression"
 	"github.com/ryogrid/SamehadaDB/storage/table/schema"
+	"math"
 )
 
 /**
@@ -59,3 +60,8 @@ func (p *HashJoinPlanNode) GetRightKeyAt(idx uint32) expression.Expression {
 
 /** @return the right keys */
 func (p *HashJoinPlanNode) GetRightKeys() []expression.Expression { return p.right_hash_keys }
+
+// can not be used
+func (p *HashJoinPlanNode) GetTableOID() uint32 {
+	return math.MaxUint32
+}

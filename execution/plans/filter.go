@@ -29,3 +29,7 @@ func (p *FilterPlanNode) GetPredicate() expression.Expression {
 func (p *FilterPlanNode) GetSelectColumns() *schema.Schema {
 	return p.selectColumns
 }
+
+func (p *FilterPlanNode) GetTableOID() uint32 {
+	return p.children[0].GetTableOID()
+}
