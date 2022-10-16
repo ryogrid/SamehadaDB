@@ -313,8 +313,8 @@ func TestAbortWthDeleteUpdateUsingIndexCase(t *testing.T) {
 
 	c := catalog.BootstrapCatalog(bpm, log_mgr, access.NewLockManager(access.REGULAR, access.PREVENTION), txn)
 
-	columnA := column.NewColumn("a", types.Integer, false, index_constants.INDEX_KIND_SKIP_LIST, types.PageID(-1), nil)
-	columnB := column.NewColumn("b", types.Varchar, false, index_constants.INDEX_KIND_SKIP_LIST, types.PageID(-1), nil)
+	columnA := column.NewColumn("a", types.Integer, true, index_constants.INDEX_KIND_SKIP_LIST, types.PageID(-1), nil)
+	columnB := column.NewColumn("b", types.Varchar, true, index_constants.INDEX_KIND_SKIP_LIST, types.PageID(-1), nil)
 	schema_ := schema.NewSchema([]*column.Column{columnA, columnB})
 
 	tableMetadata := c.CreateTable("test_1", schema_, txn)

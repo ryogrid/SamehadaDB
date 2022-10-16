@@ -125,6 +125,7 @@ func (e *RangeScanWithIndexExecutor) Next() (*tuple.Tuple, Done, error) {
 
 	// tuple_ is projected to OutputSchema
 	ret := e.projects(tuple_)
+	ret.SetRID(tuple_.GetRID())
 
 	return ret, false, nil
 }
@@ -145,7 +146,9 @@ func (e *RangeScanWithIndexExecutor) projects(tuple_ *tuple.Tuple) *tuple.Tuple 
 		values = append(values, tuple_.GetValue(e.tableMetadata.Schema(), colIndex))
 	}
 
-	return tuple.NewTupleFromSchema(values, outputSchema)
+	ret := tuple.NewTupleFromSchema(values, outputSchema)
+	ret.SetRID(tuple_.GetRID())
+	return ret
 }
 
 func (e *RangeScanWithIndexExecutor) GetOutputSchema() *schema.Schema {
