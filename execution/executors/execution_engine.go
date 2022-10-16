@@ -49,7 +49,7 @@ func (e *ExecutionEngine) CreateExecutor(plan plans.Plan, context *ExecutorConte
 	case *plans.LimitPlanNode:
 		return NewLimitExecutor(context, p, e.CreateExecutor(plan.GetChildAt(0), context))
 	case *plans.DeletePlanNode:
-		return NewDeleteExecutor(context, p)
+		return NewDeleteExecutor(context, p, e.CreateExecutor(plan.GetChildAt(0), context))
 	case *plans.UpdatePlanNode:
 		return NewUpdateExecutor(context, p)
 	case *plans.HashJoinPlanNode:

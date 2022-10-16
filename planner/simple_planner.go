@@ -342,7 +342,9 @@ func (pner *SimplePlanner) MakeDeletePlan() (error, plans.Plan) {
 	tgtTblSchema := tableMetadata.Schema()
 
 	expression_ := pner.ConstructPredicate([]*schema.Schema{tgtTblSchema})
-	deletePlan := plans.NewDeletePlanNode(expression_, tableMetadata.OID())
+	//deletePlan := plans.NewDeletePlanNode(expression_, tableMetadata.OID())
+	seqScanPlanE := plans.NewSeqScanPlanNode(tgtTblSchema, expression_, tableMetadata.OID())
+	deletePlan := plans.NewDeletePlanNode(seqScanPlanE)
 
 	return nil, deletePlan
 }

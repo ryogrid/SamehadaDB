@@ -1165,7 +1165,8 @@ func TestAbortWIthDeleteUpdate(t *testing.T) {
 	tmpColVal.SetColIndex(tableMetadata.Schema().GetColIndex(pred.LeftColumn))
 	expression_ = expression.NewComparison(tmpColVal, expression.NewConstantValue(executors.GetValue(pred.RightColumn), executors.GetValueType(pred.RightColumn)), pred.Operator, types.Boolean)
 
-	deletePlanNode := plans.NewDeletePlanNode(expression_, tableMetadata.OID())
+	childSeqScanE := plans.NewSeqScanPlanNode(tableMetadata.Schema(), expression_, tableMetadata.OID())
+	deletePlanNode := plans.NewDeletePlanNode(childSeqScanE)
 	executionEngine.Execute(deletePlanNode, executorContext)
 
 	log_mgr.DeactivateLogging()
@@ -1520,7 +1521,8 @@ func rowInsertTransaction(t *testing.T, shi *samehada.SamehadaInstance, c *catal
 
 func deleteAllRowTransaction(t *testing.T, shi *samehada.SamehadaInstance, c *catalog.Catalog, tm *catalog.TableMetadata, master_ch chan int32) {
 	txn := shi.GetTransactionManager().Begin(nil)
-	deletePlan := plans.NewDeletePlanNode(nil, tm.OID())
+	childSeqScanE := plans.NewSeqScanPlanNode(tm.Schema(), nil, tm.OID())
+	deletePlan := plans.NewDeletePlanNode(childSeqScanE)
 
 	executionEngine := &executors.ExecutionEngine{}
 	executorContext := executors.NewExecutorContext(c, shi.GetBufferPoolManager(), txn)
