@@ -31,7 +31,10 @@
   - $ go clean -testcache; go test ./... -short -v
 
 ## Roadmap
-
+**Note:**  
+**Status described berow is one of backend and doesn't mean supported features of SamehadaDB when you use it through frontend.**  
+**(now, embeded DB form only exists)**  
+  
 - [x] Predicates on Seq Scan
 - [x] Multiple Item on Predicate: AND, OR
 - [x] Predicates: <, >, <=, >=
