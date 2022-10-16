@@ -303,7 +303,6 @@ func TestSkipListSerialIndexRangeScan(t *testing.T) {
 	common.TempSuppressOnMemStorageMutex.Unlock()
 }
 
-// TODO: (SDB) for this test, Executors for Delete and Update which can apply operation to tuples given from other Executor (TestAbortWthDeleteUpdateUsingIndexCase)
 func TestAbortWthDeleteUpdateUsingIndexCase(t *testing.T) {
 	diskManager := disk.NewDiskManagerTest()
 	defer diskManager.ShutDown()
@@ -360,8 +359,9 @@ func TestAbortWthDeleteUpdateUsingIndexCase(t *testing.T) {
 	tmpColVal.SetColIndex(tableMetadata.Schema().GetColIndex(pred.LeftColumn))
 	expression_ := expression.NewComparison(tmpColVal, expression.NewConstantValue(executors.GetValue(pred.RightColumn), executors.GetValueType(pred.RightColumn)), pred.Operator, types.Boolean)
 
-	seqScanPlan := plans.NewSeqScanPlanNode(tableMetadata.Schema(), expression_, tableMetadata.OID())
-	updatePlanNode := plans.NewUpdatePlanNode(row1, []int{0, 1}, seqScanPlan)
+	//seqScanPlan := plans.NewSeqScanPlanNode(tableMetadata.Schema(), expression_, tableMetadata.OID())
+	skipListPointScanP := plans.NewPointScanWithIndexPlanNode(tableMetadata.Schema(), expression_.(*expression.Comparison), tableMetadata.OID())
+	updatePlanNode := plans.NewUpdatePlanNode(row1, []int{0, 1}, skipListPointScanP)
 	executionEngine.Execute(updatePlanNode, executorContext)
 
 	// delete
@@ -371,8 +371,9 @@ func TestAbortWthDeleteUpdateUsingIndexCase(t *testing.T) {
 	tmpColVal.SetColIndex(tableMetadata.Schema().GetColIndex(pred.LeftColumn))
 	expression_ = expression.NewComparison(tmpColVal, expression.NewConstantValue(executors.GetValue(pred.RightColumn), executors.GetValueType(pred.RightColumn)), pred.Operator, types.Boolean)
 
-	childSeqScanPlan := plans.NewSeqScanPlanNode(tableMetadata.Schema(), expression_, tableMetadata.OID())
-	deletePlanNode := plans.NewDeletePlanNode(childSeqScanPlan)
+	//childSeqScanPlan := plans.NewSeqScanPlanNode(tableMetadata.Schema(), expression_, tableMetadata.OID())
+	skipListPointScanP = plans.NewPointScanWithIndexPlanNode(tableMetadata.Schema(), expression_.(*expression.Comparison), tableMetadata.OID())
+	deletePlanNode := plans.NewDeletePlanNode(skipListPointScanP)
 	executionEngine.Execute(deletePlanNode, executorContext)
 
 	log_mgr.DeactivateLogging()
@@ -389,8 +390,9 @@ func TestAbortWthDeleteUpdateUsingIndexCase(t *testing.T) {
 	tmpColVal.SetColIndex(tableMetadata.Schema().GetColIndex(pred.LeftColumn))
 	expression_ = expression.NewComparison(tmpColVal, expression.NewConstantValue(executors.GetValue(pred.RightColumn), executors.GetValueType(pred.RightColumn)), pred.Operator, types.Boolean)
 
-	seqPlan := plans.NewSeqScanPlanNode(outSchema, expression_, tableMetadata.OID())
-	results := executionEngine.Execute(seqPlan, executorContext)
+	//seqPlan := plans.NewSeqScanPlanNode(outSchema, expression_, tableMetadata.OID())
+	skipListPointScanP = plans.NewPointScanWithIndexPlanNode(tableMetadata.Schema(), expression_.(*expression.Comparison), tableMetadata.OID())
+	results := executionEngine.Execute(skipListPointScanP, executorContext)
 
 	testingpkg.Assert(t, types.NewVarchar("updated").CompareEquals(results[0].GetValue(outSchema, 0)), "value should be 'updated'")
 
@@ -404,8 +406,9 @@ func TestAbortWthDeleteUpdateUsingIndexCase(t *testing.T) {
 	tmpColVal.SetColIndex(tableMetadata.Schema().GetColIndex(pred.LeftColumn))
 	expression_ = expression.NewComparison(tmpColVal, expression.NewConstantValue(executors.GetValue(pred.RightColumn), executors.GetValueType(pred.RightColumn)), pred.Operator, types.Boolean)
 
-	seqPlan = plans.NewSeqScanPlanNode(outSchema, expression_, tableMetadata.OID())
-	results = executionEngine.Execute(seqPlan, executorContext)
+	//seqPlan = plans.NewSeqScanPlanNode(outSchema, expression_, tableMetadata.OID())
+	skipListPointScanP = plans.NewPointScanWithIndexPlanNode(outSchema, expression_.(*expression.Comparison), tableMetadata.OID())
+	results = executionEngine.Execute(skipListPointScanP, executorContext)
 
 	testingpkg.Assert(t, len(results) == 0, "")
 
@@ -426,8 +429,9 @@ func TestAbortWthDeleteUpdateUsingIndexCase(t *testing.T) {
 	tmpColVal.SetColIndex(tableMetadata.Schema().GetColIndex(pred.LeftColumn))
 	expression_ = expression.NewComparison(tmpColVal, expression.NewConstantValue(executors.GetValue(pred.RightColumn), executors.GetValueType(pred.RightColumn)), pred.Operator, types.Boolean)
 
-	seqPlan = plans.NewSeqScanPlanNode(outSchema, expression_, tableMetadata.OID())
-	results = executionEngine.Execute(seqPlan, executorContext)
+	//seqPlan = plans.NewSeqScanPlanNode(outSchema, expression_, tableMetadata.OID())
+	skipListPointScanP = plans.NewPointScanWithIndexPlanNode(outSchema, expression_.(*expression.Comparison), tableMetadata.OID())
+	results = executionEngine.Execute(skipListPointScanP, executorContext)
 
 	testingpkg.Assert(t, types.NewVarchar("foo").CompareEquals(results[0].GetValue(outSchema, 0)), "value should be 'foo'")
 
@@ -441,8 +445,9 @@ func TestAbortWthDeleteUpdateUsingIndexCase(t *testing.T) {
 	tmpColVal.SetColIndex(tableMetadata.Schema().GetColIndex(pred.LeftColumn))
 	expression_ = expression.NewComparison(tmpColVal, expression.NewConstantValue(executors.GetValue(pred.RightColumn), executors.GetValueType(pred.RightColumn)), pred.Operator, types.Boolean)
 
-	seqPlan = plans.NewSeqScanPlanNode(outSchema, expression_, tableMetadata.OID())
-	results = executionEngine.Execute(seqPlan, executorContext)
+	//seqPlan = plans.NewSeqScanPlanNode(outSchema, expression_, tableMetadata.OID())
+	skipListPointScanP = plans.NewPointScanWithIndexPlanNode(outSchema, expression_.(*expression.Comparison), tableMetadata.OID())
+	results = executionEngine.Execute(skipListPointScanP, executorContext)
 
 	testingpkg.Assert(t, len(results) == 1, "")
 }
