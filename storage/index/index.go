@@ -1,7 +1,6 @@
 package index
 
 import (
-	"github.com/ryogrid/SamehadaDB/storage/access"
 	"github.com/ryogrid/SamehadaDB/storage/page"
 	"github.com/ryogrid/SamehadaDB/storage/table/schema"
 	"github.com/ryogrid/SamehadaDB/storage/tuple"
@@ -47,8 +46,8 @@ func (im *IndexMetadata) GetTupleSchema() *schema.Schema { return im.tuple_schem
 // because it uses the member of catalog::Schema which is not known here
 func (im *IndexMetadata) GetIndexColumnCount() uint32 { return uint32(len(im.key_attrs)) }
 
-//  Returns the mapping relation between indexed columns  and base table
-//  columns
+// Returns the mapping relation between indexed columns  and base table
+// columns
 func (im *IndexMetadata) GetKeyAttrs() []uint32 { return im.key_attrs }
 
 /*
@@ -98,10 +97,12 @@ type Index interface {
 	// Point Modification
 	///////////////////////////////////////////////////////////////////
 	// designed for secondary indexes.
-	InsertEntry(*tuple.Tuple, page.RID, *access.Transaction)
+	InsertEntry(*tuple.Tuple, page.RID, interface{})
 	// delete the index entry linked to given tuple
-	DeleteEntry(*tuple.Tuple, page.RID, *access.Transaction)
-	ScanKey(*tuple.Tuple, *access.Transaction) []page.RID
+	DeleteEntry(*tuple.Tuple, page.RID, interface{})
+	ScanKey(*tuple.Tuple, interface{}) []page.RID
+	// pass start key and end key. nil is also ok.
+	GetRangeScanIterator(*tuple.Tuple, *tuple.Tuple, interface{}) IndexRangeScanIterator
 
 	/*
 	      // Get a string representation for debugging

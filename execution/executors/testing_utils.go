@@ -61,9 +61,9 @@ func ExecuteSeqScanTestCase(t *testing.T, testCase SeqScanTestCase) {
 	tmpColVal_ := expression.NewColumnValue(0, testCase.TableMetadata.Schema().GetColIndex(testCase.Predicate.LeftColumn), GetValueType(testCase.Predicate.RightColumn))
 	tmpColVal := tmpColVal_.(*expression.ColumnValue)
 	expression := expression.NewComparison(tmpColVal, expression.NewConstantValue(GetValue(testCase.Predicate.RightColumn), GetValueType(testCase.Predicate.RightColumn)), testCase.Predicate.Operator, types.Boolean)
-	seqPlan := plans.NewSeqScanPlanNode(outSchema, expression, testCase.TableMetadata.OID())
+	seqScanPlan := plans.NewSeqScanPlanNode(outSchema, expression, testCase.TableMetadata.OID())
 
-	results := testCase.ExecutionEngine.Execute(seqPlan, testCase.ExecutorContext)
+	results := testCase.ExecutionEngine.Execute(seqScanPlan, testCase.ExecutorContext)
 
 	testingpkg.Equals(t, testCase.TotalHits, uint32(len(results)))
 	if len(results) > 0 {
@@ -74,7 +74,7 @@ func ExecuteSeqScanTestCase(t *testing.T, testCase SeqScanTestCase) {
 	}
 }
 
-type HashIndexScanTestCase struct {
+type IndexPointScanTestCase struct {
 	Description     string
 	ExecutionEngine *ExecutionEngine
 	ExecutorContext *ExecutorContext
@@ -85,18 +85,44 @@ type HashIndexScanTestCase struct {
 	TotalHits       uint32
 }
 
-func ExecuteHashIndexScanTestCase(t *testing.T, testCase HashIndexScanTestCase) {
+type IndexRangeScanTestCase struct {
+	Description     string
+	ExecutionEngine *ExecutionEngine
+	ExecutorContext *ExecutorContext
+	TableMetadata   *catalog.TableMetadata
+	Columns         []Column
+	Predicate       Predicate
+	ColIdx          int32 // column idx of column which has index to be used on scan
+	ScanRange       []*types.Value
+	TotalHits       uint32
+}
+
+func fillColumnsForIndexScanTestCase[T IndexPointScanTestCase | IndexRangeScanTestCase](testCase interface{}, indexType index_constants.IndexKind) []*column.Column {
 	columns := []*column.Column{}
-	for _, c := range testCase.Columns {
-		columns = append(columns, column.NewColumn(c.Name, c.Kind, true, index_constants.INDEX_KIND_HASH, types.PageID(-1), nil))
+
+	var castedColumns []Column
+	switch testCase.(type) {
+	case IndexPointScanTestCase:
+		castedColumns = testCase.(IndexPointScanTestCase).Columns
+	case IndexRangeScanTestCase:
+		castedColumns = testCase.(IndexRangeScanTestCase).Columns
 	}
+	for _, c := range castedColumns {
+		columns = append(columns, column.NewColumn(c.Name, c.Kind, true, indexType, types.PageID(-1), nil))
+	}
+
+	return columns
+}
+
+func ExecuteIndexPointScanTestCase(t *testing.T, testCase IndexPointScanTestCase, indexType index_constants.IndexKind) {
+	columns := fillColumnsForIndexScanTestCase[IndexPointScanTestCase](testCase, indexType)
 	outSchema := schema.NewSchema(columns)
 
 	tmpColVal_ := expression.NewColumnValue(0, testCase.TableMetadata.Schema().GetColIndex(testCase.Predicate.LeftColumn), GetValueType(testCase.Predicate.RightColumn))
 	tmpColVal := tmpColVal_.(*expression.ColumnValue)
 
 	expression_ := expression.NewComparison(tmpColVal, expression.NewConstantValue(GetValue(testCase.Predicate.RightColumn), GetValueType(testCase.Predicate.RightColumn)), testCase.Predicate.Operator, types.Boolean)
-	hashIndexScanPlan := plans.NewHashScanIndexPlanNode(outSchema, expression_.(*expression.Comparison), testCase.TableMetadata.OID())
+	hashIndexScanPlan := plans.NewPointScanWithIndexPlanNode(outSchema, expression_.(*expression.Comparison), testCase.TableMetadata.OID())
 
 	results := testCase.ExecutionEngine.Execute(hashIndexScanPlan, testCase.ExecutorContext)
 
@@ -105,6 +131,21 @@ func ExecuteHashIndexScanTestCase(t *testing.T, testCase HashIndexScanTestCase) 
 		colIndex := outSchema.GetColIndex(assert.Column)
 		testingpkg.Assert(t, GetValue(assert.Exp).CompareEquals(results[0].GetValue(outSchema, colIndex)), "value should be %v but was %v", assert.Exp, results[0].GetValue(outSchema, colIndex))
 	}
+}
+
+func ExecuteIndexRangeScanTestCase(t *testing.T, testCase IndexRangeScanTestCase, indexType index_constants.IndexKind) {
+	columns := fillColumnsForIndexScanTestCase[IndexRangeScanTestCase](testCase, indexType)
+	outSchema := schema.NewSchema(columns)
+
+	tmpColVal_ := expression.NewColumnValue(0, testCase.TableMetadata.Schema().GetColIndex(testCase.Predicate.LeftColumn), GetValueType(testCase.Predicate.RightColumn))
+	tmpColVal := tmpColVal_.(*expression.ColumnValue)
+
+	expression_ := expression.NewComparison(tmpColVal, expression.NewConstantValue(GetValue(testCase.Predicate.RightColumn), GetValueType(testCase.Predicate.RightColumn)), testCase.Predicate.Operator, types.Boolean)
+	IndexRangeScanPlan := plans.NewRangeScanWithIndexPlanNode(outSchema, testCase.TableMetadata.OID(), testCase.ColIdx, expression_.(*expression.Comparison), testCase.ScanRange[0], testCase.ScanRange[1])
+
+	results := testCase.ExecutionEngine.Execute(IndexRangeScanPlan, testCase.ExecutorContext)
+
+	testingpkg.Equals(t, testCase.TotalHits, uint32(len(results)))
 }
 
 type DeleteTestCase struct {
@@ -131,7 +172,8 @@ func ExecuteDeleteTestCase(t *testing.T, testCase DeleteTestCase) {
 	tmpColVal_ := expression.NewColumnValue(0, testCase.TableMetadata.Schema().GetColIndex(testCase.Predicate.LeftColumn), GetValueType(testCase.Predicate.RightColumn))
 	tmpColVal := tmpColVal_.(*expression.ColumnValue)
 	expression := expression.NewComparison(tmpColVal, expression.NewConstantValue(GetValue(testCase.Predicate.RightColumn), GetValueType(testCase.Predicate.RightColumn)), testCase.Predicate.Operator, types.Boolean)
-	deletePlan := plans.NewDeletePlanNode(expression, testCase.TableMetadata.OID())
+	childSeqScanP := plans.NewSeqScanPlanNode(outSchema, expression, testCase.TableMetadata.OID())
+	deletePlan := plans.NewDeletePlanNode(childSeqScanP)
 
 	testCase.ExecutorContext.SetTransaction(txn)
 	results := testCase.ExecutionEngine.Execute(deletePlan, testCase.ExecutorContext)

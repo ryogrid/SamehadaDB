@@ -600,7 +600,7 @@ func TestHashTableIndex(t *testing.T) {
 
 	txn_mgr.Commit(txn)
 
-	cases := []executors.HashIndexScanTestCase{{
+	cases := []executors.IndexPointScanTestCase{{
 		"select a ... WHERE b = 55",
 		executionEngine,
 		executorContext,
@@ -676,7 +676,7 @@ func TestHashTableIndex(t *testing.T) {
 
 	for _, test := range cases {
 		t.Run(test.Description, func(t *testing.T) {
-			executors.ExecuteHashIndexScanTestCase(t, test)
+			executors.ExecuteIndexPointScanTestCase(t, test, index_constants.INDEX_KIND_HASH)
 		})
 	}
 
@@ -958,7 +958,8 @@ func TestSimpleInsertAndUpdate(t *testing.T) {
 	tmpColVal.SetColIndex(tableMetadata.Schema().GetColIndex(pred.LeftColumn))
 	expression_ := expression.NewComparison(tmpColVal, expression.NewConstantValue(executors.GetValue(pred.RightColumn), executors.GetValueType(pred.LeftColumn)), pred.Operator, types.Boolean)
 
-	updatePlanNode := plans.NewUpdatePlanNode(row1, []int{0, 1}, expression_, tableMetadata.OID())
+	seqScanPlan := plans.NewSeqScanPlanNode(tableMetadata.Schema(), expression_, tableMetadata.OID())
+	updatePlanNode := plans.NewUpdatePlanNode(row1, []int{0, 1}, seqScanPlan)
 	executionEngine.Execute(updatePlanNode, executorContext)
 
 	txn_mgr.Commit(txn)
@@ -1033,7 +1034,8 @@ func TestInsertUpdateMix(t *testing.T) {
 	tmpColVal.SetColIndex(tableMetadata.Schema().GetColIndex(pred.LeftColumn))
 	expression_ := expression.NewComparison(tmpColVal, expression.NewConstantValue(executors.GetValue(pred.RightColumn), executors.GetValueType(pred.RightColumn)), pred.Operator, types.Boolean)
 
-	updatePlanNode := plans.NewUpdatePlanNode(row1, []int{0, 1}, expression_, tableMetadata.OID())
+	seqScanPlan := plans.NewSeqScanPlanNode(tableMetadata.Schema(), expression_, tableMetadata.OID())
+	updatePlanNode := plans.NewUpdatePlanNode(row1, []int{0, 1}, seqScanPlan)
 	executionEngine.Execute(updatePlanNode, executorContext)
 
 	txn_mgr.Commit(txn)
@@ -1155,7 +1157,8 @@ func TestAbortWIthDeleteUpdate(t *testing.T) {
 	tmpColVal.SetColIndex(tableMetadata.Schema().GetColIndex(pred.LeftColumn))
 	expression_ := expression.NewComparison(tmpColVal, expression.NewConstantValue(executors.GetValue(pred.RightColumn), executors.GetValueType(pred.RightColumn)), pred.Operator, types.Boolean)
 
-	updatePlanNode := plans.NewUpdatePlanNode(row1, []int{0, 1}, expression_, tableMetadata.OID())
+	seqScanPlan := plans.NewSeqScanPlanNode(tableMetadata.Schema(), expression_, tableMetadata.OID())
+	updatePlanNode := plans.NewUpdatePlanNode(row1, []int{0, 1}, seqScanPlan)
 	executionEngine.Execute(updatePlanNode, executorContext)
 
 	// delete
@@ -1165,7 +1168,8 @@ func TestAbortWIthDeleteUpdate(t *testing.T) {
 	tmpColVal.SetColIndex(tableMetadata.Schema().GetColIndex(pred.LeftColumn))
 	expression_ = expression.NewComparison(tmpColVal, expression.NewConstantValue(executors.GetValue(pred.RightColumn), executors.GetValueType(pred.RightColumn)), pred.Operator, types.Boolean)
 
-	deletePlanNode := plans.NewDeletePlanNode(expression_, tableMetadata.OID())
+	childSeqScanP := plans.NewSeqScanPlanNode(tableMetadata.Schema(), expression_, tableMetadata.OID())
+	deletePlanNode := plans.NewDeletePlanNode(childSeqScanP)
 	executionEngine.Execute(deletePlanNode, executorContext)
 
 	log_mgr.DeactivateLogging()
@@ -1202,7 +1206,7 @@ func TestAbortWIthDeleteUpdate(t *testing.T) {
 
 	testingpkg.Assert(t, len(results) == 0, "")
 
-	txn_mgr.Abort(txn)
+	txn_mgr.Abort(c, txn)
 
 	fmt.Println("select and check value after Abort...")
 
@@ -1514,19 +1518,20 @@ func rowInsertTransaction(t *testing.T, shi *samehada.SamehadaInstance, c *catal
 	executorContext := executors.NewExecutorContext(c, shi.GetBufferPoolManager(), txn)
 	executionEngine.Execute(insertPlanNode, executorContext)
 
-	ret := handleFnishTxn(shi.GetTransactionManager(), txn)
+	ret := handleFnishTxn(c, shi.GetTransactionManager(), txn)
 	master_ch <- ret
 }
 
 func deleteAllRowTransaction(t *testing.T, shi *samehada.SamehadaInstance, c *catalog.Catalog, tm *catalog.TableMetadata, master_ch chan int32) {
 	txn := shi.GetTransactionManager().Begin(nil)
-	deletePlan := plans.NewDeletePlanNode(nil, tm.OID())
+	childSeqScanPlan := plans.NewSeqScanPlanNode(tm.Schema(), nil, tm.OID())
+	deletePlan := plans.NewDeletePlanNode(childSeqScanPlan)
 
 	executionEngine := &executors.ExecutionEngine{}
 	executorContext := executors.NewExecutorContext(c, shi.GetBufferPoolManager(), txn)
 	executionEngine.Execute(deletePlan, executorContext)
 
-	ret := handleFnishTxn(shi.GetTransactionManager(), txn)
+	ret := handleFnishTxn(c, shi.GetTransactionManager(), txn)
 	master_ch <- ret
 }
 
@@ -1542,16 +1547,16 @@ func selectAllRowTransaction(t *testing.T, shi *samehada.SamehadaInstance, c *ca
 
 	executionEngine.Execute(seqPlan, executorContext)
 
-	ret := handleFnishTxn(shi.GetTransactionManager(), txn)
+	ret := handleFnishTxn(c, shi.GetTransactionManager(), txn)
 	master_ch <- ret
 }
 
-func handleFnishTxn(txn_mgr *access.TransactionManager, txn *access.Transaction) int32 {
+func handleFnishTxn(catalog_ *catalog.Catalog, txn_mgr *access.TransactionManager, txn *access.Transaction) int32 {
 	// fmt.Println(txn.GetState())
 	if txn.GetState() == access.ABORTED {
 		// fmt.Println(txn.GetSharedLockSet())
 		// fmt.Println(txn.GetExclusiveLockSet())
-		txn_mgr.Abort(txn)
+		txn_mgr.Abort(catalog_, txn)
 		return 0
 	} else {
 		// fmt.Println(txn.GetSharedLockSet())
@@ -1986,7 +1991,8 @@ func TestInsertAndSpecifiedColumnUpdate(t *testing.T) {
 	tmpColVal.SetColIndex(tableMetadata.Schema().GetColIndex(pred.LeftColumn))
 	expression_ := expression.NewComparison(tmpColVal, expression.NewConstantValue(executors.GetValue(pred.RightColumn), executors.GetValueType(pred.LeftColumn)), pred.Operator, types.Boolean)
 
-	updatePlanNode := plans.NewUpdatePlanNode(row1, []int{1}, expression_, tableMetadata.OID())
+	seqScanPlan := plans.NewSeqScanPlanNode(tableMetadata.Schema(), expression_, tableMetadata.OID())
+	updatePlanNode := plans.NewUpdatePlanNode(row1, []int{1}, seqScanPlan)
 	executionEngine.Execute(updatePlanNode, executorContext)
 
 	txn_mgr.Commit(txn)
@@ -2072,7 +2078,8 @@ func TestInsertAndSpecifiedColumnUpdatePageMoveCase(t *testing.T) {
 	tmpColVal.SetColIndex(tableMetadata.Schema().GetColIndex(pred.LeftColumn))
 	expression_ := expression.NewComparison(tmpColVal, expression.NewConstantValue(executors.GetValue(pred.RightColumn), executors.GetValueType(pred.LeftColumn)), pred.Operator, types.Boolean)
 
-	updatePlanNode := plans.NewUpdatePlanNode(row, []int{1}, expression_, tableMetadata.OID())
+	seqScanPlan := plans.NewSeqScanPlanNode(tableMetadata.Schema(), expression_, tableMetadata.OID())
+	updatePlanNode := plans.NewUpdatePlanNode(row, []int{1}, seqScanPlan)
 	executionEngine.Execute(updatePlanNode, executorContext)
 
 	txn_mgr.Commit(txn)

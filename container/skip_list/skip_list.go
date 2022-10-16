@@ -25,7 +25,7 @@ const (
 
 /**
  * Implementation of skip list that is backed by a buffer pool
- * manager. Non-unique keys are not supported yet. Supports insert, delete and Iterator.
+ * manager. Non-unique keys are not supported yet. Supports insert, delete and GetRangeScanIterator.
  */
 
 type SkipList struct {
@@ -80,22 +80,15 @@ func latchOpWithOpType(node *skip_list_page.SkipListBlockPage, getOrUnlatch Latc
 }
 
 // ATTENTION:
-// this method returns with keep having RLatch or WLatch of corners_[0] and not Unping corners_[0]
+// this method returns with keep having RLatch or WLatch of corners_[0] and one pin of corners_[0]
+// (when corners_[0] is startNode, having pin count is two, but caller does not have to consider the difference)
 func (sl *SkipList) FindNode(key *types.Value, opType SkipListOpType) (isSuccess bool, foundNode *skip_list_page.SkipListBlockPage, predOfCorners_ []skip_list_page.SkipListCornerInfo, corners_ []skip_list_page.SkipListCornerInfo) {
 	if common.EnableDebug {
 		common.ShPrintf(common.DEBUG_INFO, "FindNode: start. key=%v opType=%d\n", key.ToIFValue(), opType)
 	}
 
-	//headerPage := skip_list_page.FetchAndCastToHeaderPage(sl.bpm, sl.headerPageID)
-	//headerPage := sl.getHeaderPage()
-	//startPageId := headerPage.GetListStartPageId()
-	// lock of headerPage is not needed becaus its content is not changed
-	//sl.bpm.UnpinPage(headerPage.GetPageId(), false)
-
-	//pred := skip_list_page.FetchAndCastToBlockPage(sl.bpm, sl.headerPage.GetListStartPageId())
 	pred := sl.getStartNode()
 	latchOpWithOpType(pred, SKIP_LIST_UTIL_GET_LATCH, opType)
-	//pred.IncPinCount()
 	sl.bpm.IncPinOfPage(pred)
 
 	// loop invariant: pred.key < searchKey
@@ -185,7 +178,7 @@ func (sl *SkipList) FindNode(key *types.Value, opType SkipListOpType) (isSuccess
 			}
 			if ii == 0 {
 				if opType != SKIP_LIST_OP_GET {
-					// try upgrade lock from RLock to WRlock
+					// when update operation, try upgrade lock from RLock to WRlock
 
 					origLSN := pred.GetLSN()
 					predPageId := pred.GetPageId()
@@ -198,8 +191,6 @@ func (sl *SkipList) FindNode(key *types.Value, opType SkipListOpType) (isSuccess
 						// pred node is updated, so need retry
 
 						// originaly having pin
-						//sl.bpm.UnpinPage(pred.GetPageId(), false)
-						//pred.DecPinCount()
 						sl.bpm.DecPinOfPage(pred)
 						// additionaly got pin at Fetch
 						sl.bpm.UnpinPage(pred.GetPageId(), false)
@@ -207,37 +198,13 @@ func (sl *SkipList) FindNode(key *types.Value, opType SkipListOpType) (isSuccess
 						return false, nil, nil, nil
 					}
 					// additionaly got pin at Fetch
-					//sl.bpm.UnpinPage(pred.GetPageId(), false)
-					//pred.DecPinCount()
 					sl.bpm.DecPinOfPage(pred)
 				}
-
-				//// when reaching target on level-1, if operation is insert or remove, upgrade lock of node from RLock to WLock at
-				//upgraded := latchOpWithOpType(pred, SKIP_LIST_UTIL_UPGRADE, opType)
-				//if !upgraded {
-				//	//// release RLock (when upgrade fails, RLock is keeped)
-				//	//latchOpWithOpType(pred, SKIP_LIST_UTIL_UNLATCH, opType)
-				//	// if pred is start node, unpin is ok here
-				//	sl.bpm.UnpinPage(pred.GetPageId(), false)
-				//	latchOpWithOpType(pred, SKIP_LIST_UTIL_UNLATCH, opType)
-				//
-				//	fmt.Println("upgrade fail")
-				//	// retry operation from start...
-				//	return false, nil, nil, nil
-				//}
 			}
 			predOfCorners[ii] = skip_list_page.SkipListCornerInfo{predOfPredId, predOfPredLSN}
 			corners[ii] = skip_list_page.SkipListCornerInfo{pred.GetPageId(), pred.GetLSN()}
-			//if curr != nil {
-			//	latchOpWithOpType(curr, SKIP_LIST_UTIL_UNLATCH, opType)
-			//	sl.bpm.UnpinPage(curr.GetPageId(), false)
-			//}
 		}
 	}
-	/*
-		pred.RUnlatch()
-		sl.bpm.UnpinPage(pred.GetPageId(), false)
-	*/
 
 	//common.ShPrintf(common.DEBUG_INFO, "SkipList::FindNode: moveCnt=%d\n", moveCnt)
 
@@ -258,16 +225,13 @@ func (sl *SkipList) FindNode(key *types.Value, opType SkipListOpType) (isSuccess
 
 // ATTENTION:
 // this method returns with keep having RLatch of corners_[0] and pinned corners_[0]
-func (sl *SkipList) FindNodeWithEntryIdxForItr(key *types.Value) (isSuccess_ bool, idx_ int32, predOfCorners_ []skip_list_page.SkipListCornerInfo, corners_ []skip_list_page.SkipListCornerInfo) {
+func (sl *SkipList) FindNodeWithEntryIdxForItr(key *types.Value) (found_ bool, node_ *skip_list_page.SkipListBlockPage, idx_ int32) {
 	// get idx of target entry or one of nearest smaller entry
-	_, node, predOfCorners, corners := sl.FindNode(key, SKIP_LIST_OP_GET)
+	_, node, _, _ := sl.FindNode(key, SKIP_LIST_OP_GET)
 
-	//node := skip_list_page.FetchAndCastToBlockPage(sl.bpm, corners[0].PageId)
 	// locking is not needed because already have lock with FindNode method call
-	_, _, idx := node.FindEntryByKey(key)
-	//// this unpin is needed because node is already pinned at FindNode
-	//sl.bpm.UnpinPage(node.GetPageId(), false)
-	return true, idx, predOfCorners, corners
+	found, _, idx := node.FindEntryByKey(key)
+	return found, node, idx
 }
 
 func (sl *SkipList) GetValue(key *types.Value) uint32 {
@@ -307,11 +271,9 @@ func (sl *SkipList) Insert(key *types.Value, value uint32) (err error) {
 		}
 		levelWhenNodeSplitOccur := sl.GetNodeLevel()
 
-		//node := skip_list_page.FetchAndCastToBlockPage(sl.bpm, corners[0].PageId)
-		//// locking is not needed because already have lock with FindNode method call
+		// locking is not needed because already have lock with FindNode method call
 		isNeedRetry = node.Insert(key, value, sl.bpm, corners, levelWhenNodeSplitOccur)
-		//node.WUnlatch()
-		//sl.bpm.UnpinPage(node.GetPageId(), true)
+		// lock and pin of node is already released on Insert method call
 	}
 
 	if common.EnableDebug {
@@ -331,17 +293,17 @@ func (sl *SkipList) Remove(key *types.Value, value uint32) (isDeleted_ bool) {
 	for isNeedRetry {
 		isSuccess, node, predOfCorners, corners := sl.FindNode(key, SKIP_LIST_OP_REMOVE)
 		if !isSuccess {
-			// any latch and pin have here
+			// having no latch and pin here
 			continue
 		}
-		//node := skip_list_page.FetchAndCastToBlockPage(sl.bpm, corners[0].PageId)
+
 		// locking is not needed because already have lock with FindNode method call
 		isNodeShouldBeDeleted, isDeleted, isNeedRetry = node.Remove(sl.bpm, key, predOfCorners, corners)
-		// lock and pin which is got FindNode is released on Remove method
-		// except isNodeShouldBeDeleted == true case
+		// lock and pin which is got FindNode are released on Remove method
 
-		//sl.bpm.UnpinPage(node.GetPageId(), true)
 		if isNodeShouldBeDeleted {
+			// TODO: (SDB) need implement DeletePage collectly and need WLach of corners[0]
+			//             so, when activate calliing DeletePage, node.Remove method should be modified
 			//sl.bpm.DeletePage(corners[0].PageId)
 		}
 	}
@@ -352,31 +314,33 @@ func (sl *SkipList) Remove(key *types.Value, value uint32) (isDeleted_ bool) {
 	return isDeleted
 }
 
-// TODO: (SDB) cuncurrent iterator need RID list when iterator is created
+//func (sl *SkipList) GetRangeScanIterator(rangeStartKey *types.Value, rangeEndKey *types.Value) *SkipListIterator {
+//	ret := new(SkipListIterator)
+//
+//	//headerPage := skip_list_page.FetchAndCastToHeaderPage(sl.bpm, sl.headerPageID)
+//	headerPage := sl.getHeaderPage()
+//
+//	ret.sl = sl
+//	ret.bpm = sl.bpm
+//	//ret.curNode = skip_list_page.FetchAndCastToBlockPage(sl.bpm, headerPage.GetListStartPageId())
+//	ret.curNode = sl.getStartNode()
+//	ret.curPageSlotIdx = 0
+//	ret.rangeStartKey = rangeStartKey
+//	ret.rangeEndKey = rangeEndKey
+//	ret.keyType = headerPage.GetKeyType()
+//
+//	if rangeStartKey != nil {
+//		//sl.bpm.UnpinPage(headerPage.GetListStartPageId(), false)
+//		ret.curNode = nil
+//	}
+//
+//	//sl.bpm.UnpinPage(sl.headerPageID, false)
+//
+//	return ret
+//}
 
 func (sl *SkipList) Iterator(rangeStartKey *types.Value, rangeEndKey *types.Value) *SkipListIterator {
-	ret := new(SkipListIterator)
-
-	//headerPage := skip_list_page.FetchAndCastToHeaderPage(sl.bpm, sl.headerPageID)
-	headerPage := sl.getHeaderPage()
-
-	ret.sl = sl
-	ret.bpm = sl.bpm
-	//ret.curNode = skip_list_page.FetchAndCastToBlockPage(sl.bpm, headerPage.GetListStartPageId())
-	ret.curNode = sl.getStartNode()
-	ret.curIdx = 0
-	ret.rangeStartKey = rangeStartKey
-	ret.rangeEndKey = rangeEndKey
-	ret.keyType = headerPage.GetKeyType()
-
-	if rangeStartKey != nil {
-		//sl.bpm.UnpinPage(headerPage.GetListStartPageId(), false)
-		ret.curNode = nil
-	}
-
-	//sl.bpm.UnpinPage(sl.headerPageID, false)
-
-	return ret
+	return NewSkipListIterator(sl, rangeStartKey, rangeEndKey)
 }
 
 func (sl *SkipList) GetNodeLevel() int32 {

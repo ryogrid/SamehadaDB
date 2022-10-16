@@ -1,5 +1,5 @@
-//package concurrency
-//package transaction
+// package concurrency
+// package transaction
 package access
 
 import (
@@ -45,18 +45,20 @@ const (
 type WriteRecord struct {
 	rid   page.RID
 	wtype WType
-	/** The tuple is only used for the update operation. */
+	/** The tuple is used only for the updateoperation. */
 	tuple *tuple.Tuple
 	/** The table heap specifies which table this write record is for. */
 	table *TableHeap
+	oid   uint32 // for rollback of index data
 }
 
-func NewWriteRecord(rid page.RID, wtype WType, tuple *tuple.Tuple, table *TableHeap) *WriteRecord {
+func NewWriteRecord(rid page.RID, wtype WType, tuple *tuple.Tuple, table *TableHeap, oid uint32) *WriteRecord {
 	ret := new(WriteRecord)
 	ret.rid = rid
 	ret.wtype = wtype
 	ret.tuple = tuple
 	ret.table = table
+	ret.oid = oid
 	return ret
 }
 

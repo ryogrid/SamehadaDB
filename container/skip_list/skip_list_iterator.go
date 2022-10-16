@@ -1,10 +1,11 @@
 package skip_list
 
 import (
+	"github.com/ryogrid/SamehadaDB/samehada/samehada_util"
 	"github.com/ryogrid/SamehadaDB/storage/buffer"
+	"github.com/ryogrid/SamehadaDB/storage/page"
 	"github.com/ryogrid/SamehadaDB/storage/page/skip_list_page"
 	"github.com/ryogrid/SamehadaDB/types"
-	"math"
 )
 
 type SkipListIterator struct {
@@ -12,61 +13,92 @@ type SkipListIterator struct {
 	bpm           *buffer.BufferPoolManager
 	curNode       *skip_list_page.SkipListBlockPage
 	curEntry      *skip_list_page.SkipListPair
-	curIdx        int32
 	rangeStartKey *types.Value
 	rangeEndKey   *types.Value
 	keyType       types.TypeID
+	entryList     []*skip_list_page.SkipListPair
+	curEntryIdx   int32
 }
 
-// TODO: (SDB) cuncurrent iterator need RID list when iterator is created
+func NewSkipListIterator(sl *SkipList, rangeStartKey *types.Value, rangeEndKey *types.Value) *SkipListIterator {
+	ret := new(SkipListIterator)
 
-// ATTENTION:
-// caller must call this until getting "done" is true
-func (itr *SkipListIterator) Next() (done bool, err error, key *types.Value, val uint32) {
-	if itr.rangeStartKey != nil && itr.curNode == nil {
-		var corners []skip_list_page.SkipListCornerInfo
-		_, itr.curIdx, _, corners = itr.sl.FindNodeWithEntryIdxForItr(itr.rangeStartKey)
+	headerPage := sl.getHeaderPage()
+
+	ret.sl = sl
+	ret.bpm = sl.bpm
+
+	ret.rangeStartKey = rangeStartKey
+	ret.rangeEndKey = rangeEndKey
+	ret.keyType = headerPage.GetKeyType()
+	ret.entryList = make([]*skip_list_page.SkipListPair, 0)
+
+	ret.initRIDList(sl)
+
+	return ret
+}
+
+func (itr *SkipListIterator) initRIDList(sl *SkipList) {
+	curPageSlotIdx := int32(0)
+	// set appropriate start position
+	if itr.rangeStartKey != nil {
+		found, node, slotIdx := itr.sl.FindNodeWithEntryIdxForItr(itr.rangeStartKey)
 		// locking is not needed because already have lock with FindNodeWithEntryIdxForItr method call
-		itr.curNode = skip_list_page.FetchAndCastToBlockPage(itr.bpm, corners[0].PageId)
-		// this Unpin is needed due to already having one pin with FindNodeWithEntryIdxForItr method call
-		itr.bpm.UnpinPage(corners[0].PageId, false)
-
-		// release lock which is got on FindNodeWithEntryIdxForItr method
-		itr.curNode.RUnlatch()
-	}
-
-	itr.curNode.RLatch()
-	if itr.curIdx+1 >= itr.curNode.GetEntryCnt() {
-		prevNodeId := itr.curNode.GetPageId()
-		nextNodeId := itr.curNode.GetForwardEntry(0)
-		if prevNodeId != itr.sl.getStartNode().GetPageId() {
-			itr.bpm.UnpinPage(prevNodeId, false)
+		if found {
+			// considering increment of curPageSlotIdx after here
+			// because slotIdx is match indx of rangeStartKey
+			curPageSlotIdx = slotIdx - 1
+		} else {
+			// considering increment of curPageSlotIdx after here
+			// because slotIdx is nearest smaller key of rangeStartKey
+			curPageSlotIdx = slotIdx
 		}
-		itr.curNode.RUnlatch()
-		itr.curNode = skip_list_page.FetchAndCastToBlockPage(itr.bpm, nextNodeId)
-		itr.curIdx = -1
+		itr.curNode = node
+	} else {
+		itr.curNode = sl.getStartNode()
+		// for keepping pin count is one after iterator finishd using startNode
+		sl.bpm.IncPinOfPage(itr.curNode)
 		itr.curNode.RLatch()
-		if itr.curNode.GetSmallestKey(itr.keyType).IsInfMax() {
-			// reached tail node
-			if itr.curNode.GetPageId() != itr.sl.getStartNode().GetPageId() {
-				itr.bpm.UnpinPage(itr.curNode.GetPageId(), false)
-			}
+	}
+
+	for {
+		if curPageSlotIdx+1 >= itr.curNode.GetEntryCnt() {
+			prevNodeId := itr.curNode.GetPageId()
+			nextNodeId := itr.curNode.GetForwardEntry(0)
+			itr.bpm.UnpinPage(prevNodeId, false)
 			itr.curNode.RUnlatch()
-			return true, nil, nil, math.MaxUint32
+			itr.curNode = skip_list_page.FetchAndCastToBlockPage(itr.bpm, nextNodeId)
+			itr.curNode.RLatch()
+			curPageSlotIdx = -1
+			if itr.curNode.GetSmallestKey(itr.keyType).IsInfMax() {
+				// reached tail node
+				itr.bpm.UnpinPage(itr.curNode.GetPageId(), false)
+				itr.curNode.RUnlatch()
+				break
+			}
 		}
+
+		// always having RLatch of itr.curNode
+
+		curPageSlotIdx++
+
+		if itr.rangeEndKey != nil && itr.curNode.GetEntry(int(curPageSlotIdx), itr.keyType).Key.CompareGreaterThan(*itr.rangeEndKey) {
+			itr.bpm.UnpinPage(itr.curNode.GetPageId(), false)
+			itr.curNode.RUnlatch()
+			break
+		}
+
+		itr.entryList = append(itr.entryList, itr.curNode.GetEntry(int(curPageSlotIdx), itr.keyType))
 	}
+}
 
-	// always having RLatch of itr.curNode
-
-	itr.curIdx++
-
-	if itr.rangeEndKey != nil && itr.curNode.GetEntry(int(itr.curIdx), itr.keyType).Key.CompareGreaterThan(*itr.rangeEndKey) {
-		itr.bpm.UnpinPage(itr.curNode.GetPageId(), false)
-		itr.curNode.RUnlatch()
-		return true, nil, nil, math.MaxUint32
+func (itr *SkipListIterator) Next() (done bool, err error, key *types.Value, rid *page.RID) {
+	if itr.curEntryIdx < int32(len(itr.entryList)) {
+		ret := itr.entryList[itr.curEntryIdx]
+		itr.curEntryIdx++
+		tmpRID := samehada_util.UnpackUint32toRID(ret.Value)
+		return false, nil, samehada_util.GetPonterOfValue(ret.Key), &tmpRID
+	} else {
+		return true, nil, nil, nil
 	}
-
-	tmpKey := itr.curNode.GetEntry(int(itr.curIdx), itr.keyType).Key
-	itr.curNode.RUnlatch()
-	return false, nil, &tmpKey, itr.curNode.GetEntry(int(itr.curIdx), itr.keyType).Value
 }

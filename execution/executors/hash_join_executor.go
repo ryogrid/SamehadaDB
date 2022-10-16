@@ -2,6 +2,7 @@ package executors
 
 import (
 	"errors"
+	"github.com/ryogrid/SamehadaDB/catalog"
 	"github.com/ryogrid/SamehadaDB/common"
 	"github.com/ryogrid/SamehadaDB/container/hash"
 	"github.com/ryogrid/SamehadaDB/execution/expression"
@@ -117,7 +118,8 @@ func (e *HashJoinExecutor) Init() {
 }
 
 // TODO: (SDB) need to refactor HashJoinExecutor::Next method to use GetExpr method of Column class
-//             current impl is avoiding the method because it does not exist when this code was wrote
+//
+//	current impl is avoiding the method because it does not exist when this code was wrote
 func (e *HashJoinExecutor) Next() (*tuple.Tuple, Done, error) {
 	inner_next_cnt := 0
 	for {
@@ -194,6 +196,9 @@ func (e *HashJoinExecutor) MakeOutputTuple(left_tuple *tuple.Tuple, right_tuple 
 	}
 	return tuple.NewTupleFromSchema(values, e.GetOutputSchema())
 }
+
+// can not be used
+func (e *HashJoinExecutor) GetTableMetaData() *catalog.TableMetadata { return nil }
 
 type SimpleHashJoinHashTable struct {
 	hash_table_ map[uint32][]hash.TmpTuple

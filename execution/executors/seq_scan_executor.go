@@ -93,3 +93,7 @@ func (e *SeqScanExecutor) projects(tuple_ *tuple.Tuple) *tuple.Tuple {
 func (e *SeqScanExecutor) GetOutputSchema() *schema.Schema {
 	return e.plan.OutputSchema()
 }
+
+func (e *SeqScanExecutor) GetTableMetaData() *catalog.TableMetadata {
+	return e.tableMetadata
+}

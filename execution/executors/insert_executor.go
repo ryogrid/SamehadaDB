@@ -40,7 +40,7 @@ func (e *InsertExecutor) Next() (*tuple.Tuple, Done, error) {
 	for _, values := range e.plan.GetRawValues() {
 		tuple_ := tuple.NewTupleFromSchema(values, e.tableMetadata.Schema())
 		tableHeap := e.tableMetadata.Table()
-		rid, err := tableHeap.InsertTuple(tuple_, e.context.txn)
+		rid, err := tableHeap.InsertTuple(tuple_, e.context.txn, e.tableMetadata.OID())
 		if err != nil {
 			return nil, true, err
 		}
@@ -63,3 +63,5 @@ func (e *InsertExecutor) Next() (*tuple.Tuple, Done, error) {
 func (e *InsertExecutor) GetOutputSchema() *schema.Schema {
 	return e.plan.OutputSchema()
 }
+
+func (e *InsertExecutor) GetTableMetaData() *catalog.TableMetadata { return e.tableMetadata }

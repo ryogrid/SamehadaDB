@@ -2,6 +2,7 @@ package executors
 
 import (
 	"fmt"
+	"github.com/ryogrid/SamehadaDB/catalog"
 	"math"
 
 	"github.com/ryogrid/SamehadaDB/container/hash"
@@ -173,7 +174,7 @@ func (aht *SimpleAggregationHashTable) Begin() *AggregateHTIterator {
 		agg_key_list = append(agg_key_list, aht.ht_key[hval])
 		agg_val_list = append(agg_val_list, val)
 	}
-	//return Iterator{ht.cbegin()}
+	//return GetRangeScanIterator{ht.cbegin()}
 	return NewAggregateHTIteratorIterator(agg_key_list, agg_val_list)
 }
 
@@ -270,4 +271,8 @@ func (e *AggregationExecutor) MakeVal(tuple_ *tuple.Tuple) *plans.AggregateValue
 		vals = append(vals, &tmp_val)
 	}
 	return &plans.AggregateValue{Aggregates_: vals}
+}
+
+func (e *AggregationExecutor) GetTableMetaData() *catalog.TableMetadata {
+	return e.child_[0].GetTableMetaData()
 }

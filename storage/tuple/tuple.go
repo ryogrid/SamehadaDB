@@ -1,7 +1,7 @@
 // this code is from https://github.com/brunocalza/go-bustub
 // there is license and copyright notice in licenses/go-bustub dir
 
-//package table
+// package table
 package tuple
 
 import (
@@ -61,26 +61,29 @@ func NewTupleFromSchema(values []types.Value, schema_ *schema.Schema) *Tuple {
 // generate tuple obj for hash index search
 // generated tuple filled only specifed column only due to use methods
 // defined on Index interface
-func GenTupleForHashIndexSearch(schema_ *schema.Schema, colIndex uint32, keyVal types.Value) *Tuple {
+func GenTupleForIndexSearch(schema_ *schema.Schema, colIndex uint32, keyVal *types.Value) *Tuple {
+	if keyVal == nil {
+		return nil
+	}
 	colmuns := schema_.GetColumns()
 	values := make([]types.Value, 0)
 	for idx, columnObj := range colmuns {
 		switch columnObj.GetType() {
 		case types.Integer:
 			if idx == int(colIndex) {
-				values = append(values, keyVal)
+				values = append(values, *keyVal)
 			} else {
 				values = append(values, types.NewInteger(0))
 			}
 		case types.Float:
 			if idx == int(colIndex) {
-				values = append(values, keyVal)
+				values = append(values, *keyVal)
 			} else {
 				values = append(values, types.NewFloat(0.0))
 			}
 		case types.Varchar:
 			if idx == int(colIndex) {
-				values = append(values, keyVal)
+				values = append(values, *keyVal)
 			} else {
 				values = append(values, types.NewVarchar(""))
 			}

@@ -4,6 +4,7 @@
 package catalog
 
 import (
+	"github.com/ryogrid/SamehadaDB/storage/index"
 	"github.com/ryogrid/SamehadaDB/storage/index/index_constants"
 	"sync/atomic"
 
@@ -162,7 +163,7 @@ func (c *Catalog) insertTable(tableMetadata *TableMetadata, txn *access.Transact
 	first_tuple := tuple.NewTupleFromSchema(row, TableCatalogSchema())
 
 	// insert entry to TableCatalogPage (PageId = 0)
-	c.tableHeap.InsertTuple(first_tuple, txn)
+	c.tableHeap.InsertTuple(first_tuple, txn, tableMetadata.OID())
 	for _, column_ := range tableMetadata.schema.GetColumns() {
 		row := make([]types.Value, 0)
 		row = append(row, types.NewInteger(int32(tableMetadata.oid)))
@@ -177,10 +178,24 @@ func (c *Catalog) insertTable(tableMetadata *TableMetadata, txn *access.Transact
 		new_tuple := tuple.NewTupleFromSchema(row, ColumnsCatalogSchema())
 
 		// insert entry to ColumnsCatalogPage (PageId = 1)
-		c.tableIds[ColumnsCatalogOID].Table().InsertTuple(new_tuple, txn)
+		c.tableIds[ColumnsCatalogOID].Table().InsertTuple(new_tuple, txn, ColumnsCatalogOID)
 	}
 	// flush a page having table definitions
 	c.bpm.FlushPage(TableCatalogPageId)
 	// flush a page having columns definitions on table
 	c.bpm.FlushPage(ColumnsCatalogPageId)
+}
+
+// for Redo/Undo
+//
+// returned list's length is same with column num of table.
+// value of elements corresponding to columns which doesn't have index is nil.
+func (c *Catalog) GetRollbackNeededIndexes(indexMap map[uint32][]index.Index, oid uint32) []index.Index {
+	if indexes, found := indexMap[oid]; found {
+		return indexes
+	} else {
+		indexes_ := c.GetTableByOID(oid).Indexes()
+		indexMap[oid] = indexes_
+		return indexes_
+	}
 }

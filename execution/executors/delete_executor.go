@@ -5,7 +5,6 @@ import (
 	"fmt"
 
 	"github.com/ryogrid/SamehadaDB/catalog"
-	"github.com/ryogrid/SamehadaDB/execution/expression"
 	"github.com/ryogrid/SamehadaDB/execution/plans"
 	"github.com/ryogrid/SamehadaDB/storage/access"
 	"github.com/ryogrid/SamehadaDB/storage/table/schema"
@@ -16,21 +15,23 @@ import (
  * DeleteExecutor executes a sequential scan over a table and delete tuples according to predicate.
  */
 type DeleteExecutor struct {
-	context       *ExecutorContext
-	plan          *plans.DeletePlanNode
-	tableMetadata *catalog.TableMetadata
-	it            *access.TableHeapIterator
-	txn           *access.Transaction
+	context *ExecutorContext
+	plan    *plans.DeletePlanNode
+	//tableMetadata *catalog.TableMetadata
+	//it            *access.TableHeapIterator
+	child Executor
+	txn   *access.Transaction
 }
 
-func NewDeleteExecutor(context *ExecutorContext, plan *plans.DeletePlanNode) Executor {
-	tableMetadata := context.GetCatalog().GetTableByOID(plan.GetTableOID())
+func NewDeleteExecutor(context *ExecutorContext, plan *plans.DeletePlanNode, child Executor) Executor {
+	//tableMetadata := context.GetCatalog().GetTableByOID(plan.GetTableOID())
 
-	return &DeleteExecutor{context, plan, tableMetadata, nil, context.GetTransaction()}
+	return &DeleteExecutor{context, plan, child, context.GetTransaction()}
 }
 
 func (e *DeleteExecutor) Init() {
-	e.it = e.tableMetadata.Table().Iterator(e.txn)
+	//e.it = e.tableMetadata.Table().Iterator(e.txn)
+	e.child.Init()
 }
 
 // Next implements the next method for the sequential scan operator
@@ -40,44 +41,54 @@ func (e *DeleteExecutor) Init() {
 func (e *DeleteExecutor) Next() (*tuple.Tuple, Done, error) {
 
 	// iterates through the table heap trying to select a tuple that matches the predicate
-	for t := e.it.Current(); !e.it.End(); t = e.it.Next() {
+	//for t := e.it.Current(); !e.it.End(); t = e.it.Next() {
+	for t, done, err := e.child.Next(); !done; t, done, err = e.child.Next() {
 		if t == nil {
 			err := errors.New("e.it.Next returned nil")
 			return nil, true, err
 		}
-		if e.selects(t, e.plan.GetPredicate()) {
-			// change e.it.Current() value for subsequent call
-			if !e.it.End() {
-				defer e.it.Next()
-			}
-			rid := e.it.Current().GetRID()
-			is_marked := e.tableMetadata.Table().MarkDelete(rid, e.txn)
-			if !is_marked {
-				err := errors.New("tuple update failed. PageId:SlotNum = " + string(rid.GetPageId()) + ":" + fmt.Sprint(rid.GetSlotNum()))
-				return nil, false, err
-			}
-
-			colNum := e.tableMetadata.GetColumnNum()
-			for ii := 0; ii < int(colNum); ii++ {
-				ret := e.tableMetadata.GetIndex(ii)
-				if ret == nil {
-					continue
-				} else {
-					index_ := ret
-					index_.DeleteEntry(e.it.Current(), *rid, e.txn)
-				}
-			}
-
-			return e.it.Current(), false, nil
+		if err != nil {
+			return nil, true, err
 		}
+		//		if e.selects(t, e.plan.GetPredicate()) {
+		// change e.it.Current() value for subsequent call
+		//if !e.it.End() {
+		//	defer e.it.Next()
+		//}
+		//rid := e.it.Current().GetRID()
+		rid := t.GetRID()
+		tableMetadata := e.child.GetTableMetaData()
+		is_marked := tableMetadata.Table().MarkDelete(rid, tableMetadata.OID(), e.txn)
+		if !is_marked {
+			err := errors.New("tuple update failed. PageId:SlotNum = " + string(rid.GetPageId()) + ":" + fmt.Sprint(rid.GetSlotNum()))
+			return nil, false, err
+		}
+
+		colNum := tableMetadata.GetColumnNum()
+		for ii := 0; ii < int(colNum); ii++ {
+			ret := tableMetadata.GetIndex(ii)
+			if ret == nil {
+				continue
+			} else {
+				index_ := ret
+				//index_.DeleteEntry(e.it.Current(), *rid, e.txn)
+				index_.DeleteEntry(t, *rid, e.txn)
+			}
+		}
+
+		//return e.it.Current(), false, nil
+		return t, false, nil
+		//		}
 	}
 
 	return nil, true, nil
 }
 
-// select evaluates an expression on the tuple
-func (e *DeleteExecutor) selects(tuple *tuple.Tuple, predicate expression.Expression) bool {
-	return predicate == nil || predicate.Evaluate(tuple, e.tableMetadata.Schema()).ToBoolean()
-}
+//// select evaluates an expression on the tuple
+//func (e *DeleteExecutor) selects(tuple *tuple.Tuple, predicate expression.Expression) bool {
+//	return predicate == nil || predicate.Evaluate(tuple, e.tableMetadata.Schema()).ToBoolean()
+//}
 
 func (e *DeleteExecutor) GetOutputSchema() *schema.Schema { return e.plan.OutputSchema() }
+
+func (e *DeleteExecutor) GetTableMetaData() *catalog.TableMetadata { return e.child.GetTableMetaData() }
