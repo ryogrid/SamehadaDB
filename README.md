@@ -52,7 +52,7 @@
 - [x] Transactions
 - [x] Rollback When Abort Occurs
 - [x] Logging
-- [ ] Checkpointing
+- [x] Checkpointing
   - [x] Simple Checkpointing (all transaction block until finish of checkpointing)
   - [ ] Fuzzy Checkpointing (ARIES)
 - [x] Recovery from Logs
