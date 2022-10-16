@@ -100,7 +100,7 @@ func (e *RangeScanWithIndexExecutor) Next() (*tuple.Tuple, Done, error) {
 	for done, _, key, rid := e.ridItr.Next(); !done; done, _, key, rid = e.ridItr.Next() {
 		tuple_ = e.tableMetadata.Table().GetTuple(rid, e.txn)
 		if tuple_ == nil {
-			err := errors.New("e.it.Next returned nil")
+			err := errors.New("e.ridItr.Next returned nil")
 			return nil, true, err
 		}
 

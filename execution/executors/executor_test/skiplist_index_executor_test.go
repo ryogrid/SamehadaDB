@@ -360,7 +360,8 @@ func TestAbortWthDeleteUpdateUsingIndexCase(t *testing.T) {
 	tmpColVal.SetColIndex(tableMetadata.Schema().GetColIndex(pred.LeftColumn))
 	expression_ := expression.NewComparison(tmpColVal, expression.NewConstantValue(executors.GetValue(pred.RightColumn), executors.GetValueType(pred.RightColumn)), pred.Operator, types.Boolean)
 
-	updatePlanNode := plans.NewUpdatePlanNode(row1, []int{0, 1}, expression_, tableMetadata.OID())
+	seqScanPlan := plans.NewSeqScanPlanNode(tableMetadata.Schema(), expression_, tableMetadata.OID())
+	updatePlanNode := plans.NewUpdatePlanNode(row1, []int{0, 1}, seqScanPlan)
 	executionEngine.Execute(updatePlanNode, executorContext)
 
 	// delete
@@ -370,8 +371,8 @@ func TestAbortWthDeleteUpdateUsingIndexCase(t *testing.T) {
 	tmpColVal.SetColIndex(tableMetadata.Schema().GetColIndex(pred.LeftColumn))
 	expression_ = expression.NewComparison(tmpColVal, expression.NewConstantValue(executors.GetValue(pred.RightColumn), executors.GetValueType(pred.RightColumn)), pred.Operator, types.Boolean)
 
-	childSeqScanE := plans.NewSeqScanPlanNode(tableMetadata.Schema(), expression_, tableMetadata.OID())
-	deletePlanNode := plans.NewDeletePlanNode(childSeqScanE)
+	childSeqScanPlan := plans.NewSeqScanPlanNode(tableMetadata.Schema(), expression_, tableMetadata.OID())
+	deletePlanNode := plans.NewDeletePlanNode(childSeqScanPlan)
 	executionEngine.Execute(deletePlanNode, executorContext)
 
 	log_mgr.DeactivateLogging()

@@ -61,9 +61,9 @@ func ExecuteSeqScanTestCase(t *testing.T, testCase SeqScanTestCase) {
 	tmpColVal_ := expression.NewColumnValue(0, testCase.TableMetadata.Schema().GetColIndex(testCase.Predicate.LeftColumn), GetValueType(testCase.Predicate.RightColumn))
 	tmpColVal := tmpColVal_.(*expression.ColumnValue)
 	expression := expression.NewComparison(tmpColVal, expression.NewConstantValue(GetValue(testCase.Predicate.RightColumn), GetValueType(testCase.Predicate.RightColumn)), testCase.Predicate.Operator, types.Boolean)
-	seqPlan := plans.NewSeqScanPlanNode(outSchema, expression, testCase.TableMetadata.OID())
+	seqScanPlan := plans.NewSeqScanPlanNode(outSchema, expression, testCase.TableMetadata.OID())
 
-	results := testCase.ExecutionEngine.Execute(seqPlan, testCase.ExecutorContext)
+	results := testCase.ExecutionEngine.Execute(seqScanPlan, testCase.ExecutorContext)
 
 	testingpkg.Equals(t, testCase.TotalHits, uint32(len(results)))
 	if len(results) > 0 {
@@ -172,8 +172,8 @@ func ExecuteDeleteTestCase(t *testing.T, testCase DeleteTestCase) {
 	tmpColVal_ := expression.NewColumnValue(0, testCase.TableMetadata.Schema().GetColIndex(testCase.Predicate.LeftColumn), GetValueType(testCase.Predicate.RightColumn))
 	tmpColVal := tmpColVal_.(*expression.ColumnValue)
 	expression := expression.NewComparison(tmpColVal, expression.NewConstantValue(GetValue(testCase.Predicate.RightColumn), GetValueType(testCase.Predicate.RightColumn)), testCase.Predicate.Operator, types.Boolean)
-	childSeqScanE := plans.NewSeqScanPlanNode(outSchema, expression, testCase.TableMetadata.OID())
-	deletePlan := plans.NewDeletePlanNode(childSeqScanE)
+	childSeqScanP := plans.NewSeqScanPlanNode(outSchema, expression, testCase.TableMetadata.OID())
+	deletePlan := plans.NewDeletePlanNode(childSeqScanP)
 
 	testCase.ExecutorContext.SetTransaction(txn)
 	results := testCase.ExecutionEngine.Execute(deletePlan, testCase.ExecutorContext)

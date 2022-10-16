@@ -5,6 +5,7 @@ package executors
 
 import (
 	"github.com/ryogrid/SamehadaDB/execution/plans"
+	"github.com/ryogrid/SamehadaDB/storage/access"
 	"github.com/ryogrid/SamehadaDB/storage/tuple"
 )
 
@@ -24,7 +25,11 @@ func (e *ExecutionEngine) Execute(plan plans.Plan, context *ExecutorContext) []*
 	tuples := []*tuple.Tuple{}
 	for {
 		tuple, done, err := executor.Next()
-		if err != nil || done {
+		if err != nil {
+			context.txn.SetState(access.ABORTED)
+			break
+		}
+		if done {
 			break
 		}
 
@@ -51,7 +56,7 @@ func (e *ExecutionEngine) CreateExecutor(plan plans.Plan, context *ExecutorConte
 	case *plans.DeletePlanNode:
 		return NewDeleteExecutor(context, p, e.CreateExecutor(plan.GetChildAt(0), context))
 	case *plans.UpdatePlanNode:
-		return NewUpdateExecutor(context, p)
+		return NewUpdateExecutor(context, p, e.CreateExecutor(plan.GetChildAt(0), context))
 	case *plans.HashJoinPlanNode:
 		return NewHashJoinExecutor(context, p, e.CreateExecutor(plan.GetChildAt(0), context), e.CreateExecutor(plan.GetChildAt(1), context))
 	case *plans.AggregationPlanNode:
