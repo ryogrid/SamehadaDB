@@ -3,6 +3,7 @@ package executors
 import (
 	"errors"
 	"fmt"
+	"github.com/ryogrid/SamehadaDB/samehada/samehada_util"
 	"github.com/ryogrid/SamehadaDB/storage/page"
 
 	"github.com/ryogrid/SamehadaDB/catalog"
@@ -70,6 +71,7 @@ func (e *UpdateExecutor) Next() (*tuple.Tuple, Done, error) {
 		}
 
 		colNum := e.child.GetTableMetaData().GetColumnNum()
+		updateIdxs := e.plan.GetUpdateColIdxs()
 		for ii := 0; ii < int(colNum); ii++ {
 			ret := e.child.GetTableMetaData().GetIndex(ii)
 			if ret == nil {
@@ -78,12 +80,22 @@ func (e *UpdateExecutor) Next() (*tuple.Tuple, Done, error) {
 				index_ := ret
 				//index_.DeleteEntry(e.it.Current(), *rid, e.txn)
 				index_.DeleteEntry(t, *rid, e.txn)
-				if new_rid != nil {
-					// when tuple is moved page location on update, RID is changed to new value
-					fmt.Println("UpdateExecuter: index entry insert with new_rid.")
-					index_.InsertEntry(new_tuple, *new_rid, e.txn)
+				if samehada_util.IsContainList[int](updateIdxs, ii) {
+					if new_rid != nil {
+						// when tuple is moved page location on update, RID is changed to new value
+						fmt.Println("UpdateExecuter: index entry insert with new_rid.")
+						index_.InsertEntry(new_tuple, *new_rid, e.txn)
+					} else {
+						index_.InsertEntry(new_tuple, *rid, e.txn)
+					}
 				} else {
-					index_.InsertEntry(new_tuple, *rid, e.txn)
+					if new_rid != nil {
+						// when tuple is moved page location on update, RID is changed to new value
+						fmt.Println("UpdateExecuter: index entry insert with new_rid.")
+						index_.InsertEntry(t, *new_rid, e.txn)
+					} else {
+						index_.InsertEntry(t, *rid, e.txn)
+					}
 				}
 			}
 		}

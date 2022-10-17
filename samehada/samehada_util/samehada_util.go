@@ -74,6 +74,15 @@ func RemovePrimitiveFromList[T int32 | float32 | string](list []T, elem T) []T {
 	return list_
 }
 
+func IsContainList[T comparable](list interface{}, searchItem interface{}) bool {
+	for _, t := range list.([]T) {
+		if t == searchItem.(T) {
+			return true
+		}
+	}
+	return false
+}
+
 //func GetParentFuncName() string {
 //	_, name, _, _ := runtime.Caller(1)
 //	return name
