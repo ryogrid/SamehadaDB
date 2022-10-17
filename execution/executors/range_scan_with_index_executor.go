@@ -10,6 +10,7 @@ import (
 	"github.com/ryogrid/SamehadaDB/storage/table/schema"
 	"github.com/ryogrid/SamehadaDB/storage/tuple"
 	"github.com/ryogrid/SamehadaDB/types"
+	"reflect"
 )
 
 /**
@@ -132,7 +133,7 @@ func (e *RangeScanWithIndexExecutor) Next() (*tuple.Tuple, Done, error) {
 
 // select evaluates an expression on the tuple
 func (e *RangeScanWithIndexExecutor) selects(tuple *tuple.Tuple, predicate expression.Expression) bool {
-	return predicate == nil || predicate.Evaluate(tuple, e.tableMetadata.Schema()).ToBoolean()
+	return predicate == nil || reflect.ValueOf(predicate).IsNil() || predicate.Evaluate(tuple, e.tableMetadata.Schema()).ToBoolean()
 }
 
 // project applies the projection operator defined by the output schema

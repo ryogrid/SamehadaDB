@@ -478,13 +478,14 @@ func TestAbortWthDeleteUpdateUsingIndexCaseRangeScan(t *testing.T) {
 
 	row3 := make([]types.Value, 0)
 	row3 = append(row3, types.NewInteger(777))
-	row3 = append(row3, types.NewVarchar("barbar"))
+	row3 = append(row3, types.NewVarchar("bar"))
 
 	rows := make([][]types.Value, 0)
 	rows = append(rows, row1)
 	rows = append(rows, row2)
 	rows = append(rows, row3)
 
+	// ----------- Insert -----------------
 	insertPlanNode := plans.NewInsertPlanNode(rows, tableMetadata.OID())
 
 	executionEngine := &executors.ExecutionEngine{}
@@ -497,74 +498,55 @@ func TestAbortWthDeleteUpdateUsingIndexCaseRangeScan(t *testing.T) {
 	txn = txn_mgr.Begin(nil)
 	executorContext.SetTransaction(txn)
 
-	// update
+	// ------------ Update ------------------
 	row1 = make([]types.Value, 0)
 	row1 = append(row1, types.NewInteger(-1)) //dummy
 	row1 = append(row1, types.NewVarchar("updated"))
 
-	//pred := executors.Predicate{"b", expression.Equal, "foo"}
-	//tmpColVal := new(expression.ColumnValue)
-	//tmpColVal.SetTupleIndex(0)
-	//tmpColVal.SetColIndex(tableMetadata.Schema().GetColIndex(pred.LeftColumn))
-	//expression_ := expression.NewComparison(tmpColVal, expression.NewConstantValue(executors.GetValue(pred.RightColumn), executors.GetValueType(pred.RightColumn)), pred.Operator, types.Boolean)
-
-	//seqScanPlan := plans.NewSeqScanPlanNode(tableMetadata.Schema(), expression_, tableMetadata.OID())
-	//skipListPointScanP := plans.NewPointScanWithIndexPlanNode(tableMetadata.Schema(), expression_.(*expression.Comparison), tableMetadata.OID())
 	skipListRangeScanP := plans.NewRangeScanWithIndexPlanNode(tableMetadata.Schema(), tableMetadata.OID(), int32(tableMetadata.Schema().GetColIndex("b")), nil, samehada_util.GetPonterOfValue(types.NewVarchar("foo")), samehada_util.GetPonterOfValue(types.NewVarchar("foo")))
 	updatePlanNode := plans.NewUpdatePlanNode(row1, []int{1}, skipListRangeScanP)
-	executionEngine.Execute(updatePlanNode, executorContext)
+	results := executionEngine.Execute(updatePlanNode, executorContext)
 
-	// delete
-	pred := executors.Predicate{"b", expression.Equal, "barbar"}
+	testingpkg.Assert(t, len(results) == 1, "update row count should be 1.")
+
+	// ------- Delete ---------
+	pred := executors.Predicate{"b", expression.Equal, "bar"}
 	tmpColVal := new(expression.ColumnValue)
 	tmpColVal.SetTupleIndex(0)
 	tmpColVal.SetColIndex(tableMetadata.Schema().GetColIndex(pred.LeftColumn))
 	expression_ := expression.NewComparison(tmpColVal, expression.NewConstantValue(executors.GetValue(pred.RightColumn), executors.GetValueType(pred.RightColumn)), pred.Operator, types.Boolean)
 
-	//childSeqScanPlan := plans.NewSeqScanPlanNode(tableMetadata.Schema(), expression_, tableMetadata.OID())
-	//skipListPointScanP = plans.NewPointScanWithIndexPlanNode(tableMetadata.Schema(), expression_.(*expression.Comparison), tableMetadata.OID())
-	skipListRangeScanP = plans.NewRangeScanWithIndexPlanNode(tableMetadata.Schema(), tableMetadata.OID(), int32(tableMetadata.Schema().GetColIndex("b")), expression_.(*expression.Comparison), samehada_util.GetPonterOfValue(types.NewVarchar("barbar")), samehada_util.GetPonterOfValue(types.NewVarchar("barbar")))
+	skipListRangeScanP = plans.NewRangeScanWithIndexPlanNode(tableMetadata.Schema(), tableMetadata.OID(), int32(tableMetadata.Schema().GetColIndex("b")), expression_.(*expression.Comparison), samehada_util.GetPonterOfValue(types.NewVarchar("bar")), samehada_util.GetPonterOfValue(types.NewVarchar("bar")))
 
 	deletePlanNode := plans.NewDeletePlanNode(skipListRangeScanP)
-	executionEngine.Execute(deletePlanNode, executorContext)
+	results = executionEngine.Execute(deletePlanNode, executorContext)
+
+	testingpkg.Assert(t, len(results) == 1, "deleted row count should be 1.")
 
 	log_mgr.DeactivateLogging()
 
 	fmt.Println("select and check value before Abort...")
 
-	// check updated row
+	// --------- Check Updated row before rollback ----------
 	outColumnB := column.NewColumn("b", types.Varchar, false, index_constants.INDEX_KIND_INVAID, types.PageID(-1), nil)
 	outSchema := schema.NewSchema([]*column.Column{outColumnB})
 
-	//pred = executors.Predicate{"a", expression.Equal, 99}
-	//tmpColVal = new(expression.ColumnValue)
-	//tmpColVal.SetTupleIndex(0)
-	//tmpColVal.SetColIndex(tableMetadata.Schema().GetColIndex(pred.LeftColumn))
-	//expression_ = expression.NewComparison(tmpColVal, expression.NewConstantValue(executors.GetValue(pred.RightColumn), executors.GetValueType(pred.RightColumn)), pred.Operator, types.Boolean)
-
-	//seqPlan := plans.NewSeqScanPlanNode(outSchema, expression_, tableMetadata.OID())
 	skipListRangeScanP = plans.NewRangeScanWithIndexPlanNode(outSchema, tableMetadata.OID(), int32(tableMetadata.Schema().GetColIndex("a")), nil, samehada_util.GetPonterOfValue(types.NewInteger(99)), samehada_util.GetPonterOfValue(types.NewInteger(99)))
-	results := executionEngine.Execute(skipListRangeScanP, executorContext)
+	results = executionEngine.Execute(skipListRangeScanP, executorContext)
 
+	testingpkg.Assert(t, len(results) == 1, "got row count should be 1.")
 	testingpkg.Assert(t, types.NewVarchar("updated").CompareEquals(results[0].GetValue(outSchema, 0)), "value should be 'updated'")
 
-	// check deleted row
+	// --------- Check Deleted row before rollback -----------
 	outColumnB = column.NewColumn("b", types.Integer, false, index_constants.INDEX_KIND_INVAID, types.PageID(-1), nil)
 	outSchema = schema.NewSchema([]*column.Column{outColumnB})
 
-	//pred = executors.Predicate{"b", expression.Equal, "bar"}
-	//tmpColVal = new(expression.ColumnValue)
-	//tmpColVal.SetTupleIndex(0)
-	//tmpColVal.SetColIndex(tableMetadata.Schema().GetColIndex(pred.LeftColumn))
-	//expression_ = expression.NewComparison(tmpColVal, expression.NewConstantValue(executors.GetValue(pred.RightColumn), executors.GetValueType(pred.RightColumn)), pred.Operator, types.Boolean)
-
-	//seqPlan = plans.NewSeqScanPlanNode(outSchema, expression_, tableMetadata.OID())
-	//skipListPointScanP = plans.NewPointScanWithIndexPlanNode(outSchema, expression_.(*expression.Comparison), tableMetadata.OID())
-	skipListRangeScanP = plans.NewRangeScanWithIndexPlanNode(outSchema, tableMetadata.OID(), int32(tableMetadata.Schema().GetColIndex("b")), nil, samehada_util.GetPonterOfValue(types.NewVarchar("barbar")), nil)
+	skipListRangeScanP = plans.NewRangeScanWithIndexPlanNode(outSchema, tableMetadata.OID(), int32(tableMetadata.Schema().GetColIndex("a")), nil, samehada_util.GetPonterOfValue(types.NewInteger(200)), nil)
 	results = executionEngine.Execute(skipListRangeScanP, executorContext)
 
 	testingpkg.Assert(t, len(results) == 0, "")
 
+	// ---------- Abort ---------------
 	txn_mgr.Abort(c, txn)
 
 	fmt.Println("select and check value after Abort...")
@@ -572,36 +554,20 @@ func TestAbortWthDeleteUpdateUsingIndexCaseRangeScan(t *testing.T) {
 	txn = txn_mgr.Begin(nil)
 	executorContext.SetTransaction(txn)
 
-	// check updated row
+	// -------- Check Rollback of Updated row -------------
 	outColumnB = column.NewColumn("b", types.Varchar, false, index_constants.INDEX_KIND_INVAID, types.PageID(-1), nil)
 	outSchema = schema.NewSchema([]*column.Column{outColumnB})
 
-	//pred = executors.Predicate{"a", expression.Equal, 99}
-	//tmpColVal = new(expression.ColumnValue)
-	//tmpColVal.SetTupleIndex(0)
-	//tmpColVal.SetColIndex(tableMetadata.Schema().GetColIndex(pred.LeftColumn))
-	//expression_ = expression.NewComparison(tmpColVal, expression.NewConstantValue(executors.GetValue(pred.RightColumn), executors.GetValueType(pred.RightColumn)), pred.Operator, types.Boolean)
-
-	//seqPlan = plans.NewSeqScanPlanNode(outSchema, expression_, tableMetadata.OID())
-	//skipListPointScanP = plans.NewPointScanWithIndexPlanNode(outSchema, expression_.(*expression.Comparison), tableMetadata.OID())
-	skipListRangeScanP = plans.NewRangeScanWithIndexPlanNode(outSchema, tableMetadata.OID(), int32(tableMetadata.Schema().GetColIndex("a")), nil, nil, samehada_util.GetPonterOfValue(types.NewInteger(99)))
+	skipListRangeScanP = plans.NewRangeScanWithIndexPlanNode(tableMetadata.Schema(), tableMetadata.OID(), int32(tableMetadata.Schema().GetColIndex("b")), nil, samehada_util.GetPonterOfValue(types.NewVarchar("foo")), samehada_util.GetPonterOfValue(types.NewVarchar("foo")))
 	results = executionEngine.Execute(skipListRangeScanP, executorContext)
 
 	testingpkg.Assert(t, types.NewVarchar("foo").CompareEquals(results[1].GetValue(outSchema, 0)), "value should be 'foo'")
 
-	// check deleted row
+	// -------- Check Rollback of Deleted row --------------
 	outColumnB = column.NewColumn("b", types.Integer, false, index_constants.INDEX_KIND_INVAID, types.PageID(-1), nil)
 	outSchema = schema.NewSchema([]*column.Column{outColumnB})
 
-	//pred = executors.Predicate{"b", expression.Equal, "bar"}
-	//tmpColVal = new(expression.ColumnValue)
-	//tmpColVal.SetTupleIndex(0)
-	//tmpColVal.SetColIndex(tableMetadata.Schema().GetColIndex(pred.LeftColumn))
-	//expression_ = expression.NewComparison(tmpColVal, expression.NewConstantValue(executors.GetValue(pred.RightColumn), executors.GetValueType(pred.RightColumn)), pred.Operator, types.Boolean)
-
-	//seqPlan = plans.NewSeqScanPlanNode(outSchema, expression_, tableMetadata.OID())
-	//skipListPointScanP = plans.NewPointScanWithIndexPlanNode(outSchema, expression_.(*expression.Comparison), tableMetadata.OID())
-	skipListRangeScanP = plans.NewRangeScanWithIndexPlanNode(outSchema, tableMetadata.OID(), int32(tableMetadata.Schema().GetColIndex("b")), nil, samehada_util.GetPonterOfValue(types.NewVarchar("barbar")), nil)
+	skipListRangeScanP = plans.NewRangeScanWithIndexPlanNode(tableMetadata.Schema(), tableMetadata.OID(), int32(tableMetadata.Schema().GetColIndex("b")), expression_.(*expression.Comparison), samehada_util.GetPonterOfValue(types.NewVarchar("bar")), samehada_util.GetPonterOfValue(types.NewVarchar("bar")))
 	results = executionEngine.Execute(skipListRangeScanP, executorContext)
 
 	testingpkg.Assert(t, len(results) == 1, "")
