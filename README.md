@@ -20,7 +20,7 @@
 - **ATTENTION: SamehadaDB is not developed for productional use! There are no warranties!**
 - By the way, procedure described on next section executes almost all defined unit tests except these of taking long time
 
-## Procedure of Executing SamehadaDB (unit tests are executed)
+## Procedure of Executing SamehadaDB (executing unit tests)
 - Please install golang environment with package system your OS has (apt, yum, brew ...etc)
   - If you use Windows, you can select both Windows native environment and WSL Ubuntu environment
 - If you select Windows native environments or golang environment which is installed with package system can't execute SamehadaDB, you should install official binary directly
