@@ -87,3 +87,45 @@ func IsContainList[T comparable](list interface{}, searchItem interface{}) bool 
 //	_, name, _, _ := runtime.Caller(1)
 //	return name
 //}
+
+func GetRandomPrimitiveVal[T int32 | float32 | string](keyType types.TypeID) T {
+	switch keyType {
+	case types.Integer:
+		val := rand.Int31()
+		if val < 0 {
+			val = -1 * ((-1 * val) % (math.MaxInt32 >> 10))
+		} else {
+			val = val % (math.MaxInt32 >> 10)
+		}
+		var ret interface{} = val
+		return ret.(T)
+	case types.Float:
+		var ret interface{} = rand.Float32()
+		return ret.(T)
+	case types.Varchar:
+		//var ret interface{} = *samehada_util.GetRandomStr(1000)
+		var ret interface{} = *GetRandomStr(500)
+		//var ret interface{} = *samehada_util.GetRandomStr(50)
+		return ret.(T)
+	default:
+		panic("not supported keyType")
+	}
+}
+
+func ChoiceValFromMap[T int32 | float32 | string, V int32 | float32 | string](m map[T]V) T {
+	l := len(m)
+	i := 0
+
+	index := rand.Intn(l)
+
+	var ans T
+	for k, _ := range m {
+		if index == i {
+			ans = k
+			break
+		} else {
+			i++
+		}
+	}
+	return ans
+}

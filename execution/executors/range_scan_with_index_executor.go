@@ -132,7 +132,6 @@ func (e *RangeScanWithIndexExecutor) Next() (*tuple.Tuple, Done, error) {
 
 // select evaluates an expression on the tuple
 func (e *RangeScanWithIndexExecutor) selects(tuple *tuple.Tuple, predicate expression.Expression) bool {
-	//return predicate == nil || reflect.ValueOf(predicate).IsNil() || predicate.Evaluate(tuple, e.tableMetadata.Schema()).ToBoolean()
 	return predicate == nil || predicate.Evaluate(tuple, e.tableMetadata.Schema()).ToBoolean()
 }
 
