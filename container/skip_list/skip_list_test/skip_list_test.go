@@ -688,30 +688,6 @@ func getValueForSkipListEntry(val interface{}) uint32 {
 	return ret
 }
 
-func getRandomPrimitiveVal[T int32 | float32 | string](keyType types.TypeID) T {
-	switch keyType {
-	case types.Integer:
-		val := rand.Int31()
-		if val < 0 {
-			val = -1 * ((-1 * val) % (math.MaxInt32 >> 10))
-		} else {
-			val = val % (math.MaxInt32 >> 10)
-		}
-		var ret interface{} = val
-		return ret.(T)
-	case types.Float:
-		var ret interface{} = rand.Float32()
-		return ret.(T)
-	case types.Varchar:
-		//var ret interface{} = *samehada_util.GetRandomStr(1000)
-		var ret interface{} = *samehada_util.GetRandomStr(500)
-		//var ret interface{} = *samehada_util.GetRandomStr(50)
-		return ret.(T)
-	default:
-		panic("not supported keyType")
-	}
-}
-
 func memset(buffer []byte, value int) {
 	for i := range buffer {
 		buffer[i] = byte(value)
@@ -758,24 +734,6 @@ func isAlreadyRemoved[T int32 | float32 | string](checkVal T, removedVals []T) b
 	return false
 }
 
-func choiceValFromMap[T int32 | float32 | string, V int32 | float32 | string](m map[T]V) T {
-	l := len(m)
-	i := 0
-
-	index := rand.Intn(l)
-
-	var ans T
-	for k, _ := range m {
-		if index == i {
-			ans = k
-			break
-		} else {
-			i++
-		}
-	}
-	return ans
-}
-
 func countSkipListContent(sl *skip_list.SkipList) int32 {
 	entryCnt := int32(0)
 	itr := sl.Iterator(nil, nil)
@@ -789,9 +747,9 @@ func countSkipListContent(sl *skip_list.SkipList) int32 {
 
 func insertRandom[T int32 | float32 | string](sl *skip_list.SkipList, num int32, checkDupMap map[T]T, insVals *[]T, keyType types.TypeID) {
 	for ii := 0; ii < int(num); ii++ {
-		insVal := getRandomPrimitiveVal[T](keyType)
+		insVal := samehada_util.GetRandomPrimitiveVal[T](keyType)
 		for _, exist := checkDupMap[insVal]; exist; _, exist = checkDupMap[insVal] {
-			insVal = getRandomPrimitiveVal[T](keyType)
+			insVal = samehada_util.GetRandomPrimitiveVal[T](keyType)
 		}
 		checkDupMap[insVal] = insVal
 
@@ -865,7 +823,8 @@ func testSkipListMix[T int32 | float32 | string](t *testing.T, keyType types.Typ
 	//shi := samehada.NewSamehadaInstance(t.Name(), common.BufferPoolMaxFrameNumForTest)
 	//shi := samehada.NewSamehadaInstance(t.Name(), 10)
 
-	shi := samehada.NewSamehadaInstance(t.Name(), 10)
+	shi := samehada.NewSamehadaInstance(t.Name(), 300)
+	//shi := samehada.NewSamehadaInstance(t.Name(), 10)
 	//shi := samehada.NewSamehadaInstance(t.Name(), 10*1024) // buffer is about 40MB
 
 	bpm := shi.GetBufferPoolManager()
@@ -893,10 +852,10 @@ func testSkipListMix[T int32 | float32 | string](t *testing.T, keyType types.Typ
 	for ii := 0; ii < useInitialEntryNum; ii++ {
 		// avoid duplication
 		//insVal := rand.Int31()
-		insVal := getRandomPrimitiveVal[T](keyType)
+		insVal := samehada_util.GetRandomPrimitiveVal[T](keyType)
 		for _, exist := checkDupMap[insVal]; exist; _, exist = checkDupMap[insVal] {
 			//insVal = rand.Int31()
-			insVal = getRandomPrimitiveVal[T](keyType)
+			insVal = samehada_util.GetRandomPrimitiveVal[T](keyType)
 		}
 		checkDupMap[insVal] = insVal
 
@@ -1030,10 +989,10 @@ func testSkipListMixParallel[T int32 | float32 | string](t *testing.T, keyType t
 	for ii := 0; ii < useInitialEntryNum; ii++ {
 		// avoid duplication
 		//insVal := rand.Int31()
-		insVal := getRandomPrimitiveVal[T](keyType)
+		insVal := samehada_util.GetRandomPrimitiveVal[T](keyType)
 		for _, exist := checkDupMap[insVal]; exist; _, exist = checkDupMap[insVal] {
 			//insVal = rand.Int31()
-			insVal = getRandomPrimitiveVal[T](keyType)
+			insVal = samehada_util.GetRandomPrimitiveVal[T](keyType)
 		}
 		checkDupMap[insVal] = insVal
 
@@ -1077,10 +1036,10 @@ func testSkipListMixParallel[T int32 | float32 | string](t *testing.T, keyType t
 		switch opType {
 		case 0: // Insert
 			go func() {
-				insVal := getRandomPrimitiveVal[T](keyType)
+				insVal := samehada_util.GetRandomPrimitiveVal[T](keyType)
 				checkDupMapMutex.RLock()
 				for _, exist := checkDupMap[insVal]; exist; _, exist = checkDupMap[insVal] {
-					insVal = getRandomPrimitiveVal[T](keyType)
+					insVal = samehada_util.GetRandomPrimitiveVal[T](keyType)
 				}
 				checkDupMapMutex.RUnlock()
 				checkDupMapMutex.Lock()
@@ -1224,10 +1183,10 @@ func testSkipListMixParallelBulk[T int32 | float32 | string](t *testing.T, keyTy
 	for ii := 0; ii < useInitialEntryNum; ii++ {
 		// avoid duplication
 		//insVal := rand.Int31()
-		insVal := getRandomPrimitiveVal[T](keyType)
+		insVal := samehada_util.GetRandomPrimitiveVal[T](keyType)
 		for _, exist := checkDupMap[insVal]; exist; _, exist = checkDupMap[insVal] {
 			//insVal = rand.Int31()
-			insVal = getRandomPrimitiveVal[T](keyType)
+			insVal = samehada_util.GetRandomPrimitiveVal[T](keyType)
 		}
 		checkDupMap[insVal] = insVal
 
@@ -1272,10 +1231,10 @@ func testSkipListMixParallelBulk[T int32 | float32 | string](t *testing.T, keyTy
 		case 0: // Insert
 			go func() {
 				for ii := int32(0); ii < bulkSize; ii++ {
-					insVal := getRandomPrimitiveVal[T](keyType)
+					insVal := samehada_util.GetRandomPrimitiveVal[T](keyType)
 					checkDupMapMutex.RLock()
 					for _, exist := checkDupMap[insVal]; exist; _, exist = checkDupMap[insVal] {
-						insVal = getRandomPrimitiveVal[T](keyType)
+						insVal = samehada_util.GetRandomPrimitiveVal[T](keyType)
 					}
 					checkDupMapMutex.RUnlock()
 					checkDupMapMutex.Lock()
@@ -1433,9 +1392,9 @@ func testSkipListMixParallelStride[T int32 | float32 | string](t *testing.T, key
 	useInitialEntryNum := int(initialEntryNum)
 	for ii := 0; ii < useInitialEntryNum; ii++ {
 		// avoid duplication
-		insValBase := getRandomPrimitiveVal[T](keyType)
+		insValBase := samehada_util.GetRandomPrimitiveVal[T](keyType)
 		for _, exist := checkDupMap[insValBase]; exist; _, exist = checkDupMap[insValBase] {
-			insValBase = getRandomPrimitiveVal[T](keyType)
+			insValBase = samehada_util.GetRandomPrimitiveVal[T](keyType)
 		}
 		checkDupMap[insValBase] = insValBase
 
@@ -1489,9 +1448,9 @@ func testSkipListMixParallelStride[T int32 | float32 | string](t *testing.T, key
 			go func() {
 				//checkDupMapMutex.RLock()
 				checkDupMapMutex.RLock()
-				insValBase := getRandomPrimitiveVal[T](keyType)
+				insValBase := samehada_util.GetRandomPrimitiveVal[T](keyType)
 				for _, exist := checkDupMap[insValBase]; exist; _, exist = checkDupMap[insValBase] {
-					insValBase = getRandomPrimitiveVal[T](keyType)
+					insValBase = samehada_util.GetRandomPrimitiveVal[T](keyType)
 				}
 				checkDupMapMutex.RUnlock()
 				checkDupMapMutex.Lock()
@@ -1528,7 +1487,7 @@ func testSkipListMixParallelStride[T int32 | float32 | string](t *testing.T, key
 
 					for ii := int32(0); ii < stride; ii++ {
 						removedValsForRemoveMutex.RLock()
-						delVal := choiceValFromMap(removedValsForRemove)
+						delVal := samehada_util.ChoiceValFromMap(removedValsForRemove)
 						removedValsForRemoveMutex.RUnlock()
 
 						common.ShPrintf(common.DEBUGGING, "Remove(fail) op start.")
@@ -1671,9 +1630,9 @@ func testSkipListMixParallelStrideAddedIterator[T int32 | float32 | string](t *t
 	useInitialEntryNum := int(initialEntryNum)
 	for ii := 0; ii < useInitialEntryNum; ii++ {
 		// avoid duplication
-		insValBase := getRandomPrimitiveVal[T](keyType)
+		insValBase := samehada_util.GetRandomPrimitiveVal[T](keyType)
 		for _, exist := checkDupMap[insValBase]; exist; _, exist = checkDupMap[insValBase] {
-			insValBase = getRandomPrimitiveVal[T](keyType)
+			insValBase = samehada_util.GetRandomPrimitiveVal[T](keyType)
 		}
 		checkDupMap[insValBase] = insValBase
 
@@ -1727,9 +1686,9 @@ func testSkipListMixParallelStrideAddedIterator[T int32 | float32 | string](t *t
 			go func() {
 				//checkDupMapMutex.RLock()
 				checkDupMapMutex.RLock()
-				insValBase := getRandomPrimitiveVal[T](keyType)
+				insValBase := samehada_util.GetRandomPrimitiveVal[T](keyType)
 				for _, exist := checkDupMap[insValBase]; exist; _, exist = checkDupMap[insValBase] {
-					insValBase = getRandomPrimitiveVal[T](keyType)
+					insValBase = samehada_util.GetRandomPrimitiveVal[T](keyType)
 				}
 				checkDupMapMutex.RUnlock()
 				checkDupMapMutex.Lock()
@@ -1766,7 +1725,7 @@ func testSkipListMixParallelStrideAddedIterator[T int32 | float32 | string](t *t
 
 					for ii := int32(0); ii < stride; ii++ {
 						removedValsForRemoveMutex.RLock()
-						delVal := choiceValFromMap(removedValsForRemove)
+						delVal := samehada_util.ChoiceValFromMap(removedValsForRemove)
 						removedValsForRemoveMutex.RUnlock()
 
 						common.ShPrintf(common.DEBUGGING, "Remove(fail) op start.")
@@ -2319,8 +2278,8 @@ func TestSkipListParallelSimpleInteger3Stride(t *testing.T) {
 		os.Remove(t.Name() + ".log")
 	}
 
-	//shi := samehada.NewSamehadaInstance(t.Name(), 400)
-	shi := samehada.NewSamehadaInstance(t.Name(), 30)
+	shi := samehada.NewSamehadaInstance(t.Name(), 400)
+	//shi := samehada.NewSamehadaInstance(t.Name(), 30)
 	bpm := shi.GetBufferPoolManager()
 	sl := skip_list.NewSkipList(bpm, types.Integer)
 
