@@ -22,7 +22,7 @@ import (
 )
 
 func TestSerializationOfSkipLisBlockPage(t *testing.T) {
-	//t.Parallel()
+	t.Parallel()
 	if !common.EnableOnMemStorage {
 		os.Remove(t.Name() + ".db")
 		os.Remove(t.Name() + ".log")
@@ -61,7 +61,7 @@ func TestSerializationOfSkipLisBlockPage(t *testing.T) {
 }
 
 func TestSerializationOfSkipLisHeaderPage(t *testing.T) {
-	//t.Parallel()
+	t.Parallel()
 	if !common.EnableOnMemStorage {
 		os.Remove(t.Name() + ".db")
 		os.Remove(t.Name() + ".log")
@@ -86,7 +86,7 @@ func TestSerializationOfSkipLisHeaderPage(t *testing.T) {
 }
 
 func TestInnerInsertDeleteOfBlockPageSimple(t *testing.T) {
-	//t.Parallel()
+	t.Parallel()
 	if !common.EnableOnMemStorage {
 		os.Remove(t.Name() + ".db")
 		os.Remove(t.Name() + ".log")
@@ -188,7 +188,7 @@ func TestInnerInsertDeleteOfBlockPageSimple(t *testing.T) {
 }
 
 func TestBSearchOfSkipLisBlockPage(t *testing.T) {
-	//t.Parallel()
+	t.Parallel()
 	if !common.EnableOnMemStorage {
 		os.Remove(t.Name() + ".db")
 		os.Remove(t.Name() + ".log")
@@ -251,7 +251,7 @@ func TestBSearchOfSkipLisBlockPage(t *testing.T) {
 }
 
 func TestBSearchOfSkipLisBlockPage2(t *testing.T) {
-	//t.Parallel()
+	t.Parallel()
 	if !common.EnableOnMemStorage {
 		os.Remove(t.Name() + ".db")
 		os.Remove(t.Name() + ".log")
@@ -351,7 +351,7 @@ func confirmSkipListContent(t *testing.T, sl *skip_list.SkipList, step int32) in
 }
 
 func TestSkipListSimple(t *testing.T) {
-	//t.Parallel()
+	t.Parallel()
 	if !common.EnableOnMemStorage {
 		os.Remove(t.Name() + ".db")
 		os.Remove(t.Name() + ".log")
@@ -414,7 +414,7 @@ func TestSkipListSimple(t *testing.T) {
 }
 
 func TestSkipListInsertAndDeleteAll(t *testing.T) {
-	//t.Parallel()
+	t.Parallel()
 	if !common.EnableOnMemStorage {
 		os.Remove(t.Name() + ".db")
 		os.Remove(t.Name() + ".log")
@@ -508,7 +508,7 @@ func TestSkipListInsertAndDeleteAll(t *testing.T) {
 }
 
 func TestSkipListItr(t *testing.T) {
-	//t.Parallel()
+	t.Parallel()
 	if !common.EnableOnMemStorage {
 		os.Remove(t.Name() + ".db")
 		os.Remove(t.Name() + ".log")
@@ -1954,7 +1954,7 @@ func testSkipListMixParallelStrideAddedIteratorRoot[T int32 | float32 | string](
 }
 
 func TestSkipListMixInteger(t *testing.T) {
-	//t.Parallel()
+	t.Parallel()
 	if testing.Short() {
 		t.Skip("skip this in short mode.")
 	}
@@ -1962,7 +1962,7 @@ func TestSkipListMixInteger(t *testing.T) {
 }
 
 func TestSkipListMixFloat(t *testing.T) {
-	//t.Parallel()
+	t.Parallel()
 	if testing.Short() {
 		t.Skip("skip this in short mode.")
 	}
@@ -1970,12 +1970,12 @@ func TestSkipListMixFloat(t *testing.T) {
 }
 
 func TestSkipListMixVarchar(t *testing.T) {
-	//t.Parallel()
+	t.Parallel()
 	testSkipListMixRoot[string](t, types.Varchar)
 }
 
 func TestSkipListMixParallelInteger(t *testing.T) {
-	//t.Parallel()
+	t.Parallel()
 	if testing.Short() {
 		t.Skip("skip this in short mode.")
 	}
@@ -1983,7 +1983,7 @@ func TestSkipListMixParallelInteger(t *testing.T) {
 }
 
 func TestSkipListMixParallelVarchar(t *testing.T) {
-	//t.Parallel()
+	t.Parallel()
 	if testing.Short() {
 		t.Skip("skip this in short mode.")
 	}
@@ -1991,7 +1991,7 @@ func TestSkipListMixParallelVarchar(t *testing.T) {
 }
 
 func TestSkipListMixParallelBulkInteger(t *testing.T) {
-	//t.Parallel()
+	t.Parallel()
 	if testing.Short() {
 		t.Skip("skip this in short mode.")
 	}
@@ -1999,7 +1999,7 @@ func TestSkipListMixParallelBulkInteger(t *testing.T) {
 }
 
 func TestSkipListMixParallelBulkVarchar(t *testing.T) {
-	//t.Parallel()
+	t.Parallel()
 	if testing.Short() {
 		t.Skip("skip this in short mode.")
 	}
@@ -2015,7 +2015,7 @@ func TestSkipListMixParallelStrideInteger(t *testing.T) {
 }
 
 func TestSkipListMixParallelStrideVarchar(t *testing.T) {
-	//t.Parallel()
+	t.Parallel()
 	if testing.Short() {
 		t.Skip("skip this in short mode.")
 	}
@@ -2032,7 +2032,7 @@ func TestSkipListMixParallelStrideVarchar(t *testing.T) {
 //}
 
 func TestSkipListMixParallelStrideAddedIteratorInteger(t *testing.T) {
-	//t.Parallel()
+	t.Parallel()
 	if testing.Short() {
 		t.Skip("skip this in short mode.")
 	}
@@ -2040,7 +2040,7 @@ func TestSkipListMixParallelStrideAddedIteratorInteger(t *testing.T) {
 }
 
 func TestSkipListMixParallelStrideAddedIteratorVarchar(t *testing.T) {
-	//t.Parallel()
+	t.Parallel()
 	if testing.Short() {
 		t.Skip("skip this in short mode.")
 	}
@@ -2204,7 +2204,7 @@ func testSkipListInsertGetRemove3stride2(t *testing.T, sl *skip_list.SkipList, c
 }
 
 func TestSkipListParallelSimpleInteger(t *testing.T) {
-	//t.Parallel()
+	t.Parallel()
 	if testing.Short() {
 		t.Skip("skip this in short mode.")
 	}
@@ -2236,7 +2236,7 @@ func TestSkipListParallelSimpleInteger(t *testing.T) {
 }
 
 func TestSkipListParallelSimpleInteger2(t *testing.T) {
-	//t.Parallel()
+	t.Parallel()
 	if testing.Short() {
 		t.Skip("skip this in short mode.")
 	}
@@ -2267,7 +2267,7 @@ func TestSkipListParallelSimpleInteger2(t *testing.T) {
 }
 
 func TestSkipListParallelSimpleInteger3Stride(t *testing.T) {
-	//t.Parallel()
+	t.Parallel()
 	if testing.Short() {
 		t.Skip("skip this in short mode.")
 	}
