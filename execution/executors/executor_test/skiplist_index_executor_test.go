@@ -825,8 +825,8 @@ func testParallelTxnsQueryingSkipListIndexUsedColumns[T int32 | float32 | string
 
 	insVals := make([]T, 0)
 	insValsMutex := new(sync.RWMutex)
-	deletedValsForDSU := make(map[T]T, 0)
-	deletedValsForDSUMutex := new(sync.RWMutex)
+	deletedValsForSelectUpdate := make(map[T]T, 0)
+	deletedValsForSelectUpdateMutex := new(sync.RWMutex)
 	deletedValsForDelete := make(map[T]T, 0)
 	deletedValsForDeleteMutex := new(sync.RWMutex)
 	checkKeyColDupMap := make(map[T]T)
@@ -889,6 +889,50 @@ func testParallelTxnsQueryingSkipListIndexUsedColumns[T int32 | float32 | string
 
 	ch := make(chan int32)
 
+	finalizeRandomInsertTxn := func(txn_ *access.Transaction, insKeyValBase T) {
+		txnOk := handleFnishedTxn(c, txnMgr, txn_)
+
+		if txnOk {
+			insValsMutex.Lock()
+			insVals = append(insVals, insKeyValBase)
+			insValsMutex.Unlock()
+			atomic.AddInt32(&insertedTupleCnt, stride)
+			atomic.AddInt32(&commitedTxnCnt, 1)
+		} else {
+			atomic.AddInt32(&abortedTxnCnt, 1)
+		}
+		atomic.AddInt32(&executedTxnCnt, 1)
+	}
+
+	finalizeRandomDeleteTxn := func(txn_ *access.Transaction, delKeyValBase T) {
+		txnOk := handleFnishedTxn(c, txnMgr, txn_)
+		if txnOk {
+			deletedValsForDeleteMutex.Lock()
+			deletedValsForDelete[delKeyValBase] = delKeyValBase
+			deletedValsForDeleteMutex.Unlock()
+			atomic.AddInt32(&deletedTupleCnt, stride)
+			atomic.AddInt32(&commitedTxnCnt, 1)
+		} else {
+			// rollback removed element
+			insValsMutex.Lock()
+			insVals = append(insVals, delKeyValBase)
+			insValsMutex.Unlock()
+			atomic.AddInt32(&abortedTxnCnt, 1)
+		}
+		atomic.AddInt32(&executedTxnCnt, 1)
+	}
+
+	finalizeRandomNoSideEffectTxn := func(txn_ *access.Transaction) {
+		txnOk := handleFnishedTxn(c, txnMgr, txn_)
+
+		if txnOk {
+			atomic.AddInt32(&commitedTxnCnt, 1)
+		} else {
+			atomic.AddInt32(&abortedTxnCnt, 1)
+		}
+		atomic.AddInt32(&executedTxnCnt, 1)
+	}
+
 	useOpTimes := int(opTimes)
 	runningThCnt := 0
 	for ii := 0; ii <= useOpTimes; ii++ {
@@ -934,20 +978,13 @@ func testParallelTxnsQueryingSkipListIndexUsedColumns[T int32 | float32 | string
 					insPlan := createSpecifiedValInsertPlanNode(insKeyVal, insBalanceVal, c, tableMetadata, keyType)
 					executePlan(c, shi.GetBufferPoolManager(), txn_, insPlan)
 
+					if txn_.GetState() == access.ABORTED {
+						break
+					}
 					//fmt.Printf("sl.Insert at insertRandom: ii=%d, insKeyValBase=%d len(*insVals)=%d\n", ii, insKeyValBase, len(insVals))
 				}
-				txnOk := handleFnishedTxn(c, txnMgr, txn_)
 
-				if txnOk {
-					insValsMutex.Lock()
-					insVals = append(insVals, insKeyValBase)
-					insValsMutex.Unlock()
-					atomic.AddInt32(&insertedTupleCnt, stride)
-					atomic.AddInt32(&commitedTxnCnt, 1)
-				} else {
-					atomic.AddInt32(&abortedTxnCnt, 1)
-				}
-				atomic.AddInt32(&executedTxnCnt, 1)
+				finalizeRandomInsertTxn(txn_, insKeyValBase)
 
 				ch <- 1
 			}()
@@ -961,20 +998,30 @@ func testParallelTxnsQueryingSkipListIndexUsedColumns[T int32 | float32 | string
 					if len(deletedValsForDelete) == 0 {
 						deletedValsForDeleteMutex.RUnlock()
 						ch <- 1
-						//continue
 						return
 					}
 					deletedValsForDeleteMutex.RUnlock()
 
+					txn_ := txnMgr.Begin(nil)
+					deletedValsForDeleteMutex.RLock()
+					delKeyValBase := samehada_util.ChoiceValFromMap(deletedValsForDelete)
+					deletedValsForDeleteMutex.RUnlock()
 					for ii := int32(0); ii < stride; ii++ {
-						deletedValsForDeleteMutex.RLock()
-						delVal := samehada_util.ChoiceValFromMap(deletedValsForDelete)
-						deletedValsForDeleteMutex.RUnlock()
+						delKeyVal := samehada_util.StrideAdd(samehada_util.StrideMul(delKeyValBase, stride), ii).(T)
 
-						common.ShPrintf(common.DEBUGGING, "Remove(fail) op start.")
-						isDeleted := sl.Remove(samehada_util.GetPonterOfValue(types.NewValue(delVal)), samehada_util.GetValueForSkipListEntry(delVal))
-						common.SH_Assert(isDeleted == false, "delete should be fail!")
+						common.ShPrintf(common.DEBUGGING, "Delete(fail) op start.")
+						delPlan := createSpecifiedValDeletePlanNode(delKeyVal, c, tableMetadata, keyType)
+						results := executePlan(c, shi.GetBufferPoolManager(), txn_, delPlan)
+
+						if txn_.GetState() == access.ABORTED {
+							break
+						}
+
+						common.SH_Assert(results != nil && len(results) == 0, "delete(fail) should not be fail!")
 					}
+
+					finalizeRandomNoSideEffectTxn(txn_)
+
 					ch <- 1
 				}()
 			} else {
@@ -984,11 +1031,10 @@ func testParallelTxnsQueryingSkipListIndexUsedColumns[T int32 | float32 | string
 					if len(insVals)-1 < 0 {
 						insValsMutex.Unlock()
 						ch <- 1
-						//continue
 						return
 					}
 					tmpIdx := int(rand.Intn(len(insVals)))
-					delValBase := insVals[tmpIdx]
+					delKeyValBase := insVals[tmpIdx]
 					if len(insVals) == 1 {
 						// make empty
 						insVals = make([]T, 0)
@@ -999,33 +1045,49 @@ func testParallelTxnsQueryingSkipListIndexUsedColumns[T int32 | float32 | string
 					}
 					insValsMutex.Unlock()
 
+					txn_ := txnMgr.Begin(nil)
+
 					for ii := int32(0); ii < stride; ii++ {
-						delVal := samehada_util.StrideAdd(samehada_util.StrideMul(delValBase, stride), ii).(T)
-						pairVal := samehada_util.GetValueForSkipListEntry(delVal)
-						common.ShPrintf(common.DEBUGGING, "Remove(success) op start.")
+						delKeyVal := samehada_util.StrideAdd(samehada_util.StrideMul(delKeyValBase, stride), ii).(T)
+						//pairVal := samehada_util.GetValueForSkipListEntry(delVal)
 
-						// append to map before doing remove op for other get op thread
-						deletedValsForDSUMutex.Lock()
-						deletedValsForDSU[delVal] = delVal
-						deletedValsForDSUMutex.Unlock()
+						common.ShPrintf(common.DEBUGGING, "Delete(success) op start.")
 
-						isDeleted := sl.Remove(samehada_util.GetPonterOfValue(types.NewValue(delVal)), pairVal)
-						if isDeleted == true {
-							// append to map after doing remove op for other fail remove op thread
-							deletedValsForDeleteMutex.Lock()
-							deletedValsForDelete[delVal] = delVal
-							deletedValsForDeleteMutex.Unlock()
+						//// append to map before doing remove op for other point scan op thread
+						//deletedValsForSelectUpdateMutex.Lock()
+						//deletedValsForSelectUpdate[delKeyVal] = delKeyVal
+						//deletedValsForSelectUpdateMutex.Unlock()
 
-						} else {
-							deletedValsForDSUMutex.RLock()
-							if _, ok := deletedValsForDSU[delVal]; !ok {
-								deletedValsForDSUMutex.RUnlock()
-								panic("remove op test failed!")
-							}
-							deletedValsForDSUMutex.RUnlock()
-							//panic("remove op test failed!")
+						//isDeleted := sl.Remove(samehada_util.GetPonterOfValue(types.NewValue(delVal)), pairVal)
+						delPlan := createSpecifiedValDeletePlanNode(delKeyVal, c, tableMetadata, keyType)
+						results := executePlan(c, shi.GetBufferPoolManager(), txn_, delPlan)
+
+						if txn_.GetState() == access.ABORTED {
+							break
 						}
+
+						common.SH_Assert(results != nil && len(results) == 1, "Delete(success) should be fail!")
+
+						//if results != nil && len(results) == 1 {
+						//	// append to map after doing remove op for other fail remove op thread
+						//	//deletedValsForDeleteMutex.Lock()
+						//	//deletedValsForDelete[delKeyVal] = delKeyVal
+						//	//deletedValsForDeleteMutex.Unlock()
+						//} else {
+						//	panic("Delete(success) should be fail!")
+						//}
+						//} else {
+						//	deletedValsForSelectUpdateMutex.RLock()
+						//	if _, ok := deletedValsForSelectUpdate[delKeyVal]; !ok {
+						//		deletedValsForSelectUpdateMutex.RUnlock()
+						//		panic("remove op test failed!")
+						//	}
+						//	deletedValsForSelectUpdateMutex.RUnlock()
+						//	//panic("remove op test failed!")
+						//}
 					}
+
+					finalizeRandomDeleteTxn(txn_, delKeyValBase)
 					ch <- 1
 					//common.SH_Assert(isDeleted == true, "remove should be success!")
 				}()
@@ -1041,33 +1103,45 @@ func testParallelTxnsQueryingSkipListIndexUsedColumns[T int32 | float32 | string
 					if len(insVals) == 0 {
 						insValsMutex.RUnlock()
 						ch <- 1
-						//continue
 						return
 					}
 					tmpIdx := int(rand.Intn(len(insVals)))
-					//fmt.Printf("sl.GetValue at testSkipListMix: ii=%d, tmpIdx=%d insVals[tmpIdx]=%d len(*insVals)=%d len(*deletedValsForDSU)=%d\n", ii, tmpIdx, insVals[tmpIdx], len(insVals), len(deletedValsForDSU))
+					//fmt.Printf("sl.GetValue at testSkipListMix: ii=%d, tmpIdx=%d insVals[tmpIdx]=%d len(*insVals)=%d len(*deletedValsForSelectUpdate)=%d\n", ii, tmpIdx, insVals[tmpIdx], len(insVals), len(deletedValsForSelectUpdate))
 					getTgtBase := insVals[tmpIdx]
 					insValsMutex.RUnlock()
+					txn_ := txnMgr.Begin(nil)
 					for ii := int32(0); ii < stride; ii++ {
-						getTgt := samehada_util.StrideAdd(samehada_util.StrideMul(getTgtBase, stride), ii).(T)
-						getTgtVal := types.NewValue(getTgt)
-						correctVal := samehada_util.GetValueForSkipListEntry(getTgt)
+						getKeyVal := samehada_util.StrideAdd(samehada_util.StrideMul(getTgtBase, stride), ii).(T)
+						//getTgtVal := types.NewValue(getKeyVal)
+						//correctVal := samehada_util.GetValueForSkipListEntry(getKeyVal)
 
-						common.ShPrintf(common.DEBUGGING, "Get op start.")
-						gotVal := sl.GetValue(&getTgtVal)
-						if gotVal == math.MaxUint32 {
-							deletedValsForDSUMutex.RLock()
-							if _, ok := deletedValsForDSU[getTgt]; !ok {
-								deletedValsForDSUMutex.RUnlock()
-								panic("get op test failed!")
-							}
-							deletedValsForDSUMutex.RUnlock()
-						} else if gotVal != correctVal {
-							panic("returned value of get of is wrong!")
+						common.ShPrintf(common.DEBUGGING, "Select(fail) op start.")
+						selectPlan := createSpecifiedValDeletePlanNode(getKeyVal, c, tableMetadata, keyType)
+						results := executePlan(c, shi.GetBufferPoolManager(), txn_, selectPlan)
+
+						if txn_.GetState() == access.ABORTED {
+							break
 						}
+
+						common.SH_Assert(results != nil && len(results) == 1, "select(fail) should be fail!")
+						collectVal := types.NewInteger(samehada_util.GetInt32ValCorrespondToPassVal(getKeyVal))
+						gotVal := results[0].GetValue(tableMetadata.Schema(), 1)
+						common.SH_Assert(gotVal.CompareEquals(collectVal), "value should be "+fmt.Sprintf("%d not %d", collectVal.ToInteger(), gotVal.ToInteger()))
+
+						////gotVal := sl.GetValue(&getTgtVal)
+						//if gotVal == math.MaxUint32 {
+						//	deletedValsForSelectUpdateMutex.RLock()
+						//	if _, ok := deletedValsForSelectUpdate[getKeyVal]; !ok {
+						//		deletedValsForSelectUpdateMutex.RUnlock()
+						//		panic("get op test failed!")
+						//	}
+						//	deletedValsForSelectUpdateMutex.RUnlock()
+						//} else if gotVal != correctVal {
+						//	panic("returned value of get of is wrong!")
+						//}
 					}
+					finalizeRandomNoSideEffectTxn(txn_)
 					ch <- 1
-					//common.SH_Assert(, "gotVal is not collect!")
 				}()
 			} else { // 50% is Select to not existing entry
 				go func() {
@@ -1079,7 +1153,7 @@ func testParallelTxnsQueryingSkipListIndexUsedColumns[T int32 | float32 | string
 						return
 					}
 					tmpIdx := int(rand.Intn(len(insVals)))
-					//fmt.Printf("sl.GetValue at testSkipListMix: ii=%d, tmpIdx=%d insVals[tmpIdx]=%d len(*insVals)=%d len(*deletedValsForDSU)=%d\n", ii, tmpIdx, insVals[tmpIdx], len(insVals), len(deletedValsForDSU))
+					//fmt.Printf("sl.GetValue at testSkipListMix: ii=%d, tmpIdx=%d insVals[tmpIdx]=%d len(*insVals)=%d len(*deletedValsForSelectUpdate)=%d\n", ii, tmpIdx, insVals[tmpIdx], len(insVals), len(deletedValsForSelectUpdate))
 					getTgtBase := insVals[tmpIdx]
 					insValsMutex.RUnlock()
 					for ii := int32(0); ii < stride; ii++ {
@@ -1087,15 +1161,15 @@ func testParallelTxnsQueryingSkipListIndexUsedColumns[T int32 | float32 | string
 						getTgtVal := types.NewValue(getTgt)
 						correctVal := samehada_util.GetValueForSkipListEntry(getTgt)
 
-						common.ShPrintf(common.DEBUGGING, "Get op start.")
+						common.ShPrintf(common.DEBUGGING, "Select(fail) op start.")
 						gotVal := sl.GetValue(&getTgtVal)
 						if gotVal == math.MaxUint32 {
-							deletedValsForDSUMutex.RLock()
-							if _, ok := deletedValsForDSU[getTgt]; !ok {
-								deletedValsForDSUMutex.RUnlock()
+							deletedValsForSelectUpdateMutex.RLock()
+							if _, ok := deletedValsForSelectUpdate[getTgt]; !ok {
+								deletedValsForSelectUpdateMutex.RUnlock()
 								panic("get op test failed!")
 							}
-							deletedValsForDSUMutex.RUnlock()
+							deletedValsForSelectUpdateMutex.RUnlock()
 						} else if gotVal != correctVal {
 							panic("returned value of get of is wrong!")
 						}
@@ -1114,7 +1188,7 @@ func testParallelTxnsQueryingSkipListIndexUsedColumns[T int32 | float32 | string
 					return
 				}
 				tmpIdx := int(rand.Intn(len(insVals)))
-				//fmt.Printf("sl.GetValue at testSkipListMix: ii=%d, tmpIdx=%d insVals[tmpIdx]=%d len(*insVals)=%d len(*deletedValsForDSU)=%d\n", ii, tmpIdx, insVals[tmpIdx], len(insVals), len(deletedValsForDSU))
+				//fmt.Printf("sl.GetValue at testSkipListMix: ii=%d, tmpIdx=%d insVals[tmpIdx]=%d len(*insVals)=%d len(*deletedValsForSelectUpdate)=%d\n", ii, tmpIdx, insVals[tmpIdx], len(insVals), len(deletedValsForSelectUpdate))
 				rangeStartBase := insVals[tmpIdx]
 				insValsMutex.RUnlock()
 				rangeStartVal := types.NewValue(rangeStartBase)

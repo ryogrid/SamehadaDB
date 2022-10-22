@@ -41,26 +41,20 @@ func (e *DeleteExecutor) Init() {
 func (e *DeleteExecutor) Next() (*tuple.Tuple, Done, error) {
 
 	// iterates through the table heap trying to select a tuple that matches the predicate
-	//for t := e.it.Current(); !e.it.End(); t = e.it.Next() {
 	for t, done, err := e.child.Next(); !done; t, done, err = e.child.Next() {
 		if t == nil {
-			err := errors.New("e.it.Next returned nil")
-			return nil, true, err
+			err_ := errors.New("e.it.Next returned nil")
+			return nil, true, err_
 		}
 		if err != nil {
 			return nil, true, err
 		}
-		//		if e.selects(t, e.plan.GetPredicate()) {
-		// change e.it.Current() value for subsequent call
-		//if !e.it.End() {
-		//	defer e.it.Next()
-		//}
-		//rid := e.it.Current().GetRID()
+
 		rid := t.GetRID()
 		tableMetadata := e.child.GetTableMetaData()
 		is_marked := tableMetadata.Table().MarkDelete(rid, tableMetadata.OID(), e.txn)
 		if !is_marked {
-			err := errors.New("tuple update failed. PageId:SlotNum = " + string(rid.GetPageId()) + ":" + fmt.Sprint(rid.GetSlotNum()))
+			err := errors.New("marking tuple deleted failed. PageId:SlotNum = " + string(rid.GetPageId()) + ":" + fmt.Sprint(rid.GetSlotNum()))
 			return nil, false, err
 		}
 
@@ -76,9 +70,7 @@ func (e *DeleteExecutor) Next() (*tuple.Tuple, Done, error) {
 			}
 		}
 
-		//return e.it.Current(), false, nil
 		return t, false, nil
-		//		}
 	}
 
 	return nil, true, nil

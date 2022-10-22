@@ -27,7 +27,7 @@ func (e *ExecutionEngine) Execute(plan plans.Plan, context *ExecutorContext) []*
 		tuple, done, err := executor.Next()
 		if err != nil {
 			context.txn.SetState(access.ABORTED)
-			break
+			return nil
 		}
 		if done {
 			break
