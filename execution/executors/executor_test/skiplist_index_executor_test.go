@@ -1005,7 +1005,6 @@ func testParallelTxnsQueryingSkipListIndexUsedColumns[T int32 | float32 | string
 		case 0: // Update two account volume (move money)
 		case 1: // Insert
 			go func() {
-				//checkKeyColDupMapMutex.RLock()
 			retry1:
 				insKeyValBase := getUniqRandomPrimitivVal(keyType, checkKeyColDupMap, checkKeyColDupMapMutex)
 				checkBalanceColDupMapMutex.RLock()
@@ -1098,11 +1097,6 @@ func testParallelTxnsQueryingSkipListIndexUsedColumns[T int32 | float32 | string
 
 						common.ShPrintf(common.DEBUGGING, "Delete(success) op start.")
 
-						//// append to map before doing remove op for other point scan op thread
-						//deletedValsForSelectUpdateMutex.Lock()
-						//deletedValsForSelectUpdate[delKeyVal] = delKeyVal
-						//deletedValsForSelectUpdateMutex.Unlock()
-
 						delPlan := createSpecifiedValDeletePlanNode(delKeyVal, c, tableMetadata, keyType)
 						results := executePlan(c, shi.GetBufferPoolManager(), txn_, delPlan)
 
@@ -1111,24 +1105,6 @@ func testParallelTxnsQueryingSkipListIndexUsedColumns[T int32 | float32 | string
 						}
 
 						common.SH_Assert(results != nil && len(results) == 1, "Delete(success) failed!")
-
-						//if results != nil && len(results) == 1 {
-						//	// append to map after doing remove op for other fail remove op thread
-						//	//deletedValsForDeleteMutex.Lock()
-						//	//deletedValsForDelete[delKeyVal] = delKeyVal
-						//	//deletedValsForDeleteMutex.Unlock()
-						//} else {
-						//	panic("Delete(success) should be fail!")
-						//}
-						//} else {
-						//	deletedValsForSelectUpdateMutex.RLock()
-						//	if _, ok := deletedValsForSelectUpdate[delKeyVal]; !ok {
-						//		deletedValsForSelectUpdateMutex.RUnlock()
-						//		panic("remove op test failed!")
-						//	}
-						//	deletedValsForSelectUpdateMutex.RUnlock()
-						//	//panic("remove op test failed!")
-						//}
 					}
 
 					finalizeRandomDeleteTxn(txn_, delKeyValBase)
@@ -1211,18 +1187,6 @@ func testParallelTxnsQueryingSkipListIndexUsedColumns[T int32 | float32 | string
 						}
 
 						common.SH_Assert(results != nil && len(results) == 0, "select(fail) should be fail!")
-
-						////gotVal := sl.GetValue(&getTgtVal)
-						//if gotVal == math.MaxUint32 {
-						//	deletedValsForSelectUpdateMutex.RLock()
-						//	if _, ok := deletedValsForSelectUpdate[getKeyVal]; !ok {
-						//		deletedValsForSelectUpdateMutex.RUnlock()
-						//		panic("get op test failed!")
-						//	}
-						//	deletedValsForSelectUpdateMutex.RUnlock()
-						//} else if gotVal != correctVal {
-						//	panic("returned value of get of is wrong!")
-						//}
 					}
 					finalizeRandomNoSideEffectTxn(txn_)
 					ch <- 1
@@ -1257,18 +1221,6 @@ func testParallelTxnsQueryingSkipListIndexUsedColumns[T int32 | float32 | string
 						collectVal := types.NewInteger(samehada_util.GetInt32ValCorrespondToPassVal(getKeyVal))
 						gotVal := results[0].GetValue(tableMetadata.Schema(), 1)
 						common.SH_Assert(gotVal.CompareEquals(collectVal), "value should be "+fmt.Sprintf("%d not %d", collectVal.ToInteger(), gotVal.ToInteger()))
-
-						////gotVal := sl.GetValue(&getTgtVal)
-						//if gotVal == math.MaxUint32 {
-						//	deletedValsForSelectUpdateMutex.RLock()
-						//	if _, ok := deletedValsForSelectUpdate[getKeyVal]; !ok {
-						//		deletedValsForSelectUpdateMutex.RUnlock()
-						//		panic("get op test failed!")
-						//	}
-						//	deletedValsForSelectUpdateMutex.RUnlock()
-						//} else if gotVal != correctVal {
-						//	panic("returned value of get of is wrong!")
-						//}
 					}
 					finalizeRandomNoSideEffectTxn(txn_)
 					ch <- 1
@@ -1325,10 +1277,6 @@ func testParallelTxnsQueryingSkipListIndexUsedColumns[T int32 | float32 | string
 					finalizeRandomNoSideEffectTxn(txn_)
 					return
 				}
-				//rangeStartVal := types.NewValue(rangeStartKey)
-				//rangeEndBase := samehada_util.StrideAdd(rangeStartKey, stride).(T)
-				//rangeEndVal := types.NewValue(rangeEndBase)
-				//itr := sl.Iterator(&rangeStartVal, &rangeEndVal)
 
 				resultsLen := len(results)
 				var prevVal *types.Value = nil
