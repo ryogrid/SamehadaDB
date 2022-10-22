@@ -23,6 +23,7 @@ import (
 	"math/rand"
 	"os"
 	"sync"
+	"sync/atomic"
 	"testing"
 )
 
@@ -580,6 +581,16 @@ func TestAbortWthDeleteUpdateUsingIndexCaseRangeScan(t *testing.T) {
 	testingpkg.Assert(t, types.NewVarchar("bar").CompareEquals(results[0].GetValue(tableMetadata.Schema(), 1)), "value should be \"bar\"")
 }
 
+func getUniqRandomPrimitivVal[T int32 | float32 | string](keyType types.TypeID, checkDupMap map[T]T, checkKeyColumnDupMapMutex *sync.RWMutex) T {
+	checkKeyColumnDupMapMutex.RLock()
+	retVal := samehada_util.GetRandomPrimitiveVal[T](keyType)
+	for _, exist := checkDupMap[retVal]; exist; _, exist = checkDupMap[retVal] {
+		retVal = samehada_util.GetRandomPrimitiveVal[T](keyType)
+	}
+	checkKeyColumnDupMapMutex.RUnlock()
+	return retVal
+}
+
 // TODO: (SDB) not implemente yet
 func createBankAccountUpdatePlanNode[T int32 | float32 | string](c *catalog.Catalog, tm *catalog.TableMetadata, keyType types.TypeID, accounts []string) (createdPlan plans.Plan, moveAmount T) {
 	val := samehada_util.GetRandomPrimitiveVal[T](keyType)
@@ -616,26 +627,24 @@ func createRandomPointScanPlanNode[T int32 | float32 | string](c *catalog.Catalo
 	return nil, nil, nil
 }
 
-func executePlan(c *catalog.Catalog, bpm *buffer.BufferPoolManager, txnMgr *access.TransactionManager, plan plans.Plan) (results []*tuple.Tuple, txn *access.Transaction) {
-	txn_ := txnMgr.Begin(nil)
+func executePlan(c *catalog.Catalog, bpm *buffer.BufferPoolManager, txn *access.Transaction, plan plans.Plan) (results []*tuple.Tuple) {
 	executionEngine := &executors.ExecutionEngine{}
-	executorContext := executors.NewExecutorContext(c, bpm, txn_)
-	return executionEngine.Execute(plan, executorContext), txn_
+	executorContext := executors.NewExecutorContext(c, bpm, txn)
+	return executionEngine.Execute(plan, executorContext)
 }
 
-// TODO: (SDB) not implemente yet
-func handleFnishedTxn(catalog_ *catalog.Catalog, txn_mgr *access.TransactionManager, txn *access.Transaction) int32 {
+func handleFnishedTxn(catalog_ *catalog.Catalog, txn_mgr *access.TransactionManager, txn *access.Transaction) bool {
 	// fmt.Println(txn.GetState())
 	if txn.GetState() == access.ABORTED {
 		// fmt.Println(txn.GetSharedLockSet())
 		// fmt.Println(txn.GetExclusiveLockSet())
 		txn_mgr.Abort(catalog_, txn)
-		return 0
+		return false
 	} else {
 		// fmt.Println(txn.GetSharedLockSet())
 		// fmt.Println(txn.GetExclusiveLockSet())
 		txn_mgr.Commit(txn)
-		return 1
+		return true
 	}
 }
 
@@ -798,8 +807,8 @@ func testParallelTxnsQueryingSkipListIndexUsedColumns[T int32 | float32 | string
 	testingpkg.Assert(t, shi.GetLogManager().IsEnabledLogging(), "")
 	fmt.Println("System logging is active.")
 
-	txn_mgr := shi.GetTransactionManager()
-	txn := txn_mgr.Begin(nil)
+	txnMgr := shi.GetTransactionManager()
+	txn := txnMgr.Begin(nil)
 
 	c := catalog.BootstrapCatalog(shi.GetBufferPoolManager(), shi.GetLogManager(), shi.GetLockManager(), txn)
 
@@ -808,6 +817,7 @@ func testParallelTxnsQueryingSkipListIndexUsedColumns[T int32 | float32 | string
 	schema_ := schema.NewSchema([]*column.Column{columnA, columnB})
 
 	tableMetadata := c.CreateTable("test_1", schema_, txn)
+	txnMgr.Commit(txn)
 
 	const THREAD_NUM = 20
 
@@ -820,9 +830,17 @@ func testParallelTxnsQueryingSkipListIndexUsedColumns[T int32 | float32 | string
 	deletedValsForDelete := make(map[T]T, 0)
 	deletedValsForDeleteMutex := new(sync.RWMutex)
 	checkKeyColDupMap := make(map[T]T)
-	checkKeyColumnDupMapMutex := new(sync.RWMutex)
+	checkKeyColDupMapMutex := new(sync.RWMutex)
 	checkBalanceColDupMap := make(map[int32]int32)
 	checkBalanceColDupMapMutex := new(sync.RWMutex)
+
+	insertedTupleCnt := int32(0)
+	deletedTupleCnt := int32(0)
+	executedTxnCnt := int32(0)
+	abortedTxnCnt := int32(0)
+	commitedTxnCnt := int32(0)
+
+	txn = txnMgr.Begin(nil)
 
 	// insert account records
 	const ACCOUNT_NUM = 4
@@ -838,9 +856,11 @@ func testParallelTxnsQueryingSkipListIndexUsedColumns[T int32 | float32 | string
 		accountIds = append(accountIds, accountId)
 		// not have to duplication check of barance
 		insPlan := createSpecifiedValInsertPlanNode(accountId, int32(BALANCE_AT_START+ii), c, tableMetadata, keyType)
-		executePlan(c, shi.GetBufferPoolManager(), shi.GetTransactionManager(), insPlan)
+		executePlan(c, shi.GetBufferPoolManager(), txn, insPlan)
 		sumOfAllAccountBalanceAtStart += int32(BALANCE_AT_START + ii)
 	}
+
+	insertedTupleCnt += ACCOUNT_NUM
 
 	// setup other initial entries which is not used as account
 	useInitialEntryNum := int(initialEntryNum)
@@ -853,17 +873,19 @@ func testParallelTxnsQueryingSkipListIndexUsedColumns[T int32 | float32 | string
 		checkKeyColDupMap[keyValBase] = keyValBase
 
 		for ii := int32(0); ii < stride; ii++ {
-			insKeyVal := samehada_util.StrideAdd(samehada_util.StrideMul(keyValBase, stride), ii)
+			insKeyVal := samehada_util.StrideAdd(samehada_util.StrideMul(keyValBase, stride), ii).(T)
+			insBranceVal := samehada_util.GetInt32ValCorrespondToPassVal(insKeyVal)
 
-			//pairVal := samehada_util.GetValueForSkipListEntry(insVal)
-			//common.ShPrintf(common.DEBUGGING, "Insert op start.")
-			//sl.Insert(samehada_util.GetPonterOfValue(types.NewValue(insVal)), pairVal)
-
-			//fmt.Printf("sl.Insert at insertRandom: ii=%d, keyValBase=%d len(*insVals)=%d\n", ii, keyValBase, len(insVals))
+			insPlan := createSpecifiedValInsertPlanNode(insKeyVal, insBranceVal, c, tableMetadata, keyType)
+			executePlan(c, shi.GetBufferPoolManager(), txn, insPlan)
 		}
 
 		insVals = append(insVals, keyValBase)
 	}
+
+	insertedTupleCnt += initialEntryNum
+
+	txnMgr.Commit(txn)
 
 	ch := make(chan int32)
 
@@ -891,36 +913,45 @@ func testParallelTxnsQueryingSkipListIndexUsedColumns[T int32 | float32 | string
 		common.ShPrintf(common.DEBUGGING, "ii=%d\n", ii)
 		//runningThCnt = 0
 
-		// get 0-6
-		opType := rand.Intn(7)
+		// get 0-7
+		opType := rand.Intn(8)
 		switch opType {
-		case 0: // Insert
+		case 0: //Update account volume (move money)
+		case 1: // Insert
 			go func() {
-				//checkKeyColumnDupMapMutex.RLock()
-				checkKeyColumnDupMapMutex.RLock()
-				insValBase := samehada_util.GetRandomPrimitiveVal[T](keyType)
-				for _, exist := checkKeyColDupMap[insValBase]; exist; _, exist = checkKeyColDupMap[insValBase] {
-					insValBase = samehada_util.GetRandomPrimitiveVal[T](keyType)
-				}
-				checkKeyColumnDupMapMutex.RUnlock()
-				checkKeyColumnDupMapMutex.Lock()
-				checkKeyColDupMap[insValBase] = insValBase
-				checkKeyColumnDupMapMutex.Unlock()
+				//checkKeyColDupMapMutex.RLock()
+				insKeyValBase := getUniqRandomPrimitivVal(keyType, checkKeyColDupMap, checkKeyColDupMapMutex)
+				checkKeyColDupMapMutex.Lock()
+				checkKeyColDupMap[insKeyValBase] = insKeyValBase
+				checkKeyColDupMapMutex.Unlock()
 
+				txn_ := txnMgr.Begin(nil)
 				for ii := int32(0); ii < stride; ii++ {
-					insVal := samehada_util.StrideAdd(samehada_util.StrideMul(insValBase, stride), ii)
-					pairVal := samehada_util.GetValueForSkipListEntry(insVal)
+					insKeyVal := samehada_util.StrideAdd(samehada_util.StrideMul(insKeyValBase, stride), ii).(T)
+					insBalanceVal := samehada_util.GetInt32ValCorrespondToPassVal(insKeyVal)
 
 					common.ShPrintf(common.DEBUGGING, "Insert op start.")
-					sl.Insert(samehada_util.GetPonterOfValue(types.NewValue(insVal)), pairVal)
-					//fmt.Printf("sl.Insert at insertRandom: ii=%d, insValBase=%d len(*insVals)=%d\n", ii, insValBase, len(insVals))
+					insPlan := createSpecifiedValInsertPlanNode(insKeyVal, insBalanceVal, c, tableMetadata, keyType)
+					executePlan(c, shi.GetBufferPoolManager(), txn_, insPlan)
+
+					//fmt.Printf("sl.Insert at insertRandom: ii=%d, insKeyValBase=%d len(*insVals)=%d\n", ii, insKeyValBase, len(insVals))
 				}
-				insValsMutex.Lock()
-				insVals = append(insVals, insValBase)
-				insValsMutex.Unlock()
+				txnOk := handleFnishedTxn(c, txnMgr, txn_)
+
+				if txnOk {
+					insValsMutex.Lock()
+					insVals = append(insVals, insKeyValBase)
+					insValsMutex.Unlock()
+					atomic.AddInt32(&insertedTupleCnt, stride)
+					atomic.AddInt32(&commitedTxnCnt, 1)
+				} else {
+					atomic.AddInt32(&abortedTxnCnt, 1)
+				}
+				atomic.AddInt32(&executedTxnCnt, 1)
+
 				ch <- 1
 			}()
-		case 1, 2: // Delete
+		case 2, 3: // Delete
 			// get 0-1 value
 			tmpRand := rand.Intn(2)
 			if tmpRand == 0 {
@@ -999,9 +1030,9 @@ func testParallelTxnsQueryingSkipListIndexUsedColumns[T int32 | float32 | string
 					//common.SH_Assert(isDeleted == true, "remove should be success!")
 				}()
 			}
-		case 3: // Update
+		case 4: // Update
 			fmt.Println()
-		case 4: // Select (Point Scan)
+		case 5, 6: // Select (Point Scan)
 			// get 0-1 value
 			tmpRand := rand.Intn(2)
 			if tmpRand == 0 { // 50% is Select to not existing entry
@@ -1073,7 +1104,7 @@ func testParallelTxnsQueryingSkipListIndexUsedColumns[T int32 | float32 | string
 					//common.SH_Assert(, "gotVal is not collect!")
 				}()
 			}
-		case 5: // Select (Range Scan)
+		case 7: // Select (Range Scan)
 			go func() {
 				insValsMutex.RLock()
 				if len(insVals) == 0 {
@@ -1098,5 +1129,8 @@ func testParallelTxnsQueryingSkipListIndexUsedColumns[T int32 | float32 | string
 		}
 		runningThCnt++
 	}
+
+	// TODO: (SDB) need to implement final records data validation (testParallelTxnsQueryingSkipListIndexUsedColumns)
+
 	shi.CloseFilesForTesting()
 }

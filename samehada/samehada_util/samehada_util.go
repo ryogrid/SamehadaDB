@@ -4,6 +4,7 @@ import (
 	"bytes"
 	"encoding/binary"
 	"github.com/ryogrid/SamehadaDB/common"
+	"github.com/ryogrid/SamehadaDB/container/hash"
 	"github.com/ryogrid/SamehadaDB/storage/page"
 	"github.com/ryogrid/SamehadaDB/types"
 	"math"
@@ -130,6 +131,22 @@ func ChoiceValFromMap[T int32 | float32 | string, V int32 | float32 | string](m 
 		}
 	}
 	return ans
+}
+
+func GetInt32ValCorrespondToPassVal(val interface{}) int32 {
+	switch val.(type) {
+	case int32:
+		return val.(int32)
+	case float32:
+		return int32(val.(float32))
+	case string:
+		casted := val.(string)
+		byteArr := make([]byte, len(casted))
+		copy(byteArr, casted)
+		return int32(hash.GenHashMurMur(byteArr))
+	default:
+		panic("unsupported type!")
+	}
 }
 
 func GetValueForSkipListEntry(val interface{}) uint32 {
