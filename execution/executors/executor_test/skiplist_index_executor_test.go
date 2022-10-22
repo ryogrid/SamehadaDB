@@ -4,10 +4,12 @@ import (
 	"fmt"
 	"github.com/ryogrid/SamehadaDB/catalog"
 	"github.com/ryogrid/SamehadaDB/common"
+	"github.com/ryogrid/SamehadaDB/container/skip_list"
 	"github.com/ryogrid/SamehadaDB/execution/executors"
 	"github.com/ryogrid/SamehadaDB/execution/expression"
 	"github.com/ryogrid/SamehadaDB/execution/plans"
 	"github.com/ryogrid/SamehadaDB/recovery"
+	"github.com/ryogrid/SamehadaDB/samehada"
 	"github.com/ryogrid/SamehadaDB/samehada/samehada_util"
 	"github.com/ryogrid/SamehadaDB/storage/access"
 	"github.com/ryogrid/SamehadaDB/storage/buffer"
@@ -18,6 +20,9 @@ import (
 	testingpkg "github.com/ryogrid/SamehadaDB/testing"
 	"github.com/ryogrid/SamehadaDB/types"
 	"math"
+	"math/rand"
+	"os"
+	"sync"
 	"testing"
 )
 
@@ -575,8 +580,59 @@ func TestAbortWthDeleteUpdateUsingIndexCaseRangeScan(t *testing.T) {
 	testingpkg.Assert(t, types.NewVarchar("bar").CompareEquals(results[0].GetValue(tableMetadata.Schema(), 1)), "value should be \"bar\"")
 }
 
-/*
+// TODO: (SDB) not implemente yet
+func createBankAccountUpdatePlanNode[T int32 | float32 | string](c *catalog.Catalog, tm *catalog.TableMetadata, keyType types.TypeID, accounts []string) (createdPlan plans.Plan, moveAmount T) {
+	val := samehada_util.GetRandomPrimitiveVal[T](keyType)
+	return nil, val
+}
 
+// TODO: (SDB) not implemente yet
+func createSpecifiedValInsertPlanNode[T int32 | float32 | string](val T, c *catalog.Catalog, tm *catalog.TableMetadata, keyType types.TypeID, checkDupMap *map[T]T, checkDupMapMutex *sync.RWMutex) (createdPlan plans.Plan, insertVal T) {
+	//val := samehada_util.GetRandomPrimitiveVal[T](keyType)
+	return nil, val
+}
+
+// TODO: (SDB) not implemente yet
+func createSpecifiedValDeletePlanNode[T int32 | float32 | string](val T, c *catalog.Catalog, tm *catalog.TableMetadata, keyType types.TypeID, insVals *[]T, insValsMutex *sync.Mutex, deletedValsForDelete *[]T, deletedValsMutexForDelete *sync.RWMutex) (createdPlan plans.Plan, DeleteVal T) {
+	//val := samehada_util.GetRandomPrimitiveVal[T](keyType)
+	return nil, val
+}
+
+// TODO: (SDB) not implemente yet
+func createSpecifiedValUpdatePlanNode[T int32 | float32 | string](oldVal T, c *catalog.Catalog, tm *catalog.TableMetadata, keyType types.TypeID, insVals *[]T, insValsMutex *sync.Mutex) (createdPlan plans.Plan, UpdateVal T) {
+	val := samehada_util.GetRandomPrimitiveVal[T](keyType)
+	return nil, val
+}
+
+// TODO: (SDB) not implemente yet
+func createRandomRangeScanPlanNode[T int32 | float32 | string](c *catalog.Catalog, tm *catalog.TableMetadata, keyType types.TypeID) (createdPlan plans.Plan, startRange *types.Value, endRange *types.Value) {
+	samehada_util.GetRandomPrimitiveVal[T](keyType)
+	return nil, nil, nil
+}
+
+// TODO: (SDB) not implemente yet
+func createRandomPointScanPlanNode[T int32 | float32 | string](c *catalog.Catalog, tm *catalog.TableMetadata, keyType types.TypeID, insVals *[]T, insValsMutex *sync.Mutex) (createdPlan plans.Plan, startRange *types.Value, endRange *types.Value) {
+	samehada_util.GetRandomPrimitiveVal[T](keyType)
+	return nil, nil, nil
+}
+
+// TODO: (SDB) not implemente yet
+func handleFnishedTxn(catalog_ *catalog.Catalog, txn_mgr *access.TransactionManager, txn *access.Transaction) int32 {
+	// fmt.Println(txn.GetState())
+	if txn.GetState() == access.ABORTED {
+		// fmt.Println(txn.GetSharedLockSet())
+		// fmt.Println(txn.GetExclusiveLockSet())
+		txn_mgr.Abort(catalog_, txn)
+		return 0
+	} else {
+		// fmt.Println(txn.GetSharedLockSet())
+		// fmt.Println(txn.GetExclusiveLockSet())
+		txn_mgr.Commit(txn)
+		return 1
+	}
+}
+
+/*
 func rowInsertTransaction_(t *testing.T, shi *samehada.SamehadaInstance, c *catalog.Catalog, tm *catalog.TableMetadata, master_ch chan int32) {
 	txn := shi.GetTransactionManager().Begin(nil)
 
@@ -695,7 +751,7 @@ func TestConcurrentSkipListIndexUseTransactionExecution(t *testing.T) {
 	const PARALLEL_EXEC_CNT int = 100
 
 	// // set timeout for debugging
-	// time.AfterFunc(time.Duration(40)*time.Second, timeoutPanic)
+	// time.AfterFunc(time.Duration(40)*time.Second, TimeoutPanic)
 
 	commited_cnt := int32(0)
 	for i := 0; i < PARALLEL_EXEC_CNT; i++ {
@@ -718,9 +774,11 @@ func TestConcurrentSkipListIndexUseTransactionExecution(t *testing.T) {
 	}
 
 }
+*/
 
-func testSkipListMixParallelStrideAddedIterator[T int32 | float32 | string](t *testing.T, keyType types.TypeID, stride int32, opTimes int32, seedVal int32, initialEntryNum int32, bpoolSize int32) {
-	common.ShPrintf(common.DEBUG_INFO, "start of testSkipListMixParallelStride stride=%d opTimes=%d seedVal=%d initialEntryNum=%d ====================================================\n",
+// TODO: (SDB) not implemente yet
+func testParallelTxnsQueryingSkipListIndexUsedColumns[T int32 | float32 | string](t *testing.T, keyType types.TypeID, stride int32, opTimes int32, seedVal int32, initialEntryNum int32, bpoolSize int32) {
+	common.ShPrintf(common.DEBUG_INFO, "start of testParallelTxnsQueryingSkipListIndexUsedColumns stride=%d opTimes=%d seedVal=%d initialEntryNum=%d ====================================================\n",
 		stride, opTimes, seedVal, initialEntryNum)
 
 	if !common.EnableOnMemStorage {
@@ -728,7 +786,7 @@ func testSkipListMixParallelStrideAddedIterator[T int32 | float32 | string](t *t
 		os.Remove(t.Name() + ".log")
 	}
 
-	shi := samehada.NewSamehadaInstance(t.Name(), common.BufferPoolMaxFrameNumForTest)
+	shi := samehada.NewSamehadaInstance(t.Name(), int(bpoolSize))
 	shi.GetLogManager().ActivateLogging()
 	testingpkg.Assert(t, shi.GetLogManager().IsEnabledLogging(), "")
 	fmt.Println("System logging is active.")
@@ -738,31 +796,18 @@ func testSkipListMixParallelStrideAddedIterator[T int32 | float32 | string](t *t
 
 	c := catalog.BootstrapCatalog(shi.GetBufferPoolManager(), shi.GetLogManager(), shi.GetLockManager(), txn)
 
-	columnA := column.NewColumn("a", types.Integer, false, index_constants.INDEX_KIND_SKIP_LIST, types.PageID(-1), nil)
-	columnB := column.NewColumn("b", types.Varchar, false, index_constants.INDEX_KIND_SKIP_LIST, types.PageID(-1), nil)
-	columnC := column.NewColumn("c", types.Integer, false, index_constants.INDEX_KIND_INVAID, types.PageID(-1), nil)
-	columnD := column.NewColumn("d", types.Varchar, false, index_constants.INDEX_KIND_INVAID, types.PageID(-1), nil)
-	schema_ := schema.NewSchema([]*column.Column{columnA, columnB, columnC, columnD})
+	columnA := column.NewColumn("a", keyType, false, index_constants.INDEX_KIND_SKIP_LIST, types.PageID(-1), nil)
+	columnB := column.NewColumn("b", keyType, false, index_constants.INDEX_KIND_SKIP_LIST, types.PageID(-1), nil)
+	schema_ := schema.NewSchema([]*column.Column{columnA, columnB})
 
 	tableMetadata := c.CreateTable("test_1", schema_, txn)
 
-	if !common.EnableOnMemStorage {
-		os.Remove(t.Name() + ".db")
-		os.Remove(t.Name() + ".log")
-	}
-
 	const THREAD_NUM = 20
-
-	shi := samehada.NewSamehadaInstance(t.Name(), int(bpoolSize))
-	//shi := samehada.NewSamehadaInstance(t.Name(), 30)
-	//shi := samehada.NewSamehadaInstance(t.Name(), 60)
 
 	//shi := samehada.NewSamehadaInstance(t.Name(), common.BufferPoolMaxFrameNumForTest)
 	//shi := samehada.NewSamehadaInstance(t.Name(), 10*1024) // buffer is about 40MB
 	bpm := shi.GetBufferPoolManager()
 	sl := skip_list.NewSkipList(bpm, keyType)
-
-	checkDupMap := make(map[T]T)
 
 	// override global rand seed (seed has been set on NewSkipList)
 	//rand.Seed(3)
@@ -776,22 +821,27 @@ func testSkipListMixParallelStrideAddedIterator[T int32 | float32 | string](t *t
 	//}
 
 	insVals := make([]T, 0)
-	removedValsForGetAndRemove := make(map[T]T, 0)
-	removedValsForRemove := make(map[T]T, 0)
+	insValsMutex := new(sync.RWMutex)
+	deletedValsForDSU := make(map[T]T, 0)
+	deletedValsForDSUMutex := new(sync.RWMutex)
+	deletedValsForDelete := make(map[T]T, 0)
+	deletedValsForDeleteMutex := new(sync.RWMutex)
+	checkDupMap := make(map[T]T)
+	checkDupMapMutex := new(sync.RWMutex)
 
 	// initial entries
 	useInitialEntryNum := int(initialEntryNum)
 	for ii := 0; ii < useInitialEntryNum; ii++ {
 		// avoid duplication
-		insValBase := getRandomPrimitiveVal[T](keyType)
+		insValBase := samehada_util.GetRandomPrimitiveVal[T](keyType)
 		for _, exist := checkDupMap[insValBase]; exist; _, exist = checkDupMap[insValBase] {
-			insValBase = getRandomPrimitiveVal[T](keyType)
+			insValBase = samehada_util.GetRandomPrimitiveVal[T](keyType)
 		}
 		checkDupMap[insValBase] = insValBase
 
 		for ii := int32(0); ii < stride; ii++ {
-			insVal := strideAdd(strideMul(insValBase, stride), ii)
-			pairVal := getValueForSkipListEntry(insVal)
+			insVal := samehada_util.StrideAdd(samehada_util.StrideMul(insValBase, stride), ii)
+			pairVal := samehada_util.GetValueForSkipListEntry(insVal)
 
 			common.ShPrintf(common.DEBUGGING, "Insert op start.")
 			sl.Insert(samehada_util.GetPonterOfValue(types.NewValue(insVal)), pairVal)
@@ -800,11 +850,6 @@ func testSkipListMixParallelStrideAddedIterator[T int32 | float32 | string](t *t
 
 		insVals = append(insVals, insValBase)
 	}
-
-	insValsMutex := new(sync.RWMutex)
-	removedValsForGetMutex := new(sync.RWMutex)
-	removedValsForRemoveMutex := new(sync.RWMutex)
-	checkDupMapMutex := new(sync.RWMutex)
 
 	ch := make(chan int32)
 
@@ -832,16 +877,16 @@ func testSkipListMixParallelStrideAddedIterator[T int32 | float32 | string](t *t
 		common.ShPrintf(common.DEBUGGING, "ii=%d\n", ii)
 		//runningThCnt = 0
 
-		// get 0-4
-		opType := rand.Intn(5)
+		// get 0-6
+		opType := rand.Intn(7)
 		switch opType {
 		case 0: // Insert
 			go func() {
 				//checkDupMapMutex.RLock()
 				checkDupMapMutex.RLock()
-				insValBase := getRandomPrimitiveVal[T](keyType)
+				insValBase := samehada_util.GetRandomPrimitiveVal[T](keyType)
 				for _, exist := checkDupMap[insValBase]; exist; _, exist = checkDupMap[insValBase] {
-					insValBase = getRandomPrimitiveVal[T](keyType)
+					insValBase = samehada_util.GetRandomPrimitiveVal[T](keyType)
 				}
 				checkDupMapMutex.RUnlock()
 				checkDupMapMutex.Lock()
@@ -849,8 +894,8 @@ func testSkipListMixParallelStrideAddedIterator[T int32 | float32 | string](t *t
 				checkDupMapMutex.Unlock()
 
 				for ii := int32(0); ii < stride; ii++ {
-					insVal := strideAdd(strideMul(insValBase, stride), ii)
-					pairVal := getValueForSkipListEntry(insVal)
+					insVal := samehada_util.StrideAdd(samehada_util.StrideMul(insValBase, stride), ii)
+					pairVal := samehada_util.GetValueForSkipListEntry(insVal)
 
 					common.ShPrintf(common.DEBUGGING, "Insert op start.")
 					sl.Insert(samehada_util.GetPonterOfValue(types.NewValue(insVal)), pairVal)
@@ -867,22 +912,22 @@ func testSkipListMixParallelStrideAddedIterator[T int32 | float32 | string](t *t
 			if tmpRand == 0 {
 				// 50% is Remove to not existing entry
 				go func() {
-					removedValsForRemoveMutex.RLock()
-					if len(removedValsForRemove) == 0 {
-						removedValsForRemoveMutex.RUnlock()
+					deletedValsForDeleteMutex.RLock()
+					if len(deletedValsForDelete) == 0 {
+						deletedValsForDeleteMutex.RUnlock()
 						ch <- 1
 						//continue
 						return
 					}
-					removedValsForRemoveMutex.RUnlock()
+					deletedValsForDeleteMutex.RUnlock()
 
 					for ii := int32(0); ii < stride; ii++ {
-						removedValsForRemoveMutex.RLock()
-						delVal := choiceValFromMap(removedValsForRemove)
-						removedValsForRemoveMutex.RUnlock()
+						deletedValsForDeleteMutex.RLock()
+						delVal := samehada_util.ChoiceValFromMap(deletedValsForDelete)
+						deletedValsForDeleteMutex.RUnlock()
 
 						common.ShPrintf(common.DEBUGGING, "Remove(fail) op start.")
-						isDeleted := sl.Remove(samehada_util.GetPonterOfValue(types.NewValue(delVal)), getValueForSkipListEntry(delVal))
+						isDeleted := sl.Remove(samehada_util.GetPonterOfValue(types.NewValue(delVal)), samehada_util.GetValueForSkipListEntry(delVal))
 						common.SH_Assert(isDeleted == false, "delete should be fail!")
 					}
 					ch <- 1
@@ -910,29 +955,29 @@ func testSkipListMixParallelStrideAddedIterator[T int32 | float32 | string](t *t
 					insValsMutex.Unlock()
 
 					for ii := int32(0); ii < stride; ii++ {
-						delVal := strideAdd(strideMul(delValBase, stride), ii).(T)
-						pairVal := getValueForSkipListEntry(delVal)
+						delVal := samehada_util.StrideAdd(samehada_util.StrideMul(delValBase, stride), ii).(T)
+						pairVal := samehada_util.GetValueForSkipListEntry(delVal)
 						common.ShPrintf(common.DEBUGGING, "Remove(success) op start.")
 
 						// append to map before doing remove op for other get op thread
-						removedValsForGetMutex.Lock()
-						removedValsForGetAndRemove[delVal] = delVal
-						removedValsForGetMutex.Unlock()
+						deletedValsForDSUMutex.Lock()
+						deletedValsForDSU[delVal] = delVal
+						deletedValsForDSUMutex.Unlock()
 
 						isDeleted := sl.Remove(samehada_util.GetPonterOfValue(types.NewValue(delVal)), pairVal)
 						if isDeleted == true {
 							// append to map after doing remove op for other fail remove op thread
-							removedValsForRemoveMutex.Lock()
-							removedValsForRemove[delVal] = delVal
-							removedValsForRemoveMutex.Unlock()
+							deletedValsForDeleteMutex.Lock()
+							deletedValsForDelete[delVal] = delVal
+							deletedValsForDeleteMutex.Unlock()
 
 						} else {
-							removedValsForGetMutex.RLock()
-							if _, ok := removedValsForGetAndRemove[delVal]; !ok {
-								removedValsForGetMutex.RUnlock()
+							deletedValsForDSUMutex.RLock()
+							if _, ok := deletedValsForDSU[delVal]; !ok {
+								deletedValsForDSUMutex.RUnlock()
 								panic("remove op test failed!")
 							}
-							removedValsForGetMutex.RUnlock()
+							deletedValsForDSUMutex.RUnlock()
 							//panic("remove op test failed!")
 						}
 					}
@@ -940,41 +985,81 @@ func testSkipListMixParallelStrideAddedIterator[T int32 | float32 | string](t *t
 					//common.SH_Assert(isDeleted == true, "remove should be success!")
 				}()
 			}
-		case 3: // Get
-			go func() {
-				insValsMutex.RLock()
-				if len(insVals) == 0 {
-					insValsMutex.RUnlock()
-					ch <- 1
-					//continue
-					return
-				}
-				tmpIdx := int(rand.Intn(len(insVals)))
-				//fmt.Printf("sl.GetValue at testSkipListMix: ii=%d, tmpIdx=%d insVals[tmpIdx]=%d len(*insVals)=%d len(*removedValsForGetAndRemove)=%d\n", ii, tmpIdx, insVals[tmpIdx], len(insVals), len(removedValsForGetAndRemove))
-				getTgtBase := insVals[tmpIdx]
-				insValsMutex.RUnlock()
-				for ii := int32(0); ii < stride; ii++ {
-					getTgt := strideAdd(strideMul(getTgtBase, stride), ii).(T)
-					getTgtVal := types.NewValue(getTgt)
-					correctVal := getValueForSkipListEntry(getTgt)
-
-					common.ShPrintf(common.DEBUGGING, "Get op start.")
-					gotVal := sl.GetValue(&getTgtVal)
-					if gotVal == math.MaxUint32 {
-						removedValsForGetMutex.RLock()
-						if _, ok := removedValsForGetAndRemove[getTgt]; !ok {
-							removedValsForGetMutex.RUnlock()
-							panic("get op test failed!")
-						}
-						removedValsForGetMutex.RUnlock()
-					} else if gotVal != correctVal {
-						panic("returned value of get of is wrong!")
+		case 3: // Update
+			fmt.Println()
+		case 4: // Select (Point Scan)
+			// get 0-1 value
+			tmpRand := rand.Intn(2)
+			if tmpRand == 0 { // 50% is Select to not existing entry
+				go func() {
+					insValsMutex.RLock()
+					if len(insVals) == 0 {
+						insValsMutex.RUnlock()
+						ch <- 1
+						//continue
+						return
 					}
-				}
-				ch <- 1
-				//common.SH_Assert(, "gotVal is not collect!")
-			}()
-		case 4: //GetRangeScanIterator
+					tmpIdx := int(rand.Intn(len(insVals)))
+					//fmt.Printf("sl.GetValue at testSkipListMix: ii=%d, tmpIdx=%d insVals[tmpIdx]=%d len(*insVals)=%d len(*deletedValsForDSU)=%d\n", ii, tmpIdx, insVals[tmpIdx], len(insVals), len(deletedValsForDSU))
+					getTgtBase := insVals[tmpIdx]
+					insValsMutex.RUnlock()
+					for ii := int32(0); ii < stride; ii++ {
+						getTgt := samehada_util.StrideAdd(samehada_util.StrideMul(getTgtBase, stride), ii).(T)
+						getTgtVal := types.NewValue(getTgt)
+						correctVal := samehada_util.GetValueForSkipListEntry(getTgt)
+
+						common.ShPrintf(common.DEBUGGING, "Get op start.")
+						gotVal := sl.GetValue(&getTgtVal)
+						if gotVal == math.MaxUint32 {
+							deletedValsForDSUMutex.RLock()
+							if _, ok := deletedValsForDSU[getTgt]; !ok {
+								deletedValsForDSUMutex.RUnlock()
+								panic("get op test failed!")
+							}
+							deletedValsForDSUMutex.RUnlock()
+						} else if gotVal != correctVal {
+							panic("returned value of get of is wrong!")
+						}
+					}
+					ch <- 1
+					//common.SH_Assert(, "gotVal is not collect!")
+				}()
+			} else { // 50% is Select to not existing entry
+				go func() {
+					insValsMutex.RLock()
+					if len(insVals) == 0 {
+						insValsMutex.RUnlock()
+						ch <- 1
+						//continue
+						return
+					}
+					tmpIdx := int(rand.Intn(len(insVals)))
+					//fmt.Printf("sl.GetValue at testSkipListMix: ii=%d, tmpIdx=%d insVals[tmpIdx]=%d len(*insVals)=%d len(*deletedValsForDSU)=%d\n", ii, tmpIdx, insVals[tmpIdx], len(insVals), len(deletedValsForDSU))
+					getTgtBase := insVals[tmpIdx]
+					insValsMutex.RUnlock()
+					for ii := int32(0); ii < stride; ii++ {
+						getTgt := samehada_util.StrideAdd(samehada_util.StrideMul(getTgtBase, stride), ii).(T)
+						getTgtVal := types.NewValue(getTgt)
+						correctVal := samehada_util.GetValueForSkipListEntry(getTgt)
+
+						common.ShPrintf(common.DEBUGGING, "Get op start.")
+						gotVal := sl.GetValue(&getTgtVal)
+						if gotVal == math.MaxUint32 {
+							deletedValsForDSUMutex.RLock()
+							if _, ok := deletedValsForDSU[getTgt]; !ok {
+								deletedValsForDSUMutex.RUnlock()
+								panic("get op test failed!")
+							}
+							deletedValsForDSUMutex.RUnlock()
+						} else if gotVal != correctVal {
+							panic("returned value of get of is wrong!")
+						}
+					}
+					ch <- 1
+					//common.SH_Assert(, "gotVal is not collect!")
+				}()
+			}
+		case 5: // Select (Range Scan)
 			go func() {
 				insValsMutex.RLock()
 				if len(insVals) == 0 {
@@ -984,13 +1069,13 @@ func testSkipListMixParallelStrideAddedIterator[T int32 | float32 | string](t *t
 					return
 				}
 				tmpIdx := int(rand.Intn(len(insVals)))
-				//fmt.Printf("sl.GetValue at testSkipListMix: ii=%d, tmpIdx=%d insVals[tmpIdx]=%d len(*insVals)=%d len(*removedValsForGetAndRemove)=%d\n", ii, tmpIdx, insVals[tmpIdx], len(insVals), len(removedValsForGetAndRemove))
+				//fmt.Printf("sl.GetValue at testSkipListMix: ii=%d, tmpIdx=%d insVals[tmpIdx]=%d len(*insVals)=%d len(*deletedValsForDSU)=%d\n", ii, tmpIdx, insVals[tmpIdx], len(insVals), len(deletedValsForDSU))
 				rangeStartBase := insVals[tmpIdx]
 				insValsMutex.RUnlock()
 				rangeStartVal := types.NewValue(rangeStartBase)
-				rangeEndBase := strideAdd(rangeStartBase, stride).(T)
+				rangeEndBase := samehada_util.StrideAdd(rangeStartBase, stride).(T)
 				rangeEndVal := types.NewValue(rangeEndBase)
-				itr := sl.Iterator(&rangeStartVal, &rangeEndVal, nil)
+				itr := sl.Iterator(&rangeStartVal, &rangeEndVal)
 				for done, _, _, _ := itr.Next(); !done; done, _, _, _ = itr.Next() {
 				}
 
@@ -1001,4 +1086,3 @@ func testSkipListMixParallelStrideAddedIterator[T int32 | float32 | string](t *t
 	}
 	shi.CloseFilesForTesting()
 }
-*/

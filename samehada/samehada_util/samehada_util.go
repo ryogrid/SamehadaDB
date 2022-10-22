@@ -3,11 +3,13 @@ package samehada_util
 import (
 	"bytes"
 	"encoding/binary"
+	"github.com/ryogrid/SamehadaDB/common"
 	"github.com/ryogrid/SamehadaDB/storage/page"
 	"github.com/ryogrid/SamehadaDB/types"
 	"math"
 	"math/rand"
 	"os"
+	"strconv"
 )
 
 func FileExists(filename string) bool {
@@ -128,4 +130,56 @@ func ChoiceValFromMap[T int32 | float32 | string, V int32 | float32 | string](m 
 		}
 	}
 	return ans
+}
+
+func GetValueForSkipListEntry(val interface{}) uint32 {
+	var ret uint32
+	switch val.(type) {
+	case int32:
+		ret = uint32(val.(int32))
+	case float32:
+		ret = uint32(val.(float32))
+	case string:
+		ret = uint32(len(val.(string)))
+	default:
+		panic("unsupported type!")
+	}
+	return ret
+}
+
+func StrideAdd(base interface{}, k interface{}) interface{} {
+	switch base.(type) {
+	case int32:
+		return base.(int32) + k.(int32)
+	case float32:
+		return base.(float32) + k.(float32)
+	case string:
+		//buf := make([]byte, k.(int32))
+		//memset(buf, 'Z')
+		return base.(string) + "+" + strconv.Itoa(int(k.(int32)))
+	default:
+		panic("not supported type")
+	}
+}
+
+func StrideMul(base interface{}, k interface{}) interface{} {
+	switch base.(type) {
+	case int32:
+		return base.(int32) * k.(int32)
+	case float32:
+		return base.(float32) * k.(float32)
+	case string:
+		//return "DEADBEAF" + base.(string)
+		//buf := make([]byte, k.(int32))
+		//memset(buf, 'A')
+		return base.(string) + "*" + strconv.Itoa(int(k.(int32)))
+	default:
+		panic("not supported type")
+	}
+}
+
+func TimeoutPanic() {
+	common.RuntimeStack()
+	os.Stdout.Sync()
+	panic("timeout reached")
 }

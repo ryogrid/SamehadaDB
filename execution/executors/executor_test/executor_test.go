@@ -1566,12 +1566,6 @@ func handleFnishTxn(catalog_ *catalog.Catalog, txn_mgr *access.TransactionManage
 	}
 }
 
-func timeoutPanic() {
-	common.RuntimeStack()
-	os.Stdout.Sync()
-	panic("timeout reached")
-}
-
 func TestConcurrentTransactionExecution(t *testing.T) {
 	if !common.EnableOnMemStorage {
 		os.Remove(t.Name() + ".db")
@@ -1637,7 +1631,7 @@ func TestConcurrentTransactionExecution(t *testing.T) {
 	const PARALLEL_EXEC_CNT int = 100
 
 	// // set timeout for debugging
-	// time.AfterFunc(time.Duration(40)*time.Second, timeoutPanic)
+	// time.AfterFunc(time.Duration(40)*time.Second, TimeoutPanic)
 
 	commited_cnt := int32(0)
 	for i := 0; i < PARALLEL_EXEC_CNT; i++ {
