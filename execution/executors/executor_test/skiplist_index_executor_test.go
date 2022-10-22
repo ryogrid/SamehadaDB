@@ -803,29 +803,15 @@ func testParallelTxnsQueryingSkipListIndexUsedColumns[T int32 | float32 | string
 
 	c := catalog.BootstrapCatalog(shi.GetBufferPoolManager(), shi.GetLogManager(), shi.GetLockManager(), txn)
 
-	columnA := column.NewColumn("account_id", keyType, false, index_constants.INDEX_KIND_SKIP_LIST, types.PageID(-1), nil)
-	columnB := column.NewColumn("balance", types.Integer, false, index_constants.INDEX_KIND_SKIP_LIST, types.PageID(-1), nil)
+	columnA := column.NewColumn("account_id", keyType, true, index_constants.INDEX_KIND_SKIP_LIST, types.PageID(-1), nil)
+	columnB := column.NewColumn("balance", types.Integer, true, index_constants.INDEX_KIND_SKIP_LIST, types.PageID(-1), nil)
 	schema_ := schema.NewSchema([]*column.Column{columnA, columnB})
 
 	tableMetadata := c.CreateTable("test_1", schema_, txn)
 
 	const THREAD_NUM = 20
 
-	//shi := samehada.NewSamehadaInstance(t.Name(), common.BufferPoolMaxFrameNumForTest)
-	//shi := samehada.NewSamehadaInstance(t.Name(), 10*1024) // buffer is about 40MB
-	//bpm := shi.GetBufferPoolManager()
-	//sl := skip_list.NewSkipList(bpm, keyType)
-
-	// override global rand seed (seed has been set on NewSkipList)
-	//rand.Seed(3)
 	rand.Seed(int64(seedVal))
-
-	//tmpSkipRand := seedVal
-	//// skip random value series
-	//for tmpSkipRand > 0 {
-	//	rand.Int31()
-	//	tmpSkipRand--
-	//}
 
 	insVals := make([]T, 0)
 	insValsMutex := new(sync.RWMutex)
