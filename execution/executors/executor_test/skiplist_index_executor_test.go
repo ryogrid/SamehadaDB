@@ -592,9 +592,9 @@ func getUniqRandomPrimitivVal[T int32 | float32 | string](keyType types.TypeID, 
 }
 
 // TODO: (SDB) not implemente yet
-func createBankAccountUpdatePlanNode[T int32 | float32 | string](c *catalog.Catalog, tm *catalog.TableMetadata, keyType types.TypeID, accounts []string) (createdPlan plans.Plan, moveAmount T) {
-	val := samehada_util.GetRandomPrimitiveVal[T](keyType)
-	return nil, val
+func createBankAccountUpdatePlanNode[T int32 | float32 | string](keyColumnVal T, newBalance int32, c *catalog.Catalog, tm *catalog.TableMetadata, keyType types.TypeID) (createdPlan plans.Plan) {
+	//val := samehada_util.GetRandomPrimitiveVal[T](keyType)
+	return nil
 }
 
 // TODO: (SDB) not implemente yet
@@ -610,9 +610,9 @@ func createSpecifiedValDeletePlanNode[T int32 | float32 | string](keyColumnVal T
 }
 
 // TODO: (SDB) not implemente yet
-func createSpecifiedValUpdatePlanNode[T int32 | float32 | string](keyColumnVal T, newBalanceVal int32, c *catalog.Catalog, tm *catalog.TableMetadata, keyType types.TypeID) (createdPlan plans.Plan, UpdateVal T) {
-	val := samehada_util.GetRandomPrimitiveVal[T](keyType)
-	return nil, val
+func createSpecifiedValUpdatePlanNode[T int32 | float32 | string](keyColumnVal T, newKeyColumnVal T, c *catalog.Catalog, tm *catalog.TableMetadata, keyType types.TypeID) (createdPlan plans.Plan) {
+	//val := samehada_util.GetRandomPrimitiveVal[T](keyType)
+	return nil
 }
 
 // TODO: (SDB) not implemente yet
@@ -825,8 +825,8 @@ func testParallelTxnsQueryingSkipListIndexUsedColumns[T int32 | float32 | string
 
 	insVals := make([]T, 0)
 	insValsMutex := new(sync.RWMutex)
-	deletedValsForSelectUpdate := make(map[T]T, 0)
-	deletedValsForSelectUpdateMutex := new(sync.RWMutex)
+	//deletedValsForSelectUpdate := make(map[T]T, 0)
+	//deletedValsForSelectUpdateMutex := new(sync.RWMutex)
 	deletedValsForDelete := make(map[T]T, 0)
 	deletedValsForDeleteMutex := new(sync.RWMutex)
 	checkKeyColDupMap := make(map[T]T)
@@ -853,6 +853,7 @@ func testParallelTxnsQueryingSkipListIndexUsedColumns[T int32 | float32 | string
 			accountId = samehada_util.GetRandomPrimitiveVal[T](keyType)
 		}
 		checkKeyColDupMap[accountId] = accountId
+		checkBalanceColDupMap[int32(BALANCE_AT_START+ii)] = int32(BALANCE_AT_START + ii)
 		accountIds = append(accountIds, accountId)
 		// not have to duplication check of barance
 		insPlan := createSpecifiedValInsertPlanNode(accountId, int32(BALANCE_AT_START+ii), c, tableMetadata, keyType)
@@ -865,12 +866,14 @@ func testParallelTxnsQueryingSkipListIndexUsedColumns[T int32 | float32 | string
 	// setup other initial entries which is not used as account
 	useInitialEntryNum := int(initialEntryNum)
 	for ii := 0; ii < useInitialEntryNum; ii++ {
-		// avoid duplication
-		keyValBase := samehada_util.GetRandomPrimitiveVal[T](keyType)
-		for _, exist := checkKeyColDupMap[keyValBase]; exist; _, exist = checkKeyColDupMap[keyValBase] {
-			keyValBase = samehada_util.GetRandomPrimitiveVal[T](keyType)
+	retry0:
+		keyValBase := getUniqRandomPrimitivVal(keyType, checkKeyColDupMap, checkKeyColDupMapMutex)
+		balanceVal := samehada_util.GetInt32ValCorrespondToPassVal(keyValBase)
+		if _, exist := checkBalanceColDupMap[balanceVal]; exist || (balanceVal >= 0 && balanceVal > sumOfAllAccountBalanceAtStart) {
+			goto retry0
 		}
 		checkKeyColDupMap[keyValBase] = keyValBase
+		checkBalanceColDupMap[balanceVal] = balanceVal
 
 		for ii := int32(0); ii < stride; ii++ {
 			insKeyVal := samehada_util.StrideAdd(samehada_util.StrideMul(keyValBase, stride), ii).(T)
@@ -889,13 +892,32 @@ func testParallelTxnsQueryingSkipListIndexUsedColumns[T int32 | float32 | string
 
 	ch := make(chan int32)
 
+	putCheckMapEntries := func(keyValBase T) {
+		checkKeyColDupMapMutex.Lock()
+		checkKeyColDupMap[keyValBase] = keyValBase
+		checkKeyColDupMapMutex.Unlock()
+		checkBalanceColDupMapMutex.Lock()
+		keyVal := samehada_util.GetInt32ValCorrespondToPassVal(keyValBase)
+		checkBalanceColDupMap[keyVal] = keyVal
+		checkBalanceColDupMapMutex.Unlock()
+	}
+
+	deleteCheckMapEntries := func(keyValBase T) {
+		checkKeyColDupMapMutex.Lock()
+		delete(checkKeyColDupMap, keyValBase)
+		checkKeyColDupMapMutex.Unlock()
+		checkBalanceColDupMapMutex.Lock()
+		delete(checkBalanceColDupMap, samehada_util.GetInt32ValCorrespondToPassVal(keyValBase))
+		checkBalanceColDupMapMutex.Unlock()
+	}
+
 	finalizeRandomInsertTxn := func(txn_ *access.Transaction, insKeyValBase T) {
 		txnOk := handleFnishedTxn(c, txnMgr, txn_)
-
 		if txnOk {
 			insValsMutex.Lock()
 			insVals = append(insVals, insKeyValBase)
 			insValsMutex.Unlock()
+			putCheckMapEntries(insKeyValBase)
 			atomic.AddInt32(&insertedTupleCnt, stride)
 			atomic.AddInt32(&commitedTxnCnt, 1)
 		} else {
@@ -910,12 +932,33 @@ func testParallelTxnsQueryingSkipListIndexUsedColumns[T int32 | float32 | string
 			deletedValsForDeleteMutex.Lock()
 			deletedValsForDelete[delKeyValBase] = delKeyValBase
 			deletedValsForDeleteMutex.Unlock()
+			deleteCheckMapEntries(delKeyValBase)
 			atomic.AddInt32(&deletedTupleCnt, stride)
 			atomic.AddInt32(&commitedTxnCnt, 1)
 		} else {
 			// rollback removed element
 			insValsMutex.Lock()
 			insVals = append(insVals, delKeyValBase)
+			insValsMutex.Unlock()
+			atomic.AddInt32(&abortedTxnCnt, 1)
+		}
+		atomic.AddInt32(&executedTxnCnt, 1)
+	}
+
+	finalizeRandomUpdateTxn := func(txn_ *access.Transaction, oldKeyValBase T, newKeyValBase T) {
+		txnOk := handleFnishedTxn(c, txnMgr, txn_)
+		if txnOk {
+			insValsMutex.Lock()
+			// append new base value
+			insVals = append(insVals, newKeyValBase)
+			insValsMutex.Unlock()
+			deleteCheckMapEntries(oldKeyValBase)
+			putCheckMapEntries(newKeyValBase)
+			atomic.AddInt32(&commitedTxnCnt, 1)
+		} else {
+			// rollback removed element
+			insValsMutex.Lock()
+			insVals = append(insVals, oldKeyValBase)
 			insValsMutex.Unlock()
 			atomic.AddInt32(&abortedTxnCnt, 1)
 		}
@@ -955,7 +998,6 @@ func testParallelTxnsQueryingSkipListIndexUsedColumns[T int32 | float32 | string
 			common.ShPrintf(common.DEBUGGING, "runningThCnt=%d\n", runningThCnt)
 		}
 		common.ShPrintf(common.DEBUGGING, "ii=%d\n", ii)
-		//runningThCnt = 0
 
 		// get 0-7
 		opType := rand.Intn(8)
@@ -964,10 +1006,14 @@ func testParallelTxnsQueryingSkipListIndexUsedColumns[T int32 | float32 | string
 		case 1: // Insert
 			go func() {
 				//checkKeyColDupMapMutex.RLock()
+			retry1:
 				insKeyValBase := getUniqRandomPrimitivVal(keyType, checkKeyColDupMap, checkKeyColDupMapMutex)
-				checkKeyColDupMapMutex.Lock()
-				checkKeyColDupMap[insKeyValBase] = insKeyValBase
-				checkKeyColDupMapMutex.Unlock()
+				checkBalanceColDupMapMutex.RLock()
+				balanceVal := samehada_util.GetInt32ValCorrespondToPassVal(insKeyValBase)
+				if _, exist := checkBalanceColDupMap[balanceVal]; exist || (balanceVal >= 0 && balanceVal > sumOfAllAccountBalanceAtStart) {
+					checkBalanceColDupMapMutex.Unlock()
+					goto retry1
+				}
 
 				txn_ := txnMgr.Begin(nil)
 				for jj := int32(0); jj < stride; jj++ {
@@ -985,14 +1031,13 @@ func testParallelTxnsQueryingSkipListIndexUsedColumns[T int32 | float32 | string
 				}
 
 				finalizeRandomInsertTxn(txn_, insKeyValBase)
-
 				ch <- 1
 			}()
 		case 2, 3: // Delete
 			// get 0-1 value
 			tmpRand := rand.Intn(2)
 			if tmpRand == 0 {
-				// 50% is Remove to not existing entry
+				// 50% is Delete to not existing entry
 				go func() {
 					deletedValsForDeleteMutex.RLock()
 					if len(deletedValsForDelete) == 0 {
@@ -1025,7 +1070,7 @@ func testParallelTxnsQueryingSkipListIndexUsedColumns[T int32 | float32 | string
 					ch <- 1
 				}()
 			} else {
-				// 50% is Remove to existing entry
+				// 50% is Delete to existing entry
 				go func() {
 					insValsMutex.Lock()
 					if len(insVals)-1 < 0 {
@@ -1058,7 +1103,6 @@ func testParallelTxnsQueryingSkipListIndexUsedColumns[T int32 | float32 | string
 						//deletedValsForSelectUpdate[delKeyVal] = delKeyVal
 						//deletedValsForSelectUpdateMutex.Unlock()
 
-						//isDeleted := sl.Remove(samehada_util.GetPonterOfValue(types.NewValue(delVal)), pairVal)
 						delPlan := createSpecifiedValDeletePlanNode(delKeyVal, c, tableMetadata, keyType)
 						results := executePlan(c, shi.GetBufferPoolManager(), txn_, delPlan)
 
@@ -1066,7 +1110,7 @@ func testParallelTxnsQueryingSkipListIndexUsedColumns[T int32 | float32 | string
 							break
 						}
 
-						common.SH_Assert(results != nil && len(results) == 1, "Delete(success) should be fail!")
+						common.SH_Assert(results != nil && len(results) == 1, "Delete(success) failed!")
 
 						//if results != nil && len(results) == 1 {
 						//	// append to map after doing remove op for other fail remove op thread
@@ -1089,11 +1133,56 @@ func testParallelTxnsQueryingSkipListIndexUsedColumns[T int32 | float32 | string
 
 					finalizeRandomDeleteTxn(txn_, delKeyValBase)
 					ch <- 1
-					//common.SH_Assert(isDeleted == true, "remove should be success!")
 				}()
 			}
-		case 4: // Update
-			fmt.Println()
+		case 4: // Random Update
+			go func() {
+				insValsMutex.Lock()
+				if len(insVals) == 0 {
+					insValsMutex.Unlock()
+					ch <- 1
+					return
+				}
+				tmpIdx := int(rand.Intn(len(insVals)))
+				updateKeyValBase := insVals[tmpIdx]
+				if len(insVals) == 1 {
+					// make empty
+					insVals = make([]T, 0)
+				} else if len(insVals)-1 == tmpIdx {
+					insVals = insVals[:len(insVals)-1]
+				} else {
+					insVals = append(insVals[:tmpIdx], insVals[tmpIdx+1:]...)
+				}
+				insValsMutex.Unlock()
+			retry2:
+				updateNewKeyValBase := getUniqRandomPrimitivVal(keyType, checkKeyColDupMap, checkKeyColDupMapMutex)
+				balanceVal := samehada_util.GetInt32ValCorrespondToPassVal(updateNewKeyValBase)
+				if _, exist := checkBalanceColDupMap[balanceVal]; exist || (balanceVal >= 0 && balanceVal <= sumOfAllAccountBalanceAtStart) {
+					checkBalanceColDupMapMutex.Unlock()
+					goto retry2
+				}
+
+				txn_ := txnMgr.Begin(nil)
+
+				for jj := int32(0); jj < stride; jj++ {
+					updateKeyVal := samehada_util.StrideAdd(samehada_util.StrideMul(updateKeyValBase, stride), jj).(T)
+					updateNewKeyVal := samehada_util.StrideAdd(samehada_util.StrideMul(updateNewKeyValBase, stride), jj).(T)
+
+					common.ShPrintf(common.DEBUGGING, "Update (random) op start.")
+
+					updatePlan := createSpecifiedValUpdatePlanNode(updateKeyVal, updateNewKeyVal, c, tableMetadata, keyType)
+					results := executePlan(c, shi.GetBufferPoolManager(), txn_, updatePlan)
+
+					if txn_.GetState() == access.ABORTED {
+						break
+					}
+
+					common.SH_Assert(results != nil && len(results) == 1, "Update failed!")
+				}
+
+				finalizeRandomUpdateTxn(txn_, updateNewKeyValBase, updateNewKeyValBase)
+				ch <- 1
+			}()
 		case 5, 6: // Select (Point Scan)
 			// get 0-1 value
 			tmpRand := rand.Intn(2)
@@ -1112,8 +1201,6 @@ func testParallelTxnsQueryingSkipListIndexUsedColumns[T int32 | float32 | string
 					txn_ := txnMgr.Begin(nil)
 					for jj := int32(0); jj < stride; jj++ {
 						getKeyVal := samehada_util.StrideAdd(samehada_util.StrideMul(getTgtBase, stride), jj).(T)
-						//getTgtVal := types.NewValue(getKeyVal)
-						//correctVal := samehada_util.GetValueForSkipListEntry(getKeyVal)
 
 						common.ShPrintf(common.DEBUGGING, "Select(fail) op start.")
 						selectPlan := createSpecifiedPointScanPlanNode(getKeyVal, c, tableMetadata, keyType)
@@ -1185,7 +1272,6 @@ func testParallelTxnsQueryingSkipListIndexUsedColumns[T int32 | float32 | string
 					}
 					finalizeRandomNoSideEffectTxn(txn_)
 					ch <- 1
-					//common.SH_Assert(, "gotVal is not collect!")
 				}()
 			}
 		case 7: // Select (Range Scan)
@@ -1254,7 +1340,7 @@ func testParallelTxnsQueryingSkipListIndexUsedColumns[T int32 | float32 | string
 					}
 					prevVal = &curVal
 				}
-
+				finalizeRandomNoSideEffectTxn(txn_)
 				ch <- 1
 			}()
 		}
