@@ -616,13 +616,13 @@ func createSpecifiedValUpdatePlanNode[T int32 | float32 | string](keyColumnVal T
 }
 
 // TODO: (SDB) not implemente yet
-func createRandomRangeScanPlanNode[T int32 | float32 | string](c *catalog.Catalog, tm *catalog.TableMetadata, keyType types.TypeID) (createdPlan plans.Plan, startRange *types.Value, endRange *types.Value) {
+func createSpecifiedPointScanPlanNode[T int32 | float32 | string](getKeyVal T, c *catalog.Catalog, tm *catalog.TableMetadata, keyType types.TypeID) (createdPlan plans.Plan) {
 	samehada_util.GetRandomPrimitiveVal[T](keyType)
-	return nil, nil, nil
+	return nil
 }
 
 // TODO: (SDB) not implemente yet
-func createRandomPointScanPlanNode[T int32 | float32 | string](c *catalog.Catalog, tm *catalog.TableMetadata, keyType types.TypeID, insVals *[]T, insValsMutex *sync.Mutex) (createdPlan plans.Plan, startRange *types.Value, endRange *types.Value) {
+func createRandomRangeScanPlanNode[T int32 | float32 | string](c *catalog.Catalog, tm *catalog.TableMetadata, keyType types.TypeID) (createdPlan plans.Plan, startRange *types.Value, endRange *types.Value) {
 	samehada_util.GetRandomPrimitiveVal[T](keyType)
 	return nil, nil, nil
 }
@@ -960,7 +960,7 @@ func testParallelTxnsQueryingSkipListIndexUsedColumns[T int32 | float32 | string
 		// get 0-7
 		opType := rand.Intn(8)
 		switch opType {
-		case 0: //Update account volume (move money)
+		case 0: // Update two account volume (move money)
 		case 1: // Insert
 			go func() {
 				//checkKeyColDupMapMutex.RLock()
@@ -1116,14 +1116,57 @@ func testParallelTxnsQueryingSkipListIndexUsedColumns[T int32 | float32 | string
 						//correctVal := samehada_util.GetValueForSkipListEntry(getKeyVal)
 
 						common.ShPrintf(common.DEBUGGING, "Select(fail) op start.")
-						selectPlan := createSpecifiedValDeletePlanNode(getKeyVal, c, tableMetadata, keyType)
+						selectPlan := createSpecifiedPointScanPlanNode(getKeyVal, c, tableMetadata, keyType)
 						results := executePlan(c, shi.GetBufferPoolManager(), txn_, selectPlan)
 
 						if txn_.GetState() == access.ABORTED {
 							break
 						}
 
-						common.SH_Assert(results != nil && len(results) == 1, "select(fail) should be fail!")
+						common.SH_Assert(results != nil && len(results) == 0, "select(fail) should be fail!")
+
+						////gotVal := sl.GetValue(&getTgtVal)
+						//if gotVal == math.MaxUint32 {
+						//	deletedValsForSelectUpdateMutex.RLock()
+						//	if _, ok := deletedValsForSelectUpdate[getKeyVal]; !ok {
+						//		deletedValsForSelectUpdateMutex.RUnlock()
+						//		panic("get op test failed!")
+						//	}
+						//	deletedValsForSelectUpdateMutex.RUnlock()
+						//} else if gotVal != correctVal {
+						//	panic("returned value of get of is wrong!")
+						//}
+					}
+					finalizeRandomNoSideEffectTxn(txn_)
+					ch <- 1
+				}()
+			} else { // 50% is Select to existing entry
+				go func() {
+					insValsMutex.RLock()
+					if len(insVals) == 0 {
+						insValsMutex.RUnlock()
+						ch <- 1
+						return
+					}
+					tmpIdx := int(rand.Intn(len(insVals)))
+					//fmt.Printf("sl.GetValue at testSkipListMix: ii=%d, tmpIdx=%d insVals[tmpIdx]=%d len(*insVals)=%d len(*deletedValsForSelectUpdate)=%d\n", ii, tmpIdx, insVals[tmpIdx], len(insVals), len(deletedValsForSelectUpdate))
+					getKeyValBase := insVals[tmpIdx]
+					insValsMutex.RUnlock()
+					txn_ := txnMgr.Begin(nil)
+					for ii := int32(0); ii < stride; ii++ {
+						getKeyVal := samehada_util.StrideAdd(samehada_util.StrideMul(getKeyValBase, stride), ii).(T)
+						//getTgtVal := types.NewValue(getKeyVal)
+						//correctVal := samehada_util.GetValueForSkipListEntry(getKeyVal)
+
+						common.ShPrintf(common.DEBUGGING, "Select(success) op start.")
+						selectPlan := createSpecifiedPointScanPlanNode(getKeyVal, c, tableMetadata, keyType)
+						results := executePlan(c, shi.GetBufferPoolManager(), txn_, selectPlan)
+
+						if txn_.GetState() == access.ABORTED {
+							break
+						}
+
+						common.SH_Assert(results != nil && len(results) == 1, "select(success) should not be fail!")
 						collectVal := types.NewInteger(samehada_util.GetInt32ValCorrespondToPassVal(getKeyVal))
 						gotVal := results[0].GetValue(tableMetadata.Schema(), 1)
 						common.SH_Assert(gotVal.CompareEquals(collectVal), "value should be "+fmt.Sprintf("%d not %d", collectVal.ToInteger(), gotVal.ToInteger()))
@@ -1141,39 +1184,6 @@ func testParallelTxnsQueryingSkipListIndexUsedColumns[T int32 | float32 | string
 						//}
 					}
 					finalizeRandomNoSideEffectTxn(txn_)
-					ch <- 1
-				}()
-			} else { // 50% is Select to not existing entry
-				go func() {
-					insValsMutex.RLock()
-					if len(insVals) == 0 {
-						insValsMutex.RUnlock()
-						ch <- 1
-						//continue
-						return
-					}
-					tmpIdx := int(rand.Intn(len(insVals)))
-					//fmt.Printf("sl.GetValue at testSkipListMix: ii=%d, tmpIdx=%d insVals[tmpIdx]=%d len(*insVals)=%d len(*deletedValsForSelectUpdate)=%d\n", ii, tmpIdx, insVals[tmpIdx], len(insVals), len(deletedValsForSelectUpdate))
-					getTgtBase := insVals[tmpIdx]
-					insValsMutex.RUnlock()
-					for ii := int32(0); ii < stride; ii++ {
-						getTgt := samehada_util.StrideAdd(samehada_util.StrideMul(getTgtBase, stride), ii).(T)
-						getTgtVal := types.NewValue(getTgt)
-						correctVal := samehada_util.GetValueForSkipListEntry(getTgt)
-
-						common.ShPrintf(common.DEBUGGING, "Select(fail) op start.")
-						gotVal := sl.GetValue(&getTgtVal)
-						if gotVal == math.MaxUint32 {
-							deletedValsForSelectUpdateMutex.RLock()
-							if _, ok := deletedValsForSelectUpdate[getTgt]; !ok {
-								deletedValsForSelectUpdateMutex.RUnlock()
-								panic("get op test failed!")
-							}
-							deletedValsForSelectUpdateMutex.RUnlock()
-						} else if gotVal != correctVal {
-							panic("returned value of get of is wrong!")
-						}
-					}
 					ch <- 1
 					//common.SH_Assert(, "gotVal is not collect!")
 				}()
