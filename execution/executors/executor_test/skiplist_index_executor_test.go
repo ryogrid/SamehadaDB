@@ -4,7 +4,6 @@ import (
 	"fmt"
 	"github.com/ryogrid/SamehadaDB/catalog"
 	"github.com/ryogrid/SamehadaDB/common"
-	"github.com/ryogrid/SamehadaDB/container/skip_list"
 	"github.com/ryogrid/SamehadaDB/execution/executors"
 	"github.com/ryogrid/SamehadaDB/execution/expression"
 	"github.com/ryogrid/SamehadaDB/execution/plans"
@@ -17,6 +16,7 @@ import (
 	"github.com/ryogrid/SamehadaDB/storage/index/index_constants"
 	"github.com/ryogrid/SamehadaDB/storage/table/column"
 	"github.com/ryogrid/SamehadaDB/storage/table/schema"
+	"github.com/ryogrid/SamehadaDB/storage/tuple"
 	testingpkg "github.com/ryogrid/SamehadaDB/testing"
 	"github.com/ryogrid/SamehadaDB/types"
 	"math"
@@ -587,19 +587,19 @@ func createBankAccountUpdatePlanNode[T int32 | float32 | string](c *catalog.Cata
 }
 
 // TODO: (SDB) not implemente yet
-func createSpecifiedValInsertPlanNode[T int32 | float32 | string](val T, c *catalog.Catalog, tm *catalog.TableMetadata, keyType types.TypeID, checkDupMap *map[T]T, checkDupMapMutex *sync.RWMutex) (createdPlan plans.Plan, insertVal T) {
+func createSpecifiedValInsertPlanNode[T int32 | float32 | string](keyColumnVal T, balance int32, c *catalog.Catalog, tm *catalog.TableMetadata, keyType types.TypeID) (createdPlan plans.Plan) {
 	//val := samehada_util.GetRandomPrimitiveVal[T](keyType)
-	return nil, val
+	return nil
 }
 
 // TODO: (SDB) not implemente yet
-func createSpecifiedValDeletePlanNode[T int32 | float32 | string](val T, c *catalog.Catalog, tm *catalog.TableMetadata, keyType types.TypeID, insVals *[]T, insValsMutex *sync.Mutex, deletedValsForDelete *[]T, deletedValsMutexForDelete *sync.RWMutex) (createdPlan plans.Plan, DeleteVal T) {
+func createSpecifiedValDeletePlanNode[T int32 | float32 | string](keyColumnVal T, c *catalog.Catalog, tm *catalog.TableMetadata, keyType types.TypeID) (createdPlan plans.Plan) {
 	//val := samehada_util.GetRandomPrimitiveVal[T](keyType)
-	return nil, val
+	return nil
 }
 
 // TODO: (SDB) not implemente yet
-func createSpecifiedValUpdatePlanNode[T int32 | float32 | string](oldVal T, c *catalog.Catalog, tm *catalog.TableMetadata, keyType types.TypeID, insVals *[]T, insValsMutex *sync.Mutex) (createdPlan plans.Plan, UpdateVal T) {
+func createSpecifiedValUpdatePlanNode[T int32 | float32 | string](keyColumnVal T, newBalanceVal int32, c *catalog.Catalog, tm *catalog.TableMetadata, keyType types.TypeID) (createdPlan plans.Plan, UpdateVal T) {
 	val := samehada_util.GetRandomPrimitiveVal[T](keyType)
 	return nil, val
 }
@@ -614,6 +614,13 @@ func createRandomRangeScanPlanNode[T int32 | float32 | string](c *catalog.Catalo
 func createRandomPointScanPlanNode[T int32 | float32 | string](c *catalog.Catalog, tm *catalog.TableMetadata, keyType types.TypeID, insVals *[]T, insValsMutex *sync.Mutex) (createdPlan plans.Plan, startRange *types.Value, endRange *types.Value) {
 	samehada_util.GetRandomPrimitiveVal[T](keyType)
 	return nil, nil, nil
+}
+
+func executePlan(c *catalog.Catalog, bpm *buffer.BufferPoolManager, txnMgr *access.TransactionManager, plan plans.Plan) (results []*tuple.Tuple, txn *access.Transaction) {
+	txn_ := txnMgr.Begin(nil)
+	executionEngine := &executors.ExecutionEngine{}
+	executorContext := executors.NewExecutorContext(c, bpm, txn_)
+	return executionEngine.Execute(plan, executorContext), txn_
 }
 
 // TODO: (SDB) not implemente yet
@@ -778,8 +785,8 @@ func TestConcurrentSkipListIndexUseTransactionExecution(t *testing.T) {
 
 // TODO: (SDB) not implemente yet
 func testParallelTxnsQueryingSkipListIndexUsedColumns[T int32 | float32 | string](t *testing.T, keyType types.TypeID, stride int32, opTimes int32, seedVal int32, initialEntryNum int32, bpoolSize int32) {
-	common.ShPrintf(common.DEBUG_INFO, "start of testParallelTxnsQueryingSkipListIndexUsedColumns stride=%d opTimes=%d seedVal=%d initialEntryNum=%d ====================================================\n",
-		stride, opTimes, seedVal, initialEntryNum)
+	common.ShPrintf(common.DEBUG_INFO, "start of testParallelTxnsQueryingSkipListIndexUsedColumns stride=%d opTimes=%d seedVal=%d initialEntryNum=%d bpoolSize=%d ====================================================\n",
+		stride, opTimes, seedVal, initialEntryNum, bpoolSize)
 
 	if !common.EnableOnMemStorage {
 		os.Remove(t.Name() + ".db")
@@ -796,8 +803,8 @@ func testParallelTxnsQueryingSkipListIndexUsedColumns[T int32 | float32 | string
 
 	c := catalog.BootstrapCatalog(shi.GetBufferPoolManager(), shi.GetLogManager(), shi.GetLockManager(), txn)
 
-	columnA := column.NewColumn("a", keyType, false, index_constants.INDEX_KIND_SKIP_LIST, types.PageID(-1), nil)
-	columnB := column.NewColumn("b", keyType, false, index_constants.INDEX_KIND_SKIP_LIST, types.PageID(-1), nil)
+	columnA := column.NewColumn("account_id", keyType, false, index_constants.INDEX_KIND_SKIP_LIST, types.PageID(-1), nil)
+	columnB := column.NewColumn("balance", types.Integer, false, index_constants.INDEX_KIND_SKIP_LIST, types.PageID(-1), nil)
 	schema_ := schema.NewSchema([]*column.Column{columnA, columnB})
 
 	tableMetadata := c.CreateTable("test_1", schema_, txn)
@@ -806,8 +813,8 @@ func testParallelTxnsQueryingSkipListIndexUsedColumns[T int32 | float32 | string
 
 	//shi := samehada.NewSamehadaInstance(t.Name(), common.BufferPoolMaxFrameNumForTest)
 	//shi := samehada.NewSamehadaInstance(t.Name(), 10*1024) // buffer is about 40MB
-	bpm := shi.GetBufferPoolManager()
-	sl := skip_list.NewSkipList(bpm, keyType)
+	//bpm := shi.GetBufferPoolManager()
+	//sl := skip_list.NewSkipList(bpm, keyType)
 
 	// override global rand seed (seed has been set on NewSkipList)
 	//rand.Seed(3)
@@ -826,29 +833,50 @@ func testParallelTxnsQueryingSkipListIndexUsedColumns[T int32 | float32 | string
 	deletedValsForDSUMutex := new(sync.RWMutex)
 	deletedValsForDelete := make(map[T]T, 0)
 	deletedValsForDeleteMutex := new(sync.RWMutex)
-	checkDupMap := make(map[T]T)
-	checkDupMapMutex := new(sync.RWMutex)
+	checkKeyColDupMap := make(map[T]T)
+	checkKeyColumnDupMapMutex := new(sync.RWMutex)
+	checkBalanceColDupMap := make(map[int32]int32)
+	checkBalanceColDupMapMutex := new(sync.RWMutex)
 
-	// initial entries
+	// insert account records
+	const ACCOUNT_NUM = 4
+	const BALANCE_AT_START = 1000000
+	sumOfAllAccountBalanceAtStart := int32(0)
+	accountIds := make([]T, 0)
+	for ii := 0; ii < ACCOUNT_NUM; ii++ {
+		accountId := samehada_util.GetRandomPrimitiveVal[T](keyType)
+		for _, exist := checkKeyColDupMap[accountId]; exist; _, exist = checkKeyColDupMap[accountId] {
+			accountId = samehada_util.GetRandomPrimitiveVal[T](keyType)
+		}
+		checkKeyColDupMap[accountId] = accountId
+		accountIds = append(accountIds, accountId)
+		// not have to duplication check of barance
+		insPlan := createSpecifiedValInsertPlanNode(accountId, int32(BALANCE_AT_START+ii), c, tableMetadata, keyType)
+		executePlan(c, shi.GetBufferPoolManager(), shi.GetTransactionManager(), insPlan)
+		sumOfAllAccountBalanceAtStart += int32(BALANCE_AT_START + ii)
+	}
+
+	// setup other initial entries which is not used as account
 	useInitialEntryNum := int(initialEntryNum)
 	for ii := 0; ii < useInitialEntryNum; ii++ {
 		// avoid duplication
-		insValBase := samehada_util.GetRandomPrimitiveVal[T](keyType)
-		for _, exist := checkDupMap[insValBase]; exist; _, exist = checkDupMap[insValBase] {
-			insValBase = samehada_util.GetRandomPrimitiveVal[T](keyType)
+		keyValBase := samehada_util.GetRandomPrimitiveVal[T](keyType)
+		for _, exist := checkKeyColDupMap[keyValBase]; exist; _, exist = checkKeyColDupMap[keyValBase] {
+			keyValBase = samehada_util.GetRandomPrimitiveVal[T](keyType)
 		}
-		checkDupMap[insValBase] = insValBase
+		checkKeyColDupMap[keyValBase] = keyValBase
 
 		for ii := int32(0); ii < stride; ii++ {
-			insVal := samehada_util.StrideAdd(samehada_util.StrideMul(insValBase, stride), ii)
-			pairVal := samehada_util.GetValueForSkipListEntry(insVal)
+			insKeyVal := samehada_util.StrideAdd(samehada_util.StrideMul(keyValBase, stride), ii)
 
-			common.ShPrintf(common.DEBUGGING, "Insert op start.")
-			sl.Insert(samehada_util.GetPonterOfValue(types.NewValue(insVal)), pairVal)
-			//fmt.Printf("sl.Insert at insertRandom: ii=%d, insValBase=%d len(*insVals)=%d\n", ii, insValBase, len(insVals))
+			//pairVal := samehada_util.GetValueForSkipListEntry(insVal)
+			//common.ShPrintf(common.DEBUGGING, "Insert op start.")
+			//sl.Insert(samehada_util.GetPonterOfValue(types.NewValue(insVal)), pairVal)
+
+			//fmt.Printf("sl.Insert at insertRandom: ii=%d, keyValBase=%d len(*insVals)=%d\n", ii, keyValBase, len(insVals))
 		}
 
-		insVals = append(insVals, insValBase)
+		insVals = append(insVals, keyValBase)
 	}
 
 	ch := make(chan int32)
@@ -882,16 +910,16 @@ func testParallelTxnsQueryingSkipListIndexUsedColumns[T int32 | float32 | string
 		switch opType {
 		case 0: // Insert
 			go func() {
-				//checkDupMapMutex.RLock()
-				checkDupMapMutex.RLock()
+				//checkKeyColumnDupMapMutex.RLock()
+				checkKeyColumnDupMapMutex.RLock()
 				insValBase := samehada_util.GetRandomPrimitiveVal[T](keyType)
-				for _, exist := checkDupMap[insValBase]; exist; _, exist = checkDupMap[insValBase] {
+				for _, exist := checkKeyColDupMap[insValBase]; exist; _, exist = checkKeyColDupMap[insValBase] {
 					insValBase = samehada_util.GetRandomPrimitiveVal[T](keyType)
 				}
-				checkDupMapMutex.RUnlock()
-				checkDupMapMutex.Lock()
-				checkDupMap[insValBase] = insValBase
-				checkDupMapMutex.Unlock()
+				checkKeyColumnDupMapMutex.RUnlock()
+				checkKeyColumnDupMapMutex.Lock()
+				checkKeyColDupMap[insValBase] = insValBase
+				checkKeyColumnDupMapMutex.Unlock()
 
 				for ii := int32(0); ii < stride; ii++ {
 					insVal := samehada_util.StrideAdd(samehada_util.StrideMul(insValBase, stride), ii)
