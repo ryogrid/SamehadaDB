@@ -211,7 +211,7 @@ func TestRebootAndReturnIFValues(t *testing.T) {
 	// close db and log file
 	db.Shutdown()
 
-	// relaunch using /tmp/todo.db and /tmp/todo.log files
+	// relaunch
 	// load of db file and redo/undo process runs
 	// and remove needless log data
 	db2 := samehada.NewSamehadaDB(t.Name(), 200)
@@ -226,7 +226,7 @@ func TestRebootAndReturnIFValues(t *testing.T) {
 	// close db and log file
 	db2.Shutdown()
 
-	// relaunch using /tmp/todo.db and /tmp/todo.log files
+	// relaunch
 	// load of db file and redo/undo process runs
 	// and remove needless log data
 	db3 := samehada.NewSamehadaDB(t.Name(), 200)
