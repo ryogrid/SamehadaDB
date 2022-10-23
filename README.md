@@ -20,19 +20,19 @@
 - **ATTENTION: SamehadaDB is not developed for productional use! There are no warranties!**
 - By the way, procedure described on next section executes almost all defined unit tests except these of taking long time
 
-## Procedure of Executing SamehadaDB (unit tests are executed)
+## Procedure of Executing SamehadaDB (executing unit tests)
 - Please install golang environment with package system your OS has (apt, yum, brew ...etc)
   - If you use Windows, you can select both Windows native environment and WSL Ubuntu environment
 - If you select Windows native environments or golang environment which is installed with package system can't execute SamehadaDB, you should install official binary directly
   - Please refer [Download and Install - The Go Programming Language](https://go.dev/doc/install)
-- Executing all unit tests which test several features and components of SamehadaDB
+- Executing all unit tests which test several features and components of SamehadaDB except several tests taking long time
   - $ git clone https://github.com/ryogrid/SamehadaDB.git
   - $ cd SamehadaDB
   - $ go clean -testcache; go test ./... -short -v
 
 ## Roadmap
 **Note:**  
-**Status described berow is one of backend and doesn't mean supported features of SamehadaDB when you use it through frontend.**  
+**Statuses described berow are of backend and dont't mean supported features of SamehadaDB when you use our DB through frontend.**  
 **(now, embeded DB form only exists)**  
   
 - [x] Predicates on Seq Scan
@@ -52,7 +52,7 @@
 - [x] Transactions
 - [x] Rollback When Abort Occurs
 - [x] Logging
-- [ ] Checkpointing
+- [x] Checkpointing
   - [x] Simple Checkpointing (all transaction block until finish of checkpointing)
   - [ ] Fuzzy Checkpointing (ARIES)
 - [x] Recovery from Logs
@@ -73,6 +73,7 @@
 - [x] Concurrent Execution of Transactions
   - Avoidance of phantom problem is not implemented yet
     - So, current transaction isolation level is **"REPEATABLE READ"**
+  - Retry of txns aborted due to concurrency control protocol is not implemented yet
 - [ ] <del>Execution Planning from hard coded SQL like method call I/F (like some kind of embedded DB)</del>
 - [x] Execution Planning from Query Description text (SQL)
 - [x] Frontend Impl as Embedded DB Library (like SQLite)
