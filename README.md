@@ -32,7 +32,7 @@
 
 ## Roadmap
 **Note:**  
-**Status described berow is one of backend and doesn't mean supported features of SamehadaDB when you use our DB through frontend.**  
+**Statuses described berow are of backend and dont't mean supported features of SamehadaDB when you use our DB through frontend.**  
 **(now, embeded DB form only exists)**  
   
 - [x] Predicates on Seq Scan
