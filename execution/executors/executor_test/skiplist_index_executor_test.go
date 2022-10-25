@@ -583,9 +583,9 @@ func TestAbortWthDeleteUpdateUsingIndexCaseRangeScan(t *testing.T) {
 
 func getUniqRandomPrimitivVal[T int32 | float32 | string](keyType types.TypeID, checkDupMap map[T]T, checkKeyColumnDupMapMutex *sync.RWMutex) T {
 	checkKeyColumnDupMapMutex.RLock()
-	retVal := samehada_util.GetRandomPrimitiveVal[T](keyType)
+	retVal := samehada_util.GetRandomPrimitiveVal[T](keyType, nil)
 	for _, exist := checkDupMap[retVal]; exist; _, exist = checkDupMap[retVal] {
-		retVal = samehada_util.GetRandomPrimitiveVal[T](keyType)
+		retVal = samehada_util.GetRandomPrimitiveVal[T](keyType, nil)
 	}
 	checkKeyColumnDupMapMutex.RUnlock()
 	return retVal
@@ -617,13 +617,13 @@ func createSpecifiedValUpdatePlanNode[T int32 | float32 | string](keyColumnVal T
 
 // TODO: (SDB) not implemente yet
 func createSpecifiedPointScanPlanNode[T int32 | float32 | string](getKeyVal T, c *catalog.Catalog, tm *catalog.TableMetadata, keyType types.TypeID) (createdPlan plans.Plan) {
-	samehada_util.GetRandomPrimitiveVal[T](keyType)
+	samehada_util.GetRandomPrimitiveVal[T](keyType, nil)
 	return nil
 }
 
 // TODO: (SDB) not implemente yet
 func createSpecifiedRangeScanPlanNode[T int32 | float32 | string](c *catalog.Catalog, tm *catalog.TableMetadata, keyType types.TypeID, rangeStartKey *T, rangeEndKey *T) (createdPlan plans.Plan) {
-	samehada_util.GetRandomPrimitiveVal[T](keyType)
+	samehada_util.GetRandomPrimitiveVal[T](keyType, nil)
 	return nil
 }
 
@@ -848,9 +848,9 @@ func testParallelTxnsQueryingSkipListIndexUsedColumns[T int32 | float32 | string
 	sumOfAllAccountBalanceAtStart := int32(0)
 	accountIds := make([]T, 0)
 	for ii := 0; ii < ACCOUNT_NUM; ii++ {
-		accountId := samehada_util.GetRandomPrimitiveVal[T](keyType)
+		accountId := samehada_util.GetRandomPrimitiveVal[T](keyType, nil)
 		for _, exist := checkKeyColDupMap[accountId]; exist; _, exist = checkKeyColDupMap[accountId] {
-			accountId = samehada_util.GetRandomPrimitiveVal[T](keyType)
+			accountId = samehada_util.GetRandomPrimitiveVal[T](keyType, nil)
 		}
 		checkKeyColDupMap[accountId] = accountId
 		checkBalanceColDupMap[int32(BALANCE_AT_START+ii)] = int32(BALANCE_AT_START + ii)
@@ -1003,59 +1003,61 @@ func testParallelTxnsQueryingSkipListIndexUsedColumns[T int32 | float32 | string
 		opType := rand.Intn(8)
 		switch opType {
 		case 0: // Update two account volume (move money)
-			go func() {
-				txn_ := txnMgr.Begin(nil)
+			/*
+				go func() {
+					txn_ := txnMgr.Begin(nil)
 
-				// decide accounts
-				idx1 := rand.Intn(ACCOUNT_NUM)
-				idx2 := idx1 + 1
-				if idx2 == ACCOUNT_NUM {
-					idx2 = 0
-				}
+					// decide accounts
+					idx1 := rand.Intn(ACCOUNT_NUM)
+					idx2 := idx1 + 1
+					if idx2 == ACCOUNT_NUM {
+						idx2 = 0
+					}
 
-				// get current volume of money move accounts
-				selPlan1 := createSpecifiedPointScanPlanNode(accountIds[idx1], c, tableMetadata, keyType)
-				results1 := executePlan(c, shi.GetBufferPoolManager(), txn_, selPlan1)
-				if txn_.GetState() == access.ABORTED {
-					handleFnishedTxn(c, txnMgr, txn_)
-					atomic.AddInt32(&executedTxnCnt, 1)
-					atomic.AddInt32(&abortedTxnCnt, 1)
+					// get current volume of money move accounts
+					selPlan1 := createSpecifiedPointScanPlanNode(accountIds[idx1], c, tableMetadata, keyType)
+					results1 := executePlan(c, shi.GetBufferPoolManager(), txn_, selPlan1)
+					if txn_.GetState() == access.ABORTED {
+						handleFnishedTxn(c, txnMgr, txn_)
+						atomic.AddInt32(&executedTxnCnt, 1)
+						atomic.AddInt32(&abortedTxnCnt, 1)
+						ch <- 1
+						return
+					}
+					if results1 == nil || len(results1) != 1 {
+						panic("volme check failed(1).")
+					}
+					bolume1 := results1[0].GetValue(tableMetadata.Schema(), 1).ToInteger()
+
+					selPlan2 := createSpecifiedPointScanPlanNode(accountIds[idx1], c, tableMetadata, keyType)
+					results2 := executePlan(c, shi.GetBufferPoolManager(), txn_, selPlan2)
+					if txn_.GetState() == access.ABORTED {
+						handleFnishedTxn(c, txnMgr, txn_)
+						atomic.AddInt32(&executedTxnCnt, 1)
+						atomic.AddInt32(&abortedTxnCnt, 1)
+						ch <- 1
+						return
+					}
+					if results2 == nil || len(results2) != 1 {
+						panic("volme check failed(2).")
+					}
+					bolume2 := results2[0].GetValue(tableMetadata.Schema(), 1).ToInteger()
+
+					// deside move ammount
+
+					createSpecifiedPointScanPlanNode()
+				retry0:
+					updateNewKeyValBase := getUniqRandomPrimitivVal(keyType, checkKeyColDupMap, checkKeyColDupMapMutex)
+					balanceVal := samehada_util.GetInt32ValCorrespondToPassVal(updateNewKeyValBase)
+					if _, exist := checkBalanceColDupMap[balanceVal]; exist || (balanceVal >= 0 && balanceVal <= sumOfAllAccountBalanceAtStart) {
+						checkBalanceColDupMapMutex.Unlock()
+						goto retry2
+					}
+
+					finalizeAccountUpdateTxn(txn_, oldVal1, oldVal2, newVal1, newVal2)
 					ch <- 1
-					return
-				}
-				if results1 == nil || len(results1) != 1 {
-					panic("volme check failed(1).")
-				}
-				gotVol1 := results1[0].GetValue(tableMetadata.Schema(), 1).ToInteger()
-
-				selPlan2 := createSpecifiedPointScanPlanNode(accountIds[idx1], c, tableMetadata, keyType)
-				results2 := executePlan(c, shi.GetBufferPoolManager(), txn_, selPlan2)
-				if txn_.GetState() == access.ABORTED {
-					handleFnishedTxn(c, txnMgr, txn_)
-					atomic.AddInt32(&executedTxnCnt, 1)
-					atomic.AddInt32(&abortedTxnCnt, 1)
-					ch <- 1
-					return
-				}
-				if results2 == nil || len(results2) != 1 {
-					panic("volme check failed(2).")
-				}
-				gotVol2 := results2[0].GetValue(tableMetadata.Schema(), 1).ToInteger()
-
-				// deside move ammount
-
-				createSpecifiedPointScanPlanNode()
-			retry0:
-				updateNewKeyValBase := getUniqRandomPrimitivVal(keyType, checkKeyColDupMap, checkKeyColDupMapMutex)
-				balanceVal := samehada_util.GetInt32ValCorrespondToPassVal(updateNewKeyValBase)
-				if _, exist := checkBalanceColDupMap[balanceVal]; exist || (balanceVal >= 0 && balanceVal <= sumOfAllAccountBalanceAtStart) {
-					checkBalanceColDupMapMutex.Unlock()
-					goto retry2
-				}
-
-				finalizeAccountUpdateTxn(txn_, oldVal1, oldVal2, newVal1, newVal2)
-				ch <- 1
-			}()
+				}()
+			*/
 		case 1: // Insert
 			go func() {
 			retry1:

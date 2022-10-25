@@ -91,10 +91,17 @@ func IsContainList[T comparable](list interface{}, searchItem interface{}) bool 
 //	return name
 //}
 
-func GetRandomPrimitiveVal[T int32 | float32 | string](keyType types.TypeID) T {
+// maxVal is *int32 when get int32 and float32
+func GetRandomPrimitiveVal[T int32 | float32 | string](keyType types.TypeID, maxVal interface{}) T {
 	switch keyType {
 	case types.Integer:
-		val := rand.Int31()
+		var val int32
+		specifiedMax, ok := maxVal.(*int32)
+		if ok {
+			val = rand.Int31n(*specifiedMax)
+		} else {
+			val = rand.Int31()
+		}
 		if val < 0 {
 			val = -1 * ((-1 * val) % (math.MaxInt32 >> 10))
 		} else {
@@ -103,7 +110,13 @@ func GetRandomPrimitiveVal[T int32 | float32 | string](keyType types.TypeID) T {
 		var ret interface{} = val
 		return ret.(T)
 	case types.Float:
-		var ret interface{} = rand.Float32()
+		var ret interface{}
+		specifiedMax, ok := maxVal.(*int32)
+		if ok {
+			ret = float32(rand.Int31n(*specifiedMax))
+		} else {
+			ret = rand.Float32()
+		}
 		return ret.(T)
 	case types.Varchar:
 		//var ret interface{} = *samehada_util.GetRandomStr(1000)

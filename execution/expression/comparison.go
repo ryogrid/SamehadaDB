@@ -36,7 +36,7 @@ func NewComparison(left Expression, right Expression, comparisonType ComparisonT
 
 func (c *Comparison) Evaluate(tuple_ *tuple.Tuple, schema_ *schema.Schema) types.Value {
 	if c == nil {
-		return types.NewBoolean(true)
+		return types.NewBoolean(false)
 	}
 	lhs := c.children[0].Evaluate(tuple_, schema_)
 	rhs := c.children[1].Evaluate(tuple_, schema_)

@@ -699,9 +699,9 @@ func countSkipListContent(sl *skip_list.SkipList) int32 {
 
 func insertRandom[T int32 | float32 | string](sl *skip_list.SkipList, num int32, checkDupMap map[T]T, insVals *[]T, keyType types.TypeID) {
 	for ii := 0; ii < int(num); ii++ {
-		insVal := samehada_util.GetRandomPrimitiveVal[T](keyType)
+		insVal := samehada_util.GetRandomPrimitiveVal[T](keyType, nil)
 		for _, exist := checkDupMap[insVal]; exist; _, exist = checkDupMap[insVal] {
-			insVal = samehada_util.GetRandomPrimitiveVal[T](keyType)
+			insVal = samehada_util.GetRandomPrimitiveVal[T](keyType, nil)
 		}
 		checkDupMap[insVal] = insVal
 
@@ -804,10 +804,10 @@ func testSkipListMix[T int32 | float32 | string](t *testing.T, keyType types.Typ
 	for ii := 0; ii < useInitialEntryNum; ii++ {
 		// avoid duplication
 		//insVal := rand.Int31()
-		insVal := samehada_util.GetRandomPrimitiveVal[T](keyType)
+		insVal := samehada_util.GetRandomPrimitiveVal[T](keyType, nil)
 		for _, exist := checkDupMap[insVal]; exist; _, exist = checkDupMap[insVal] {
 			//insVal = rand.Int31()
-			insVal = samehada_util.GetRandomPrimitiveVal[T](keyType)
+			insVal = samehada_util.GetRandomPrimitiveVal[T](keyType, nil)
 		}
 		checkDupMap[insVal] = insVal
 
@@ -941,10 +941,10 @@ func testSkipListMixParallel[T int32 | float32 | string](t *testing.T, keyType t
 	for ii := 0; ii < useInitialEntryNum; ii++ {
 		// avoid duplication
 		//insVal := rand.Int31()
-		insVal := samehada_util.GetRandomPrimitiveVal[T](keyType)
+		insVal := samehada_util.GetRandomPrimitiveVal[T](keyType, nil)
 		for _, exist := checkDupMap[insVal]; exist; _, exist = checkDupMap[insVal] {
 			//insVal = rand.Int31()
-			insVal = samehada_util.GetRandomPrimitiveVal[T](keyType)
+			insVal = samehada_util.GetRandomPrimitiveVal[T](keyType, nil)
 		}
 		checkDupMap[insVal] = insVal
 
@@ -988,10 +988,10 @@ func testSkipListMixParallel[T int32 | float32 | string](t *testing.T, keyType t
 		switch opType {
 		case 0: // Insert
 			go func() {
-				insVal := samehada_util.GetRandomPrimitiveVal[T](keyType)
+				insVal := samehada_util.GetRandomPrimitiveVal[T](keyType, nil)
 				checkDupMapMutex.RLock()
 				for _, exist := checkDupMap[insVal]; exist; _, exist = checkDupMap[insVal] {
-					insVal = samehada_util.GetRandomPrimitiveVal[T](keyType)
+					insVal = samehada_util.GetRandomPrimitiveVal[T](keyType, nil)
 				}
 				checkDupMapMutex.RUnlock()
 				checkDupMapMutex.Lock()
@@ -1135,10 +1135,10 @@ func testSkipListMixParallelBulk[T int32 | float32 | string](t *testing.T, keyTy
 	for ii := 0; ii < useInitialEntryNum; ii++ {
 		// avoid duplication
 		//insVal := rand.Int31()
-		insVal := samehada_util.GetRandomPrimitiveVal[T](keyType)
+		insVal := samehada_util.GetRandomPrimitiveVal[T](keyType, nil)
 		for _, exist := checkDupMap[insVal]; exist; _, exist = checkDupMap[insVal] {
 			//insVal = rand.Int31()
-			insVal = samehada_util.GetRandomPrimitiveVal[T](keyType)
+			insVal = samehada_util.GetRandomPrimitiveVal[T](keyType, nil)
 		}
 		checkDupMap[insVal] = insVal
 
@@ -1183,10 +1183,10 @@ func testSkipListMixParallelBulk[T int32 | float32 | string](t *testing.T, keyTy
 		case 0: // Insert
 			go func() {
 				for ii := int32(0); ii < bulkSize; ii++ {
-					insVal := samehada_util.GetRandomPrimitiveVal[T](keyType)
+					insVal := samehada_util.GetRandomPrimitiveVal[T](keyType, nil)
 					checkDupMapMutex.RLock()
 					for _, exist := checkDupMap[insVal]; exist; _, exist = checkDupMap[insVal] {
-						insVal = samehada_util.GetRandomPrimitiveVal[T](keyType)
+						insVal = samehada_util.GetRandomPrimitiveVal[T](keyType, nil)
 					}
 					checkDupMapMutex.RUnlock()
 					checkDupMapMutex.Lock()
@@ -1344,9 +1344,9 @@ func testSkipListMixParallelStride[T int32 | float32 | string](t *testing.T, key
 	useInitialEntryNum := int(initialEntryNum)
 	for ii := 0; ii < useInitialEntryNum; ii++ {
 		// avoid duplication
-		insValBase := samehada_util.GetRandomPrimitiveVal[T](keyType)
+		insValBase := samehada_util.GetRandomPrimitiveVal[T](keyType, nil)
 		for _, exist := checkDupMap[insValBase]; exist; _, exist = checkDupMap[insValBase] {
-			insValBase = samehada_util.GetRandomPrimitiveVal[T](keyType)
+			insValBase = samehada_util.GetRandomPrimitiveVal[T](keyType, nil)
 		}
 		checkDupMap[insValBase] = insValBase
 
@@ -1400,9 +1400,9 @@ func testSkipListMixParallelStride[T int32 | float32 | string](t *testing.T, key
 			go func() {
 				//checkDupMapMutex.RLock()
 				checkDupMapMutex.RLock()
-				insValBase := samehada_util.GetRandomPrimitiveVal[T](keyType)
+				insValBase := samehada_util.GetRandomPrimitiveVal[T](keyType, nil)
 				for _, exist := checkDupMap[insValBase]; exist; _, exist = checkDupMap[insValBase] {
-					insValBase = samehada_util.GetRandomPrimitiveVal[T](keyType)
+					insValBase = samehada_util.GetRandomPrimitiveVal[T](keyType, nil)
 				}
 				checkDupMapMutex.RUnlock()
 				checkDupMapMutex.Lock()
@@ -1582,9 +1582,9 @@ func testSkipListMixParallelStrideAddedIterator[T int32 | float32 | string](t *t
 	useInitialEntryNum := int(initialEntryNum)
 	for ii := 0; ii < useInitialEntryNum; ii++ {
 		// avoid duplication
-		insValBase := samehada_util.GetRandomPrimitiveVal[T](keyType)
+		insValBase := samehada_util.GetRandomPrimitiveVal[T](keyType, nil)
 		for _, exist := checkDupMap[insValBase]; exist; _, exist = checkDupMap[insValBase] {
-			insValBase = samehada_util.GetRandomPrimitiveVal[T](keyType)
+			insValBase = samehada_util.GetRandomPrimitiveVal[T](keyType, nil)
 		}
 		checkDupMap[insValBase] = insValBase
 
@@ -1638,9 +1638,9 @@ func testSkipListMixParallelStrideAddedIterator[T int32 | float32 | string](t *t
 			go func() {
 				//checkDupMapMutex.RLock()
 				checkDupMapMutex.RLock()
-				insValBase := samehada_util.GetRandomPrimitiveVal[T](keyType)
+				insValBase := samehada_util.GetRandomPrimitiveVal[T](keyType, nil)
 				for _, exist := checkDupMap[insValBase]; exist; _, exist = checkDupMap[insValBase] {
-					insValBase = samehada_util.GetRandomPrimitiveVal[T](keyType)
+					insValBase = samehada_util.GetRandomPrimitiveVal[T](keyType, nil)
 				}
 				checkDupMapMutex.RUnlock()
 				checkDupMapMutex.Lock()
