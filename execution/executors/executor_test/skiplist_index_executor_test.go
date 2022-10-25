@@ -581,13 +581,15 @@ func TestAbortWthDeleteUpdateUsingIndexCaseRangeScan(t *testing.T) {
 	testingpkg.Assert(t, types.NewVarchar("bar").CompareEquals(results[0].GetValue(tableMetadata.Schema(), 1)), "value should be \"bar\"")
 }
 
-func getUniqRandomPrimitivVal[T int32 | float32 | string](keyType types.TypeID, checkDupMap map[T]T, checkKeyColumnDupMapMutex *sync.RWMutex) T {
-	checkKeyColumnDupMapMutex.RLock()
-	retVal := samehada_util.GetRandomPrimitiveVal[T](keyType, nil)
+// maxVal is *int32 for int32 and float32
+func getUniqRandomPrimitivVal[T int32 | float32 | string](keyType types.TypeID, checkDupMap map[T]T, checkDupMapMutex *sync.RWMutex, maxVal interface{}) T {
+	checkDupMapMutex.Lock()
+	retVal := samehada_util.GetRandomPrimitiveVal[T](keyType, maxVal)
 	for _, exist := checkDupMap[retVal]; exist; _, exist = checkDupMap[retVal] {
-		retVal = samehada_util.GetRandomPrimitiveVal[T](keyType, nil)
+		retVal = samehada_util.GetRandomPrimitiveVal[T](keyType, maxVal)
 	}
-	checkKeyColumnDupMapMutex.RUnlock()
+	checkDupMap[retVal] = retVal
+	checkDupMapMutex.Unlock()
 	return retVal
 }
 
@@ -867,9 +869,12 @@ func testParallelTxnsQueryingSkipListIndexUsedColumns[T int32 | float32 | string
 	useInitialEntryNum := int(initialEntryNum)
 	for ii := 0; ii < useInitialEntryNum; ii++ {
 	retry0:
-		keyValBase := getUniqRandomPrimitivVal(keyType, checkKeyColDupMap, checkKeyColDupMapMutex)
+		keyValBase := getUniqRandomPrimitivVal(keyType, checkKeyColDupMap, checkKeyColDupMapMutex, nil)
 		balanceVal := samehada_util.GetInt32ValCorrespondToPassVal(keyValBase)
+		checkBalanceColDupMapMutex.Lock()
 		if _, exist := checkBalanceColDupMap[balanceVal]; exist || (balanceVal >= 0 && balanceVal > sumOfAllAccountBalanceAtStart) {
+			delete(checkBalanceColDupMap, balanceVal)
+			checkBalanceColDupMapMutex.Unlock()
 			goto retry0
 		}
 		checkKeyColDupMap[keyValBase] = keyValBase
@@ -909,6 +914,24 @@ func testParallelTxnsQueryingSkipListIndexUsedColumns[T int32 | float32 | string
 		checkBalanceColDupMapMutex.Lock()
 		delete(checkBalanceColDupMap, samehada_util.GetInt32ValCorrespondToPassVal(keyValBase))
 		checkBalanceColDupMapMutex.Unlock()
+	}
+
+	finalizeAccountUpdateTxn := func(txn_ *access.Transaction, volume1 int32, volume2 int32, newVolume1 int32, newVolume2 int32) {
+		txnOk := handleFnishedTxn(c, txnMgr, txn_)
+
+		if txnOk {
+			atomic.AddInt32(&commitedTxnCnt, 1)
+		} else {
+			atomic.AddInt32(&abortedTxnCnt, 1)
+			// rollback
+			checkBalanceColDupMapMutex.Lock()
+			checkBalanceColDupMap[volume1] = volume1
+			checkBalanceColDupMap[volume2] = volume2
+			delete(checkBalanceColDupMap, newVolume1)
+			delete(checkBalanceColDupMap, newVolume2)
+			checkBalanceColDupMapMutex.Unlock()
+		}
+		atomic.AddInt32(&executedTxnCnt, 1)
 	}
 
 	finalizeRandomInsertTxn := func(txn_ *access.Transaction, insKeyValBase T) {
@@ -1003,70 +1026,102 @@ func testParallelTxnsQueryingSkipListIndexUsedColumns[T int32 | float32 | string
 		opType := rand.Intn(8)
 		switch opType {
 		case 0: // Update two account volume (move money)
-			/*
-				go func() {
-					txn_ := txnMgr.Begin(nil)
+			go func() {
+				txn_ := txnMgr.Begin(nil)
 
-					// decide accounts
-					idx1 := rand.Intn(ACCOUNT_NUM)
-					idx2 := idx1 + 1
-					if idx2 == ACCOUNT_NUM {
-						idx2 = 0
-					}
+				// decide accounts
+				idx1 := rand.Intn(ACCOUNT_NUM)
+				idx2 := idx1 + 1
+				if idx2 == ACCOUNT_NUM {
+					idx2 = 0
+				}
 
-					// get current volume of money move accounts
-					selPlan1 := createSpecifiedPointScanPlanNode(accountIds[idx1], c, tableMetadata, keyType)
-					results1 := executePlan(c, shi.GetBufferPoolManager(), txn_, selPlan1)
-					if txn_.GetState() == access.ABORTED {
-						handleFnishedTxn(c, txnMgr, txn_)
-						atomic.AddInt32(&executedTxnCnt, 1)
-						atomic.AddInt32(&abortedTxnCnt, 1)
-						ch <- 1
-						return
-					}
-					if results1 == nil || len(results1) != 1 {
-						panic("volme check failed(1).")
-					}
-					bolume1 := results1[0].GetValue(tableMetadata.Schema(), 1).ToInteger()
-
-					selPlan2 := createSpecifiedPointScanPlanNode(accountIds[idx1], c, tableMetadata, keyType)
-					results2 := executePlan(c, shi.GetBufferPoolManager(), txn_, selPlan2)
-					if txn_.GetState() == access.ABORTED {
-						handleFnishedTxn(c, txnMgr, txn_)
-						atomic.AddInt32(&executedTxnCnt, 1)
-						atomic.AddInt32(&abortedTxnCnt, 1)
-						ch <- 1
-						return
-					}
-					if results2 == nil || len(results2) != 1 {
-						panic("volme check failed(2).")
-					}
-					bolume2 := results2[0].GetValue(tableMetadata.Schema(), 1).ToInteger()
-
-					// deside move ammount
-
-					createSpecifiedPointScanPlanNode()
-				retry0:
-					updateNewKeyValBase := getUniqRandomPrimitivVal(keyType, checkKeyColDupMap, checkKeyColDupMapMutex)
-					balanceVal := samehada_util.GetInt32ValCorrespondToPassVal(updateNewKeyValBase)
-					if _, exist := checkBalanceColDupMap[balanceVal]; exist || (balanceVal >= 0 && balanceVal <= sumOfAllAccountBalanceAtStart) {
-						checkBalanceColDupMapMutex.Unlock()
-						goto retry2
-					}
-
-					finalizeAccountUpdateTxn(txn_, oldVal1, oldVal2, newVal1, newVal2)
+				// get current volume of money move accounts
+				selPlan1 := createSpecifiedPointScanPlanNode(accountIds[idx1], c, tableMetadata, keyType)
+				results1 := executePlan(c, shi.GetBufferPoolManager(), txn_, selPlan1)
+				if txn_.GetState() == access.ABORTED {
+					handleFnishedTxn(c, txnMgr, txn_)
+					atomic.AddInt32(&executedTxnCnt, 1)
+					atomic.AddInt32(&abortedTxnCnt, 1)
 					ch <- 1
-				}()
-			*/
+					return
+				}
+				if results1 == nil || len(results1) != 1 {
+					panic("volme check failed(1).")
+				}
+				volume1 := results1[0].GetValue(tableMetadata.Schema(), 1).ToInteger()
+
+				selPlan2 := createSpecifiedPointScanPlanNode(accountIds[idx1], c, tableMetadata, keyType)
+				results2 := executePlan(c, shi.GetBufferPoolManager(), txn_, selPlan2)
+				if txn_.GetState() == access.ABORTED {
+					handleFnishedTxn(c, txnMgr, txn_)
+					atomic.AddInt32(&executedTxnCnt, 1)
+					atomic.AddInt32(&abortedTxnCnt, 1)
+					ch <- 1
+					return
+				}
+				if results2 == nil || len(results2) != 1 {
+					panic("volme check failed(2).")
+				}
+				volume2 := results2[0].GetValue(tableMetadata.Schema(), 1).ToInteger()
+
+				// utility func
+				updateCheckColDupMutex := func(volume1_ int32, volume2_ int32, newVolume1_ int32, newVolume2_ int32) {
+					checkBalanceColDupMapMutex.Lock()
+					delete(checkBalanceColDupMap, volume1_)
+					delete(checkBalanceColDupMap, volume2_)
+					checkBalanceColDupMap[newVolume1_] = newVolume1_
+					checkBalanceColDupMap[newVolume2_] = newVolume2_
+					checkBalanceColDupMapMutex.Unlock()
+				}
+
+				// deside move ammount
+
+				var newVolume1 int32
+				var newVolume2 int32
+				if volume1 > volume2 {
+				retry1_1:
+					newVolume1 = getUniqRandomPrimitivVal(keyType, checkBalanceColDupMap, checkBalanceColDupMapMutex, volume1)
+					// delete put value tough it is needless
+					newVolume2 = volume2 + (volume1 - newVolume1)
+					checkBalanceColDupMapMutex.Lock()
+					if _, exist := checkBalanceColDupMap[newVolume2]; exist {
+						delete(checkBalanceColDupMap, newVolume1)
+						checkBalanceColDupMapMutex.Unlock()
+						goto retry1_1
+					}
+					updateCheckColDupMutex(volume1, volume2, newVolume1, newVolume2)
+				} else {
+				retry1_2:
+					newVolume2 = getUniqRandomPrimitivVal(keyType, checkBalanceColDupMap, checkBalanceColDupMapMutex, volume2)
+					// delete put value tough it is needless
+					newVolume1 = volume1 + (volume2 - newVolume2)
+					checkBalanceColDupMapMutex.Lock()
+					if _, exist := checkBalanceColDupMap[newVolume1]; exist {
+						delete(checkBalanceColDupMap, newVolume2)
+						checkBalanceColDupMapMutex.Unlock()
+						goto retry1_2
+					}
+					updateCheckColDupMutex(volume1, volume2, newVolume1, newVolume2)
+				}
+
+				// TODO: (SDB) need to execute query of update account volumes
+
+				finalizeAccountUpdateTxn(txn_, volume1, volume2, newVolume1, newVolume2)
+				ch <- 1
+			}()
 		case 1: // Insert
 			go func() {
-			retry1:
-				insKeyValBase := getUniqRandomPrimitivVal(keyType, checkKeyColDupMap, checkKeyColDupMapMutex)
-				checkBalanceColDupMapMutex.RLock()
+			retry2:
+				insKeyValBase := getUniqRandomPrimitivVal(keyType, checkKeyColDupMap, checkKeyColDupMapMutex, nil)
 				balanceVal := samehada_util.GetInt32ValCorrespondToPassVal(insKeyValBase)
+				checkBalanceColDupMapMutex.RLock()
 				if _, exist := checkBalanceColDupMap[balanceVal]; exist || (balanceVal >= 0 && balanceVal > sumOfAllAccountBalanceAtStart) {
-					checkBalanceColDupMapMutex.Unlock()
-					goto retry1
+					checkBalanceColDupMapMutex.RUnlock()
+					checkKeyColDupMapMutex.Lock()
+					delete(checkKeyColDupMap, insKeyValBase)
+					checkKeyColDupMapMutex.Unlock()
+					goto retry2
 				}
 
 				txn_ := txnMgr.Begin(nil)
@@ -1185,12 +1240,16 @@ func testParallelTxnsQueryingSkipListIndexUsedColumns[T int32 | float32 | string
 					insVals = append(insVals[:tmpIdx], insVals[tmpIdx+1:]...)
 				}
 				insValsMutex.Unlock()
-			retry2:
-				updateNewKeyValBase := getUniqRandomPrimitivVal(keyType, checkKeyColDupMap, checkKeyColDupMapMutex)
+			retry3:
+				updateNewKeyValBase := getUniqRandomPrimitivVal(keyType, checkKeyColDupMap, checkKeyColDupMapMutex, nil)
 				balanceVal := samehada_util.GetInt32ValCorrespondToPassVal(updateNewKeyValBase)
+				checkBalanceColDupMapMutex.RLock()
 				if _, exist := checkBalanceColDupMap[balanceVal]; exist || (balanceVal >= 0 && balanceVal <= sumOfAllAccountBalanceAtStart) {
-					checkBalanceColDupMapMutex.Unlock()
-					goto retry2
+					checkBalanceColDupMapMutex.RUnlock()
+					checkKeyColDupMapMutex.Lock()
+					delete(checkKeyColDupMap, updateNewKeyValBase)
+					checkKeyColDupMapMutex.Unlock()
+					goto retry3
 				}
 
 				txn_ := txnMgr.Begin(nil)
