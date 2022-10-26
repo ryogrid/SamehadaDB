@@ -897,10 +897,26 @@ func testParallelTxnsQueryingSkipListIndexUsedColumns[T int32 | float32 | string
 
 	ch := make(chan int32)
 
-	putCheckMapEntries := func(keyValBase T) {
+	insValsAppendWithLock := func(keyVal T) {
+		insValsMutex.Lock()
+		insVals = append(insVals, keyVal)
+		insValsMutex.Unlock()
+	}
+
+	checkKeyColDupMapDeleteWithLock := func(keyVal T) {
 		checkKeyColDupMapMutex.Lock()
-		checkKeyColDupMap[keyValBase] = keyValBase
+		delete(checkKeyColDupMap, keyVal)
 		checkKeyColDupMapMutex.Unlock()
+	}
+
+	checkKeyColDupMapSetWithMutex := func(keyVal T) {
+		checkKeyColDupMapMutex.Lock()
+		checkKeyColDupMap[keyVal] = keyVal
+		checkKeyColDupMapMutex.Unlock()
+	}
+
+	putCheckMapEntries := func(keyValBase T) {
+		checkKeyColDupMapSetWithMutex(keyValBase)
 		checkBalanceColDupMapMutex.Lock()
 		keyVal := samehada_util.GetInt32ValCorrespondToPassVal(keyValBase)
 		checkBalanceColDupMap[keyVal] = keyVal
@@ -908,9 +924,7 @@ func testParallelTxnsQueryingSkipListIndexUsedColumns[T int32 | float32 | string
 	}
 
 	deleteCheckMapEntries := func(keyValBase T) {
-		checkKeyColDupMapMutex.Lock()
-		delete(checkKeyColDupMap, keyValBase)
-		checkKeyColDupMapMutex.Unlock()
+		checkKeyColDupMapDeleteWithLock(keyValBase)
 		checkBalanceColDupMapMutex.Lock()
 		delete(checkBalanceColDupMap, samehada_util.GetInt32ValCorrespondToPassVal(keyValBase))
 		checkBalanceColDupMapMutex.Unlock()
@@ -937,9 +951,7 @@ func testParallelTxnsQueryingSkipListIndexUsedColumns[T int32 | float32 | string
 	finalizeRandomInsertTxn := func(txn_ *access.Transaction, insKeyValBase T) {
 		txnOk := handleFnishedTxn(c, txnMgr, txn_)
 		if txnOk {
-			insValsMutex.Lock()
-			insVals = append(insVals, insKeyValBase)
-			insValsMutex.Unlock()
+			insValsAppendWithLock(insKeyValBase)
 			putCheckMapEntries(insKeyValBase)
 			atomic.AddInt32(&insertedTupleCnt, stride)
 			atomic.AddInt32(&commitedTxnCnt, 1)
@@ -960,9 +972,7 @@ func testParallelTxnsQueryingSkipListIndexUsedColumns[T int32 | float32 | string
 			atomic.AddInt32(&commitedTxnCnt, 1)
 		} else {
 			// rollback removed element
-			insValsMutex.Lock()
-			insVals = append(insVals, delKeyValBase)
-			insValsMutex.Unlock()
+			insValsAppendWithLock(delKeyValBase)
 			atomic.AddInt32(&abortedTxnCnt, 1)
 		}
 		atomic.AddInt32(&executedTxnCnt, 1)
@@ -971,18 +981,14 @@ func testParallelTxnsQueryingSkipListIndexUsedColumns[T int32 | float32 | string
 	finalizeRandomUpdateTxn := func(txn_ *access.Transaction, oldKeyValBase T, newKeyValBase T) {
 		txnOk := handleFnishedTxn(c, txnMgr, txn_)
 		if txnOk {
-			insValsMutex.Lock()
 			// append new base value
-			insVals = append(insVals, newKeyValBase)
-			insValsMutex.Unlock()
+			insValsAppendWithLock(newKeyValBase)
 			deleteCheckMapEntries(oldKeyValBase)
 			putCheckMapEntries(newKeyValBase)
 			atomic.AddInt32(&commitedTxnCnt, 1)
 		} else {
 			// rollback removed element
-			insValsMutex.Lock()
-			insVals = append(insVals, oldKeyValBase)
-			insValsMutex.Unlock()
+			insValsAppendWithLock(oldKeyValBase)
 			atomic.AddInt32(&abortedTxnCnt, 1)
 		}
 		atomic.AddInt32(&executedTxnCnt, 1)
@@ -1118,9 +1124,7 @@ func testParallelTxnsQueryingSkipListIndexUsedColumns[T int32 | float32 | string
 				checkBalanceColDupMapMutex.RLock()
 				if _, exist := checkBalanceColDupMap[balanceVal]; exist || (balanceVal >= 0 && balanceVal > sumOfAllAccountBalanceAtStart) {
 					checkBalanceColDupMapMutex.RUnlock()
-					checkKeyColDupMapMutex.Lock()
-					delete(checkKeyColDupMap, insKeyValBase)
-					checkKeyColDupMapMutex.Unlock()
+					checkKeyColDupMapDeleteWithLock(insKeyValBase)
 					goto retry2
 				}
 
@@ -1246,9 +1250,7 @@ func testParallelTxnsQueryingSkipListIndexUsedColumns[T int32 | float32 | string
 				checkBalanceColDupMapMutex.RLock()
 				if _, exist := checkBalanceColDupMap[balanceVal]; exist || (balanceVal >= 0 && balanceVal <= sumOfAllAccountBalanceAtStart) {
 					checkBalanceColDupMapMutex.RUnlock()
-					checkKeyColDupMapMutex.Lock()
-					delete(checkKeyColDupMap, updateNewKeyValBase)
-					checkKeyColDupMapMutex.Unlock()
+					checkKeyColDupMapDeleteWithLock(updateNewKeyValBase)
 					goto retry3
 				}
 
