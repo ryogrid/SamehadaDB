@@ -1111,7 +1111,13 @@ func testParallelTxnsQueryingSkipListIndexUsedColumns[T int32 | float32 | string
 					updateCheckColDupMutex(volume1, volume2, newVolume1, newVolume2)
 				}
 
-				// TODO: (SDB) need to execute query of update account volumes
+				common.ShPrintf(common.DEBUGGING, "Update account op start.")
+
+				updatePlan1 := createBankAccountUpdatePlanNode(accountIds[idx1], newVolume1, c, tableMetadata, keyType)
+				executePlan(c, shi.GetBufferPoolManager(), txn_, updatePlan1)
+
+				updatePlan2 := createBankAccountUpdatePlanNode(accountIds[idx2], newVolume2, c, tableMetadata, keyType)
+				executePlan(c, shi.GetBufferPoolManager(), txn_, updatePlan2)
 
 				finalizeAccountUpdateTxn(txn_, volume1, volume2, newVolume1, newVolume2)
 				ch <- 1
