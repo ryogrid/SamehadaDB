@@ -897,6 +897,13 @@ func testParallelTxnsQueryingSkipListIndexUsedColumns[T int32 | float32 | string
 
 	ch := make(chan int32)
 
+	abortTxnAndUpdateCounter := func(txn_ *access.Transaction) {
+		handleFnishedTxn(c, txnMgr, txn_)
+		atomic.AddInt32(&executedTxnCnt, 1)
+		atomic.AddInt32(&abortedTxnCnt, 1)
+		ch <- 1
+	}
+
 	insValsAppendWithLock := func(keyVal T) {
 		insValsMutex.Lock()
 		insVals = append(insVals, keyVal)
@@ -1046,10 +1053,7 @@ func testParallelTxnsQueryingSkipListIndexUsedColumns[T int32 | float32 | string
 				selPlan1 := createSpecifiedPointScanPlanNode(accountIds[idx1], c, tableMetadata, keyType)
 				results1 := executePlan(c, shi.GetBufferPoolManager(), txn_, selPlan1)
 				if txn_.GetState() == access.ABORTED {
-					handleFnishedTxn(c, txnMgr, txn_)
-					atomic.AddInt32(&executedTxnCnt, 1)
-					atomic.AddInt32(&abortedTxnCnt, 1)
-					ch <- 1
+					abortTxnAndUpdateCounter(txn_)
 					return
 				}
 				if results1 == nil || len(results1) != 1 {
@@ -1060,10 +1064,7 @@ func testParallelTxnsQueryingSkipListIndexUsedColumns[T int32 | float32 | string
 				selPlan2 := createSpecifiedPointScanPlanNode(accountIds[idx1], c, tableMetadata, keyType)
 				results2 := executePlan(c, shi.GetBufferPoolManager(), txn_, selPlan2)
 				if txn_.GetState() == access.ABORTED {
-					handleFnishedTxn(c, txnMgr, txn_)
-					atomic.AddInt32(&executedTxnCnt, 1)
-					atomic.AddInt32(&abortedTxnCnt, 1)
-					ch <- 1
+					abortTxnAndUpdateCounter(txn_)
 					return
 				}
 				if results2 == nil || len(results2) != 1 {
