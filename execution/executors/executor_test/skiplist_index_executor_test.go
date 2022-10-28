@@ -1420,5 +1420,27 @@ func testParallelTxnsQueryingSkipListIndexUsedColumns[T int32 | float32 | string
 
 	// TODO: (SDB) need to implement final records data validation (testParallelTxnsQueryingSkipListIndexUsedColumns)
 
+	// check total volume of accounts
+
+	// check record num
+	rangeScanPlan := createSpecifiedRangeScanPlanNode[T](c, tableMetadata, keyType, nil, nil)
+	txn_ := txnMgr.Begin(nil)
+	results := executePlan(c, shi.GetBufferPoolManager(), txn_, rangeScanPlan)
+
+	collectNumMaybe := ACCOUNT_NUM + initialEntryNum + insertedTupleCnt - deletedTupleCnt
+	resultsLen := len(results)
+	common.SH_Assert(collectNumMaybe == int32(resultsLen), "records count is not matched with assumed num "+fmt.Sprintf("%d != %d", collectNumMaybe, resultsLen))
+
+	var prevVal *types.Value = nil
+	for jj := 0; jj < resultsLen; jj++ {
+		curVal := results[jj].GetValue(tableMetadata.Schema(), 1)
+
+		if prevVal != nil {
+			common.SH_Assert(curVal.CompareGreaterThan(*prevVal), "values should be "+fmt.Sprintf("%v > %v", curVal.ToIFValue(), (*prevVal).ToIFValue()))
+		}
+		prevVal = &curVal
+	}
+	finalizeRandomNoSideEffectTxn(txn_)
+
 	shi.CloseFilesForTesting()
 }
