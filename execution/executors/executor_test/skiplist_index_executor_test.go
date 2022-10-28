@@ -624,7 +624,7 @@ func createSpecifiedPointScanPlanNode[T int32 | float32 | string](getKeyVal T, c
 }
 
 // TODO: (SDB) not implemente yet
-func createSpecifiedRangeScanPlanNode[T int32 | float32 | string](c *catalog.Catalog, tm *catalog.TableMetadata, keyType types.TypeID, rangeStartKey *T, rangeEndKey *T) (createdPlan plans.Plan) {
+func createSpecifiedRangeScanPlanNode[T int32 | float32 | string](c *catalog.Catalog, tm *catalog.TableMetadata, keyType types.TypeID, colIdx int32, rangeStartKey *T, rangeEndKey *T) (createdPlan plans.Plan) {
 	samehada_util.GetRandomPrimitiveVal[T](keyType, nil)
 	return nil
 }
@@ -1368,29 +1368,29 @@ func testParallelTxnsQueryingSkipListIndexUsedColumns[T int32 | float32 | string
 				var rangeScanPlan plans.Plan
 				switch tmpRand {
 				case 0: // start only
-					rangeScanPlan = createSpecifiedRangeScanPlanNode[T](c, tableMetadata, keyType, &rangeStartKey, nil)
+					rangeScanPlan = createSpecifiedRangeScanPlanNode[T](c, tableMetadata, keyType, 0, &rangeStartKey, nil)
 				case 1: // end only
-					rangeScanPlan = createSpecifiedRangeScanPlanNode[T](c, tableMetadata, keyType, nil, &rangeEndKey)
+					rangeScanPlan = createSpecifiedRangeScanPlanNode[T](c, tableMetadata, keyType, 0, nil, &rangeEndKey)
 				case 2: // start and end
-					rangeScanPlan = createSpecifiedRangeScanPlanNode[T](c, tableMetadata, keyType, &rangeStartKey, &rangeEndKey)
+					rangeScanPlan = createSpecifiedRangeScanPlanNode[T](c, tableMetadata, keyType, 0, &rangeStartKey, &rangeEndKey)
 				case 3: // not specified both
-					rangeScanPlan = createSpecifiedRangeScanPlanNode[T](c, tableMetadata, keyType, nil, nil)
+					rangeScanPlan = createSpecifiedRangeScanPlanNode[T](c, tableMetadata, keyType, 0, nil, nil)
 				case 4: // start only (not exisiting val)
 					tmpStartKey := samehada_util.StrideAdd(rangeStartKey, 10).(T)
-					rangeScanPlan = createSpecifiedRangeScanPlanNode[T](c, tableMetadata, keyType, &tmpStartKey, nil)
+					rangeScanPlan = createSpecifiedRangeScanPlanNode[T](c, tableMetadata, keyType, 0, &tmpStartKey, nil)
 				case 5: // end only (not existing val)
 					tmpEndKey := samehada_util.StrideAdd(rangeEndKey, 10).(T)
-					rangeScanPlan = createSpecifiedRangeScanPlanNode[T](c, tableMetadata, keyType, nil, &tmpEndKey)
+					rangeScanPlan = createSpecifiedRangeScanPlanNode[T](c, tableMetadata, keyType, 0, nil, &tmpEndKey)
 				case 6: // start and end (start val is not existing one)
 					tmpStartKey := samehada_util.StrideAdd(rangeStartKey, 10).(T)
-					rangeScanPlan = createSpecifiedRangeScanPlanNode[T](c, tableMetadata, keyType, &tmpStartKey, &rangeEndKey)
+					rangeScanPlan = createSpecifiedRangeScanPlanNode[T](c, tableMetadata, keyType, 0, &tmpStartKey, &rangeEndKey)
 				case 7: // start and end (start val is not existing one)
 					tmpEndKey := samehada_util.StrideAdd(rangeEndKey, 10).(T)
-					rangeScanPlan = createSpecifiedRangeScanPlanNode[T](c, tableMetadata, keyType, &rangeStartKey, &tmpEndKey)
+					rangeScanPlan = createSpecifiedRangeScanPlanNode[T](c, tableMetadata, keyType, 0, &rangeStartKey, &tmpEndKey)
 				case 8: // start and end (end val is not existing one)
 					tmpStartKey := samehada_util.StrideAdd(rangeStartKey, 10).(T)
 					tmpEndKey := samehada_util.StrideAdd(rangeEndKey, 10).(T)
-					rangeScanPlan = createSpecifiedRangeScanPlanNode[T](c, tableMetadata, keyType, &tmpStartKey, &tmpEndKey)
+					rangeScanPlan = createSpecifiedRangeScanPlanNode[T](c, tableMetadata, keyType, 0, &tmpStartKey, &tmpEndKey)
 				}
 
 				txn_ := txnMgr.Begin(nil)
@@ -1422,25 +1422,48 @@ func testParallelTxnsQueryingSkipListIndexUsedColumns[T int32 | float32 | string
 
 	// check total volume of accounts
 
-	// check record num
-	rangeScanPlan := createSpecifiedRangeScanPlanNode[T](c, tableMetadata, keyType, nil, nil)
+	// col1 ---------------------------------
 	txn_ := txnMgr.Begin(nil)
-	results := executePlan(c, shi.GetBufferPoolManager(), txn_, rangeScanPlan)
 
+	// check record num (index of col1 is used)
+	rangeScanPlan1 := createSpecifiedRangeScanPlanNode[T](c, tableMetadata, keyType, 0, nil, nil)
+	results1 := executePlan(c, shi.GetBufferPoolManager(), txn_, rangeScanPlan1)
 	collectNumMaybe := ACCOUNT_NUM + initialEntryNum + insertedTupleCnt - deletedTupleCnt
-	resultsLen := len(results)
-	common.SH_Assert(collectNumMaybe == int32(resultsLen), "records count is not matched with assumed num "+fmt.Sprintf("%d != %d", collectNumMaybe, resultsLen))
+	resultsLen1 := len(results1)
+	common.SH_Assert(collectNumMaybe == int32(resultsLen1), "records count is not matched with assumed num "+fmt.Sprintf("%d != %d", collectNumMaybe, resultsLen1))
 
-	var prevVal *types.Value = nil
-	for jj := 0; jj < resultsLen; jj++ {
-		curVal := results[jj].GetValue(tableMetadata.Schema(), 1)
-
-		if prevVal != nil {
-			common.SH_Assert(curVal.CompareGreaterThan(*prevVal), "values should be "+fmt.Sprintf("%v > %v", curVal.ToIFValue(), (*prevVal).ToIFValue()))
+	// check order (col1 when index of it is used)
+	var prevVal1 *types.Value = nil
+	for jj := 0; jj < resultsLen1; jj++ {
+		curVal1 := results1[jj].GetValue(tableMetadata.Schema(), 0)
+		if prevVal1 != nil {
+			common.SH_Assert(curVal1.CompareGreaterThan(*prevVal1), "values should be "+fmt.Sprintf("%v > %v", curVal1.ToIFValue(), (*prevVal1).ToIFValue()))
 		}
-		prevVal = &curVal
+		prevVal1 = &curVal1
 	}
 	finalizeRandomNoSideEffectTxn(txn_)
+	// ---------------------------------------
+
+	// col2 ----------------------------------
+	txn_ = txnMgr.Begin(nil)
+
+	//check record num (index of col2 is used)
+	rangeScanPlan2 := createSpecifiedRangeScanPlanNode[T](c, tableMetadata, keyType, 1, nil, nil)
+	results2 := executePlan(c, shi.GetBufferPoolManager(), txn_, rangeScanPlan2)
+	resultsLen2 := len(results2)
+	common.SH_Assert(collectNumMaybe == int32(resultsLen2), "records count is not matched with assumed num "+fmt.Sprintf("%d != %d", collectNumMaybe, resultsLen2))
+
+	// check order (col2 when index of it is used)
+	var prevVal2 *types.Value = nil
+	for jj := 0; jj < resultsLen2; jj++ {
+		curVal2 := results2[jj].GetValue(tableMetadata.Schema(), 1)
+		if prevVal2 != nil {
+			common.SH_Assert(curVal2.CompareGreaterThan(*prevVal2), "values should be "+fmt.Sprintf("%v > %v", curVal2.ToIFValue(), (*prevVal2).ToIFValue()))
+		}
+		prevVal2 = &curVal2
+	}
+	finalizeRandomNoSideEffectTxn(txn_)
+	// --------------------------------------
 
 	shi.CloseFilesForTesting()
 }
