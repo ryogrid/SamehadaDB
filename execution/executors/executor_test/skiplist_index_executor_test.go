@@ -622,23 +622,36 @@ func createSpecifiedValInsertPlanNode[T int32 | float32 | string](keyColumnVal T
 	return insertPlanNode
 }
 
-// TODO: (SDB) not implemente yet
 func createSpecifiedValDeletePlanNode[T int32 | float32 | string](keyColumnVal T, c *catalog.Catalog, tm *catalog.TableMetadata, keyType types.TypeID) (createdPlan plans.Plan) {
-	//val := samehada_util.GetRandomPrimitiveVal[T](keyType)
-	return nil
+	pred := executors.Predicate{"account_id", expression.Equal, keyColumnVal}
+	tmpColVal := new(expression.ColumnValue)
+	//tmpColVal.SetTupleIndex(0)
+	tmpColVal.SetColIndex(tm.Schema().GetColIndex(pred.LeftColumn))
+	expression_ := expression.NewComparison(tmpColVal, expression.NewConstantValue(executors.GetValue(pred.RightColumn), executors.GetValueType(pred.RightColumn)), pred.Operator, types.Boolean)
+
+	skipListPointScanP := plans.NewPointScanWithIndexPlanNode(tm.Schema(), expression_.(*expression.Comparison), tm.OID())
+	deletePlanNode := plans.NewDeletePlanNode(skipListPointScanP)
+	return deletePlanNode
 }
 
-// TODO: (SDB) not implemente yet
 func createSpecifiedValUpdatePlanNode[T int32 | float32 | string](keyColumnVal T, newKeyColumnVal T, c *catalog.Catalog, tm *catalog.TableMetadata, keyType types.TypeID) (createdPlan plans.Plan) {
-	//val := samehada_util.GetRandomPrimitiveVal[T](keyType)
-	return nil
+	row := make([]types.Value, 0)
+	row = append(row, types.NewValue(newKeyColumnVal))
+	row = append(row, types.NewInteger(-1))
+
+	pred := executors.Predicate{"account_id", expression.Equal, keyColumnVal}
+	tmpColVal := new(expression.ColumnValue)
+	//tmpColVal.SetTupleIndex(0)
+	tmpColVal.SetColIndex(tm.Schema().GetColIndex(pred.LeftColumn))
+	expression_ := expression.NewComparison(tmpColVal, expression.NewConstantValue(executors.GetValue(pred.RightColumn), executors.GetValueType(pred.RightColumn)), pred.Operator, types.Boolean)
+
+	skipListPointScanP := plans.NewPointScanWithIndexPlanNode(tm.Schema(), expression_.(*expression.Comparison), tm.OID())
+	updatePlanNode := plans.NewUpdatePlanNode(row, []int{0}, skipListPointScanP)
+
+	return updatePlanNode
 }
 
 func createSpecifiedPointScanPlanNode[T int32 | float32 | string](getKeyVal T, c *catalog.Catalog, tm *catalog.TableMetadata, keyType types.TypeID) (createdPlan plans.Plan) {
-	row := make([]types.Value, 0)
-	row = append(row, types.NewInteger(99))
-	row = append(row, types.NewVarchar("updated"))
-
 	pred := executors.Predicate{"account_id", expression.Equal, getKeyVal}
 	tmpColVal := new(expression.ColumnValue)
 	//tmpColVal.SetTupleIndex(0)
