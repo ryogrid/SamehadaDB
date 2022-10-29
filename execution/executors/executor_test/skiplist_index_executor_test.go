@@ -617,8 +617,6 @@ func createSpecifiedValInsertPlanNode[T int32 | float32 | string](keyColumnVal T
 
 	rows := make([][]types.Value, 0)
 	rows = append(rows, row)
-	rows = append(rows, row)
-	rows = append(rows, row)
 
 	insertPlanNode := plans.NewInsertPlanNode(rows, tm.OID())
 	return insertPlanNode
@@ -685,151 +683,6 @@ func handleFnishedTxn(catalog_ *catalog.Catalog, txn_mgr *access.TransactionMana
 	}
 }
 
-/*
-func rowInsertTransaction_(t *testing.T, shi *samehada.SamehadaInstance, c *catalog.Catalog, tm *catalog.TableMetadata, master_ch chan int32) {
-	txn := shi.GetTransactionManager().Begin(nil)
-
-	row1 := make([]types.Value, 0)
-	row1 = append(row1, types.NewInteger(20))
-	row1 = append(row1, types.NewVarchar("hoge"))
-	row1 = append(row1, types.NewInteger(40))
-	row1 = append(row1, types.NewVarchar("hogehoge"))
-
-	row2 := make([]types.Value, 0)
-	row2 = append(row2, types.NewInteger(99))
-	row2 = append(row2, types.NewVarchar("foo"))
-	row2 = append(row2, types.NewInteger(999))
-	row2 = append(row2, types.NewVarchar("foofoo"))
-
-	row3 := make([]types.Value, 0)
-	row3 = append(row3, types.NewInteger(11))
-	row3 = append(row3, types.NewVarchar("bar"))
-	row3 = append(row3, types.NewInteger(17))
-	row3 = append(row3, types.NewVarchar("barbar"))
-
-	row4 := make([]types.Value, 0)
-	row4 = append(row4, types.NewInteger(100))
-	row4 = append(row4, types.NewVarchar("piyo"))
-	row4 = append(row4, types.NewInteger(1000))
-	row4 = append(row4, types.NewVarchar("piyopiyo"))
-
-	rows := make([][]types.Value, 0)
-	rows = append(rows, row1)
-	rows = append(rows, row2)
-	rows = append(rows, row3)
-	rows = append(rows, row4)
-
-	insertPlanNode := plans.NewInsertPlanNode(rows, tm.OID())
-
-	executionEngine := &executors.ExecutionEngine{}
-	executorContext := executors.NewExecutorContext(c, shi.GetBufferPoolManager(), txn)
-	executionEngine.Execute(insertPlanNode, executorContext)
-
-	ret := handleFnishTxn(shi.GetTransactionManager(), txn)
-	master_ch <- ret
-}
-
-func deleteAllRowTransaction_(t *testing.T, shi *samehada.SamehadaInstance, c *catalog.Catalog, tm *catalog.TableMetadata, master_ch chan int32) {
-	txn := shi.GetTransactionManager().Begin(nil)
-	deletePlan := plans.NewDeletePlanNode(nil, tm.OID())
-
-	executionEngine := &executors.ExecutionEngine{}
-	executorContext := executors.NewExecutorContext(c, shi.GetBufferPoolManager(), txn)
-	executionEngine.Execute(deletePlan, executorContext)
-
-	ret := handleFnishTxn(shi.GetTransactionManager(), txn)
-	master_ch <- ret
-}
-
-func selectAllRowTransaction_(t *testing.T, shi *samehada.SamehadaInstance, c *catalog.Catalog, tm *catalog.TableMetadata, master_ch chan int32) {
-	txn := shi.GetTransactionManager().Begin(nil)
-
-	outColumnA := column.NewColumn("a", types.Integer, false, index_constants.INDEX_KIND_INVAID, types.PageID(-1), nil)
-	outSchema := schema.NewSchema([]*column.Column{outColumnA})
-
-	seqPlan := plans.NewSeqScanPlanNode(outSchema, nil, tm.OID())
-	executionEngine := &executors.ExecutionEngine{}
-	executorContext := executors.NewExecutorContext(c, shi.GetBufferPoolManager(), txn)
-
-	executionEngine.Execute(seqPlan, executorContext)
-
-	ret := handleFnishTxn(shi.GetTransactionManager(), txn)
-	master_ch <- ret
-}
-
-func TestConcurrentSkipListIndexUseTransactionExecution(t *testing.T) {
-	t.Parallel()
-	if testing.Short() {
-		t.Skip("skip this in short mode.")
-	}
-
-	row1 := make([]types.Value, 0)
-	row1 = append(row1, types.NewInteger(20))
-	row1 = append(row1, types.NewVarchar("hoge"))
-	row1 = append(row1, types.NewInteger(40))
-	row1 = append(row1, types.NewVarchar("hogehoge"))
-
-	row2 := make([]types.Value, 0)
-	row2 = append(row2, types.NewInteger(99))
-	row2 = append(row2, types.NewVarchar("foo"))
-	row2 = append(row2, types.NewInteger(999))
-	row2 = append(row2, types.NewVarchar("foofoo"))
-
-	row3 := make([]types.Value, 0)
-	row3 = append(row3, types.NewInteger(11))
-	row3 = append(row3, types.NewVarchar("bar"))
-	row3 = append(row3, types.NewInteger(17))
-	row3 = append(row3, types.NewVarchar("barbar"))
-
-	row4 := make([]types.Value, 0)
-	row4 = append(row4, types.NewInteger(100))
-	row4 = append(row4, types.NewVarchar("piyo"))
-	row4 = append(row4, types.NewInteger(1000))
-	row4 = append(row4, types.NewVarchar("piyopiyo"))
-
-	rows := make([][]types.Value, 0)
-	rows = append(rows, row1)
-	rows = append(rows, row2)
-	rows = append(rows, row3)
-	rows = append(rows, row4)
-
-	insertPlanNode := plans.NewInsertPlanNode(rows, tableMetadata.OID())
-
-	executionEngine := &executors.ExecutionEngine{}
-	executorContext := executors.NewExecutorContext(c, shi.GetBufferPoolManager(), txn)
-	executionEngine.Execute(insertPlanNode, executorContext)
-
-	txn_mgr.Commit(txn)
-
-	const PARALLEL_EXEC_CNT int = 100
-
-	// // set timeout for debugging
-	// time.AfterFunc(time.Duration(40)*time.Second, TimeoutPanic)
-
-	commited_cnt := int32(0)
-	for i := 0; i < PARALLEL_EXEC_CNT; i++ {
-		ch1 := make(chan int32)
-		ch2 := make(chan int32)
-		ch3 := make(chan int32)
-		ch4 := make(chan int32)
-		go rowInsertTransaction_(t, shi, c, tableMetadata, ch1)
-		go selectAllRowTransaction_(t, shi, c, tableMetadata, ch2)
-		go deleteAllRowTransaction_(t, shi, c, tableMetadata, ch3)
-		go selectAllRowTransaction_(t, shi, c, tableMetadata, ch4)
-
-		commited_cnt += <-ch1
-		commited_cnt += <-ch2
-		commited_cnt += <-ch3
-		commited_cnt += <-ch4
-		//fmt.Printf("commited_cnt: %d\n", commited_cnt)
-		//shi.GetLockManager().PrintLockTables()
-		//shi.GetLockManager().ClearLockTablesForDebug()
-	}
-
-}
-*/
-
-// TODO: (SDB) not implemente yet
 func testParallelTxnsQueryingSkipListIndexUsedColumns[T int32 | float32 | string](t *testing.T, keyType types.TypeID, stride int32, opTimes int32, seedVal int32, initialEntryNum int32, bpoolSize int32) {
 	common.ShPrintf(common.DEBUG_INFO, "start of testParallelTxnsQueryingSkipListIndexUsedColumns stride=%d opTimes=%d seedVal=%d initialEntryNum=%d bpoolSize=%d ====================================================\n",
 		stride, opTimes, seedVal, initialEntryNum, bpoolSize)
@@ -862,8 +715,6 @@ func testParallelTxnsQueryingSkipListIndexUsedColumns[T int32 | float32 | string
 
 	insVals := make([]T, 0)
 	insValsMutex := new(sync.RWMutex)
-	//deletedValsForSelectUpdate := make(map[T]T, 0)
-	//deletedValsForSelectUpdateMutex := new(sync.RWMutex)
 	deletedValsForDelete := make(map[T]T, 0)
 	deletedValsForDeleteMutex := new(sync.RWMutex)
 	checkKeyColDupMap := make(map[T]T)
