@@ -947,23 +947,23 @@ func testParallelTxnsQueryingSkipListIndexUsedColumns[T int32 | float32 | string
 	}
 
 	// utility func
-	deleteCheckBalanceColDupMapVolumes := func(volume1_ int32, volume2_ int32) {
+	deleteCheckBalanceColDupMapBalances := func(balance1_ int32, balance2_ int32) {
 		checkBalanceColDupMapMutex.Lock()
-		delete(checkBalanceColDupMap, volume1_)
-		delete(checkBalanceColDupMap, volume2_)
+		delete(checkBalanceColDupMap, balance1_)
+		delete(checkBalanceColDupMap, balance2_)
 		checkBalanceColDupMapMutex.Unlock()
 	}
 
-	finalizeAccountUpdateTxn := func(txn_ *access.Transaction, oldVolume1 int32, oldVolume2 int32, newVolume1 int32, newVolume2 int32) {
+	finalizeAccountUpdateTxn := func(txn_ *access.Transaction, oldBalance1 int32, oldBalance2 int32, newBalance1 int32, newBalance2 int32) {
 		txnOk := handleFnishedTxn(c, txnMgr, txn_)
 
 		if txnOk {
 			atomic.AddInt32(&commitedTxnCnt, 1)
-			deleteCheckBalanceColDupMapVolumes(oldVolume1, oldVolume2)
+			deleteCheckBalanceColDupMapBalances(oldBalance1, oldBalance2)
 		} else {
 			atomic.AddInt32(&abortedTxnCnt, 1)
 			// rollback
-			deleteCheckBalanceColDupMapVolumes(newVolume1, newVolume2)
+			deleteCheckBalanceColDupMapBalances(newBalance1, newBalance2)
 		}
 		atomic.AddInt32(&executedTxnCnt, 1)
 	}
@@ -1072,9 +1072,9 @@ func testParallelTxnsQueryingSkipListIndexUsedColumns[T int32 | float32 | string
 					return
 				}
 				if results1 == nil || len(results1) != 1 {
-					panic("volme check failed(1).")
+					panic("balance check failed(1).")
 				}
-				volume1 := results1[0].GetValue(tableMetadata.Schema(), 1).ToInteger()
+				balance1 := results1[0].GetValue(tableMetadata.Schema(), 1).ToInteger()
 
 				selPlan2 := createSpecifiedPointScanPlanNode(accountIds[idx1], c, tableMetadata, keyType)
 				results2 := executePlan(c, shi.GetBufferPoolManager(), txn_, selPlan2)
@@ -1083,63 +1083,60 @@ func testParallelTxnsQueryingSkipListIndexUsedColumns[T int32 | float32 | string
 					return
 				}
 				if results2 == nil || len(results2) != 1 {
-					panic("volme check failed(2).")
+					panic("balance check failed(2).")
 				}
-				volume2 := results2[0].GetValue(tableMetadata.Schema(), 1).ToInteger()
+				balance2 := results2[0].GetValue(tableMetadata.Schema(), 1).ToInteger()
 
 				// utility func
-				putCheckBalanceColDupMapNewVolume := func(newVolume1_ int32, newVolume2_ int32) {
+				putCheckBalanceColDupMapNewBalance := func(newBalance1_ int32, newBalance2_ int32) {
 					checkBalanceColDupMapMutex.Lock()
-					//delete(checkBalanceColDupMap, volume1_)
-					//delete(checkBalanceColDupMap, volume2_)
-					checkBalanceColDupMap[newVolume1_] = newVolume1_
-					checkBalanceColDupMap[newVolume2_] = newVolume2_
+					checkBalanceColDupMap[newBalance1_] = newBalance1_
+					checkBalanceColDupMap[newBalance2_] = newBalance2_
 					checkBalanceColDupMapMutex.Unlock()
 				}
 
 				// decide move ammount
 
-				var newVolume1 int32
-				var newVolume2 int32
-				if volume1 > volume2 {
+				var newBalance1 int32
+				var newBalance2 int32
+				if balance1 > balance2 {
 				retry1_1:
-					newVolume1 = getUniqRandomPrimitivVal(keyType, checkBalanceColDupMap, checkBalanceColDupMapMutex, volume1)
+					newBalance1 = getUniqRandomPrimitivVal(keyType, checkBalanceColDupMap, checkBalanceColDupMapMutex, balance1)
 					// delete put value tough it is needless
-					newVolume2 = volume2 + (volume1 - newVolume1)
+					newBalance2 = balance2 + (balance1 - newBalance1)
 					checkBalanceColDupMapMutex.Lock()
-					if _, exist := checkBalanceColDupMap[newVolume2]; exist {
-						delete(checkBalanceColDupMap, newVolume1)
+					if _, exist := checkBalanceColDupMap[newBalance2]; exist {
+						delete(checkBalanceColDupMap, newBalance1)
 						checkBalanceColDupMapMutex.Unlock()
 						goto retry1_1
 					}
-					//putCheckBalanceColDupMapNewVolume(volume1, volume2, newVolume1, newVolume2)
-					putCheckBalanceColDupMapNewVolume(newVolume1, newVolume2)
+					putCheckBalanceColDupMapNewBalance(newBalance1, newBalance2)
 				} else {
 				retry1_2:
-					newVolume2 = getUniqRandomPrimitivVal(keyType, checkBalanceColDupMap, checkBalanceColDupMapMutex, volume2)
+					newBalance2 = getUniqRandomPrimitivVal(keyType, checkBalanceColDupMap, checkBalanceColDupMapMutex, balance2)
 					// delete put value tough it is needless
-					newVolume1 = volume1 + (volume2 - newVolume2)
+					newBalance1 = balance1 + (balance2 - newBalance2)
 					checkBalanceColDupMapMutex.Lock()
-					if _, exist := checkBalanceColDupMap[newVolume1]; exist {
-						delete(checkBalanceColDupMap, newVolume2)
+					if _, exist := checkBalanceColDupMap[newBalance1]; exist {
+						delete(checkBalanceColDupMap, newBalance2)
 						checkBalanceColDupMapMutex.Unlock()
 						goto retry1_2
 					}
-					//putCheckBalanceColDupMapNewVolume(volume1, volume2, newVolume1, newVolume2)
-					putCheckBalanceColDupMapNewVolume(newVolume1, newVolume2)
+					//putCheckBalanceColDupMapNewBalance(balance1, balance2, newBalance1, newBalance2)
+					putCheckBalanceColDupMapNewBalance(newBalance1, newBalance2)
 				}
 
 				// create plans and execute these
 
-				common.ShPrintf(common.DEBUGGING, "Update account op start.")
+				common.ShPrintf(common.DEBUGGING, "Update account op start.\n")
 
-				updatePlan1 := createBankAccountUpdatePlanNode(accountIds[idx1], newVolume1, c, tableMetadata, keyType)
+				updatePlan1 := createBankAccountUpdatePlanNode(accountIds[idx1], newBalance1, c, tableMetadata, keyType)
 				executePlan(c, shi.GetBufferPoolManager(), txn_, updatePlan1)
 
-				updatePlan2 := createBankAccountUpdatePlanNode(accountIds[idx2], newVolume2, c, tableMetadata, keyType)
+				updatePlan2 := createBankAccountUpdatePlanNode(accountIds[idx2], newBalance2, c, tableMetadata, keyType)
 				executePlan(c, shi.GetBufferPoolManager(), txn_, updatePlan2)
 
-				finalizeAccountUpdateTxn(txn_, volume1, volume2, newVolume1, newVolume2)
+				finalizeAccountUpdateTxn(txn_, balance1, balance2, newBalance1, newBalance2)
 				ch <- 1
 			}()
 		case 1: // Insert
@@ -1160,7 +1157,7 @@ func testParallelTxnsQueryingSkipListIndexUsedColumns[T int32 | float32 | string
 					insKeyVal := samehada_util.StrideAdd(samehada_util.StrideMul(insKeyValBase, stride), jj).(T)
 					insBalanceVal := samehada_util.GetInt32ValCorrespondToPassVal(insKeyVal)
 
-					common.ShPrintf(common.DEBUGGING, "Insert op start.")
+					common.ShPrintf(common.DEBUGGING, "Insert op start.\n")
 					insPlan := createSpecifiedValInsertPlanNode(insKeyVal, insBalanceVal, c, tableMetadata, keyType)
 					executePlan(c, shi.GetBufferPoolManager(), txn_, insPlan)
 
@@ -1194,7 +1191,7 @@ func testParallelTxnsQueryingSkipListIndexUsedColumns[T int32 | float32 | string
 					for jj := int32(0); jj < stride; jj++ {
 						delKeyVal := samehada_util.StrideAdd(samehada_util.StrideMul(delKeyValBase, stride), jj).(T)
 
-						common.ShPrintf(common.DEBUGGING, "Delete(fail) op start.")
+						common.ShPrintf(common.DEBUGGING, "Delete(fail) op start.\n")
 						delPlan := createSpecifiedValDeletePlanNode(delKeyVal, c, tableMetadata, keyType)
 						results := executePlan(c, shi.GetBufferPoolManager(), txn_, delPlan)
 
@@ -1236,7 +1233,7 @@ func testParallelTxnsQueryingSkipListIndexUsedColumns[T int32 | float32 | string
 						delKeyVal := samehada_util.StrideAdd(samehada_util.StrideMul(delKeyValBase, stride), jj).(T)
 						//pairVal := samehada_util.GetValueForSkipListEntry(delVal)
 
-						common.ShPrintf(common.DEBUGGING, "Delete(success) op start.")
+						common.ShPrintf(common.DEBUGGING, "Delete(success) op start.\n")
 
 						delPlan := createSpecifiedValDeletePlanNode(delKeyVal, c, tableMetadata, keyType)
 						results := executePlan(c, shi.GetBufferPoolManager(), txn_, delPlan)
@@ -1273,14 +1270,14 @@ func testParallelTxnsQueryingSkipListIndexUsedColumns[T int32 | float32 | string
 				insValsMutex.Unlock()
 			retry3:
 				updateNewKeyValBase := getUniqRandomPrimitivVal(keyType, checkKeyColDupMap, checkKeyColDupMapMutex, math.MaxInt32/stride)
-				balanceVal := samehada_util.GetInt32ValCorrespondToPassVal(updateNewKeyValBase)
+				newVolumeVal := samehada_util.GetInt32ValCorrespondToPassVal(updateNewKeyValBase)
 				checkBalanceColDupMapMutex.RLock()
-				if _, exist := checkBalanceColDupMap[balanceVal]; exist || (balanceVal >= 0 && balanceVal <= sumOfAllAccountBalanceAtStart) {
+				if _, exist := checkBalanceColDupMap[newVolumeVal]; exist || (newVolumeVal >= 0 && newVolumeVal <= sumOfAllAccountBalanceAtStart) {
 					checkBalanceColDupMapMutex.RUnlock()
 					checkKeyColDupMapDeleteWithLock(updateNewKeyValBase)
 					goto retry3
 				}
-				checkBalanceColDupMapSetWithLock(balanceVal)
+				checkBalanceColDupMapSetWithLock(newVolumeVal)
 
 				txn_ := txnMgr.Begin(nil)
 
@@ -1330,7 +1327,7 @@ func testParallelTxnsQueryingSkipListIndexUsedColumns[T int32 | float32 | string
 							break
 						}
 
-						common.SH_Assert(results != nil && len(results) == 0, "select(fail) should be fail!")
+						common.SH_Assert(results != nil && len(results) == 0, "Select(fail) should be fail!")
 					}
 					finalizeRandomNoSideEffectTxn(txn_)
 					ch <- 1
@@ -1361,7 +1358,7 @@ func testParallelTxnsQueryingSkipListIndexUsedColumns[T int32 | float32 | string
 							break
 						}
 
-						common.SH_Assert(results != nil && len(results) == 1, "select(success) should not be fail!")
+						common.SH_Assert(results != nil && len(results) == 1, "Select(success) should not be fail!")
 						collectVal := types.NewInteger(samehada_util.GetInt32ValCorrespondToPassVal(getKeyVal))
 						gotVal := results[0].GetValue(tableMetadata.Schema(), 1)
 						common.SH_Assert(gotVal.CompareEquals(collectVal), "value should be "+fmt.Sprintf("%d not %d", collectVal.ToInteger(), gotVal.ToInteger()))
@@ -1378,6 +1375,7 @@ func testParallelTxnsQueryingSkipListIndexUsedColumns[T int32 | float32 | string
 					ch <- 1
 					return
 				}
+				common.ShPrintf(common.DEBUGGING, "Select(success) op start.\n")
 				tmpIdx1 := int(rand.Intn(len(insVals)))
 				tmpIdx2 := int(rand.Intn(len(insVals)))
 				//fmt.Printf("sl.GetValue at testSkipListMix: jj=%d, tmpIdx1=%d insVals[tmpIdx1]=%d len(*insVals)=%d len(*deletedValsForSelectUpdate)=%d\n", jj, tmpIdx1, insVals[tmpIdx1], len(insVals), len(deletedValsForSelectUpdate))
