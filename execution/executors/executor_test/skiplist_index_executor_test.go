@@ -1498,6 +1498,7 @@ func testParallelTxnsQueryingSkipListIndexUsedColumns[T int32 | float32 | string
 	finalizeRandomNoSideEffectTxn(txn_)
 	// --------------------------------------
 
+	// check txn finished state and print these statistics
 	common.SH_Assert(commitedTxnCnt+abortedTxnCnt == executedTxnCnt, "txn counting has bug!")
 	fmt.Printf("commited: %d aborted: %d all: %d", commitedTxnCnt, abortedTxnCnt, executedTxnCnt)
 
