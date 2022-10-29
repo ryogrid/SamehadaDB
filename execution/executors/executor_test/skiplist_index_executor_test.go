@@ -1418,12 +1418,23 @@ func testParallelTxnsQueryingSkipListIndexUsedColumns[T int32 | float32 | string
 		runningThCnt++
 	}
 
-	// TODO: (SDB) need to implement final records data validation (testParallelTxnsQueryingSkipListIndexUsedColumns)
-
 	// check total volume of accounts
+	txn_ := txnMgr.Begin(nil)
+	sumOfAllAccountBalanceAfterTest := int32(0)
+	for ii := 0; ii < ACCOUNT_NUM; ii++ {
+		selPlan := createSpecifiedPointScanPlanNode(accountIds[ii], c, tableMetadata, keyType)
+		results := executePlan(c, shi.GetBufferPoolManager(), txn_, selPlan)
+		common.SH_Assert(results != nil && len(results) == 1, fmt.Sprintf("point scan result count is bigger than 1 (%d)!\n", len(results)))
+		common.SH_Assert(txn_.GetState() != access.ABORTED, "txn state should not be ABORTED!")
+		sumOfAllAccountBalanceAfterTest += results[0].GetValue(tableMetadata.Schema(), 1).ToInteger()
+	}
+	common.SH_Assert(sumOfAllAccountBalanceAfterTest == sumOfAllAccountBalanceAtStart, fmt.Sprintf("total account volume is changed! %d != %d\n", sumOfAllAccountBalanceAfterTest, sumOfAllAccountBalanceAtStart))
+	finalizeRandomNoSideEffectTxn(txn_)
+
+	// check counts and order of all record got with index used full scan
 
 	// col1 ---------------------------------
-	txn_ := txnMgr.Begin(nil)
+	txn_ = txnMgr.Begin(nil)
 
 	// check record num (index of col1 is used)
 	rangeScanPlan1 := createSpecifiedRangeScanPlanNode[T](c, tableMetadata, keyType, 0, nil, nil)
