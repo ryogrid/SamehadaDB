@@ -916,34 +916,34 @@ func testParallelTxnsQueryingSkipListIndexUsedColumns[T int32 | float32 | string
 		checkKeyColDupMapMutex.Unlock()
 	}
 
-	checkKeyColDupMapSetWithMutex := func(keyVal T) {
+	checkKeyColDupMapSetWithLock := func(keyVal T) {
 		checkKeyColDupMapMutex.Lock()
 		checkKeyColDupMap[keyVal] = keyVal
 		checkKeyColDupMapMutex.Unlock()
 	}
 
-	checkBalanceColDupMapDeleteWithMutex := func(balanceVal int32) {
+	checkBalanceColDupMapDeleteWithLock := func(balanceVal int32) {
 		checkBalanceColDupMapMutex.Lock()
 		delete(checkBalanceColDupMap, balanceVal)
 		checkBalanceColDupMapMutex.Unlock()
 	}
 
-	checkBalanceColDupMapSetWithMutex := func(balanceVal int32) {
+	checkBalanceColDupMapSetWithLock := func(balanceVal int32) {
 		checkBalanceColDupMapMutex.Lock()
 		checkBalanceColDupMap[balanceVal] = balanceVal
 		checkBalanceColDupMapMutex.Unlock()
 	}
 
-	putCheckMapEntries := func(keyValBase T) {
-		checkKeyColDupMapSetWithMutex(keyValBase)
+	putCheckMapEntriesWithLock := func(keyValBase T) {
+		checkKeyColDupMapSetWithLock(keyValBase)
 		balanceVal := samehada_util.GetInt32ValCorrespondToPassVal(keyValBase)
-		checkBalanceColDupMapSetWithMutex(balanceVal)
+		checkBalanceColDupMapSetWithLock(balanceVal)
 	}
 
-	deleteCheckMapEntries := func(keyValBase T) {
+	deleteCheckMapEntriesWithLock := func(keyValBase T) {
 		checkKeyColDupMapDeleteWithLock(keyValBase)
 		balanceVal := samehada_util.GetInt32ValCorrespondToPassVal(keyValBase)
-		checkBalanceColDupMapDeleteWithMutex(balanceVal)
+		checkBalanceColDupMapDeleteWithLock(balanceVal)
 	}
 
 	// utility func
@@ -977,12 +977,12 @@ func testParallelTxnsQueryingSkipListIndexUsedColumns[T int32 | float32 | string
 		txnOk := handleFnishedTxn(c, txnMgr, txn_)
 		if txnOk {
 			insValsAppendWithLock(insKeyValBase)
-			//putCheckMapEntries(insKeyValBase)
+			putCheckMapEntriesWithLock(insKeyValBase)
 			atomic.AddInt32(&insertedTupleCnt, stride)
 			atomic.AddInt32(&commitedTxnCnt, 1)
 		} else {
 			// rollback
-			deleteCheckMapEntries(insKeyValBase)
+			deleteCheckMapEntriesWithLock(insKeyValBase)
 			atomic.AddInt32(&abortedTxnCnt, 1)
 		}
 		atomic.AddInt32(&executedTxnCnt, 1)
@@ -994,7 +994,7 @@ func testParallelTxnsQueryingSkipListIndexUsedColumns[T int32 | float32 | string
 			deletedValsForDeleteMutex.Lock()
 			deletedValsForDelete[delKeyValBase] = delKeyValBase
 			deletedValsForDeleteMutex.Unlock()
-			deleteCheckMapEntries(delKeyValBase)
+			deleteCheckMapEntriesWithLock(delKeyValBase)
 			atomic.AddInt32(&deletedTupleCnt, stride)
 			atomic.AddInt32(&commitedTxnCnt, 1)
 		} else {
@@ -1010,8 +1010,8 @@ func testParallelTxnsQueryingSkipListIndexUsedColumns[T int32 | float32 | string
 		if txnOk {
 			// append new base value
 			insValsAppendWithLock(newKeyValBase)
-			deleteCheckMapEntries(oldKeyValBase)
-			putCheckMapEntries(newKeyValBase)
+			deleteCheckMapEntriesWithLock(oldKeyValBase)
+			putCheckMapEntriesWithLock(newKeyValBase)
 			atomic.AddInt32(&commitedTxnCnt, 1)
 		} else {
 			// rollback removed element
@@ -1157,8 +1157,6 @@ func testParallelTxnsQueryingSkipListIndexUsedColumns[T int32 | float32 | string
 					checkBalanceColDupMapMutex.RUnlock()
 					checkKeyColDupMapDeleteWithLock(insKeyValBase)
 					goto retry2
-				} else {
-					checkBalanceColDupMapSetWithMutex(balanceVal)
 				}
 
 				txn_ := txnMgr.Begin(nil)
