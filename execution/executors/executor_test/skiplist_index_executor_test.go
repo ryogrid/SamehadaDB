@@ -1423,7 +1423,7 @@ func testParallelTxnsQueryingSkipListIndexUsedColumns[T int32 | float32 | string
 				resultsLen := len(results)
 				var prevVal *types.Value = nil
 				for jj := 0; jj < resultsLen; jj++ {
-					curVal := results[jj].GetValue(tableMetadata.Schema(), 1)
+					curVal := results[jj].GetValue(tableMetadata.Schema(), 0)
 
 					if prevVal != nil {
 						common.SH_Assert(curVal.CompareGreaterThan(*prevVal), "values should be "+fmt.Sprintf("%v > %v", curVal.ToIFValue(), (*prevVal).ToIFValue()))
@@ -1438,6 +1438,7 @@ func testParallelTxnsQueryingSkipListIndexUsedColumns[T int32 | float32 | string
 	}
 
 	// final checking of DB stored data
+	// below, txns are execurted serial. so, txn abort due to CC protocol doesn't occur
 
 	// check total volume of accounts
 	txn_ := txnMgr.Begin(nil)
