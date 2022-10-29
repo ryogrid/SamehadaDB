@@ -922,18 +922,35 @@ func testParallelTxnsQueryingSkipListIndexUsedColumns[T int32 | float32 | string
 		checkKeyColDupMapMutex.Unlock()
 	}
 
+	checkBalanceColDupMapDeleteWithMutex := func(balanceVal int32) {
+		checkBalanceColDupMapMutex.Lock()
+		delete(checkBalanceColDupMap, balanceVal)
+		checkBalanceColDupMapMutex.Unlock()
+	}
+
+	checkBalanceColDupMapSetWithMutex := func(balanceVal int32) {
+		checkBalanceColDupMapMutex.Lock()
+		checkBalanceColDupMap[balanceVal] = balanceVal
+		checkBalanceColDupMapMutex.Unlock()
+	}
+
 	putCheckMapEntries := func(keyValBase T) {
 		checkKeyColDupMapSetWithMutex(keyValBase)
-		checkBalanceColDupMapMutex.Lock()
-		keyVal := samehada_util.GetInt32ValCorrespondToPassVal(keyValBase)
-		checkBalanceColDupMap[keyVal] = keyVal
-		checkBalanceColDupMapMutex.Unlock()
+		balanceVal := samehada_util.GetInt32ValCorrespondToPassVal(keyValBase)
+		checkBalanceColDupMapSetWithMutex(balanceVal)
 	}
 
 	deleteCheckMapEntries := func(keyValBase T) {
 		checkKeyColDupMapDeleteWithLock(keyValBase)
+		balanceVal := samehada_util.GetInt32ValCorrespondToPassVal(keyValBase)
+		checkBalanceColDupMapDeleteWithMutex(balanceVal)
+	}
+
+	// utility func
+	updateCheckBalanceColDupMapOldVolume := func(volume1_ int32, volume2_ int32) {
 		checkBalanceColDupMapMutex.Lock()
-		delete(checkBalanceColDupMap, samehada_util.GetInt32ValCorrespondToPassVal(keyValBase))
+		delete(checkBalanceColDupMap, volume1_)
+		delete(checkBalanceColDupMap, volume2_)
 		checkBalanceColDupMapMutex.Unlock()
 	}
 
@@ -942,12 +959,13 @@ func testParallelTxnsQueryingSkipListIndexUsedColumns[T int32 | float32 | string
 
 		if txnOk {
 			atomic.AddInt32(&commitedTxnCnt, 1)
+			updateCheckBalanceColDupMapOldVolume(volume1, volume2)
 		} else {
 			atomic.AddInt32(&abortedTxnCnt, 1)
 			// rollback
 			checkBalanceColDupMapMutex.Lock()
-			checkBalanceColDupMap[volume1] = volume1
-			checkBalanceColDupMap[volume2] = volume2
+			//checkBalanceColDupMap[volume1] = volume1
+			//checkBalanceColDupMap[volume2] = volume2
 			delete(checkBalanceColDupMap, newVolume1)
 			delete(checkBalanceColDupMap, newVolume2)
 			checkBalanceColDupMapMutex.Unlock()
@@ -959,10 +977,12 @@ func testParallelTxnsQueryingSkipListIndexUsedColumns[T int32 | float32 | string
 		txnOk := handleFnishedTxn(c, txnMgr, txn_)
 		if txnOk {
 			insValsAppendWithLock(insKeyValBase)
-			putCheckMapEntries(insKeyValBase)
+			//putCheckMapEntries(insKeyValBase)
 			atomic.AddInt32(&insertedTupleCnt, stride)
 			atomic.AddInt32(&commitedTxnCnt, 1)
 		} else {
+			// rollback
+			deleteCheckMapEntries(insKeyValBase)
 			atomic.AddInt32(&abortedTxnCnt, 1)
 		}
 		atomic.AddInt32(&executedTxnCnt, 1)
@@ -1073,16 +1093,16 @@ func testParallelTxnsQueryingSkipListIndexUsedColumns[T int32 | float32 | string
 				volume2 := results2[0].GetValue(tableMetadata.Schema(), 1).ToInteger()
 
 				// utility func
-				updateCheckColDupMutex := func(volume1_ int32, volume2_ int32, newVolume1_ int32, newVolume2_ int32) {
+				updateCheckBalanceColDupMapNewVolume := func(newVolume1_ int32, newVolume2_ int32) {
 					checkBalanceColDupMapMutex.Lock()
-					delete(checkBalanceColDupMap, volume1_)
-					delete(checkBalanceColDupMap, volume2_)
+					//delete(checkBalanceColDupMap, volume1_)
+					//delete(checkBalanceColDupMap, volume2_)
 					checkBalanceColDupMap[newVolume1_] = newVolume1_
 					checkBalanceColDupMap[newVolume2_] = newVolume2_
 					checkBalanceColDupMapMutex.Unlock()
 				}
 
-				// deside move ammount
+				// decide move ammount
 
 				var newVolume1 int32
 				var newVolume2 int32
@@ -1097,7 +1117,8 @@ func testParallelTxnsQueryingSkipListIndexUsedColumns[T int32 | float32 | string
 						checkBalanceColDupMapMutex.Unlock()
 						goto retry1_1
 					}
-					updateCheckColDupMutex(volume1, volume2, newVolume1, newVolume2)
+					//updateCheckBalanceColDupMapNewVolume(volume1, volume2, newVolume1, newVolume2)
+					updateCheckBalanceColDupMapNewVolume(newVolume1, newVolume2)
 				} else {
 				retry1_2:
 					newVolume2 = getUniqRandomPrimitivVal(keyType, checkBalanceColDupMap, checkBalanceColDupMapMutex, volume2)
@@ -1109,8 +1130,11 @@ func testParallelTxnsQueryingSkipListIndexUsedColumns[T int32 | float32 | string
 						checkBalanceColDupMapMutex.Unlock()
 						goto retry1_2
 					}
-					updateCheckColDupMutex(volume1, volume2, newVolume1, newVolume2)
+					//updateCheckBalanceColDupMapNewVolume(volume1, volume2, newVolume1, newVolume2)
+					updateCheckBalanceColDupMapNewVolume(newVolume1, newVolume2)
 				}
+
+				// create plans and execute these
 
 				common.ShPrintf(common.DEBUGGING, "Update account op start.")
 
@@ -1126,13 +1150,15 @@ func testParallelTxnsQueryingSkipListIndexUsedColumns[T int32 | float32 | string
 		case 1: // Insert
 			go func() {
 			retry2:
-				insKeyValBase := getUniqRandomPrimitivVal(keyType, checkKeyColDupMap, checkKeyColDupMapMutex, nil)
+				insKeyValBase := getUniqRandomPrimitivVal(keyType, checkKeyColDupMap, checkKeyColDupMapMutex, math.MaxInt32/stride)
 				balanceVal := samehada_util.GetInt32ValCorrespondToPassVal(insKeyValBase)
 				checkBalanceColDupMapMutex.RLock()
-				if _, exist := checkBalanceColDupMap[balanceVal]; exist || (balanceVal >= 0 && balanceVal > sumOfAllAccountBalanceAtStart) {
+				if _, exist := checkBalanceColDupMap[balanceVal]; exist || (balanceVal >= 0 && balanceVal < sumOfAllAccountBalanceAtStart) {
 					checkBalanceColDupMapMutex.RUnlock()
 					checkKeyColDupMapDeleteWithLock(insKeyValBase)
 					goto retry2
+				} else {
+					checkBalanceColDupMapSetWithMutex(balanceVal)
 				}
 
 				txn_ := txnMgr.Begin(nil)
@@ -1418,6 +1444,8 @@ func testParallelTxnsQueryingSkipListIndexUsedColumns[T int32 | float32 | string
 		runningThCnt++
 	}
 
+	// final checking of DB stored data
+
 	// check total volume of accounts
 	txn_ := txnMgr.Begin(nil)
 	sumOfAllAccountBalanceAfterTest := int32(0)
@@ -1437,9 +1465,10 @@ func testParallelTxnsQueryingSkipListIndexUsedColumns[T int32 | float32 | string
 	txn_ = txnMgr.Begin(nil)
 
 	// check record num (index of col1 is used)
+	collectNumMaybe := ACCOUNT_NUM + initialEntryNum + insertedTupleCnt - deletedTupleCnt
+
 	rangeScanPlan1 := createSpecifiedRangeScanPlanNode[T](c, tableMetadata, keyType, 0, nil, nil)
 	results1 := executePlan(c, shi.GetBufferPoolManager(), txn_, rangeScanPlan1)
-	collectNumMaybe := ACCOUNT_NUM + initialEntryNum + insertedTupleCnt - deletedTupleCnt
 	resultsLen1 := len(results1)
 	common.SH_Assert(collectNumMaybe == int32(resultsLen1), "records count is not matched with assumed num "+fmt.Sprintf("%d != %d", collectNumMaybe, resultsLen1))
 
