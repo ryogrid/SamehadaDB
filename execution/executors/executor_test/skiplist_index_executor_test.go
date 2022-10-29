@@ -593,16 +593,35 @@ func getUniqRandomPrimitivVal[T int32 | float32 | string](keyType types.TypeID, 
 	return retVal
 }
 
-// TODO: (SDB) not implemente yet
 func createBankAccountUpdatePlanNode[T int32 | float32 | string](keyColumnVal T, newBalance int32, c *catalog.Catalog, tm *catalog.TableMetadata, keyType types.TypeID) (createdPlan plans.Plan) {
-	//val := samehada_util.GetRandomPrimitiveVal[T](keyType)
-	return nil
+	row := make([]types.Value, 0)
+	row = append(row, types.NewValue(keyColumnVal))
+	row = append(row, types.NewInteger(newBalance))
+
+	pred := executors.Predicate{"account_id", expression.Equal, keyColumnVal}
+	tmpColVal := new(expression.ColumnValue)
+	//tmpColVal.SetTupleIndex(0)
+	tmpColVal.SetColIndex(tm.Schema().GetColIndex(pred.LeftColumn))
+	expression_ := expression.NewComparison(tmpColVal, expression.NewConstantValue(executors.GetValue(pred.RightColumn), executors.GetValueType(pred.RightColumn)), pred.Operator, types.Boolean)
+
+	skipListPointScanP := plans.NewPointScanWithIndexPlanNode(tm.Schema(), expression_.(*expression.Comparison), tm.OID())
+	updatePlanNode := plans.NewUpdatePlanNode(row, []int{1}, skipListPointScanP)
+
+	return updatePlanNode
 }
 
-// TODO: (SDB) not implemente yet
 func createSpecifiedValInsertPlanNode[T int32 | float32 | string](keyColumnVal T, balance int32, c *catalog.Catalog, tm *catalog.TableMetadata, keyType types.TypeID) (createdPlan plans.Plan) {
-	//val := samehada_util.GetRandomPrimitiveVal[T](keyType)
-	return nil
+	row := make([]types.Value, 0)
+	row = append(row, types.NewValue(keyColumnVal))
+	row = append(row, types.NewInteger(balance))
+
+	rows := make([][]types.Value, 0)
+	rows = append(rows, row)
+	rows = append(rows, row)
+	rows = append(rows, row)
+
+	insertPlanNode := plans.NewInsertPlanNode(rows, tm.OID())
+	return insertPlanNode
 }
 
 // TODO: (SDB) not implemente yet
@@ -617,16 +636,32 @@ func createSpecifiedValUpdatePlanNode[T int32 | float32 | string](keyColumnVal T
 	return nil
 }
 
-// TODO: (SDB) not implemente yet
 func createSpecifiedPointScanPlanNode[T int32 | float32 | string](getKeyVal T, c *catalog.Catalog, tm *catalog.TableMetadata, keyType types.TypeID) (createdPlan plans.Plan) {
-	samehada_util.GetRandomPrimitiveVal[T](keyType, nil)
-	return nil
+	row := make([]types.Value, 0)
+	row = append(row, types.NewInteger(99))
+	row = append(row, types.NewVarchar("updated"))
+
+	pred := executors.Predicate{"account_id", expression.Equal, getKeyVal}
+	tmpColVal := new(expression.ColumnValue)
+	//tmpColVal.SetTupleIndex(0)
+	tmpColVal.SetColIndex(tm.Schema().GetColIndex(pred.LeftColumn))
+	expression_ := expression.NewComparison(tmpColVal, expression.NewConstantValue(executors.GetValue(pred.RightColumn), executors.GetValueType(pred.RightColumn)), pred.Operator, types.Boolean)
+
+	skipListPointScanP := plans.NewPointScanWithIndexPlanNode(tm.Schema(), expression_.(*expression.Comparison), tm.OID())
+	return skipListPointScanP
 }
 
-// TODO: (SDB) not implemente yet
 func createSpecifiedRangeScanPlanNode[T int32 | float32 | string](c *catalog.Catalog, tm *catalog.TableMetadata, keyType types.TypeID, colIdx int32, rangeStartKey *T, rangeEndKey *T) (createdPlan plans.Plan) {
-	samehada_util.GetRandomPrimitiveVal[T](keyType, nil)
-	return nil
+	var startVal *types.Value = nil
+	var endVal *types.Value = nil
+	if rangeStartKey != nil {
+		startVal = samehada_util.GetPonterOfValue(types.NewValue(rangeStartKey))
+	}
+	if rangeEndKey != nil {
+		endVal = samehada_util.GetPonterOfValue(types.NewValue(rangeEndKey))
+	}
+	skipListRangeScanP := plans.NewRangeScanWithIndexPlanNode(tm.Schema(), tm.OID(), colIdx, nil, startVal, endVal)
+	return skipListRangeScanP
 }
 
 func executePlan(c *catalog.Catalog, bpm *buffer.BufferPoolManager, txn *access.Transaction, plan plans.Plan) (results []*tuple.Tuple) {
@@ -915,13 +950,6 @@ func testParallelTxnsQueryingSkipListIndexUsedColumns[T int32 | float32 | string
 		delete(checkKeyColDupMap, keyVal)
 		checkKeyColDupMapMutex.Unlock()
 	}
-
-	//checkKeyColDupMapSetWithLock := func(keyVal T) {
-	//	checkKeyColDupMapMutex.Lock()
-	//	checkKeyColDupMap[keyVal] = keyVal
-	//	checkKeyColDupMapMutex.Unlock()
-	//}
-
 	checkBalanceColDupMapDeleteWithLock := func(balanceVal int32) {
 		checkBalanceColDupMapMutex.Lock()
 		delete(checkBalanceColDupMap, balanceVal)
@@ -934,19 +962,12 @@ func testParallelTxnsQueryingSkipListIndexUsedColumns[T int32 | float32 | string
 		checkBalanceColDupMapMutex.Unlock()
 	}
 
-	//putCheckMapEntriesWithLock := func(keyValBase T) {
-	//	checkKeyColDupMapSetWithLock(keyValBase)
-	//	balanceVal := samehada_util.GetInt32ValCorrespondToPassVal(keyValBase)
-	//	checkBalanceColDupMapSetWithLock(balanceVal)
-	//}
-
 	deleteCheckMapEntriesWithLock := func(keyValBase T) {
 		checkKeyColDupMapDeleteWithLock(keyValBase)
 		balanceVal := samehada_util.GetInt32ValCorrespondToPassVal(keyValBase)
 		checkBalanceColDupMapDeleteWithLock(balanceVal)
 	}
 
-	// utility func
 	deleteCheckBalanceColDupMapBalances := func(balance1_ int32, balance2_ int32) {
 		checkBalanceColDupMapMutex.Lock()
 		delete(checkBalanceColDupMap, balance1_)
@@ -1050,8 +1071,9 @@ func testParallelTxnsQueryingSkipListIndexUsedColumns[T int32 | float32 | string
 		}
 		common.ShPrintf(common.DEBUGGING, "ii=%d\n", ii)
 
-		// get 0-7
-		opType := rand.Intn(8)
+		//// get 0-7
+		//opType := rand.Intn(8)
+		opType := 0
 		switch opType {
 		case 0: // Update two account volume (move money)
 			go func() {
