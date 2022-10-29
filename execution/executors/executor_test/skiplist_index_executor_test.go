@@ -1527,3 +1527,17 @@ func testParallelTxnsQueryingSkipListIndexUsedColumns[T int32 | float32 | string
 
 	shi.CloseFilesForTesting()
 }
+
+func testSkipListParallelTxnStrideRoot[T int32 | float32 | string](t *testing.T, keyType types.TypeID) {
+	bpoolSize := int32(500)
+
+	testParallelTxnsQueryingSkipListIndexUsedColumns[T](t, keyType, 100, 1000, 12, 100, bpoolSize)
+}
+
+func TestSkipListPrallelTxnStrideInteger(t *testing.T) {
+	//t.Parallel()
+	if testing.Short() {
+		t.Skip("skip this in short mode.")
+	}
+	testSkipListParallelTxnStrideRoot[int32](t, types.Integer)
+}
