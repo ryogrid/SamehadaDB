@@ -191,6 +191,8 @@ func GetValue(data interface{}) (value types.Value) {
 	switch v := data.(type) {
 	case int:
 		value = types.NewInteger(int32(v))
+	case int32:
+		value = types.NewInteger(v)
 	case float32:
 		value = types.NewFloat(float32(v))
 	case string:
@@ -206,7 +208,7 @@ func GetValue(data interface{}) (value types.Value) {
 
 func GetValueType(data interface{}) (value types.TypeID) {
 	switch data.(type) {
-	case int:
+	case int, int32:
 		return types.Integer
 	case float32:
 		return types.Float
