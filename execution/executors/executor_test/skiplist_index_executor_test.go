@@ -25,6 +25,7 @@ import (
 	"sync"
 	"sync/atomic"
 	"testing"
+	"time"
 )
 
 func TestSkipListIndexPointScan(t *testing.T) {
@@ -604,7 +605,8 @@ func createBankAccountUpdatePlanNode[T int32 | float32 | string](keyColumnVal T,
 	tmpColVal.SetColIndex(tm.Schema().GetColIndex(pred.LeftColumn))
 	expression_ := expression.NewComparison(tmpColVal, expression.NewConstantValue(executors.GetValue(pred.RightColumn), executors.GetValueType(pred.RightColumn)), pred.Operator, types.Boolean)
 
-	skipListPointScanP := plans.NewPointScanWithIndexPlanNode(tm.Schema(), expression_.(*expression.Comparison), tm.OID())
+	//skipListPointScanP := plans.NewPointScanWithIndexPlanNode(tm.Schema(), expression_.(*expression.Comparison), tm.OID())
+	skipListPointScanP := plans.NewSeqScanPlanNode(tm.Schema(), expression_.(*expression.Comparison), tm.OID())
 	updatePlanNode := plans.NewUpdatePlanNode(row, []int{1}, skipListPointScanP)
 
 	return updatePlanNode
@@ -658,7 +660,8 @@ func createSpecifiedPointScanPlanNode[T int32 | float32 | string](getKeyVal T, c
 	tmpColVal.SetColIndex(tm.Schema().GetColIndex(pred.LeftColumn))
 	expression_ := expression.NewComparison(tmpColVal, expression.NewConstantValue(executors.GetValue(pred.RightColumn), executors.GetValueType(pred.RightColumn)), pred.Operator, types.Boolean)
 
-	skipListPointScanP := plans.NewPointScanWithIndexPlanNode(tm.Schema(), expression_.(*expression.Comparison), tm.OID())
+	//skipListPointScanP := plans.NewPointScanWithIndexPlanNode(tm.Schema(), expression_.(*expression.Comparison), tm.OID())
+	skipListPointScanP := plans.NewSeqScanPlanNode(tm.Schema(), expression_.(*expression.Comparison), tm.OID())
 	return skipListPointScanP
 }
 
@@ -715,14 +718,16 @@ func testParallelTxnsQueryingSkipListIndexUsedColumns[T int32 | float32 | string
 
 	c := catalog.BootstrapCatalog(shi.GetBufferPoolManager(), shi.GetLogManager(), shi.GetLockManager(), txn)
 
-	columnA := column.NewColumn("account_id", keyType, true, index_constants.INDEX_KIND_SKIP_LIST, types.PageID(-1), nil)
-	columnB := column.NewColumn("balance", types.Integer, true, index_constants.INDEX_KIND_SKIP_LIST, types.PageID(-1), nil)
+	//columnA := column.NewColumn("account_id", keyType, true, index_constants.INDEX_KIND_SKIP_LIST, types.PageID(-1), nil)
+	//columnB := column.NewColumn("balance", types.Integer, true, index_constants.INDEX_KIND_SKIP_LIST, types.PageID(-1), nil)
+	columnA := column.NewColumn("account_id", keyType, false, index_constants.INDEX_KIND_INVAID, types.PageID(-1), nil)
+	columnB := column.NewColumn("balance", types.Integer, false, index_constants.INDEX_KIND_INVAID, types.PageID(-1), nil)
 	schema_ := schema.NewSchema([]*column.Column{columnA, columnB})
 
 	tableMetadata := c.CreateTable("test_1", schema_, txn)
 	txnMgr.Commit(txn)
 
-	const THREAD_NUM = 1 //20
+	const THREAD_NUM = 20 //1
 
 	rand.Seed(int64(seedVal))
 
@@ -963,10 +968,14 @@ func testParallelTxnsQueryingSkipListIndexUsedColumns[T int32 | float32 | string
 					return
 				}
 				if results1 == nil || len(results1) != 1 {
+					time.Sleep(time.Second * 120)
 					panic("balance check failed(1).")
 				}
 				balance1 := results1[0].GetValue(tableMetadata.Schema(), 1).ToInteger()
 
+				if balance1 == 1000000 && idx1 == 0 && idx2 == 1 {
+					fmt.Println()
+				}
 				selPlan2 := createSpecifiedPointScanPlanNode(accountIds[idx2], c, tableMetadata, keyType)
 				results2 := executePlan(c, shi.GetBufferPoolManager(), txn_, selPlan2)
 				if txn_.GetState() == access.ABORTED {
@@ -974,6 +983,7 @@ func testParallelTxnsQueryingSkipListIndexUsedColumns[T int32 | float32 | string
 					return
 				}
 				if results2 == nil || len(results2) != 1 {
+					time.Sleep(time.Second * 120)
 					panic("balance check failed(2).")
 				}
 				balance2 := results2[0].GetValue(tableMetadata.Schema(), 1).ToInteger()
