@@ -1001,6 +1001,7 @@ func testParallelTxnsQueryingSkipListIndexUsedColumns[T int32 | float32 | string
 						checkBalanceColDupMapMutex.Unlock()
 						goto retry1_1
 					}
+					checkBalanceColDupMapMutex.Unlock()
 					putCheckBalanceColDupMapNewBalance(newBalance1, newBalance2)
 				} else {
 				retry1_2:
@@ -1014,6 +1015,7 @@ func testParallelTxnsQueryingSkipListIndexUsedColumns[T int32 | float32 | string
 						goto retry1_2
 					}
 					//putCheckBalanceColDupMapNewBalance(balance1, balance2, newBalance1, newBalance2)
+					checkBalanceColDupMapMutex.Unlock()
 					putCheckBalanceColDupMapNewBalance(newBalance1, newBalance2)
 				}
 
@@ -1400,7 +1402,7 @@ func testParallelTxnsQueryingSkipListIndexUsedColumns[T int32 | float32 | string
 func testSkipListParallelTxnStrideRoot[T int32 | float32 | string](t *testing.T, keyType types.TypeID) {
 	bpoolSize := int32(500)
 
-	testParallelTxnsQueryingSkipListIndexUsedColumns[T](t, keyType, 100, 1000, 12, 100, bpoolSize)
+	testParallelTxnsQueryingSkipListIndexUsedColumns[T](t, keyType, 100, 1000, 12, 0, bpoolSize)
 }
 
 func TestSkipListPrallelTxnStrideInteger(t *testing.T) {
