@@ -967,7 +967,7 @@ func testParallelTxnsQueryingSkipListIndexUsedColumns[T int32 | float32 | string
 				}
 				balance1 := results1[0].GetValue(tableMetadata.Schema(), 1).ToInteger()
 
-				selPlan2 := createSpecifiedPointScanPlanNode(accountIds[idx1], c, tableMetadata, keyType)
+				selPlan2 := createSpecifiedPointScanPlanNode(accountIds[idx2], c, tableMetadata, keyType)
 				results2 := executePlan(c, shi.GetBufferPoolManager(), txn_, selPlan2)
 				if txn_.GetState() == access.ABORTED {
 					abortTxnAndUpdateCounter(txn_)
@@ -1352,7 +1352,7 @@ func testParallelTxnsQueryingSkipListIndexUsedColumns[T int32 | float32 | string
 	txn_ = txnMgr.Begin(nil)
 
 	// check record num (index of col1 is used)
-	collectNumMaybe := ACCOUNT_NUM + initialEntryNum + insertedTupleCnt - deletedTupleCnt
+	collectNumMaybe := initialEntryNum + insertedTupleCnt - deletedTupleCnt
 
 	rangeScanPlan1 := createSpecifiedRangeScanPlanNode[T](c, tableMetadata, keyType, 0, nil, nil)
 	results1 := executePlan(c, shi.GetBufferPoolManager(), txn_, rangeScanPlan1)
@@ -1394,7 +1394,7 @@ func testParallelTxnsQueryingSkipListIndexUsedColumns[T int32 | float32 | string
 
 	// check txn finished state and print these statistics
 	common.SH_Assert(commitedTxnCnt+abortedTxnCnt == executedTxnCnt, "txn counting has bug!")
-	fmt.Printf("commited: %d aborted: %d all: %d", commitedTxnCnt, abortedTxnCnt, executedTxnCnt)
+	fmt.Printf("commited: %d aborted: %d all: %d\n", commitedTxnCnt, abortedTxnCnt, executedTxnCnt)
 
 	shi.CloseFilesForTesting()
 }
