@@ -770,14 +770,12 @@ func testParallelTxnsQueryingSkipListIndexUsedColumns[T int32 | float32 | string
 	retry0:
 		keyValBase := getUniqRandomPrimitivVal(keyType, checkKeyColDupMap, checkKeyColDupMapMutex, nil)
 		balanceVal := samehada_util.GetInt32ValCorrespondToPassVal(keyValBase)
-		checkBalanceColDupMapMutex.Lock()
 		if _, exist := checkBalanceColDupMap[balanceVal]; exist || (balanceVal >= 0 && balanceVal > sumOfAllAccountBalanceAtStart) {
 			delete(checkBalanceColDupMap, balanceVal)
-			checkBalanceColDupMapMutex.Unlock()
 			goto retry0
 		}
-		checkKeyColDupMap[keyValBase] = keyValBase
 		checkBalanceColDupMap[balanceVal] = balanceVal
+		checkKeyColDupMap[keyValBase] = keyValBase
 
 		for ii := int32(0); ii < stride; ii++ {
 			insKeyVal := samehada_util.StrideAdd(samehada_util.StrideMul(keyValBase, stride), ii).(T)
@@ -814,6 +812,13 @@ func testParallelTxnsQueryingSkipListIndexUsedColumns[T int32 | float32 | string
 		delete(checkKeyColDupMap, keyVal)
 		checkKeyColDupMapMutex.Unlock()
 	}
+
+	//checkKeyColDupMapSetWithLock := func(keyVal T) {
+	//	checkKeyColDupMapMutex.Lock()
+	//	checkKeyColDupMap[keyVal] = keyVal
+	//	checkKeyColDupMapMutex.Unlock()
+	//}
+
 	checkBalanceColDupMapDeleteWithLock := func(balanceVal int32) {
 		checkBalanceColDupMapMutex.Lock()
 		delete(checkBalanceColDupMap, balanceVal)
@@ -1400,8 +1405,8 @@ func testSkipListParallelTxnStrideRoot[T int32 | float32 | string](t *testing.T,
 
 func TestSkipListPrallelTxnStrideInteger(t *testing.T) {
 	//t.Parallel()
-	if testing.Short() {
-		t.Skip("skip this in short mode.")
-	}
+	//if testing.Short() {
+	//	t.Skip("skip this in short mode.")
+	//}
 	testSkipListParallelTxnStrideRoot[int32](t, types.Integer)
 }
