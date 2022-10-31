@@ -849,7 +849,6 @@ func testParallelTxnsQueryingSkipListIndexUsedColumns[T int32 | float32 | string
 	}
 
 	finalizeAccountUpdateTxn := func(txn_ *access.Transaction, oldBalance1 int32, oldBalance2 int32, newBalance1 int32, newBalance2 int32) {
-		//// TODO: (SDB) for debugging code. should be removed after debugging.
 		//if rand.Intn(3) == 0 {
 		//	txn_.SetState(access.ABORTED)
 		//}
@@ -963,6 +962,7 @@ func testParallelTxnsQueryingSkipListIndexUsedColumns[T int32 | float32 | string
 				if idx2 == ACCOUNT_NUM {
 					idx2 = 0
 				}
+				//idx2 := (ACCOUNT_NUM - 1) - idx1
 
 				// get current volume of money move accounts
 				selPlan1 := createSpecifiedPointScanPlanNode(accountIds[idx1], c, tableMetadata, keyType)
