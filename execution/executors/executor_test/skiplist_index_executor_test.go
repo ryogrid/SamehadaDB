@@ -848,6 +848,32 @@ func testParallelTxnsQueryingSkipListIndexUsedColumns[T int32 | float32 | string
 		checkBalanceColDupMapMutex.Unlock()
 	}
 
+	finalizeRandomNoSideEffectTxn := func(txn_ *access.Transaction) {
+		txnOk := handleFnishedTxn(c, txnMgr, txn_)
+
+		if txnOk {
+			atomic.AddInt32(&commitedTxnCnt, 1)
+		} else {
+			atomic.AddInt32(&abortedTxnCnt, 1)
+		}
+		atomic.AddInt32(&executedTxnCnt, 1)
+	}
+
+	// internally, issue new transaction
+	checkTotalBalanceNoChange := func() {
+		txn_ := txnMgr.Begin(nil)
+		sumOfAllAccountBalanceAfterTest := int32(0)
+		for ii := 0; ii < ACCOUNT_NUM; ii++ {
+			selPlan := createSpecifiedPointScanPlanNode(accountIds[ii], c, tableMetadata, keyType)
+			results := executePlan(c, shi.GetBufferPoolManager(), txn_, selPlan)
+			common.SH_Assert(results != nil && len(results) == 1, fmt.Sprintf("point scan result count is not 1 (%d)!\n", len(results)))
+			common.SH_Assert(txn_.GetState() != access.ABORTED, "txn state should not be ABORTED!")
+			sumOfAllAccountBalanceAfterTest += results[0].GetValue(tableMetadata.Schema(), 1).ToInteger()
+		}
+		common.SH_Assert(sumOfAllAccountBalanceAfterTest == sumOfAllAccountBalanceAtStart, fmt.Sprintf("total account volume is changed! %d != %d\n", sumOfAllAccountBalanceAfterTest, sumOfAllAccountBalanceAtStart))
+		finalizeRandomNoSideEffectTxn(txn_)
+	}
+
 	finalizeAccountUpdateTxn := func(txn_ *access.Transaction, oldBalance1 int32, oldBalance2 int32, newBalance1 int32, newBalance2 int32) {
 		//if rand.Intn(3) == 0 {
 		//	txn_.SetState(access.ABORTED)
@@ -856,9 +882,11 @@ func testParallelTxnsQueryingSkipListIndexUsedColumns[T int32 | float32 | string
 		txnOk := handleFnishedTxn(c, txnMgr, txn_)
 
 		if txnOk {
+			checkTotalBalanceNoChange()
 			atomic.AddInt32(&commitedTxnCnt, 1)
 			deleteCheckBalanceColDupMapBalances(oldBalance1, oldBalance2)
 		} else {
+			checkTotalBalanceNoChange()
 			atomic.AddInt32(&abortedTxnCnt, 1)
 			// rollback
 			deleteCheckBalanceColDupMapBalances(newBalance1, newBalance2)
@@ -909,17 +937,6 @@ func testParallelTxnsQueryingSkipListIndexUsedColumns[T int32 | float32 | string
 			// rollback removed element
 			insValsAppendWithLock(oldKeyValBase)
 			deleteCheckMapEntriesWithLock(newKeyValBase)
-			atomic.AddInt32(&abortedTxnCnt, 1)
-		}
-		atomic.AddInt32(&executedTxnCnt, 1)
-	}
-
-	finalizeRandomNoSideEffectTxn := func(txn_ *access.Transaction) {
-		txnOk := handleFnishedTxn(c, txnMgr, txn_)
-
-		if txnOk {
-			atomic.AddInt32(&commitedTxnCnt, 1)
-		} else {
 			atomic.AddInt32(&abortedTxnCnt, 1)
 		}
 		atomic.AddInt32(&executedTxnCnt, 1)
@@ -1035,7 +1052,9 @@ func testParallelTxnsQueryingSkipListIndexUsedColumns[T int32 | float32 | string
 				common.ShPrintf(common.DEBUGGING, "Update account op start.\n")
 
 				updatePlan1 := createBankAccountUpdatePlanNode(accountIds[idx1], newBalance1, c, tableMetadata, keyType)
-				executePlan(c, shi.GetBufferPoolManager(), txn_, updatePlan1)
+				updateRslt1 := executePlan(c, shi.GetBufferPoolManager(), txn_, updatePlan1)
+
+				common.SH_Assert(len(updateRslt1) != 1 && txn_.GetState() != access.ABORTED, fmt.Sprintf("account update fails!(1) txn_.txn_id:%v", txn_.GetTransactionId()))
 
 				if txn_.GetState() == access.ABORTED {
 					finalizeAccountUpdateTxn(txn_, balance1, balance2, newBalance1, newBalance2)
@@ -1044,7 +1063,9 @@ func testParallelTxnsQueryingSkipListIndexUsedColumns[T int32 | float32 | string
 				}
 
 				updatePlan2 := createBankAccountUpdatePlanNode(accountIds[idx2], newBalance2, c, tableMetadata, keyType)
-				executePlan(c, shi.GetBufferPoolManager(), txn_, updatePlan2)
+				updateRslt2 := executePlan(c, shi.GetBufferPoolManager(), txn_, updatePlan2)
+
+				common.SH_Assert(len(updateRslt2) != 1 && txn_.GetState() != access.ABORTED, fmt.Sprintf("account update fails!(2) txn_.txn_id:%v", txn_.GetTransactionId()))
 
 				finalizeAccountUpdateTxn(txn_, balance1, balance2, newBalance1, newBalance2)
 				ch <- 1
@@ -1351,22 +1372,12 @@ func testParallelTxnsQueryingSkipListIndexUsedColumns[T int32 | float32 | string
 	// below, txns are execurted serial. so, txn abort due to CC protocol doesn't occur
 
 	// check total volume of accounts
-	txn_ := txnMgr.Begin(nil)
-	sumOfAllAccountBalanceAfterTest := int32(0)
-	for ii := 0; ii < ACCOUNT_NUM; ii++ {
-		selPlan := createSpecifiedPointScanPlanNode(accountIds[ii], c, tableMetadata, keyType)
-		results := executePlan(c, shi.GetBufferPoolManager(), txn_, selPlan)
-		common.SH_Assert(results != nil && len(results) == 1, fmt.Sprintf("point scan result count is bigger than 1 (%d)!\n", len(results)))
-		common.SH_Assert(txn_.GetState() != access.ABORTED, "txn state should not be ABORTED!")
-		sumOfAllAccountBalanceAfterTest += results[0].GetValue(tableMetadata.Schema(), 1).ToInteger()
-	}
-	common.SH_Assert(sumOfAllAccountBalanceAfterTest == sumOfAllAccountBalanceAtStart, fmt.Sprintf("total account volume is changed! %d != %d\n", sumOfAllAccountBalanceAfterTest, sumOfAllAccountBalanceAtStart))
-	finalizeRandomNoSideEffectTxn(txn_)
+	checkTotalBalanceNoChange()
 
 	// check counts and order of all record got with index used full scan
 
 	// col1 ---------------------------------
-	txn_ = txnMgr.Begin(nil)
+	txn_ := txnMgr.Begin(nil)
 
 	// check record num (index of col1 is used)
 	collectNumMaybe := initialEntryNum + insertedTupleCnt - deletedTupleCnt

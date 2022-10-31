@@ -56,7 +56,7 @@ func (t *TableHeap) GetFirstPageId() types.PageID {
 // 2. If there is no next page, it creates a new page and insert in it
 func (t *TableHeap) InsertTuple(tuple_ *tuple.Tuple, txn *Transaction, oid uint32) (rid *page.RID, err error) {
 	if common.EnableDebug {
-		common.ShPrintf(common.RDB_OP_FUNC_CALL, "TableHeap::InsertTuple called. tuple_:%v\n", *tuple_)
+		common.ShPrintf(common.RDB_OP_FUNC_CALL, "TableHeap::InsertTuple called. txn.txn_id:%v tuple_:%v\n", txn.txn_id, *tuple_)
 	}
 	currentPage := CastPageAsTablePage(t.bpm.FetchPage(t.firstPageId))
 
@@ -108,7 +108,7 @@ func (t *TableHeap) InsertTuple(tuple_ *tuple.Tuple, txn *Transaction, oid uint3
 // if specified not nil, new_tuple also should have all columns defined in schema. but not update target value can be dummy value
 func (t *TableHeap) UpdateTuple(tuple_ *tuple.Tuple, update_col_idxs []int, schema_ *schema.Schema, oid uint32, rid page.RID, txn *Transaction) (bool, *page.RID) {
 	if common.EnableDebug {
-		common.ShPrintf(common.RDB_OP_FUNC_CALL, "TableHeap::UpadteTuple called. update_col_idxs:%v rid:%v\n", update_col_idxs, rid)
+		common.ShPrintf(common.RDB_OP_FUNC_CALL, "TableHeap::UpadteTuple called. txn.txn_id:%v update_col_idxs:%v rid:%v\n", txn.txn_id, update_col_idxs, rid)
 	}
 	// Find the page which contains the tuple.
 	page_ := CastPageAsTablePage(t.bpm.FetchPage(rid.GetPageId()))
@@ -160,7 +160,7 @@ func (t *TableHeap) UpdateTuple(tuple_ *tuple.Tuple, update_col_idxs []int, sche
 
 func (t *TableHeap) MarkDelete(rid *page.RID, oid uint32, txn *Transaction) bool {
 	if common.EnableDebug {
-		common.ShPrintf(common.RDB_OP_FUNC_CALL, "TableHeap::MarkDelete called. rid:%v\n", *rid)
+		common.ShPrintf(common.RDB_OP_FUNC_CALL, "TableHeap::MarkDelete called. txn.txn_id:%v rid:%v\n", txn.txn_id, *rid)
 	}
 	// Find the page which contains the tuple.
 	page_ := CastPageAsTablePage(t.bpm.FetchPage(rid.GetPageId()))
@@ -184,7 +184,7 @@ func (t *TableHeap) MarkDelete(rid *page.RID, oid uint32, txn *Transaction) bool
 
 func (t *TableHeap) ApplyDelete(rid *page.RID, txn *Transaction) {
 	if common.EnableDebug {
-		common.ShPrintf(common.RDB_OP_FUNC_CALL, "TableHeap::ApplyDelete called. rid:%v\n", *rid)
+		common.ShPrintf(common.RDB_OP_FUNC_CALL, "TableHeap::ApplyDelete called. txn.txn_id:%v rid:%v\n", txn.txn_id, *rid)
 	}
 	// Find the page which contains the tuple.
 	page_ := CastPageAsTablePage(t.bpm.FetchPage(rid.GetPageId()))
@@ -199,7 +199,7 @@ func (t *TableHeap) ApplyDelete(rid *page.RID, txn *Transaction) {
 
 func (t *TableHeap) RollbackDelete(rid *page.RID, txn *Transaction) {
 	if common.EnableDebug {
-		common.ShPrintf(common.RDB_OP_FUNC_CALL, "TableHeap::RollBackDelete called. rid:%v\n", *rid)
+		common.ShPrintf(common.RDB_OP_FUNC_CALL, "TableHeap::RollBackDelete called. txn.txn_id:%v rid:%v\n", txn.txn_id, *rid)
 	}
 	// Find the page which contains the tuple.
 	page_ := CastPageAsTablePage(t.bpm.FetchPage(rid.GetPageId()))
@@ -214,7 +214,7 @@ func (t *TableHeap) RollbackDelete(rid *page.RID, txn *Transaction) {
 // GetTuple reads a tuple from the table
 func (t *TableHeap) GetTuple(rid *page.RID, txn *Transaction) *tuple.Tuple {
 	if common.EnableDebug {
-		common.ShPrintf(common.RDB_OP_FUNC_CALL, "TableHeap::GetTuple called. rid:%v\n", *rid)
+		common.ShPrintf(common.RDB_OP_FUNC_CALL, "TableHeap::GetTuple called. txn.txn_id:%v rid:%v\n", txn.txn_id, *rid)
 	}
 	if !txn.IsSharedLocked(rid) && !txn.IsExclusiveLocked(rid) && !t.lock_manager.LockShared(txn, rid) {
 		txn.SetState(ABORTED)
@@ -253,7 +253,7 @@ func (t *TableHeap) GetFirstTuple(txn *Transaction) *tuple.Tuple {
 // Iterator returns a iterator for this table heap
 func (t *TableHeap) Iterator(txn *Transaction) *TableHeapIterator {
 	if common.EnableDebug {
-		common.ShPrintf(common.RDB_OP_FUNC_CALL, "TableHeap::Iterator called.\n")
+		common.ShPrintf(common.RDB_OP_FUNC_CALL, "TableHeap::Iterator called. txn.txn_id:%v\n", txn.txn_id)
 	}
 	return NewTableHeapIterator(t, t.lock_manager, txn)
 }

@@ -104,7 +104,7 @@ func (transaction_manager *TransactionManager) Abort(catalog_ catalog_interface.
 	write_set := txn.GetWriteSet()
 
 	if common.EnableDebug {
-		common.ShPrintf(common.RDB_OP_FUNC_CALL, "TransactionManager::Abort write_set:")
+		common.ShPrintf(common.RDB_OP_FUNC_CALL, "TransactionManager::Abort txn.txn_id:%v write_set:", txn.txn_id)
 		for _, writeItem := range write_set {
 			common.ShPrintf(common.RDB_OP_FUNC_CALL, "%v ", *writeItem)
 		}
