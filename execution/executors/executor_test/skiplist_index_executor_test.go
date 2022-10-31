@@ -977,9 +977,6 @@ func testParallelTxnsQueryingSkipListIndexUsedColumns[T int32 | float32 | string
 				}
 				balance1 := results1[0].GetValue(tableMetadata.Schema(), 1).ToInteger()
 
-				if balance1 == 1000000 && idx1 == 0 && idx2 == 1 {
-					fmt.Println()
-				}
 				selPlan2 := createSpecifiedPointScanPlanNode(accountIds[idx2], c, tableMetadata, keyType)
 				results2 := executePlan(c, shi.GetBufferPoolManager(), txn_, selPlan2)
 				if txn_.GetState() == access.ABORTED {
