@@ -56,6 +56,9 @@ func (transaction_manager *TransactionManager) Begin(txn *Transaction) *Transact
 }
 
 func (transaction_manager *TransactionManager) Commit(txn *Transaction) {
+	if common.EnableDebug {
+		common.ShPrintf(common.RDB_OP_FUNC_CALL, "TransactionManager::Commit called. txn.txn_id:%v\n", txn.txn_id)
+	}
 	txn.SetState(COMMITTED)
 
 	// Perform all deletes before we commit.
@@ -92,11 +95,21 @@ func (transaction_manager *TransactionManager) Commit(txn *Transaction) {
 }
 
 func (transaction_manager *TransactionManager) Abort(catalog_ catalog_interface.CatalogInterface, txn *Transaction) {
+	if common.EnableDebug {
+		common.ShPrintf(common.RDB_OP_FUNC_CALL, "TransactionManager::Abort called. txn.txn_id:%v\n", txn.txn_id)
+	}
 	txn.SetState(ABORTED)
 
 	indexMap := make(map[uint32][]index.Index, 0)
 	write_set := txn.GetWriteSet()
 
+	if common.EnableDebug {
+		common.ShPrintf(common.RDB_OP_FUNC_CALL, "TransactionManager::Abort write_set:")
+		for _, writeItem := range write_set {
+			common.ShPrintf(common.RDB_OP_FUNC_CALL, "%v ", *writeItem)
+		}
+		common.ShPrintf(common.RDB_OP_FUNC_CALL, "\n")
+	}
 	// Rollback before releasing the access.
 	for len(write_set) != 0 {
 		item := write_set[len(write_set)-1]
