@@ -727,7 +727,7 @@ func testParallelTxnsQueryingSkipListIndexUsedColumns[T int32 | float32 | string
 	tableMetadata := c.CreateTable("test_1", schema_, txn)
 	txnMgr.Commit(txn)
 
-	const THREAD_NUM = 20 //1
+	const THREAD_NUM = 1 //20
 
 	rand.Seed(int64(seedVal))
 
@@ -850,6 +850,11 @@ func testParallelTxnsQueryingSkipListIndexUsedColumns[T int32 | float32 | string
 	}
 
 	finalizeAccountUpdateTxn := func(txn_ *access.Transaction, oldBalance1 int32, oldBalance2 int32, newBalance1 int32, newBalance2 int32) {
+		// TODO: (SDB) for debugging code. should be removed after debugging.
+		if rand.Intn(3) == 0 {
+			txn_.SetState(access.ABORTED)
+		}
+
 		txnOk := handleFnishedTxn(c, txnMgr, txn_)
 
 		if txnOk {
