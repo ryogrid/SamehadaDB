@@ -726,7 +726,7 @@ func testParallelTxnsQueryingSkipListIndexUsedColumns[T int32 | float32 | string
 	tableMetadata := c.CreateTable("test_1", schema_, txn)
 	txnMgr.Commit(txn)
 
-	const THREAD_NUM = 2 //20 // 1
+	const THREAD_NUM = 20 // 2 // 1
 
 	rand.Seed(int64(seedVal))
 
@@ -866,12 +866,12 @@ func testParallelTxnsQueryingSkipListIndexUsedColumns[T int32 | float32 | string
 		for ii := 0; ii < ACCOUNT_NUM; ii++ {
 			selPlan := createSpecifiedPointScanPlanNode(accountIds[ii], c, tableMetadata, keyType)
 			results := executePlan(c, shi.GetBufferPoolManager(), txn_, selPlan)
-			common.SH_Assert(results != nil && len(results) == 1, fmt.Sprintf("point scan result count is not 1 (%d)!\n", len(results)))
 			//common.SH_Assert(txn_.GetState() != access.ABORTED, "txn state should not be ABORTED!")
 			if txn_.GetState() == access.ABORTED {
 				handleFnishedTxn(c, txnMgr, txn_)
 				return
 			}
+			common.SH_Assert(results != nil && len(results) == 1, fmt.Sprintf("point scan result count is not 1 (%d)!\n", len(results)))
 			sumOfAllAccountBalanceAfterTest += results[0].GetValue(tableMetadata.Schema(), 1).ToInteger()
 		}
 		common.SH_Assert(sumOfAllAccountBalanceAfterTest == sumOfAllAccountBalanceAtStart, fmt.Sprintf("total account volume is changed! %d != %d\n", sumOfAllAccountBalanceAfterTest, sumOfAllAccountBalanceAtStart))

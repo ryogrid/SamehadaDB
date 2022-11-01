@@ -462,7 +462,8 @@ func (tp *TablePage) GetTuple(rid *page.RID, log_manager *recovery.LogManager, l
 
 	// Otherwise we have a valid tuple, try to acquire at least a shared access.
 	if log_manager.IsEnabledLogging() {
-		if !txn.IsSharedLocked(rid) && !txn.IsExclusiveLocked(rid) && !lock_manager.LockShared(txn, rid) {
+		//if !txn.IsSharedLocked(rid) && !txn.IsExclusiveLocked(rid) && !lock_manager.LockShared(txn, rid) {
+		if !lock_manager.LockShared(txn, rid) && !txn.IsExclusiveLocked(rid) {
 			txn.SetState(ABORTED)
 			return nil
 		}

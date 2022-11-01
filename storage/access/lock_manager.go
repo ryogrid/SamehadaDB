@@ -205,7 +205,8 @@ func (lock_manager *LockManager) LockExclusive(txn *Transaction, rid *page.RID) 
 		}
 	} else {
 		if arr, ok := lock_manager.shared_lock_table[*rid]; ok {
-			if len(arr) != 0 {
+			if len(arr) != 1 && arr[0] != txn.GetTransactionId() {
+				// not only this txn has shared lock
 				return false
 			}
 		}
@@ -237,12 +238,20 @@ func (lock_manager *LockManager) LockUpgrade(txn *Transaction, rid *page.RID) bo
 				return false
 			}
 		} else {
-			lock_manager.exclusive_lock_table[*rid] = txn.GetTransactionId()
-			elock_set = append(elock_set, *rid)
-			txn.SetExclusiveLockSet(elock_set)
-			slock_set = removeRID(slock_set, *rid)
-			txn.SetSharedLockSet(slock_set)
-			return true
+			// always success
+			txnIds, _ := lock_manager.shared_lock_table[*rid]
+
+			if len(txnIds) != 1 {
+				// not only this txn
+				return false
+			} else {
+				lock_manager.exclusive_lock_table[*rid] = txn.GetTransactionId()
+				elock_set = append(elock_set, *rid)
+				txn.SetExclusiveLockSet(elock_set)
+				slock_set = removeRID(slock_set, *rid)
+				txn.SetSharedLockSet(slock_set)
+				return true
+			}
 		}
 	} else {
 		panic("LockUpgrade: RID is not locked in shared mode")
