@@ -726,7 +726,7 @@ func testParallelTxnsQueryingSkipListIndexUsedColumns[T int32 | float32 | string
 	tableMetadata := c.CreateTable("test_1", schema_, txn)
 	txnMgr.Commit(txn)
 
-	const THREAD_NUM = 1 //20
+	const THREAD_NUM = 2 //20 // 1
 
 	rand.Seed(int64(seedVal))
 
@@ -867,7 +867,11 @@ func testParallelTxnsQueryingSkipListIndexUsedColumns[T int32 | float32 | string
 			selPlan := createSpecifiedPointScanPlanNode(accountIds[ii], c, tableMetadata, keyType)
 			results := executePlan(c, shi.GetBufferPoolManager(), txn_, selPlan)
 			common.SH_Assert(results != nil && len(results) == 1, fmt.Sprintf("point scan result count is not 1 (%d)!\n", len(results)))
-			common.SH_Assert(txn_.GetState() != access.ABORTED, "txn state should not be ABORTED!")
+			//common.SH_Assert(txn_.GetState() != access.ABORTED, "txn state should not be ABORTED!")
+			if txn_.GetState() == access.ABORTED {
+				handleFnishedTxn(c, txnMgr, txn_)
+				return
+			}
 			sumOfAllAccountBalanceAfterTest += results[0].GetValue(tableMetadata.Schema(), 1).ToInteger()
 		}
 		common.SH_Assert(sumOfAllAccountBalanceAfterTest == sumOfAllAccountBalanceAtStart, fmt.Sprintf("total account volume is changed! %d != %d\n", sumOfAllAccountBalanceAfterTest, sumOfAllAccountBalanceAtStart))
@@ -1054,16 +1058,22 @@ func testParallelTxnsQueryingSkipListIndexUsedColumns[T int32 | float32 | string
 				updatePlan1 := createBankAccountUpdatePlanNode(accountIds[idx1], newBalance1, c, tableMetadata, keyType)
 				updateRslt1 := executePlan(c, shi.GetBufferPoolManager(), txn_, updatePlan1)
 
-				common.SH_Assert(len(updateRslt1) == 1 && txn_.GetState() != access.ABORTED, fmt.Sprintf("account update fails!(1) txn_.txn_id:%v", txn_.GetTransactionId()))
-
 				if txn_.GetState() == access.ABORTED {
 					finalizeAccountUpdateTxn(txn_, balance1, balance2, newBalance1, newBalance2)
 					ch <- 1
 					return
 				}
 
+				common.SH_Assert(len(updateRslt1) == 1 && txn_.GetState() != access.ABORTED, fmt.Sprintf("account update fails!(1) txn_.txn_id:%v", txn_.GetTransactionId()))
+
 				updatePlan2 := createBankAccountUpdatePlanNode(accountIds[idx2], newBalance2, c, tableMetadata, keyType)
 				updateRslt2 := executePlan(c, shi.GetBufferPoolManager(), txn_, updatePlan2)
+
+				if txn_.GetState() == access.ABORTED {
+					finalizeAccountUpdateTxn(txn_, balance1, balance2, newBalance1, newBalance2)
+					ch <- 1
+					return
+				}
 
 				common.SH_Assert(len(updateRslt2) == 1 && txn_.GetState() != access.ABORTED, fmt.Sprintf("account update fails!(2) txn_.txn_id:%v", txn_.GetTransactionId()))
 
