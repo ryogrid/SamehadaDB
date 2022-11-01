@@ -726,7 +726,7 @@ func testParallelTxnsQueryingSkipListIndexUsedColumns[T int32 | float32 | string
 	tableMetadata := c.CreateTable("test_1", schema_, txn)
 	txnMgr.Commit(txn)
 
-	const THREAD_NUM = 20 //1
+	const THREAD_NUM = 1 //20
 
 	rand.Seed(int64(seedVal))
 
@@ -1054,7 +1054,7 @@ func testParallelTxnsQueryingSkipListIndexUsedColumns[T int32 | float32 | string
 				updatePlan1 := createBankAccountUpdatePlanNode(accountIds[idx1], newBalance1, c, tableMetadata, keyType)
 				updateRslt1 := executePlan(c, shi.GetBufferPoolManager(), txn_, updatePlan1)
 
-				common.SH_Assert(len(updateRslt1) != 1 && txn_.GetState() != access.ABORTED, fmt.Sprintf("account update fails!(1) txn_.txn_id:%v", txn_.GetTransactionId()))
+				common.SH_Assert(len(updateRslt1) == 1 && txn_.GetState() != access.ABORTED, fmt.Sprintf("account update fails!(1) txn_.txn_id:%v", txn_.GetTransactionId()))
 
 				if txn_.GetState() == access.ABORTED {
 					finalizeAccountUpdateTxn(txn_, balance1, balance2, newBalance1, newBalance2)
@@ -1065,7 +1065,7 @@ func testParallelTxnsQueryingSkipListIndexUsedColumns[T int32 | float32 | string
 				updatePlan2 := createBankAccountUpdatePlanNode(accountIds[idx2], newBalance2, c, tableMetadata, keyType)
 				updateRslt2 := executePlan(c, shi.GetBufferPoolManager(), txn_, updatePlan2)
 
-				common.SH_Assert(len(updateRslt2) != 1 && txn_.GetState() != access.ABORTED, fmt.Sprintf("account update fails!(2) txn_.txn_id:%v", txn_.GetTransactionId()))
+				common.SH_Assert(len(updateRslt2) == 1 && txn_.GetState() != access.ABORTED, fmt.Sprintf("account update fails!(2) txn_.txn_id:%v", txn_.GetTransactionId()))
 
 				finalizeAccountUpdateTxn(txn_, balance1, balance2, newBalance1, newBalance2)
 				ch <- 1
