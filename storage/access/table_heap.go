@@ -163,6 +163,11 @@ func (t *TableHeap) UpdateTuple(tuple_ *tuple.Tuple, update_col_idxs []int, sche
 		txn.AddIntoWriteSet(NewWriteRecord(rid, UPDATE, old_tuple, t, oid))
 	}
 
+	// TODO: (SDB) for debugging. this code should be removed after finish of debugging
+	if is_updated && txn.GetState() != ABORTED {
+		common.SH_Assert(len(txn.GetWriteSet()) != 0, "content of write should not be empty.")
+	}
+
 	return is_updated, new_rid
 }
 
