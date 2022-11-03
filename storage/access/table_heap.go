@@ -151,6 +151,12 @@ func (t *TableHeap) UpdateTuple(tuple_ *tuple.Tuple, update_col_idxs []int, sche
 		is_updated = true
 	}
 
+	// TODO: (SDB) for debugging. this code should be removed after finish of debugging
+	// last condition is for when rollback case
+	common.SH_Assert(
+		(txn.GetState() == ABORTED && is_updated == false) || (txn.GetState() != ABORTED && is_updated == true) || (txn.GetState() == ABORTED && is_updated == true && update_col_idxs == nil),
+		"illegal internal state!")
+
 	// Update the transaction's write set.
 	// when txn is ABORTED state case, data is not updated. so adding a write set entry is not needed
 	if is_updated && txn.GetState() != ABORTED {
