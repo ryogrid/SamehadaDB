@@ -593,7 +593,7 @@ func getUniqRandomPrimitivVal[T int32 | float32 | string](keyType types.TypeID, 
 	return retVal
 }
 
-func createBankAccountUpdatePlanNode[T int32 | float32 | string](keyColumnVal T, newBalance int32, c *catalog.Catalog, tm *catalog.TableMetadata, keyType types.TypeID) (createdPlan plans.Plan) {
+func createBalanceUpdatePlanNode[T int32 | float32 | string](keyColumnVal T, newBalance int32, c *catalog.Catalog, tm *catalog.TableMetadata, keyType types.TypeID) (createdPlan plans.Plan) {
 	row := make([]types.Value, 0)
 	row = append(row, types.NewValue(keyColumnVal))
 	row = append(row, types.NewInteger(newBalance))
@@ -635,7 +635,7 @@ func createSpecifiedValDeletePlanNode[T int32 | float32 | string](keyColumnVal T
 	return deletePlanNode
 }
 
-func createSpecifiedValUpdatePlanNode[T int32 | float32 | string](keyColumnVal T, newKeyColumnVal T, c *catalog.Catalog, tm *catalog.TableMetadata, keyType types.TypeID) (createdPlan plans.Plan) {
+func createAccountIdUpdatePlanNode[T int32 | float32 | string](keyColumnVal T, newKeyColumnVal T, c *catalog.Catalog, tm *catalog.TableMetadata, keyType types.TypeID) (createdPlan plans.Plan) {
 	row := make([]types.Value, 0)
 	row = append(row, types.NewValue(newKeyColumnVal))
 	row = append(row, types.NewInteger(-1))
@@ -668,10 +668,10 @@ func createSpecifiedRangeScanPlanNode[T int32 | float32 | string](c *catalog.Cat
 	var startVal *types.Value = nil
 	var endVal *types.Value = nil
 	if rangeStartKey != nil {
-		startVal = samehada_util.GetPonterOfValue(types.NewValue(rangeStartKey))
+		startVal = samehada_util.GetPonterOfValue(types.NewValue(*rangeStartKey))
 	}
 	if rangeEndKey != nil {
-		endVal = samehada_util.GetPonterOfValue(types.NewValue(rangeEndKey))
+		endVal = samehada_util.GetPonterOfValue(types.NewValue(*rangeEndKey))
 	}
 	skipListRangeScanP := plans.NewRangeScanWithIndexPlanNode(tm.Schema(), tm.OID(), colIdx, nil, startVal, endVal)
 	return skipListRangeScanP
@@ -969,10 +969,9 @@ func testParallelTxnsQueryingSkipListIndexUsedColumns[T int32 | float32 | string
 		}
 		common.ShPrintf(common.DEBUGGING, "ii=%d\n", ii)
 
-		//// get 0-7
-		//opType := rand.Intn(8)
+		// get 0-7
+		opType := rand.Intn(8)
 		//opType := 0
-		opType := rand.Intn(7)
 		switch opType {
 		case 0: // Update two account volume (move money)
 			go func() {
@@ -984,7 +983,6 @@ func testParallelTxnsQueryingSkipListIndexUsedColumns[T int32 | float32 | string
 				if idx2 == ACCOUNT_NUM {
 					idx2 = 0
 				}
-				//idx2 := (ACCOUNT_NUM - 1) - idx1
 
 				// get current volume of money move accounts
 				selPlan1 := createSpecifiedPointScanPlanNode(accountIds[idx1], c, tableMetadata, keyType)
@@ -1056,7 +1054,7 @@ func testParallelTxnsQueryingSkipListIndexUsedColumns[T int32 | float32 | string
 
 				common.ShPrintf(common.DEBUGGING, "Update account op start.\n")
 
-				updatePlan1 := createBankAccountUpdatePlanNode(accountIds[idx1], newBalance1, c, tableMetadata, keyType)
+				updatePlan1 := createBalanceUpdatePlanNode(accountIds[idx1], newBalance1, c, tableMetadata, keyType)
 				updateRslt1 := executePlan(c, shi.GetBufferPoolManager(), txn_, updatePlan1)
 
 				if txn_.GetState() == access.ABORTED {
@@ -1067,7 +1065,7 @@ func testParallelTxnsQueryingSkipListIndexUsedColumns[T int32 | float32 | string
 
 				common.SH_Assert(len(updateRslt1) == 1 && txn_.GetState() != access.ABORTED, fmt.Sprintf("account update fails!(1) txn_.txn_id:%v", txn_.GetTransactionId()))
 
-				updatePlan2 := createBankAccountUpdatePlanNode(accountIds[idx2], newBalance2, c, tableMetadata, keyType)
+				updatePlan2 := createBalanceUpdatePlanNode(accountIds[idx2], newBalance2, c, tableMetadata, keyType)
 				updateRslt2 := executePlan(c, shi.GetBufferPoolManager(), txn_, updatePlan2)
 
 				if txn_.GetState() == access.ABORTED {
@@ -1175,7 +1173,6 @@ func testParallelTxnsQueryingSkipListIndexUsedColumns[T int32 | float32 | string
 
 					for jj := int32(0); jj < stride; jj++ {
 						delKeyVal := samehada_util.StrideAdd(samehada_util.StrideMul(delKeyValBase, stride), jj).(T)
-						//pairVal := samehada_util.GetValueForSkipListEntry(delVal)
 
 						common.ShPrintf(common.DEBUGGING, "Delete(success) op start.\n")
 
@@ -1215,32 +1212,42 @@ func testParallelTxnsQueryingSkipListIndexUsedColumns[T int32 | float32 | string
 			retry3:
 				tmpMax := math.MaxInt32 / stride
 				updateNewKeyValBase := getUniqRandomPrimitivVal(keyType, checkKeyColDupMap, checkKeyColDupMapMutex, &tmpMax)
-				newVolumeVal := samehada_util.GetInt32ValCorrespondToPassVal(updateNewKeyValBase)
+				newBalanceVal := samehada_util.GetInt32ValCorrespondToPassVal(updateNewKeyValBase)
 				checkBalanceColDupMapMutex.RLock()
-				if _, exist := checkBalanceColDupMap[newVolumeVal]; exist || (newVolumeVal >= 0 && newVolumeVal <= sumOfAllAccountBalanceAtStart) {
+				if _, exist := checkBalanceColDupMap[newBalanceVal]; exist || (newBalanceVal >= 0 && newBalanceVal <= sumOfAllAccountBalanceAtStart) {
 					checkBalanceColDupMapMutex.RUnlock()
 					checkKeyColDupMapDeleteWithLock(updateNewKeyValBase)
 					goto retry3
 				}
 				checkBalanceColDupMapMutex.RUnlock()
-				checkBalanceColDupMapSetWithLock(newVolumeVal)
+				checkBalanceColDupMapSetWithLock(newBalanceVal)
 
 				txn_ := txnMgr.Begin(nil)
 
 				for jj := int32(0); jj < stride; jj++ {
 					updateKeyVal := samehada_util.StrideAdd(samehada_util.StrideMul(updateKeyValBase, stride), jj).(T)
 					updateNewKeyVal := samehada_util.StrideAdd(samehada_util.StrideMul(updateNewKeyValBase, stride), jj).(T)
+					//newBalanceVal := samehada_util.GetInt32ValCorrespondToPassVal(updateKeyVal)
 
 					common.ShPrintf(common.DEBUGGING, "Update (random) op start.")
 
-					updatePlan := createSpecifiedValUpdatePlanNode(updateKeyVal, updateNewKeyVal, c, tableMetadata, keyType)
-					results := executePlan(c, shi.GetBufferPoolManager(), txn_, updatePlan)
+					updatePlan1 := createAccountIdUpdatePlanNode(updateKeyVal, updateNewKeyVal, c, tableMetadata, keyType)
+					results1 := executePlan(c, shi.GetBufferPoolManager(), txn_, updatePlan1)
 
 					if txn_.GetState() == access.ABORTED {
 						break
 					}
 
-					common.SH_Assert(results != nil && len(results) == 1, "Update failed!")
+					common.SH_Assert(results1 != nil && len(results1) == 1, "Update failed!")
+
+					updatePlan2 := createBalanceUpdatePlanNode(updateNewKeyVal, samehada_util.GetInt32ValCorrespondToPassVal(updateNewKeyVal), c, tableMetadata, keyType)
+					results2 := executePlan(c, shi.GetBufferPoolManager(), txn_, updatePlan2)
+
+					if txn_.GetState() == access.ABORTED {
+						break
+					}
+
+					common.SH_Assert(results2 != nil && len(results2) == 1, "Update failed!")
 				}
 
 				finalizeRandomUpdateTxn(txn_, updateNewKeyValBase, updateNewKeyValBase)
@@ -1320,7 +1327,7 @@ func testParallelTxnsQueryingSkipListIndexUsedColumns[T int32 | float32 | string
 				common.ShPrintf(common.DEBUGGING, "Select(success) op start.\n")
 				tmpIdx1 := int(rand.Intn(len(insVals)))
 				tmpIdx2 := int(rand.Intn(len(insVals)))
-				//fmt.Printf("sl.GetValue at testSkipListMix: jj=%d, tmpIdx1=%d insVals[tmpIdx1]=%d len(*insVals)=%d len(*deletedValsForSelectUpdate)=%d\n", jj, tmpIdx1, insVals[tmpIdx1], len(insVals), len(deletedValsForSelectUpdate))
+				diffToMakeNoExist := int32(10)
 				rangeStartKey := insVals[tmpIdx1]
 				rangeEndKey := insVals[tmpIdx2]
 				insValsMutex.RUnlock()
@@ -1337,20 +1344,20 @@ func testParallelTxnsQueryingSkipListIndexUsedColumns[T int32 | float32 | string
 				case 3: // not specified both
 					rangeScanPlan = createSpecifiedRangeScanPlanNode[T](c, tableMetadata, keyType, 0, nil, nil)
 				case 4: // start only (not exisiting val)
-					tmpStartKey := samehada_util.StrideAdd(rangeStartKey, 10).(T)
+					tmpStartKey := samehada_util.StrideAdd(rangeStartKey, diffToMakeNoExist).(T)
 					rangeScanPlan = createSpecifiedRangeScanPlanNode[T](c, tableMetadata, keyType, 0, &tmpStartKey, nil)
 				case 5: // end only (not existing val)
-					tmpEndKey := samehada_util.StrideAdd(rangeEndKey, 10).(T)
+					tmpEndKey := samehada_util.StrideAdd(rangeEndKey, diffToMakeNoExist).(T)
 					rangeScanPlan = createSpecifiedRangeScanPlanNode[T](c, tableMetadata, keyType, 0, nil, &tmpEndKey)
 				case 6: // start and end (start val is not existing one)
-					tmpStartKey := samehada_util.StrideAdd(rangeStartKey, 10).(T)
+					tmpStartKey := samehada_util.StrideAdd(rangeStartKey, diffToMakeNoExist).(T)
 					rangeScanPlan = createSpecifiedRangeScanPlanNode[T](c, tableMetadata, keyType, 0, &tmpStartKey, &rangeEndKey)
 				case 7: // start and end (start val is not existing one)
-					tmpEndKey := samehada_util.StrideAdd(rangeEndKey, 10).(T)
+					tmpEndKey := samehada_util.StrideAdd(rangeEndKey, diffToMakeNoExist).(T)
 					rangeScanPlan = createSpecifiedRangeScanPlanNode[T](c, tableMetadata, keyType, 0, &rangeStartKey, &tmpEndKey)
 				case 8: // start and end (end val is not existing one)
-					tmpStartKey := samehada_util.StrideAdd(rangeStartKey, 10).(T)
-					tmpEndKey := samehada_util.StrideAdd(rangeEndKey, 10).(T)
+					tmpStartKey := samehada_util.StrideAdd(rangeStartKey, diffToMakeNoExist).(T)
+					tmpEndKey := samehada_util.StrideAdd(rangeEndKey, diffToMakeNoExist).(T)
 					rangeScanPlan = createSpecifiedRangeScanPlanNode[T](c, tableMetadata, keyType, 0, &tmpStartKey, &tmpEndKey)
 				}
 
