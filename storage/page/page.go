@@ -56,7 +56,8 @@ func (p *Page) DecPinCount() {
 
 // PinCount retunds the pin count
 func (p *Page) PinCount() int32 {
-	return p.pinCount
+	return atomic.LoadInt32(&p.pinCount)
+	//return p.pinCount
 }
 
 // ID retunds the page id
