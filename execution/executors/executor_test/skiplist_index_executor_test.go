@@ -726,7 +726,7 @@ func testParallelTxnsQueryingSkipListIndexUsedColumns[T int32 | float32 | string
 	tableMetadata := c.CreateTable("test_1", schema_, txn)
 	txnMgr.Commit(txn)
 
-	const THREAD_NUM = 10 //20 // 2 // 1
+	const THREAD_NUM = 1 // 10 //20 // 2
 
 	rand.Seed(int64(seedVal))
 
@@ -748,8 +748,8 @@ func testParallelTxnsQueryingSkipListIndexUsedColumns[T int32 | float32 | string
 	txn = txnMgr.Begin(nil)
 
 	// insert account records
-	const ACCOUNT_NUM = 20 //4
-	const BALANCE_AT_START = 1000000
+	const ACCOUNT_NUM = 10 //20 //4
+	const BALANCE_AT_START = 1000
 	sumOfAllAccountBalanceAtStart := int32(0)
 	accountIds := make([]T, 0)
 	for ii := 0; ii < ACCOUNT_NUM; ii++ {
@@ -792,7 +792,7 @@ func testParallelTxnsQueryingSkipListIndexUsedColumns[T int32 | float32 | string
 		insVals = append(insVals, keyValBase)
 	}
 
-	insertedTupleCnt += initialEntryNum
+	insertedTupleCnt += initialEntryNum * stride
 
 	txnMgr.Commit(txn)
 
@@ -971,7 +971,8 @@ func testParallelTxnsQueryingSkipListIndexUsedColumns[T int32 | float32 | string
 
 		//// get 0-7
 		//opType := rand.Intn(8)
-		opType := 0
+		//opType := 0
+		opType := rand.Intn(4)
 		switch opType {
 		case 0: // Update two account volume (move money)
 			go func() {
@@ -1024,7 +1025,7 @@ func testParallelTxnsQueryingSkipListIndexUsedColumns[T int32 | float32 | string
 				var newBalance2 int32
 				if balance1 > balance2 {
 				retry1_1:
-					newBalance1 = getUniqRandomPrimitivVal(keyType, checkBalanceColDupMap, checkBalanceColDupMapMutex, balance1)
+					newBalance1 = getUniqRandomPrimitivVal(keyType, checkBalanceColDupMap, checkBalanceColDupMapMutex, &balance1)
 					// delete put value tough it is needless
 					newBalance2 = balance2 + (balance1 - newBalance1)
 					checkBalanceColDupMapMutex.Lock()
@@ -1037,7 +1038,7 @@ func testParallelTxnsQueryingSkipListIndexUsedColumns[T int32 | float32 | string
 					putCheckBalanceColDupMapNewBalance(newBalance1, newBalance2)
 				} else {
 				retry1_2:
-					newBalance2 = getUniqRandomPrimitivVal(keyType, checkBalanceColDupMap, checkBalanceColDupMapMutex, balance2)
+					newBalance2 = getUniqRandomPrimitivVal(keyType, checkBalanceColDupMap, checkBalanceColDupMapMutex, &balance2)
 					// delete put value tough it is needless
 					newBalance1 = balance1 + (balance2 - newBalance2)
 					checkBalanceColDupMapMutex.Lock()
@@ -1083,7 +1084,8 @@ func testParallelTxnsQueryingSkipListIndexUsedColumns[T int32 | float32 | string
 		case 1: // Insert
 			go func() {
 			retry2:
-				insKeyValBase := getUniqRandomPrimitivVal(keyType, checkKeyColDupMap, checkKeyColDupMapMutex, math.MaxInt32/stride)
+				tmpMax := math.MaxInt32 / stride
+				insKeyValBase := getUniqRandomPrimitivVal(keyType, checkKeyColDupMap, checkKeyColDupMapMutex, &tmpMax)
 				balanceVal := samehada_util.GetInt32ValCorrespondToPassVal(insKeyValBase)
 				checkBalanceColDupMapMutex.RLock()
 				if _, exist := checkBalanceColDupMap[balanceVal]; exist || (balanceVal >= 0 && balanceVal < sumOfAllAccountBalanceAtStart) {
@@ -1091,6 +1093,7 @@ func testParallelTxnsQueryingSkipListIndexUsedColumns[T int32 | float32 | string
 					checkKeyColDupMapDeleteWithLock(insKeyValBase)
 					goto retry2
 				}
+				checkBalanceColDupMapMutex.RUnlock()
 				checkBalanceColDupMapSetWithLock(balanceVal)
 
 				txn_ := txnMgr.Begin(nil)
@@ -1210,7 +1213,8 @@ func testParallelTxnsQueryingSkipListIndexUsedColumns[T int32 | float32 | string
 				}
 				insValsMutex.Unlock()
 			retry3:
-				updateNewKeyValBase := getUniqRandomPrimitivVal(keyType, checkKeyColDupMap, checkKeyColDupMapMutex, math.MaxInt32/stride)
+				tmpMax := math.MaxInt32 / stride
+				updateNewKeyValBase := getUniqRandomPrimitivVal(keyType, checkKeyColDupMap, checkKeyColDupMapMutex, &tmpMax)
 				newVolumeVal := samehada_util.GetInt32ValCorrespondToPassVal(updateNewKeyValBase)
 				checkBalanceColDupMapMutex.RLock()
 				if _, exist := checkBalanceColDupMap[newVolumeVal]; exist || (newVolumeVal >= 0 && newVolumeVal <= sumOfAllAccountBalanceAtStart) {
@@ -1390,7 +1394,7 @@ func testParallelTxnsQueryingSkipListIndexUsedColumns[T int32 | float32 | string
 	txn_ := txnMgr.Begin(nil)
 
 	// check record num (index of col1 is used)
-	collectNumMaybe := initialEntryNum + insertedTupleCnt - deletedTupleCnt
+	collectNumMaybe := insertedTupleCnt - deletedTupleCnt
 
 	rangeScanPlan1 := createSpecifiedRangeScanPlanNode[T](c, tableMetadata, keyType, 0, nil, nil)
 	results1 := executePlan(c, shi.GetBufferPoolManager(), txn_, rangeScanPlan1)
@@ -1440,7 +1444,8 @@ func testParallelTxnsQueryingSkipListIndexUsedColumns[T int32 | float32 | string
 func testSkipListParallelTxnStrideRoot[T int32 | float32 | string](t *testing.T, keyType types.TypeID) {
 	bpoolSize := int32(500)
 
-	testParallelTxnsQueryingSkipListIndexUsedColumns[T](t, keyType, 100, 10000, 12, 0, bpoolSize)
+	//testParallelTxnsQueryingSkipListIndexUsedColumns[T](t, keyType, 100, 10000, 12, 0, bpoolSize)
+	testParallelTxnsQueryingSkipListIndexUsedColumns[T](t, keyType, 500, 1000, 12, 0, bpoolSize)
 }
 
 func TestSkipListPrallelTxnStrideInteger(t *testing.T) {
