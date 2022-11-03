@@ -199,3 +199,9 @@ func (c *Catalog) GetRollbackNeededIndexes(indexMap map[uint32][]index.Index, oi
 		return indexes_
 	}
 }
+
+func (c *Catalog) GetColValFromTupleForRollback(tuple_ *tuple.Tuple, colIdx uint32, oid uint32) *types.Value {
+	schema_ := c.GetTableByOID(oid).Schema()
+	val := tuple_.GetValue(schema_, colIdx)
+	return &val
+}

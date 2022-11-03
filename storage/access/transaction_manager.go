@@ -166,8 +166,15 @@ func (transaction_manager *TransactionManager) Abort(catalog_ catalog_interface.
 			tuple_ := item.table.GetTuple(&item.rid, txn)
 			for _, index_ := range indexes {
 				if index_ != nil {
-					index_.DeleteEntry(beforRollbackTuple_, item.rid, txn)
-					index_.InsertEntry(tuple_, item.rid, txn)
+					// TODO: (SDB) need to consider rid was changed case
+					colIdx := index_.GetKeyAttrs()[0]
+					bfRlbkKeyVal := catalog_.GetColValFromTupleForRollback(beforRollbackTuple_, colIdx, item.oid)
+					rlbkKeyVal := catalog_.GetColValFromTupleForRollback(tuple_, colIdx, item.oid)
+					if !bfRlbkKeyVal.CompareEquals(*rlbkKeyVal) {
+						// rollback is needed only when column value changed case
+						index_.DeleteEntry(beforRollbackTuple_, item.rid, txn)
+						index_.InsertEntry(tuple_, item.rid, txn)
+					}
 				}
 			}
 		}
