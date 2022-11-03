@@ -42,8 +42,7 @@ func (e *UpdateExecutor) Init() {
 // tyring to find a tuple to be updated. It performs selection on-the-fly
 func (e *UpdateExecutor) Next() (*tuple.Tuple, Done, error) {
 
-	// iterates through the table heap trying to select a tuple that matches the predicate
-	//for t := e.it.Current(); !e.it.End(); t = e.it.Next() {
+	// t is tuple before update
 	for t, done, err := e.child.Next(); !done; t, done, err = e.child.Next() {
 		if t == nil {
 			err_ := errors.New("e.it.Next returned nil")
@@ -78,23 +77,25 @@ func (e *UpdateExecutor) Next() (*tuple.Tuple, Done, error) {
 				continue
 			} else {
 				index_ := ret
-				//index_.DeleteEntry(e.it.Current(), *rid, e.txn)
-				index_.DeleteEntry(t, *rid, e.txn)
-				if samehada_util.IsContainList[int](updateIdxs, ii) {
+				if updateIdxs == nil || samehada_util.IsContainList[int](updateIdxs, ii) {
 					if new_rid != nil {
 						// when tuple is moved page location on update, RID is changed to new value
+						index_.DeleteEntry(t, *rid, e.txn)
 						fmt.Println("UpdateExecuter: index entry insert with new_rid.")
 						index_.InsertEntry(new_tuple, *new_rid, e.txn)
 					} else {
+						index_.DeleteEntry(t, *rid, e.txn)
 						index_.InsertEntry(new_tuple, *rid, e.txn)
 					}
 				} else {
 					if new_rid != nil {
 						// when tuple is moved page location on update, RID is changed to new value
-						fmt.Println("UpdateExecuter: index entry insert with new_rid.")
+						fmt.Println("UpdateExecuter: index entry insert with new_rid. value update of index entry occurs.")
 						index_.InsertEntry(t, *new_rid, e.txn)
 					} else {
-						index_.InsertEntry(t, *rid, e.txn)
+						// update is not needed
+
+						//index_.InsertEntry(t, *rid, e.txn)
 					}
 				}
 			}
