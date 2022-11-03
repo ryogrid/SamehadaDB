@@ -83,9 +83,9 @@ func (log_manager *LogManager) Flush() {
 
 	// fmt.Printf("offset at Flush:%d\n", offset)
 	(*log_manager.disk_manager).WriteLog(log_manager.flush_buffer[:offset])
-	log_manager.wlog_mutex.Unlock()
 
 	log_manager.persistent_lsn = lsn
+	log_manager.wlog_mutex.Unlock()
 }
 
 /*
@@ -127,11 +127,13 @@ func (log_manager *LogManager) IsEnabledLogging() bool { return log_manager.isEn
 func (log_manager *LogManager) AppendLogRecord(log_record *LogRecord) types.LSN {
 	// First, serialize the must have fields(20 bytes in total)
 
+	log_manager.latch.WLock()
 	if common.LogBufferSize-log_manager.offset < HEADER_SIZE {
+		log_manager.latch.WUnlock()
 		log_manager.Flush()
+		log_manager.latch.WLock()
 	}
 
-	log_manager.latch.WLock()
 	log_record.Lsn = log_manager.next_lsn
 	log_manager.next_lsn += 1
 	headerInBytes := log_record.GetLogHeaderData()

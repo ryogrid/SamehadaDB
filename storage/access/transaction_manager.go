@@ -63,6 +63,13 @@ func (transaction_manager *TransactionManager) Commit(txn *Transaction) {
 
 	// Perform all deletes before we commit.
 	write_set := txn.GetWriteSet()
+	if common.EnableDebug {
+		common.ShPrintf(common.RDB_OP_FUNC_CALL, "TransactionManager::Commit txn.txn_id:%v write_set:", txn.txn_id)
+		for _, writeItem := range write_set {
+			common.ShPrintf(common.RDB_OP_FUNC_CALL, "%v ", *writeItem)
+		}
+		common.ShPrintf(common.RDB_OP_FUNC_CALL, "\n")
+	}
 	for len(write_set) != 0 {
 		item := write_set[len(write_set)-1]
 		table := item.table
