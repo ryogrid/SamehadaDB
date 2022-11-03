@@ -726,7 +726,7 @@ func testParallelTxnsQueryingSkipListIndexUsedColumns[T int32 | float32 | string
 	tableMetadata := c.CreateTable("test_1", schema_, txn)
 	txnMgr.Commit(txn)
 
-	const THREAD_NUM = 20 // 2 // 1
+	const THREAD_NUM = 10 //20 // 2 // 1
 
 	rand.Seed(int64(seedVal))
 
@@ -748,7 +748,7 @@ func testParallelTxnsQueryingSkipListIndexUsedColumns[T int32 | float32 | string
 	txn = txnMgr.Begin(nil)
 
 	// insert account records
-	const ACCOUNT_NUM = 4
+	const ACCOUNT_NUM = 20 //4
 	const BALANCE_AT_START = 1000000
 	sumOfAllAccountBalanceAtStart := int32(0)
 	accountIds := make([]T, 0)
