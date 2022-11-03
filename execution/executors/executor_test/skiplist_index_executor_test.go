@@ -972,7 +972,7 @@ func testParallelTxnsQueryingSkipListIndexUsedColumns[T int32 | float32 | string
 		//// get 0-7
 		//opType := rand.Intn(8)
 		//opType := 0
-		opType := rand.Intn(5)
+		opType := rand.Intn(7)
 		switch opType {
 		case 0: // Update two account volume (move money)
 			go func() {
@@ -1251,16 +1251,14 @@ func testParallelTxnsQueryingSkipListIndexUsedColumns[T int32 | float32 | string
 			tmpRand := rand.Intn(2)
 			if tmpRand == 0 { // 50% is Select to not existing entry
 				go func() {
-					insValsMutex.RLock()
-					if len(insVals) == 0 {
-						insValsMutex.RUnlock()
+					deletedValsForDeleteMutex.RLock()
+					if len(deletedValsForDelete) == 0 {
+						deletedValsForDeleteMutex.RUnlock()
 						ch <- 1
 						return
 					}
-					tmpIdx := int(rand.Intn(len(insVals)))
-					//fmt.Printf("sl.GetValue at testSkipListMix: jj=%d, tmpIdx=%d insVals[tmpIdx]=%d len(*insVals)=%d len(*deletedValsForSelectUpdate)=%d\n", jj, tmpIdx, insVals[tmpIdx], len(insVals), len(deletedValsForSelectUpdate))
-					getTgtBase := insVals[tmpIdx]
-					insValsMutex.RUnlock()
+					getTgtBase := samehada_util.ChoiceValFromMap(deletedValsForDelete)
+					deletedValsForDeleteMutex.RUnlock()
 					txn_ := txnMgr.Begin(nil)
 					for jj := int32(0); jj < stride; jj++ {
 						getKeyVal := samehada_util.StrideAdd(samehada_util.StrideMul(getTgtBase, stride), jj).(T)
@@ -1293,8 +1291,6 @@ func testParallelTxnsQueryingSkipListIndexUsedColumns[T int32 | float32 | string
 					txn_ := txnMgr.Begin(nil)
 					for jj := int32(0); jj < stride; jj++ {
 						getKeyVal := samehada_util.StrideAdd(samehada_util.StrideMul(getKeyValBase, stride), jj).(T)
-						//getTgtVal := types.NewValue(getKeyVal)
-						//correctVal := samehada_util.GetValueForSkipListEntry(getKeyVal)
 
 						common.ShPrintf(common.DEBUGGING, "Select(success) op start.")
 						selectPlan := createSpecifiedPointScanPlanNode(getKeyVal, c, tableMetadata, keyType)
