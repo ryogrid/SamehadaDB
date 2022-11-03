@@ -152,9 +152,11 @@ func (t *TableHeap) UpdateTuple(tuple_ *tuple.Tuple, update_col_idxs []int, sche
 	}
 
 	// Update the transaction's write set.
+	// when txn is ABORTED state case, data is not updated. so adding a write set entry is not needed
 	if is_updated && txn.GetState() != ABORTED {
 		txn.AddIntoWriteSet(NewWriteRecord(rid, UPDATE, old_tuple, t, oid))
 	}
+
 	return is_updated, new_rid
 }
 
