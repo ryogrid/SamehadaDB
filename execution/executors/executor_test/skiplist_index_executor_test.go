@@ -972,7 +972,7 @@ func testParallelTxnsQueryingSkipListIndexUsedColumns[T int32 | float32 | string
 		//// get 0-7
 		//opType := rand.Intn(8)
 		//opType := 0
-		opType := rand.Intn(4)
+		opType := rand.Intn(5)
 		switch opType {
 		case 0: // Update two account volume (move money)
 			go func() {
@@ -1222,6 +1222,7 @@ func testParallelTxnsQueryingSkipListIndexUsedColumns[T int32 | float32 | string
 					checkKeyColDupMapDeleteWithLock(updateNewKeyValBase)
 					goto retry3
 				}
+				checkBalanceColDupMapMutex.RUnlock()
 				checkBalanceColDupMapSetWithLock(newVolumeVal)
 
 				txn_ := txnMgr.Begin(nil)
@@ -1445,7 +1446,7 @@ func testSkipListParallelTxnStrideRoot[T int32 | float32 | string](t *testing.T,
 	bpoolSize := int32(500)
 
 	//testParallelTxnsQueryingSkipListIndexUsedColumns[T](t, keyType, 100, 10000, 12, 0, bpoolSize)
-	testParallelTxnsQueryingSkipListIndexUsedColumns[T](t, keyType, 500, 1000, 12, 0, bpoolSize)
+	testParallelTxnsQueryingSkipListIndexUsedColumns[T](t, keyType, 500, 10000, 12, 0, bpoolSize)
 }
 
 func TestSkipListPrallelTxnStrideInteger(t *testing.T) {
