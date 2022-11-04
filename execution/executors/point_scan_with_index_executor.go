@@ -80,7 +80,9 @@ func (e *PointScanWithIndexExecutor) Next() (*tuple.Tuple, Done, error) {
 	if len(e.foundTuples) > 0 {
 		tuple_ := e.foundTuples[0]
 		e.foundTuples = e.foundTuples[1:]
-		return e.projects(tuple_), false, nil
+		retTuple := e.projects(tuple_)
+		retTuple.SetRID(tuple_.GetRID())
+		return retTuple, false, nil
 	}
 
 	return nil, true, nil

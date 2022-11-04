@@ -104,7 +104,7 @@ func (e *RangeScanWithIndexExecutor) Next() (*tuple.Tuple, Done, error) {
 			return nil, true, err
 		}
 
-		// check value update after getting iterator which contains snapshot of RIDs and Keys which were Index
+		// check value update after getting iterator which contains snapshot of RIDs and Keys which were stored in Index
 		curKeyVal := tuple_.GetValue(e.tableMetadata.Schema(), uint32(e.plan.GetColIdx()))
 		if !curKeyVal.CompareEquals(*key) {
 			// column value corresponding index key is updated
@@ -125,6 +125,7 @@ func (e *RangeScanWithIndexExecutor) Next() (*tuple.Tuple, Done, error) {
 
 	// tuple_ is projected to OutputSchema
 	ret := e.projects(tuple_)
+	ret.SetRID(tuple_.GetRID())
 
 	return ret, false, nil
 }
@@ -145,7 +146,9 @@ func (e *RangeScanWithIndexExecutor) projects(tuple_ *tuple.Tuple) *tuple.Tuple 
 		values = append(values, tuple_.GetValue(e.tableMetadata.Schema(), colIndex))
 	}
 
-	return tuple.NewTupleFromSchema(values, outputSchema)
+	ret := tuple.NewTupleFromSchema(values, outputSchema)
+	ret.SetRID(tuple_.GetRID())
+	return ret
 }
 
 func (e *RangeScanWithIndexExecutor) GetOutputSchema() *schema.Schema {

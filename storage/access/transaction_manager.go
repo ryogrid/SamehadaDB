@@ -1,6 +1,7 @@
 package access
 
 import (
+	"fmt"
 	"github.com/ryogrid/SamehadaDB/catalog/catalog_interface"
 	"github.com/ryogrid/SamehadaDB/storage/index"
 	"sync"
@@ -56,10 +57,22 @@ func (transaction_manager *TransactionManager) Begin(txn *Transaction) *Transact
 }
 
 func (transaction_manager *TransactionManager) Commit(txn *Transaction) {
+	if common.EnableDebug {
+		common.ShPrintf(common.RDB_OP_FUNC_CALL, "TransactionManager::Commit called. txn.txn_id:%v\n", txn.txn_id)
+	}
 	txn.SetState(COMMITTED)
 
 	// Perform all deletes before we commit.
 	write_set := txn.GetWriteSet()
+	if common.EnableDebug {
+		writeSetStr := ""
+		for _, writeItem := range write_set {
+			//common.ShPrintf(common.RDB_OP_FUNC_CALL, "%v ", *writeItem)
+			writeSetStr += fmt.Sprintf("%v ", *writeItem)
+		}
+		common.ShPrintf(common.RDB_OP_FUNC_CALL, "TransactionManager::Commit txn.txn_id:%v write_set: %s\n", txn.txn_id, writeSetStr)
+		//common.ShPrintf(common.RDB_OP_FUNC_CALL, "\n")
+	}
 	for len(write_set) != 0 {
 		item := write_set[len(write_set)-1]
 		table := item.table
@@ -92,11 +105,23 @@ func (transaction_manager *TransactionManager) Commit(txn *Transaction) {
 }
 
 func (transaction_manager *TransactionManager) Abort(catalog_ catalog_interface.CatalogInterface, txn *Transaction) {
+	if common.EnableDebug {
+		common.ShPrintf(common.RDB_OP_FUNC_CALL, "TransactionManager::Abort called. txn.txn_id:%v\n", txn.txn_id)
+	}
 	txn.SetState(ABORTED)
 
 	indexMap := make(map[uint32][]index.Index, 0)
 	write_set := txn.GetWriteSet()
 
+	if common.EnableDebug {
+		writeSetStr := ""
+		for _, writeItem := range write_set {
+			//common.ShPrintf(common.RDB_OP_FUNC_CALL, "%v ", *writeItem)
+			writeSetStr += fmt.Sprintf("%v ", *writeItem)
+		}
+		common.ShPrintf(common.RDB_OP_FUNC_CALL, "TransactionManager::Abort txn.txn_id:%v write_set: %s\n", txn.txn_id, writeSetStr)
+		//common.ShPrintf(common.RDB_OP_FUNC_CALL, "\n")
+	}
 	// Rollback before releasing the access.
 	for len(write_set) != 0 {
 		item := write_set[len(write_set)-1]
@@ -132,14 +157,24 @@ func (transaction_manager *TransactionManager) Abort(catalog_ catalog_interface.
 		} else if item.wtype == UPDATE {
 			beforRollbackTuple_ := item.table.GetTuple(&item.rid, txn)
 			// rollback record data
-			table.UpdateTuple(item.tuple, nil, nil, item.oid, item.rid, txn)
+			is_updated, _ := table.UpdateTuple(item.tuple, nil, nil, item.oid, item.rid, txn)
+			if !is_updated {
+				panic("UpdateTuple at rollback failed!")
+			}
 			// rollback index data
 			indexes := catalog_.GetRollbackNeededIndexes(indexMap, item.oid)
 			tuple_ := item.table.GetTuple(&item.rid, txn)
 			for _, index_ := range indexes {
 				if index_ != nil {
-					index_.DeleteEntry(beforRollbackTuple_, item.rid, txn)
-					index_.InsertEntry(tuple_, item.rid, txn)
+					// TODO: (SDB) need to consider rid was changed case
+					colIdx := index_.GetKeyAttrs()[0]
+					bfRlbkKeyVal := catalog_.GetColValFromTupleForRollback(beforRollbackTuple_, colIdx, item.oid)
+					rlbkKeyVal := catalog_.GetColValFromTupleForRollback(tuple_, colIdx, item.oid)
+					if !bfRlbkKeyVal.CompareEquals(*rlbkKeyVal) {
+						// rollback is needed only when column value changed case
+						index_.DeleteEntry(beforRollbackTuple_, item.rid, txn)
+						index_.InsertEntry(tuple_, item.rid, txn)
+					}
 				}
 			}
 		}

@@ -3,11 +3,13 @@ package samehada_util
 import (
 	"bytes"
 	"encoding/binary"
+	"github.com/ryogrid/SamehadaDB/common"
 	"github.com/ryogrid/SamehadaDB/storage/page"
 	"github.com/ryogrid/SamehadaDB/types"
 	"math"
 	"math/rand"
 	"os"
+	"strconv"
 )
 
 func FileExists(filename string) bool {
@@ -74,7 +76,123 @@ func RemovePrimitiveFromList[T int32 | float32 | string](list []T, elem T) []T {
 	return list_
 }
 
+func IsContainList[T comparable](list interface{}, searchItem interface{}) bool {
+	for _, t := range list.([]T) {
+		if t == searchItem.(T) {
+			return true
+		}
+	}
+	return false
+}
+
 //func GetParentFuncName() string {
 //	_, name, _, _ := runtime.Caller(1)
 //	return name
 //}
+
+// maxVal is *int32 when get int32 and float32
+func GetRandomPrimitiveVal[T int32 | float32 | string](keyType types.TypeID, maxVal interface{}) T {
+	switch keyType {
+	case types.Integer:
+		var val int32
+		specifiedMax, ok := maxVal.(*int32)
+		if ok {
+			val = rand.Int31n(*specifiedMax)
+		} else {
+			val = rand.Int31()
+		}
+		if val < 0 {
+			val = -1 * ((-1 * val) % (math.MaxInt32 >> 10))
+		} else {
+			val = val % (math.MaxInt32 >> 10)
+		}
+		var ret interface{} = val
+		return ret.(T)
+	case types.Float:
+		var ret interface{}
+		specifiedMax, ok := maxVal.(*int32)
+		if ok {
+			ret = float32(rand.Int31n(*specifiedMax))
+		} else {
+			ret = rand.Float32()
+		}
+		return ret.(T)
+	case types.Varchar:
+		//var ret interface{} = *samehada_util.GetRandomStr(1000)
+		var ret interface{} = *GetRandomStr(500)
+		//var ret interface{} = *samehada_util.GetRandomStr(50)
+		return ret.(T)
+	default:
+		panic("not supported keyType")
+	}
+}
+
+func ChoiceValFromMap[T int32 | float32 | string, V int32 | float32 | string](m map[T]V) T {
+	l := len(m)
+	i := 0
+
+	index := rand.Intn(l)
+
+	var ans T
+	for k, _ := range m {
+		if index == i {
+			ans = k
+			break
+		} else {
+			i++
+		}
+	}
+	return ans
+}
+
+func GetValueForSkipListEntry(val interface{}) uint32 {
+	var ret uint32
+	switch val.(type) {
+	case int32:
+		ret = uint32(val.(int32))
+	case float32:
+		ret = uint32(val.(float32))
+	case string:
+		ret = uint32(len(val.(string)))
+	default:
+		panic("unsupported type!")
+	}
+	return ret
+}
+
+func StrideAdd(base interface{}, k interface{}) interface{} {
+	switch base.(type) {
+	case int32:
+		return base.(int32) + k.(int32)
+	case float32:
+		return base.(float32) + k.(float32)
+	case string:
+		//buf := make([]byte, k.(int32))
+		//memset(buf, 'Z')
+		return base.(string) + "+" + strconv.Itoa(int(k.(int32)))
+	default:
+		panic("not supported type")
+	}
+}
+
+func StrideMul(base interface{}, k interface{}) interface{} {
+	switch base.(type) {
+	case int32:
+		return base.(int32) * k.(int32)
+	case float32:
+		return base.(float32) * k.(float32)
+	case string:
+		//return "DEADBEAF" + base.(string)
+		//buf := make([]byte, k.(int32))
+		//memset(buf, 'A')
+		return base.(string) + "*" + strconv.Itoa(int(k.(int32)))
+	default:
+		panic("not supported type")
+	}
+}
+
+func TimeoutPanic() {
+	common.RuntimeStack()
+	os.Stdout.Sync()
+	panic("timeout reached")
+}

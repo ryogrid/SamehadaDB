@@ -1,7 +1,6 @@
 package executors
 
 import (
-	"errors"
 	"github.com/ryogrid/SamehadaDB/catalog"
 	"github.com/ryogrid/SamehadaDB/common"
 	"github.com/ryogrid/SamehadaDB/container/hash"
@@ -131,10 +130,10 @@ func (e *HashJoinExecutor) Next() (*tuple.Tuple, Done, error) {
 			var done Done = false
 			var tmp_tuple *tuple.Tuple
 			if tmp_tuple, done, _ = e.right_.Next(); done {
-				if tmp_tuple == nil {
-					err := errors.New("e.right_.Next returned nil")
-					return nil, false, err
-				}
+				//if tmp_tuple == nil {
+				//	err := errors.New("e.right_.Next returned nil")
+				//	return nil, false, err
+				//}
 
 				// hash join finished, delete all the tmp page we created
 				for _, tmp_page_id := range e.tmp_page_ids_ {

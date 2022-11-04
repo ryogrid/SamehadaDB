@@ -56,7 +56,8 @@ func (p *Page) DecPinCount() {
 
 // PinCount retunds the pin count
 func (p *Page) PinCount() int32 {
-	return p.pinCount
+	return atomic.LoadInt32(&p.pinCount)
+	//return p.pinCount
 }
 
 // ID retunds the page id
@@ -171,7 +172,7 @@ func (p *Page) PrintMutexDebugInfo() {
 
 func (p *Page) PrintPinCount() {
 	if common.EnableDebug {
-		common.ShPrintf(common.DEBUG_INFO, "PageId=%d PinCount=%d\n", p.id, p.pinCount)
+		common.ShPrintf(common.DEBUG_INFO, "PageId=%d PinCount=%d\n", p.id, p.PinCount())
 	}
 }
 

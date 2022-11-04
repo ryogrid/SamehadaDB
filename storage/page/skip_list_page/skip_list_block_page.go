@@ -866,7 +866,7 @@ func (node *SkipListBlockPage) SetEntrySize(idx int, setSize uint16) {
 	copy(node.Data()[offset:], setSizeInBytes)
 }
 
-// memo: freeSpacePointer value is index of buffer which points already data placed
+// note: freeSpacePointer value is index of buffer which points already data placed
 //
 //	so, you can use memory Data()[someOffset:freeSpacePointer] in golang description
 func (node *SkipListBlockPage) GetFreeSpacePointer() uint32 {

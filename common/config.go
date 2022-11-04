@@ -31,7 +31,7 @@ const (
 	HeaderPageID = 0
 	// size of a data page in byte
 	PageSize                     = 4096 //1024 //512
-	BufferPoolMaxFrameNumForTest = 32
+	BufferPoolMaxFrameNumForTest = 500  //4000 //32
 	// number for calculate log buffer size (number of page size)
 	LogBufferSizeBase = 32
 	// size of a log buffer in byte
@@ -40,7 +40,7 @@ const (
 	BucketSizeOfHashIndex = 10
 	// probability used for determin node level on SkipList
 	SkipListProb    = 0.5  //0.25
-	LogLevelSetting = INFO //DEBUG_INFO_DETAIL //DEBUG_INFO //DEBUGGING
+	LogLevelSetting = INFO //| RDB_OP_FUNC_CALL | DEBUGGING //DEBUG_INFO_DETAIL //DEBUG_INFO //DEBUGGING
 )
 
 type TxnID int32        // transaction id type

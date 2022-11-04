@@ -14,18 +14,18 @@ import (
  */
 type RangeScanWithIndexPlanNode struct {
 	*AbstractPlanNode
-	predicate  *expression.Comparison
+	predicate  expression.Expression
 	tableOID   uint32
 	colIdx     int32 // column idx which has index to be used
 	startRange *types.Value
 	endRange   *types.Value
 }
 
-func NewRangeScanWithIndexPlanNode(schema *schema.Schema, tableOID uint32, colIdx int32, predicate *expression.Comparison, startRange *types.Value, endRange *types.Value) Plan {
+func NewRangeScanWithIndexPlanNode(schema *schema.Schema, tableOID uint32, colIdx int32, predicate expression.Expression, startRange *types.Value, endRange *types.Value) Plan {
 	return &RangeScanWithIndexPlanNode{&AbstractPlanNode{schema, nil}, predicate, tableOID, colIdx, startRange, endRange}
 }
 
-func (p *RangeScanWithIndexPlanNode) GetPredicate() *expression.Comparison {
+func (p *RangeScanWithIndexPlanNode) GetPredicate() expression.Expression {
 	return p.predicate
 }
 
