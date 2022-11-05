@@ -990,8 +990,8 @@ func testParallelTxnsQueryingSkipListIndexUsedColumns[T int32 | float32 | string
 		common.ShPrintf(common.DEBUGGING, "ii=%d\n", ii)
 
 		//// get 0-7
-		//opType := rand.Intn(8)
-		opType := 0
+		opType := rand.Intn(4)
+		//opType := 0
 		switch opType {
 		case 0: // Update two account balance (move money)
 			go func() {
