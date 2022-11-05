@@ -80,14 +80,11 @@ func (t *TableHeap) InsertTuple(tuple_ *tuple.Tuple, txn *Transaction, oid uint3
 			t.bpm.UnpinPage(currentPage.GetTablePageId(), false)
 			currentPage.WUnlatch()
 			currentPage = CastPageAsTablePage(t.bpm.FetchPage(nextPageId))
-			//currentPage.WLatch()
 		} else {
 			p := t.bpm.NewPage()
 			currentPage.SetNextPageId(p.ID())
 			currentPage.WUnlatch()
 			newPage := CastPageAsTablePage(p)
-			//newPage.WLatch()
-			//currentPage.SetNextPageId(p.ID())
 			currentPage.RLatch()
 			newPage.Init(p.ID(), currentPage.GetTablePageId(), t.log_manager, t.lock_manager, txn)
 			t.bpm.FlushPage(newPage.GetPageId())
@@ -96,7 +93,6 @@ func (t *TableHeap) InsertTuple(tuple_ *tuple.Tuple, txn *Transaction, oid uint3
 			currentPage = newPage
 		}
 	}
-	//currentPage.WUnlatch()
 
 	t.bpm.UnpinPage(currentPage.GetTablePageId(), true)
 	// Update the transaction's write set.

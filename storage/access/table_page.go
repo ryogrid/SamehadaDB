@@ -440,6 +440,9 @@ func (tp *TablePage) GetFreeSpacePointer() uint32 {
 }
 
 func (tp *TablePage) GetTuple(rid *page.RID, log_manager *recovery.LogManager, lock_manager *LockManager, txn *Transaction) *tuple.Tuple {
+	if common.EnableDebug {
+		common.ShPrintf(common.RDB_OP_FUNC_CALL, "TablePage::GetTuple called. txn.txn_id:%v rid:%v\n", txn.txn_id, *rid)
+	}
 	// If somehow we have more slots than tuples, abort transaction
 	if rid.GetSlotNum() >= tp.GetTupleCount() {
 		if log_manager.IsEnabledLogging() {

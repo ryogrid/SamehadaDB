@@ -11,7 +11,7 @@ import (
 var LogTimeout time.Duration
 
 // var EnableLogging bool = false //true
-const EnableDebug bool = true //false
+const EnableDebug bool = false //true
 // use virtual storage or not
 const EnableOnMemStorage = true //false
 
@@ -39,8 +39,8 @@ const (
 	// size of hash bucket
 	BucketSizeOfHashIndex = 10
 	// probability used for determin node level on SkipList
-	SkipListProb    = 0.5                                 //0.25
-	LogLevelSetting = INFO | RDB_OP_FUNC_CALL | DEBUGGING //DEBUG_INFO_DETAIL //DEBUG_INFO //DEBUGGING
+	SkipListProb    = 0.5  //0.25
+	LogLevelSetting = INFO //| RDB_OP_FUNC_CALL | DEBUGGING //DEBUG_INFO_DETAIL //DEBUG_INFO //DEBUGGING
 )
 
 type TxnID int32        // transaction id type
