@@ -993,7 +993,7 @@ func testParallelTxnsQueryingSkipListIndexUsedColumns[T int32 | float32 | string
 		//opType := rand.Intn(8)
 		opType := 0
 		switch opType {
-		case 0: // Update two account volume (move money)
+		case 0: // Update two account balance (move money)
 			go func() {
 				txn_ := txnMgr.Begin(nil)
 
