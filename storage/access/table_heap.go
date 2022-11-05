@@ -128,6 +128,11 @@ func (t *TableHeap) UpdateTuple(tuple_ *tuple.Tuple, update_col_idxs []int, sche
 
 	var new_rid *page.RID = nil
 	if is_updated == false && err == ErrNotEnoughSpace {
+		// TODO: (SDB) this early return with ABORTED state exists (TableHeap::UpdateTuple)
+		//             because rollback and recovery when this case fail currently
+		txn.SetState(ABORTED)
+		return false, &rid
+
 		// delete and insert need_follow_tuple as updating
 
 		// first, delete target tuple (old data)
