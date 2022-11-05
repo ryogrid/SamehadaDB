@@ -1468,7 +1468,7 @@ func testSkipListParallelTxnStrideRoot[T int32 | float32 | string](t *testing.T,
 		//testParallelTxnsQueryingSkipListIndexUsedColumns[T](t, keyType, 100, 10000, 12, 0, bpoolSize)
 		testParallelTxnsQueryingSkipListIndexUsedColumns[T](t, keyType, 500, 10000, 13, 100, bpoolSize)
 	case types.Varchar:
-		testParallelTxnsQueryingSkipListIndexUsedColumns[T](t, keyType, 50, 100, 13, 100, bpoolSize)
+		testParallelTxnsQueryingSkipListIndexUsedColumns[T](t, keyType, 50, 100, 13, 0, bpoolSize)
 	default:
 		panic("not implemented!")
 	}
