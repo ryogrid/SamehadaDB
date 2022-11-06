@@ -30,10 +30,10 @@ func NewTableHeap(bpm *buffer.BufferPoolManager, log_manager *recovery.LogManage
 	firstPage := CastPageAsTablePage(p)
 	firstPage.WLatch()
 	firstPage.Init(p.ID(), types.InvalidPageID, log_manager, lock_manager, txn)
-	firstPage.WUnlatch()
 	// flush page for recovery process works...
 	bpm.FlushPage(p.ID())
 	bpm.UnpinPage(p.ID(), true)
+	firstPage.WUnlatch()
 	return &TableHeap{bpm, p.ID(), log_manager, lock_manager}
 }
 
@@ -67,7 +67,7 @@ func (t *TableHeap) InsertTuple(tuple_ *tuple.Tuple, txn *Transaction, oid uint3
 		currentPage.WLatch()
 		rid, err = currentPage.InsertTuple(tuple_, t.log_manager, t.lock_manager, txn)
 		if err == nil || err == ErrEmptyTuple {
-			currentPage.WUnlatch()
+			//currentPage.WUnlatch()
 			break
 		}
 		if rid == nil && err != nil && err != ErrEmptyTuple && err != ErrNotEnoughSpace {
@@ -86,15 +86,20 @@ func (t *TableHeap) InsertTuple(tuple_ *tuple.Tuple, txn *Transaction, oid uint3
 			currentPage.WUnlatch()
 			newPage := CastPageAsTablePage(p)
 			currentPage.RLatch()
+			newPage.WLatch()
 			newPage.Init(p.ID(), currentPage.GetTablePageId(), t.log_manager, t.lock_manager, txn)
 			t.bpm.FlushPage(newPage.GetPageId())
-			t.bpm.UnpinPage(currentPage.GetTablePageId(), true)
+			newPage.WUnlatch()
 			currentPage.RUnlatch()
+			currentPage.WLatch()
+			t.bpm.UnpinPage(currentPage.GetTablePageId(), true)
+			currentPage.WUnlatch()
 			currentPage = newPage
 		}
 	}
 
 	t.bpm.UnpinPage(currentPage.GetTablePageId(), true)
+	currentPage.WUnlatch()
 	// Update the transaction's write set.
 	txn.AddIntoWriteSet(NewWriteRecord(*rid, INSERT, new(tuple.Tuple), t, oid))
 	return rid, nil
@@ -119,8 +124,8 @@ func (t *TableHeap) UpdateTuple(tuple_ *tuple.Tuple, update_col_idxs []int, sche
 
 	page_.WLatch()
 	is_updated, err, need_follow_tuple := page_.UpdateTuple(tuple_, update_col_idxs, schema_, old_tuple, &rid, txn, t.lock_manager, t.log_manager)
-	page_.WUnlatch()
 	t.bpm.UnpinPage(page_.GetTablePageId(), is_updated)
+	page_.WUnlatch()
 
 	var new_rid *page.RID = nil
 	if is_updated == false && err == ErrNotEnoughSpace {
@@ -186,8 +191,8 @@ func (t *TableHeap) MarkDelete(rid *page.RID, oid uint32, txn *Transaction) bool
 	// Otherwise, mark the tuple as deleted.
 	page_.WLatch()
 	is_marked := page_.MarkDelete(rid, txn, t.lock_manager, t.log_manager)
-	page_.WUnlatch()
 	t.bpm.UnpinPage(page_.GetTablePageId(), true)
+	page_.WUnlatch()
 	if is_marked {
 		// Update the transaction's write set.
 		txn.AddIntoWriteSet(NewWriteRecord(*rid, DELETE, new(tuple.Tuple), t, oid))
@@ -207,8 +212,8 @@ func (t *TableHeap) ApplyDelete(rid *page.RID, txn *Transaction) {
 	page_.WLatch()
 	page_.ApplyDelete(rid, txn, t.log_manager)
 	//t.lock_manager.WUnlock(txn, []page.RID{*rid})
-	page_.WUnlatch()
 	t.bpm.UnpinPage(page_.GetTablePageId(), true)
+	page_.WUnlatch()
 }
 
 func (t *TableHeap) RollbackDelete(rid *page.RID, txn *Transaction) {
@@ -221,8 +226,8 @@ func (t *TableHeap) RollbackDelete(rid *page.RID, txn *Transaction) {
 	// Rollback the delete.
 	page_.WLatch()
 	page_.RollbackDelete(rid, txn, t.log_manager)
-	page_.WUnlatch()
 	t.bpm.UnpinPage(page_.GetTablePageId(), true)
+	page_.WUnlatch()
 }
 
 // GetTuple reads a tuple from the table
@@ -235,10 +240,12 @@ func (t *TableHeap) GetTuple(rid *page.RID, txn *Transaction) *tuple.Tuple {
 		return nil
 	}
 	page := CastPageAsTablePage(t.bpm.FetchPage(rid.GetPageId()))
-	defer t.bpm.UnpinPage(page.ID(), false)
 	page.RLatch()
 	ret := page.GetTuple(rid, t.log_manager, t.lock_manager, txn)
 	page.RUnlatch()
+	page.WLatch()
+	t.bpm.UnpinPage(page.ID(), false)
+	page.WUnlatch()
 	return ret
 }
 
@@ -248,15 +255,15 @@ func (t *TableHeap) GetFirstTuple(txn *Transaction) *tuple.Tuple {
 	pageId := t.firstPageId
 	for pageId.IsValid() {
 		page := CastPageAsTablePage(t.bpm.FetchPage(pageId))
-		page.RLatch()
+		page.WLatch()
 		rid = page.GetTupleFirstRID()
 		t.bpm.UnpinPage(pageId, false)
 		if rid != nil {
-			page.RUnlatch()
+			page.WUnlatch()
 			break
 		}
 		pageId = page.GetNextPageId()
-		page.RUnlatch()
+		page.WUnlatch()
 	}
 	if rid == nil {
 		return nil

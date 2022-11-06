@@ -1567,6 +1567,10 @@ func handleFnishTxn(catalog_ *catalog.Catalog, txn_mgr *access.TransactionManage
 }
 
 func TestConcurrentTransactionExecution(t *testing.T) {
+	if testing.Short() {
+		t.Skip("skip this in short mode.")
+	}
+
 	if !common.EnableOnMemStorage {
 		os.Remove(t.Name() + ".db")
 		os.Remove(t.Name() + ".log")

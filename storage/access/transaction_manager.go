@@ -60,7 +60,7 @@ func (transaction_manager *TransactionManager) Commit(txn *Transaction) {
 	if common.EnableDebug {
 		common.ShPrintf(common.RDB_OP_FUNC_CALL, "TransactionManager::Commit called. txn.txn_id:%v\n", txn.txn_id)
 	}
-	txn.SetState(COMMITTED)
+	//txn.SetState(COMMITTED)
 
 	// Perform all deletes before we commit.
 	write_set := txn.GetWriteSet()
@@ -108,7 +108,7 @@ func (transaction_manager *TransactionManager) Abort(catalog_ catalog_interface.
 	if common.EnableDebug {
 		common.ShPrintf(common.RDB_OP_FUNC_CALL, "TransactionManager::Abort called. txn.txn_id:%v\n", txn.txn_id)
 	}
-	txn.SetState(ABORTED)
+	//txn.SetState(ABORTED)
 
 	indexMap := make(map[uint32][]index.Index, 0)
 	write_set := txn.GetWriteSet()

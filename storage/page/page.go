@@ -47,6 +47,7 @@ func (p *Page) IncPinCount() {
 
 // DecPinCount decrements pin count
 func (p *Page) DecPinCount() {
+	// TODO: (SDB) these code are not atomic (Page::DecPinCount)
 	if p.pinCount > 0 {
 		atomic.AddInt32(&p.pinCount, -1)
 	}

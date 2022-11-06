@@ -1038,7 +1038,19 @@ func testParallelTxnsQueryingSkipListIndexUsedColumns[T int32 | float32 | string
 		common.ShPrintf(common.DEBUGGING, "ii=%d\n", ii)
 
 		//// get 0-7
-		opType := rand.Intn(4)
+		//opType := rand.Intn(8)
+
+		//// except range scan
+		//opType := rand.Intn(7)
+
+		// move money, random Insert, Delete
+		opType := rand.Intn(3)
+
+		//// move money, Random Insert, Random Update, Random Point Scan
+		//opType := rand.Intn(5)
+		//if opType >= 2 {
+		//	opType = opType + 2
+		//}
 		//opType := 0
 		switch opType {
 		case 0: // Update two account balance (move money)
@@ -1180,7 +1192,8 @@ func testParallelTxnsQueryingSkipListIndexUsedColumns[T int32 | float32 | string
 			}()
 		case 2, 3: // Delete
 			// get 0-1 value
-			tmpRand := rand.Intn(2)
+			//tmpRand := rand.Intn(2)
+			tmpRand := 1
 			if tmpRand == 0 {
 				// 50% is Delete to not existing entry
 				go func() {
@@ -1523,8 +1536,13 @@ func testSkipListParallelTxnStrideRoot[T int32 | float32 | string](t *testing.T,
 	switch keyType {
 	case types.Integer:
 		//testParallelTxnsQueryingSkipListIndexUsedColumns[T](t, keyType, 100, 10000, 12, 0, bpoolSize)
-		//testParallelTxnsQueryingSkipListIndexUsedColumns[T](t, keyType, 500, 10000, 13, 100, bpoolSize)
-		testParallelTxnsQueryingSkipListIndexUsedColumns[T](t, keyType, 500, 1000, 13, 0, bpoolSize, index_constants.INDEX_KIND_INVAID)
+		//testParallelTxnsQueryingSkipListIndexUsedColumns[T](t, keyType, 500, 50, 13, 0, bpoolSize, index_constants.INDEX_KIND_INVAID)
+		//testParallelTxnsQueryingSkipListIndexUsedColumns[T](t, keyType, 500, 1000, 13, 0, bpoolSize, index_constants.INDEX_KIND_SKIP_LIST)
+		//testParallelTxnsQueryingSkipListIndexUsedColumns[T](t, keyType, 500, 1000, 13, 100, bpoolSize, index_constants.INDEX_KIND_SKIP_LIST)
+		//testParallelTxnsQueryingSkipListIndexUsedColumns[T](t, keyType, 500, 1000, 13, 0, bpoolSize, index_constants.INDEX_KIND_INVAID)
+		testParallelTxnsQueryingSkipListIndexUsedColumns[T](t, keyType, 500, 100, 13, 0, bpoolSize, index_constants.INDEX_KIND_INVAID)
+		//testParallelTxnsQueryingSkipListIndexUsedColumns[T](t, keyType, 500, 100, 13, 100, bpoolSize, index_constants.INDEX_KIND_SKIP_LIST)
+		//testParallelTxnsQueryingSkipListIndexUsedColumns[T](t, keyType, 500, 1000, 13, 100, bpoolSize, index_constants.INDEX_KIND_SKIP_LIST)
 	case types.Varchar:
 		testParallelTxnsQueryingSkipListIndexUsedColumns[T](t, keyType, 50, 100, 13, 100, bpoolSize, index_constants.INDEX_KIND_INVAID)
 	default:
