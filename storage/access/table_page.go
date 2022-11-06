@@ -239,13 +239,13 @@ func (tp *TablePage) MarkDelete(rid *page.RID, txn *Transaction, lock_manager *L
 	}
 
 	tuple_size := tp.GetTupleSize(slot_num)
-	// If the tuple is already deleted, abort the transaction.
-	if IsDeleted(tuple_size) {
-		if log_manager.IsEnabledLogging() {
-			txn.SetState(ABORTED)
-		}
-		return false
-	}
+	//// If the tuple is already deleted, abort the transaction.
+	//if IsDeleted(tuple_size) {
+	//	if log_manager.IsEnabledLogging() {
+	//		txn.SetState(ABORTED)
+	//	}
+	//	return false
+	//}
 
 	if log_manager.IsEnabledLogging() {
 		// Acquire an exclusive lock, upgrading from a shared lock if necessary.
