@@ -170,7 +170,9 @@ func (txn *Transaction) GetState() TransactionState { return txn.state }
  */
 func (txn *Transaction) SetState(state TransactionState) {
 	if common.EnableDebug {
-		common.ShPrintf(common.RDB_OP_FUNC_CALL, "Transaction::SetState called. txn.txn_id:%d dbgInfo:%s state:%d%\n", txn.txn_id, *txn.dbgInfo, state)
+		if state == ABORTED {
+			common.ShPrintf(common.RDB_OP_FUNC_CALL, "Transaction::SetState called. txn.txn_id:%d dbgInfo:%s state:ABORTED\n", txn.txn_id, *txn.dbgInfo)
+		}
 	}
 	txn.state = state
 }
