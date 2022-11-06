@@ -1042,8 +1042,8 @@ func testParallelTxnsQueryingSkipListIndexUsedColumns[T int32 | float32 | string
 
 		// move money, Random Insert, Random Update only
 		opType := rand.Intn(3)
-		if opType == 2 {
-			opType = 4 // change to Random Update
+		if opType >= 2 {
+			opType = opType + 2 // change to Random Update or Point Scan (success, fail) or RangeScan
 		}
 		//opType := 0
 		switch opType {
