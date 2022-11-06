@@ -1037,14 +1037,14 @@ func testParallelTxnsQueryingSkipListIndexUsedColumns[T int32 | float32 | string
 		}
 		common.ShPrintf(common.DEBUGGING, "ii=%d\n", ii)
 
-		//// get 0-7
-		//opType := rand.Intn(8)
+		// get 0-7
+		opType := rand.Intn(8)
 
-		// move money, Random Insert, Random Update only
-		opType := rand.Intn(3)
-		if opType >= 2 {
-			opType = opType + 2 // change to Random Update or Point Scan (success, fail) or RangeScan
-		}
+		//// move money, Random Insert, Random Update only
+		//opType := rand.Intn(3)
+		//if opType >= 2 {
+		//	opType = opType + 2 // change to Random Update or Point Scan (success, fail) or RangeScan
+		//}
 		//opType := 0
 		switch opType {
 		case 0: // Update two account balance (move money)
