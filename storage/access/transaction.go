@@ -168,7 +168,12 @@ func (txn *Transaction) GetState() TransactionState { return txn.state }
 * Set the state of the access.
 * @param state new state
  */
-func (txn *Transaction) SetState(state TransactionState) { txn.state = state }
+func (txn *Transaction) SetState(state TransactionState) {
+	if common.EnableDebug {
+		common.ShPrintf(common.RDB_OP_FUNC_CALL, "Transaction::SetState called. txn.txn_id:%d dbgInfo:%s state:%d%\n", txn.txn_id, *txn.dbgInfo, state)
+	}
+	txn.state = state
+}
 
 /** @return the previous LSN */
 func (txn *Transaction) GetPrevLSN() types.LSN { return txn.prev_lsn }
