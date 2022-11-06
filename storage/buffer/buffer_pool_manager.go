@@ -157,9 +157,9 @@ func (b *BufferPoolManager) FlushPage(pageID types.PageID) bool {
 	b.mutex.Lock()
 	if frameID, ok := b.pageTable[pageID]; ok {
 		pg := b.pages[frameID]
-		b.mutex.Unlock()
 		//pg.WLatch()
 		pg.DecPinCount()
+		b.mutex.Unlock()
 
 		data := pg.Data()
 		pg.SetIsDirty(false)
