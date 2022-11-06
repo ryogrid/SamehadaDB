@@ -1039,7 +1039,12 @@ func testParallelTxnsQueryingSkipListIndexUsedColumns[T int32 | float32 | string
 
 		//// get 0-7
 		//opType := rand.Intn(8)
-		opType := rand.Intn(2)
+
+		// move money, Random Insert, Random Update only
+		opType := rand.Intn(3)
+		if opType == 2 {
+			opType = 4 // change to Random Update
+		}
 		//opType := 0
 		switch opType {
 		case 0: // Update two account balance (move money)
@@ -1525,7 +1530,8 @@ func testSkipListParallelTxnStrideRoot[T int32 | float32 | string](t *testing.T,
 	switch keyType {
 	case types.Integer:
 		//testParallelTxnsQueryingSkipListIndexUsedColumns[T](t, keyType, 100, 10000, 12, 0, bpoolSize)
-		testParallelTxnsQueryingSkipListIndexUsedColumns[T](t, keyType, 500, 50, 13, 0, bpoolSize, index_constants.INDEX_KIND_INVAID)
+		//testParallelTxnsQueryingSkipListIndexUsedColumns[T](t, keyType, 500, 50, 13, 0, bpoolSize, index_constants.INDEX_KIND_INVAID)
+		testParallelTxnsQueryingSkipListIndexUsedColumns[T](t, keyType, 500, 50, 13, 0, bpoolSize, index_constants.INDEX_KIND_SKIP_LIST)
 		//testParallelTxnsQueryingSkipListIndexUsedColumns[T](t, keyType, 500, 1000, 13, 0, bpoolSize, index_constants.INDEX_KIND_INVAID)
 	case types.Varchar:
 		testParallelTxnsQueryingSkipListIndexUsedColumns[T](t, keyType, 50, 100, 13, 100, bpoolSize, index_constants.INDEX_KIND_INVAID)
