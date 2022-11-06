@@ -86,8 +86,10 @@ func (t *TableHeap) InsertTuple(tuple_ *tuple.Tuple, txn *Transaction, oid uint3
 			currentPage.WUnlatch()
 			newPage := CastPageAsTablePage(p)
 			currentPage.RLatch()
+			newPage.WLatch()
 			newPage.Init(p.ID(), currentPage.GetTablePageId(), t.log_manager, t.lock_manager, txn)
 			t.bpm.FlushPage(newPage.GetPageId())
+			newPage.WUnlatch()
 			t.bpm.UnpinPage(currentPage.GetTablePageId(), true)
 			currentPage.RUnlatch()
 			currentPage = newPage
