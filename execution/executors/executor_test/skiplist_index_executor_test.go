@@ -775,7 +775,7 @@ func testParallelTxnsQueryingSkipListIndexUsedColumns[T int32 | float32 | string
 	tableMetadata := c.CreateTable("test_1", schema_, txn)
 	txnMgr.Commit(txn)
 
-	const THREAD_NUM = 20 //1 // 10 //20 // 2
+	const THREAD_NUM = 1 //20 //1 // 10 //20 // 2
 
 	rand.Seed(int64(seedVal))
 
