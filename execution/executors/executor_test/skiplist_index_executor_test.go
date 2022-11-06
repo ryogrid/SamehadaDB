@@ -775,7 +775,7 @@ func testParallelTxnsQueryingSkipListIndexUsedColumns[T int32 | float32 | string
 	tableMetadata := c.CreateTable("test_1", schema_, txn)
 	txnMgr.Commit(txn)
 
-	const THREAD_NUM = 20 //1 // 10 //20 // 2
+	const THREAD_NUM = 1 //20 //1 // 10 //20 // 2
 
 	rand.Seed(int64(seedVal))
 
@@ -1180,7 +1180,8 @@ func testParallelTxnsQueryingSkipListIndexUsedColumns[T int32 | float32 | string
 			}()
 		case 2, 3: // Delete
 			// get 0-1 value
-			tmpRand := rand.Intn(2)
+			//tmpRand := rand.Intn(2)
+			tmpRand := 1
 			if tmpRand == 0 {
 				// 50% is Delete to not existing entry
 				go func() {
