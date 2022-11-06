@@ -65,7 +65,7 @@ func CastPageAsTablePage(page *page.Page) *TablePage {
 // Inserts a tuple into the table
 func (tp *TablePage) InsertTuple(tuple *tuple.Tuple, log_manager *recovery.LogManager, lock_manager *LockManager, txn *Transaction) (*page.RID, error) {
 	if common.EnableDebug {
-		common.ShPrintf(common.RDB_OP_FUNC_CALL, "TablePage::InsertTuple called. txn.txn_id:%v tuple:%v\n", txn.txn_id, *tuple)
+		common.ShPrintf(common.RDB_OP_FUNC_CALL, "TablePage::InsertTuple called. txn.txn_id:%v dbgInfo:%s tuple:%v\n", txn.txn_id, txn.dbgInfo, *tuple)
 	}
 	if tuple.Size() == 0 {
 		return nil, ErrEmptyTuple
@@ -131,7 +131,7 @@ func (tp *TablePage) InsertTuple(tuple *tuple.Tuple, log_manager *recovery.LogMa
 func (tp *TablePage) UpdateTuple(new_tuple *tuple.Tuple, update_col_idxs []int, schema_ *schema.Schema, old_tuple *tuple.Tuple, rid *page.RID, txn *Transaction,
 	lock_manager *LockManager, log_manager *recovery.LogManager) (bool, error, *tuple.Tuple) {
 	if common.EnableDebug {
-		common.ShPrintf(common.RDB_OP_FUNC_CALL, "TablePage::UpdateTuple called. txn.txn_id:%v new_tuple:%v update_col_idxs:%v rid:%v\n", txn.txn_id, *new_tuple, update_col_idxs, *rid)
+		common.ShPrintf(common.RDB_OP_FUNC_CALL, "TablePage::UpdateTuple called. txn.txn_id:%v dbgInfo:%s new_tuple:%v update_col_idxs:%v rid:%v\n", txn.txn_id, txn.dbgInfo, *new_tuple, update_col_idxs, *rid)
 	}
 	common.SH_Assert(new_tuple.Size() > 0, "Cannot have empty tuples.")
 
@@ -227,7 +227,7 @@ func (tp *TablePage) UpdateTuple(new_tuple *tuple.Tuple, update_col_idxs []int, 
 
 func (tp *TablePage) MarkDelete(rid *page.RID, txn *Transaction, lock_manager *LockManager, log_manager *recovery.LogManager) bool {
 	if common.EnableDebug {
-		common.ShPrintf(common.RDB_OP_FUNC_CALL, "TablePage::MarkDelete called. txn.txn_id:%v rid:%v\n", txn.txn_id, *rid)
+		common.ShPrintf(common.RDB_OP_FUNC_CALL, "TablePage::MarkDelete called. txn.txn_id:%v dbgInfo:%s  rid:%v\n", txn.txn_id, txn.dbgInfo, *rid)
 	}
 	slot_num := rid.GetSlotNum()
 	// If the slot number is invalid, abort the transaction.
@@ -274,7 +274,7 @@ func (tp *TablePage) MarkDelete(rid *page.RID, txn *Transaction, lock_manager *L
 
 func (table_page *TablePage) ApplyDelete(rid *page.RID, txn *Transaction, log_manager *recovery.LogManager) {
 	if common.EnableDebug {
-		common.ShPrintf(common.RDB_OP_FUNC_CALL, "TablePage::ApplyDelete called. txn.txn_id:%v rid:%v\n", txn.txn_id, *rid)
+		common.ShPrintf(common.RDB_OP_FUNC_CALL, "TablePage::ApplyDelete called. txn.txn_id:%v dbgInfo:%s rid:%v\n", txn.txn_id, txn.dbgInfo, *rid)
 	}
 	slot_num := rid.GetSlotNum()
 	common.SH_Assert(slot_num < table_page.GetTupleCount(), "Cannot have more slots than tuples.")
@@ -327,7 +327,7 @@ func (table_page *TablePage) ApplyDelete(rid *page.RID, txn *Transaction, log_ma
 
 func (tp *TablePage) RollbackDelete(rid *page.RID, txn *Transaction, log_manager *recovery.LogManager) {
 	if common.EnableDebug {
-		common.ShPrintf(common.RDB_OP_FUNC_CALL, "TablePage::RollbackDelete called. txn.txn_id:%v rid:%v\n", txn.txn_id, *rid)
+		common.ShPrintf(common.RDB_OP_FUNC_CALL, "TablePage::RollbackDelete called. txn.txn_id:%v dbgInfo:%s rid:%v\n", txn.txn_id, txn.dbgInfo, *rid)
 	}
 	// Log the rollback.
 	if log_manager.IsEnabledLogging() {
@@ -441,7 +441,7 @@ func (tp *TablePage) GetFreeSpacePointer() uint32 {
 
 func (tp *TablePage) GetTuple(rid *page.RID, log_manager *recovery.LogManager, lock_manager *LockManager, txn *Transaction) *tuple.Tuple {
 	if common.EnableDebug {
-		common.ShPrintf(common.RDB_OP_FUNC_CALL, "TablePage::GetTuple called. txn.txn_id:%v rid:%v\n", txn.txn_id, *rid)
+		common.ShPrintf(common.RDB_OP_FUNC_CALL, "TablePage::GetTuple called. txn.txn_id:%v  dbgInfo:%s rid:%v\n", txn.txn_id, txn.dbgInfo, *rid)
 	}
 	// If somehow we have more slots than tuples, abort transaction
 	if rid.GetSlotNum() >= tp.GetTupleCount() {

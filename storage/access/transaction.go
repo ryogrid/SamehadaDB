@@ -90,6 +90,7 @@ type Transaction struct {
 	shared_lock_set []page.RID
 	// /** LockManager: the set of exclusive-locked tuples held by this access. */
 	exclusive_lock_set []page.RID
+	dbgInfo            *string
 }
 
 func NewTransaction(txn_id types.TxnID) *Transaction {
@@ -103,6 +104,7 @@ func NewTransaction(txn_id types.TxnID) *Transaction {
 		// unordered_set<PageID>
 		make([]page.RID, 0),
 		make([]page.RID, 0),
+		new(string),
 	}
 }
 
@@ -176,3 +178,7 @@ func (txn *Transaction) GetPrevLSN() types.LSN { return txn.prev_lsn }
 * @param prev_lsn new previous lsn
  */
 func (txn *Transaction) SetPrevLSN(prev_lsn types.LSN) { txn.prev_lsn = prev_lsn }
+
+func (txn *Transaction) GetDebugInfo() *string { return txn.dbgInfo }
+
+func (txn *Transaction) SetDebugInfo(dbgInfo string) { txn.dbgInfo = &dbgInfo }

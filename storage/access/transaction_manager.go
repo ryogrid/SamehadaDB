@@ -58,7 +58,7 @@ func (transaction_manager *TransactionManager) Begin(txn *Transaction) *Transact
 
 func (transaction_manager *TransactionManager) Commit(txn *Transaction) {
 	if common.EnableDebug {
-		common.ShPrintf(common.RDB_OP_FUNC_CALL, "TransactionManager::Commit called. txn.txn_id:%v\n", txn.txn_id)
+		common.ShPrintf(common.RDB_OP_FUNC_CALL, "TransactionManager::Commit called. txn.txn_id:%v dbgInfo:%s\n", txn.txn_id, txn.dbgInfo)
 	}
 	//txn.SetState(COMMITTED)
 
@@ -70,7 +70,7 @@ func (transaction_manager *TransactionManager) Commit(txn *Transaction) {
 			//common.ShPrintf(common.RDB_OP_FUNC_CALL, "%v ", *writeItem)
 			writeSetStr += fmt.Sprintf("%v ", *writeItem)
 		}
-		common.ShPrintf(common.RDB_OP_FUNC_CALL, "TransactionManager::Commit txn.txn_id:%v write_set: %s\n", txn.txn_id, writeSetStr)
+		common.ShPrintf(common.RDB_OP_FUNC_CALL, "TransactionManager::Commit txn.txn_id:%v dbgInfo:%s write_set:%s\n", txn.txn_id, txn.dbgInfo, writeSetStr)
 		//common.ShPrintf(common.RDB_OP_FUNC_CALL, "\n")
 	}
 	for len(write_set) != 0 {
@@ -106,7 +106,7 @@ func (transaction_manager *TransactionManager) Commit(txn *Transaction) {
 
 func (transaction_manager *TransactionManager) Abort(catalog_ catalog_interface.CatalogInterface, txn *Transaction) {
 	if common.EnableDebug {
-		common.ShPrintf(common.RDB_OP_FUNC_CALL, "TransactionManager::Abort called. txn.txn_id:%v\n", txn.txn_id)
+		common.ShPrintf(common.RDB_OP_FUNC_CALL, "TransactionManager::Abort called. txn.txn_id:%v dbgInfo:%s\n", txn.txn_id)
 	}
 	//txn.SetState(ABORTED)
 
@@ -119,7 +119,7 @@ func (transaction_manager *TransactionManager) Abort(catalog_ catalog_interface.
 			//common.ShPrintf(common.RDB_OP_FUNC_CALL, "%v ", *writeItem)
 			writeSetStr += fmt.Sprintf("%v ", *writeItem)
 		}
-		common.ShPrintf(common.RDB_OP_FUNC_CALL, "TransactionManager::Abort txn.txn_id:%v write_set: %s\n", txn.txn_id, writeSetStr)
+		common.ShPrintf(common.RDB_OP_FUNC_CALL, "TransactionManager::Abort txn.txn_id:%v  dbgInfo:%s write_set: %s\n", txn.txn_id, txn.dbgInfo, writeSetStr)
 		//common.ShPrintf(common.RDB_OP_FUNC_CALL, "\n")
 	}
 	// Rollback before releasing the access.
