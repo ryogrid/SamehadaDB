@@ -1523,8 +1523,8 @@ func testSkipListParallelTxnStrideRoot[T int32 | float32 | string](t *testing.T,
 	switch keyType {
 	case types.Integer:
 		//testParallelTxnsQueryingSkipListIndexUsedColumns[T](t, keyType, 100, 10000, 12, 0, bpoolSize)
-		//testParallelTxnsQueryingSkipListIndexUsedColumns[T](t, keyType, 500, 10000, 13, 100, bpoolSize)
-		testParallelTxnsQueryingSkipListIndexUsedColumns[T](t, keyType, 500, 1000, 13, 0, bpoolSize, index_constants.INDEX_KIND_INVAID)
+		testParallelTxnsQueryingSkipListIndexUsedColumns[T](t, keyType, 500, 100, 13, 0, bpoolSize, index_constants.INDEX_KIND_INVAID)
+		//testParallelTxnsQueryingSkipListIndexUsedColumns[T](t, keyType, 500, 1000, 13, 0, bpoolSize, index_constants.INDEX_KIND_INVAID)
 	case types.Varchar:
 		testParallelTxnsQueryingSkipListIndexUsedColumns[T](t, keyType, 50, 100, 13, 100, bpoolSize, index_constants.INDEX_KIND_INVAID)
 	default:
