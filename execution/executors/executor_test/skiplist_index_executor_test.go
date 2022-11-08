@@ -938,6 +938,7 @@ func testParallelTxnsQueryingSkipListIndexUsedColumns[T int32 | float32 | string
 	// internally, issue new transaction
 	checkTotalBalanceNoChange := func() {
 		txn_ := txnMgr.Begin(nil)
+		txn_.SetDebugInfo("checkTotalBrance-Op")
 		sumOfAllAccountBalanceAfterTest := int32(0)
 		for ii := 0; ii < ACCOUNT_NUM; ii++ {
 			selPlan := createSpecifiedPointScanPlanNode(accountIds[ii], c, tableMetadata, keyType, indexKind)
@@ -1064,7 +1065,7 @@ func testParallelTxnsQueryingSkipListIndexUsedColumns[T int32 | float32 | string
 		case 0: // Update two account balance (move money)
 			moveMoneyOpFunc := func() {
 				txn_ := txnMgr.Begin(nil)
-				txn_.SetDebugInfo("MoneyMove-op")
+				txn_.SetDebugInfo("MoneyMove-Op")
 
 				// decide accounts
 				idx1 := rand.Intn(ACCOUNT_NUM)
@@ -1193,7 +1194,7 @@ func testParallelTxnsQueryingSkipListIndexUsedColumns[T int32 | float32 | string
 				checkBalanceColDupMapSetWithLock(balanceVal)
 
 				txn_ := txnMgr.Begin(nil)
-				txn_.SetDebugInfo("Insert(random)-op")
+				txn_.SetDebugInfo("Insert(random)-Op")
 				for jj := int32(0); jj < stride; jj++ {
 					insKeyVal := samehada_util.StrideAdd(samehada_util.StrideMul(insKeyValBase, stride), jj).(T)
 					insBalanceVal := getInt32ValCorrespondToPassVal(insKeyVal)
@@ -1234,7 +1235,7 @@ func testParallelTxnsQueryingSkipListIndexUsedColumns[T int32 | float32 | string
 					deletedValsForDeleteMutex.RUnlock()
 
 					txn_ := txnMgr.Begin(nil)
-					txn_.SetDebugInfo("Delete(fails)-op")
+					txn_.SetDebugInfo("Delete(fail)-Op")
 					deletedValsForDeleteMutex.RLock()
 					delKeyValBase := samehada_util.ChoiceValFromMap(deletedValsForDelete)
 					deletedValsForDeleteMutex.RUnlock()
@@ -1287,7 +1288,7 @@ func testParallelTxnsQueryingSkipListIndexUsedColumns[T int32 | float32 | string
 					insValsMutex.Unlock()
 
 					txn_ := txnMgr.Begin(nil)
-					txn_.SetDebugInfo("Delete(success)-op")
+					txn_.SetDebugInfo("Delete(success)-Op")
 
 					for jj := int32(0); jj < stride; jj++ {
 						delKeyVal := samehada_util.StrideAdd(samehada_util.StrideMul(delKeyValBase, stride), jj).(T)
@@ -1350,7 +1351,7 @@ func testParallelTxnsQueryingSkipListIndexUsedColumns[T int32 | float32 | string
 				checkBalanceColDupMapSetWithLock(newBalanceVal)
 
 				txn_ := txnMgr.Begin(nil)
-				txn_.SetDebugInfo("Update(random)-op")
+				txn_.SetDebugInfo("Update(random)-Op")
 
 				for jj := int32(0); jj < stride; jj++ {
 					updateKeyVal := samehada_util.StrideAdd(samehada_util.StrideMul(updateKeyValBase, stride), jj).(T)
@@ -1404,7 +1405,7 @@ func testParallelTxnsQueryingSkipListIndexUsedColumns[T int32 | float32 | string
 					getTgtBase := samehada_util.ChoiceValFromMap(deletedValsForDelete)
 					deletedValsForDeleteMutex.RUnlock()
 					txn_ := txnMgr.Begin(nil)
-					txn_.SetDebugInfo("Select(point|fail)-op")
+					txn_.SetDebugInfo("Select(point|fail)-Op")
 					for jj := int32(0); jj < stride; jj++ {
 						getKeyVal := samehada_util.StrideAdd(samehada_util.StrideMul(getTgtBase, stride), jj).(T)
 
@@ -1443,7 +1444,7 @@ func testParallelTxnsQueryingSkipListIndexUsedColumns[T int32 | float32 | string
 					getKeyValBase := insVals[tmpIdx]
 					insValsMutex.RUnlock()
 					txn_ := txnMgr.Begin(nil)
-					txn_.SetDebugInfo("Select(point|success)-op")
+					txn_.SetDebugInfo("Select(point|success)-Op")
 					for jj := int32(0); jj < stride; jj++ {
 						getKeyVal := samehada_util.StrideAdd(samehada_util.StrideMul(getKeyValBase, stride), jj).(T)
 
@@ -1519,7 +1520,7 @@ func testParallelTxnsQueryingSkipListIndexUsedColumns[T int32 | float32 | string
 				}
 
 				txn_ := txnMgr.Begin(nil)
-				txn_.SetDebugInfo("Select(Range)-op")
+				txn_.SetDebugInfo("Select(Range)-Op")
 				results := executePlan(c, shi.GetBufferPoolManager(), txn_, rangeScanPlan)
 
 				if txn_.GetState() == access.ABORTED {
