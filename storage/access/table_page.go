@@ -379,6 +379,7 @@ func (tp *TablePage) SetNextPageId(pageId types.PageID) {
 }
 
 func (tp *TablePage) SetFreeSpacePointer(freeSpacePointer uint32) {
+	common.SH_Assert(freeSpacePointer <= common.PageSize, "illegal pointer value!!")
 	tp.Copy(offsetFreeSpace, types.UInt32(freeSpacePointer).Serialize())
 }
 
