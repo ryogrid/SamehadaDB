@@ -1224,15 +1224,17 @@ func testParallelTxnsQueryingSkipListIndexUsedColumns[T int32 | float32 | string
 			}
 		case 2, 3: // Delete
 			// get 0-1 value
-			//tmpRand := rand.Intn(2)
-			tmpRand := 1
+			tmpRand := rand.Intn(2)
+			//tmpRand := 1
 			if tmpRand == 0 {
 				// 50% is Delete to not existing entry
 				randomDeleteFailOpFunc := func() {
 					deletedValsForDeleteMutex.RLock()
 					if len(deletedValsForDelete) == 0 {
 						deletedValsForDeleteMutex.RUnlock()
-						ch <- 1
+						if execType == PARALLEL_EXEC {
+							ch <- 1
+						}
 						return
 					}
 					deletedValsForDeleteMutex.RUnlock()
