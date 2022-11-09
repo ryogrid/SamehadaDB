@@ -457,7 +457,7 @@ func (tp *TablePage) GetTuple(rid *page.RID, log_manager *recovery.LogManager, l
 
 	// If the tuple is deleted, abort the access.
 	if IsDeleted(tupleSize) {
-		if log_manager.IsEnabledLogging() {
+		if log_manager.IsEnabledLogging() && !txn.IsSharedLocked(rid) && !txn.IsExclusiveLocked(rid) && !lock_manager.LockShared(txn, rid) {
 			txn.SetState(ABORTED)
 		}
 		return nil
