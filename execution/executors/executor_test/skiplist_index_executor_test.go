@@ -1536,6 +1536,9 @@ func testParallelTxnsQueryingSkipListIndexUsedColumns[T int32 | float32 | string
 
 				if txn_.GetState() == access.ABORTED {
 					finalizeRandomNoSideEffectTxn(txn_)
+					if execType == PARALLEL_EXEC {
+						ch <- 1
+					}
 					return
 				}
 
@@ -1550,8 +1553,8 @@ func testParallelTxnsQueryingSkipListIndexUsedColumns[T int32 | float32 | string
 						}
 						prevVal = &curVal
 					}
-					finalizeRandomNoSideEffectTxn(txn_)
 				}
+				finalizeRandomNoSideEffectTxn(txn_)
 				if execType == PARALLEL_EXEC {
 					ch <- 1
 				}
