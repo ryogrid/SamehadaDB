@@ -1204,11 +1204,12 @@ func testParallelTxnsQueryingSkipListIndexUsedColumns[T int32 | float32 | string
 
 				txn_ := txnMgr.Begin(nil)
 				txn_.SetDebugInfo("Insert(random)-Op")
+				common.ShPrintf(common.DEBUGGING, fmt.Sprintf("Insert op start. txnId:%v ii:%d\n", txn_.GetTransactionId(), ii))
 				for jj := int32(0); jj < stride; jj++ {
 					insKeyVal := samehada_util.StrideAdd(samehada_util.StrideMul(insKeyValBase, stride), jj).(T)
 					insBalanceVal := getInt32ValCorrespondToPassVal(insKeyVal)
 
-					common.ShPrintf(common.DEBUGGING, "Insert op start.\n")
+					common.ShPrintf(common.DEBUGGING, fmt.Sprintf("Insert op start. txnId:%v ii:%d jj:%d\n", txn_.GetTransactionId(), ii, jj))
 					insPlan := createSpecifiedValInsertPlanNode(insKeyVal, insBalanceVal, c, tableMetadata, keyType)
 					executePlan(c, shi.GetBufferPoolManager(), txn_, insPlan)
 

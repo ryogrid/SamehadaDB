@@ -84,9 +84,9 @@ func (tp *TablePage) InsertTuple(tuple *tuple.Tuple, log_manager *recovery.LogMa
 		}
 	}
 
-	if tp.GetTupleCount() == slot && tuple.Size()+sizeTuple > tp.getFreeSpaceRemaining() {
-		return nil, ErrNoFreeSlot
-	}
+	//if tp.GetTupleCount() == slot && tuple.Size()+sizeTuple > tp.getFreeSpaceRemaining() {
+	//	return nil, ErrNoFreeSlot
+	//}
 
 	rid := &page.RID{}
 	rid.Set(tp.GetTablePageId(), slot)
@@ -96,7 +96,7 @@ func (tp *TablePage) InsertTuple(tuple *tuple.Tuple, log_manager *recovery.LogMa
 		locked := lock_manager.LockExclusive(txn, rid)
 		if !locked {
 			txn.SetState(ABORTED)
-			return nil, errors.Error("could not acquire an exclusive lock on the new tuple")
+			return nil, errors.Error("could not acquire an exclusive lock of found slot (=RID)")
 			// fmt.Printf("Locking a new tuple should always work. rid: %v\n", rid)
 			// lock_manager.PrintLockTables()
 			// os.Stdout.Sync()
@@ -287,16 +287,16 @@ func (table_page *TablePage) ApplyDelete(rid *page.RID, txn *Transaction, log_ma
 	}
 	// Otherwise we are rolling back an insert.
 
-	// We need to copy out the deleted tuple for undo purposes.
-	var delete_tuple *tuple.Tuple = new(tuple.Tuple)
-	delete_tuple.SetSize(tuple_size)
-	delete_tuple.SetData(make([]byte, delete_tuple.Size()))
-	//memcpy(delete_tuple.Data(), table_page.Data()+tuple_offset, delete_tuple.Size())
-	copy(delete_tuple.Data(), table_page.Data()[tuple_offset:tuple_offset+delete_tuple.Size()])
-	delete_tuple.SetRID(rid)
-	//delete_tuple.allocated = true
-
 	if log_manager.IsEnabledLogging() {
+		// We need to copy out the deleted tuple for undo purposes.
+		var delete_tuple *tuple.Tuple = new(tuple.Tuple)
+		delete_tuple.SetSize(tuple_size)
+		delete_tuple.SetData(make([]byte, delete_tuple.Size()))
+		//memcpy(delete_tuple.Data(), table_page.Data()+tuple_offset, delete_tuple.Size())
+		copy(delete_tuple.Data(), table_page.Data()[tuple_offset:tuple_offset+delete_tuple.Size()])
+		delete_tuple.SetRID(rid)
+		//delete_tuple.allocated = true
+
 		common.SH_Assert(txn.IsExclusiveLocked(rid), "We must own the exclusive lock!")
 		log_record := recovery.NewLogRecordInsertDelete(txn.GetTransactionId(), txn.GetPrevLSN(), recovery.APPLYDELETE, *rid, delete_tuple)
 		lsn := log_manager.AppendLogRecord(log_record)
