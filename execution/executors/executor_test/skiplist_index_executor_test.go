@@ -1052,11 +1052,11 @@ func testParallelTxnsQueryingSkipListIndexUsedColumns[T int32 | float32 | string
 		//// except range scan
 		//opType := rand.Intn(7)
 
-		// move money, random Insert, Delete
-		opType := rand.Intn(3)
+		//// move money, random Insert, Delete
+		//opType := rand.Intn(4)
 
-		//// move money, Random Insert, Randome Delete, Random Update
-		//opType := rand.Intn(5)
+		// move money, Random Insert, Randome Delete, Random Update
+		opType := rand.Intn(5)
 
 		//// move money, Random Insert, Randome Delete, Random Update, Random Point Scan
 		//opType := rand.Intn(7)
@@ -1391,7 +1391,7 @@ func testParallelTxnsQueryingSkipListIndexUsedColumns[T int32 | float32 | string
 					common.SH_Assert(results2 != nil && len(results2) == 1, "Update failed!")
 				}
 
-				finalizeRandomUpdateTxn(txn_, updateNewKeyValBase, updateNewKeyValBase)
+				finalizeRandomUpdateTxn(txn_, updateKeyValBase, updateNewKeyValBase)
 				if execType == PARALLEL_EXEC {
 					ch <- 1
 				}
@@ -1642,6 +1642,7 @@ func testSkipListParallelTxnStrideRoot[T int32 | float32 | string](t *testing.T,
 		//testParallelTxnsQueryingSkipListIndexUsedColumns[T](t, keyType, 400, 50, 13, 0, bpoolSize, index_constants.INDEX_KIND_INVAID, SERIAL_EXEC)
 		//testParallelTxnsQueryingSkipListIndexUsedColumns[T](t, keyType, 400, 50, 13, 0, bpoolSize, index_constants.INDEX_KIND_INVAID, PARALLEL_EXEC)
 		testParallelTxnsQueryingSkipListIndexUsedColumns[T](t, keyType, 400, 500, 13, 0, bpoolSize, index_constants.INDEX_KIND_INVAID, PARALLEL_EXEC)
+		//testParallelTxnsQueryingSkipListIndexUsedColumns[T](t, keyType, 400, 1000, 13, 0, bpoolSize, index_constants.INDEX_KIND_SKIP_LIST, PARALLEL_EXEC)
 		//testParallelTxnsQueryingSkipListIndexUsedColumns[T](t, keyType, 500, 100, 13, 0, bpoolSize, index_constants.INDEX_KIND_SKIP_LIST, SERIAL_EXEC)
 		//testParallelTxnsQueryingSkipListIndexUsedColumns[T](t, keyType, 500, 100, 13, 100, bpoolSize, index_constants.INDEX_KIND_SKIP_LIST)
 		//testParallelTxnsQueryingSkipListIndexUsedColumns[T](t, keyType, 500, 1000, 13, 100, bpoolSize, index_constants.INDEX_KIND_SKIP_LIST)
