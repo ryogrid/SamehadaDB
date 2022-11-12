@@ -61,8 +61,8 @@ func (p *Page) PinCount() int32 {
 	//return p.pinCount
 }
 
-// ID retunds the page id
-func (p *Page) ID() types.PageID {
+// GetPageId retunds the page id
+func (p *Page) GetPageId() types.PageID {
 	return p.id
 }
 
@@ -119,7 +119,7 @@ func (p *Page) SetLSN(lsn types.LSN) {
 	copy(p.data[OffsetLSN:OffsetLSN+types.SizeOfLSN], lsn.Serialize())
 }
 
-func (p *Page) GetPageId() types.PageID { return p.id }
+//func (p *Page) GetPageId() types.PageID { return p.id }
 
 func (p *Page) GetData() *[common.PageSize]byte {
 	return p.data

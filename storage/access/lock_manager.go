@@ -323,9 +323,9 @@ func (lock_manager *LockManager) RemoveEdge(t1 types.TxnID, t2 types.TxnID) { /*
 }
 
 /**
-* Checks if the graph has a cycle, returning the newest transaction ID in the cycle if so.
-* @param[out] txn_id if the graph has a cycle, will contain the newest transaction ID
-* @return false if the graph has no cycle, otherwise stores the newest transaction ID in the cycle to txn_id
+* Checks if the graph has a cycle, returning the newest transaction GetPageId in the cycle if so.
+* @param[out] txn_id if the graph has a cycle, will contain the newest transaction GetPageId
+* @return false if the graph has no cycle, otherwise stores the newest transaction GetPageId in the cycle to txn_id
  */
 func (lock_manager *LockManager) HasCycle(txn_id *types.TxnID) bool {
 	/*

@@ -27,7 +27,7 @@ func TestBinaryData(t *testing.T) {
 	page0 := bpm.NewPage()
 
 	// Scenario: The buffer pool is empty. We should be able to create a new page.
-	testingpkg.Equals(t, types.PageID(0), page0.ID())
+	testingpkg.Equals(t, types.PageID(0), page0.GetPageId())
 
 	// Generate random binary data
 	randomBinaryData := make([]byte, common.PageSize)
@@ -47,7 +47,7 @@ func TestBinaryData(t *testing.T) {
 	// Scenario: We should be able to create new pages until we fill up the buffer pool.
 	for i := uint32(1); i < poolSize; i++ {
 		p := bpm.NewPage()
-		testingpkg.Equals(t, types.PageID(i), p.ID())
+		testingpkg.Equals(t, types.PageID(i), p.GetPageId())
 	}
 
 	// Scenario: Once the buffer pool is full, we should not be able to create any new pages.
@@ -63,7 +63,7 @@ func TestBinaryData(t *testing.T) {
 	}
 	for i := 0; i < 4; i++ {
 		p := bpm.NewPage()
-		bpm.UnpinPage(p.ID(), false)
+		bpm.UnpinPage(p.GetPageId(), false)
 	}
 
 	// Scenario: We should be able to fetch the data we wrote a while ago.
@@ -88,7 +88,7 @@ func TestSample(t *testing.T) {
 	page0 := bpm.NewPage()
 
 	// Scenario: The buffer pool is empty. We should be able to create a new page.
-	testingpkg.Equals(t, types.PageID(0), page0.ID())
+	testingpkg.Equals(t, types.PageID(0), page0.GetPageId())
 
 	// Scenario: Once we have a page, we should be able to read and write content.
 	page0.Copy(0, []byte("Hello"))
@@ -97,7 +97,7 @@ func TestSample(t *testing.T) {
 	// Scenario: We should be able to create new pages until we fill up the buffer pool.
 	for i := uint32(1); i < poolSize; i++ {
 		p := bpm.NewPage()
-		testingpkg.Equals(t, types.PageID(i), p.ID())
+		testingpkg.Equals(t, types.PageID(i), p.GetPageId())
 	}
 
 	// Scenario: Once the buffer pool is full, we should not be able to create any new pages.
@@ -122,7 +122,7 @@ func TestSample(t *testing.T) {
 	// now be pinned. Fetching page 0 should fail.
 	testingpkg.Ok(t, bpm.UnpinPage(types.PageID(0), true))
 
-	testingpkg.Equals(t, types.PageID(14), bpm.NewPage().ID())
+	testingpkg.Equals(t, types.PageID(14), bpm.NewPage().GetPageId())
 	testingpkg.Equals(t, (*page.Page)(nil), bpm.NewPage())
 	testingpkg.Equals(t, (*page.Page)(nil), bpm.FetchPage(types.PageID(0)))
 

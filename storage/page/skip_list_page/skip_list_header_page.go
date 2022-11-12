@@ -45,7 +45,7 @@ type SkipListHeaderPage struct {
 }
 
 func NewSkipListStartBlockPage(bpm *buffer.BufferPoolManager, keyType types.TypeID) (startNode_ *SkipListBlockPage, sentinelNode_ *SkipListBlockPage) {
-	//startPage.ID()
+	//startPage.GetPageId()
 	var startNode *SkipListBlockPage = nil
 	switch keyType {
 	case types.Integer:

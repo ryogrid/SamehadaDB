@@ -113,7 +113,7 @@ func NewSkipListBlockPage(bpm *buffer.BufferPoolManager, level int32, smallestLi
 	}
 
 	ret := (*SkipListBlockPage)(unsafe.Pointer(page_))
-	ret.SetPageId(page_.ID())
+	ret.SetPageId(page_.GetPageId())
 	ret.SetLSN(0)
 	ret.SetEntryCnt(0)
 	ret.SetLevel(level)

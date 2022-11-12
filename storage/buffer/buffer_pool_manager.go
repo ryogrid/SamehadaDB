@@ -61,14 +61,14 @@ func (b *BufferPoolManager) FetchPage(pageID types.PageID) *page.Page {
 				b.log_manager.Flush()
 				currentPage.WLatch()
 				data := *currentPage.Data()
-				b.diskManager.WritePage(currentPage.ID(), data[:])
+				b.diskManager.WritePage(currentPage.GetPageId(), data[:])
 				currentPage.WUnlatch()
 			}
 			//b.mutex.WLock()
 			if common.EnableDebug {
-				common.ShPrintf(common.DEBUG_INFO, "FetchPage: page=%d is removed from pageTable.\n", currentPage.ID())
+				common.ShPrintf(common.DEBUG_INFO, "FetchPage: page=%d is removed from pageTable.\n", currentPage.GetPageId())
 			}
-			delete(b.pageTable, currentPage.ID())
+			delete(b.pageTable, currentPage.GetPageId())
 			//b.mutex.WUnlock()
 		}
 		//b.mutex.WUnlock()
@@ -191,13 +191,13 @@ func (b *BufferPoolManager) NewPage() *page.Page {
 			if currentPage.IsDirty() {
 				b.log_manager.Flush()
 				data := currentPage.Data()
-				b.diskManager.WritePage(currentPage.ID(), data[:])
+				b.diskManager.WritePage(currentPage.GetPageId(), data[:])
 			}
 
 			if common.EnableDebug {
-				common.ShPrintf(common.DEBUG_INFO, "NewPage: page=%d is removed from pageTable.\n", currentPage.ID())
+				common.ShPrintf(common.DEBUG_INFO, "NewPage: page=%d is removed from pageTable.\n", currentPage.GetPageId())
 			}
-			delete(b.pageTable, currentPage.ID())
+			delete(b.pageTable, currentPage.GetPageId())
 		}
 	}
 

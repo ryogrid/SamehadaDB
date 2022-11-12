@@ -69,10 +69,10 @@ type Transaction struct {
 	/** The current transaction state. */
 	state TransactionState
 
-	// /** The thread ID, used in single-threaded transactions. */
+	// /** The thread GetPageId, used in single-threaded transactions. */
 	// thread_id ThreadID
 
-	/** The ID of this access. */
+	/** The GetPageId of this access. */
 	txn_id types.TxnID
 
 	// /** The undo set of the access. */

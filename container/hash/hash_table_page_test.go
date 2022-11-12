@@ -42,7 +42,7 @@ func TestHashTableHeaderPage(t *testing.T) {
 			t.Errorf("GetSize shoud be %d, but got %d", i, headerPage.GetSize())
 		}
 
-		//headerPage.SetPageId(page.PageID(i))
+		//headerPage.SetSerializedPageId(page.PageID(i))
 		headerPage.SetPageId(types.PageID(i))
 		if types.PageID(i) != headerPage.GetPageId() {
 			t.Errorf("GetPageId shoud be %d, but got %d", types.PageID(i), headerPage.GetPageId())
@@ -125,7 +125,7 @@ func TestHashTableBlockPage(t *testing.T) {
 		}
 	}
 
-	bpm.UnpinPage(newPage.ID(), true)
+	bpm.UnpinPage(newPage.GetPageId(), true)
 	bpm.FlushAllPages()
 	if !common.EnableOnMemStorage {
 		os.Remove(t.Name() + ".db")

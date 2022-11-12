@@ -33,27 +33,27 @@ func NewLinearProbeHashTable(bpm *buffer.BufferPoolManager, numBuckets int, head
 		headerData := header.Data()
 		headerPage := (*page.HashTableHeaderPage)(unsafe.Pointer(headerData))
 
-		headerPage.SetPageId(header.ID())
+		headerPage.SetPageId(header.GetPageId())
 		headerPage.SetSize(numBuckets * page.BlockArraySize)
 
 		for i := 0; i < numBuckets; i++ {
 			np := bpm.NewPage()
-			headerPage.AddBlockPageId(np.ID())
-			bpm.UnpinPage(np.ID(), true)
+			headerPage.AddBlockPageId(np.GetPageId())
+			bpm.UnpinPage(np.GetPageId(), true)
 		}
-		bpm.UnpinPage(header.ID(), true)
+		bpm.UnpinPage(header.GetPageId(), true)
 
 		// on current not expandable HashTable impl
 		// flush of header page is needed only creating time
 		// because, content of header page is changed only creatting time
-		bpm.FlushPage(header.ID())
+		bpm.FlushPage(header.GetPageId())
 
-		return &LinearProbeHashTable{header.ID(), bpm, common.NewRWLatch()}
+		return &LinearProbeHashTable{header.GetPageId(), bpm, common.NewRWLatch()}
 	} else {
 		header := bpm.FetchPage(headerPageId)
-		bpm.UnpinPage(header.ID(), true)
+		bpm.UnpinPage(header.GetPageId(), true)
 
-		return &LinearProbeHashTable{header.ID(), bpm, common.NewRWLatch()}
+		return &LinearProbeHashTable{header.GetPageId(), bpm, common.NewRWLatch()}
 	}
 }
 
@@ -169,7 +169,7 @@ func (ht *LinearProbeHashTable) Remove(key []byte, value uint32) {
 	ht.bpm.UnpinPage(ht.headerPageId, false)
 }
 
-//func (ht *LinearProbeHashTable) hash(key int) int {
+// func (ht *LinearProbeHashTable) hash(key int) int {
 func (ht *LinearProbeHashTable) hash(key []byte) uint32 {
 	h := murmur3.New128()
 	//bs := make([]byte, 4)

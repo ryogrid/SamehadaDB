@@ -29,12 +29,12 @@ func NewTableHeap(bpm *buffer.BufferPoolManager, log_manager *recovery.LogManage
 
 	firstPage := CastPageAsTablePage(p)
 	firstPage.WLatch()
-	firstPage.Init(p.ID(), types.InvalidPageID, log_manager, lock_manager, txn)
+	firstPage.Init(p.GetPageId(), types.InvalidPageID, log_manager, lock_manager, txn)
 	// flush page for recovery process works...
-	bpm.FlushPage(p.ID())
-	bpm.UnpinPage(p.ID(), true)
+	bpm.FlushPage(p.GetPageId())
+	bpm.UnpinPage(p.GetPageId(), true)
 	firstPage.WUnlatch()
-	return &TableHeap{bpm, p.ID(), log_manager, lock_manager}
+	return &TableHeap{bpm, p.GetPageId(), log_manager, lock_manager}
 }
 
 // InitTableHeap ...
@@ -59,12 +59,11 @@ func (t *TableHeap) InsertTuple(tuple_ *tuple.Tuple, txn *Transaction, oid uint3
 		common.ShPrintf(common.RDB_OP_FUNC_CALL, "TableHeap::InsertTuple called. txn.txn_id:%v  dbgInfo:%s tuple_:%v\n", txn.txn_id, txn.dbgInfo, *tuple_)
 	}
 	currentPage := CastPageAsTablePage(t.bpm.FetchPage(t.firstPageId))
-
+	currentPage.WLatch()
 	// Insert into the first page with enough space. If no such page exists, create a new page and insert into that.
 	// INVARIANT: currentPage is WLatched if you leave the loop normally.
 
 	for {
-		currentPage.WLatch()
 		rid, err = currentPage.InsertTuple(tuple_, t.log_manager, t.lock_manager, txn)
 		if err == nil || err == ErrEmptyTuple {
 			//currentPage.WUnlatch()
@@ -77,28 +76,29 @@ func (t *TableHeap) InsertTuple(tuple_ *tuple.Tuple, txn *Transaction, oid uint3
 
 		nextPageId := currentPage.GetNextPageId()
 		if nextPageId.IsValid() {
-			t.bpm.UnpinPage(currentPage.GetTablePageId(), false)
+			nextPage := CastPageAsTablePage(t.bpm.FetchPage(nextPageId))
+			nextPage.WLatch()
+			t.bpm.UnpinPage(currentPage.GetPageId(), false)
 			currentPage.WUnlatch()
-			currentPage = CastPageAsTablePage(t.bpm.FetchPage(nextPageId))
+			currentPage = nextPage
+			// holding WLatch of currentPage here
 		} else {
 			p := t.bpm.NewPage()
-			currentPage.SetNextPageId(p.ID())
-			currentPage.WUnlatch()
+			currentPage.SetNextPageId(p.GetPageId())
+			currentPageId := currentPage.GetPageId()
 			newPage := CastPageAsTablePage(p)
-			currentPage.RLatch()
 			newPage.WLatch()
-			newPage.Init(p.ID(), currentPage.GetTablePageId(), t.log_manager, t.lock_manager, txn)
-			//t.bpm.FlushPage(newPage.GetPageId())
-			newPage.WUnlatch()
-			currentPage.RUnlatch()
-			currentPage.WLatch()
-			t.bpm.UnpinPage(currentPage.GetTablePageId(), true)
+			t.bpm.UnpinPage(currentPage.GetPageId(), true)
 			currentPage.WUnlatch()
+			newPage.Init(p.GetPageId(), currentPageId, t.log_manager, t.lock_manager, txn)
+			//t.bpm.FlushPage(newPage.GetPageId())
+			//newPage.WUnlatch()
 			currentPage = newPage
+			// holding WLatch of currentPage here
 		}
 	}
 
-	t.bpm.UnpinPage(currentPage.GetTablePageId(), true)
+	t.bpm.UnpinPage(currentPage.GetPageId(), true)
 	currentPage.WUnlatch()
 	// Update the transaction's write set.
 	txn.AddIntoWriteSet(NewWriteRecord(*rid, INSERT, new(tuple.Tuple), t, oid))
@@ -124,7 +124,7 @@ func (t *TableHeap) UpdateTuple(tuple_ *tuple.Tuple, update_col_idxs []int, sche
 
 	page_.WLatch()
 	is_updated, err, need_follow_tuple := page_.UpdateTuple(tuple_, update_col_idxs, schema_, old_tuple, &rid, txn, t.lock_manager, t.log_manager)
-	t.bpm.UnpinPage(page_.GetTablePageId(), is_updated)
+	t.bpm.UnpinPage(page_.GetPageId(), is_updated)
 	page_.WUnlatch()
 
 	var new_rid *page.RID = nil
@@ -191,7 +191,7 @@ func (t *TableHeap) MarkDelete(rid *page.RID, oid uint32, txn *Transaction) bool
 	// Otherwise, mark the tuple as deleted.
 	page_.WLatch()
 	is_marked := page_.MarkDelete(rid, txn, t.lock_manager, t.log_manager)
-	t.bpm.UnpinPage(page_.GetTablePageId(), true)
+	t.bpm.UnpinPage(page_.GetPageId(), true)
 	page_.WUnlatch()
 	if is_marked {
 		// Update the transaction's write set.
@@ -212,7 +212,7 @@ func (t *TableHeap) ApplyDelete(rid *page.RID, txn *Transaction) {
 	page_.WLatch()
 	page_.ApplyDelete(rid, txn, t.log_manager)
 	//t.lock_manager.WUnlock(txn, []page.RID{*rid})
-	t.bpm.UnpinPage(page_.GetTablePageId(), true)
+	t.bpm.UnpinPage(page_.GetPageId(), true)
 	page_.WUnlatch()
 }
 
@@ -226,7 +226,7 @@ func (t *TableHeap) RollbackDelete(rid *page.RID, txn *Transaction) {
 	// Rollback the delete.
 	page_.WLatch()
 	page_.RollbackDelete(rid, txn, t.log_manager)
-	t.bpm.UnpinPage(page_.GetTablePageId(), true)
+	t.bpm.UnpinPage(page_.GetPageId(), true)
 	page_.WUnlatch()
 }
 
@@ -244,7 +244,7 @@ func (t *TableHeap) GetTuple(rid *page.RID, txn *Transaction) *tuple.Tuple {
 	ret := page.GetTuple(rid, t.log_manager, t.lock_manager, txn)
 	page.RUnlatch()
 	page.WLatch()
-	t.bpm.UnpinPage(page.ID(), false)
+	t.bpm.UnpinPage(page.GetPageId(), false)
 	page.WUnlatch()
 	return ret
 }

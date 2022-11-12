@@ -44,7 +44,7 @@ func NewSkipList(bpm *buffer.BufferPoolManager, keyType types.TypeID) *SkipList 
 	ret := new(SkipList)
 	ret.bpm = bpm
 	var sentinelNode *skip_list_page.SkipListBlockPage
-	ret.headerPage, ret.startNode, sentinelNode = skip_list_page.NewSkipListHeaderPage(bpm, keyType) //header.ID()
+	ret.headerPage, ret.startNode, sentinelNode = skip_list_page.NewSkipListHeaderPage(bpm, keyType) //header.GetPageId()
 	ret.SentinelNodeID = sentinelNode.GetPageId()
 
 	return ret

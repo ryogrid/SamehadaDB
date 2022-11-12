@@ -49,7 +49,7 @@ func (it *TableHeapIterator) Next() *tuple.Tuple {
 			nextPage := CastPageAsTablePage(bpm.FetchPage(currentPage.GetNextPageId()))
 			currentPage.RUnlatch()
 			currentPage.WLatch()
-			bpm.UnpinPage(currentPage.GetTablePageId(), false)
+			bpm.UnpinPage(currentPage.GetPageId(), false)
 			currentPage.WUnlatch()
 			currentPage = nextPage
 			currentPage.RLatch()
@@ -70,7 +70,7 @@ func (it *TableHeapIterator) Next() *tuple.Tuple {
 	}
 
 	currentPage.WLatch()
-	bpm.UnpinPage(currentPage.GetTablePageId(), false)
+	bpm.UnpinPage(currentPage.GetPageId(), false)
 	currentPage.WUnlatch()
 	return it.tuple
 }

@@ -41,7 +41,7 @@ func (transaction_manager *TransactionManager) Begin(txn *Transaction) *Transact
 		//transaction_manager.next_txn_id.AtomicAdd(1)
 		txn_ret = NewTransaction(transaction_manager.next_txn_id)
 		transaction_manager.mutex.Unlock()
-		//fmt.Printf("new transactin ID: %d\n", transaction_manager.next_txn_id)
+		//fmt.Printf("new transactin GetPageId: %d\n", transaction_manager.next_txn_id)
 	}
 
 	if transaction_manager.log_manager.IsEnabledLogging() {
