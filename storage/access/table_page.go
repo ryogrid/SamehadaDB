@@ -113,6 +113,11 @@ func (tp *TablePage) InsertTuple(tuple *tuple.Tuple, log_manager *recovery.LogMa
 
 	tuple.SetRID(rid)
 
+	if common.EnableDebug {
+		setFSP := tp.GetFreeSpacePointer() - tuple.Size()
+		common.SH_Assert(setFSP <= common.PageSize, fmt.Sprintf("illegal pointer value!! txnId:%d txnState:%d txn.dbgInfo:%s rid:%v setFSP:%d", txn.txn_id, txn.state, txn.dbgInfo, *rid, setFSP))
+	}
+
 	tp.SetFreeSpacePointer(tp.GetFreeSpacePointer() - tuple.Size())
 	tp.setTuple(slot, tuple)
 
@@ -409,7 +414,9 @@ func (tp *TablePage) SetNextPageId(pageId types.PageID) {
 }
 
 func (tp *TablePage) SetFreeSpacePointer(freeSpacePointer uint32) {
-	common.SH_Assert(freeSpacePointer <= common.PageSize, "illegal pointer value!!")
+	if common.EnableDebug {
+		common.SH_Assert(freeSpacePointer <= common.PageSize, "illegal pointer value!!")
+	}
 	tp.Copy(offsetFreeSpace, types.UInt32(freeSpacePointer).Serialize())
 }
 
