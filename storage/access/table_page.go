@@ -200,7 +200,9 @@ func (tp *TablePage) UpdateTuple(new_tuple *tuple.Tuple, update_col_idxs []int, 
 	}
 
 	if tp.getFreeSpaceRemaining()+tuple_size < update_tuple.Size() {
-		//if common.EnableLogging {
+		//// TODO: (SDB) set ABORTED state here (TablePage::UpdateTuple)
+		////             because rollback and recovery when this case fails currently
+		//if log_manager.IsEnabledLogging() {
 		//	txn.SetState(ABORTED)
 		//}
 		//return false

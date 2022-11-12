@@ -130,7 +130,7 @@ func (t *TableHeap) UpdateTuple(tuple_ *tuple.Tuple, update_col_idxs []int, sche
 	var new_rid *page.RID = nil
 	if is_updated == false && err == ErrNotEnoughSpace {
 		// TODO: (SDB) this early return with ABORTED state exists (TableHeap::UpdateTuple)
-		//             because rollback and recovery when this case fail currently
+		//             because rollback and recovery when this cases fail currently
 		txn.SetState(ABORTED)
 		return false, &rid
 
@@ -161,7 +161,7 @@ func (t *TableHeap) UpdateTuple(tuple_ *tuple.Tuple, update_col_idxs []int, sche
 	// last condition is for when rollback case
 	common.SH_Assert(
 		(txn.GetState() == ABORTED && is_updated == false) || (txn.GetState() != ABORTED && is_updated == true) || (txn.GetState() == ABORTED && is_updated == true && update_col_idxs == nil),
-		"illegal internal state!")
+		fmt.Sprintf("illegal internal state! txnState:%d is_updated:%v", txn.state, is_updated))
 
 	// Update the transaction's write set.
 	// when txn is ABORTED state case, data is not updated. so adding a write set entry is not needed
