@@ -1641,7 +1641,7 @@ func testSkipListParallelTxnStrideRoot[T int32 | float32 | string](t *testing.T,
 	case types.Integer:
 		//testParallelTxnsQueryingSkipListIndexUsedColumns[T](t, keyType, 400, 50, 13, 0, bpoolSize, index_constants.INDEX_KIND_INVAID, SERIAL_EXEC)
 		//testParallelTxnsQueryingSkipListIndexUsedColumns[T](t, keyType, 400, 50, 13, 0, bpoolSize, index_constants.INDEX_KIND_INVAID, PARALLEL_EXEC)
-		testParallelTxnsQueryingSkipListIndexUsedColumns[T](t, keyType, 400, 500, 13, 0, bpoolSize, index_constants.INDEX_KIND_INVAID, PARALLEL_EXEC)
+		testParallelTxnsQueryingSkipListIndexUsedColumns[T](t, keyType, 400, 500, 18, 0, bpoolSize, index_constants.INDEX_KIND_INVAID, PARALLEL_EXEC)
 		//testParallelTxnsQueryingSkipListIndexUsedColumns[T](t, keyType, 400, 1000, 13, 0, bpoolSize, index_constants.INDEX_KIND_SKIP_LIST, PARALLEL_EXEC)
 		//testParallelTxnsQueryingSkipListIndexUsedColumns[T](t, keyType, 500, 100, 13, 0, bpoolSize, index_constants.INDEX_KIND_SKIP_LIST, SERIAL_EXEC)
 		//testParallelTxnsQueryingSkipListIndexUsedColumns[T](t, keyType, 500, 100, 13, 100, bpoolSize, index_constants.INDEX_KIND_SKIP_LIST)

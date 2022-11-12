@@ -51,6 +51,9 @@ func (e *UpdateExecutor) Next() (*tuple.Tuple, Done, error) {
 		if err != nil {
 			return nil, true, err
 		}
+		if e.txn.GetState() == access.ABORTED {
+			panic(fmt.Sprintf("UpdateExecutor::Next txn is Abort state! done:%d t:%v", done, *t))
+		}
 
 		rid := t.GetRID()
 		values := e.plan.GetRawValues()
