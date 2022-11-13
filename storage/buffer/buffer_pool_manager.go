@@ -95,6 +95,7 @@ func (b *BufferPoolManager) FetchPage(pageID types.PageID) *page.Page {
 	return pg
 }
 
+// ATTENTION: when Unpin a page which has pageID arg as self ID, caller thread must have WLatch of the page
 // UnpinPage unpins the target page from the buffer pool.
 func (b *BufferPoolManager) UnpinPage(pageID types.PageID, isDirty bool) error {
 

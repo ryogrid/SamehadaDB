@@ -48,9 +48,10 @@ func (p *Page) IncPinCount() {
 // DecPinCount decrements pin count
 func (p *Page) DecPinCount() {
 	// TODO: (SDB) these code are not atomic (Page::DecPinCount)
-	if p.pinCount > 0 {
-		atomic.AddInt32(&p.pinCount, -1)
-	}
+	//if p.pinCount > 0 {
+	common.SH_Assert(atomic.LoadInt32(&p.pinCount)-1 >= 0, "pinCount becomes minus value!")
+	atomic.AddInt32(&p.pinCount, -1)
+	//}
 
 	//common.ShPrintf(common.DEBUG_INFO, "pinCount of page-%d at DecPinCount: %d\n", p.GetPageId(), p.pinCount)
 }

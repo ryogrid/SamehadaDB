@@ -39,9 +39,11 @@ func (it *TableHeapIterator) End() bool {
 // or it can be in the next page
 func (it *TableHeapIterator) Next() *tuple.Tuple {
 	bpm := it.tableHeap.bpm
+	// TODO: (SDB) it.tuple access should be replaced to it.Current() after debugging
 	currentPage := CastPageAsTablePage(bpm.FetchPage(it.tuple.GetRID().GetPageId()))
 	currentPage.RLatch()
 
+	// TODO: (SDB) it.tuple access should be replaced to it.Current() after debugging
 	nextTupleRID := currentPage.GetNextTupleRID(it.tuple.GetRID(), false)
 	if nextTupleRID == nil {
 		// VARIANT: currentPage is always RLatched after loop

@@ -268,6 +268,8 @@ func (t *TableHeap) GetFirstTuple(txn *Transaction) *tuple.Tuple {
 	if rid == nil {
 		return nil
 	}
+
+	// here thread has no pin and latch of page which contains got tuple
 	return t.GetTuple(rid, txn)
 }
 
