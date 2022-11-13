@@ -1049,9 +1049,6 @@ func testParallelTxnsQueryingSkipListIndexUsedColumns[T int32 | float32 | string
 		//// get 0-7
 		//opType := rand.Intn(8)
 
-		//// except range scan
-		//opType := rand.Intn(7)
-
 		//// move money, random Insert, Delete
 		//opType := rand.Intn(4)
 
