@@ -56,7 +56,9 @@ func (b *BufferPoolManager) FetchPage(pageID types.PageID) *page.Page {
 		//b.mutex.WLock()
 		currentPage := b.pages[*frameID]
 		//b.mutex.WUnlock()
+		//common.SH_Assert(currentPage.PinCount() >= 0, "BPM::FetchPage Victim page's pin count is not zero!!!")
 		if currentPage != nil {
+			fmt.Println("BPM::FetchPage Cache out occurs!")
 			if currentPage.IsDirty() {
 				b.log_manager.Flush()
 				currentPage.WLatch()
@@ -76,6 +78,7 @@ func (b *BufferPoolManager) FetchPage(pageID types.PageID) *page.Page {
 
 	//b.mutex.WLock()
 	data := make([]byte, common.PageSize)
+	fmt.Println("BPM::FetchPage Cache in occurs!")
 	err := b.diskManager.ReadPage(pageID, data)
 	if err != nil {
 		fmt.Println(err)
