@@ -52,7 +52,7 @@ func (e *UpdateExecutor) Next() (*tuple.Tuple, Done, error) {
 			return nil, true, err
 		}
 		if e.txn.GetState() == access.ABORTED {
-			panic(fmt.Sprintf("UpdateExecutor::Next txn is Abort state! done:%d t:%v", done, *t))
+			return nil, true, err
 		}
 
 		rid := t.GetRID()
