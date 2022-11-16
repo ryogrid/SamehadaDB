@@ -345,5 +345,6 @@ func NewBufferPoolManager(poolSize uint32, DiskManager disk.DiskManager, log_man
 	replacer := NewClockReplacer(poolSize)
 	//return &BufferPoolManager{DiskManager, pages, replacer, freeList, make(map[types.PageID]FrameID), log_manager, new(sync.Mutex)}
 	// TODO (SDB) for Debugging. this should be reverted after debugging
+	deadlock.Opts.DisableLockOrderDetection = true
 	return &BufferPoolManager{DiskManager, pages, replacer, freeList, make(map[types.PageID]FrameID), log_manager, new(deadlock.Mutex)}
 }

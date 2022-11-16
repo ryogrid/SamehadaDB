@@ -161,6 +161,7 @@ type readerWriterLatchTrace struct {
 }
 
 func NewRWLatchTrace() ReaderWriterLatch {
+	deadlock.Opts.DisableLockOrderDetection = true
 	latch := readerWriterLatchTrace{new(deadlock.RWMutex), 0, 0}
 
 	return &latch
