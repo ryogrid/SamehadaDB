@@ -41,7 +41,7 @@ const (
 	BucketSizeOfHashIndex = 10
 	// probability used for determin node level on SkipList
 	SkipListProb    = 0.5  //0.25
-	LogLevelSetting = INFO //| RDB_OP_FUNC_CALL | DEBUGGING //| DEBUG_INFO //DEBUG_INFO_DETAIL  //DEBUGGING
+	LogLevelSetting = INFO //| RDB_OP_FUNC_CALL | DEBUGGING | DEBUG_INFO //DEBUG_INFO_DETAIL  //DEBUGGING
 )
 
 type TxnID int32        // transaction id type

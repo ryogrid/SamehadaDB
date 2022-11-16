@@ -518,6 +518,9 @@ func validateNoChangeAndGetLock(bpm *buffer.BufferPoolManager, checkNodes []Skip
 		if node == nil {
 			common.ShPrintf(common.DEBUG_INFO, "validateNoChangeAndGetLock: validation failed. go retry.\n")
 			unlockAndUnpinNodes(bpm, validatedNodes, false)
+			if additonalCheckNode != nil {
+				bpm.UnpinPage(additonalCheckNode.PageId, false)
+			}
 			return false, nil
 		}
 
@@ -543,6 +546,9 @@ func validateNoChangeAndGetLock(bpm *buffer.BufferPoolManager, checkNodes []Skip
 		if node.GetLSN() != checkNodes[ii].UpdateCounter {
 			common.ShPrintf(common.DEBUG_INFO, "validateNoChangeAndGetLock: validation is NG: go retry. len(validatedNodes)=%d\n", len(validatedNodes))
 			unlockAndUnpinNodes(bpm, validatedNodes, false)
+			if additonalCheckNode != nil {
+				bpm.UnpinPage(additonalCheckNode.PageId, false)
+			}
 			return false, nil
 		}
 
@@ -610,7 +616,6 @@ func (node *SkipListBlockPage) Remove(bpm *buffer.BufferPoolManager, key *types.
 		isSuccess, lockedAndPinnedNodes := validateNoChangeAndGetLock(bpm, checkNodes, additionalCheckNode)
 		//bpm.UnpinPage(node.GetPageId(), true)
 		//node.DecPinCount()
-		bpm.DecPinOfPage(node)
 		if !isSuccess {
 			// already released all lock and pin which includes this node
 
@@ -619,6 +624,7 @@ func (node *SkipListBlockPage) Remove(bpm *buffer.BufferPoolManager, key *types.
 
 			return false, false, true
 		}
+		bpm.DecPinOfPage(node)
 
 		// removing this node from all level of chain
 		for ii := 1; ii < updateLen; ii++ {
