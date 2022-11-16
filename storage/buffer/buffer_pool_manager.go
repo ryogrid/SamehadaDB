@@ -4,15 +4,13 @@
 package buffer
 
 import (
-	"errors"
 	"fmt"
-	"sync"
-
 	"github.com/ryogrid/SamehadaDB/common"
 	"github.com/ryogrid/SamehadaDB/recovery"
 	"github.com/ryogrid/SamehadaDB/storage/disk"
 	"github.com/ryogrid/SamehadaDB/storage/page"
 	"github.com/ryogrid/SamehadaDB/types"
+	"github.com/sasha-s/go-deadlock"
 )
 
 // BufferPoolManager represents the buffer pool manager
@@ -23,7 +21,9 @@ type BufferPoolManager struct {
 	freeList    []FrameID
 	pageTable   map[types.PageID]FrameID
 	log_manager *recovery.LogManager
-	mutex       *sync.Mutex //*sync.RWMutex
+	// TODO (SDB) for Debugging. this should be reverted after debugging
+	//mutex       *sync.Mutex
+	mutex *deadlock.Mutex
 }
 
 // FetchPage fetches the requested page from the buffer pool.
@@ -58,7 +58,7 @@ func (b *BufferPoolManager) FetchPage(pageID types.PageID) *page.Page {
 		//b.mutex.WUnlock()
 		//common.SH_Assert(currentPage.PinCount() >= 0, "BPM::FetchPage Victim page's pin count is not zero!!!")
 		if currentPage != nil {
-			fmt.Println("BPM::FetchPage Cache out occurs!")
+			fmt.Printf("BPM::FetchPage Cache out occurs! pageId:%d requested pageId:%d\n", currentPage.GetPageId(), pageID)
 			if currentPage.IsDirty() {
 				b.log_manager.Flush()
 				currentPage.WLatch()
@@ -78,7 +78,7 @@ func (b *BufferPoolManager) FetchPage(pageID types.PageID) *page.Page {
 
 	//b.mutex.WLock()
 	data := make([]byte, common.PageSize)
-	fmt.Println("BPM::FetchPage Cache in occurs!")
+	fmt.Printf("BPM::FetchPage Cache in occurs! requested pageId:%d\n", pageID)
 	err := b.diskManager.ReadPage(pageID, data)
 	if err != nil {
 		fmt.Println(err)
@@ -136,7 +136,8 @@ func (b *BufferPoolManager) UnpinPage(pageID types.PageID, isDirty bool) error {
 		common.ShPrintf(common.DEBUG_INFO, "UnpinPage: could not find page! PageId=%d\n", pageID)
 		panic("could not find page")
 	}
-	return errors.New("could not find page")
+	panic("could not find page")
+	//return errors.New("could not find page")
 
 }
 
@@ -192,6 +193,7 @@ func (b *BufferPoolManager) NewPage() *page.Page {
 		// remove page from current frame
 		currentPage := b.pages[*frameID]
 		if currentPage != nil {
+			fmt.Println("BPM::NewPage Cache out occurs!")
 			if currentPage.IsDirty() {
 				b.log_manager.Flush()
 				data := currentPage.Data()
@@ -342,5 +344,6 @@ func NewBufferPoolManager(poolSize uint32, DiskManager disk.DiskManager, log_man
 
 	replacer := NewClockReplacer(poolSize)
 	//return &BufferPoolManager{DiskManager, pages, replacer, freeList, make(map[types.PageID]FrameID), log_manager, new(sync.Mutex)}
-	return &BufferPoolManager{DiskManager, pages, replacer, freeList, make(map[types.PageID]FrameID), log_manager, new(sync.Mutex)}
+	// TODO (SDB) for Debugging. this should be reverted after debugging
+	return &BufferPoolManager{DiskManager, pages, replacer, freeList, make(map[types.PageID]FrameID), log_manager, new(deadlock.Mutex)}
 }

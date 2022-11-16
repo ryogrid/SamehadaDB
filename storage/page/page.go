@@ -89,11 +89,14 @@ func (p *Page) Copy(offset uint32, data []byte) {
 
 // New creates a new page
 func New(id types.PageID, isDirty bool, data *[common.PageSize]byte) *Page {
+	//return &Page{id, int32(1), isDirty, data, common.NewRWLatch()}
+
+	// TODO (SDB) for Debugging. this should be reverted after debugging
+	return &Page{id, int32(1), isDirty, data, common.NewRWLatchTrace()}
+
 	//return &Page{id, int32(1), isDirty, data, common.NewUpgradableMutex()}
 
-	return &Page{id, int32(1), isDirty, data, common.NewRWLatch()}
-
-	//// TODO: (SDB) customized RWMutex for concurrent skip list debug
+	//// customized RWMutex for concurrent skip list debug
 	//return &Page{id, uint32(1), isDirty, data, common.NewRWLatchDebug()}
 }
 
