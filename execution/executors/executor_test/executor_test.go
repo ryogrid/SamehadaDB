@@ -1568,215 +1568,215 @@ func handleFnishTxn(catalog_ *catalog.Catalog, txn_mgr *access.TransactionManage
 	}
 }
 
-func TestConcurrentTransactionExecution(t *testing.T) {
-	if testing.Short() {
-		t.Skip("skip this in short mode.")
-	}
-
-	if !common.EnableOnMemStorage {
-		os.Remove(t.Name() + ".db")
-		os.Remove(t.Name() + ".log")
-	}
-
-	shi := samehada.NewSamehadaInstance(t.Name(), common.BufferPoolMaxFrameNumForTest)
-	shi.GetLogManager().ActivateLogging()
-	testingpkg.Assert(t, shi.GetLogManager().IsEnabledLogging(), "")
-	fmt.Println("System logging is active.")
-
-	txn_mgr := shi.GetTransactionManager()
-	txn := txn_mgr.Begin(nil)
-
-	c := catalog.BootstrapCatalog(shi.GetBufferPoolManager(), shi.GetLogManager(), shi.GetLockManager(), txn)
-
-	columnA := column.NewColumn("a", types.Integer, false, index_constants.INDEX_KIND_INVAID, types.PageID(-1), nil)
-	columnB := column.NewColumn("b", types.Varchar, false, index_constants.INDEX_KIND_INVAID, types.PageID(-1), nil)
-	columnC := column.NewColumn("c", types.Integer, false, index_constants.INDEX_KIND_INVAID, types.PageID(-1), nil)
-	columnD := column.NewColumn("d", types.Varchar, false, index_constants.INDEX_KIND_INVAID, types.PageID(-1), nil)
-	schema_ := schema.NewSchema([]*column.Column{columnA, columnB, columnC, columnD})
-
-	tableMetadata := c.CreateTable("test_1", schema_, txn)
-
-	row1 := make([]types.Value, 0)
-	row1 = append(row1, types.NewInteger(20))
-	row1 = append(row1, types.NewVarchar("hoge"))
-	row1 = append(row1, types.NewInteger(40))
-	row1 = append(row1, types.NewVarchar("hogehoge"))
-
-	row2 := make([]types.Value, 0)
-	row2 = append(row2, types.NewInteger(99))
-	row2 = append(row2, types.NewVarchar("foo"))
-	row2 = append(row2, types.NewInteger(999))
-	row2 = append(row2, types.NewVarchar("foofoo"))
-
-	row3 := make([]types.Value, 0)
-	row3 = append(row3, types.NewInteger(11))
-	row3 = append(row3, types.NewVarchar("bar"))
-	row3 = append(row3, types.NewInteger(17))
-	row3 = append(row3, types.NewVarchar("barbar"))
-
-	row4 := make([]types.Value, 0)
-	row4 = append(row4, types.NewInteger(100))
-	row4 = append(row4, types.NewVarchar("piyo"))
-	row4 = append(row4, types.NewInteger(1000))
-	row4 = append(row4, types.NewVarchar("piyopiyo"))
-
-	rows := make([][]types.Value, 0)
-	rows = append(rows, row1)
-	rows = append(rows, row2)
-	rows = append(rows, row3)
-	rows = append(rows, row4)
-
-	insertPlanNode := plans.NewInsertPlanNode(rows, tableMetadata.OID())
-
-	executionEngine := &executors.ExecutionEngine{}
-	executorContext := executors.NewExecutorContext(c, shi.GetBufferPoolManager(), txn)
-	executionEngine.Execute(insertPlanNode, executorContext)
-
-	txn_mgr.Commit(txn)
-
-	const PARALLEL_EXEC_CNT int = 100
-
-	// // set timeout for debugging
-	// time.AfterFunc(time.Duration(40)*time.Second, TimeoutPanic)
-
-	commited_cnt := int32(0)
-	for i := 0; i < PARALLEL_EXEC_CNT; i++ {
-		ch1 := make(chan int32)
-		ch2 := make(chan int32)
-		ch3 := make(chan int32)
-		ch4 := make(chan int32)
-		go rowInsertTransaction(t, shi, c, tableMetadata, ch1)
-		go selectAllRowTransaction(t, shi, c, tableMetadata, ch2)
-		go deleteAllRowTransaction(t, shi, c, tableMetadata, ch3)
-		go selectAllRowTransaction(t, shi, c, tableMetadata, ch4)
-
-		commited_cnt += <-ch1
-		commited_cnt += <-ch2
-		commited_cnt += <-ch3
-		commited_cnt += <-ch4
-		//fmt.Printf("commited_cnt: %d\n", commited_cnt)
-		//shi.GetLockManager().PrintLockTables()
-		//shi.GetLockManager().ClearLockTablesForDebug()
-	}
-
-	fmt.Printf("final commited_cnt: %d\n", commited_cnt)
-
-	// remove db file and log file
-	shi.Shutdown(true)
-}
-
-func TestTestTableGenerator(t *testing.T) {
-	if !common.EnableOnMemStorage {
-		os.Remove(t.Name() + ".db")
-		os.Remove(t.Name() + ".log")
-	}
-
-	shi := samehada.NewSamehadaInstance(t.Name(), common.BufferPoolMaxFrameNumForTest)
-	shi.GetLogManager().ActivateLogging()
-	testingpkg.Assert(t, shi.GetLogManager().IsEnabledLogging(), "")
-	fmt.Println("System logging is active.")
-
-	txn_mgr := shi.GetTransactionManager()
-	txn := txn_mgr.Begin(nil)
-
-	c := catalog.BootstrapCatalog(shi.GetBufferPoolManager(), shi.GetLogManager(), shi.GetLockManager(), txn)
-	exec_ctx := executors.NewExecutorContext(c, shi.GetBufferPoolManager(), txn)
-
-	table_info, _ := executors.GenerateTestTabls(c, exec_ctx, txn)
-
-	//txn_mgr.Commit(txn)
-	//shi.GetBufferPoolManager().FlushAllPages()
-	//txn = txn_mgr.Begin(nil)
-	//exec_ctx.SetTransaction(txn)
-
-	outColumnA := column.NewColumn("colA", types.Integer, false, index_constants.INDEX_KIND_INVAID, types.PageID(-1), nil)
-	outSchema := schema.NewSchema([]*column.Column{outColumnA})
-
-	seqPlan := plans.NewSeqScanPlanNode(outSchema, nil, table_info.OID())
-
-	executionEngine := &executors.ExecutionEngine{}
-
-	results := executionEngine.Execute(seqPlan, exec_ctx)
-	fmt.Printf("len(results) => %d", len(results))
-	fmt.Println("")
-	testingpkg.Assert(t, len(results) == int(executors.TEST1_SIZE), "generated table or testcase is wrong.")
-
-	txn_mgr.Commit(txn)
-	shi.Shutdown(true)
-}
-
-func TestSimpleAggregation(t *testing.T) {
-	// SELECT COUNT(colA), SUM(colA), min(colA), max(colA) from test_1;
-	if !common.EnableOnMemStorage {
-		os.Remove(t.Name() + ".db")
-		os.Remove(t.Name() + ".log")
-	}
-
-	shi := samehada.NewSamehadaInstance(t.Name(), common.BufferPoolMaxFrameNumForTest)
-	shi.GetLogManager().ActivateLogging()
-	testingpkg.Assert(t, shi.GetLogManager().IsEnabledLogging(), "")
-	fmt.Println("System logging is active.")
-
-	txn_mgr := shi.GetTransactionManager()
-	txn := txn_mgr.Begin(nil)
-
-	c := catalog.BootstrapCatalog(shi.GetBufferPoolManager(), shi.GetLogManager(), shi.GetLockManager(), txn)
-	exec_ctx := executors.NewExecutorContext(c, shi.GetBufferPoolManager(), txn)
-
-	table_info, _ := executors.GenerateTestTabls(c, exec_ctx, txn)
-
-	var scan_plan *plans.SeqScanPlanNode
-	var scan_schema *schema.Schema
-	{
-		//auto table_info = GetExecutorContext()->GetCatalog()->GetTable("test_1");
-		schema_ := table_info.Schema()
-		colA := executors.MakeColumnValueExpression(schema_, 0, "colA").(*expression.ColumnValue)
-		scan_schema = executors.MakeOutputSchema([]executors.MakeSchemaMeta{{"colA", *colA}})
-		scan_plan = plans.NewSeqScanPlanNode(scan_schema, nil, table_info.OID()).(*plans.SeqScanPlanNode)
-	}
-
-	var agg_plan *plans.AggregationPlanNode
-	var agg_schema *schema.Schema
-	{
-		colA := executors.MakeColumnValueExpression(scan_schema, 0, "colA")
-		countA := *executors.MakeAggregateValueExpression(false, 0).(*expression.AggregateValueExpression)
-		sumA := *executors.MakeAggregateValueExpression(false, 1).(*expression.AggregateValueExpression)
-		minA := *executors.MakeAggregateValueExpression(false, 2).(*expression.AggregateValueExpression)
-		maxA := *executors.MakeAggregateValueExpression(false, 3).(*expression.AggregateValueExpression)
-
-		agg_schema = executors.MakeOutputSchemaAgg([]executors.MakeSchemaMetaAgg{{"countA", countA}, {"sumA", sumA}, {"minA", minA}, {"maxA", maxA}})
-		agg_plan = plans.NewAggregationPlanNode(
-			agg_schema, scan_plan, nil, []expression.Expression{},
-			[]expression.Expression{colA, colA, colA, colA},
-			[]plans.AggregationType{plans.COUNT_AGGREGATE, plans.SUM_AGGREGATE,
-				plans.MIN_AGGREGATE, plans.MAX_AGGREGATE})
-	}
-
-	executionEngine := &executors.ExecutionEngine{}
-	executor := executionEngine.CreateExecutor(agg_plan, exec_ctx)
-	//executor := ExecutorFactory::CreateExecutor(GetExecutorContext(), agg_plan.get())
-	executor.Init()
-	tuple_, _, err := executor.Next()
-	testingpkg.Assert(t, tuple_ != nil && err == nil, "first call of AggregationExecutor.Next() failed")
-	countA_val := tuple_.GetValue(agg_schema, agg_schema.GetColIndex("countA")).ToInteger()
-	sumA_val := tuple_.GetValue(agg_schema, agg_schema.GetColIndex("sumA")).ToInteger()
-	minA_val := tuple_.GetValue(agg_schema, agg_schema.GetColIndex("minA")).ToInteger()
-	maxA_val := tuple_.GetValue(agg_schema, agg_schema.GetColIndex("maxA")).ToInteger()
-	// Should count all tuples
-	fmt.Printf("%v %v %v %v\n", countA_val, sumA_val, minA_val, maxA_val)
-	testingpkg.Assert(t, countA_val == int32(executors.TEST1_SIZE), "countA_val is not expected value.")
-	// Should sum from 0 to TEST1_SIZE
-	testingpkg.Assert(t, sumA_val == int32(executors.TEST1_SIZE*(executors.TEST1_SIZE-1)/2), "sumA_val is not expected value.")
-	// Minimum should be 0
-	testingpkg.Assert(t, minA_val == int32(0), "minA_val is not expected value.")
-	// Maximum should be TEST1_SIZE - 1
-	testingpkg.Assert(t, maxA_val == int32(executors.TEST1_SIZE-1), "maxA_val is not expected value.")
-	tuple_, done, err := executor.Next()
-	testingpkg.Assert(t, tuple_ == nil && done == true && err == nil, "second call of AggregationExecutor::Next() failed")
-
-	txn_mgr.Commit(txn)
-	shi.Shutdown(true)
-}
+//func TestConcurrentTransactionExecution(t *testing.T) {
+//	if testing.Short() {
+//		t.Skip("skip this in short mode.")
+//	}
+//
+//	if !common.EnableOnMemStorage {
+//		os.Remove(t.Name() + ".db")
+//		os.Remove(t.Name() + ".log")
+//	}
+//
+//	shi := samehada.NewSamehadaInstance(t.Name(), common.BufferPoolMaxFrameNumForTest)
+//	shi.GetLogManager().ActivateLogging()
+//	testingpkg.Assert(t, shi.GetLogManager().IsEnabledLogging(), "")
+//	fmt.Println("System logging is active.")
+//
+//	txn_mgr := shi.GetTransactionManager()
+//	txn := txn_mgr.Begin(nil)
+//
+//	c := catalog.BootstrapCatalog(shi.GetBufferPoolManager(), shi.GetLogManager(), shi.GetLockManager(), txn)
+//
+//	columnA := column.NewColumn("a", types.Integer, false, index_constants.INDEX_KIND_INVAID, types.PageID(-1), nil)
+//	columnB := column.NewColumn("b", types.Varchar, false, index_constants.INDEX_KIND_INVAID, types.PageID(-1), nil)
+//	columnC := column.NewColumn("c", types.Integer, false, index_constants.INDEX_KIND_INVAID, types.PageID(-1), nil)
+//	columnD := column.NewColumn("d", types.Varchar, false, index_constants.INDEX_KIND_INVAID, types.PageID(-1), nil)
+//	schema_ := schema.NewSchema([]*column.Column{columnA, columnB, columnC, columnD})
+//
+//	tableMetadata := c.CreateTable("test_1", schema_, txn)
+//
+//	row1 := make([]types.Value, 0)
+//	row1 = append(row1, types.NewInteger(20))
+//	row1 = append(row1, types.NewVarchar("hoge"))
+//	row1 = append(row1, types.NewInteger(40))
+//	row1 = append(row1, types.NewVarchar("hogehoge"))
+//
+//	row2 := make([]types.Value, 0)
+//	row2 = append(row2, types.NewInteger(99))
+//	row2 = append(row2, types.NewVarchar("foo"))
+//	row2 = append(row2, types.NewInteger(999))
+//	row2 = append(row2, types.NewVarchar("foofoo"))
+//
+//	row3 := make([]types.Value, 0)
+//	row3 = append(row3, types.NewInteger(11))
+//	row3 = append(row3, types.NewVarchar("bar"))
+//	row3 = append(row3, types.NewInteger(17))
+//	row3 = append(row3, types.NewVarchar("barbar"))
+//
+//	row4 := make([]types.Value, 0)
+//	row4 = append(row4, types.NewInteger(100))
+//	row4 = append(row4, types.NewVarchar("piyo"))
+//	row4 = append(row4, types.NewInteger(1000))
+//	row4 = append(row4, types.NewVarchar("piyopiyo"))
+//
+//	rows := make([][]types.Value, 0)
+//	rows = append(rows, row1)
+//	rows = append(rows, row2)
+//	rows = append(rows, row3)
+//	rows = append(rows, row4)
+//
+//	insertPlanNode := plans.NewInsertPlanNode(rows, tableMetadata.OID())
+//
+//	executionEngine := &executors.ExecutionEngine{}
+//	executorContext := executors.NewExecutorContext(c, shi.GetBufferPoolManager(), txn)
+//	executionEngine.Execute(insertPlanNode, executorContext)
+//
+//	txn_mgr.Commit(txn)
+//
+//	const PARALLEL_EXEC_CNT int = 100
+//
+//	// // set timeout for debugging
+//	// time.AfterFunc(time.Duration(40)*time.Second, TimeoutPanic)
+//
+//	commited_cnt := int32(0)
+//	for i := 0; i < PARALLEL_EXEC_CNT; i++ {
+//		ch1 := make(chan int32)
+//		ch2 := make(chan int32)
+//		ch3 := make(chan int32)
+//		ch4 := make(chan int32)
+//		go rowInsertTransaction(t, shi, c, tableMetadata, ch1)
+//		go selectAllRowTransaction(t, shi, c, tableMetadata, ch2)
+//		go deleteAllRowTransaction(t, shi, c, tableMetadata, ch3)
+//		go selectAllRowTransaction(t, shi, c, tableMetadata, ch4)
+//
+//		commited_cnt += <-ch1
+//		commited_cnt += <-ch2
+//		commited_cnt += <-ch3
+//		commited_cnt += <-ch4
+//		//fmt.Printf("commited_cnt: %d\n", commited_cnt)
+//		//shi.GetLockManager().PrintLockTables()
+//		//shi.GetLockManager().ClearLockTablesForDebug()
+//	}
+//
+//	fmt.Printf("final commited_cnt: %d\n", commited_cnt)
+//
+//	// remove db file and log file
+//	shi.Shutdown(true)
+//}
+//
+//func TestTestTableGenerator(t *testing.T) {
+//	if !common.EnableOnMemStorage {
+//		os.Remove(t.Name() + ".db")
+//		os.Remove(t.Name() + ".log")
+//	}
+//
+//	shi := samehada.NewSamehadaInstance(t.Name(), common.BufferPoolMaxFrameNumForTest)
+//	shi.GetLogManager().ActivateLogging()
+//	testingpkg.Assert(t, shi.GetLogManager().IsEnabledLogging(), "")
+//	fmt.Println("System logging is active.")
+//
+//	txn_mgr := shi.GetTransactionManager()
+//	txn := txn_mgr.Begin(nil)
+//
+//	c := catalog.BootstrapCatalog(shi.GetBufferPoolManager(), shi.GetLogManager(), shi.GetLockManager(), txn)
+//	exec_ctx := executors.NewExecutorContext(c, shi.GetBufferPoolManager(), txn)
+//
+//	table_info, _ := executors.GenerateTestTabls(c, exec_ctx, txn)
+//
+//	//txn_mgr.Commit(txn)
+//	//shi.GetBufferPoolManager().FlushAllPages()
+//	//txn = txn_mgr.Begin(nil)
+//	//exec_ctx.SetTransaction(txn)
+//
+//	outColumnA := column.NewColumn("colA", types.Integer, false, index_constants.INDEX_KIND_INVAID, types.PageID(-1), nil)
+//	outSchema := schema.NewSchema([]*column.Column{outColumnA})
+//
+//	seqPlan := plans.NewSeqScanPlanNode(outSchema, nil, table_info.OID())
+//
+//	executionEngine := &executors.ExecutionEngine{}
+//
+//	results := executionEngine.Execute(seqPlan, exec_ctx)
+//	fmt.Printf("len(results) => %d", len(results))
+//	fmt.Println("")
+//	testingpkg.Assert(t, len(results) == int(executors.TEST1_SIZE), "generated table or testcase is wrong.")
+//
+//	txn_mgr.Commit(txn)
+//	shi.Shutdown(true)
+//}
+//
+//func TestSimpleAggregation(t *testing.T) {
+//	// SELECT COUNT(colA), SUM(colA), min(colA), max(colA) from test_1;
+//	if !common.EnableOnMemStorage {
+//		os.Remove(t.Name() + ".db")
+//		os.Remove(t.Name() + ".log")
+//	}
+//
+//	shi := samehada.NewSamehadaInstance(t.Name(), common.BufferPoolMaxFrameNumForTest)
+//	shi.GetLogManager().ActivateLogging()
+//	testingpkg.Assert(t, shi.GetLogManager().IsEnabledLogging(), "")
+//	fmt.Println("System logging is active.")
+//
+//	txn_mgr := shi.GetTransactionManager()
+//	txn := txn_mgr.Begin(nil)
+//
+//	c := catalog.BootstrapCatalog(shi.GetBufferPoolManager(), shi.GetLogManager(), shi.GetLockManager(), txn)
+//	exec_ctx := executors.NewExecutorContext(c, shi.GetBufferPoolManager(), txn)
+//
+//	table_info, _ := executors.GenerateTestTabls(c, exec_ctx, txn)
+//
+//	var scan_plan *plans.SeqScanPlanNode
+//	var scan_schema *schema.Schema
+//	{
+//		//auto table_info = GetExecutorContext()->GetCatalog()->GetTable("test_1");
+//		schema_ := table_info.Schema()
+//		colA := executors.MakeColumnValueExpression(schema_, 0, "colA").(*expression.ColumnValue)
+//		scan_schema = executors.MakeOutputSchema([]executors.MakeSchemaMeta{{"colA", *colA}})
+//		scan_plan = plans.NewSeqScanPlanNode(scan_schema, nil, table_info.OID()).(*plans.SeqScanPlanNode)
+//	}
+//
+//	var agg_plan *plans.AggregationPlanNode
+//	var agg_schema *schema.Schema
+//	{
+//		colA := executors.MakeColumnValueExpression(scan_schema, 0, "colA")
+//		countA := *executors.MakeAggregateValueExpression(false, 0).(*expression.AggregateValueExpression)
+//		sumA := *executors.MakeAggregateValueExpression(false, 1).(*expression.AggregateValueExpression)
+//		minA := *executors.MakeAggregateValueExpression(false, 2).(*expression.AggregateValueExpression)
+//		maxA := *executors.MakeAggregateValueExpression(false, 3).(*expression.AggregateValueExpression)
+//
+//		agg_schema = executors.MakeOutputSchemaAgg([]executors.MakeSchemaMetaAgg{{"countA", countA}, {"sumA", sumA}, {"minA", minA}, {"maxA", maxA}})
+//		agg_plan = plans.NewAggregationPlanNode(
+//			agg_schema, scan_plan, nil, []expression.Expression{},
+//			[]expression.Expression{colA, colA, colA, colA},
+//			[]plans.AggregationType{plans.COUNT_AGGREGATE, plans.SUM_AGGREGATE,
+//				plans.MIN_AGGREGATE, plans.MAX_AGGREGATE})
+//	}
+//
+//	executionEngine := &executors.ExecutionEngine{}
+//	executor := executionEngine.CreateExecutor(agg_plan, exec_ctx)
+//	//executor := ExecutorFactory::CreateExecutor(GetExecutorContext(), agg_plan.get())
+//	executor.Init()
+//	tuple_, _, err := executor.Next()
+//	testingpkg.Assert(t, tuple_ != nil && err == nil, "first call of AggregationExecutor.Next() failed")
+//	countA_val := tuple_.GetValue(agg_schema, agg_schema.GetColIndex("countA")).ToInteger()
+//	sumA_val := tuple_.GetValue(agg_schema, agg_schema.GetColIndex("sumA")).ToInteger()
+//	minA_val := tuple_.GetValue(agg_schema, agg_schema.GetColIndex("minA")).ToInteger()
+//	maxA_val := tuple_.GetValue(agg_schema, agg_schema.GetColIndex("maxA")).ToInteger()
+//	// Should count all tuples
+//	fmt.Printf("%v %v %v %v\n", countA_val, sumA_val, minA_val, maxA_val)
+//	testingpkg.Assert(t, countA_val == int32(executors.TEST1_SIZE), "countA_val is not expected value.")
+//	// Should sum from 0 to TEST1_SIZE
+//	testingpkg.Assert(t, sumA_val == int32(executors.TEST1_SIZE*(executors.TEST1_SIZE-1)/2), "sumA_val is not expected value.")
+//	// Minimum should be 0
+//	testingpkg.Assert(t, minA_val == int32(0), "minA_val is not expected value.")
+//	// Maximum should be TEST1_SIZE - 1
+//	testingpkg.Assert(t, maxA_val == int32(executors.TEST1_SIZE-1), "maxA_val is not expected value.")
+//	tuple_, done, err := executor.Next()
+//	testingpkg.Assert(t, tuple_ == nil && done == true && err == nil, "second call of AggregationExecutor::Next() failed")
+//
+//	txn_mgr.Commit(txn)
+//	shi.Shutdown(true)
+//}
 
 func TestSimpleGroupByAggregation(t *testing.T) {
 	// SELECT count(colA), colB, sum(C) FROM test_1 Group By colB HAVING count(colA) > 100

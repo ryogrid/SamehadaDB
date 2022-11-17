@@ -4,13 +4,14 @@
 package buffer
 
 import (
+	//"github.com/sasha-s/go-deadlock"
 	"fmt"
 	"github.com/ryogrid/SamehadaDB/common"
 	"github.com/ryogrid/SamehadaDB/recovery"
 	"github.com/ryogrid/SamehadaDB/storage/disk"
 	"github.com/ryogrid/SamehadaDB/storage/page"
 	"github.com/ryogrid/SamehadaDB/types"
-	"github.com/sasha-s/go-deadlock"
+	"sync"
 )
 
 // BufferPoolManager represents the buffer pool manager
@@ -21,9 +22,9 @@ type BufferPoolManager struct {
 	freeList    []FrameID
 	pageTable   map[types.PageID]FrameID
 	log_manager *recovery.LogManager
-	// TODO (SDB) for Debugging. this should be reverted after debugging
-	//mutex       *sync.Mutex
-	mutex *deadlock.Mutex
+	mutex       *sync.Mutex
+	//// when using go-dedlock package
+	//mutex *deadlock.Mutex
 }
 
 // FetchPage fetches the requested page from the buffer pool.
@@ -343,8 +344,8 @@ func NewBufferPoolManager(poolSize uint32, DiskManager disk.DiskManager, log_man
 	}
 
 	replacer := NewClockReplacer(poolSize)
-	//return &BufferPoolManager{DiskManager, pages, replacer, freeList, make(map[types.PageID]FrameID), log_manager, new(sync.Mutex)}
-	// TODO (SDB) for Debugging. this should be reverted after debugging
-	deadlock.Opts.DisableLockOrderDetection = true
-	return &BufferPoolManager{DiskManager, pages, replacer, freeList, make(map[types.PageID]FrameID), log_manager, new(deadlock.Mutex)}
+	return &BufferPoolManager{DiskManager, pages, replacer, freeList, make(map[types.PageID]FrameID), log_manager, new(sync.Mutex)}
+	//// when using "go-deadlock" package
+	//deadlock.Opts.DisableLockOrderDetection = true
+	//return &BufferPoolManager{DiskManager, pages, replacer, freeList, make(map[types.PageID]FrameID), log_manager, new(deadlock.Mutex)}
 }

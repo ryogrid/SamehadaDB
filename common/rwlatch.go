@@ -155,14 +155,12 @@ func (l *readerWriterLatchDebug) PrintDebugInfo() {
 }
 
 type readerWriterLatchTrace struct {
-	mutex     *deadlock.RWMutex
-	readerCnt int32
-	writerCnt int32
+	mutex *deadlock.RWMutex
 }
 
 func NewRWLatchTrace() ReaderWriterLatch {
 	deadlock.Opts.DisableLockOrderDetection = true
-	latch := readerWriterLatchTrace{new(deadlock.RWMutex), 0, 0}
+	latch := readerWriterLatchTrace{new(deadlock.RWMutex)}
 
 	return &latch
 }

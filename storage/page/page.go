@@ -4,6 +4,7 @@
 package page
 
 import (
+	//"github.com/sasha-s/go-deadlock"
 	"github.com/ryogrid/SamehadaDB/common"
 	"github.com/ryogrid/SamehadaDB/types"
 	"sync/atomic"
@@ -89,12 +90,10 @@ func (p *Page) Copy(offset uint32, data []byte) {
 
 // New creates a new page
 func New(id types.PageID, isDirty bool, data *[common.PageSize]byte) *Page {
-	//return &Page{id, int32(1), isDirty, data, common.NewRWLatch()}
+	return &Page{id, int32(1), isDirty, data, common.NewRWLatch()}
 
-	// TODO (SDB) for Debugging. this should be reverted after debugging
-	return &Page{id, int32(1), isDirty, data, common.NewRWLatchTrace()}
-
-	//return &Page{id, int32(1), isDirty, data, common.NewUpgradableMutex()}
+	//// when using "go-deadlock" package
+	//return &Page{id, int32(1), isDirty, data, common.NewRWLatchTrace()}
 
 	//// customized RWMutex for concurrent skip list debug
 	//return &Page{id, uint32(1), isDirty, data, common.NewRWLatchDebug()}
@@ -112,14 +111,11 @@ func NewEmpty(id types.PageID) *Page {
 
 /** @return the page LSN. */
 func (p *Page) GetLSN() types.LSN {
-	/* return -1 */
-	/**reinterpret_cast<lsn_t *>(GetData() + OFFSET_LSN)*/
 	return types.NewLSNFromBytes(p.GetData()[OffsetLSN : OffsetLSN+types.SizeOfLSN])
 }
 
 /** Sets the page LSN. */
 func (p *Page) SetLSN(lsn types.LSN) {
-	/*memcpy(GetData() + OFFSET_LSN, &lsn, sizeof(lsn_t))*/
 	copy(p.data[OffsetLSN:OffsetLSN+types.SizeOfLSN], lsn.Serialize())
 }
 
@@ -131,7 +127,6 @@ func (p *Page) GetData() *[common.PageSize]byte {
 
 /** Acquire the page write latch. */
 func (p *Page) WLatch() {
-	// common.SH_Assert(!p.rwlatch_.IsWriteLocked(), "Page is already write locked")
 	// fmt.Printf("Page::WLatch: page address %p\n", p)
 	if common.EnableDebug {
 		common.ShPrintf(common.DEBUG_INFO_DETAIL, "pageId=%d ", p.GetPageId())
@@ -151,7 +146,6 @@ func (p *Page) WUnlatch() {
 
 /** Acquire the page read latch. */
 func (p *Page) RLatch() {
-	//common.SH_Assert(!p.rwlatch_.IsReadLocked(), "Page is already read locked")
 	// fmt.Printf("Page::RLatch: page address %p\n", p)
 	if common.EnableDebug {
 		common.ShPrintf(common.DEBUG_INFO_DETAIL, "pageId=%d ", p.GetPageId())
