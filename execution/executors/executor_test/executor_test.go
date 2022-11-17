@@ -3,6 +3,7 @@
 
 package executor_test
 
+/*
 import (
 	"fmt"
 	"github.com/ryogrid/SamehadaDB/execution/executors"
@@ -2466,3 +2467,4 @@ func TestInsertNullValueAndSeqScanWithNullComparison(t *testing.T) {
 		})
 	}
 }
+*/

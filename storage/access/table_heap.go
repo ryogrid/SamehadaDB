@@ -70,6 +70,8 @@ func (t *TableHeap) InsertTuple(tuple_ *tuple.Tuple, txn *Transaction, oid uint3
 			break
 		}
 		if rid == nil && err != nil && err != ErrEmptyTuple && err != ErrNotEnoughSpace {
+			t.bpm.UnpinPage(currentPage.GetPageId(), false)
+			common.SH_Assert(currentPage.PinCount() == 0, "PinCount is not zero at TableHeap::InsertTuple!!!")
 			currentPage.WUnlatch()
 			return nil, err
 		}
@@ -79,6 +81,7 @@ func (t *TableHeap) InsertTuple(tuple_ *tuple.Tuple, txn *Transaction, oid uint3
 			nextPage := CastPageAsTablePage(t.bpm.FetchPage(nextPageId))
 			nextPage.WLatch()
 			t.bpm.UnpinPage(currentPage.GetPageId(), false)
+			common.SH_Assert(currentPage.PinCount() == 0, "PinCount is not zero at TableHeap::InsertTuple!!!")
 			currentPage.WUnlatch()
 			currentPage = nextPage
 			// holding WLatch of currentPage here
@@ -89,6 +92,7 @@ func (t *TableHeap) InsertTuple(tuple_ *tuple.Tuple, txn *Transaction, oid uint3
 			newPage := CastPageAsTablePage(p)
 			newPage.WLatch()
 			t.bpm.UnpinPage(currentPage.GetPageId(), true)
+			common.SH_Assert(currentPage.PinCount() == 0, "PinCount is not zero when finish TablePage::UpdateTuple!!!")
 			currentPage.WUnlatch()
 			newPage.Init(p.GetPageId(), currentPageId, t.log_manager, t.lock_manager, txn)
 			//t.bpm.FlushPage(newPage.GetPageId())
@@ -99,6 +103,7 @@ func (t *TableHeap) InsertTuple(tuple_ *tuple.Tuple, txn *Transaction, oid uint3
 	}
 
 	t.bpm.UnpinPage(currentPage.GetPageId(), true)
+	common.SH_Assert(currentPage.PinCount() == 0, "PinCount is not zero when finish TablePage::InsertTuple!!!")
 	currentPage.WUnlatch()
 	// Update the transaction's write set.
 	txn.AddIntoWriteSet(NewWriteRecord(*rid, INSERT, new(tuple.Tuple), t, oid))
@@ -125,6 +130,7 @@ func (t *TableHeap) UpdateTuple(tuple_ *tuple.Tuple, update_col_idxs []int, sche
 	page_.WLatch()
 	is_updated, err, need_follow_tuple := page_.UpdateTuple(tuple_, update_col_idxs, schema_, old_tuple, &rid, txn, t.lock_manager, t.log_manager)
 	t.bpm.UnpinPage(page_.GetPageId(), is_updated)
+	common.SH_Assert(page_.PinCount() == 0, "PinCount is not zero when finish TablePage::UpdateTuple!!!")
 	page_.WUnlatch()
 
 	var new_rid *page.RID = nil
@@ -192,6 +198,7 @@ func (t *TableHeap) MarkDelete(rid *page.RID, oid uint32, txn *Transaction) bool
 	page_.WLatch()
 	is_marked := page_.MarkDelete(rid, txn, t.lock_manager, t.log_manager)
 	t.bpm.UnpinPage(page_.GetPageId(), true)
+	common.SH_Assert(page_.PinCount() == 0, "PinCount is not zero when finish TablePage::MarkDelete!!!")
 	page_.WUnlatch()
 	if is_marked {
 		// Update the transaction's write set.
@@ -213,6 +220,7 @@ func (t *TableHeap) ApplyDelete(rid *page.RID, txn *Transaction) {
 	page_.ApplyDelete(rid, txn, t.log_manager)
 	//t.lock_manager.WUnlock(txn, []page.RID{*rid})
 	t.bpm.UnpinPage(page_.GetPageId(), true)
+	common.SH_Assert(page_.PinCount() == 0, "PinCount is not zero when finish TablePage::ApplyDelete!!!")
 	page_.WUnlatch()
 }
 
@@ -227,6 +235,7 @@ func (t *TableHeap) RollbackDelete(rid *page.RID, txn *Transaction) {
 	page_.WLatch()
 	page_.RollbackDelete(rid, txn, t.log_manager)
 	t.bpm.UnpinPage(page_.GetPageId(), true)
+	common.SH_Assert(page_.PinCount() == 0, "PinCount is not zero when finish TablePage::RollbackDelete!!!")
 	page_.WUnlatch()
 }
 
