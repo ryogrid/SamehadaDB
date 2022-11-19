@@ -62,14 +62,15 @@ func (it *TableHeapIterator) Next() *tuple.Tuple {
 	}
 	currentPage.RUnlatch()
 
+	currentPage.WLatch()
+	bpm.UnpinPage(currentPage.GetPageId(), false)
+	currentPage.WUnlatch()
+
 	if nextTupleRID != nil && nextTupleRID.GetPageId().IsValid() {
 		it.tuple = it.tableHeap.GetTuple(nextTupleRID, it.txn)
 	} else {
 		it.tuple = nil
 	}
 
-	currentPage.WLatch()
-	bpm.UnpinPage(currentPage.GetPageId(), false)
-	currentPage.WUnlatch()
 	return it.tuple
 }
