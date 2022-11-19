@@ -110,6 +110,10 @@ func (b *BufferPoolManager) UnpinPage(pageID types.PageID, isDirty bool) error {
 		//b.mutex.RUnlock()
 		pg.DecPinCount()
 
+		// TODO: (SDB) this code is for debugging. this mus be removed after debugging (BPM::UnpinPage)
+		common.SH_Assert(pg.PinCount() == 0 || (pg.PinCount() == 1 && (pg.GetPageId() == 3 || pg.GetPageId() == 4 || pg.GetPageId() == 6 || pg.GetPageId() == 7)),
+			fmt.Sprintf("BPM::UnpinPage pin count must be zero here when single thread execution!!!. pageId:%d", pg.GetPageId()))
+
 		if pg.PinCount() < 0 {
 			panic("pin coint is less than 0!")
 		}
