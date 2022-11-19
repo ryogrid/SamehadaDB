@@ -83,6 +83,7 @@ func (transaction_manager *TransactionManager) Commit(txn *Transaction) {
 			tpage := CastPageAsTablePage(table.bpm.FetchPage(pageID))
 			tpage.WLatch()
 			tpage.ApplyDelete(&item.rid, txn, transaction_manager.log_manager)
+			table.bpm.UnpinPage(tpage.GetPageId(), true)
 			tpage.WUnlatch()
 		}
 		write_set = write_set[:len(write_set)-1]
@@ -146,6 +147,7 @@ func (transaction_manager *TransactionManager) Abort(catalog_ catalog_interface.
 			tpage := CastPageAsTablePage(table.bpm.FetchPage(pageID))
 			tpage.WLatch()
 			tpage.ApplyDelete(&item.rid, txn, transaction_manager.log_manager)
+			table.bpm.UnpinPage(pageID, false)
 			tpage.WUnlatch()
 			// rollback index data
 			indexes := catalog_.GetRollbackNeededIndexes(indexMap, item.oid)
