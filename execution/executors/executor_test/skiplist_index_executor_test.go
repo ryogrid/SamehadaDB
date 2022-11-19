@@ -8,6 +8,33 @@ import (
 	"github.com/ryogrid/SamehadaDB/execution/executors"
 	"github.com/ryogrid/SamehadaDB/execution/expression"
 	"github.com/ryogrid/SamehadaDB/execution/plans"
+	"github.com/ryogrid/SamehadaDB/samehada"
+	"github.com/ryogrid/SamehadaDB/samehada/samehada_util"
+	"github.com/ryogrid/SamehadaDB/storage/access"
+	"github.com/ryogrid/SamehadaDB/storage/buffer"
+	"github.com/ryogrid/SamehadaDB/storage/index/index_constants"
+	"github.com/ryogrid/SamehadaDB/storage/table/column"
+	"github.com/ryogrid/SamehadaDB/storage/table/schema"
+	"github.com/ryogrid/SamehadaDB/storage/tuple"
+	testingpkg "github.com/ryogrid/SamehadaDB/testing"
+	"github.com/ryogrid/SamehadaDB/types"
+	"math"
+	"math/rand"
+	"os"
+	"sync"
+	"sync/atomic"
+	"testing"
+)
+
+/*
+import (
+	"fmt"
+	"github.com/ryogrid/SamehadaDB/catalog"
+	"github.com/ryogrid/SamehadaDB/common"
+	"github.com/ryogrid/SamehadaDB/container/hash"
+	"github.com/ryogrid/SamehadaDB/execution/executors"
+	"github.com/ryogrid/SamehadaDB/execution/expression"
+	"github.com/ryogrid/SamehadaDB/execution/plans"
 	"github.com/ryogrid/SamehadaDB/recovery"
 	"github.com/ryogrid/SamehadaDB/samehada"
 	"github.com/ryogrid/SamehadaDB/samehada/samehada_util"
@@ -27,6 +54,7 @@ import (
 	"sync/atomic"
 	"testing"
 )
+
 
 func TestSkipListIndexPointScan(t *testing.T) {
 	common.TempSuppressOnMemStorageMutex.Lock()
@@ -286,18 +314,18 @@ func TestSkipListSerialIndexRangeScan(t *testing.T) {
 		[]*types.Value{nil, nil},
 		4,
 	}}
-	/*, {
-		"select a ... WHERE a >= -2147483647 and a <= 1225", // fail because restriction of current SkipList Index impl?
-		executionEngine,
-		executorContext,
-		tableMetadata,
-		[]executors.Column{{"a", types.Integer}},
-		executors.Predicate{"a", expression.GreaterThanOrEqual, 20},
-		int32(tableMetadata.Schema().GetColIndex("a")),
-		[]types.Value{types.NewInteger(math.MinInt32), types.NewInteger(1225)},
-		3,
-	}}
-	*/
+//, {
+//		"select a ... WHERE a >= -2147483647 and a <= 1225", // fail because restriction of current SkipList Index impl?
+//		executionEngine,
+//		executorContext,
+//		tableMetadata,
+//		[]executors.Column{{"a", types.Integer}},
+//		executors.Predicate{"a", expression.GreaterThanOrEqual, 20},
+//		int32(tableMetadata.Schema().GetColIndex("a")),
+//		[]types.Value{types.NewInteger(math.MinInt32), types.NewInteger(1225)},
+//		3,
+//	}}
+
 
 	for _, test := range cases {
 		t.Run(test.Description, func(t *testing.T) {
@@ -581,6 +609,7 @@ func TestAbortWthDeleteUpdateUsingIndexCaseRangeScan(t *testing.T) {
 	testingpkg.Assert(t, types.NewInteger(777).CompareEquals(results[0].GetValue(tableMetadata.Schema(), 0)), "value should be 777")
 	testingpkg.Assert(t, types.NewVarchar("bar").CompareEquals(results[0].GetValue(tableMetadata.Schema(), 1)), "value should be \"bar\"")
 }
+*/
 
 const (
 	SERIAL_EXEC = iota
