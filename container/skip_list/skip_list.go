@@ -182,6 +182,8 @@ func (sl *SkipList) FindNode(key *types.Value, opType SkipListOpType) (isSuccess
 
 					origLSN := pred.GetLSN()
 					predPageId := pred.GetPageId()
+					// release originally having pin
+					sl.bpm.DecPinOfPage(pred)
 					pred.RUnlatch()
 
 					pred := skip_list_page.FetchAndCastToBlockPage(sl.bpm, predPageId)
@@ -190,15 +192,15 @@ func (sl *SkipList) FindNode(key *types.Value, opType SkipListOpType) (isSuccess
 					if pred.GetLSN() != origLSN {
 						// pred node is updated, so need retry
 
-						// originaly having pin
-						sl.bpm.DecPinOfPage(pred)
+						//// originaly having pin
+						//sl.bpm.DecPinOfPage(pred)
 						// additionaly got pin at Fetch
 						sl.bpm.UnpinPage(pred.GetPageId(), false)
 						pred.WUnlatch()
 						return false, nil, nil, nil
 					}
-					// additionaly got pin at Fetch
-					sl.bpm.DecPinOfPage(pred)
+					//// additionaly got pin at Fetch
+					//sl.bpm.DecPinOfPage(pred)
 				}
 			}
 			predOfCorners[ii] = skip_list_page.SkipListCornerInfo{predOfPredId, predOfPredLSN}
