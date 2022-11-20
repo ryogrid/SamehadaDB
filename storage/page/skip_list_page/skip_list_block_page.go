@@ -327,19 +327,21 @@ func (node *SkipListBlockPage) Insert(key *types.Value, value uint32, bpm *buffe
 				// set this node as corner node of level-1
 				corners[0] = SkipListCornerInfo{node.GetPageId(), node.GetLSN()}
 
+				bpm.UnpinPage(node.GetPageId(), false)
 				node.WUnlatch()
 				isSuccess, lockedAndPinnedNodes = validateNoChangeAndGetLock(bpm, corners[:level], nil)
 				if !isSuccess {
-					bpm.UnpinPage(node.GetPageId(), false)
-					// already released lock of this node
+					//bpm.UnpinPage(node.GetPageId(), false)
+					//// already released lock of this node
 					if common.EnableDebug {
 						common.ShPrintf(common.DEBUG_INFO, "SkipListBlockPage::Insert: finish (validation NG). key=%v\n", key.ToIFValue())
 					}
 					return true
-				} else {
-					//node.DecPinCount()
-					bpm.DecPinOfPage(node)
 				}
+				//} else {
+				//	//node.DecPinCount()
+				//	bpm.DecPinOfPage(node)
+				//}
 
 				newNode := node.SplitNode(splitIdx, bpm, corners, level, key.ValueType(), lockedAndPinnedNodes)
 				// keep having Wlatch and pin of newNode and this node only here
@@ -402,11 +404,12 @@ func (node *SkipListBlockPage) Insert(key *types.Value, value uint32, bpm *buffe
 				// set this node as corner node of level-1
 				corners[0] = SkipListCornerInfo{node.GetPageId(), node.GetLSN()}
 
+				bpm.UnpinPage(node.GetPageId(), false)
 				node.WUnlatch()
 				isSuccess, lockedAndPinnedNodes = validateNoChangeAndGetLock(bpm, corners[:level], nil)
 				//bpm.UnpinPage(node.GetPageId(), false)
 				//node.DecPinCount()
-				bpm.DecPinOfPage(node)
+				//bpm.DecPinOfPage(node)
 				if !isSuccess {
 					// already released lock of this node
 					if common.EnableDebug {
