@@ -516,8 +516,14 @@ func validateNoChangeAndGetLock(bpm *buffer.BufferPoolManager, checkNodes []Skip
 	validatedNodes := make([]*SkipListBlockPage, 0)
 	prevPageId := types.InvalidPageID
 	for ii := checkLen - 1; ii >= 0; ii-- {
-		node := FetchAndCastToBlockPage(bpm, checkNodes[ii].PageId)
-		isPassed := false
+		var node *SkipListBlockPage
+		if checkNodes[ii].PageId == prevPageId {
+			node = validatedNodes[len(validatedNodes)-1]
+		} else {
+			node = FetchAndCastToBlockPage(bpm, checkNodes[ii].PageId)
+		}
+
+		//isPassed := false
 		if node == nil {
 			common.ShPrintf(common.DEBUG_INFO, "validateNoChangeAndGetLock: validation failed. go retry.\n")
 			unlockAndUnpinNodes(bpm, validatedNodes, false)
@@ -527,23 +533,25 @@ func validateNoChangeAndGetLock(bpm *buffer.BufferPoolManager, checkNodes []Skip
 			return false, nil
 		}
 
-		// check whether update counter is not changed
-		if node.GetPageId() == prevPageId {
-			// unpin because fetched same page
-			//bpm.UnpinPage(node.GetPageId(), true)
-			//node.DecPinCount()
-			bpm.DecPinOfPage(node)
-			isPassed = true
-			// locking is not needed because it has already got
-		} else {
+		//if node.GetPageId() == prevPageId {
+		//	////unpin because fetched same page
+		//	//bpm.UnpinPage(node.GetPageId(), true)
+		//	//node.DecPinCount()
+		//	bpm.DecPinOfPage(node)
+		//	isPassed = true
+		//	// locking is not needed because it has already got
+		//} else {
+		//	node.WLatch()
+		//}
+		if node.GetPageId() != prevPageId {
 			node.WLatch()
 		}
 
-		if !isPassed {
-			tmpNodes := make([]*SkipListBlockPage, 0)
-			tmpNodes = append(tmpNodes, node)
-			validatedNodes = append(tmpNodes, validatedNodes...)
-		}
+		//if !isPassed {
+		tmpNodes := make([]*SkipListBlockPage, 0)
+		tmpNodes = append(tmpNodes, node)
+		validatedNodes = append(tmpNodes, validatedNodes...)
+		//}
 
 		// LSN is used for update counter
 		if node.GetLSN() != checkNodes[ii].UpdateCounter {
@@ -731,13 +739,20 @@ func (node *SkipListBlockPage) newNodeAndUpdateChain(idx int32, bpm *buffer.Buff
 
 	for ii := 0; ii < int(level); ii++ {
 		// modify forward link
-		tmpNode := FetchAndCastToBlockPage(bpm, corners[ii].PageId)
+		var tmpNode *SkipListBlockPage
+		if corners[ii].PageId == node.GetPageId() {
+			tmpNode = node
+		} else {
+			tmpNode = FetchAndCastToBlockPage(bpm, corners[ii].PageId)
+		}
 		newNode.SetForwardEntry(ii, tmpNode.GetForwardEntry(ii))
 		tmpNode.SetForwardEntry(ii, newNode.GetPageId())
 		tmpNode.SetLSN(tmpNode.GetLSN() + 1)
 		//bpm.UnpinPage(tmpNode.GetPageId(), true)
 		//tmpNode.DecPinCount()
-		bpm.DecPinOfPage(tmpNode)
+		if corners[ii].PageId != node.GetPageId() {
+			bpm.DecPinOfPage(tmpNode)
+		}
 	}
 
 	// release latches and pins except current updating node ("node" receiver object)
