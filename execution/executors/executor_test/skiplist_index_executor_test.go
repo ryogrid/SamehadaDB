@@ -1084,15 +1084,15 @@ func testParallelTxnsQueryingSkipListIndexUsedColumns[T int32 | float32 | string
 		//// move money, Random Insert, Randome Delete, Random Update
 		//opType := rand.Intn(5)
 
-		//// move money, Random Insert, Randome Delete, Random Update, Random Point Scan
-		//opType := rand.Intn(7)
+		// move money, Random Insert, Randome Delete, Random Update, Random Point Scan
+		opType := rand.Intn(7)
 
 		//// Random Insert only
 		//opType := 1
 
-		// Random Isert and Random Delete only
-		opType := rand.Intn(3)
-		opType += 1
+		//// Random Isert and Random Delete only
+		//opType := rand.Intn(3)
+		//opType += 1
 
 		//// move money, Random Insert, Randome Delete, Random Update, Random Point Scan, Random Range Scan
 		//opType := rand.Intn(8)

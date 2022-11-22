@@ -75,7 +75,6 @@ func (tp *TablePage) InsertTuple(tuple *tuple.Tuple, log_manager *recovery.LogMa
 	}
 
 	if tuple.Size() == 0 {
-
 		return nil, ErrEmptyTuple
 	}
 
