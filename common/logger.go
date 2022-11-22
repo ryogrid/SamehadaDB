@@ -9,10 +9,11 @@ const (
 	DEBUG_INFO                 = 2
 	RDB_OP_FUNC_CALL           = 4
 	DEBUGGING                  = 8
-	INFO                       = 16
-	WARN                       = 32
-	ERROR                      = 64
-	FATAL                      = 128
+	PIN_COUNT_ASSERT           = 16
+	INFO                       = 32
+	WARN                       = 64
+	ERROR                      = 128
+	FATAL                      = 256
 )
 
 func ShPrintf(logLevel LogLevel, fmtStl string, a ...interface{}) {
