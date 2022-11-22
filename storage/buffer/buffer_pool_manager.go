@@ -34,7 +34,7 @@ func (b *BufferPoolManager) FetchPage(pageID types.PageID) *page.Page {
 	b.mutex.Lock()
 	if frameID, ok := b.pageTable[pageID]; ok {
 		pg := b.pages[frameID]
-		// TODO: (SDB) this code is for debugging. this mus be removed after debugging (BPM::FetchPage)
+		// TODO: (SDB) this code is for debugging. this must be removed after debugging (BPM::FetchPage)
 		common.SH_Assert(pg.PinCount() == 0 || ( /*pg.PinCount() == 1 && */ pg.GetPageId() == 4 || pg.GetPageId() == 5 || pg.GetPageId() == 7 || pg.GetPageId() == 8),
 			fmt.Sprintf("BPM::FetchPage pin count must be zero here when single thread execution!!!. pageId:%d PinCount:%d", pg.GetPageId(), pg.PinCount()))
 		pg.IncPinCount()
