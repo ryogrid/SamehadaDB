@@ -729,6 +729,15 @@ func (node *SkipListBlockPage) SplitNode(idx int32, bpm *buffer.BufferPoolManage
 	return newNode
 }
 
+func FindSLBPFromList(list []*SkipListBlockPage, pageID types.PageID) *SkipListBlockPage {
+	for _, t := range list {
+		if t.GetPageId() == pageID {
+			return t
+		}
+	}
+	return nil
+}
+
 func (node *SkipListBlockPage) newNodeAndUpdateChain(idx int32, bpm *buffer.BufferPoolManager, corners []SkipListCornerInfo, level int32, keyType types.TypeID, lockedAndPinnedNodes []*SkipListBlockPage, insertEntry *SkipListPair) *SkipListBlockPage {
 	var newNode *SkipListBlockPage
 	if insertEntry != nil {
@@ -745,16 +754,21 @@ func (node *SkipListBlockPage) newNodeAndUpdateChain(idx int32, bpm *buffer.Buff
 		if corners[ii].PageId == node.GetPageId() {
 			tmpNode = node
 		} else {
-			tmpNode = FetchAndCastToBlockPage(bpm, corners[ii].PageId)
+			fetchedPage := FindSLBPFromList(lockedAndPinnedNodes, corners[ii].PageId)
+			if fetchedPage != nil {
+				tmpNode = fetchedPage
+			} else {
+				panic("update check functon musy have bug!")
+			}
 		}
 		newNode.SetForwardEntry(ii, tmpNode.GetForwardEntry(ii))
 		tmpNode.SetForwardEntry(ii, newNode.GetPageId())
 		tmpNode.SetLSN(tmpNode.GetLSN() + 1)
 		//bpm.UnpinPage(tmpNode.GetPageId(), true)
 		//tmpNode.DecPinCount()
-		if corners[ii].PageId != node.GetPageId() {
-			bpm.DecPinOfPage(tmpNode)
-		}
+		//if corners[ii].PageId != node.GetPageId() {
+		//	bpm.DecPinOfPage(tmpNode)
+		//}
 	}
 
 	// release latches and pins except current updating node ("node" receiver object)
