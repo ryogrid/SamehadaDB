@@ -581,7 +581,7 @@ func validateNoChangeAndGetLock(bpm *buffer.BufferPoolManager, checkNodes []Skip
 			common.ShPrintf(common.DEBUG_INFO, "validateNoChangeAndGetLock: validation of additionalCheckNode is NG: go retry. len(validatedNodes)=%d\n", len(validatedNodes))
 			//bpm.UnpinPage(node.GetPageId(), true)
 			//node.DecPinCount()
-			bpm.DecPinOfPage(node)
+			//bpm.DecPinOfPage(node)
 			bpm.UnpinPage(node.GetPageId(), true)
 			node.WUnlatch()
 			unlockAndUnpinNodes(bpm, validatedNodes, false)
@@ -625,6 +625,7 @@ func (node *SkipListBlockPage) Remove(bpm *buffer.BufferPoolManager, key *types.
 		checkNodes = append(checkNodes, corners[1:updateLen]...)
 		// check of thid node is also needed
 		additionalCheckNode := &SkipListCornerInfo{node.GetPageId(), node.GetLSN()}
+		bpm.UnpinPage(node.GetPageId(), false)
 		node.WUnlatch()
 		isSuccess, lockedAndPinnedNodes := validateNoChangeAndGetLock(bpm, checkNodes, additionalCheckNode)
 		//bpm.UnpinPage(node.GetPageId(), true)
@@ -637,24 +638,26 @@ func (node *SkipListBlockPage) Remove(bpm *buffer.BufferPoolManager, key *types.
 
 			return false, false, true
 		}
-		bpm.DecPinOfPage(node)
+		//bpm.DecPinOfPage(node)
 
 		// removing this node from all level of chain
 		for ii := 1; ii < updateLen; ii++ {
-			corner := FetchAndCastToBlockPage(bpm, corners[ii].PageId)
+			//corner := FetchAndCastToBlockPage(bpm, corners[ii].PageId)
+			corner := FindSLBPFromList(lockedAndPinnedNodes, corners[ii].PageId)
 			corner.SetForwardEntry(ii, node.GetForwardEntry(ii))
 			corner.SetLSN(corner.GetLSN() + 1)
 			//bpm.UnpinPage(corners[ii].PageId, true)
 			//corner.DecPinCount()
-			bpm.DecPinOfPage(corner)
+			//bpm.DecPinOfPage(corner)
 		}
 		// level-1's pred is stored predOfCorners
-		pred := FetchAndCastToBlockPage(bpm, predOfCorners[0].PageId)
+		//pred := FetchAndCastToBlockPage(bpm, predOfCorners[0].PageId)
+		pred := FindSLBPFromList(lockedAndPinnedNodes, predOfCorners[0].PageId)
 		pred.SetForwardEntry(0, node.GetForwardEntry(0))
 		pred.SetLSN(pred.GetLSN() + 1)
-		//bpm.UnpinPage(predOfCorners[0].PageId, true)
-		//pred.DecPinCount()
-		bpm.DecPinOfPage(pred)
+		////bpm.UnpinPage(predOfCorners[0].PageId, true)
+		////pred.DecPinCount()
+		//bpm.DecPinOfPage(pred)
 		node.SetLSN(node.GetLSN() + 1)
 
 		unlockAndUnpinNodes(bpm, lockedAndPinnedNodes, true)
