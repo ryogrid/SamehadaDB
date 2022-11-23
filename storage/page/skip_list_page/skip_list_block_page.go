@@ -434,7 +434,7 @@ func (node *SkipListBlockPage) Insert(key *types.Value, value uint32, bpm *buffe
 				// keep having Wlatch and pin of newNode and this node only here
 
 				bpm.UnpinPage(newNode.GetPageId(), true)
-				newNode.RemoveWLatchRecord(key.ToInteger())
+				newNode.RemoveWLatchRecord(-200000)
 				newNode.WUnlatch()
 
 				//unlockAndUnpinNodes(bpm, lockedAndPinnedNodes, true)
