@@ -63,6 +63,8 @@ func (b *BufferPoolManager) FetchPage(pageID types.PageID) *page.Page {
 		//b.mutex.WUnlock()
 		//common.SH_Assert(currentPage.PinCount() >= 0, "BPM::FetchPage Victim page's pin count is not zero!!!")
 		if currentPage != nil {
+			common.SH_Assert(currentPage.PinCount() == 0,
+				fmt.Sprintf("BPM::FetchPage pin count of page to be cache out must be zero!!!. pageId:%d PinCount:%d", currentPage.GetPageId(), currentPage.PinCount()))
 			fmt.Printf("BPM::FetchPage Cache out occurs! pageId:%d requested pageId:%d\n", currentPage.GetPageId(), pageID)
 			if currentPage.IsDirty() {
 				b.log_manager.Flush()
@@ -335,8 +337,8 @@ func (b *BufferPoolManager) getFrameID() (*FrameID, bool) {
 	ret := (*b.replacer).Victim()
 	//b.mutex.WUnlock()
 	if ret == nil {
-		fmt.Printf("getFrameID: Victime page is nil! len(b.freeList)=%d\n", len(b.freeList))
-		//panic("getFrameID: Victime page is nil!")
+		//fmt.Printf("getFrameID: Victime page is nil! len(b.freeList)=%d\n", len(b.freeList))
+		panic("getFrameID: Victime page is nil!")
 	}
 	return ret, false
 }
