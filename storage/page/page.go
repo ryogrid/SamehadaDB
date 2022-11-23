@@ -185,18 +185,18 @@ func (p *Page) GetRWLachObj() common.ReaderWriterLatch {
 
 // for debugging
 func (p *Page) AddWLatchRecord(info int32) {
-	p.WLatchMap[info] = true
+	//p.WLatchMap[info] = true
 }
 func (p *Page) RemoveWLatchRecord(info int32) {
-	delete(p.WLatchMap, info)
+	//delete(p.WLatchMap, info)
 }
 func (p *Page) AddRLatchRecord(info int32) {
-	p.RLatchMapMutex.Lock()
-	p.RLatchMap[info] = true
-	p.RLatchMapMutex.Unlock()
+	//p.RLatchMapMutex.Lock()
+	//p.RLatchMap[info] = true
+	//p.RLatchMapMutex.Unlock()
 }
 func (p *Page) RemoveRLatchRecord(info int32) {
-	p.RLatchMapMutex.Lock()
-	delete(p.RLatchMap, info)
-	p.RLatchMapMutex.Unlock()
+	//p.RLatchMapMutex.Lock()
+	//delete(p.RLatchMap, info)
+	//p.RLatchMapMutex.Unlock()
 }
