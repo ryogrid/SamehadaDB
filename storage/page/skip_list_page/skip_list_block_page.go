@@ -527,9 +527,9 @@ func validateNoChangeAndGetLock(bpm *buffer.BufferPoolManager, checkNodes []Skip
 		if node == nil {
 			common.ShPrintf(common.DEBUG_INFO, "validateNoChangeAndGetLock: validation failed. go retry.\n")
 			unlockAndUnpinNodes(bpm, validatedNodes, false)
-			if additonalCheckNode != nil {
-				bpm.UnpinPage(additonalCheckNode.PageId, false)
-			}
+			//if additonalCheckNode != nil {
+			//	bpm.UnpinPage(additonalCheckNode.PageId, false)
+			//}
 			return false, nil
 		}
 
@@ -559,9 +559,9 @@ func validateNoChangeAndGetLock(bpm *buffer.BufferPoolManager, checkNodes []Skip
 		if node.GetLSN() != checkNodes[ii].UpdateCounter {
 			common.ShPrintf(common.DEBUG_INFO, "validateNoChangeAndGetLock: validation is NG: go retry. len(validatedNodes)=%d\n", len(validatedNodes))
 			unlockAndUnpinNodes(bpm, validatedNodes, false)
-			if additonalCheckNode != nil {
-				bpm.UnpinPage(additonalCheckNode.PageId, false)
-			}
+			//if additonalCheckNode != nil {
+			//	bpm.UnpinPage(additonalCheckNode.PageId, false)
+			//}
 			return false, nil
 		}
 
