@@ -63,16 +63,20 @@ func latchOpWithOpType(node *skip_list_page.SkipListBlockPage, getOrUnlatch Latc
 	case SKIP_LIST_OP_GET:
 		if getOrUnlatch == SKIP_LIST_UTIL_GET_LATCH {
 			node.RLatch()
+			node.AddRLatchRecord(int32(-1 * opType * 1000))
 		} else if getOrUnlatch == SKIP_LIST_UTIL_UNLATCH {
 			node.RUnlatch()
+			node.RemoveRLatchRecord(int32(-1 * opType * 1000))
 		} else {
 			panic("unknown latch operaton")
 		}
 	default:
 		if getOrUnlatch == SKIP_LIST_UTIL_GET_LATCH {
 			node.RLatch()
+			node.AddRLatchRecord(int32(-1 * opType * 1000))
 		} else if getOrUnlatch == SKIP_LIST_UTIL_UNLATCH {
 			node.RUnlatch()
+			node.RemoveRLatchRecord(int32(-1 * opType * 1000))
 		} else {
 			panic("unknown latch operaton")
 		}
@@ -185,6 +189,7 @@ func (sl *SkipList) FindNode(key *types.Value, opType SkipListOpType) (isSuccess
 					// release originally having pin
 					sl.bpm.DecPinOfPage(pred)
 					pred.RUnlatch()
+					pred.RemoveRLatchRecord(key.ToInteger())
 
 					pred := skip_list_page.FetchAndCastToBlockPage(sl.bpm, predPageId)
 					pred.WLatch()
@@ -248,6 +253,7 @@ func (sl *SkipList) GetValue(key *types.Value) uint32 {
 	found, entry, _ := node.FindEntryByKey(key)
 	sl.bpm.UnpinPage(node.GetPageId(), false)
 	node.RUnlatch()
+	node.RemoveRLatchRecord(key.ToInteger())
 	//sl.bpm.UnpinPage(node.GetPageId(), false)
 
 	if common.EnableDebug {

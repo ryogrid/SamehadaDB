@@ -63,8 +63,11 @@ func (b *BufferPoolManager) FetchPage(pageID types.PageID) *page.Page {
 		//b.mutex.WUnlock()
 		//common.SH_Assert(currentPage.PinCount() >= 0, "BPM::FetchPage Victim page's pin count is not zero!!!")
 		if currentPage != nil {
-			common.SH_Assert(currentPage.PinCount() == 0,
-				fmt.Sprintf("BPM::FetchPage pin count of page to be cache out must be zero!!!. pageId:%d PinCount:%d", currentPage.GetPageId(), currentPage.PinCount()))
+			if currentPage.PinCount() != 0 {
+				fmt.Printf("BPM::FetchPage WLatch:%v RLatch:%v\n", currentPage.WLatchMap, currentPage.RLatchMap)
+				panic(fmt.Sprintf("BPM::FetchPage pin count of page to be cache out must be zero!!!. pageId:%d PinCount:%d", currentPage.GetPageId(), currentPage.PinCount()))
+			}
+
 			fmt.Printf("BPM::FetchPage Cache out occurs! pageId:%d requested pageId:%d\n", currentPage.GetPageId(), pageID)
 			if currentPage.IsDirty() {
 				b.log_manager.Flush()
@@ -214,8 +217,10 @@ func (b *BufferPoolManager) NewPage() *page.Page {
 		currentPage := b.pages[*frameID]
 		if currentPage != nil {
 			fmt.Println("BPM::NewPage Cache out occurs!")
-			common.SH_Assert(currentPage.PinCount() == 0,
-				fmt.Sprintf("BPM::FetchPage pin count of page to be cache out must be zero!!!. pageId:%d PinCount:%d", currentPage.GetPageId(), currentPage.PinCount()))
+			if currentPage.PinCount() != 0 {
+				fmt.Printf("BPM::NewPage WLatch:%v RLatch:%v\n", currentPage.WLatchMap, currentPage.RLatchMap)
+				panic(fmt.Sprintf("BPM::NewPage pin count of page to be cache out must be zero!!!. pageId:%d PinCount:%d", currentPage.GetPageId(), currentPage.PinCount()))
+			}
 			if currentPage.IsDirty() {
 				b.log_manager.Flush()
 				data := currentPage.Data()
@@ -318,10 +323,12 @@ func (b *BufferPoolManager) FlushAllDirtyPages() {
 		if frameID, ok := b.pageTable[pageID]; ok {
 			pg := b.pages[frameID]
 			pg.RLatch()
+			pg.AddRLatchRecord(-1000000)
 			if pg.IsDirty() {
 				pageIDs = append(pageIDs, pageID)
 			}
 			pg.RUnlatch()
+			pg.RemoveRLatchRecord(-1000000)
 		}
 	}
 	b.mutex.Unlock()

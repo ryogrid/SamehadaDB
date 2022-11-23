@@ -283,8 +283,10 @@ func (t *TableHeap) GetTuple(rid *page.RID, txn *Transaction) *tuple.Tuple {
 	}
 	page := CastPageAsTablePage(t.bpm.FetchPage(rid.GetPageId()))
 	page.RLatch()
+	page.AddRLatchRecord(int32(txn.txn_id))
 	ret := page.GetTuple(rid, t.log_manager, t.lock_manager, txn)
 	page.RUnlatch()
+	page.RemoveRLatchRecord(int32(txn.txn_id))
 	page.WLatch()
 	page.AddWLatchRecord(int32(txn.txn_id))
 	t.bpm.UnpinPage(page.GetPageId(), false)
