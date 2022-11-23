@@ -212,6 +212,8 @@ func (b *BufferPoolManager) NewPage() *page.Page {
 		currentPage := b.pages[*frameID]
 		if currentPage != nil {
 			fmt.Println("BPM::NewPage Cache out occurs!")
+			common.SH_Assert(currentPage.PinCount() == 0,
+				fmt.Sprintf("BPM::FetchPage pin count of page to be cache out must be zero!!!. pageId:%d PinCount:%d", currentPage.GetPageId(), currentPage.PinCount()))
 			if currentPage.IsDirty() {
 				b.log_manager.Flush()
 				data := currentPage.Data()
