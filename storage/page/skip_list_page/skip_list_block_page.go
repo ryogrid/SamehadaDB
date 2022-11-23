@@ -342,6 +342,7 @@ func (node *SkipListBlockPage) Insert(key *types.Value, value uint32, bpm *buffe
 					}
 					return true
 				}
+				*node = *lockedAndPinnedNodes[0]
 				//} else {
 				//	//node.DecPinCount()
 				//	bpm.DecPinOfPage(node)
@@ -426,6 +427,7 @@ func (node *SkipListBlockPage) Insert(key *types.Value, value uint32, bpm *buffe
 					}
 					return true
 				}
+				*node = *lockedAndPinnedNodes[0]
 
 				//corners[0] = SkipListCornerInfo{node.GetPageId(), node.GetLSN()}
 				//node.WUnlatch()
@@ -656,6 +658,7 @@ func (node *SkipListBlockPage) Remove(bpm *buffer.BufferPoolManager, key *types.
 			return false, false, true
 		}
 		//bpm.DecPinOfPage(node)
+		*node = *lockedAndPinnedNodes[len(lockedAndPinnedNodes)-1]
 
 		// removing this node from all level of chain
 		for ii := 1; ii < updateLen; ii++ {
