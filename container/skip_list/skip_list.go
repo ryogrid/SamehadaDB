@@ -188,6 +188,7 @@ func (sl *SkipList) FindNode(key *types.Value, opType SkipListOpType) (isSuccess
 
 					pred := skip_list_page.FetchAndCastToBlockPage(sl.bpm, predPageId)
 					pred.WLatch()
+					pred.AddWLatchRecord(key.ToInteger())
 					// check update
 					if pred.GetLSN() != origLSN {
 						// pred node is updated, so need retry
@@ -197,6 +198,7 @@ func (sl *SkipList) FindNode(key *types.Value, opType SkipListOpType) (isSuccess
 						// additionaly got pin at Fetch
 						sl.bpm.UnpinPage(pred.GetPageId(), false)
 						pred.WUnlatch()
+						pred.RemoveWLatchRecord(key.ToInteger())
 						return false, nil, nil, nil
 					}
 					//// additionaly got pin at Fetch

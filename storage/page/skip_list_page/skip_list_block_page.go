@@ -123,9 +123,11 @@ func NewSkipListBlockPage(bpm *buffer.BufferPoolManager, level int32, smallestLi
 	// EntryCnt is incremented to 1
 	ret.SetEntry(0, &tmpSmallestListPair)
 	ret.WLatch()
+	ret.AddWLatchRecord(int32(tmpSmallestListPair.Value))
 	bpm.FlushPage(ret.GetPageId())
 	bpm.UnpinPage(ret.GetPageId(), true)
 	ret.WUnlatch()
+	ret.RemoveWLatchRecord(int32(tmpSmallestListPair.Value))
 	// increment pin count because pin count is decremented on FlushPage
 	bpm.IncPinOfPage(ret)
 
@@ -299,6 +301,7 @@ func (node *SkipListBlockPage) Insert(key *types.Value, value uint32, bpm *buffe
 
 		bpm.UnpinPage(node.GetPageId(), true)
 		node.WUnlatch()
+		node.RemoveWLatchRecord(key.ToInteger())
 		if common.EnableDebug {
 			common.ShPrintf(common.DEBUG_INFO, "SkipListBlockPage::Insert: finish (replace). key=%v\n", key.ToIFValue())
 		}
@@ -329,6 +332,7 @@ func (node *SkipListBlockPage) Insert(key *types.Value, value uint32, bpm *buffe
 
 				bpm.UnpinPage(node.GetPageId(), false)
 				node.WUnlatch()
+				node.RemoveWLatchRecord(key.ToInteger())
 				isSuccess, lockedAndPinnedNodes = validateNoChangeAndGetLock(bpm, corners[:level], nil)
 				if !isSuccess {
 					//bpm.UnpinPage(node.GetPageId(), false)
@@ -359,6 +363,7 @@ func (node *SkipListBlockPage) Insert(key *types.Value, value uint32, bpm *buffe
 					newNode.InsertInner(int(newSmallerIdx), insEntry)
 					bpm.UnpinPage(newNode.GetPageId(), true)
 					newNode.WUnlatch()
+					newNode.RemoveWLatchRecord(key.ToInteger())
 					//fmt.Printf("end of Insert of SkipListBlockPage called! : key=%d page.entryCnt=%d len(page.entries)=%d\n", key.ToInteger(), node.entryCnt, len(node.entries))
 
 					//node.SetLSN(node.GetLSN() + 1)
@@ -366,6 +371,7 @@ func (node *SkipListBlockPage) Insert(key *types.Value, value uint32, bpm *buffe
 
 					bpm.UnpinPage(node.GetPageId(), true)
 					node.WUnlatch()
+					node.RemoveWLatchRecord(key.ToInteger())
 					if common.EnableDebug {
 						common.ShPrintf(common.DEBUG_INFO, "SkipListBlockPage::Insert: finish (split & insert to new node). key=%v\n", key.ToIFValue())
 					}
@@ -389,8 +395,10 @@ func (node *SkipListBlockPage) Insert(key *types.Value, value uint32, bpm *buffe
 
 					bpm.UnpinPage(newNode.GetPageId(), true)
 					newNode.WUnlatch()
+					newNode.RemoveWLatchRecord(key.ToInteger())
 					bpm.UnpinPage(node.GetPageId(), true)
 					node.WUnlatch()
+					node.RemoveWLatchRecord(key.ToInteger())
 
 					if common.EnableDebug {
 						common.ShPrintf(common.DEBUG_INFO, "SkipListBlockPage::Insert: finish (new ently only split). key=%v\n", key.ToIFValue())
@@ -406,6 +414,7 @@ func (node *SkipListBlockPage) Insert(key *types.Value, value uint32, bpm *buffe
 
 				bpm.UnpinPage(node.GetPageId(), false)
 				node.WUnlatch()
+				node.RemoveWLatchRecord(key.ToInteger())
 				isSuccess, lockedAndPinnedNodes = validateNoChangeAndGetLock(bpm, corners[:level], nil)
 				//bpm.UnpinPage(node.GetPageId(), false)
 				//node.DecPinCount()
@@ -426,10 +435,12 @@ func (node *SkipListBlockPage) Insert(key *types.Value, value uint32, bpm *buffe
 
 				bpm.UnpinPage(newNode.GetPageId(), true)
 				newNode.WUnlatch()
+				newNode.RemoveWLatchRecord(key.ToInteger())
 
 				//unlockAndUnpinNodes(bpm, lockedAndPinnedNodes, true)
 				bpm.UnpinPage(node.GetPageId(), true)
 				node.WUnlatch()
+				node.RemoveWLatchRecord(key.ToInteger())
 
 				if common.EnableDebug {
 					common.ShPrintf(common.DEBUG_INFO, "SkipListBlockPage::Insert: finish (new node without split). key=%v\n", key.ToIFValue())
@@ -447,6 +458,7 @@ func (node *SkipListBlockPage) Insert(key *types.Value, value uint32, bpm *buffe
 
 			bpm.UnpinPage(node.GetPageId(), true)
 			node.WUnlatch()
+			node.RemoveWLatchRecord(key.ToInteger())
 			if common.EnableDebug {
 				common.ShPrintf(common.DEBUG_INFO, "SkipListBlockPage::Insert: finish (no split). key=%v\n", key.ToIFValue())
 			}
@@ -547,6 +559,7 @@ func validateNoChangeAndGetLock(bpm *buffer.BufferPoolManager, checkNodes []Skip
 			isPassed = true
 		} else {
 			node.WLatch()
+			node.AddWLatchRecord(-10)
 		}
 
 		if !isPassed {
@@ -577,6 +590,7 @@ func validateNoChangeAndGetLock(bpm *buffer.BufferPoolManager, checkNodes []Skip
 			return false, nil
 		}
 		node.WLatch()
+		node.AddWLatchRecord(-10)
 		if node.GetLSN() != additonalCheckNode.UpdateCounter {
 			common.ShPrintf(common.DEBUG_INFO, "validateNoChangeAndGetLock: validation of additionalCheckNode is NG: go retry. len(validatedNodes)=%d\n", len(validatedNodes))
 			//bpm.UnpinPage(node.GetPageId(), true)
@@ -584,6 +598,7 @@ func validateNoChangeAndGetLock(bpm *buffer.BufferPoolManager, checkNodes []Skip
 			//bpm.DecPinOfPage(node)
 			bpm.UnpinPage(node.GetPageId(), true)
 			node.WUnlatch()
+			node.RemoveWLatchRecord(-10)
 			unlockAndUnpinNodes(bpm, validatedNodes, false)
 			return false, nil
 		}
@@ -602,6 +617,7 @@ func unlockAndUnpinNodes(bpm *buffer.BufferPoolManager, checkedNodes []*SkipList
 		curPageId := curNode.GetPageId()
 		bpm.UnpinPage(curPageId, isDirty)
 		curNode.WUnlatch()
+		curNode.RemoveWLatchRecord(-10)
 	}
 	common.ShPrintf(common.DEBUG_INFO, "unlockAndUnpinNodes: finished. len(checkNodes)=%d\n", len(checkedNodes))
 }
@@ -627,6 +643,7 @@ func (node *SkipListBlockPage) Remove(bpm *buffer.BufferPoolManager, key *types.
 		additionalCheckNode := &SkipListCornerInfo{node.GetPageId(), node.GetLSN()}
 		bpm.UnpinPage(node.GetPageId(), false)
 		node.WUnlatch()
+		node.RemoveWLatchRecord(key.ToInteger())
 		isSuccess, lockedAndPinnedNodes := validateNoChangeAndGetLock(bpm, checkNodes, additionalCheckNode)
 		//bpm.UnpinPage(node.GetPageId(), true)
 		//node.DecPinCount()
@@ -681,6 +698,7 @@ func (node *SkipListBlockPage) Remove(bpm *buffer.BufferPoolManager, key *types.
 		node.SetLSN(node.GetLSN() + 1)
 		bpm.UnpinPage(node.GetPageId(), true)
 		node.WUnlatch()
+		node.RemoveWLatchRecord(key.ToInteger())
 		if common.EnableDebug {
 			common.ShPrintf(common.DEBUG_INFO, "SkipListBlockPage::Remove: finished (found). key=%v\n", key.ToIFValue())
 		}
@@ -688,6 +706,7 @@ func (node *SkipListBlockPage) Remove(bpm *buffer.BufferPoolManager, key *types.
 	} else { // found == false
 		bpm.UnpinPage(node.GetPageId(), true)
 		node.WUnlatch()
+		node.RemoveWLatchRecord(key.ToInteger())
 		// do nothing
 		if common.EnableDebug {
 			common.ShPrintf(common.DEBUG_INFO, "SkipListBlockPage::Remove: finished (not found). key=%v\n", key.ToIFValue())
@@ -750,6 +769,7 @@ func (node *SkipListBlockPage) newNodeAndUpdateChain(idx int32, bpm *buffer.Buff
 	}
 
 	newNode.WLatch()
+	newNode.AddWLatchRecord(int32(insertEntry.Value))
 
 	for ii := 0; ii < int(level); ii++ {
 		// modify forward link
@@ -781,6 +801,7 @@ func (node *SkipListBlockPage) newNodeAndUpdateChain(idx int32, bpm *buffer.Buff
 		if curPageId != modNodeId {
 			bpm.UnpinPage(lockedAndPinnedNodes[ii].GetPageId(), true)
 			lockedAndPinnedNodes[ii].WUnlatch()
+			lockedAndPinnedNodes[ii].RemoveWLatchRecord(-10)
 		}
 	}
 	return newNode

@@ -49,8 +49,10 @@ func (it *TableHeapIterator) Next() *tuple.Tuple {
 			nextPage := CastPageAsTablePage(bpm.FetchPage(currentPage.GetNextPageId()))
 			currentPage.RUnlatch()
 			currentPage.WLatch()
+			currentPage.AddWLatchRecord(int32(it.txn.txn_id))
 			bpm.UnpinPage(currentPage.GetPageId(), false)
 			currentPage.WUnlatch()
+			currentPage.RemoveWLatchRecord(int32(it.txn.txn_id))
 			currentPage = nextPage
 			currentPage.RLatch()
 			nextTupleRID = currentPage.GetNextTupleRID(it.Current().GetRID(), true)
@@ -63,8 +65,10 @@ func (it *TableHeapIterator) Next() *tuple.Tuple {
 	currentPage.RUnlatch()
 
 	currentPage.WLatch()
+	currentPage.AddWLatchRecord(int32(it.txn.txn_id))
 	bpm.UnpinPage(currentPage.GetPageId(), false)
 	currentPage.WUnlatch()
+	currentPage.RemoveWLatchRecord(int32(it.txn.txn_id))
 
 	if nextTupleRID != nil && nextTupleRID.GetPageId().IsValid() {
 		it.tuple = it.tableHeap.GetTuple(nextTupleRID, it.txn)

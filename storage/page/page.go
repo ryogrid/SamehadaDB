@@ -36,8 +36,8 @@ type Page struct {
 	data     *[common.PageSize]byte // bytes stored in disk
 	rwlatch_ common.ReaderWriterLatch
 	// for debug
-	WLockMap map[int32]bool
-	RLockMap map[int32]bool
+	WLatchMap map[int32]bool
+	RLatchMap map[int32]bool
 }
 
 // IncPinCount increments pin count
@@ -179,4 +179,18 @@ func (p *Page) PrintPinCount() {
 
 func (p *Page) GetRWLachObj() common.ReaderWriterLatch {
 	return p.rwlatch_
+}
+
+// for debugging
+func (p *Page) AddWLatchRecord(info int32) {
+	p.WLatchMap[info] = true
+}
+func (p *Page) RemoveWLatchRecord(info int32) {
+	delete(p.RLatchMap, info)
+}
+func (p *Page) AddRLatchRecord(info int32) {
+	p.WLatchMap[info] = true
+}
+func (p *Page) RemoveRLatchRecord(info int32) {
+	delete(p.RLatchMap, info)
 }
