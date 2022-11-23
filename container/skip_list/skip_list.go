@@ -202,8 +202,8 @@ func (sl *SkipList) FindNode(key *types.Value, opType SkipListOpType) (isSuccess
 						//sl.bpm.DecPinOfPage(pred)
 						// additionaly got pin at Fetch
 						sl.bpm.UnpinPage(pred.GetPageId(), false)
-						pred.WUnlatch()
 						pred.RemoveWLatchRecord(key.ToInteger())
+						pred.WUnlatch()
 						return false, nil, nil, nil
 					}
 					//// additionaly got pin at Fetch

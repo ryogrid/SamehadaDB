@@ -362,7 +362,7 @@ func (node *SkipListBlockPage) Insert(key *types.Value, value uint32, bpm *buffe
 					}
 					newNode.InsertInner(int(newSmallerIdx), insEntry)
 					bpm.UnpinPage(newNode.GetPageId(), true)
-					newNode.RemoveWLatchRecord(key.ToInteger())
+					newNode.RemoveWLatchRecord(-200000)
 					newNode.WUnlatch()
 					//fmt.Printf("end of Insert of SkipListBlockPage called! : key=%d page.entryCnt=%d len(page.entries)=%d\n", key.ToInteger(), node.entryCnt, len(node.entries))
 
@@ -394,7 +394,7 @@ func (node *SkipListBlockPage) Insert(key *types.Value, value uint32, bpm *buffe
 					//unlockAndUnpinNodes(bpm, lockedAndPinnedNodes, true)
 
 					bpm.UnpinPage(newNode.GetPageId(), true)
-					newNode.RemoveWLatchRecord(key.ToInteger())
+					newNode.RemoveWLatchRecord(-200000)
 					newNode.WUnlatch()
 					bpm.UnpinPage(node.GetPageId(), true)
 					node.RemoveWLatchRecord(key.ToInteger())
@@ -769,7 +769,7 @@ func (node *SkipListBlockPage) newNodeAndUpdateChain(idx int32, bpm *buffer.Buff
 	}
 
 	newNode.WLatch()
-	newNode.AddWLatchRecord(int32(insertEntry.Value))
+	newNode.AddWLatchRecord(-200000)
 
 	for ii := 0; ii < int(level); ii++ {
 		// modify forward link
