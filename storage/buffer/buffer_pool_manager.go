@@ -75,8 +75,8 @@ func (b *BufferPoolManager) FetchPage(pageID types.PageID) *page.Page {
 				currentPage.AddWLatchRecord(int32(-2))
 				data := *currentPage.Data()
 				b.diskManager.WritePage(currentPage.GetPageId(), data[:])
-				currentPage.WUnlatch()
 				currentPage.RemoveWLatchRecord(-2)
+				currentPage.WUnlatch()
 			}
 			//b.mutex.WLock()
 			if common.EnableDebug {
@@ -279,8 +279,8 @@ func (b *BufferPoolManager) DeletePage(pageID types.PageID) error {
 	page.WLatch()
 	page.AddWLatchRecord(-1)
 	if page.PinCount() > 0 {
-		page.WUnlatch()
 		page.RemoveWLatchRecord(-1)
+		page.WUnlatch()
 		b.mutex.Unlock()
 		return nil
 		//panic("Pin count greater than 0")
@@ -294,8 +294,8 @@ func (b *BufferPoolManager) DeletePage(pageID types.PageID) error {
 		b.freeList = append(b.freeList, frameID)
 	}
 
-	page.WUnlatch()
 	page.RemoveWLatchRecord(-1)
+	page.WUnlatch()
 	b.mutex.Unlock()
 
 	return nil
@@ -327,8 +327,8 @@ func (b *BufferPoolManager) FlushAllDirtyPages() {
 			if pg.IsDirty() {
 				pageIDs = append(pageIDs, pageID)
 			}
-			pg.RUnlatch()
 			pg.RemoveRLatchRecord(-1000000)
+			pg.RUnlatch()
 		}
 	}
 	b.mutex.Unlock()

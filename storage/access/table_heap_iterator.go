@@ -48,13 +48,13 @@ func (it *TableHeapIterator) Next() *tuple.Tuple {
 		// VARIANT: currentPage is always RLatched after loop
 		for currentPage.GetNextPageId().IsValid() {
 			nextPage := CastPageAsTablePage(bpm.FetchPage(currentPage.GetNextPageId()))
-			currentPage.RUnlatch()
 			currentPage.RemoveRLatchRecord(int32(it.txn.txn_id))
+			currentPage.RUnlatch()
 			currentPage.WLatch()
 			currentPage.AddWLatchRecord(int32(it.txn.txn_id))
 			bpm.UnpinPage(currentPage.GetPageId(), false)
-			currentPage.WUnlatch()
 			currentPage.RemoveWLatchRecord(int32(it.txn.txn_id))
+			currentPage.WUnlatch()
 			currentPage = nextPage
 			currentPage.RLatch()
 			currentPage.AddRLatchRecord(int32(it.txn.txn_id))
@@ -65,14 +65,14 @@ func (it *TableHeapIterator) Next() *tuple.Tuple {
 			}
 		}
 	}
-	currentPage.RUnlatch()
 	currentPage.RemoveRLatchRecord(int32(it.txn.txn_id))
+	currentPage.RUnlatch()
 
 	currentPage.WLatch()
 	currentPage.AddWLatchRecord(int32(it.txn.txn_id))
 	bpm.UnpinPage(currentPage.GetPageId(), false)
-	currentPage.WUnlatch()
 	currentPage.RemoveWLatchRecord(int32(it.txn.txn_id))
+	currentPage.WUnlatch()
 
 	if nextTupleRID != nil && nextTupleRID.GetPageId().IsValid() {
 		it.tuple = it.tableHeap.GetTuple(nextTupleRID, it.txn)
