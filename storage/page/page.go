@@ -54,7 +54,7 @@ func (p *Page) IncPinCount() {
 // DecPinCount decrements pin count
 func (p *Page) DecPinCount() {
 	//if p.pinCount > 0 {
-	common.SH_Assert(atomic.LoadInt32(&p.pinCount)-1 >= 0, "pinCount becomes minus value!")
+	//common.SH_Assert(atomic.LoadInt32(&p.pinCount)-1 >= 0, fmt.Sprintf("pinCount becomes minus value! pageID:%d", p.GetPageId()))
 	atomic.AddInt32(&p.pinCount, -1)
 	//}
 

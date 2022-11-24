@@ -133,7 +133,7 @@ func (b *BufferPoolManager) UnpinPage(pageID types.PageID, isDirty bool) error {
 		}
 
 		if pg.PinCount() < 0 {
-			panic("pin coint is less than 0!")
+			panic(fmt.Sprintf("pin coint is less than 0! pageID:%d", pg.GetPageId()))
 		}
 
 		if pg.PinCount() <= 0 {
