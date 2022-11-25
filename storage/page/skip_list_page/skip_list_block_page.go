@@ -330,7 +330,7 @@ func (node *SkipListBlockPage) Insert(key *types.Value, value uint32, bpm *buffe
 				// set this node as corner node of level-1
 				corners[0] = SkipListCornerInfo{node.GetPageId(), node.GetLSN()}
 
-				bpm.UnpinPage(node.GetPageId(), false)
+				//bpm.UnpinPage(node.GetPageId(), false)
 				node.RemoveWLatchRecord(key.ToInteger())
 				node.WUnlatch()
 				isSuccess, lockedAndPinnedNodes = validateNoChangeAndGetLock(bpm, corners[:level], nil)
@@ -342,10 +342,10 @@ func (node *SkipListBlockPage) Insert(key *types.Value, value uint32, bpm *buffe
 					}
 					return true
 				}
-				*node = *lockedAndPinnedNodes[0]
+				//*node = *lockedAndPinnedNodes[0]
 				//} else {
-				//	//node.DecPinCount()
-				//	bpm.DecPinOfPage(node)
+				//node.DecPinCount()
+				bpm.DecPinOfPage(node)
 				//}
 
 				newNode := node.SplitNode(splitIdx, bpm, corners, level, key.ValueType(), lockedAndPinnedNodes)
@@ -413,7 +413,7 @@ func (node *SkipListBlockPage) Insert(key *types.Value, value uint32, bpm *buffe
 				// set this node as corner node of level-1
 				corners[0] = SkipListCornerInfo{node.GetPageId(), node.GetLSN()}
 
-				bpm.UnpinPage(node.GetPageId(), false)
+				//bpm.UnpinPage(node.GetPageId(), false)
 				node.RemoveWLatchRecord(key.ToInteger())
 				node.WUnlatch()
 				isSuccess, lockedAndPinnedNodes = validateNoChangeAndGetLock(bpm, corners[:level], nil)
@@ -427,7 +427,8 @@ func (node *SkipListBlockPage) Insert(key *types.Value, value uint32, bpm *buffe
 					}
 					return true
 				}
-				*node = *lockedAndPinnedNodes[0]
+				bpm.DecPinOfPage(node)
+				//*node = *lockedAndPinnedNodes[0]
 
 				//corners[0] = SkipListCornerInfo{node.GetPageId(), node.GetLSN()}
 				//node.WUnlatch()
@@ -643,7 +644,7 @@ func (node *SkipListBlockPage) Remove(bpm *buffer.BufferPoolManager, key *types.
 		checkNodes = append(checkNodes, corners[1:updateLen]...)
 		// check of thid node is also needed
 		additionalCheckNode := &SkipListCornerInfo{node.GetPageId(), node.GetLSN()}
-		bpm.UnpinPage(node.GetPageId(), false)
+		//bpm.UnpinPage(node.GetPageId(), false)
 		node.RemoveWLatchRecord(key.ToInteger())
 		node.WUnlatch()
 		isSuccess, lockedAndPinnedNodes := validateNoChangeAndGetLock(bpm, checkNodes, additionalCheckNode)
@@ -657,8 +658,8 @@ func (node *SkipListBlockPage) Remove(bpm *buffer.BufferPoolManager, key *types.
 
 			return false, false, true
 		}
-		//bpm.DecPinOfPage(node)
-		*node = *lockedAndPinnedNodes[len(lockedAndPinnedNodes)-1]
+		bpm.DecPinOfPage(node)
+		//*node = *lockedAndPinnedNodes[len(lockedAndPinnedNodes)-1]
 
 		// removing this node from all level of chain
 		for ii := 1; ii < updateLen; ii++ {
