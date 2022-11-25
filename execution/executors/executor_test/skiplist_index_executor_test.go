@@ -1669,7 +1669,8 @@ func testParallelTxnsQueryingSkipListIndexUsedColumns[T int32 | float32 | string
 
 func testSkipListParallelTxnStrideRoot[T int32 | float32 | string](t *testing.T, keyType types.TypeID) {
 	//bpoolSize := int32(500)
-	bpoolSize := int32(100)
+	//bpoolSize := int32(100)
+	bpoolSize := int32(200)
 	//bpoolSize := int32(30)
 
 	switch keyType {
