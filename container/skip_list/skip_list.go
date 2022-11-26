@@ -72,11 +72,15 @@ func latchOpWithOpType(node *skip_list_page.SkipListBlockPage, getOrUnlatch Latc
 		}
 	default:
 		if getOrUnlatch == SKIP_LIST_UTIL_GET_LATCH {
-			node.RLatch()
-			node.AddRLatchRecord(int32(-1 * opType * 1000))
+			//node.RLatch()
+			//node.AddRLatchRecord(int32(-1 * opType * 1000))
+			node.WLatch()
+			node.AddWLatchRecord(int32(-1 * opType * 1000))
 		} else if getOrUnlatch == SKIP_LIST_UTIL_UNLATCH {
-			node.RemoveRLatchRecord(int32(-1 * opType * 1000))
-			node.RUnlatch()
+			//node.RemoveRLatchRecord(int32(-1 * opType * 1000))
+			//node.RUnlatch()
+			node.RemoveWLatchRecord(int32(-1 * opType * 1000))
+			node.WUnlatch()
 		} else {
 			panic("unknown latch operaton")
 		}
@@ -180,36 +184,36 @@ func (sl *SkipList) FindNode(key *types.Value, opType SkipListOpType) (isSuccess
 				sl.bpm.UnpinPage(curr.GetPageId(), false)
 				latchOpWithOpType(curr, SKIP_LIST_UTIL_UNLATCH, opType)
 			}
-			if ii == 0 {
-				if opType != SKIP_LIST_OP_GET {
-					// when update operation, try upgrade lock from RLock to WRlock
-
-					origLSN := pred.GetLSN()
-					predPageId := pred.GetPageId()
-					// release originally having pin
-					sl.bpm.DecPinOfPage(pred)
-					pred.RemoveRLatchRecord(key.ToInteger())
-					pred.RUnlatch()
-
-					pred := skip_list_page.FetchAndCastToBlockPage(sl.bpm, predPageId)
-					pred.WLatch()
-					pred.AddWLatchRecord(key.ToInteger())
-					// check update
-					if pred.GetLSN() != origLSN {
-						// pred node is updated, so need retry
-
-						//// originaly having pin
-						//sl.bpm.DecPinOfPage(pred)
-						// additionaly got pin at Fetch
-						sl.bpm.UnpinPage(pred.GetPageId(), false)
-						pred.RemoveWLatchRecord(key.ToInteger())
-						pred.WUnlatch()
-						return false, nil, nil, nil
-					}
-					//// additionaly got pin at Fetch
-					//sl.bpm.DecPinOfPage(pred)
-				}
-			}
+			//if ii == 0 {
+			//	if opType != SKIP_LIST_OP_GET {
+			//		// when update operation, try upgrade lock from RLock to WRlock
+			//
+			//		origLSN := pred.GetLSN()
+			//		predPageId := pred.GetPageId()
+			//		// release originally having pin
+			//		sl.bpm.DecPinOfPage(pred)
+			//		pred.RemoveRLatchRecord(key.ToInteger())
+			//		pred.RUnlatch()
+			//
+			//		pred := skip_list_page.FetchAndCastToBlockPage(sl.bpm, predPageId)
+			//		pred.WLatch()
+			//		pred.AddWLatchRecord(key.ToInteger())
+			//		// check update
+			//		if pred.GetLSN() != origLSN {
+			//			// pred node is updated, so need retry
+			//
+			//			//// originaly having pin
+			//			//sl.bpm.DecPinOfPage(pred)
+			//			// additionaly got pin at Fetch
+			//			sl.bpm.UnpinPage(pred.GetPageId(), false)
+			//			pred.RemoveWLatchRecord(key.ToInteger())
+			//			pred.WUnlatch()
+			//			return false, nil, nil, nil
+			//		}
+			//		//// additionaly got pin at Fetch
+			//		//sl.bpm.DecPinOfPage(pred)
+			//	}
+			//}
 			predOfCorners[ii] = skip_list_page.SkipListCornerInfo{predOfPredId, predOfPredLSN}
 			corners[ii] = skip_list_page.SkipListCornerInfo{pred.GetPageId(), pred.GetLSN()}
 		}
