@@ -4,7 +4,6 @@
 package buffer
 
 import (
-	"errors"
 	"fmt"
 )
 
@@ -46,7 +45,8 @@ func (c *circularList) hasKey(key FrameID) bool {
 // func (c *circularList) insert(key interface{}, value interface{}) error {
 func (c *circularList) insert(key FrameID, value bool) error {
 	if c.size == c.capacity {
-		return errors.New("capacity is full")
+		//return errors.New("capacity is full")
+		panic("circularList::insert capacity is full")
 	}
 
 	newNode := &node{key, value, nil, nil}

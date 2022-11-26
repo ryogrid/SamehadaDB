@@ -73,7 +73,7 @@ func (b *BufferPoolManager) FetchPage(pageID types.PageID) *page.Page {
 				b.log_manager.Flush()
 				currentPage.WLatch()
 				currentPage.AddWLatchRecord(int32(-2))
-				data := *currentPage.Data()
+				data := currentPage.Data()
 				b.diskManager.WritePage(currentPage.GetPageId(), data[:])
 				currentPage.RemoveWLatchRecord(-2)
 				currentPage.WUnlatch()
@@ -223,8 +223,12 @@ func (b *BufferPoolManager) NewPage() *page.Page {
 			}
 			if currentPage.IsDirty() {
 				b.log_manager.Flush()
+				currentPage.WLatch()
+				currentPage.AddWLatchRecord(int32(-2))
 				data := currentPage.Data()
 				b.diskManager.WritePage(currentPage.GetPageId(), data[:])
+				currentPage.RemoveWLatchRecord(-2)
+				currentPage.WUnlatch()
 			}
 
 			if common.EnableDebug {

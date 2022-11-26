@@ -4,7 +4,6 @@
 package buffer
 
 import (
-	"fmt"
 	"sync"
 )
 
@@ -25,9 +24,9 @@ func (c *ClockReplacer) Victim() *FrameID {
 	c.mutex.Lock()
 	defer c.mutex.Unlock()
 	if c.cList.size == 0 {
-		fmt.Println("Victim: page which can be cache out is not exist!")
-		//panic("Victim: page which can be cache out is not exist!")
-		return nil
+		//fmt.Println("Victim: page which can be cache out is not exist!")
+		panic("Victim: page which can be cache out is not exist!")
+		//return nil
 	}
 
 	var victimFrameID *FrameID
@@ -77,7 +76,7 @@ func (c *ClockReplacer) Pin(id FrameID) {
 		c.clockHand = &(*c.clockHand).next
 	}
 	c.cList.remove(id)
-	delete(c.cList.supportMap, id)
+	//delete(c.cList.supportMap, id)
 }
 
 // Size returns the size of the clock
