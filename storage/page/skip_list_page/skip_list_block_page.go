@@ -452,6 +452,8 @@ func (node *SkipListBlockPage) Insert(key *types.Value, value uint32, bpm *buffe
 			}
 		} else {
 			// no split
+			// TODO: (SDB) for debug
+			bpm.PrintReplacerInternalState()
 
 			//fmt.Printf("end of Insert of SkipListBlockPage called! : key=%d page.entryCnt=%d len(page.entries)=%d\n", key.ToInteger(), node.entryCnt, len(node.entries))
 			node.SetLSN(node.GetLSN() + 1)

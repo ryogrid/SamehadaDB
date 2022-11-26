@@ -121,15 +121,17 @@ func (c *circularList) isFull() bool {
 	return c.size == c.capacity
 }
 
-func (c *circularList) print() {
+func (c *circularList) Print() {
 	if c.size == 0 {
-		fmt.Println(nil)
+		fmt.Println("circularList is empty.")
 	}
 	ptr := c.head
+	printStr := fmt.Sprintf("circularList size:%d supportMap len:%d |", c.size, len(c.supportMap))
 	for i := uint32(0); i < c.size; i++ {
-		fmt.Println(ptr.key, ptr.value, ptr.prev.key, ptr.next.key)
+		printStr += fmt.Sprintf("-%v,%v,%v,%v-", ptr.key, ptr.value, ptr.prev.key, ptr.next.key)
 		ptr = ptr.next
 	}
+	fmt.Println(printStr)
 }
 
 func newCircularList(maxSize uint32) *circularList {

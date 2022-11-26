@@ -369,6 +369,10 @@ func (b *BufferPoolManager) GetPoolSize() int {
 	return len(b.pageTable)
 }
 
+func (b *BufferPoolManager) PrintReplacerInternalState() {
+	b.replacer.PrintList()
+}
+
 // NewBufferPoolManager returns a empty buffer pool manager
 func NewBufferPoolManager(poolSize uint32, DiskManager disk.DiskManager, log_manager *recovery.LogManager) *BufferPoolManager {
 	freeList := make([]FrameID, poolSize)

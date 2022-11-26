@@ -4,6 +4,7 @@
 package buffer
 
 import (
+	"fmt"
 	"sync"
 )
 
@@ -84,6 +85,11 @@ func (c *ClockReplacer) Size() uint32 {
 	c.mutex.Lock()
 	defer c.mutex.Unlock()
 	return c.cList.size
+}
+
+func (c *ClockReplacer) PrintList() {
+	fmt.Printf("ClockReplacer::PrintList ")
+	c.cList.Print()
 }
 
 // NewClockReplacer instantiates a new clock replacer
