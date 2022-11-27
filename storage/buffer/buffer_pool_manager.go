@@ -11,6 +11,7 @@ import (
 	"github.com/ryogrid/SamehadaDB/storage/disk"
 	"github.com/ryogrid/SamehadaDB/storage/page"
 	"github.com/ryogrid/SamehadaDB/types"
+	"sort"
 	"sync"
 )
 
@@ -356,7 +357,12 @@ func (b *BufferPoolManager) getFrameID() (*FrameID, bool) {
 	//b.mutex.WUnlock()
 	if ret == nil {
 		//fmt.Printf("getFrameID: Victime page is nil! len(b.freeList)=%d\n", len(b.freeList))
+
+		// unlock for call of PrintBufferUsageState
+		b.mutex.Unlock()
 		b.PrintBufferUsageState("BPM::getFrameID ")
+		b.mutex.Lock()
+
 		b.PrintReplacerInternalState()
 		panic("getFrameID: Victime page is nil!")
 	}
@@ -375,8 +381,29 @@ func (b *BufferPoolManager) PrintReplacerInternalState() {
 	b.replacer.PrintList()
 }
 
-func (b *BufferPoolManager) PrintBufferUsageState(callLocation string) {
-	panic(callLocation)
+func (b *BufferPoolManager) PrintBufferUsageState(callerAdditionalInfo string) {
+	b.mutex.Lock()
+	defer b.mutex.Unlock()
+
+	printStr := fmt.Sprintf("BPM::PrintBufferUsageState %s ", callerAdditionalInfo)
+	var pages []*page.Page
+	for key := range b.pageTable {
+		frameID := b.pageTable[key]
+		if !b.replacer.isContain(frameID) {
+			// when page is Pinned (= not allocated on frames in list of replacer)
+			pages = append(pages, b.pages[frameID])
+		}
+
+	}
+
+	// make pages variable sorted
+	sort.Slice(pages, func(i, j int) bool { return pages[i].GetPageId() < pages[j].GetPageId() })
+
+	pageNum := len(pages)
+	for ii := 0; ii < pageNum; ii++ {
+		printStr += fmt.Sprintf("(%d,%d)-", pages[ii].GetPageId(), pages[ii].PinCount())
+	}
+	fmt.Println(printStr)
 }
 
 // NewBufferPoolManager returns a empty buffer pool manager

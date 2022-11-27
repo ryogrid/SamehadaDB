@@ -80,6 +80,13 @@ func (c *ClockReplacer) Pin(id FrameID) {
 	//delete(c.cList.supportMap, id)
 }
 
+func (c *ClockReplacer) isContain(id FrameID) bool {
+	c.mutex.Lock()
+	defer c.mutex.Unlock()
+	_, ok := c.cList.supportMap[id]
+	return ok
+}
+
 // Size returns the size of the clock
 func (c *ClockReplacer) Size() uint32 {
 	c.mutex.Lock()
