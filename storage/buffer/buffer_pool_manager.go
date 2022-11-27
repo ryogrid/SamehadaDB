@@ -356,7 +356,7 @@ func (b *BufferPoolManager) getFrameID() (*FrameID, bool) {
 	//b.mutex.WUnlock()
 	if ret == nil {
 		//fmt.Printf("getFrameID: Victime page is nil! len(b.freeList)=%d\n", len(b.freeList))
-		b.PrintBufferUsageState()
+		b.PrintBufferUsageState("BPM::getFrameID ")
 		b.PrintReplacerInternalState()
 		panic("getFrameID: Victime page is nil!")
 	}
@@ -375,8 +375,8 @@ func (b *BufferPoolManager) PrintReplacerInternalState() {
 	b.replacer.PrintList()
 }
 
-func (b *BufferPoolManager) PrintBufferUsageState() {
-	panic("not implmented yet!")
+func (b *BufferPoolManager) PrintBufferUsageState(callLocation string) {
+	panic(callLocation)
 }
 
 // NewBufferPoolManager returns a empty buffer pool manager

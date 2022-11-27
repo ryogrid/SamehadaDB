@@ -1,6 +1,7 @@
 package skip_list
 
 import (
+	"fmt"
 	"github.com/ryogrid/SamehadaDB/common"
 	"github.com/ryogrid/SamehadaDB/storage/buffer"
 	"github.com/ryogrid/SamehadaDB/storage/page/skip_list_page"
@@ -92,9 +93,14 @@ func latchOpWithOpType(node *skip_list_page.SkipListBlockPage, getOrUnlatch Latc
 // (when corners_[0] is startNode, having pin count is two, but caller does not have to consider the difference)
 func (sl *SkipList) FindNode(key *types.Value, opType SkipListOpType) (isSuccess bool, foundNode *skip_list_page.SkipListBlockPage, predOfCorners_ []skip_list_page.SkipListCornerInfo, corners_ []skip_list_page.SkipListCornerInfo) {
 	if common.EnableDebug {
-		common.ShPrintf(common.DEBUG_INFO, "FindNode: start. key=%v opType=%d\n", key.ToIFValue(), opType)
+		if common.ActiveLogKindSetting&common.DEBUG_INFO > 0 {
+			common.ShPrintf(common.DEBUG_INFO, "FindNode: start. key=%v opType=%d\n", key.ToIFValue(), opType)
+		}
 		if common.ActiveLogKindSetting&common.BUFFER_INTERNAL_STATE > 0 {
-			sl.bpm.PrintBufferUsageState()
+			sl.bpm.PrintBufferUsageState("SkipList::FindNode start. ")
+			defer func() {
+				sl.bpm.PrintBufferUsageState("SkipList::FindNode end. ")
+			}()
 		}
 	}
 
@@ -252,7 +258,16 @@ func (sl *SkipList) FindNodeWithEntryIdxForItr(key *types.Value) (found_ bool, n
 
 func (sl *SkipList) GetValue(key *types.Value) uint32 {
 	if common.EnableDebug {
-		common.ShPrintf(common.DEBUG_INFO, "SkipList::GetValue: start. key=%v\n", key.ToIFValue())
+		if common.ActiveLogKindSetting&common.RDB_OP_FUNC_CALL > 0 {
+			common.ShPrintf(common.DEBUG_INFO, "SkipList::GetValue: start. key=%v\n", key.ToIFValue())
+		}
+
+		if common.ActiveLogKindSetting&common.BUFFER_INTERNAL_STATE > 0 {
+			sl.bpm.PrintBufferUsageState("SkipList::GetValue start. ")
+			defer func() {
+				sl.bpm.PrintBufferUsageState("SkipList::GetValue end. ")
+			}()
+		}
 	}
 	_, node, _, _ := sl.FindNode(key, SKIP_LIST_OP_GET)
 	//node := skip_list_page.FetchAndCastToBlockPage(sl.bpm, corners[0].PageId)
@@ -275,7 +290,15 @@ func (sl *SkipList) GetValue(key *types.Value) uint32 {
 
 func (sl *SkipList) Insert(key *types.Value, value uint32) (err error) {
 	if common.EnableDebug {
-		common.ShPrintf(common.DEBUG_INFO, "SkipList::Insert: start. key=%v\n", key.ToIFValue())
+		if common.ActiveLogKindSetting&common.RDB_OP_FUNC_CALL > 0 {
+			fmt.Printf("SkipList::Insert: start. key=%v\n", key.ToIFValue())
+		}
+		if common.ActiveLogKindSetting&common.BUFFER_INTERNAL_STATE > 0 {
+			sl.bpm.PrintBufferUsageState("SkipList::Insert start. ")
+			defer func() {
+				sl.bpm.PrintBufferUsageState("SkipList::Insert end. ")
+			}()
+		}
 	}
 	isNeedRetry := true
 
@@ -301,7 +324,15 @@ func (sl *SkipList) Insert(key *types.Value, value uint32) (err error) {
 
 func (sl *SkipList) Remove(key *types.Value, value uint32) (isDeleted_ bool) {
 	if common.EnableDebug {
-		common.ShPrintf(common.DEBUG_INFO, "SkipList::Remove: start. key=%v\n", key.ToIFValue())
+		if common.ActiveLogKindSetting&common.RDB_OP_FUNC_CALL > 0 {
+			fmt.Printf("SkipList::Remove: start. key=%v\n", key.ToIFValue())
+		}
+		if common.ActiveLogKindSetting&common.BUFFER_INTERNAL_STATE > 0 {
+			sl.bpm.PrintBufferUsageState("SkipList::Remove start. ")
+			defer func() {
+				sl.bpm.PrintBufferUsageState("SkipList::Remove end. ")
+			}()
+		}
 	}
 	isNodeShouldBeDeleted := false
 	isDeleted := false
@@ -357,6 +388,17 @@ func (sl *SkipList) Remove(key *types.Value, value uint32) (isDeleted_ bool) {
 //}
 
 func (sl *SkipList) Iterator(rangeStartKey *types.Value, rangeEndKey *types.Value) *SkipListIterator {
+	if common.EnableDebug {
+		if common.ActiveLogKindSetting&common.RDB_OP_FUNC_CALL > 0 {
+			fmt.Printf("SkipList::Remove: start.\n")
+		}
+		if common.ActiveLogKindSetting&common.BUFFER_INTERNAL_STATE > 0 {
+			sl.bpm.PrintBufferUsageState("SkipList::Iterator start. ")
+			defer func() {
+				sl.bpm.PrintBufferUsageState("SkipList::Iterator end. ")
+			}()
+		}
+	}
 	return NewSkipListIterator(sl, rangeStartKey, rangeEndKey)
 }
 
