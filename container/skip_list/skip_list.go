@@ -93,6 +93,9 @@ func latchOpWithOpType(node *skip_list_page.SkipListBlockPage, getOrUnlatch Latc
 func (sl *SkipList) FindNode(key *types.Value, opType SkipListOpType) (isSuccess bool, foundNode *skip_list_page.SkipListBlockPage, predOfCorners_ []skip_list_page.SkipListCornerInfo, corners_ []skip_list_page.SkipListCornerInfo) {
 	if common.EnableDebug {
 		common.ShPrintf(common.DEBUG_INFO, "FindNode: start. key=%v opType=%d\n", key.ToIFValue(), opType)
+		if common.ActiveLogKindSetting&common.BUFFER_INTERNAL_STATE > 0 {
+			sl.bpm.PrintBufferUsageState()
+		}
 	}
 
 	pred := sl.getStartNode()

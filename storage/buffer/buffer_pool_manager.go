@@ -34,7 +34,7 @@ func (b *BufferPoolManager) FetchPage(pageID types.PageID) *page.Page {
 	b.mutex.Lock()
 	if frameID, ok := b.pageTable[pageID]; ok {
 		pg := b.pages[frameID]
-		if common.EnableDebug && common.LogLevelSetting&common.PIN_COUNT_ASSERT > 0 {
+		if common.EnableDebug && common.ActiveLogKindSetting&common.PIN_COUNT_ASSERT > 0 {
 			common.SH_Assert(pg.PinCount() == 0 || ( /*pg.PinCount() == 1 && */ pg.GetPageId() == 4 || pg.GetPageId() == 5 || pg.GetPageId() == 7 || pg.GetPageId() == 8),
 				fmt.Sprintf("BPM::FetchPage pin count must be zero here when single thread execution!!!. pageId:%d PinCount:%d", pg.GetPageId(), pg.PinCount()))
 		}
@@ -101,7 +101,7 @@ func (b *BufferPoolManager) FetchPage(pageID types.PageID) *page.Page {
 	copy(pageData[:], data)
 	pg := page.New(pageID, false, &pageData)
 
-	if common.EnableDebug && common.LogLevelSetting&common.PIN_COUNT_ASSERT > 0 {
+	if common.EnableDebug && common.ActiveLogKindSetting&common.PIN_COUNT_ASSERT > 0 {
 		common.SH_Assert(pg.PinCount() == 1,
 			fmt.Sprintf("BPM::FetchPage pin count must be one here when single thread execution!!!. pageId:%d", pg.GetPageId()))
 	}
@@ -127,7 +127,7 @@ func (b *BufferPoolManager) UnpinPage(pageID types.PageID, isDirty bool) error {
 		//b.mutex.RUnlock()
 		pg.DecPinCount()
 
-		if common.EnableDebug && common.LogLevelSetting&common.PIN_COUNT_ASSERT > 0 {
+		if common.EnableDebug && common.ActiveLogKindSetting&common.PIN_COUNT_ASSERT > 0 {
 			common.SH_Assert(pg.PinCount() == 0 || ( /*pg.PinCount() == 1 &&*/ pg.GetPageId() == 4 || pg.GetPageId() == 5 || pg.GetPageId() == 7 || pg.GetPageId() == 8),
 				fmt.Sprintf("BPM::UnpinPage pin count must be zero here when single thread execution!!!. pageId:%d PinCount:%d", pg.GetPageId(), pg.PinCount()))
 		}
@@ -356,6 +356,8 @@ func (b *BufferPoolManager) getFrameID() (*FrameID, bool) {
 	//b.mutex.WUnlock()
 	if ret == nil {
 		//fmt.Printf("getFrameID: Victime page is nil! len(b.freeList)=%d\n", len(b.freeList))
+		b.PrintBufferUsageState()
+		b.PrintReplacerInternalState()
 		panic("getFrameID: Victime page is nil!")
 	}
 	return ret, false
@@ -371,6 +373,10 @@ func (b *BufferPoolManager) GetPoolSize() int {
 
 func (b *BufferPoolManager) PrintReplacerInternalState() {
 	b.replacer.PrintList()
+}
+
+func (b *BufferPoolManager) PrintBufferUsageState() {
+	panic("not implmented yet!")
 }
 
 // NewBufferPoolManager returns a empty buffer pool manager

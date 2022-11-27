@@ -452,8 +452,9 @@ func (node *SkipListBlockPage) Insert(key *types.Value, value uint32, bpm *buffe
 			}
 		} else {
 			// no split
-			// TODO: (SDB) for debug
-			bpm.PrintReplacerInternalState()
+			if common.EnableDebug && common.ActiveLogKindSetting&common.DEBUGGING > 0 {
+				bpm.PrintReplacerInternalState()
+			}
 
 			//fmt.Printf("end of Insert of SkipListBlockPage called! : key=%d page.entryCnt=%d len(page.entries)=%d\n", key.ToInteger(), node.entryCnt, len(node.entries))
 			node.SetLSN(node.GetLSN() + 1)
@@ -628,8 +629,8 @@ func unlockAndUnpinNodes(bpm *buffer.BufferPoolManager, checkedNodes []*SkipList
 }
 
 func (node *SkipListBlockPage) Remove(bpm *buffer.BufferPoolManager, key *types.Value, predOfCorners []SkipListCornerInfo, corners []SkipListCornerInfo) (isNodeShouldBeDeleted bool, isDeleted bool, isNeedRetry bool) {
-	if common.EnableDebug {
-		common.ShPrintf(common.DEBUG_INFO, "SkipListBlockPage::Remove: start. key=%v\n", key.ToIFValue())
+	if common.EnableDebug && common.ActiveLogKindSetting&common.RDB_OP_FUNC_CALL > 0 {
+		fmt.Printf("SkipListBlockPage::Remove: start. key=%v\n", key.ToIFValue())
 	}
 	found, _, foundIdx := node.FindEntryByKey(key)
 	if found && (node.GetEntryCnt() == 1) {
@@ -637,7 +638,9 @@ func (node *SkipListBlockPage) Remove(bpm *buffer.BufferPoolManager, key *types.
 			panic("removing wrong entry!")
 		}
 
-		common.ShPrintf(common.DEBUGGING, "SkipListBlockPage::Remove: node remove occured!\n")
+		if common.EnableDebug && common.ActiveLogKindSetting&common.DEBUG_INFO > 0 {
+			fmt.Printf("SkipListBlockPage::Remove: node remove occured!\n")
+		}
 
 		updateLen := int(node.GetLevel())
 
