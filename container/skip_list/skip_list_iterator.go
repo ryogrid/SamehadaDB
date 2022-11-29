@@ -56,10 +56,10 @@ func (itr *SkipListIterator) initRIDList(sl *SkipList) {
 		itr.curNode = node
 	} else {
 		itr.curNode = sl.getStartNode()
-		// for keepping pin count is one after iterator finishd using startNode
-		sl.bpm.IncPinOfPage(itr.curNode)
 		itr.curNode.RLatch()
 		itr.curNode.AddRLatchRecord(-10000)
+		// for keepping pin count is one after iterator finishd using startNode
+		sl.bpm.IncPinOfPage(itr.curNode)
 	}
 
 	for {
