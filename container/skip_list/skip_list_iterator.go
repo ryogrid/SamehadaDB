@@ -79,7 +79,7 @@ func (itr *SkipListIterator) initRIDList(sl *SkipList) {
 				itr.bpm.UnpinPage(itr.curNode.GetPageId(), false)
 				itr.curNode.RemoveRLatchRecord(-10000)
 				itr.curNode.RUnlatch()
-				break
+				return
 			}
 		}
 

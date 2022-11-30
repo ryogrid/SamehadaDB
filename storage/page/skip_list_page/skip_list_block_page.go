@@ -319,7 +319,7 @@ func (node *SkipListBlockPage) Insert(key *types.Value, value uint32, bpm *buffe
 			isNeedSplitWithEntryMove := true
 
 			if key.ValueType() == types.Varchar {
-				// entries located post half data space are are moved to new node
+				// entries located post half data space are moved to new node
 				splitIdx, isNeedSplitWithEntryMove = node.getSplitIdxForNotFixed()
 			} else {
 				// half of entries are moved to new node

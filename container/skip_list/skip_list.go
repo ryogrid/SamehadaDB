@@ -155,7 +155,7 @@ func (sl *SkipList) FindNode(key *types.Value, opType SkipListOpType) (isSuccess
 			latchOpWithOpType(curr, SKIP_LIST_UTIL_UNLATCH, opType)
 
 			// memory for checking update existence while no latch having period
-			beforeLSN := pred.GetLSN()
+			//beforeLSN := pred.GetLSN()
 			beforePredId := pred.GetPageId()
 			if pred.GetPageId() != sl.getStartNode().GetPageId() {
 				sl.bpm.UnpinPage(pred.GetPageId(), false)
@@ -169,9 +169,9 @@ func (sl *SkipList) FindNode(key *types.Value, opType SkipListOpType) (isSuccess
 			// check updating occurred or not
 			beforePred := skip_list_page.FetchAndCastToBlockPage(sl.bpm, beforePredId)
 			latchOpWithOpType(beforePred, SKIP_LIST_UTIL_GET_LATCH, opType)
-			afterLSN := beforePred.GetLSN()
+			afterLSN := pred.GetLSN()
 			// check update state of beforePred (pred which was pred before sliding)
-			if beforeLSN != afterLSN {
+			if predOfPredLSN != afterLSN {
 				// updating exists
 				sl.bpm.UnpinPage(pred.GetPageId(), false)
 				latchOpWithOpType(pred, SKIP_LIST_UTIL_UNLATCH, opType)

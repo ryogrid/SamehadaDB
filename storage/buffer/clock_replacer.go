@@ -25,9 +25,9 @@ func (c *ClockReplacer) Victim() *FrameID {
 	c.mutex.Lock()
 	defer c.mutex.Unlock()
 	if c.cList.size == 0 {
-		fmt.Println("ClockReplacer::Victim: page which can be cache out is not exist!")
-		//panic("Victim: page which can be cache out is not exist!")
-		return nil
+		//fmt.Println("ClockReplacer::Victim: page which can be cache out is not exist!")
+		panic("Victim: page which can be cache out is not exist!")
+		//return nil
 	}
 
 	var victimFrameID *FrameID
