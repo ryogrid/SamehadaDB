@@ -379,6 +379,10 @@ func (v Value) ToBoolean() bool {
 // if you use this to get column value
 // NULL value check is needed in general
 func (v Value) ToInteger() int32 {
+	if v.valueType != Integer {
+		// TODO: (SDB) temporal modification for Varchar (AddWLatchRecord, RemoveWLatchRecord...)
+		return math.MaxInt32
+	}
 	return *v.integer
 }
 
@@ -414,7 +418,8 @@ func (v Value) ValueType() TypeID {
 }
 
 // note: (need to be) only way to get Value object which has NULL value
-//       a value filed correspoding to value type is initialized to default value
+//
+//	a value filed correspoding to value type is initialized to default value
 func (v Value) SetNull() *Value {
 	*v.isNull = true
 	switch v.valueType {
