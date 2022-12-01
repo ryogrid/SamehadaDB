@@ -29,12 +29,14 @@ func NewTableHeap(bpm *buffer.BufferPoolManager, log_manager *recovery.LogManage
 
 	firstPage := CastPageAsTablePage(p)
 	firstPage.WLatch()
-	firstPage.Init(p.ID(), types.InvalidPageID, log_manager, lock_manager, txn)
-	firstPage.WUnlatch()
+	firstPage.AddWLatchRecord(int32(txn.txn_id))
+	firstPage.Init(p.GetPageId(), types.InvalidPageID, log_manager, lock_manager, txn)
 	// flush page for recovery process works...
-	bpm.FlushPage(p.ID())
-	bpm.UnpinPage(p.ID(), true)
-	return &TableHeap{bpm, p.ID(), log_manager, lock_manager}
+	bpm.FlushPage(p.GetPageId())
+	bpm.UnpinPage(p.GetPageId(), true)
+	firstPage.RemoveWLatchRecord(int32(txn.txn_id))
+	firstPage.WUnlatch()
+	return &TableHeap{bpm, p.GetPageId(), log_manager, lock_manager}
 }
 
 // InitTableHeap ...
@@ -56,49 +58,78 @@ func (t *TableHeap) GetFirstPageId() types.PageID {
 // 2. If there is no next page, it creates a new page and insert in it
 func (t *TableHeap) InsertTuple(tuple_ *tuple.Tuple, txn *Transaction, oid uint32) (rid *page.RID, err error) {
 	if common.EnableDebug {
-		common.ShPrintf(common.RDB_OP_FUNC_CALL, "TableHeap::InsertTuple called. txn.txn_id:%v tuple_:%v\n", txn.txn_id, *tuple_)
+		if common.ActiveLogKindSetting&common.RDB_OP_FUNC_CALL > 0 {
+			fmt.Printf("TableHeap::InsertTuple called. txn.txn_id:%v dbgInfo:%s tuple_:%v\n", txn.txn_id, txn.dbgInfo, *tuple_)
+		}
+		if common.ActiveLogKindSetting&common.BUFFER_INTERNAL_STATE > 0 {
+			t.bpm.PrintBufferUsageState(fmt.Sprintf("TableHeap::InsertTuple start. txn.txn_id: %d dbgInfo:%s", txn.txn_id, txn.dbgInfo))
+			defer func() {
+				t.bpm.PrintBufferUsageState(fmt.Sprintf("TableHeap::InsertTuple end. txn.txn_id: %d dbgInfo:%s", txn.txn_id, txn.dbgInfo))
+			}()
+		}
 	}
 	currentPage := CastPageAsTablePage(t.bpm.FetchPage(t.firstPageId))
-
+	currentPage.WLatch()
+	currentPage.AddWLatchRecord(int32(txn.txn_id))
 	// Insert into the first page with enough space. If no such page exists, create a new page and insert into that.
 	// INVARIANT: currentPage is WLatched if you leave the loop normally.
 
 	for {
-		currentPage.WLatch()
 		rid, err = currentPage.InsertTuple(tuple_, t.log_manager, t.lock_manager, txn)
 		if err == nil || err == ErrEmptyTuple {
-			currentPage.WUnlatch()
+			//currentPage.WUnlatch()
 			break
 		}
 		if rid == nil && err != nil && err != ErrEmptyTuple && err != ErrNotEnoughSpace {
+			t.bpm.UnpinPage(currentPage.GetPageId(), false)
+			if common.EnableDebug && common.ActiveLogKindSetting&common.PIN_COUNT_ASSERT > 0 {
+				common.SH_Assert(currentPage.PinCount() == 0, "PinCount is not zero at TableHeap::InsertTuple!!!")
+			}
+			currentPage.RemoveWLatchRecord(int32(txn.txn_id))
 			currentPage.WUnlatch()
 			return nil, err
 		}
 
 		nextPageId := currentPage.GetNextPageId()
 		if nextPageId.IsValid() {
-			t.bpm.UnpinPage(currentPage.GetTablePageId(), false)
+			nextPage := CastPageAsTablePage(t.bpm.FetchPage(nextPageId))
+			nextPage.WLatch()
+			nextPage.AddWLatchRecord(int32(txn.txn_id))
+			t.bpm.UnpinPage(currentPage.GetPageId(), false)
+			if common.EnableDebug && common.ActiveLogKindSetting&common.PIN_COUNT_ASSERT > 0 {
+				common.SH_Assert(currentPage.PinCount() == 0, "PinCount is not zero at TableHeap::InsertTuple!!!")
+			}
+			currentPage.RemoveWLatchRecord(int32(txn.txn_id))
 			currentPage.WUnlatch()
-			currentPage = CastPageAsTablePage(t.bpm.FetchPage(nextPageId))
-			//currentPage.WLatch()
+			currentPage = nextPage
+			// holding WLatch of currentPage here
 		} else {
 			p := t.bpm.NewPage()
-			currentPage.SetNextPageId(p.ID())
-			currentPage.WUnlatch()
+			currentPage.SetNextPageId(p.GetPageId())
+			currentPageId := currentPage.GetPageId()
 			newPage := CastPageAsTablePage(p)
-			//newPage.WLatch()
-			//currentPage.SetNextPageId(p.ID())
-			currentPage.RLatch()
-			newPage.Init(p.ID(), currentPage.GetTablePageId(), t.log_manager, t.lock_manager, txn)
-			t.bpm.FlushPage(newPage.GetPageId())
-			t.bpm.UnpinPage(currentPage.GetTablePageId(), true)
-			currentPage.RUnlatch()
+			newPage.WLatch()
+			newPage.AddWLatchRecord(int32(txn.txn_id))
+			t.bpm.UnpinPage(currentPage.GetPageId(), true)
+			if common.EnableDebug && common.ActiveLogKindSetting&common.PIN_COUNT_ASSERT > 0 {
+				common.SH_Assert(currentPage.PinCount() == 0, "PinCount is not zero when finish TablePage::UpdateTuple!!!")
+			}
+			currentPage.RemoveWLatchRecord(int32(txn.txn_id))
+			currentPage.WUnlatch()
+			newPage.Init(p.GetPageId(), currentPageId, t.log_manager, t.lock_manager, txn)
+			//t.bpm.FlushPage(newPage.GetPageId())
+			//newPage.WUnlatch()
 			currentPage = newPage
+			// holding WLatch of currentPage here
 		}
 	}
-	//currentPage.WUnlatch()
 
-	t.bpm.UnpinPage(currentPage.GetTablePageId(), true)
+	t.bpm.UnpinPage(currentPage.GetPageId(), true)
+	if common.EnableDebug && common.ActiveLogKindSetting&common.PIN_COUNT_ASSERT > 0 {
+		common.SH_Assert(currentPage.PinCount() == 0, "PinCount is not zero when finish TablePage::InsertTuple!!!")
+	}
+	currentPage.RemoveWLatchRecord(int32(txn.txn_id))
+	currentPage.WUnlatch()
 	// Update the transaction's write set.
 	txn.AddIntoWriteSet(NewWriteRecord(*rid, INSERT, new(tuple.Tuple), t, oid))
 	return rid, nil
@@ -108,7 +139,15 @@ func (t *TableHeap) InsertTuple(tuple_ *tuple.Tuple, txn *Transaction, oid uint3
 // if specified not nil, new_tuple also should have all columns defined in schema. but not update target value can be dummy value
 func (t *TableHeap) UpdateTuple(tuple_ *tuple.Tuple, update_col_idxs []int, schema_ *schema.Schema, oid uint32, rid page.RID, txn *Transaction) (bool, *page.RID) {
 	if common.EnableDebug {
-		common.ShPrintf(common.RDB_OP_FUNC_CALL, "TableHeap::UpadteTuple called. txn.txn_id:%v update_col_idxs:%v rid:%v\n", txn.txn_id, update_col_idxs, rid)
+		if common.ActiveLogKindSetting&common.RDB_OP_FUNC_CALL > 0 {
+			fmt.Printf("TableHeap::UpadteTuple called. txn.txn_id:%v dbgInfo:%s update_col_idxs:%v rid:%v\n", txn.txn_id, txn.dbgInfo, update_col_idxs, rid)
+		}
+		if common.ActiveLogKindSetting&common.BUFFER_INTERNAL_STATE > 0 {
+			t.bpm.PrintBufferUsageState(fmt.Sprintf("TableHeap::UpdateTuple start.  txn.txn_id: %d dbgInfo:%s", txn.txn_id, txn.dbgInfo))
+			defer func() {
+				t.bpm.PrintBufferUsageState(fmt.Sprintf("TableHeap::UpdateTuple end.  txn.txn_id: %d dbgInfo:%s", txn.txn_id, txn.dbgInfo))
+			}()
+		}
 	}
 	// Find the page which contains the tuple.
 	page_ := CastPageAsTablePage(t.bpm.FetchPage(rid.GetPageId()))
@@ -122,12 +161,22 @@ func (t *TableHeap) UpdateTuple(tuple_ *tuple.Tuple, update_col_idxs []int, sche
 	old_tuple.SetRID(new(page.RID))
 
 	page_.WLatch()
+	page_.AddWLatchRecord(int32(txn.txn_id))
 	is_updated, err, need_follow_tuple := page_.UpdateTuple(tuple_, update_col_idxs, schema_, old_tuple, &rid, txn, t.lock_manager, t.log_manager)
+	t.bpm.UnpinPage(page_.GetPageId(), is_updated)
+	if common.EnableDebug && common.ActiveLogKindSetting&common.PIN_COUNT_ASSERT > 0 {
+		common.SH_Assert(page_.PinCount() == 0, "PinCount is not zero when finish TablePage::UpdateTuple!!!")
+	}
+	page_.RemoveWLatchRecord(int32(txn.txn_id))
 	page_.WUnlatch()
-	t.bpm.UnpinPage(page_.GetTablePageId(), is_updated)
 
 	var new_rid *page.RID = nil
 	if is_updated == false && err == ErrNotEnoughSpace {
+		// TODO: (SDB) this early return with ABORTED state exists (TableHeap::UpdateTuple)
+		//             because rollback and recovery when this cases fail currently
+		txn.SetState(ABORTED)
+		return false, &rid
+
 		// delete and insert need_follow_tuple as updating
 
 		// first, delete target tuple (old data)
@@ -155,7 +204,7 @@ func (t *TableHeap) UpdateTuple(tuple_ *tuple.Tuple, update_col_idxs []int, sche
 	// last condition is for when rollback case
 	common.SH_Assert(
 		(txn.GetState() == ABORTED && is_updated == false) || (txn.GetState() != ABORTED && is_updated == true) || (txn.GetState() == ABORTED && is_updated == true && update_col_idxs == nil),
-		"illegal internal state!")
+		fmt.Sprintf("illegal internal state! txnState:%d is_updated:%v", txn.state, is_updated))
 
 	// Update the transaction's write set.
 	// when txn is ABORTED state case, data is not updated. so adding a write set entry is not needed
@@ -173,7 +222,15 @@ func (t *TableHeap) UpdateTuple(tuple_ *tuple.Tuple, update_col_idxs []int, sche
 
 func (t *TableHeap) MarkDelete(rid *page.RID, oid uint32, txn *Transaction) bool {
 	if common.EnableDebug {
-		common.ShPrintf(common.RDB_OP_FUNC_CALL, "TableHeap::MarkDelete called. txn.txn_id:%v rid:%v\n", txn.txn_id, *rid)
+		if common.ActiveLogKindSetting&common.RDB_OP_FUNC_CALL > 0 {
+			fmt.Printf("TableHeap::MarkDelete called. txn.txn_id:%v rid:%v  dbgInfo:%s\n", txn.txn_id, *rid, txn.dbgInfo)
+		}
+		if common.ActiveLogKindSetting&common.BUFFER_INTERNAL_STATE > 0 {
+			t.bpm.PrintBufferUsageState(fmt.Sprintf("TableHeap::MarkDelete start.  txn.txn_id: %d dbgInfo:%s", txn.txn_id, txn.dbgInfo))
+			defer func() {
+				t.bpm.PrintBufferUsageState(fmt.Sprintf("TableHeap::MarkDelete end.  txn.txn_id: %d dbgInfo:%s", txn.txn_id, txn.dbgInfo))
+			}()
+		}
 	}
 	// Find the page which contains the tuple.
 	page_ := CastPageAsTablePage(t.bpm.FetchPage(rid.GetPageId()))
@@ -184,9 +241,14 @@ func (t *TableHeap) MarkDelete(rid *page.RID, oid uint32, txn *Transaction) bool
 	}
 	// Otherwise, mark the tuple as deleted.
 	page_.WLatch()
+	page_.AddWLatchRecord(int32(txn.txn_id))
 	is_marked := page_.MarkDelete(rid, txn, t.lock_manager, t.log_manager)
+	t.bpm.UnpinPage(page_.GetPageId(), true)
+	if common.EnableDebug && common.ActiveLogKindSetting&common.PIN_COUNT_ASSERT > 0 {
+		common.SH_Assert(page_.PinCount() == 0, "PinCount is not zero when finish TablePage::MarkDelete!!!")
+	}
+	page_.RemoveWLatchRecord(int32(txn.txn_id))
 	page_.WUnlatch()
-	t.bpm.UnpinPage(page_.GetTablePageId(), true)
 	if is_marked {
 		// Update the transaction's write set.
 		txn.AddIntoWriteSet(NewWriteRecord(*rid, DELETE, new(tuple.Tuple), t, oid))
@@ -197,47 +259,88 @@ func (t *TableHeap) MarkDelete(rid *page.RID, oid uint32, txn *Transaction) bool
 
 func (t *TableHeap) ApplyDelete(rid *page.RID, txn *Transaction) {
 	if common.EnableDebug {
-		common.ShPrintf(common.RDB_OP_FUNC_CALL, "TableHeap::ApplyDelete called. txn.txn_id:%v rid:%v\n", txn.txn_id, *rid)
+		if common.ActiveLogKindSetting&common.RDB_OP_FUNC_CALL > 0 {
+			fmt.Printf("TableHeap::ApplyDelete called. txn.txn_id:%v rid:%v dbgInfo:%s\n", txn.txn_id, *rid, txn.dbgInfo)
+		}
+		if common.ActiveLogKindSetting&common.BUFFER_INTERNAL_STATE > 0 {
+			t.bpm.PrintBufferUsageState(fmt.Sprintf("TableHeap::ApplyDelete start. txn.txn_id: %d dbgInfo:%s", txn.txn_id, txn.dbgInfo))
+			defer func() {
+				t.bpm.PrintBufferUsageState(fmt.Sprintf("TableHeap::ApplyDelete end. txn.txn_id: %d dbgInfo:%s", txn.txn_id, txn.dbgInfo))
+			}()
+		}
 	}
 	// Find the page which contains the tuple.
 	page_ := CastPageAsTablePage(t.bpm.FetchPage(rid.GetPageId()))
 	common.SH_Assert(page_ != nil, "Couldn't find a page containing that RID.")
 	// Delete the tuple from the page.
 	page_.WLatch()
+	page_.AddWLatchRecord(int32(txn.txn_id))
 	page_.ApplyDelete(rid, txn, t.log_manager)
 	//t.lock_manager.WUnlock(txn, []page.RID{*rid})
+	t.bpm.UnpinPage(page_.GetPageId(), true)
+	if common.EnableDebug && common.ActiveLogKindSetting&common.PIN_COUNT_ASSERT > 0 {
+		common.SH_Assert(page_.PinCount() == 0, "PinCount is not zero when finish TablePage::ApplyDelete!!!")
+	}
+	page_.RemoveWLatchRecord(int32(txn.txn_id))
 	page_.WUnlatch()
-	t.bpm.UnpinPage(page_.GetTablePageId(), true)
 }
 
 func (t *TableHeap) RollbackDelete(rid *page.RID, txn *Transaction) {
 	if common.EnableDebug {
-		common.ShPrintf(common.RDB_OP_FUNC_CALL, "TableHeap::RollBackDelete called. txn.txn_id:%v rid:%v\n", txn.txn_id, *rid)
+		if common.ActiveLogKindSetting&common.RDB_OP_FUNC_CALL > 0 {
+			fmt.Printf("TableHeap::RollBackDelete called. txn.txn_id:%v  dbgInfo:%s rid:%v\n", txn.txn_id, txn.dbgInfo, *rid)
+		}
+		if common.ActiveLogKindSetting&common.BUFFER_INTERNAL_STATE > 0 {
+			t.bpm.PrintBufferUsageState(fmt.Sprintf("TableHeap::RollBackDelete start. txn.txn_id: %d dbgInfo:%s", txn.txn_id, txn.dbgInfo))
+			defer func() {
+				t.bpm.PrintBufferUsageState(fmt.Sprintf("TableHeap::RollBackDelete end. txn.txn_id: %d dbgInfo:%s", txn.txn_id, txn.dbgInfo))
+			}()
+		}
 	}
 	// Find the page which contains the tuple.
 	page_ := CastPageAsTablePage(t.bpm.FetchPage(rid.GetPageId()))
 	common.SH_Assert(page_ != nil, "Couldn't find a page containing that RID.")
 	// Rollback the delete.
 	page_.WLatch()
+	page_.AddWLatchRecord(int32(txn.txn_id))
 	page_.RollbackDelete(rid, txn, t.log_manager)
+	t.bpm.UnpinPage(page_.GetPageId(), true)
+	if common.EnableDebug && common.ActiveLogKindSetting&common.PIN_COUNT_ASSERT > 0 {
+		common.SH_Assert(page_.PinCount() == 0, "PinCount is not zero when finish TablePage::RollbackDelete!!!")
+	}
+	page_.RemoveWLatchRecord(int32(txn.txn_id))
 	page_.WUnlatch()
-	t.bpm.UnpinPage(page_.GetTablePageId(), true)
 }
 
 // GetTuple reads a tuple from the table
 func (t *TableHeap) GetTuple(rid *page.RID, txn *Transaction) *tuple.Tuple {
 	if common.EnableDebug {
-		common.ShPrintf(common.RDB_OP_FUNC_CALL, "TableHeap::GetTuple called. txn.txn_id:%v rid:%v\n", txn.txn_id, *rid)
+		if common.ActiveLogKindSetting&common.RDB_OP_FUNC_CALL > 0 {
+			fmt.Printf("TableHeap::GetTuple called. txn.txn_id:%v rid:%v dbgInfo:%s\n", txn.txn_id, *rid, txn.dbgInfo)
+		}
+		if common.ActiveLogKindSetting&common.BUFFER_INTERNAL_STATE > 0 {
+			t.bpm.PrintBufferUsageState(fmt.Sprintf("TableHeap::GetTuple start. txn.txn_id: %d dbgInfo:%s", txn.txn_id, txn.dbgInfo))
+			defer func() {
+				t.bpm.PrintBufferUsageState(fmt.Sprintf("TableHeap::GetTuple end. txn.txn_id: %d dbgInfo:%s", txn.txn_id, txn.dbgInfo))
+			}()
+		}
 	}
 	if !txn.IsSharedLocked(rid) && !txn.IsExclusiveLocked(rid) && !t.lock_manager.LockShared(txn, rid) {
 		txn.SetState(ABORTED)
 		return nil
 	}
 	page := CastPageAsTablePage(t.bpm.FetchPage(rid.GetPageId()))
-	defer t.bpm.UnpinPage(page.ID(), false)
 	page.RLatch()
+	page.AddRLatchRecord(int32(txn.txn_id))
 	ret := page.GetTuple(rid, t.log_manager, t.lock_manager, txn)
+	page.RemoveRLatchRecord(int32(txn.txn_id))
 	page.RUnlatch()
+	//page.WLatch()
+	//page.AddWLatchRecord(int32(txn.txn_id))
+	t.bpm.UnpinPage(page.GetPageId(), false)
+	//page.RemoveWLatchRecord(int32(txn.txn_id))
+	//page.WUnlatch()
+
 	return ret
 }
 
@@ -247,26 +350,39 @@ func (t *TableHeap) GetFirstTuple(txn *Transaction) *tuple.Tuple {
 	pageId := t.firstPageId
 	for pageId.IsValid() {
 		page := CastPageAsTablePage(t.bpm.FetchPage(pageId))
-		page.RLatch()
+		page.WLatch()
+		page.AddWLatchRecord(int32(txn.txn_id))
 		rid = page.GetTupleFirstRID()
 		t.bpm.UnpinPage(pageId, false)
 		if rid != nil {
-			page.RUnlatch()
+			page.RemoveWLatchRecord(int32(txn.txn_id))
+			page.WUnlatch()
 			break
 		}
 		pageId = page.GetNextPageId()
-		page.RUnlatch()
+		page.RemoveWLatchRecord(int32(txn.txn_id))
+		page.WUnlatch()
 	}
 	if rid == nil {
 		return nil
 	}
+
+	// here thread has no pin and latch of page which contains got tuple
 	return t.GetTuple(rid, txn)
 }
 
 // Iterator returns a iterator for this table heap
 func (t *TableHeap) Iterator(txn *Transaction) *TableHeapIterator {
 	if common.EnableDebug {
-		common.ShPrintf(common.RDB_OP_FUNC_CALL, "TableHeap::Iterator called. txn.txn_id:%v\n", txn.txn_id)
+		if common.ActiveLogKindSetting&common.RDB_OP_FUNC_CALL > 0 {
+			fmt.Printf("TableHeap::Iterator called. txn.txn_id:%v  dbgInfo:%s\n", txn.txn_id, txn.dbgInfo)
+		}
+		if common.ActiveLogKindSetting&common.BUFFER_INTERNAL_STATE > 0 {
+			t.bpm.PrintBufferUsageState(fmt.Sprintf("TableHeap::Iterator start. txn.txn_id: %d dbgInfo:%s", txn.txn_id, txn.dbgInfo))
+			defer func() {
+				t.bpm.PrintBufferUsageState(fmt.Sprintf("TableHeap::Iterator end. txn.txn_id: %d dbgInfo:%s", txn.txn_id, txn.dbgInfo))
+			}()
+		}
 	}
 	return NewTableHeapIterator(t, t.lock_manager, txn)
 }

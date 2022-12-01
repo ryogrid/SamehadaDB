@@ -41,7 +41,7 @@ func NewTableMetadata(schema *schema.Schema, name string, table *access.TableHea
 				indexes = append(indexes, hIdx)
 				// at first allocation of pages for index, column's indexHeaderPageID is -1 at above code (column_.IndexHeaderPageId() == -1)
 				// because first allocation occurs when table creation is processed (not launched DB instace from existing db file which has difinition of this table)
-				// so, for first allocation case, allocated page ID of header page need to be set to column info here
+				// so, for first allocation case, allocated page GetPageId of header page need to be set to column info here
 				column_.SetIndexHeaderPageId(hIdx.GetHeaderPageId())
 			case index_constants.INDEX_KIND_SKIP_LIST:
 				// currently, SkipList Index always use new pages even if relaunch
@@ -89,7 +89,8 @@ func (t *TableMetadata) GetColumnNum() uint32 {
 
 // return list of indexes
 // ATTENTION: returned list's length is same with column num of table.
-//            value of elements corresponding to columns which doesn't have index is nil
+//
+//	value of elements corresponding to columns which doesn't have index is nil
 func (t *TableMetadata) Indexes() []index.Index {
 	return t.indexes
 }

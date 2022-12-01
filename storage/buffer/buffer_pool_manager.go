@@ -4,15 +4,15 @@
 package buffer
 
 import (
-	"errors"
+	//"github.com/sasha-s/go-deadlock"
 	"fmt"
-	"sync"
-
 	"github.com/ryogrid/SamehadaDB/common"
 	"github.com/ryogrid/SamehadaDB/recovery"
 	"github.com/ryogrid/SamehadaDB/storage/disk"
 	"github.com/ryogrid/SamehadaDB/storage/page"
 	"github.com/ryogrid/SamehadaDB/types"
+	"sort"
+	"sync"
 )
 
 // BufferPoolManager represents the buffer pool manager
@@ -23,7 +23,9 @@ type BufferPoolManager struct {
 	freeList    []FrameID
 	pageTable   map[types.PageID]FrameID
 	log_manager *recovery.LogManager
-	mutex       *sync.Mutex //*sync.RWMutex
+	mutex       *sync.Mutex
+	//// when using go-dedlock package
+	//mutex *deadlock.Mutex
 }
 
 // FetchPage fetches the requested page from the buffer pool.
@@ -33,6 +35,10 @@ func (b *BufferPoolManager) FetchPage(pageID types.PageID) *page.Page {
 	b.mutex.Lock()
 	if frameID, ok := b.pageTable[pageID]; ok {
 		pg := b.pages[frameID]
+		if common.EnableDebug && common.ActiveLogKindSetting&common.PIN_COUNT_ASSERT > 0 {
+			common.SH_Assert(pg.PinCount() == 0 || ( /*pg.PinCount() == 1 && */ pg.GetPageId() == 4 || pg.GetPageId() == 5 || pg.GetPageId() == 7 || pg.GetPageId() == 8),
+				fmt.Sprintf("BPM::FetchPage pin count must be zero here when single thread execution!!!. pageId:%d PinCount:%d", pg.GetPageId(), pg.PinCount()))
+		}
 		pg.IncPinCount()
 		(*b.replacer).Pin(frameID)
 		b.mutex.Unlock()
@@ -56,19 +62,30 @@ func (b *BufferPoolManager) FetchPage(pageID types.PageID) *page.Page {
 		//b.mutex.WLock()
 		currentPage := b.pages[*frameID]
 		//b.mutex.WUnlock()
+		//common.SH_Assert(currentPage.PinCount() >= 0, "BPM::FetchPage Victim page's pin count is not zero!!!")
 		if currentPage != nil {
+			if currentPage.PinCount() != 0 {
+				fmt.Printf("BPM::FetchPage WLatch:%v RLatch:%v\n", currentPage.WLatchMap, currentPage.RLatchMap)
+				panic(fmt.Sprintf("BPM::FetchPage pin count of page to be cache out must be zero!!!. pageId:%d PinCount:%d", currentPage.GetPageId(), currentPage.PinCount()))
+			}
+
+			if common.EnableDebug && common.ActiveLogKindSetting&common.CACHE_OUT_IN_INFO > 0 {
+				fmt.Printf("BPM::FetchPage Cache out occurs! pageId:%d requested pageId:%d\n", currentPage.GetPageId(), pageID)
+			}
 			if currentPage.IsDirty() {
 				b.log_manager.Flush()
-				currentPage.WLatch()
-				data := *currentPage.Data()
-				b.diskManager.WritePage(currentPage.ID(), data[:])
-				currentPage.WUnlatch()
+				//currentPage.WLatch()
+				//currentPage.AddWLatchRecord(int32(-2))
+				data := currentPage.Data()
+				b.diskManager.WritePage(currentPage.GetPageId(), data[:])
+				//currentPage.RemoveWLatchRecord(-2)
+				//currentPage.WUnlatch()
 			}
 			//b.mutex.WLock()
 			if common.EnableDebug {
-				common.ShPrintf(common.DEBUG_INFO, "FetchPage: page=%d is removed from pageTable.\n", currentPage.ID())
+				common.ShPrintf(common.DEBUG_INFO, "FetchPage: page=%d is removed from pageTable.\n", currentPage.GetPageId())
 			}
-			delete(b.pageTable, currentPage.ID())
+			delete(b.pageTable, currentPage.GetPageId())
 			//b.mutex.WUnlock()
 		}
 		//b.mutex.WUnlock()
@@ -76,6 +93,9 @@ func (b *BufferPoolManager) FetchPage(pageID types.PageID) *page.Page {
 
 	//b.mutex.WLock()
 	data := make([]byte, common.PageSize)
+	if common.EnableDebug && common.ActiveLogKindSetting&common.CACHE_OUT_IN_INFO > 0 {
+		fmt.Printf("BPM::FetchPage Cache in occurs! requested pageId:%d\n", pageID)
+	}
 	err := b.diskManager.ReadPage(pageID, data)
 	if err != nil {
 		fmt.Println(err)
@@ -85,6 +105,12 @@ func (b *BufferPoolManager) FetchPage(pageID types.PageID) *page.Page {
 	var pageData [common.PageSize]byte
 	copy(pageData[:], data)
 	pg := page.New(pageID, false, &pageData)
+
+	if common.EnableDebug && common.ActiveLogKindSetting&common.PIN_COUNT_ASSERT > 0 {
+		common.SH_Assert(pg.PinCount() == 1,
+			fmt.Sprintf("BPM::FetchPage pin count must be one here when single thread execution!!!. pageId:%d", pg.GetPageId()))
+	}
+
 	b.pageTable[pageID] = *frameID
 	b.pages[*frameID] = pg
 	b.mutex.Unlock()
@@ -95,6 +121,7 @@ func (b *BufferPoolManager) FetchPage(pageID types.PageID) *page.Page {
 	return pg
 }
 
+// ATTENTION: when Unpin a page which has pageID arg as self ID, caller thread must have WLatch of the page
 // UnpinPage unpins the target page from the buffer pool.
 func (b *BufferPoolManager) UnpinPage(pageID types.PageID, isDirty bool) error {
 
@@ -105,8 +132,13 @@ func (b *BufferPoolManager) UnpinPage(pageID types.PageID, isDirty bool) error {
 		//b.mutex.RUnlock()
 		pg.DecPinCount()
 
+		if common.EnableDebug && common.ActiveLogKindSetting&common.PIN_COUNT_ASSERT > 0 {
+			common.SH_Assert(pg.PinCount() == 0 || ( /*pg.PinCount() == 1 &&*/ pg.GetPageId() == 4 || pg.GetPageId() == 5 || pg.GetPageId() == 7 || pg.GetPageId() == 8),
+				fmt.Sprintf("BPM::UnpinPage pin count must be zero here when single thread execution!!!. pageId:%d PinCount:%d", pg.GetPageId(), pg.PinCount()))
+		}
+
 		if pg.PinCount() < 0 {
-			panic("pin coint is less than 0!")
+			panic(fmt.Sprintf("pin coint is less than 0! pageID:%d", pg.GetPageId()))
 		}
 
 		if pg.PinCount() <= 0 {
@@ -132,7 +164,8 @@ func (b *BufferPoolManager) UnpinPage(pageID types.PageID, isDirty bool) error {
 		common.ShPrintf(common.DEBUG_INFO, "UnpinPage: could not find page! PageId=%d\n", pageID)
 		panic("could not find page")
 	}
-	return errors.New("could not find page")
+	panic("could not find page")
+	//return errors.New("could not find page")
 
 }
 
@@ -157,16 +190,16 @@ func (b *BufferPoolManager) FlushPage(pageID types.PageID) bool {
 	b.mutex.Lock()
 	if frameID, ok := b.pageTable[pageID]; ok {
 		pg := b.pages[frameID]
+		//pg.WLatch()
+		//pg.DecPinCount()
 		b.mutex.Unlock()
-		pg.WLatch()
-		pg.DecPinCount()
 
 		data := pg.Data()
 		pg.SetIsDirty(false)
 
 		//b.mutex.WLock()
 		b.diskManager.WritePage(pageID, data[:])
-		pg.WUnlatch()
+		//pg.WUnlatch()
 		//b.mutex.WUnlock()
 		return true
 	}
@@ -188,16 +221,27 @@ func (b *BufferPoolManager) NewPage() *page.Page {
 		// remove page from current frame
 		currentPage := b.pages[*frameID]
 		if currentPage != nil {
+			if common.EnableDebug && common.ActiveLogKindSetting&common.CACHE_OUT_IN_INFO > 0 {
+				fmt.Println("BPM::NewPage Cache out occurs!")
+			}
+			if currentPage.PinCount() != 0 {
+				fmt.Printf("BPM::NewPage WLatch:%v RLatch:%v\n", currentPage.WLatchMap, currentPage.RLatchMap)
+				panic(fmt.Sprintf("BPM::NewPage pin count of page to be cache out must be zero!!!. pageId:%d PinCount:%d", currentPage.GetPageId(), currentPage.PinCount()))
+			}
 			if currentPage.IsDirty() {
 				b.log_manager.Flush()
+				//currentPage.WLatch()
+				//currentPage.AddWLatchRecord(int32(-2))
 				data := currentPage.Data()
-				b.diskManager.WritePage(currentPage.ID(), data[:])
+				b.diskManager.WritePage(currentPage.GetPageId(), data[:])
+				//currentPage.RemoveWLatchRecord(-2)
+				//currentPage.WUnlatch()
 			}
 
 			if common.EnableDebug {
-				common.ShPrintf(common.DEBUG_INFO, "NewPage: page=%d is removed from pageTable.\n", currentPage.ID())
+				common.ShPrintf(common.DEBUG_INFO, "NewPage: page=%d is removed from pageTable.\n", currentPage.GetPageId())
 			}
-			delete(b.pageTable, currentPage.ID())
+			delete(b.pageTable, currentPage.GetPageId())
 		}
 	}
 
@@ -244,7 +288,9 @@ func (b *BufferPoolManager) DeletePage(pageID types.PageID) error {
 
 	page := b.pages[frameID]
 	page.WLatch()
+	page.AddWLatchRecord(-1)
 	if page.PinCount() > 0 {
+		page.RemoveWLatchRecord(-1)
 		page.WUnlatch()
 		b.mutex.Unlock()
 		return nil
@@ -259,6 +305,7 @@ func (b *BufferPoolManager) DeletePage(pageID types.PageID) error {
 		b.freeList = append(b.freeList, frameID)
 	}
 
+	page.RemoveWLatchRecord(-1)
 	page.WUnlatch()
 	b.mutex.Unlock()
 
@@ -287,9 +334,11 @@ func (b *BufferPoolManager) FlushAllDirtyPages() {
 		if frameID, ok := b.pageTable[pageID]; ok {
 			pg := b.pages[frameID]
 			pg.RLatch()
+			pg.AddRLatchRecord(-1000000)
 			if pg.IsDirty() {
 				pageIDs = append(pageIDs, pageID)
 			}
+			pg.RemoveRLatchRecord(-1000000)
 			pg.RUnlatch()
 		}
 	}
@@ -313,8 +362,15 @@ func (b *BufferPoolManager) getFrameID() (*FrameID, bool) {
 	ret := (*b.replacer).Victim()
 	//b.mutex.WUnlock()
 	if ret == nil {
-		fmt.Printf("getFrameID: Victime page is nil! len(b.freeList)=%d\n", len(b.freeList))
-		//panic("getFrameID: Victime page is nil!")
+		//fmt.Printf("getFrameID: Victime page is nil! len(b.freeList)=%d\n", len(b.freeList))
+
+		// unlock for call of PrintBufferUsageState
+		b.mutex.Unlock()
+		b.PrintBufferUsageState("BPM::getFrameID ")
+		b.mutex.Lock()
+
+		b.PrintReplacerInternalState()
+		panic("getFrameID: Victime page is nil!")
 	}
 	return ret, false
 }
@@ -327,6 +383,35 @@ func (b *BufferPoolManager) GetPoolSize() int {
 	return len(b.pageTable)
 }
 
+func (b *BufferPoolManager) PrintReplacerInternalState() {
+	b.replacer.PrintList()
+}
+
+func (b *BufferPoolManager) PrintBufferUsageState(callerAdditionalInfo string) {
+	b.mutex.Lock()
+	defer b.mutex.Unlock()
+
+	printStr := fmt.Sprintf("BPM::PrintBufferUsageState %s ", callerAdditionalInfo)
+	var pages []*page.Page
+	for key := range b.pageTable {
+		frameID := b.pageTable[key]
+		if !b.replacer.isContain(frameID) {
+			// when page is Pinned (= not allocated on frames in list of replacer)
+			pages = append(pages, b.pages[frameID])
+		}
+
+	}
+
+	// make pages variable sorted
+	sort.Slice(pages, func(i, j int) bool { return pages[i].GetPageId() < pages[j].GetPageId() })
+
+	pageNum := len(pages)
+	for ii := 0; ii < pageNum; ii++ {
+		printStr += fmt.Sprintf("(%d,%d)-", pages[ii].GetPageId(), pages[ii].PinCount())
+	}
+	fmt.Println(printStr)
+}
+
 // NewBufferPoolManager returns a empty buffer pool manager
 func NewBufferPoolManager(poolSize uint32, DiskManager disk.DiskManager, log_manager *recovery.LogManager) *BufferPoolManager {
 	freeList := make([]FrameID, poolSize)
@@ -337,6 +422,8 @@ func NewBufferPoolManager(poolSize uint32, DiskManager disk.DiskManager, log_man
 	}
 
 	replacer := NewClockReplacer(poolSize)
-	//return &BufferPoolManager{DiskManager, pages, replacer, freeList, make(map[types.PageID]FrameID), log_manager, new(sync.Mutex)}
 	return &BufferPoolManager{DiskManager, pages, replacer, freeList, make(map[types.PageID]FrameID), log_manager, new(sync.Mutex)}
+	//// when using "go-deadlock" package
+	//deadlock.Opts.DisableLockOrderDetection = true
+	//return &BufferPoolManager{DiskManager, pages, replacer, freeList, make(map[types.PageID]FrameID), log_manager, new(deadlock.Mutex)}
 }

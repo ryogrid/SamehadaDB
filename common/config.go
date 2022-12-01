@@ -11,7 +11,8 @@ import (
 var LogTimeout time.Duration
 
 // var EnableLogging bool = false //true
-const EnableDebug bool = false //true
+const EnableDebug bool = false //true //
+
 // use virtual storage or not
 const EnableOnMemStorage = true //false
 
@@ -30,7 +31,7 @@ const (
 	// the header page id
 	HeaderPageID = 0
 	// size of a data page in byte
-	PageSize                     = 4096 //1024 //512
+	PageSize                     = 4096 //1024  //512
 	BufferPoolMaxFrameNumForTest = 500  //4000 //32
 	// number for calculate log buffer size (number of page size)
 	LogBufferSizeBase = 32
@@ -39,8 +40,8 @@ const (
 	// size of hash bucket
 	BucketSizeOfHashIndex = 10
 	// probability used for determin node level on SkipList
-	SkipListProb    = 0.5  //0.25
-	LogLevelSetting = INFO //| RDB_OP_FUNC_CALL | DEBUGGING //DEBUG_INFO_DETAIL //DEBUG_INFO //DEBUGGING
+	SkipListProb         = 0.5  //0.25
+	ActiveLogKindSetting = INFO // | DEBUGGING | DEBUG_INFO | RDB_OP_FUNC_CALL | BUFFER_INTERNAL_STATE //| DEBUGGING | DEBUG_INFO //| PIN_COUNT_ASSERT //DEBUG_INFO_DETAIL  //DEBUGGING
 )
 
 type TxnID int32        // transaction id type

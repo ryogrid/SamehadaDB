@@ -205,7 +205,7 @@ func (lock_manager *LockManager) LockExclusive(txn *Transaction, rid *page.RID) 
 		}
 	} else {
 		if arr, ok := lock_manager.shared_lock_table[*rid]; ok {
-			if !(len(arr) == 1 && arr[0] == txn.GetTransactionId()) {
+			if !(arr == nil || len(arr) == 0 || (len(arr) == 1 && arr[0] == txn.GetTransactionId())) {
 				// not only this txn has shared lock
 				return false
 			}
@@ -228,7 +228,7 @@ func (lock_manager *LockManager) LockUpgrade(txn *Transaction, rid *page.RID) bo
 	//fmt.Printf("called LockUpgrade %v\n", rid)
 	lock_manager.mutex.Lock()
 	defer lock_manager.mutex.Unlock()
-	slock_set := txn.GetSharedLockSet()
+	//slock_set := txn.GetSharedLockSet()
 	elock_set := txn.GetExclusiveLockSet()
 	if txn.IsSharedLocked(rid) {
 		if txnID, ok := lock_manager.exclusive_lock_table[*rid]; ok {
@@ -248,8 +248,8 @@ func (lock_manager *LockManager) LockUpgrade(txn *Transaction, rid *page.RID) bo
 				lock_manager.exclusive_lock_table[*rid] = txn.GetTransactionId()
 				elock_set = append(elock_set, *rid)
 				txn.SetExclusiveLockSet(elock_set)
-				slock_set = removeRID(slock_set, *rid)
-				txn.SetSharedLockSet(slock_set)
+				//slock_set = removeRID(slock_set, *rid)
+				//txn.SetSharedLockSet(slock_set)
 				return true
 			}
 		}
@@ -323,9 +323,9 @@ func (lock_manager *LockManager) RemoveEdge(t1 types.TxnID, t2 types.TxnID) { /*
 }
 
 /**
-* Checks if the graph has a cycle, returning the newest transaction ID in the cycle if so.
-* @param[out] txn_id if the graph has a cycle, will contain the newest transaction ID
-* @return false if the graph has no cycle, otherwise stores the newest transaction ID in the cycle to txn_id
+* Checks if the graph has a cycle, returning the newest transaction GetPageId in the cycle if so.
+* @param[out] txn_id if the graph has a cycle, will contain the newest transaction GetPageId
+* @return false if the graph has no cycle, otherwise stores the newest transaction GetPageId in the cycle to txn_id
  */
 func (lock_manager *LockManager) HasCycle(txn_id *types.TxnID) bool {
 	/*

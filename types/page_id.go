@@ -11,7 +11,7 @@ import (
 // PageID is the type of the page identifier
 type PageID int32
 
-// InvalidPageID represents an invalid page ID
+// InvalidPageID represents an invalid page GetPageId
 const InvalidPageID = PageID(-1)
 
 // IsValid checks if id is valid

@@ -41,7 +41,7 @@ func (transaction_manager *TransactionManager) Begin(txn *Transaction) *Transact
 		//transaction_manager.next_txn_id.AtomicAdd(1)
 		txn_ret = NewTransaction(transaction_manager.next_txn_id)
 		transaction_manager.mutex.Unlock()
-		//fmt.Printf("new transactin ID: %d\n", transaction_manager.next_txn_id)
+		//fmt.Printf("new transactin GetPageId: %d\n", transaction_manager.next_txn_id)
 	}
 
 	if transaction_manager.log_manager.IsEnabledLogging() {
@@ -58,9 +58,9 @@ func (transaction_manager *TransactionManager) Begin(txn *Transaction) *Transact
 
 func (transaction_manager *TransactionManager) Commit(txn *Transaction) {
 	if common.EnableDebug {
-		common.ShPrintf(common.RDB_OP_FUNC_CALL, "TransactionManager::Commit called. txn.txn_id:%v\n", txn.txn_id)
+		common.ShPrintf(common.RDB_OP_FUNC_CALL, "TransactionManager::Commit called. txn.txn_id:%v dbgInfo:%s\n", txn.txn_id, txn.dbgInfo)
 	}
-	txn.SetState(COMMITTED)
+	//txn.SetState(COMMITTED)
 
 	// Perform all deletes before we commit.
 	write_set := txn.GetWriteSet()
@@ -70,7 +70,7 @@ func (transaction_manager *TransactionManager) Commit(txn *Transaction) {
 			//common.ShPrintf(common.RDB_OP_FUNC_CALL, "%v ", *writeItem)
 			writeSetStr += fmt.Sprintf("%v ", *writeItem)
 		}
-		common.ShPrintf(common.RDB_OP_FUNC_CALL, "TransactionManager::Commit txn.txn_id:%v write_set: %s\n", txn.txn_id, writeSetStr)
+		common.ShPrintf(common.RDB_OP_FUNC_CALL, "TransactionManager::Commit txn.txn_id:%v dbgInfo:%s write_set:%s\n", txn.txn_id, txn.dbgInfo, writeSetStr)
 		//common.ShPrintf(common.RDB_OP_FUNC_CALL, "\n")
 	}
 	for len(write_set) != 0 {
@@ -82,7 +82,10 @@ func (transaction_manager *TransactionManager) Commit(txn *Transaction) {
 			pageID := rid.GetPageId()
 			tpage := CastPageAsTablePage(table.bpm.FetchPage(pageID))
 			tpage.WLatch()
+			tpage.AddWLatchRecord(int32(txn.txn_id))
 			tpage.ApplyDelete(&item.rid, txn, transaction_manager.log_manager)
+			table.bpm.UnpinPage(tpage.GetPageId(), true)
+			tpage.RemoveWLatchRecord(int32(txn.txn_id))
 			tpage.WUnlatch()
 		}
 		write_set = write_set[:len(write_set)-1]
@@ -106,9 +109,9 @@ func (transaction_manager *TransactionManager) Commit(txn *Transaction) {
 
 func (transaction_manager *TransactionManager) Abort(catalog_ catalog_interface.CatalogInterface, txn *Transaction) {
 	if common.EnableDebug {
-		common.ShPrintf(common.RDB_OP_FUNC_CALL, "TransactionManager::Abort called. txn.txn_id:%v\n", txn.txn_id)
+		common.ShPrintf(common.RDB_OP_FUNC_CALL, "TransactionManager::Abort called. txn.txn_id:%v dbgInfo:%s\n", txn.txn_id, txn.dbgInfo)
 	}
-	txn.SetState(ABORTED)
+	//txn.SetState(ABORTED)
 
 	indexMap := make(map[uint32][]index.Index, 0)
 	write_set := txn.GetWriteSet()
@@ -119,7 +122,7 @@ func (transaction_manager *TransactionManager) Abort(catalog_ catalog_interface.
 			//common.ShPrintf(common.RDB_OP_FUNC_CALL, "%v ", *writeItem)
 			writeSetStr += fmt.Sprintf("%v ", *writeItem)
 		}
-		common.ShPrintf(common.RDB_OP_FUNC_CALL, "TransactionManager::Abort txn.txn_id:%v write_set: %s\n", txn.txn_id, writeSetStr)
+		common.ShPrintf(common.RDB_OP_FUNC_CALL, "TransactionManager::Abort txn.txn_id:%v  dbgInfo:%s write_set: %s\n", txn.txn_id, txn.dbgInfo, writeSetStr)
 		//common.ShPrintf(common.RDB_OP_FUNC_CALL, "\n")
 	}
 	// Rollback before releasing the access.
@@ -145,7 +148,10 @@ func (transaction_manager *TransactionManager) Abort(catalog_ catalog_interface.
 			pageID := rid.GetPageId()
 			tpage := CastPageAsTablePage(table.bpm.FetchPage(pageID))
 			tpage.WLatch()
+			tpage.AddWLatchRecord(int32(txn.txn_id))
 			tpage.ApplyDelete(&item.rid, txn, transaction_manager.log_manager)
+			table.bpm.UnpinPage(pageID, false)
+			tpage.RemoveWLatchRecord(int32(txn.txn_id))
 			tpage.WUnlatch()
 			// rollback index data
 			indexes := catalog_.GetRollbackNeededIndexes(indexMap, item.oid)

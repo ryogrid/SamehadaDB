@@ -69,10 +69,10 @@ type Transaction struct {
 	/** The current transaction state. */
 	state TransactionState
 
-	// /** The thread ID, used in single-threaded transactions. */
+	// /** The thread GetPageId, used in single-threaded transactions. */
 	// thread_id ThreadID
 
-	/** The ID of this access. */
+	/** The GetPageId of this access. */
 	txn_id types.TxnID
 
 	// /** The undo set of the access. */
@@ -90,6 +90,7 @@ type Transaction struct {
 	shared_lock_set []page.RID
 	// /** LockManager: the set of exclusive-locked tuples held by this access. */
 	exclusive_lock_set []page.RID
+	dbgInfo            string
 }
 
 func NewTransaction(txn_id types.TxnID) *Transaction {
@@ -103,6 +104,7 @@ func NewTransaction(txn_id types.TxnID) *Transaction {
 		// unordered_set<PageID>
 		make([]page.RID, 0),
 		make([]page.RID, 0),
+		"",
 	}
 }
 
@@ -166,7 +168,14 @@ func (txn *Transaction) GetState() TransactionState { return txn.state }
 * Set the state of the access.
 * @param state new state
  */
-func (txn *Transaction) SetState(state TransactionState) { txn.state = state }
+func (txn *Transaction) SetState(state TransactionState) {
+	if common.EnableDebug {
+		if state == ABORTED {
+			common.ShPrintf(common.RDB_OP_FUNC_CALL, "Transaction::SetState called. txn.txn_id:%d dbgInfo:%s state:ABORTED\n", txn.txn_id, txn.dbgInfo)
+		}
+	}
+	txn.state = state
+}
 
 /** @return the previous LSN */
 func (txn *Transaction) GetPrevLSN() types.LSN { return txn.prev_lsn }
@@ -176,3 +185,7 @@ func (txn *Transaction) GetPrevLSN() types.LSN { return txn.prev_lsn }
 * @param prev_lsn new previous lsn
  */
 func (txn *Transaction) SetPrevLSN(prev_lsn types.LSN) { txn.prev_lsn = prev_lsn }
+
+func (txn *Transaction) GetDebugInfo() string { return txn.dbgInfo }
+
+func (txn *Transaction) SetDebugInfo(dbgInfo string) { txn.dbgInfo = dbgInfo }

@@ -56,25 +56,30 @@ func (itr *SkipListIterator) initRIDList(sl *SkipList) {
 		itr.curNode = node
 	} else {
 		itr.curNode = sl.getStartNode()
+		itr.curNode.RLatch()
+		itr.curNode.AddRLatchRecord(-10000)
 		// for keepping pin count is one after iterator finishd using startNode
 		sl.bpm.IncPinOfPage(itr.curNode)
-		itr.curNode.RLatch()
 	}
 
 	for {
 		if curPageSlotIdx+1 >= itr.curNode.GetEntryCnt() {
 			prevNodeId := itr.curNode.GetPageId()
 			nextNodeId := itr.curNode.GetForwardEntry(0)
-			itr.bpm.UnpinPage(prevNodeId, false)
-			itr.curNode.RUnlatch()
+			prevNode := itr.curNode
 			itr.curNode = skip_list_page.FetchAndCastToBlockPage(itr.bpm, nextNodeId)
 			itr.curNode.RLatch()
+			itr.curNode.AddRLatchRecord(-10000)
+			itr.bpm.UnpinPage(prevNodeId, false)
+			prevNode.RemoveRLatchRecord(-10000)
+			prevNode.RUnlatch()
 			curPageSlotIdx = -1
 			if itr.curNode.GetSmallestKey(itr.keyType).IsInfMax() {
 				// reached tail node
 				itr.bpm.UnpinPage(itr.curNode.GetPageId(), false)
+				itr.curNode.RemoveRLatchRecord(-10000)
 				itr.curNode.RUnlatch()
-				break
+				return
 			}
 		}
 
@@ -84,6 +89,7 @@ func (itr *SkipListIterator) initRIDList(sl *SkipList) {
 
 		if itr.rangeEndKey != nil && itr.curNode.GetEntry(int(curPageSlotIdx), itr.keyType).Key.CompareGreaterThan(*itr.rangeEndKey) {
 			itr.bpm.UnpinPage(itr.curNode.GetPageId(), false)
+			itr.curNode.RemoveRLatchRecord(-10000)
 			itr.curNode.RUnlatch()
 			break
 		}
