@@ -335,11 +335,11 @@ func (t *TableHeap) GetTuple(rid *page.RID, txn *Transaction) *tuple.Tuple {
 	ret := page.GetTuple(rid, t.log_manager, t.lock_manager, txn)
 	page.RemoveRLatchRecord(int32(txn.txn_id))
 	page.RUnlatch()
-	page.WLatch()
-	page.AddWLatchRecord(int32(txn.txn_id))
+	//page.WLatch()
+	//page.AddWLatchRecord(int32(txn.txn_id))
 	t.bpm.UnpinPage(page.GetPageId(), false)
-	page.RemoveWLatchRecord(int32(txn.txn_id))
-	page.WUnlatch()
+	//page.RemoveWLatchRecord(int32(txn.txn_id))
+	//page.WUnlatch()
 
 	return ret
 }
