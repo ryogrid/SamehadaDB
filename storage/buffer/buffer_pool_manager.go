@@ -69,7 +69,9 @@ func (b *BufferPoolManager) FetchPage(pageID types.PageID) *page.Page {
 				panic(fmt.Sprintf("BPM::FetchPage pin count of page to be cache out must be zero!!!. pageId:%d PinCount:%d", currentPage.GetPageId(), currentPage.PinCount()))
 			}
 
-			fmt.Printf("BPM::FetchPage Cache out occurs! pageId:%d requested pageId:%d\n", currentPage.GetPageId(), pageID)
+			if common.EnableDebug && common.ActiveLogKindSetting&common.CACHE_OUT_IN_INFO > 0 {
+				fmt.Printf("BPM::FetchPage Cache out occurs! pageId:%d requested pageId:%d\n", currentPage.GetPageId(), pageID)
+			}
 			if currentPage.IsDirty() {
 				b.log_manager.Flush()
 				currentPage.WLatch()
@@ -91,7 +93,9 @@ func (b *BufferPoolManager) FetchPage(pageID types.PageID) *page.Page {
 
 	//b.mutex.WLock()
 	data := make([]byte, common.PageSize)
-	fmt.Printf("BPM::FetchPage Cache in occurs! requested pageId:%d\n", pageID)
+	if common.EnableDebug && common.ActiveLogKindSetting&common.CACHE_OUT_IN_INFO > 0 {
+		fmt.Printf("BPM::FetchPage Cache in occurs! requested pageId:%d\n", pageID)
+	}
 	err := b.diskManager.ReadPage(pageID, data)
 	if err != nil {
 		fmt.Println(err)
@@ -217,7 +221,9 @@ func (b *BufferPoolManager) NewPage() *page.Page {
 		// remove page from current frame
 		currentPage := b.pages[*frameID]
 		if currentPage != nil {
-			fmt.Println("BPM::NewPage Cache out occurs!")
+			if common.EnableDebug && common.ActiveLogKindSetting&common.CACHE_OUT_IN_INFO > 0 {
+				fmt.Println("BPM::NewPage Cache out occurs!")
+			}
 			if currentPage.PinCount() != 0 {
 				fmt.Printf("BPM::NewPage WLatch:%v RLatch:%v\n", currentPage.WLatchMap, currentPage.RLatchMap)
 				panic(fmt.Sprintf("BPM::NewPage pin count of page to be cache out must be zero!!!. pageId:%d PinCount:%d", currentPage.GetPageId(), currentPage.PinCount()))
