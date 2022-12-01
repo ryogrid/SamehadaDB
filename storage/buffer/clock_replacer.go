@@ -25,9 +25,9 @@ func (c *ClockReplacer) Victim() *FrameID {
 	c.mutex.Lock()
 	defer c.mutex.Unlock()
 	if c.cList.size == 0 {
-		fmt.Println("Victim: page which can be cache out is not exist!")
-		//panic("Victim: page which can be cache out is not exist!")
-		return nil
+		//fmt.Println("ClockReplacer::Victim: page which can be cache out is not exist!")
+		panic("Victim: page which can be cache out is not exist!")
+		//return nil
 	}
 
 	var victimFrameID *FrameID
@@ -77,7 +77,14 @@ func (c *ClockReplacer) Pin(id FrameID) {
 		c.clockHand = &(*c.clockHand).next
 	}
 	c.cList.remove(id)
-	delete(c.cList.supportMap, id)
+	//delete(c.cList.supportMap, id)
+}
+
+func (c *ClockReplacer) isContain(id FrameID) bool {
+	c.mutex.Lock()
+	defer c.mutex.Unlock()
+	_, ok := c.cList.supportMap[id]
+	return ok
 }
 
 // Size returns the size of the clock
@@ -85,6 +92,11 @@ func (c *ClockReplacer) Size() uint32 {
 	c.mutex.Lock()
 	defer c.mutex.Unlock()
 	return c.cList.size
+}
+
+func (c *ClockReplacer) PrintList() {
+	fmt.Printf("ClockReplacer::PrintList ")
+	c.cList.Print()
 }
 
 // NewClockReplacer instantiates a new clock replacer

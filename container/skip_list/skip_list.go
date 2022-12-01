@@ -1,6 +1,7 @@
 package skip_list
 
 import (
+	"fmt"
 	"github.com/ryogrid/SamehadaDB/common"
 	"github.com/ryogrid/SamehadaDB/storage/buffer"
 	"github.com/ryogrid/SamehadaDB/storage/page/skip_list_page"
@@ -63,16 +64,24 @@ func latchOpWithOpType(node *skip_list_page.SkipListBlockPage, getOrUnlatch Latc
 	case SKIP_LIST_OP_GET:
 		if getOrUnlatch == SKIP_LIST_UTIL_GET_LATCH {
 			node.RLatch()
+			node.AddRLatchRecord(int32(-1 * opType * 1000))
 		} else if getOrUnlatch == SKIP_LIST_UTIL_UNLATCH {
+			node.RemoveRLatchRecord(int32(-1 * opType * 1000))
 			node.RUnlatch()
 		} else {
 			panic("unknown latch operaton")
 		}
 	default:
 		if getOrUnlatch == SKIP_LIST_UTIL_GET_LATCH {
-			node.RLatch()
+			//node.RLatch()
+			//node.AddRLatchRecord(int32(-1 * opType * 1000))
+			node.WLatch()
+			node.AddWLatchRecord(int32(-1 * opType * 1000))
 		} else if getOrUnlatch == SKIP_LIST_UTIL_UNLATCH {
-			node.RUnlatch()
+			//node.RemoveRLatchRecord(int32(-1 * opType * 1000))
+			//node.RUnlatch()
+			node.RemoveWLatchRecord(int32(-1 * opType * 1000))
+			node.WUnlatch()
 		} else {
 			panic("unknown latch operaton")
 		}
@@ -84,7 +93,15 @@ func latchOpWithOpType(node *skip_list_page.SkipListBlockPage, getOrUnlatch Latc
 // (when corners_[0] is startNode, having pin count is two, but caller does not have to consider the difference)
 func (sl *SkipList) FindNode(key *types.Value, opType SkipListOpType) (isSuccess bool, foundNode *skip_list_page.SkipListBlockPage, predOfCorners_ []skip_list_page.SkipListCornerInfo, corners_ []skip_list_page.SkipListCornerInfo) {
 	if common.EnableDebug {
-		common.ShPrintf(common.DEBUG_INFO, "FindNode: start. key=%v opType=%d\n", key.ToIFValue(), opType)
+		if common.ActiveLogKindSetting&common.DEBUG_INFO > 0 {
+			common.ShPrintf(common.DEBUG_INFO, "FindNode: start. key=%v opType=%d\n", key.ToIFValue(), opType)
+		}
+		if common.ActiveLogKindSetting&common.BUFFER_INTERNAL_STATE > 0 {
+			sl.bpm.PrintBufferUsageState("SkipList::FindNode start. ")
+			defer func() {
+				sl.bpm.PrintBufferUsageState("SkipList::FindNode end. ")
+			}()
+		}
 	}
 
 	pred := sl.getStartNode()
@@ -138,7 +155,7 @@ func (sl *SkipList) FindNode(key *types.Value, opType SkipListOpType) (isSuccess
 			latchOpWithOpType(curr, SKIP_LIST_UTIL_UNLATCH, opType)
 
 			// memory for checking update existence while no latch having period
-			beforeLSN := pred.GetLSN()
+			//beforeLSN := pred.GetLSN()
 			beforePredId := pred.GetPageId()
 			if pred.GetPageId() != sl.getStartNode().GetPageId() {
 				sl.bpm.UnpinPage(pred.GetPageId(), false)
@@ -152,9 +169,9 @@ func (sl *SkipList) FindNode(key *types.Value, opType SkipListOpType) (isSuccess
 			// check updating occurred or not
 			beforePred := skip_list_page.FetchAndCastToBlockPage(sl.bpm, beforePredId)
 			latchOpWithOpType(beforePred, SKIP_LIST_UTIL_GET_LATCH, opType)
-			afterLSN := beforePred.GetLSN()
+			afterLSN := pred.GetLSN()
 			// check update state of beforePred (pred which was pred before sliding)
-			if beforeLSN != afterLSN {
+			if predOfPredLSN != afterLSN {
 				// updating exists
 				sl.bpm.UnpinPage(pred.GetPageId(), false)
 				latchOpWithOpType(pred, SKIP_LIST_UTIL_UNLATCH, opType)
@@ -176,33 +193,36 @@ func (sl *SkipList) FindNode(key *types.Value, opType SkipListOpType) (isSuccess
 				sl.bpm.UnpinPage(curr.GetPageId(), false)
 				latchOpWithOpType(curr, SKIP_LIST_UTIL_UNLATCH, opType)
 			}
-			if ii == 0 {
-				if opType != SKIP_LIST_OP_GET {
-					// when update operation, try upgrade lock from RLock to WRlock
-
-					origLSN := pred.GetLSN()
-					predPageId := pred.GetPageId()
-					// release originally having pin
-					sl.bpm.DecPinOfPage(pred)
-					pred.RUnlatch()
-
-					pred := skip_list_page.FetchAndCastToBlockPage(sl.bpm, predPageId)
-					pred.WLatch()
-					// check update
-					if pred.GetLSN() != origLSN {
-						// pred node is updated, so need retry
-
-						//// originaly having pin
-						//sl.bpm.DecPinOfPage(pred)
-						// additionaly got pin at Fetch
-						sl.bpm.UnpinPage(pred.GetPageId(), false)
-						pred.WUnlatch()
-						return false, nil, nil, nil
-					}
-					//// additionaly got pin at Fetch
-					//sl.bpm.DecPinOfPage(pred)
-				}
-			}
+			//if ii == 0 {
+			//	if opType != SKIP_LIST_OP_GET {
+			//		// when update operation, try upgrade lock from RLock to WRlock
+			//
+			//		origLSN := pred.GetLSN()
+			//		predPageId := pred.GetPageId()
+			//		// release originally having pin
+			//		sl.bpm.DecPinOfPage(pred)
+			//		pred.RemoveRLatchRecord(key.ToInteger())
+			//		pred.RUnlatch()
+			//
+			//		pred := skip_list_page.FetchAndCastToBlockPage(sl.bpm, predPageId)
+			//		pred.WLatch()
+			//		pred.AddWLatchRecord(key.ToInteger())
+			//		// check update
+			//		if pred.GetLSN() != origLSN {
+			//			// pred node is updated, so need retry
+			//
+			//			//// originaly having pin
+			//			//sl.bpm.DecPinOfPage(pred)
+			//			// additionaly got pin at Fetch
+			//			sl.bpm.UnpinPage(pred.GetPageId(), false)
+			//			pred.RemoveWLatchRecord(key.ToInteger())
+			//			pred.WUnlatch()
+			//			return false, nil, nil, nil
+			//		}
+			//		//// additionaly got pin at Fetch
+			//		//sl.bpm.DecPinOfPage(pred)
+			//	}
+			//}
 			predOfCorners[ii] = skip_list_page.SkipListCornerInfo{predOfPredId, predOfPredLSN}
 			corners[ii] = skip_list_page.SkipListCornerInfo{pred.GetPageId(), pred.GetLSN()}
 		}
@@ -238,13 +258,23 @@ func (sl *SkipList) FindNodeWithEntryIdxForItr(key *types.Value) (found_ bool, n
 
 func (sl *SkipList) GetValue(key *types.Value) uint32 {
 	if common.EnableDebug {
-		common.ShPrintf(common.DEBUG_INFO, "SkipList::GetValue: start. key=%v\n", key.ToIFValue())
+		if common.ActiveLogKindSetting&common.RDB_OP_FUNC_CALL > 0 {
+			common.ShPrintf(common.DEBUG_INFO, "SkipList::GetValue: start. key=%v\n", key.ToIFValue())
+		}
+
+		if common.ActiveLogKindSetting&common.BUFFER_INTERNAL_STATE > 0 {
+			sl.bpm.PrintBufferUsageState("SkipList::GetValue start. ")
+			defer func() {
+				sl.bpm.PrintBufferUsageState("SkipList::GetValue end. ")
+			}()
+		}
 	}
 	_, node, _, _ := sl.FindNode(key, SKIP_LIST_OP_GET)
 	//node := skip_list_page.FetchAndCastToBlockPage(sl.bpm, corners[0].PageId)
 	// locking is not needed because already have lock with FindNode method call
 	found, entry, _ := node.FindEntryByKey(key)
 	sl.bpm.UnpinPage(node.GetPageId(), false)
+	node.RemoveRLatchRecord(key.ToInteger())
 	node.RUnlatch()
 	//sl.bpm.UnpinPage(node.GetPageId(), false)
 
@@ -260,7 +290,15 @@ func (sl *SkipList) GetValue(key *types.Value) uint32 {
 
 func (sl *SkipList) Insert(key *types.Value, value uint32) (err error) {
 	if common.EnableDebug {
-		common.ShPrintf(common.DEBUG_INFO, "SkipList::Insert: start. key=%v\n", key.ToIFValue())
+		if common.ActiveLogKindSetting&common.RDB_OP_FUNC_CALL > 0 {
+			fmt.Printf("SkipList::Insert: start. key=%v\n", key.ToIFValue())
+		}
+		if common.ActiveLogKindSetting&common.BUFFER_INTERNAL_STATE > 0 {
+			sl.bpm.PrintBufferUsageState("SkipList::Insert start. ")
+			defer func() {
+				sl.bpm.PrintBufferUsageState("SkipList::Insert end. ")
+			}()
+		}
 	}
 	isNeedRetry := true
 
@@ -286,7 +324,15 @@ func (sl *SkipList) Insert(key *types.Value, value uint32) (err error) {
 
 func (sl *SkipList) Remove(key *types.Value, value uint32) (isDeleted_ bool) {
 	if common.EnableDebug {
-		common.ShPrintf(common.DEBUG_INFO, "SkipList::Remove: start. key=%v\n", key.ToIFValue())
+		if common.ActiveLogKindSetting&common.RDB_OP_FUNC_CALL > 0 {
+			fmt.Printf("SkipList::Remove: start. key=%v\n", key.ToIFValue())
+		}
+		if common.ActiveLogKindSetting&common.BUFFER_INTERNAL_STATE > 0 {
+			sl.bpm.PrintBufferUsageState("SkipList::Remove start. ")
+			defer func() {
+				sl.bpm.PrintBufferUsageState("SkipList::Remove end. ")
+			}()
+		}
 	}
 	isNodeShouldBeDeleted := false
 	isDeleted := false
@@ -342,6 +388,17 @@ func (sl *SkipList) Remove(key *types.Value, value uint32) (isDeleted_ bool) {
 //}
 
 func (sl *SkipList) Iterator(rangeStartKey *types.Value, rangeEndKey *types.Value) *SkipListIterator {
+	if common.EnableDebug {
+		if common.ActiveLogKindSetting&common.RDB_OP_FUNC_CALL > 0 {
+			fmt.Printf("SkipList::Remove: start.\n")
+		}
+		if common.ActiveLogKindSetting&common.BUFFER_INTERNAL_STATE > 0 {
+			sl.bpm.PrintBufferUsageState("SkipList::Iterator start. ")
+			defer func() {
+				sl.bpm.PrintBufferUsageState("SkipList::Iterator end. ")
+			}()
+		}
+	}
 	return NewSkipListIterator(sl, rangeStartKey, rangeEndKey)
 }
 

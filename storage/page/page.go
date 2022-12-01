@@ -7,6 +7,7 @@ import (
 	//"github.com/sasha-s/go-deadlock"
 	"github.com/ryogrid/SamehadaDB/common"
 	"github.com/ryogrid/SamehadaDB/types"
+	"sync"
 	"sync/atomic"
 )
 
@@ -35,6 +36,10 @@ type Page struct {
 	isDirty  bool                   // the page was modified but not flushed
 	data     *[common.PageSize]byte // bytes stored in disk
 	rwlatch_ common.ReaderWriterLatch
+	// for debug
+	WLatchMap      map[int32]bool
+	RLatchMap      map[int32]bool
+	RLatchMapMutex *sync.Mutex
 }
 
 // IncPinCount increments pin count
@@ -48,9 +53,8 @@ func (p *Page) IncPinCount() {
 
 // DecPinCount decrements pin count
 func (p *Page) DecPinCount() {
-	// TODO: (SDB) these code are not atomic (Page::DecPinCount)
 	//if p.pinCount > 0 {
-	common.SH_Assert(atomic.LoadInt32(&p.pinCount)-1 >= 0, "pinCount becomes minus value!")
+	//common.SH_Assert(atomic.LoadInt32(&p.pinCount)-1 >= 0, fmt.Sprintf("pinCount becomes minus value! pageID:%d", p.GetPageId()))
 	atomic.AddInt32(&p.pinCount, -1)
 	//}
 
@@ -90,7 +94,7 @@ func (p *Page) Copy(offset uint32, data []byte) {
 
 // New creates a new page
 func New(id types.PageID, isDirty bool, data *[common.PageSize]byte) *Page {
-	return &Page{id, int32(1), isDirty, data, common.NewRWLatch()}
+	return &Page{id, int32(1), isDirty, data, common.NewRWLatch(), make(map[int32]bool, 0), make(map[int32]bool, 0), new(sync.Mutex)}
 
 	//// when using "go-deadlock" package
 	//return &Page{id, int32(1), isDirty, data, common.NewRWLatchTrace()}
@@ -103,7 +107,7 @@ func New(id types.PageID, isDirty bool, data *[common.PageSize]byte) *Page {
 func NewEmpty(id types.PageID) *Page {
 	//return &Page{id, int32(1), false, &[common.PageSize]byte{}, common.NewUpgradableMutex()}
 
-	return &Page{id, int32(1), false, &[common.PageSize]byte{}, common.NewRWLatch()}
+	return &Page{id, int32(1), false, &[common.PageSize]byte{}, common.NewRWLatch(), make(map[int32]bool, 0), make(map[int32]bool, 0), new(sync.Mutex)}
 
 	//// TODO: (SDB) customized RWMutex for concurrent skip list debug
 	//return &Page{id, uint32(1), false, &[common.PageSize]byte{}, common.NewRWLatchDebug()}
@@ -177,4 +181,22 @@ func (p *Page) PrintPinCount() {
 
 func (p *Page) GetRWLachObj() common.ReaderWriterLatch {
 	return p.rwlatch_
+}
+
+// for debugging
+func (p *Page) AddWLatchRecord(info int32) {
+	//p.WLatchMap[info] = true
+}
+func (p *Page) RemoveWLatchRecord(info int32) {
+	//delete(p.WLatchMap, info)
+}
+func (p *Page) AddRLatchRecord(info int32) {
+	//p.RLatchMapMutex.Lock()
+	//p.RLatchMap[info] = true
+	//p.RLatchMapMutex.Unlock()
+}
+func (p *Page) RemoveRLatchRecord(info int32) {
+	//p.RLatchMapMutex.Lock()
+	//delete(p.RLatchMap, info)
+	//p.RLatchMapMutex.Unlock()
 }

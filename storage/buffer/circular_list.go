@@ -4,7 +4,6 @@
 package buffer
 
 import (
-	"errors"
 	"fmt"
 )
 
@@ -46,7 +45,8 @@ func (c *circularList) hasKey(key FrameID) bool {
 // func (c *circularList) insert(key interface{}, value interface{}) error {
 func (c *circularList) insert(key FrameID, value bool) error {
 	if c.size == c.capacity {
-		return errors.New("capacity is full")
+		//return errors.New("capacity is full")
+		panic("circularList::insert capacity is full")
 	}
 
 	newNode := &node{key, value, nil, nil}
@@ -121,15 +121,17 @@ func (c *circularList) isFull() bool {
 	return c.size == c.capacity
 }
 
-func (c *circularList) print() {
+func (c *circularList) Print() {
 	if c.size == 0 {
-		fmt.Println(nil)
+		fmt.Println("circularList is empty.")
 	}
 	ptr := c.head
+	printStr := fmt.Sprintf("circularList size:%d supportMap len:%d |", c.size, len(c.supportMap))
 	for i := uint32(0); i < c.size; i++ {
-		fmt.Println(ptr.key, ptr.value, ptr.prev.key, ptr.next.key)
+		printStr += fmt.Sprintf("-%v,%v,%v,%v-", ptr.key, ptr.value, ptr.prev.key, ptr.next.key)
 		ptr = ptr.next
 	}
+	fmt.Println(printStr)
 }
 
 func newCircularList(maxSize uint32) *circularList {
