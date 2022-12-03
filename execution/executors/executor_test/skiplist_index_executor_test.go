@@ -1095,8 +1095,14 @@ func testParallelTxnsQueryingSkipListIndexUsedColumns[T int32 | float32 | string
 		//opType := rand.Intn(3)
 		//opType += 1
 
-		// move money, Random Insert, Randome Delete, Random Update, Random Point Scan, Random Range Scan
-		opType := rand.Intn(8)
+		//// move money, Random Insert, Randome Delete, Random Update, Random Point Scan, Random Range Scan
+		//opType := rand.Intn(8)
+
+		// move money, Random Insert, Randome Delete, ,Random Point Scan, Random Range Scan
+		opType := rand.Intn(7)
+		if opType >= 4 {
+			opType += 1
+		}
 
 		//// move money only
 		//opType := 0
@@ -1699,7 +1705,9 @@ func testSkipListParallelTxnStrideRoot[T int32 | float32 | string](t *testing.T,
 		//testParallelTxnsQueryingSkipListIndexUsedColumns[T](t, keyType, 500, 100, 13, 100, bpoolSize, index_constants.INDEX_KIND_SKIP_LIST)
 		//testParallelTxnsQueryingSkipListIndexUsedColumns[T](t, keyType, 500, 1000, 13, 100, bpoolSize, index_constants.INDEX_KIND_SKIP_LIST)
 	case types.Varchar:
-		testParallelTxnsQueryingSkipListIndexUsedColumns[T](t, keyType, 400, 32000, 13, 0, bpoolSize, index_constants.INDEX_KIND_SKIP_LIST, PARALLEL_EXEC, 20)
+		//testParallelTxnsQueryingSkipListIndexUsedColumns[T](t, keyType, 400, 32000, 13, 0, bpoolSize, index_constants.INDEX_KIND_SKIP_LIST, PARALLEL_EXEC, 20)
+		//testParallelTxnsQueryingSkipListIndexUsedColumns[T](t, keyType, 400, 2000, 13, 0, bpoolSize, index_constants.INDEX_KIND_SKIP_LIST, PARALLEL_EXEC, 20)
+		testParallelTxnsQueryingSkipListIndexUsedColumns[T](t, keyType, 400, 8000, 13, 0, bpoolSize, index_constants.INDEX_KIND_SKIP_LIST, PARALLEL_EXEC, 20)
 	default:
 		panic("not implemented!")
 	}

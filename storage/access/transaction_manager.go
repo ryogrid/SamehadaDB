@@ -166,6 +166,12 @@ func (transaction_manager *TransactionManager) Abort(catalog_ catalog_interface.
 			is_updated, _ := table.UpdateTuple(item.tuple, nil, nil, item.oid, item.rid, txn)
 			if !is_updated {
 				panic("UpdateTuple at rollback failed!")
+				//// TODO: (SDB) temporal impl for special case of UpdateTuple (Abort)
+				//fmt.Println("TransactionManager::Abort make rate handling of current handling WriteRecord(Update)")
+				//tmpList := make([]*WriteRecord, 0)
+				//tmpList = append(tmpList, item)
+				//write_set = append(tmpList, write_set[:len(write_set)-1]...)
+				//continue
 			}
 			// rollback index data
 			indexes := catalog_.GetRollbackNeededIndexes(indexMap, item.oid)

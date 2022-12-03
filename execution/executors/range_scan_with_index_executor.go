@@ -104,12 +104,19 @@ func (e *RangeScanWithIndexExecutor) Next() (*tuple.Tuple, Done, error) {
 			return nil, true, err
 		}
 
+		// TODO: (SDB) temporal impl  due to other temporal code for handle self deleted tuple
+		//             this impl must be modified with the temporal code modificatoin
+		if tuple_.Size() == 0 {
+			// tuple has been deleted by other txn
+			e.txn.SetState(access.ABORTED)
+			return nil, true, errors.New("detect value delete after iterator created. changes transaction state to aborted.")
+		}
 		// check value update after getting iterator which contains snapshot of RIDs and Keys which were stored in Index
 		curKeyVal := tuple_.GetValue(e.tableMetadata.Schema(), uint32(e.plan.GetColIdx()))
 		if !curKeyVal.CompareEquals(*key) {
 			// column value corresponding index key is updated
 			e.txn.SetState(access.ABORTED)
-			return nil, true, errors.New("detect value update after iterator created. Transaction should be aborted.")
+			return nil, true, errors.New("detect value update after iterator created. changes transaction state to aborted.")
 		}
 		// check predicate
 		if e.selects(tuple_, e.plan.GetPredicate()) {
