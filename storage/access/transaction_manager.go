@@ -134,14 +134,14 @@ func (transaction_manager *TransactionManager) Abort(catalog_ catalog_interface.
 			table.RollbackDelete(&item.rid, txn)
 			// rollback index data
 			indexes := catalog_.GetRollbackNeededIndexes(indexMap, item.oid)
-			tuple_ := item.table.GetTuple(&item.rid, txn)
+			tuple_, _ := item.table.GetTuple(&item.rid, txn)
 			for _, index_ := range indexes {
 				if index_ != nil {
 					index_.InsertEntry(tuple_, item.rid, txn)
 				}
 			}
 		} else if item.wtype == INSERT {
-			insertedTuple := item.table.GetTuple(&item.rid, txn)
+			insertedTuple, _ := item.table.GetTuple(&item.rid, txn)
 			// rollback record data
 			rid := item.rid
 			// Note that this also releases the lock when holding the page latch.
@@ -161,7 +161,7 @@ func (transaction_manager *TransactionManager) Abort(catalog_ catalog_interface.
 				}
 			}
 		} else if item.wtype == UPDATE {
-			beforRollbackTuple_ := item.table.GetTuple(&item.rid, txn)
+			beforRollbackTuple_, _ := item.table.GetTuple(&item.rid, txn)
 			// rollback record data
 			is_updated, _ := table.UpdateTuple(item.tuple, nil, nil, item.oid, item.rid, txn)
 			if !is_updated {
@@ -175,7 +175,7 @@ func (transaction_manager *TransactionManager) Abort(catalog_ catalog_interface.
 			}
 			// rollback index data
 			indexes := catalog_.GetRollbackNeededIndexes(indexMap, item.oid)
-			tuple_ := item.table.GetTuple(&item.rid, txn)
+			tuple_, _ := item.table.GetTuple(&item.rid, txn)
 			for _, index_ := range indexes {
 				if index_ != nil {
 					// TODO: (SDB) need to consider rid was changed case

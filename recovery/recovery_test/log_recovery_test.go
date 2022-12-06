@@ -216,9 +216,9 @@ func TestRedo(t *testing.T) {
 		samehada_instance.GetLogManager(),
 		samehada_instance.GetLockManager(),
 		txn)
-	old_tuple := test_table.GetTuple(rid, txn)
+	old_tuple, _ := test_table.GetTuple(rid, txn)
 	testingpkg.AssertFalse(t, old_tuple != nil, "")
-	old_tuple1 := test_table.GetTuple(rid1, txn)
+	old_tuple1, _ := test_table.GetTuple(rid1, txn)
 	testingpkg.AssertFalse(t, old_tuple1 != nil, "")
 	samehada_instance.GetTransactionManager().Commit(txn)
 
@@ -244,9 +244,9 @@ func TestRedo(t *testing.T) {
 		samehada_instance.GetLockManager(),
 		txn)
 
-	old_tuple = test_table.GetTuple(rid, txn)
+	old_tuple, _ = test_table.GetTuple(rid, txn)
 	testingpkg.Assert(t, old_tuple != nil, "")
-	old_tuple1 = test_table.GetTuple(rid1, txn)
+	old_tuple1, _ = test_table.GetTuple(rid1, txn)
 	testingpkg.Assert(t, old_tuple1 != nil, "")
 
 	samehada_instance.GetTransactionManager().Commit(txn)
@@ -353,19 +353,19 @@ func TestUndo(t *testing.T) {
 		txn)
 
 	fmt.Println("Check if deleted tuple does not exist before recovery")
-	old_tuple1 := test_table.GetTuple(rid1, txn)
+	old_tuple1, _ := test_table.GetTuple(rid1, txn)
 	testingpkg.Assert(t, old_tuple1 == nil, "")
 
 	fmt.Println("Check if updated tuple values are effected before recovery")
 	var old_tuple2 *tuple.Tuple
 	//testingpkg.Assert(t, test_table.GetTuple(rid, &old_tuple, txn), "")
-	old_tuple2 = test_table.GetTuple(rid2, txn)
+	old_tuple2, _ = test_table.GetTuple(rid2, txn)
 	testingpkg.Assert(t, old_tuple2 != nil, "")
 	testingpkg.Assert(t, old_tuple2.GetValue(schema_, 0).CompareEquals(types.NewVarchar("updated")), "")
 	testingpkg.Assert(t, old_tuple2.GetValue(schema_, 1).CompareEquals(types.NewInteger(256)), "")
 
 	fmt.Println("Check if inserted tuple exists before recovery")
-	old_tuple3 := test_table.GetTuple(rid3, txn)
+	old_tuple3, _ := test_table.GetTuple(rid3, txn)
 	testingpkg.Assert(t, old_tuple3 != nil, "")
 
 	samehada_instance.GetLogManager().DeactivateLogging()
@@ -391,19 +391,19 @@ func TestUndo(t *testing.T) {
 	txn = samehada_instance.GetTransactionManager().Begin(nil)
 
 	fmt.Println("Check deleted tuple exists")
-	old_tuple1 = test_table.GetTuple(rid1, txn)
+	old_tuple1, _ = test_table.GetTuple(rid1, txn)
 	testingpkg.Assert(t, old_tuple1 != nil, "")
 	testingpkg.Assert(t, old_tuple1.GetValue(schema_, 0).CompareEquals(val1_0), "")
 	testingpkg.Assert(t, old_tuple1.GetValue(schema_, 1).CompareEquals(val1_1), "")
 
 	fmt.Println("Check updated tuple's values are rollbacked")
-	old_tuple2 = test_table.GetTuple(rid2, txn)
+	old_tuple2, _ = test_table.GetTuple(rid2, txn)
 	testingpkg.Assert(t, old_tuple2 != nil, "")
 	testingpkg.Assert(t, old_tuple2.GetValue(schema_, 0).CompareEquals(val2_0), "")
 	testingpkg.Assert(t, old_tuple2.GetValue(schema_, 1).CompareEquals(val2_1), "")
 
 	fmt.Println("Check inserted tuple does not exist")
-	old_tuple3 = test_table.GetTuple(rid3, txn)
+	old_tuple3, _ = test_table.GetTuple(rid3, txn)
 	testingpkg.Assert(t, old_tuple3 == nil, "")
 
 	//samehada_instance.GetTransactionManager().Commit(txn)

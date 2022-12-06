@@ -31,9 +31,12 @@ const offSetTupleCount = uint32(20)
 const offsetTupleOffset = uint32(24)
 const offsetTupleSize = uint32(28)
 
-const ErrEmptyTuple = errors.Error("tuple cannot be empty")
-const ErrNotEnoughSpace = errors.Error("there is not enough space")
-const ErrNoFreeSlot = errors.Error("could not find a free slot")
+const ErrEmptyTuple = errors.Error("tuple cannot be empty.")
+const ErrNotEnoughSpace = errors.Error("there is not enough space.")
+const ErrSelfDeletedCase = errors.Error("encont self deleted tuple.")
+const ErrGeneral = errors.Error("some error is occured!")
+
+//const ErrNoFreeSlot = errors.Error("could not find a free slot")
 
 // Slotted page format:
 //
@@ -211,12 +214,6 @@ func (tp *TablePage) UpdateTuple(new_tuple *tuple.Tuple, update_col_idxs []int, 
 	}
 
 	if tp.getFreeSpaceRemaining()+tuple_size < update_tuple.Size() {
-		//// TODO: (SDB) set ABORTED state here (TablePage::UpdateTuple)
-		////             because rollback and recovery when this case fails currently
-		//if log_manager.IsEnabledLogging() {
-		//	txn.SetState(ABORTED)
-		//}
-		//return false
 		return false, ErrNotEnoughSpace, update_tuple
 	}
 
@@ -519,7 +516,7 @@ func (tp *TablePage) GetFreeSpacePointer() uint32 {
 	return uint32(types.NewUInt32FromBytes(tp.Data()[offsetFreeSpace:]))
 }
 
-func (tp *TablePage) GetTuple(rid *page.RID, log_manager *recovery.LogManager, lock_manager *LockManager, txn *Transaction) *tuple.Tuple {
+func (tp *TablePage) GetTuple(rid *page.RID, log_manager *recovery.LogManager, lock_manager *LockManager, txn *Transaction) (*tuple.Tuple, error) {
 	if common.EnableDebug {
 		defer func() {
 			if common.ActiveLogKindSetting&common.DEBUGGING > 0 {
@@ -539,23 +536,23 @@ func (tp *TablePage) GetTuple(rid *page.RID, log_manager *recovery.LogManager, l
 		if log_manager.IsEnabledLogging() {
 			txn.SetState(ABORTED)
 		}
-		return nil
+		return nil, ErrGeneral
 	}
 
 	slot := rid.GetSlotNum()
 	tupleOffset := tp.GetTupleOffsetAtSlot(slot)
 	tupleSize := tp.GetTupleSize(slot)
 
-	// If the tuple is deleted, abort the access.
-	if IsDeleted(tupleSize) {
-		if log_manager.IsEnabledLogging() && !txn.IsSharedLocked(rid) && !txn.IsExclusiveLocked(rid) && !lock_manager.LockShared(txn, rid) {
-			txn.SetState(ABORTED)
-			return nil
+	// target tuple should be deleted completely (= operation is commited)
+	if tupleOffset == 0 && tupleSize == 0 {
+		if txn.IsExclusiveLocked(rid) {
+			// txn which deletes target tuple is current txn
+
+			//tupleSize = UnsetDeletedFlag(tupleSize)
+			return nil, ErrSelfDeletedCase
 		} else {
-			// TODO: (SDB) temporal fix for passing TestSkipListPrallelTxnStrideInteger!!!
-			//             need to return error here and coller applopriately handling it
-			//             and other simular problems should be fixed
-			tupleSize = UnsetDeletedFlag(tupleSize)
+			txn.SetState(ABORTED)
+			return nil, ErrGeneral
 		}
 	}
 
@@ -564,14 +561,27 @@ func (tp *TablePage) GetTuple(rid *page.RID, log_manager *recovery.LogManager, l
 		if !txn.IsSharedLocked(rid) && !txn.IsExclusiveLocked(rid) && !lock_manager.LockShared(txn, rid) {
 			//if !lock_manager.LockShared(txn, rid) && !txn.IsExclusiveLocked(rid) {
 			txn.SetState(ABORTED)
-			return nil
+			return nil, ErrGeneral
+		}
+	}
+
+	// If the tuple is marked as deleted
+	if IsDeleted(tupleSize) {
+		if txn.IsExclusiveLocked(rid) {
+			// txn which deletes target tuple is current txn
+
+			//tupleSize = UnsetDeletedFlag(tupleSize)
+			return nil, ErrSelfDeletedCase
+		} else {
+			txn.SetState(ABORTED)
+			return nil, ErrGeneral
 		}
 	}
 
 	tupleData := make([]byte, tupleSize)
 	copy(tupleData, tp.Data()[tupleOffset:])
 
-	return tuple.NewTuple(rid, tupleSize, tupleData)
+	return tuple.NewTuple(rid, tupleSize, tupleData), nil
 }
 
 func (tp *TablePage) GetTupleFirstRID() *page.RID {

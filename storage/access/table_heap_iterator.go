@@ -43,41 +43,49 @@ func (it *TableHeapIterator) Next() *tuple.Tuple {
 	currentPage.RLatch()
 	currentPage.AddRLatchRecord(int32(it.txn.txn_id))
 
-	nextTupleRID := currentPage.GetNextTupleRID(it.Current().GetRID(), false)
-	if nextTupleRID == nil {
-		// VARIANT: currentPage is always RLatched after loop
-		for currentPage.GetNextPageId().IsValid() {
-			nextPage := CastPageAsTablePage(bpm.FetchPage(currentPage.GetNextPageId()))
-			currentPage.RemoveRLatchRecord(int32(it.txn.txn_id))
-			currentPage.RUnlatch()
-			//currentPage.WLatch()
-			//currentPage.AddWLatchRecord(int32(it.txn.txn_id))
-			bpm.UnpinPage(currentPage.GetPageId(), false)
-			//currentPage.RemoveWLatchRecord(int32(it.txn.txn_id))
-			//currentPage.WUnlatch()
-			currentPage = nextPage
-			currentPage.RLatch()
-			currentPage.AddRLatchRecord(int32(it.txn.txn_id))
-			nextTupleRID = currentPage.GetNextTupleRID(it.Current().GetRID(), true)
+	for {
+		nextTupleRID := currentPage.GetNextTupleRID(it.Current().GetRID(), false)
+		if nextTupleRID == nil {
+			// VARIANT: currentPage is always RLatched after loop
+			for currentPage.GetNextPageId().IsValid() {
+				nextPage := CastPageAsTablePage(bpm.FetchPage(currentPage.GetNextPageId()))
+				currentPage.RemoveRLatchRecord(int32(it.txn.txn_id))
+				currentPage.RUnlatch()
+				//currentPage.WLatch()
+				//currentPage.AddWLatchRecord(int32(it.txn.txn_id))
+				bpm.UnpinPage(currentPage.GetPageId(), false)
+				//currentPage.RemoveWLatchRecord(int32(it.txn.txn_id))
+				//currentPage.WUnlatch()
+				currentPage = nextPage
+				currentPage.RLatch()
+				currentPage.AddRLatchRecord(int32(it.txn.txn_id))
+				nextTupleRID = currentPage.GetNextTupleRID(it.Current().GetRID(), true)
 
-			if nextTupleRID != nil {
-				break
+				if nextTupleRID != nil {
+					break
+				}
 			}
 		}
-	}
-	currentPage.RemoveRLatchRecord(int32(it.txn.txn_id))
-	currentPage.RUnlatch()
+		currentPage.RemoveRLatchRecord(int32(it.txn.txn_id))
+		currentPage.RUnlatch()
 
-	//currentPage.WLatch()
-	//currentPage.AddWLatchRecord(int32(it.txn.txn_id))
-	bpm.UnpinPage(currentPage.GetPageId(), false)
-	//currentPage.RemoveWLatchRecord(int32(it.txn.txn_id))
-	//currentPage.WUnlatch()
+		//currentPage.WLatch()
+		//currentPage.AddWLatchRecord(int32(it.txn.txn_id))
+		bpm.UnpinPage(currentPage.GetPageId(), false)
+		//currentPage.RemoveWLatchRecord(int32(it.txn.txn_id))
+		//currentPage.WUnlatch()
 
-	if nextTupleRID != nil && nextTupleRID.GetPageId().IsValid() {
-		it.tuple = it.tableHeap.GetTuple(nextTupleRID, it.txn)
-	} else {
-		it.tuple = nil
+		var err error = nil
+		if nextTupleRID != nil && nextTupleRID.GetPageId().IsValid() {
+			it.tuple, err = it.tableHeap.GetTuple(nextTupleRID, it.txn)
+			if it.tuple == nil && err == ErrSelfDeletedCase {
+				continue
+			}
+			break
+		} else {
+			it.tuple = nil
+			break
+		}
 	}
 
 	return it.tuple

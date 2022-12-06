@@ -1095,14 +1095,14 @@ func testParallelTxnsQueryingSkipListIndexUsedColumns[T int32 | float32 | string
 		//opType := rand.Intn(3)
 		//opType += 1
 
-		//// move money, Random Insert, Randome Delete, Random Update, Random Point Scan, Random Range Scan
-		//opType := rand.Intn(8)
+		// move money, Random Insert, Randome Delete, Random Update, Random Point Scan, Random Range Scan
+		opType := rand.Intn(8)
 
-		// move money, Random Insert, Randome Delete, ,Random Point Scan, Random Range Scan
-		opType := rand.Intn(7)
-		if opType >= 4 {
-			opType += 1
-		}
+		//// move money, Random Insert, Randome Delete, ,Random Point Scan, Random Range Scan
+		//opType := rand.Intn(7)
+		//if opType >= 4 {
+		//	opType += 1
+		//}
 
 		//// move money only
 		//opType := 0
@@ -1675,18 +1675,14 @@ func testParallelTxnsQueryingSkipListIndexUsedColumns[T int32 | float32 | string
 }
 
 func testSkipListParallelTxnStrideRoot[T int32 | float32 | string](t *testing.T, keyType types.TypeID) {
-	bpoolSize := int32(500)
+	//bpoolSize := int32(500)
 	//bpoolSize := int32(50)
-	//bpoolSize := int32(100)
+	bpoolSize := int32(100)
 	//bpoolSize := int32(200)
 	//bpoolSize := int32(30)
 
 	switch keyType {
 	case types.Integer:
-		//testParallelTxnsQueryingSkipListIndexUsedColumns[T](t, keyType, 400, 50, 13, 0, bpoolSize, index_constants.INDEX_KIND_INVAID, SERIAL_EXEC)
-		//testParallelTxnsQueryingSkipListIndexUsedColumns[T](t, keyType, 400, 500, 13, 0, bpoolSize, index_constants.INDEX_KIND_INVAID, PARALLEL_EXEC)
-		//testParallelTxnsQueryingSkipListIndexUsedColumns[T](t, keyType, 400, 500, 18, 0, bpoolSize, index_constants.INDEX_KIND_INVAID, PARALLEL_EXEC)
-		//testParallelTxnsQueryingSkipListIndexUsedColumns[T](t, keyType, 400, 500, 13, 0, bpoolSize, index_constants.INDEX_KIND_SKIP_LIST, PARALLEL_EXEC)
 		//testParallelTxnsQueryingSkipListIndexUsedColumns[T](t, keyType, 400, 2000, 13, 0, bpoolSize, index_constants.INDEX_KIND_SKIP_LIST, PARALLEL_EXEC, 20)
 		//testParallelTxnsQueryingSkipListIndexUsedColumns[T](t, keyType, 400, 4000, 13, 0, bpoolSize, index_constants.INDEX_KIND_SKIP_LIST, PARALLEL_EXEC, 20)
 		//testParallelTxnsQueryingSkipListIndexUsedColumns[T](t, keyType, 400, 4000, 13, 0, bpoolSize, index_constants.INDEX_KIND_SKIP_LIST, PARALLEL_EXEC, 20)
@@ -1695,15 +1691,6 @@ func testSkipListParallelTxnStrideRoot[T int32 | float32 | string](t *testing.T,
 		//testParallelTxnsQueryingSkipListIndexUsedColumns[T](t, keyType, 400, 16000, 13, 0, bpoolSize, index_constants.INDEX_KIND_SKIP_LIST, PARALLEL_EXEC, 20)
 		//testParallelTxnsQueryingSkipListIndexUsedColumns[T](t, keyType, 400, 4000, 13, 0, bpoolSize, index_constants.INDEX_KIND_SKIP_LIST, SERIAL_EXEC, 20)
 		//testParallelTxnsQueryingSkipListIndexUsedColumns[T](t, keyType, 400, 800, 13, 0, bpoolSize, index_constants.INDEX_KIND_SKIP_LIST, PARALLEL_EXEC)
-
-		//testParallelTxnsQueryingSkipListIndexUsedColumns[T](t, keyType, 400, 2000, 13, 0, bpoolSize, index_constants.INDEX_KIND_SKIP_LIST, SERIAL_EXEC)
-		//testParallelTxnsQueryingSkipListIndexUsedColumns[T](t, keyType, 400, 2000, 13, 0, bpoolSize, index_constants.INDEX_KIND_INVAID, SERIAL_EXEC)
-		//testParallelTxnsQueryingSkipListIndexUsedColumns[T](t, keyType, 400, 500, 13, 0, bpoolSize, index_constants.INDEX_KIND_INVAID, SERIAL_EXEC)
-
-		//testParallelTxnsQueryingSkipListIndexUsedColumns[T](t, keyType, 400, 500, 19, 0, bpoolSize, index_constants.INDEX_KIND_SKIP_LIST, PARALLEL_EXEC)
-		//testParallelTxnsQueryingSkipListIndexUsedColumns[T](t, keyType, 500, 100, 13, 0, bpoolSize, index_constants.INDEX_KIND_SKIP_LIST, SERIAL_EXEC)
-		//testParallelTxnsQueryingSkipListIndexUsedColumns[T](t, keyType, 500, 100, 13, 100, bpoolSize, index_constants.INDEX_KIND_SKIP_LIST)
-		//testParallelTxnsQueryingSkipListIndexUsedColumns[T](t, keyType, 500, 1000, 13, 100, bpoolSize, index_constants.INDEX_KIND_SKIP_LIST)
 	case types.Varchar:
 		//testParallelTxnsQueryingSkipListIndexUsedColumns[T](t, keyType, 400, 32000, 13, 0, bpoolSize, index_constants.INDEX_KIND_SKIP_LIST, PARALLEL_EXEC, 20)
 		//testParallelTxnsQueryingSkipListIndexUsedColumns[T](t, keyType, 400, 2000, 13, 0, bpoolSize, index_constants.INDEX_KIND_SKIP_LIST, PARALLEL_EXEC, 20)
