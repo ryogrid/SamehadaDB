@@ -61,15 +61,16 @@ func (e *UpdateExecutor) Next() (*tuple.Tuple, Done, error) {
 
 		var is_updated bool = false
 		var new_rid *page.RID = nil
+		var updateErr error = nil
 		if e.plan.GetUpdateColIdxs() == nil {
-			is_updated, new_rid = e.child.GetTableMetaData().Table().UpdateTuple(new_tuple, nil, nil, e.child.GetTableMetaData().OID(), *rid, e.txn)
+			is_updated, new_rid, updateErr = e.child.GetTableMetaData().Table().UpdateTuple(new_tuple, nil, nil, e.child.GetTableMetaData().OID(), *rid, e.txn)
 		} else {
-			is_updated, new_rid = e.child.GetTableMetaData().Table().UpdateTuple(new_tuple, e.plan.GetUpdateColIdxs(), e.child.GetTableMetaData().Schema(), e.child.GetTableMetaData().OID(), *rid, e.txn)
+			is_updated, new_rid, updateErr = e.child.GetTableMetaData().Table().UpdateTuple(new_tuple, e.plan.GetUpdateColIdxs(), e.child.GetTableMetaData().Schema(), e.child.GetTableMetaData().OID(), *rid, e.txn)
 		}
 
-		if !is_updated {
-			err := errors.New("tuple update failed. PageId:SlotNum = " + string(rid.GetPageId()) + ":" + fmt.Sprint(rid.GetSlotNum()))
-			return nil, false, err
+		if !is_updated && updateErr != access.ErrPartialUpdate {
+			err_ := errors.New("tuple update failed. PageId:SlotNum = " + string(rid.GetPageId()) + ":" + fmt.Sprint(rid.GetSlotNum()))
+			return nil, false, err_
 		}
 
 		colNum := e.child.GetTableMetaData().GetColumnNum()
@@ -84,8 +85,10 @@ func (e *UpdateExecutor) Next() (*tuple.Tuple, Done, error) {
 					if new_rid != nil {
 						// when tuple is moved page location on update, RID is changed to new value
 						index_.DeleteEntry(t, *rid, e.txn)
-						fmt.Println("UpdateExecuter: index entry insert with new_rid.")
-						index_.InsertEntry(new_tuple, *new_rid, e.txn)
+						if updateErr != access.ErrPartialUpdate {
+							fmt.Println("UpdateExecuter: index entry insert with new_rid.")
+							index_.InsertEntry(new_tuple, *new_rid, e.txn)
+						}
 					} else {
 						index_.DeleteEntry(t, *rid, e.txn)
 						index_.InsertEntry(new_tuple, *rid, e.txn)
@@ -93,9 +96,11 @@ func (e *UpdateExecutor) Next() (*tuple.Tuple, Done, error) {
 				} else {
 					if new_rid != nil {
 						// when tuple is moved page location on update, RID is changed to new value
-						fmt.Println("UpdateExecuter: index entry insert with new_rid. value update of index entry occurs.")
 						index_.DeleteEntry(t, *rid, e.txn)
-						index_.InsertEntry(t, *new_rid, e.txn)
+						if updateErr != access.ErrPartialUpdate {
+							fmt.Println("UpdateExecuter: index entry insert with new_rid. value update of index entry occurs.")
+							index_.InsertEntry(t, *new_rid, e.txn)
+						}
 					} else {
 						// update is not needed
 					}
@@ -103,7 +108,7 @@ func (e *UpdateExecutor) Next() (*tuple.Tuple, Done, error) {
 			}
 		}
 
-		return new_tuple, false, nil
+		return new_tuple, false, updateErr
 	}
 
 	return nil, true, nil

@@ -81,6 +81,8 @@ func (t *TableHeap) InsertTuple(tuple_ *tuple.Tuple, txn *Transaction, oid uint3
 			break
 		}
 		if rid == nil && err != nil && err != ErrEmptyTuple && err != ErrNotEnoughSpace {
+			//  this route is executed only when rid for assign to new tuple is locked by delete operation currently
+
 			t.bpm.UnpinPage(currentPage.GetPageId(), false)
 			if common.EnableDebug && common.ActiveLogKindSetting&common.PIN_COUNT_ASSERT > 0 {
 				common.SH_Assert(currentPage.PinCount() == 0, "PinCount is not zero at TableHeap::InsertTuple!!!")
@@ -137,7 +139,7 @@ func (t *TableHeap) InsertTuple(tuple_ *tuple.Tuple, txn *Transaction, oid uint3
 
 // if specified nil to update_col_idxs and schema_, all data of existed tuple is replaced one of new_tuple
 // if specified not nil, new_tuple also should have all columns defined in schema. but not update target value can be dummy value
-func (t *TableHeap) UpdateTuple(tuple_ *tuple.Tuple, update_col_idxs []int, schema_ *schema.Schema, oid uint32, rid page.RID, txn *Transaction) (bool, *page.RID) {
+func (t *TableHeap) UpdateTuple(tuple_ *tuple.Tuple, update_col_idxs []int, schema_ *schema.Schema, oid uint32, rid page.RID, txn *Transaction) (bool, *page.RID, error) {
 	if common.EnableDebug {
 		if common.ActiveLogKindSetting&common.RDB_OP_FUNC_CALL > 0 {
 			fmt.Printf("TableHeap::UpadteTuple called. txn.txn_id:%v dbgInfo:%s update_col_idxs:%v rid:%v\n", txn.txn_id, txn.dbgInfo, update_col_idxs, rid)
@@ -154,7 +156,7 @@ func (t *TableHeap) UpdateTuple(tuple_ *tuple.Tuple, update_col_idxs []int, sche
 	// If the page could not be found, then abort the transaction.
 	if page_ == nil {
 		txn.SetState(ABORTED)
-		return false, nil
+		return false, nil, ErrGeneral
 	}
 	// Update the tuple; but first save the old value for rollbacks.
 	old_tuple := new(tuple.Tuple)
@@ -173,27 +175,24 @@ func (t *TableHeap) UpdateTuple(tuple_ *tuple.Tuple, update_col_idxs []int, sche
 	var new_rid *page.RID = nil
 	var isUpdateWithDelInsert bool = false
 	if is_updated == false && err == ErrNotEnoughSpace {
-		//// TODO: (SDB) this early return with ABORTED state exists (TableHeap::UpdateTuple)
-		////             because rollback and recovery when this cases fail currently
-		//txn.SetState(ABORTED)
-		//return false, &rid
-
-		// delete and insert need_follow_tuple as updating
+		// delete old_tuple(rid)
+		// and insert need_follow_tuple(new_rid)
+		// as updating
 
 		// first, delete target tuple (old data)
 		is_deleted := t.MarkDelete(&rid, oid, txn)
 		if !is_deleted {
 			fmt.Println("TableHeap::UpdateTuple(): MarkDelete failed")
 			txn.SetState(ABORTED)
-			return false, nil
+			return false, nil, ErrGeneral
 		}
 
-		var err error = nil
-		new_rid, err = t.InsertTuple(need_follow_tuple, txn, oid)
-		if err != nil {
+		var err_ error = nil
+		new_rid, err_ = t.InsertTuple(need_follow_tuple, txn, oid)
+		if err_ != nil {
 			fmt.Println("TableHeap::UpdateTuple(): InsertTuple failed")
 			txn.SetState(ABORTED)
-			return false, nil
+			return false, nil, ErrPartialUpdate
 		}
 
 		fmt.Printf("TableHeap::UpdateTuple(): new rid = %d %d\n", new_rid.PageId, new_rid.SlotNum)
@@ -221,7 +220,7 @@ func (t *TableHeap) UpdateTuple(tuple_ *tuple.Tuple, update_col_idxs []int, sche
 		common.SH_Assert(len(txn.GetWriteSet()) != 0, "content of write should not be empty.")
 	}
 
-	return is_updated, new_rid
+	return is_updated, new_rid, nil
 }
 
 func (t *TableHeap) MarkDelete(rid *page.RID, oid uint32, txn *Transaction) bool {
