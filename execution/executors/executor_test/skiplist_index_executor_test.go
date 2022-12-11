@@ -1704,26 +1704,18 @@ func testSkipListParallelTxnStrideRoot[T int32 | float32 | string](t *testing.T,
 
 }
 
-func TestSkipListPrallelTxnStrideInteger(t *testing.T) {
+//func TestSkipListPrallelTxnStrideInteger(t *testing.T) {
+//	//t.Parallel()
+//	//if testing.Short() {
+//	//	t.Skip("skip this in short mode.")
+//	//}
+//	testSkipListParallelTxnStrideRoot[int32](t, types.Integer)
+//}
+
+func TestSkipListPrallelTxnStrideVarchar(t *testing.T) {
 	//t.Parallel()
 	//if testing.Short() {
 	//	t.Skip("skip this in short mode.")
 	//}
-	testSkipListParallelTxnStrideRoot[int32](t, types.Integer)
+	testSkipListParallelTxnStrideRoot[string](t, types.Varchar)
 }
-
-//func TestSkipListPrallelTxnStrideVarchar(t *testing.T) {
-//	//t.Parallel()
-//	//if testing.Short() {
-//	//	t.Skip("skip this in short mode.")
-//	//}
-//	testSkipListParallelTxnStrideRoot[string](t, types.Varchar)
-//}
-
-//func TestSkipListPrallelTxnStrideVarchar(t *testing.T) {
-//	//t.Parallel()
-//	//if testing.Short() {
-//	//	t.Skip("skip this in short mode.")
-//	//}
-//	testSkipListParallelTxnStrideRoot[string](t, types.Varchar)
-//}
