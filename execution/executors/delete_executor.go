@@ -58,17 +58,19 @@ func (e *DeleteExecutor) Next() (*tuple.Tuple, Done, error) {
 			return nil, false, err
 		}
 
-		colNum := tableMetadata.GetColumnNum()
-		for ii := 0; ii < int(colNum); ii++ {
-			ret := tableMetadata.GetIndex(ii)
-			if ret == nil {
-				continue
-			} else {
-				index_ := ret
-				//index_.DeleteEntry(e.it.Current(), *rid, e.txn)
-				index_.DeleteEntry(t, *rid, e.txn)
-			}
-		}
+		// removing index entry is done at commit phase because delete operation uses marking technique
+
+		//colNum := tableMetadata.GetColumnNum()
+		//for ii := 0; ii < int(colNum); ii++ {
+		//	ret := tableMetadata.GetIndex(ii)
+		//	if ret == nil {
+		//		continue
+		//	} else {
+		//		index_ := ret
+		//		//index_.DeleteEntry(e.it.Current(), *rid, e.txn)
+		//		index_.DeleteEntry(t, *rid, e.txn)
+		//	}
+		//}
 
 		return t, false, nil
 	}

@@ -91,7 +91,7 @@ func TestTableHeap(t *testing.T) {
 	fmt.Println(tuple_cnt)
 	testingpkg.Assert(t, tuple_cnt == 1000, "quontity of returned tuples differ one of expected.")
 
-	txn_mgr.Commit(txn)
+	txn_mgr.Commit(nil, txn)
 
 	common.TempSuppressOnMemStorage = false
 	common.TempSuppressOnMemStorageMutex.Unlock()
@@ -169,5 +169,5 @@ func TestTableHeapFourCol(t *testing.T) {
 	}
 	testingpkg.Assert(t, tuple_cnt == 1000, "quontity of returned tuples differ one of expected.")
 
-	txn_mgr.Commit(txn)
+	txn_mgr.Commit(nil, txn)
 }

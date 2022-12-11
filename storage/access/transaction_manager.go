@@ -56,12 +56,13 @@ func (transaction_manager *TransactionManager) Begin(txn *Transaction) *Transact
 	return txn_ret
 }
 
-func (transaction_manager *TransactionManager) Commit(txn *Transaction) {
+func (transaction_manager *TransactionManager) Commit(catalog_ catalog_interface.CatalogInterface, txn *Transaction) {
 	if common.EnableDebug {
 		common.ShPrintf(common.RDB_OP_FUNC_CALL, "TransactionManager::Commit called. txn.txn_id:%v dbgInfo:%s\n", txn.txn_id, txn.dbgInfo)
 	}
 	//txn.SetState(COMMITTED)
 
+	indexMap := make(map[uint32][]index.Index, 0)
 	// Perform all deletes before we commit.
 	write_set := txn.GetWriteSet()
 	if common.EnableDebug {
@@ -87,6 +88,14 @@ func (transaction_manager *TransactionManager) Commit(txn *Transaction) {
 			table.bpm.UnpinPage(tpage.GetPageId(), true)
 			tpage.RemoveWLatchRecord(int32(txn.txn_id))
 			tpage.WUnlatch()
+			if catalog_ != nil {
+				indexes := catalog_.GetRollbackNeededIndexes(indexMap, item.oid)
+				for _, index_ := range indexes {
+					if index_ != nil {
+						index_.DeleteEntry(item.tuple, item.rid, txn)
+					}
+				}
+			}
 		}
 		write_set = write_set[:len(write_set)-1]
 	}
@@ -132,14 +141,17 @@ func (transaction_manager *TransactionManager) Abort(catalog_ catalog_interface.
 		if item.wtype == DELETE {
 			// rollback record data
 			table.RollbackDelete(&item.rid, txn)
-			// rollback index data
-			indexes := catalog_.GetRollbackNeededIndexes(indexMap, item.oid)
-			tuple_, _ := item.table.GetTuple(&item.rid, txn)
-			for _, index_ := range indexes {
-				if index_ != nil {
-					index_.InsertEntry(tuple_, item.rid, txn)
-				}
-			}
+
+			// rollback of index entry is not needed because entry is deleted at commit
+
+			//// rollback index data
+			//indexes := catalog_.GetRollbackNeededIndexes(indexMap, item.oid)
+			//tuple_, _ := item.table.GetTuple(&item.rid, txn)
+			//for _, index_ := range indexes {
+			//	if index_ != nil {
+			//		index_.InsertEntry(tuple_, item.rid, txn)
+			//	}
+			//}
 		} else if item.wtype == INSERT {
 			insertedTuple, _ := item.table.GetTuple(&item.rid, txn)
 			// rollback record data
@@ -154,16 +166,18 @@ func (transaction_manager *TransactionManager) Abort(catalog_ catalog_interface.
 			tpage.RemoveWLatchRecord(int32(txn.txn_id))
 			tpage.WUnlatch()
 			// rollback index data
-			indexes := catalog_.GetRollbackNeededIndexes(indexMap, item.oid)
-			for _, index_ := range indexes {
-				if index_ != nil {
-					index_.DeleteEntry(insertedTuple, item.rid, txn)
+			if catalog_ != nil {
+				indexes := catalog_.GetRollbackNeededIndexes(indexMap, item.oid)
+				for _, index_ := range indexes {
+					if index_ != nil {
+						index_.DeleteEntry(insertedTuple, item.rid, txn)
+					}
 				}
 			}
 		} else if item.wtype == UPDATE {
 			beforRollbackTuple_, _ := item.table.GetTuple(&item.rid, txn)
 			// rollback record data
-			is_updated, _, _ := table.UpdateTuple(item.tuple, nil, nil, item.oid, item.rid, txn)
+			is_updated, _, _, _ := table.UpdateTuple(item.tuple, nil, nil, item.oid, item.rid, txn)
 			if !is_updated {
 				panic("UpdateTuple at rollback failed!")
 				//// TODO: (SDB) temporal impl for special case of UpdateTuple (Abort)
@@ -174,18 +188,19 @@ func (transaction_manager *TransactionManager) Abort(catalog_ catalog_interface.
 				//continue
 			}
 			// rollback index data
-			indexes := catalog_.GetRollbackNeededIndexes(indexMap, item.oid)
-			tuple_, _ := item.table.GetTuple(&item.rid, txn)
-			for _, index_ := range indexes {
-				if index_ != nil {
-					// TODO: (SDB) need to consider rid was changed case
-					colIdx := index_.GetKeyAttrs()[0]
-					bfRlbkKeyVal := catalog_.GetColValFromTupleForRollback(beforRollbackTuple_, colIdx, item.oid)
-					rlbkKeyVal := catalog_.GetColValFromTupleForRollback(tuple_, colIdx, item.oid)
-					if !bfRlbkKeyVal.CompareEquals(*rlbkKeyVal) {
-						// rollback is needed only when column value changed case
-						index_.DeleteEntry(beforRollbackTuple_, item.rid, txn)
-						index_.InsertEntry(tuple_, item.rid, txn)
+			if catalog_ != nil {
+				indexes := catalog_.GetRollbackNeededIndexes(indexMap, item.oid)
+				tuple_, _ := item.table.GetTuple(&item.rid, txn)
+				for _, index_ := range indexes {
+					if index_ != nil {
+						colIdx := index_.GetKeyAttrs()[0]
+						bfRlbkKeyVal := catalog_.GetColValFromTupleForRollback(beforRollbackTuple_, colIdx, item.oid)
+						rlbkKeyVal := catalog_.GetColValFromTupleForRollback(tuple_, colIdx, item.oid)
+						if !bfRlbkKeyVal.CompareEquals(*rlbkKeyVal) {
+							// rollback is needed only when column value changed case
+							index_.DeleteEntry(beforRollbackTuple_, item.rid, txn)
+							index_.InsertEntry(tuple_, item.rid, txn)
+						}
 					}
 				}
 			}

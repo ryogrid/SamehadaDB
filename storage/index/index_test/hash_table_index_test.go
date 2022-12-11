@@ -93,7 +93,7 @@ func TestRecounstructionOfHashIndex(t *testing.T) {
 	executionEngine.Execute(insertPlanNode, executorContext)
 
 	//bpm.FlushAllPages()
-	txn_mgr.Commit(txn)
+	txn_mgr.Commit(nil, txn)
 
 	txn = shi.GetTransactionManager().Begin(nil)
 
@@ -141,7 +141,7 @@ func TestRecounstructionOfHashIndex(t *testing.T) {
 		})
 	}
 
-	shi.GetTransactionManager().Commit(txn)
+	shi.GetTransactionManager().Commit(nil, txn)
 	shi.Shutdown(false)
 
 	// ----------- check recovery includes index data ----------
@@ -166,7 +166,7 @@ func TestRecounstructionOfHashIndex(t *testing.T) {
 	// reconstruct all index data of all column
 	tableMetadata = c.GetTableByName("test_1")
 	samehada.ReconstructAllIndexData(c, dman, txn)
-	shi.GetTransactionManager().Commit(txn)
+	shi.GetTransactionManager().Commit(nil, txn)
 
 	// checking reconstruction result of index data by getting tuples using index
 	txn = shi.GetTransactionManager().Begin(nil)
@@ -222,7 +222,7 @@ func TestRecounstructionOfHashIndex(t *testing.T) {
 		})
 	}
 
-	shi.GetTransactionManager().Commit(txn)
+	shi.GetTransactionManager().Commit(nil, txn)
 
 	common.TempSuppressOnMemStorage = false
 	shi.Shutdown(false)

@@ -197,7 +197,7 @@ func TestRedo(t *testing.T) {
 	// TODO: (SDB) insert index entry if needed
 	testingpkg.Assert(t, rid != nil, "")
 
-	samehada_instance.GetTransactionManager().Commit(txn)
+	samehada_instance.GetTransactionManager().Commit(nil, txn)
 	fmt.Println("Commit txn")
 
 	fmt.Println("Shutdown System")
@@ -220,7 +220,7 @@ func TestRedo(t *testing.T) {
 	testingpkg.AssertFalse(t, old_tuple != nil, "")
 	old_tuple1, _ := test_table.GetTuple(rid1, txn)
 	testingpkg.AssertFalse(t, old_tuple1 != nil, "")
-	samehada_instance.GetTransactionManager().Commit(txn)
+	samehada_instance.GetTransactionManager().Commit(nil, txn)
 
 	fmt.Println("Begin recovery")
 	log_recovery := log_recovery.NewLogRecovery(
@@ -249,7 +249,7 @@ func TestRedo(t *testing.T) {
 	old_tuple1, _ = test_table.GetTuple(rid1, txn)
 	testingpkg.Assert(t, old_tuple1 != nil, "")
 
-	samehada_instance.GetTransactionManager().Commit(txn)
+	samehada_instance.GetTransactionManager().Commit(nil, txn)
 
 	testingpkg.Assert(t, old_tuple.GetValue(schema_, 1).CompareEquals(val_1), "")
 	testingpkg.Assert(t, old_tuple.GetValue(schema_, 0).CompareEquals(val_0), "")
@@ -313,7 +313,7 @@ func TestUndo(t *testing.T) {
 	fmt.Println("Log page content is written to disk")
 	samehada_instance.GetLogManager().Flush()
 	fmt.Println("two tuples inserted are commited")
-	samehada_instance.GetTransactionManager().Commit(txn)
+	samehada_instance.GetTransactionManager().Commit(nil, txn)
 
 	txn = samehada_instance.GetTransactionManager().Begin(nil)
 
@@ -439,7 +439,7 @@ func TestCheckpoint(t *testing.T) {
 		samehada_instance.GetLogManager(),
 		samehada_instance.GetLockManager(),
 		txn)
-	samehada_instance.GetTransactionManager().Commit(txn)
+	samehada_instance.GetTransactionManager().Commit(nil, txn)
 
 	col1 := column.NewColumn("a", types.Varchar, false, index_constants.INDEX_KIND_INVAID, types.PageID(-1), nil)
 	col2 := column.NewColumn("b", types.Integer, false, index_constants.INDEX_KIND_INVAID, types.PageID(-1), nil)
@@ -465,7 +465,7 @@ func TestCheckpoint(t *testing.T) {
 		// TODO: (SDB) insert index entry if needed
 		testingpkg.Assert(t, rid != nil, "")
 	}
-	samehada_instance.GetTransactionManager().Commit(txn1)
+	samehada_instance.GetTransactionManager().Commit(nil, txn1)
 
 	// Do checkpoint
 	samehada_instance.GetCheckpointManager().BeginCheckpoint()
