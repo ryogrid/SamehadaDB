@@ -89,6 +89,7 @@ func (t *TableHeap) InsertTuple(tuple_ *tuple.Tuple, txn *Transaction, oid uint3
 			}
 			currentPage.RemoveWLatchRecord(int32(txn.txn_id))
 			currentPage.WUnlatch()
+			txn.SetState(ABORTED)
 			return nil, err
 		}
 
@@ -133,7 +134,8 @@ func (t *TableHeap) InsertTuple(tuple_ *tuple.Tuple, txn *Transaction, oid uint3
 	currentPage.RemoveWLatchRecord(int32(txn.txn_id))
 	currentPage.WUnlatch()
 	// Update the transaction's write set.
-	txn.AddIntoWriteSet(NewWriteRecord(*rid, INSERT, new(tuple.Tuple), t, oid))
+	//txn.AddIntoWriteSet(NewWriteRecord(*rid, INSERT, new(tuple.Tuple), t, oid))
+	txn.AddIntoWriteSet(NewWriteRecord(*rid, INSERT, tuple_, t, oid))
 	return rid, nil
 }
 

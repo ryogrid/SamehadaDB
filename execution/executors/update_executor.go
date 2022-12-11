@@ -46,9 +46,11 @@ func (e *UpdateExecutor) Next() (*tuple.Tuple, Done, error) {
 	for t, done, err := e.child.Next(); !done; t, done, err = e.child.Next() {
 		if t == nil {
 			err_ := errors.New("e.it.Next returned nil")
+			e.txn.SetState(access.ABORTED)
 			return nil, true, err_
 		}
 		if err != nil {
+			e.txn.SetState(access.ABORTED)
 			return nil, true, err
 		}
 		if e.txn.GetState() == access.ABORTED {
@@ -71,6 +73,7 @@ func (e *UpdateExecutor) Next() (*tuple.Tuple, Done, error) {
 
 		if !is_updated && updateErr != access.ErrPartialUpdate {
 			err_ := errors.New("tuple update failed. PageId:SlotNum = " + string(rid.GetPageId()) + ":" + fmt.Sprint(rid.GetSlotNum()))
+			e.txn.SetState(access.ABORTED)
 			return nil, false, err_
 		}
 
@@ -96,7 +99,9 @@ func (e *UpdateExecutor) Next() (*tuple.Tuple, Done, error) {
 					} else {
 						index_.DeleteEntry(t, *rid, e.txn)
 						//index_.InsertEntry(new_tuple, *rid, e.txn)
-						index_.InsertEntry(updateTuple, *rid, e.txn)
+						if updateErr != access.ErrPartialUpdate {
+							index_.InsertEntry(updateTuple, *rid, e.txn)
+						}
 					}
 				} else {
 					if new_rid != nil {
@@ -110,7 +115,7 @@ func (e *UpdateExecutor) Next() (*tuple.Tuple, Done, error) {
 							index_.InsertEntry(updateTuple, *new_rid, e.txn)
 						}
 					} else {
-						// update is not needed
+						// update is not needed because column value is not changed
 					}
 				}
 			}

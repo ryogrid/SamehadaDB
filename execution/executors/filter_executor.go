@@ -5,6 +5,7 @@ import (
 	"github.com/ryogrid/SamehadaDB/catalog"
 	"github.com/ryogrid/SamehadaDB/execution/expression"
 	"github.com/ryogrid/SamehadaDB/execution/plans"
+	"github.com/ryogrid/SamehadaDB/storage/access"
 	"github.com/ryogrid/SamehadaDB/storage/table/schema"
 	"github.com/ryogrid/SamehadaDB/storage/tuple"
 	"github.com/ryogrid/SamehadaDB/types"
@@ -33,6 +34,7 @@ func (e *FilterExecutor) Next() (*tuple.Tuple, Done, error) {
 		}
 		if t == nil && done == false {
 			err := errors.New("e.child.Next returned nil unexpectedly.")
+			e.context.txn.SetState(access.ABORTED)
 			return nil, true, err
 		}
 

@@ -102,6 +102,7 @@ func (e *RangeScanWithIndexExecutor) Next() (*tuple.Tuple, Done, error) {
 		tuple_, err = e.tableMetadata.Table().GetTuple(rid, e.txn)
 		if tuple_ == nil && (err == nil || err == access.ErrGeneral) {
 			err := errors.New("e.ridItr.Next returned nil")
+			e.txn.SetState(access.ABORTED)
 			return nil, true, err
 		}
 

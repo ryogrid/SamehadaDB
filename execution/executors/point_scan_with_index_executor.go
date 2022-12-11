@@ -70,6 +70,7 @@ func (e *PointScanWithIndexExecutor) Init() {
 		tuple_, err := e.tableMetadata.Table().GetTuple(&rid, e.txn)
 		if tuple_ == nil && err != access.ErrSelfDeletedCase {
 			e.foundTuples = make([]*tuple.Tuple, 0)
+			e.txn.SetState(access.ABORTED)
 			return
 		}
 		e.foundTuples = append(e.foundTuples, tuple_)

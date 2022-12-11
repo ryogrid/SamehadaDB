@@ -1043,6 +1043,7 @@ func testParallelTxnsQueryingSkipListIndexUsedColumns[T int32 | float32 | string
 			// append new base value
 			insValsAppendWithLock(newKeyValBase)
 			deleteCheckMapEntriesWithLock(oldKeyValBase)
+			deleteCheckMapEntriesWithLock(newKeyValBase)
 			atomic.AddInt32(&commitedTxnCnt, 1)
 		} else {
 			// rollback removed element

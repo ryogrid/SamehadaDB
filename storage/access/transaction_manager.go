@@ -153,7 +153,7 @@ func (transaction_manager *TransactionManager) Abort(catalog_ catalog_interface.
 			//	}
 			//}
 		} else if item.wtype == INSERT {
-			insertedTuple, _ := item.table.GetTuple(&item.rid, txn)
+			//insertedTuple, _ := item.table.GetTuple(&item.rid, txn)
 			// rollback record data
 			rid := item.rid
 			// Note that this also releases the lock when holding the page latch.
@@ -170,7 +170,8 @@ func (transaction_manager *TransactionManager) Abort(catalog_ catalog_interface.
 				indexes := catalog_.GetRollbackNeededIndexes(indexMap, item.oid)
 				for _, index_ := range indexes {
 					if index_ != nil {
-						index_.DeleteEntry(insertedTuple, item.rid, txn)
+						//index_.DeleteEntry(insertedTuple, item.rid, txn)
+						index_.DeleteEntry(item.tuple, item.rid, txn)
 					}
 				}
 			}
@@ -188,6 +189,8 @@ func (transaction_manager *TransactionManager) Abort(catalog_ catalog_interface.
 				//continue
 			}
 			// rollback index data
+			// when update is operated as delete and insert (rid change case),
+			//  rollback is done for each separated operation
 			if catalog_ != nil {
 				indexes := catalog_.GetRollbackNeededIndexes(indexMap, item.oid)
 				tuple_, _ := item.table.GetTuple(&item.rid, txn)
