@@ -62,7 +62,7 @@ func (transaction_manager *TransactionManager) Commit(catalog_ catalog_interface
 	}
 	//txn.SetState(COMMITTED)
 
-	indexMap := make(map[uint32][]index.Index, 0)
+	//indexMap := make(map[uint32][]index.Index, 0)
 	// Perform all deletes before we commit.
 	write_set := txn.GetWriteSet()
 	if common.EnableDebug {
@@ -88,14 +88,14 @@ func (transaction_manager *TransactionManager) Commit(catalog_ catalog_interface
 			table.bpm.UnpinPage(tpage.GetPageId(), true)
 			tpage.RemoveWLatchRecord(int32(txn.txn_id))
 			tpage.WUnlatch()
-			if catalog_ != nil {
-				indexes := catalog_.GetRollbackNeededIndexes(indexMap, item.oid)
-				for _, index_ := range indexes {
-					if index_ != nil {
-						index_.DeleteEntry(item.tuple, item.rid, txn)
-					}
-				}
-			}
+			//if catalog_ != nil {
+			//	indexes := catalog_.GetRollbackNeededIndexes(indexMap, item.oid)
+			//	for _, index_ := range indexes {
+			//		if index_ != nil {
+			//			index_.DeleteEntry(item.tuple, item.rid, txn)
+			//		}
+			//	}
+			//}
 		}
 		write_set = write_set[:len(write_set)-1]
 	}
@@ -142,16 +142,15 @@ func (transaction_manager *TransactionManager) Abort(catalog_ catalog_interface.
 			// rollback record data
 			table.RollbackDelete(&item.rid, txn)
 
-			// rollback of index entry is not needed because entry is deleted at commit
+			////rollback of index entry is not needed because entry is deleted at commit
 
-			//// rollback index data
-			//indexes := catalog_.GetRollbackNeededIndexes(indexMap, item.oid)
-			//tuple_, _ := item.table.GetTuple(&item.rid, txn)
-			//for _, index_ := range indexes {
-			//	if index_ != nil {
-			//		index_.InsertEntry(tuple_, item.rid, txn)
-			//	}
-			//}
+			// rollback index data
+			indexes := catalog_.GetRollbackNeededIndexes(indexMap, item.oid)
+			for _, index_ := range indexes {
+				if index_ != nil {
+					index_.InsertEntry(item.tuple, item.rid, txn)
+				}
+			}
 		} else if item.wtype == INSERT {
 			//insertedTuple, _ := item.table.GetTuple(&item.rid, txn)
 			// rollback record data
