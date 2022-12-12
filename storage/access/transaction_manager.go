@@ -4,6 +4,7 @@ import (
 	"fmt"
 	"github.com/ryogrid/SamehadaDB/catalog/catalog_interface"
 	"github.com/ryogrid/SamehadaDB/storage/index"
+	"github.com/ryogrid/SamehadaDB/storage/tuple"
 	"sync"
 
 	"github.com/ryogrid/SamehadaDB/common"
@@ -177,7 +178,7 @@ func (transaction_manager *TransactionManager) Abort(catalog_ catalog_interface.
 		} else if item.wtype == UPDATE {
 			beforRollbackTuple_, _ := item.table.GetTuple(&item.rid, txn)
 			// rollback record data
-			is_updated, _, _, _ := table.UpdateTuple(item.tuple, nil, nil, item.oid, item.rid, txn)
+			is_updated, new_rid, _, _ := table.UpdateTuple(item.tuple, nil, nil, item.oid, item.rid, txn)
 			if !is_updated {
 				panic("UpdateTuple at rollback failed!")
 				//// TODO: (SDB) temporal impl for special case of UpdateTuple (Abort)
@@ -192,7 +193,15 @@ func (transaction_manager *TransactionManager) Abort(catalog_ catalog_interface.
 			//  rollback is done for each separated operation
 			if catalog_ != nil {
 				indexes := catalog_.GetRollbackNeededIndexes(indexMap, item.oid)
-				tuple_, _ := item.table.GetTuple(&item.rid, txn)
+				var tuple_ *tuple.Tuple
+				var err error
+				if new_rid != nil {
+					tuple_, err = item.table.GetTuple(new_rid, txn)
+				} else {
+					tuple_, err = item.table.GetTuple(&item.rid, txn)
+				}
+
+				fmt.Printf("TransactionManager::Abort  rollback of Update! tuple_:%v err:%v indexes:%v\n", tuple_, err, indexes)
 				for _, index_ := range indexes {
 					if index_ != nil {
 						colIdx := index_.GetKeyAttrs()[0]
@@ -201,7 +210,11 @@ func (transaction_manager *TransactionManager) Abort(catalog_ catalog_interface.
 						if !bfRlbkKeyVal.CompareEquals(*rlbkKeyVal) {
 							// rollback is needed only when column value changed case
 							index_.DeleteEntry(beforRollbackTuple_, item.rid, txn)
-							index_.InsertEntry(tuple_, item.rid, txn)
+							if new_rid != nil {
+								index_.InsertEntry(tuple_, *new_rid, txn)
+							} else {
+								index_.InsertEntry(tuple_, item.rid, txn)
+							}
 						}
 					}
 				}
