@@ -1653,6 +1653,7 @@ func testParallelTxnsQueryingSkipListIndexUsedColumns[T int32 | float32 | string
 	results2 := executePlan(c, shi.GetBufferPoolManager(), txn_, rangeScanPlan2)
 	resultsLen2 := len(results2)
 	common.SH_Assert(collectNumMaybe == int32(resultsLen2), "records count is not matched with assumed num "+fmt.Sprintf("%d != %d", collectNumMaybe, resultsLen2))
+	fmt.Printf("collectNumMaybe:%d == resultsLen2:%d\n", collectNumMaybe, resultsLen2)
 
 	if indexKind == index_constants.INDEX_KIND_SKIP_LIST {
 		// check order (col2 when index of it is used)
@@ -1688,14 +1689,16 @@ func testSkipListParallelTxnStrideRoot[T int32 | float32 | string](t *testing.T,
 		//testParallelTxnsQueryingSkipListIndexUsedColumns[T](t, keyType, 400, 4000, 13, 0, bpoolSize, index_constants.INDEX_KIND_SKIP_LIST, PARALLEL_EXEC, 20)
 		//testParallelTxnsQueryingSkipListIndexUsedColumns[T](t, keyType, 400, 4000, 13, 0, bpoolSize, index_constants.INDEX_KIND_SKIP_LIST, PARALLEL_EXEC, 20)
 		//testParallelTxnsQueryingSkipListIndexUsedColumns[T](t, keyType, 400, 8000, 13, 0, bpoolSize, index_constants.INDEX_KIND_SKIP_LIST, PARALLEL_EXEC, 20)
-		testParallelTxnsQueryingSkipListIndexUsedColumns[T](t, keyType, 400, 8000, 13, 0, bpoolSize, index_constants.INDEX_KIND_SKIP_LIST, PARALLEL_EXEC, 20)
+		testParallelTxnsQueryingSkipListIndexUsedColumns[T](t, keyType, 400, 2000, 13, 0, bpoolSize, index_constants.INDEX_KIND_INVAID, PARALLEL_EXEC, 20)
+		//testParallelTxnsQueryingSkipListIndexUsedColumns[T](t, keyType, 400, 8000, 13, 0, bpoolSize, index_constants.INDEX_KIND_SKIP_LIST, PARALLEL_EXEC, 20)
 		//testParallelTxnsQueryingSkipListIndexUsedColumns[T](t, keyType, 400, 16000, 13, 0, bpoolSize, index_constants.INDEX_KIND_SKIP_LIST, PARALLEL_EXEC, 20)
 		//testParallelTxnsQueryingSkipListIndexUsedColumns[T](t, keyType, 400, 4000, 13, 0, bpoolSize, index_constants.INDEX_KIND_SKIP_LIST, SERIAL_EXEC, 20)
 		//testParallelTxnsQueryingSkipListIndexUsedColumns[T](t, keyType, 400, 800, 13, 0, bpoolSize, index_constants.INDEX_KIND_SKIP_LIST, PARALLEL_EXEC)
 	case types.Varchar:
 		//testParallelTxnsQueryingSkipListIndexUsedColumns[T](t, keyType, 400, 32000, 13, 0, bpoolSize, index_constants.INDEX_KIND_SKIP_LIST, PARALLEL_EXEC, 20)
-		//testParallelTxnsQueryingSkipListIndexUsedColumns[T](t, keyType, 400, 2000, 13, 0, bpoolSize, index_constants.INDEX_KIND_SKIP_LIST, PARALLEL_EXEC, 20)
-		testParallelTxnsQueryingSkipListIndexUsedColumns[T](t, keyType, 400, 3000, 13, 0, bpoolSize, index_constants.INDEX_KIND_SKIP_LIST, PARALLEL_EXEC, 20)
+		testParallelTxnsQueryingSkipListIndexUsedColumns[T](t, keyType, 400, 2000, 13, 0, bpoolSize, index_constants.INDEX_KIND_INVAID, PARALLEL_EXEC, 20)
+		//testParallelTxnsQueryingSkipListIndexUsedColumns[T](t, keyType, 400, 3000, 13, 0, bpoolSize, index_constants.INDEX_KIND_SKIP_LIST, PARALLEL_EXEC, 20)
+		//testParallelTxnsQueryingSkipListIndexUsedColumns[T](t, keyType, 400, 8000, 13, 0, bpoolSize, index_constants.INDEX_KIND_SKIP_LIST, PARALLEL_EXEC, 20)
 		//testParallelTxnsQueryingSkipListIndexUsedColumns[T](t, keyType, 400, 8000, 13, 0, bpoolSize, index_constants.INDEX_KIND_SKIP_LIST, PARALLEL_EXEC, 20)
 		//testParallelTxnsQueryingSkipListIndexUsedColumns[T](t, keyType, 400, 500, 13, 0, bpoolSize, index_constants.INDEX_KIND_INVAID, PARALLEL_EXEC, 20)
 		//testParallelTxnsQueryingSkipListIndexUsedColumns[T](t, keyType, 400, 1500, 13, 0, bpoolSize, index_constants.INDEX_KIND_INVAID, PARALLEL_EXEC, 20)

@@ -181,6 +181,10 @@ func (t *TableHeap) UpdateTuple(tuple_ *tuple.Tuple, update_col_idxs []int, sche
 		// and insert need_follow_tuple(new_rid)
 		// as updating
 
+		//// TODO: for debugging
+		//txn.SetState(ABORTED)
+		//return true, nil, nil, nil
+
 		// first, delete target tuple (old data)
 		is_deleted := t.MarkDelete(&rid, oid, txn)
 		if !is_deleted {
