@@ -552,7 +552,8 @@ func (tp *TablePage) GetTuple(rid *page.RID, log_manager *recovery.LogManager, l
 			// txn which deletes target tuple is current txn
 
 			//tupleSize = UnsetDeletedFlag(tupleSize)
-			return nil, ErrSelfDeletedCase
+			//return nil, ErrSelfDeletedCase
+			return tuple.NewTuple(rid, 0, make([]byte, 0)), ErrSelfDeletedCase
 		} else {
 			txn.SetState(ABORTED)
 			return nil, ErrGeneral
@@ -574,7 +575,8 @@ func (tp *TablePage) GetTuple(rid *page.RID, log_manager *recovery.LogManager, l
 			// txn which deletes target tuple is current txn
 
 			//tupleSize = UnsetDeletedFlag(tupleSize)
-			return nil, ErrSelfDeletedCase
+			return tuple.NewTuple(rid, 0, make([]byte, 0)), ErrSelfDeletedCase
+			//return nil, ErrSelfDeletedCase
 		} else {
 			txn.SetState(ABORTED)
 			return nil, ErrGeneral
