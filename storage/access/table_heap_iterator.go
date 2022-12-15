@@ -66,17 +66,21 @@ start:
 	}
 
 	//if !isContinued {
-	bpm.UnpinPage(currentPage.GetPageId(), false)
-	currentPage.RemoveRLatchRecord(int32(it.txn.txn_id))
-	currentPage.RUnlatch()
-	//}
+	finalizeCurrentPage := func() {
+		bpm.UnpinPage(currentPage.GetPageId(), false)
+		currentPage.RemoveRLatchRecord(int32(it.txn.txn_id))
+		currentPage.RUnlatch()
+		//}
+	}
 
 	var err error = nil
 	if nextTupleRID != nil && nextTupleRID.GetPageId().IsValid() {
-		it.tuple, err = it.tableHeap.GetTuple(nextTupleRID, it.txn)
+		//it.tuple, err = it.tableHeap.GetTuple(nextTupleRID, it.txn)
+		it.tuple, err = currentPage.GetTuple(nextTupleRID, it.tableHeap.log_manager, it.lock_manager, it.txn)
 		if it.tuple != nil && err == ErrSelfDeletedCase {
 			//isContinued = true
 			//continue
+			finalizeCurrentPage()
 			goto start
 		}
 		//break
@@ -86,5 +90,6 @@ start:
 	}
 	//}
 
+	finalizeCurrentPage()
 	return it.tuple
 }
