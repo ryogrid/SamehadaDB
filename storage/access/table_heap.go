@@ -80,18 +80,18 @@ func (t *TableHeap) InsertTuple(tuple_ *tuple.Tuple, txn *Transaction, oid uint3
 			//currentPage.WUnlatch()
 			break
 		}
-		if rid == nil && err != nil && err != ErrEmptyTuple && err != ErrNotEnoughSpace {
-			//  this route is executed only when rid for assign to new tuple is locked by delete operation currently
-
-			t.bpm.UnpinPage(currentPage.GetPageId(), false)
-			if common.EnableDebug && common.ActiveLogKindSetting&common.PIN_COUNT_ASSERT > 0 {
-				common.SH_Assert(currentPage.PinCount() == 0, "PinCount is not zero at TableHeap::InsertTuple!!!")
-			}
-			currentPage.RemoveWLatchRecord(int32(txn.txn_id))
-			currentPage.WUnlatch()
-			txn.SetState(ABORTED)
-			return nil, err
-		}
+		//if rid == nil && err != nil && err != ErrEmptyTuple && err != ErrNotEnoughSpace {
+		//	//  this route is executed only when rid for assign to new tuple is locked by delete operation currently
+		//
+		//	t.bpm.UnpinPage(currentPage.GetPageId(), false)
+		//	if common.EnableDebug && common.ActiveLogKindSetting&common.PIN_COUNT_ASSERT > 0 {
+		//		common.SH_Assert(currentPage.PinCount() == 0, "PinCount is not zero at TableHeap::InsertTuple!!!")
+		//	}
+		//	currentPage.RemoveWLatchRecord(int32(txn.txn_id))
+		//	currentPage.WUnlatch()
+		//	txn.SetState(ABORTED)
+		//	return nil, err
+		//}
 
 		nextPageId := currentPage.GetNextPageId()
 		if nextPageId.IsValid() {

@@ -114,7 +114,7 @@ func (tp *TablePage) InsertTuple(tuple *tuple.Tuple, log_manager *recovery.LogMa
 		// Acquire an exclusive lock on the new tuple.
 		locked := lock_manager.LockExclusive(txn, rid)
 		if !locked {
-			txn.SetState(ABORTED)
+			//txn.SetState(ABORTED)
 			return nil, errors.Error("could not acquire an exclusive lock of found slot (=RID)")
 			// fmt.Printf("Locking a new tuple should always work. rid: %v\n", rid)
 			// lock_manager.PrintLockTables()
