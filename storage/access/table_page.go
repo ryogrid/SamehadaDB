@@ -581,9 +581,9 @@ func (tp *TablePage) GetTuple(rid *page.RID, log_manager *recovery.LogManager, l
 			return tuple.NewTuple(rid, 0, make([]byte, 0)), ErrSelfDeletedCase
 			//return nil, ErrSelfDeletedCase
 		} else {
-			panic(fmt.Sprintf("TablePage::GetTuple illegal rid passed. rid:%v", *rid))
-			//txn.SetState(ABORTED)
-			//return nil, ErrGeneral
+			fmt.Printf("TablePage::GetTuple faced deleted marked rid . rid:%v", *rid)
+			txn.SetState(ABORTED)
+			return nil, ErrGeneral
 		}
 	}
 
