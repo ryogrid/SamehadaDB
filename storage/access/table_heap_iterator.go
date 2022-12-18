@@ -4,6 +4,7 @@
 package access
 
 import (
+	"fmt"
 	"github.com/ryogrid/SamehadaDB/storage/tuple"
 )
 
@@ -80,6 +81,7 @@ start:
 		if it.tuple != nil && err == ErrSelfDeletedCase {
 			//isContinued = true
 			//continue
+			fmt.Println("TableHeapIterator::Next ErrSelfDeletedCase!")
 			finalizeCurrentPage()
 			goto start
 		}

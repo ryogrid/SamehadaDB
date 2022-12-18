@@ -1615,6 +1615,10 @@ func testParallelTxnsQueryingSkipListIndexUsedColumns[T int32 | float32 | string
 	// final checking of DB stored data
 	// below, txns are execurted serial. so, txn abort due to CC protocol doesn't occur
 
+	// check txn finished state and print these statistics
+	common.SH_Assert(commitedTxnCnt+abortedTxnCnt == executedTxnCnt, "txn counting has bug(1)!")
+	fmt.Printf("commited: %d aborted: %d all: %d (1)\n", commitedTxnCnt, abortedTxnCnt, executedTxnCnt)
+
 	// check total volume of accounts
 	checkTotalBalanceNoChange()
 
@@ -1669,9 +1673,8 @@ func testParallelTxnsQueryingSkipListIndexUsedColumns[T int32 | float32 | string
 	}
 	// --------------------------------------
 
-	// check txn finished state and print these statistics
-	common.SH_Assert(commitedTxnCnt+abortedTxnCnt == executedTxnCnt, "txn counting has bug!")
-	fmt.Printf("commited: %d aborted: %d all: %d\n", commitedTxnCnt, abortedTxnCnt, executedTxnCnt)
+	common.SH_Assert(commitedTxnCnt+abortedTxnCnt == executedTxnCnt, "txn counting has bug(2)!")
+	fmt.Printf("commited: %d aborted: %d all: %d (2)\n", commitedTxnCnt, abortedTxnCnt, executedTxnCnt)
 
 	shi.CloseFilesForTesting()
 }

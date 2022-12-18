@@ -2,6 +2,7 @@ package executors
 
 import (
 	"errors"
+	"fmt"
 	"github.com/ryogrid/SamehadaDB/catalog"
 	"github.com/ryogrid/SamehadaDB/execution/expression"
 	"github.com/ryogrid/SamehadaDB/execution/plans"
@@ -107,6 +108,7 @@ func (e *RangeScanWithIndexExecutor) Next() (*tuple.Tuple, Done, error) {
 		}
 
 		if err == access.ErrSelfDeletedCase {
+			fmt.Println("RangeScanWithIndexExecutor:Next ErrSelfDeletedCase!")
 			continue
 		}
 
