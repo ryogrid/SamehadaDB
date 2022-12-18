@@ -61,6 +61,8 @@ func (transaction_manager *TransactionManager) Commit(catalog_ catalog_interface
 	if common.EnableDebug {
 		common.ShPrintf(common.RDB_OP_FUNC_CALL, "TransactionManager::Commit called. txn.txn_id:%v dbgInfo:%s\n", txn.txn_id, txn.dbgInfo)
 	}
+	// on Commit, call of Transaction::SetState(ABORT) panics
+	txn.MakeNotAbortable()
 	//txn.SetState(COMMITTED)
 
 	//indexMap := make(map[uint32][]index.Index, 0)
@@ -126,6 +128,8 @@ func (transaction_manager *TransactionManager) Abort(catalog_ catalog_interface.
 		common.ShPrintf(common.RDB_OP_FUNC_CALL, "TransactionManager::Abort called. txn.txn_id:%v dbgInfo:%s\n", txn.txn_id, txn.dbgInfo)
 	}
 	//txn.SetState(ABORTED)
+	// on Abort, call of Transaction::SetState(ABORT) panics
+	txn.MakeNotAbortable()
 
 	indexMap := make(map[uint32][]index.Index, 0)
 	write_set := txn.GetWriteSet()
