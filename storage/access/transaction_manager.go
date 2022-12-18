@@ -81,6 +81,10 @@ func (transaction_manager *TransactionManager) Commit(catalog_ catalog_interface
 		rid := item.rid
 		if item.wtype == DELETE {
 			// Note that this also releases the lock when holding the page latch.
+
+			if common.EnableDebug && common.ActiveLogKindSetting&common.COMMIT_ABORT_HANDLE_INFO > 0 {
+				fmt.Printf("TransactionManager::Commit handle DELETE write log. txn.txn_id:%v dbgInfo:%s rid:%v\n", txn.txn_id, txn.dbgInfo, rid)
+			}
 			pageID := rid.GetPageId()
 			tpage := CastPageAsTablePage(table.bpm.FetchPage(pageID))
 			tpage.WLatch()
@@ -126,13 +130,13 @@ func (transaction_manager *TransactionManager) Abort(catalog_ catalog_interface.
 	indexMap := make(map[uint32][]index.Index, 0)
 	write_set := txn.GetWriteSet()
 
-	if common.EnableDebug {
+	if common.EnableDebug && common.ActiveLogKindSetting&common.RDB_OP_FUNC_CALL > 0 {
 		writeSetStr := ""
 		for _, writeItem := range write_set {
 			//common.ShPrintf(common.RDB_OP_FUNC_CALL, "%v ", *writeItem)
 			writeSetStr += fmt.Sprintf("%v ", *writeItem)
 		}
-		common.ShPrintf(common.RDB_OP_FUNC_CALL, "TransactionManager::Abort txn.txn_id:%v  dbgInfo:%s write_set: %s\n", txn.txn_id, txn.dbgInfo, writeSetStr)
+		fmt.Printf("TransactionManager::Abort txn.txn_id:%v  dbgInfo:%s write_set: %s\n", txn.txn_id, txn.dbgInfo, writeSetStr)
 		//common.ShPrintf(common.RDB_OP_FUNC_CALL, "\n")
 	}
 	// Rollback before releasing the access.
@@ -140,6 +144,10 @@ func (transaction_manager *TransactionManager) Abort(catalog_ catalog_interface.
 		item := write_set[len(write_set)-1]
 		table := item.table
 		if item.wtype == DELETE {
+			if common.EnableDebug && common.ActiveLogKindSetting&common.COMMIT_ABORT_HANDLE_INFO > 0 {
+				fmt.Printf("TransactionManager::Abort handle DELETE write log. txn.txn_id:%v dbgInfo:%s rid:%v\n", txn.txn_id, txn.dbgInfo, item.rid)
+			}
+
 			// rollback record data
 			table.RollbackDelete(&item.rid, txn)
 
@@ -153,6 +161,9 @@ func (transaction_manager *TransactionManager) Abort(catalog_ catalog_interface.
 				}
 			}
 		} else if item.wtype == INSERT {
+			if common.EnableDebug && common.ActiveLogKindSetting&common.COMMIT_ABORT_HANDLE_INFO > 0 {
+				fmt.Printf("TransactionManager::Abort handle INSERT write log. txn.txn_id:%v dbgInfo:%s rid:%v\n", txn.txn_id, txn.dbgInfo, item.rid)
+			}
 			//insertedTuple, _ := item.table.GetTuple(&item.rid, txn)
 			// rollback record data
 			rid := item.rid
@@ -176,6 +187,9 @@ func (transaction_manager *TransactionManager) Abort(catalog_ catalog_interface.
 				}
 			}
 		} else if item.wtype == UPDATE {
+			if common.EnableDebug && common.ActiveLogKindSetting&common.COMMIT_ABORT_HANDLE_INFO > 0 {
+				fmt.Printf("TransactionManager::Abort handle UPDATE write log. txn.txn_id:%v dbgInfo:%s rid:%v tuple=&v \n", txn.txn_id, txn.dbgInfo, item.rid, item.tuple)
+			}
 			beforRollbackTuple_, _ := item.table.GetTuple(&item.rid, txn)
 			// rollback record data
 			is_updated, new_rid, _, _ := table.UpdateTuple(item.tuple, nil, nil, item.oid, item.rid, txn)
@@ -201,7 +215,7 @@ func (transaction_manager *TransactionManager) Abort(catalog_ catalog_interface.
 					tuple_, err = item.table.GetTuple(&item.rid, txn)
 				}
 
-				fmt.Printf("TransactionManager::Abort  rollback of Update! tuple_:%v err:%v indexes:%v\n", tuple_, err, indexes)
+				fmt.Printf("TransactionManager::Abort  rollback of Update! txn.txn_id:%d, tuple_:%v err:%v indexes:%v\n", txn.txn_id, tuple_, err, indexes)
 				for _, index_ := range indexes {
 					if index_ != nil {
 						colIdx := index_.GetKeyAttrs()[0]

@@ -1633,10 +1633,13 @@ func testParallelTxnsQueryingSkipListIndexUsedColumns[T int32 | float32 | string
 	rangeScanPlan1 := createSpecifiedRangeScanPlanNode[T](c, tableMetadata, keyType, 0, nil, nil, indexKind)
 	results1 := executePlan(c, shi.GetBufferPoolManager(), txn_, rangeScanPlan1)
 	resultsLen1 := len(results1)
+	common.SH_Assert(txn_.GetState() != access.ABORTED, "last tuple count check is aborted!(1)")
 	common.SH_Assert(collectNumMaybe == int32(resultsLen1), "records count is not matched with assumed num "+fmt.Sprintf("%d != %d", collectNumMaybe, resultsLen1))
+	finalizeRandomNoSideEffectTxn(txn_)
 
 	if indexKind == index_constants.INDEX_KIND_SKIP_LIST {
 		// check order (col1 when index of it is used)
+		txn_ = txnMgr.Begin(nil)
 		var prevVal1 *types.Value = nil
 		for jj := 0; jj < resultsLen1; jj++ {
 			curVal1 := results1[jj].GetValue(tableMetadata.Schema(), 0)
@@ -1656,11 +1659,14 @@ func testParallelTxnsQueryingSkipListIndexUsedColumns[T int32 | float32 | string
 	rangeScanPlan2 := createSpecifiedRangeScanPlanNode[T](c, tableMetadata, keyType, 1, nil, nil, indexKind)
 	results2 := executePlan(c, shi.GetBufferPoolManager(), txn_, rangeScanPlan2)
 	resultsLen2 := len(results2)
+	common.SH_Assert(txn_.GetState() != access.ABORTED, "last tuple count check is aborted!(2)")
 	common.SH_Assert(collectNumMaybe == int32(resultsLen2), "records count is not matched with assumed num "+fmt.Sprintf("%d != %d", collectNumMaybe, resultsLen2))
 	fmt.Printf("collectNumMaybe:%d == resultsLen2:%d\n", collectNumMaybe, resultsLen2)
+	finalizeRandomNoSideEffectTxn(txn_)
 
 	if indexKind == index_constants.INDEX_KIND_SKIP_LIST {
 		// check order (col2 when index of it is used)
+		txn_ = txnMgr.Begin(nil)
 		var prevVal2 *types.Value = nil
 		for jj := 0; jj < resultsLen2; jj++ {
 			curVal2 := results2[jj].GetValue(tableMetadata.Schema(), 1)
