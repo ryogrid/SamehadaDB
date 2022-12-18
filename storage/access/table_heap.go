@@ -141,7 +141,7 @@ func (t *TableHeap) InsertTuple(tuple_ *tuple.Tuple, txn *Transaction, oid uint3
 
 // if specified nil to update_col_idxs and schema_, all data of existed tuple is replaced one of new_tuple
 // if specified not nil, new_tuple also should have all columns defined in schema. but not update target value can be dummy value
-func (t *TableHeap) UpdateTuple(tuple_ *tuple.Tuple, update_col_idxs []int, schema_ *schema.Schema, oid uint32, rid page.RID, txn *Transaction) (bool, *page.RID, error, *tuple.Tuple) {
+func (t *TableHeap) UpdateTuple(tuple_ *tuple.Tuple, update_col_idxs []int, schema_ *schema.Schema, oid uint32, rid page.RID, txn *Transaction, isRollback bool) (bool, *page.RID, error, *tuple.Tuple) {
 	if common.EnableDebug {
 		if common.ActiveLogKindSetting&common.RDB_OP_FUNC_CALL > 0 {
 			fmt.Printf("TableHeap::UpadteTuple called. txn.txn_id:%v dbgInfo:%s update_col_idxs:%v rid:%v\n", txn.txn_id, txn.dbgInfo, update_col_idxs, rid)
@@ -186,7 +186,17 @@ func (t *TableHeap) UpdateTuple(tuple_ *tuple.Tuple, update_col_idxs []int, sche
 		//return true, nil, nil, nil
 
 		// first, delete target tuple (old data)
-		is_deleted := t.MarkDelete(&rid, oid, txn)
+		var is_deleted bool
+		if isRollback {
+			// when this method is used on TransactinManager::Abort,
+			// ApplyDelete should be used because there is no occasion to commit deleted mark
+			t.ApplyDelete(&rid, txn)
+			// above ApplyDelete does not fail
+			is_deleted = true
+		} else {
+			is_deleted = t.MarkDelete(&rid, oid, txn)
+		}
+
 		if !is_deleted {
 			fmt.Println("TableHeap::UpdateTuple(): MarkDelete failed")
 			txn.SetState(ABORTED)

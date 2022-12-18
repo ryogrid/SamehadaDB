@@ -196,7 +196,7 @@ func (transaction_manager *TransactionManager) Abort(catalog_ catalog_interface.
 			}
 			beforRollbackTuple_, _ := item.table.GetTuple(&item.rid, txn)
 			// rollback record data
-			is_updated, new_rid, _, _ := table.UpdateTuple(item.tuple, nil, nil, item.oid, item.rid, txn)
+			is_updated, new_rid, _, _ := table.UpdateTuple(item.tuple, nil, nil, item.oid, item.rid, txn, true)
 			if !is_updated {
 				panic("UpdateTuple at rollback failed!")
 				//// TODO: (SDB) temporal impl for special case of UpdateTuple (Abort)
