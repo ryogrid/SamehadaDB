@@ -188,7 +188,7 @@ func (transaction_manager *TransactionManager) Abort(catalog_ catalog_interface.
 			}
 		} else if item.wtype == UPDATE {
 			if common.EnableDebug && common.ActiveLogKindSetting&common.COMMIT_ABORT_HANDLE_INFO > 0 {
-				fmt.Printf("TransactionManager::Abort handle UPDATE write log. txn.txn_id:%v dbgInfo:%s rid:%v tuple=&v \n", txn.txn_id, txn.dbgInfo, item.rid, item.tuple)
+				fmt.Printf("TransactionManager::Abort handle UPDATE write log. txn.txn_id:%v dbgInfo:%s rid:%v tuple=%v \n", txn.txn_id, txn.dbgInfo, item.rid, item.tuple)
 			}
 			beforRollbackTuple_, _ := item.table.GetTuple(&item.rid, txn)
 			// rollback record data

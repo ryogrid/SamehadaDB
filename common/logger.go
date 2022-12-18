@@ -12,11 +12,12 @@ const (
 	BUFFER_INTERNAL_STATE             = 2 << 3 // print internal state of buffer of BufferPoolManager
 	PIN_COUNT_ASSERT                  = 2 << 4
 	COMMIT_ABORT_HANDLE_INFO          = 2 << 5
-	DEBUGGING                         = 2 << 6 // print debug info for a debugging period (not permanently used)
-	INFO                              = 2 << 7
-	WARN                              = 2 << 8
-	ERROR                             = 2 << 9
-	FATAL                             = 2 << 10
+	NOT_ABORABLE_TXN_FEATURE          = 2 << 6
+	DEBUGGING                         = 2 << 7 // print debug info for a debugging period (not permanently used)
+	INFO                              = 2 << 8
+	WARN                              = 2 << 9
+	ERROR                             = 2 << 10
+	FATAL                             = 2 << 11
 )
 
 func ShPrintf(logLevel LogLevel, fmtStl string, a ...interface{}) {

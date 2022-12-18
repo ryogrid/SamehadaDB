@@ -1626,6 +1626,7 @@ func testParallelTxnsQueryingSkipListIndexUsedColumns[T int32 | float32 | string
 
 	// col1 ---------------------------------
 	txn_ := txnMgr.Begin(nil)
+	txn_.MakeNotAbortable()
 
 	// check record num (index of col1 is used)
 	collectNumMaybe := insertedTupleCnt - deletedTupleCnt
@@ -1640,6 +1641,7 @@ func testParallelTxnsQueryingSkipListIndexUsedColumns[T int32 | float32 | string
 	if indexKind == index_constants.INDEX_KIND_SKIP_LIST {
 		// check order (col1 when index of it is used)
 		txn_ = txnMgr.Begin(nil)
+		txn_.MakeNotAbortable()
 		var prevVal1 *types.Value = nil
 		for jj := 0; jj < resultsLen1; jj++ {
 			curVal1 := results1[jj].GetValue(tableMetadata.Schema(), 0)
@@ -1654,6 +1656,7 @@ func testParallelTxnsQueryingSkipListIndexUsedColumns[T int32 | float32 | string
 
 	// col2 ----------------------------------
 	txn_ = txnMgr.Begin(nil)
+	txn_.MakeNotAbortable()
 
 	//check record num (index of col2 is used)
 	rangeScanPlan2 := createSpecifiedRangeScanPlanNode[T](c, tableMetadata, keyType, 1, nil, nil, indexKind)
@@ -1667,6 +1670,7 @@ func testParallelTxnsQueryingSkipListIndexUsedColumns[T int32 | float32 | string
 	if indexKind == index_constants.INDEX_KIND_SKIP_LIST {
 		// check order (col2 when index of it is used)
 		txn_ = txnMgr.Begin(nil)
+		txn_.MakeNotAbortable()
 		var prevVal2 *types.Value = nil
 		for jj := 0; jj < resultsLen2; jj++ {
 			curVal2 := results2[jj].GetValue(tableMetadata.Schema(), 1)

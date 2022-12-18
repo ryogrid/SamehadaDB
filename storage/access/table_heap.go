@@ -201,7 +201,7 @@ func (t *TableHeap) UpdateTuple(tuple_ *tuple.Tuple, update_col_idxs []int, sche
 			return false, nil, ErrPartialUpdate, nil
 		}
 
-		fmt.Printf("TableHeap::UpdateTuple(): new rid = %d %d\n", new_rid.PageId, new_rid.SlotNum)
+		fmt.Printf("TableHeap::UpdateTuple(): rid:%v new_rid:%v\n", rid, new_rid)
 		// change return flag to success
 		is_updated = true
 		isUpdateWithDelInsert = true
