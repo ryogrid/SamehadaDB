@@ -192,7 +192,7 @@ func (transaction_manager *TransactionManager) Abort(catalog_ catalog_interface.
 			}
 		} else if item.wtype == UPDATE {
 			if common.EnableDebug && common.ActiveLogKindSetting&common.COMMIT_ABORT_HANDLE_INFO > 0 {
-				fmt.Printf("TransactionManager::Abort handle UPDATE write log. txn.txn_id:%v dbgInfo:%s rid:%v tuple=%v \n", txn.txn_id, txn.dbgInfo, item.rid, item.tuple)
+				fmt.Printf("TransactionManager::Abort handle UPDATE write log. txn.txn_id:%v dbgInfo:%s rid:%v tuple.Size()=%d \n", txn.txn_id, txn.dbgInfo, item.rid, item.tuple.Size())
 			}
 			beforRollbackTuple_, _ := item.table.GetTuple(&item.rid, txn)
 			// rollback record data
@@ -219,7 +219,7 @@ func (transaction_manager *TransactionManager) Abort(catalog_ catalog_interface.
 					tuple_, err = item.table.GetTuple(&item.rid, txn)
 				}
 
-				fmt.Printf("TransactionManager::Abort  rollback of Update! txn.txn_id:%d, tuple_:%v err:%v indexes:%v\n", txn.txn_id, tuple_, err, indexes)
+				fmt.Printf("TransactionManager::Abort  rollback of Update! txn.txn_id:%d, tuple_.Size():%d err:%v indexes:%v\n", txn.txn_id, tuple_.Size(), err, indexes)
 				for _, index_ := range indexes {
 					if index_ != nil {
 						colIdx := index_.GetKeyAttrs()[0]

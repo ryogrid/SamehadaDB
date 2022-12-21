@@ -1618,6 +1618,7 @@ func testParallelTxnsQueryingSkipListIndexUsedColumns[T int32 | float32 | string
 	// check txn finished state and print these statistics
 	common.SH_Assert(commitedTxnCnt+abortedTxnCnt == executedTxnCnt, "txn counting has bug(1)!")
 	fmt.Printf("commited: %d aborted: %d all: %d (1)\n", commitedTxnCnt, abortedTxnCnt, executedTxnCnt)
+	fmt.Printf("len(insVals):%d len(checkKeyColDupMap):%d len(checkBalanceColDupMap):%d\n", len(insVals), len(checkKeyColDupMap), len(checkBalanceColDupMap))
 
 	// check total volume of accounts
 	checkTotalBalanceNoChange()
@@ -1635,6 +1636,22 @@ func testParallelTxnsQueryingSkipListIndexUsedColumns[T int32 | float32 | string
 	results1 := executePlan(c, shi.GetBufferPoolManager(), txn_, rangeScanPlan1)
 	resultsLen1 := len(results1)
 	common.SH_Assert(txn_.GetState() != access.ABORTED, "last tuple count check is aborted!(1)")
+	for idx, tuple_ := range results1 {
+		common.SH_Assert(tuple_.Size() != 0, fmt.Sprintf("checked tuple's size is zero!!! idx=%d", idx))
+	}
+
+	// check value duplication (first column)
+	rsltCheckMap := make(map[T]T, 0)
+	for _, tuple_ := range results1 {
+		val := tuple_.GetValue(tableMetadata.Schema(), 0).ToIFValue()
+		castedVal := val.(T)
+		if _, ok := rsltCheckMap[castedVal]; ok {
+			fmt.Printf("duplicated key found on result1! rid:%v val:%v\n", tuple_.GetRID(), castedVal)
+		} else {
+			rsltCheckMap[castedVal] = castedVal
+		}
+	}
+
 	common.SH_Assert(collectNumMaybe == int32(resultsLen1), "records count is not matched with assumed num "+fmt.Sprintf("%d != %d", collectNumMaybe, resultsLen1))
 	finalizeRandomNoSideEffectTxn(txn_)
 
