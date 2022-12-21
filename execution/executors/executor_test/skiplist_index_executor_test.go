@@ -1652,6 +1652,26 @@ func testParallelTxnsQueryingSkipListIndexUsedColumns[T int32 | float32 | string
 		}
 	}
 
+	// detect tuple which has illegal value at first column (unknown key based value)
+	// -- make map having values which should be in DB
+	okValMap := make(map[T]T, 0)
+	for _, baseKey := range insVals {
+		for ii := int32(0); ii < stride; ii++ {
+			okVal := samehada_util.StrideAdd(samehada_util.StrideMul(baseKey, stride), ii).(T)
+			okValMap[okVal] = okVal
+		}
+	}
+	// -- check values on results1
+	for _, tuple_ := range results1 {
+		val := tuple_.GetValue(tableMetadata.Schema(), 0).ToIFValue()
+		castedVal := val.(T)
+		if _, ok := okValMap[castedVal]; !ok {
+			if !samehada_util.IsContainList[T](accountIds, castedVal) {
+				fmt.Printf("illegal key found on result1! rid:%v val:%v\n", tuple_.GetRID(), castedVal)
+			}
+		}
+	}
+
 	common.SH_Assert(collectNumMaybe == int32(resultsLen1), "records count is not matched with assumed num "+fmt.Sprintf("%d != %d", collectNumMaybe, resultsLen1))
 	finalizeRandomNoSideEffectTxn(txn_)
 
