@@ -178,7 +178,7 @@ func ExecuteDeleteTestCase(t *testing.T, testCase DeleteTestCase) {
 	testCase.ExecutorContext.SetTransaction(txn)
 	results := testCase.ExecutionEngine.Execute(deletePlan, testCase.ExecutorContext)
 
-	testCase.TransactionManager.Commit(txn)
+	testCase.TransactionManager.Commit(nil, txn)
 
 	testingpkg.Equals(t, testCase.TotalHits, uint32(len(results)))
 	for _, assert := range testCase.Asserts {

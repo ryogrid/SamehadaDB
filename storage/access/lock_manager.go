@@ -204,7 +204,7 @@ func (lock_manager *LockManager) LockExclusive(txn *Transaction, rid *page.RID) 
 			return false
 		}
 	} else {
-		if arr, ok := lock_manager.shared_lock_table[*rid]; ok {
+		if arr, ok_ := lock_manager.shared_lock_table[*rid]; ok_ {
 			if !(arr == nil || len(arr) == 0 || (len(arr) == 1 && arr[0] == txn.GetTransactionId())) {
 				// not only this txn has shared lock
 				return false

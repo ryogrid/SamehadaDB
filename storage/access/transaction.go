@@ -3,6 +3,7 @@
 package access
 
 import (
+	"fmt"
 	"github.com/ryogrid/SamehadaDB/common"
 	"github.com/ryogrid/SamehadaDB/storage/page"
 	"github.com/ryogrid/SamehadaDB/storage/tuple"
@@ -91,6 +92,7 @@ type Transaction struct {
 	// /** LockManager: the set of exclusive-locked tuples held by this access. */
 	exclusive_lock_set []page.RID
 	dbgInfo            string
+	abortable          bool // for debugging and testing
 }
 
 func NewTransaction(txn_id types.TxnID) *Transaction {
@@ -105,6 +107,7 @@ func NewTransaction(txn_id types.TxnID) *Transaction {
 		make([]page.RID, 0),
 		make([]page.RID, 0),
 		"",
+		true,
 	}
 }
 
@@ -169,9 +172,15 @@ func (txn *Transaction) GetState() TransactionState { return txn.state }
 * @param state new state
  */
 func (txn *Transaction) SetState(state TransactionState) {
-	if common.EnableDebug {
+	if common.EnableDebug && common.ActiveLogKindSetting&common.RDB_OP_FUNC_CALL > 0 {
 		if state == ABORTED {
-			common.ShPrintf(common.RDB_OP_FUNC_CALL, "Transaction::SetState called. txn.txn_id:%d dbgInfo:%s state:ABORTED\n", txn.txn_id, txn.dbgInfo)
+			fmt.Printf("Transaction::SetState called. txn.txn_id:%d dbgInfo:%s state:ABORTED\n", txn.txn_id, txn.dbgInfo)
+
+		}
+	}
+	if common.EnableDebug && common.ActiveLogKindSetting&common.NOT_ABORABLE_TXN_FEATURE > 0 {
+		if state == ABORTED && txn.abortable == false {
+			panic("this txn is not abortable!!!")
 		}
 	}
 	txn.state = state
@@ -189,3 +198,8 @@ func (txn *Transaction) SetPrevLSN(prev_lsn types.LSN) { txn.prev_lsn = prev_lsn
 func (txn *Transaction) GetDebugInfo() string { return txn.dbgInfo }
 
 func (txn *Transaction) SetDebugInfo(dbgInfo string) { txn.dbgInfo = dbgInfo }
+
+// when this txn is set ABORTED, probram panics
+func (txn *Transaction) MakeNotAbortable() { txn.abortable = false }
+
+func (txn *Transaction) IsAbortable() bool { return txn.abortable }
