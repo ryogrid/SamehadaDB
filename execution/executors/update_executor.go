@@ -46,9 +46,11 @@ func (e *UpdateExecutor) Next() (*tuple.Tuple, Done, error) {
 	for t, done, err := e.child.Next(); !done; t, done, err = e.child.Next() {
 		if t == nil {
 			err_ := errors.New("e.it.Next returned nil")
+			e.txn.SetState(access.ABORTED)
 			return nil, true, err_
 		}
 		if err != nil {
+			e.txn.SetState(access.ABORTED)
 			return nil, true, err
 		}
 		if e.txn.GetState() == access.ABORTED {
@@ -61,15 +63,18 @@ func (e *UpdateExecutor) Next() (*tuple.Tuple, Done, error) {
 
 		var is_updated bool = false
 		var new_rid *page.RID = nil
+		var updateErr error = nil
+		var updateTuple *tuple.Tuple
 		if e.plan.GetUpdateColIdxs() == nil {
-			is_updated, new_rid = e.child.GetTableMetaData().Table().UpdateTuple(new_tuple, nil, nil, e.child.GetTableMetaData().OID(), *rid, e.txn)
+			is_updated, new_rid, updateErr, updateTuple = e.child.GetTableMetaData().Table().UpdateTuple(new_tuple, nil, nil, e.child.GetTableMetaData().OID(), *rid, e.txn, false)
 		} else {
-			is_updated, new_rid = e.child.GetTableMetaData().Table().UpdateTuple(new_tuple, e.plan.GetUpdateColIdxs(), e.child.GetTableMetaData().Schema(), e.child.GetTableMetaData().OID(), *rid, e.txn)
+			is_updated, new_rid, updateErr, updateTuple = e.child.GetTableMetaData().Table().UpdateTuple(new_tuple, e.plan.GetUpdateColIdxs(), e.child.GetTableMetaData().Schema(), e.child.GetTableMetaData().OID(), *rid, e.txn, false)
 		}
 
-		if !is_updated {
-			err := errors.New("tuple update failed. PageId:SlotNum = " + string(rid.GetPageId()) + ":" + fmt.Sprint(rid.GetSlotNum()))
-			return nil, false, err
+		if !is_updated && updateErr != access.ErrPartialUpdate {
+			err_ := errors.New("tuple update failed. PageId:SlotNum = " + string(rid.GetPageId()) + ":" + fmt.Sprint(rid.GetSlotNum()))
+			e.txn.SetState(access.ABORTED)
+			return nil, false, err_
 		}
 
 		colNum := e.child.GetTableMetaData().GetColumnNum()
@@ -81,29 +86,54 @@ func (e *UpdateExecutor) Next() (*tuple.Tuple, Done, error) {
 			} else {
 				index_ := ret
 				if updateIdxs == nil || samehada_util.IsContainList[int](updateIdxs, ii) {
-					if new_rid != nil {
+					if updateErr == access.ErrPartialUpdate {
 						// when tuple is moved page location on update, RID is changed to new value
+						// removing index entry is done at commit phase because delete operation uses marking technique
+
 						index_.DeleteEntry(t, *rid, e.txn)
-						fmt.Println("UpdateExecuter: index entry insert with new_rid.")
-						index_.InsertEntry(new_tuple, *new_rid, e.txn)
+
+						//if updateErr != access.ErrPartialUpdate {
+						//	fmt.Println("UpdateExecuter: index entry insert with new_rid. value update of index entry occurs.")
+						//	//index_.InsertEntry(new_tuple, *new_rid, e.txn)
+						//	index_.InsertEntry(updateTuple, *new_rid, e.txn)
+						//}
+
+						// do nothing
 					} else {
 						index_.DeleteEntry(t, *rid, e.txn)
-						index_.InsertEntry(new_tuple, *rid, e.txn)
+						//index_.InsertEntry(new_tuple, *rid, e.txn)
+						if new_rid != nil {
+							index_.InsertEntry(updateTuple, *new_rid, e.txn)
+						} else {
+							index_.InsertEntry(updateTuple, *rid, e.txn)
+						}
 					}
 				} else {
-					if new_rid != nil {
+					if updateErr == access.ErrPartialUpdate {
 						// when tuple is moved page location on update, RID is changed to new value
-						fmt.Println("UpdateExecuter: index entry insert with new_rid. value update of index entry occurs.")
+						// removing index entry is done at commit phase because delete operation uses marking technique
+
 						index_.DeleteEntry(t, *rid, e.txn)
-						index_.InsertEntry(t, *new_rid, e.txn)
+						//if updateErr != access.ErrPartialUpdate {
+						//	fmt.Println("UpdateExecuter: index entry insert with new_rid. value update of index entry occurs.")
+						//	//index_.InsertEntry(t, *new_rid, e.txn)
+						//	index_.InsertEntry(updateTuple, *new_rid, e.txn)
+						//}
+
+						// do nothing
 					} else {
-						// update is not needed
+						//index_.DeleteEntry(t, *rid, e.txn)
+						//if new_rid != nil {
+						//	index_.InsertEntry(updateTuple, *new_rid, e.txn)
+						//} else {
+						//	index_.InsertEntry(updateTuple, *rid, e.txn)
+						//}
 					}
 				}
 			}
 		}
 
-		return new_tuple, false, nil
+		return new_tuple, false, updateErr
 	}
 
 	return nil, true, nil

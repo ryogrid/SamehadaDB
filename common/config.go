@@ -11,7 +11,7 @@ import (
 var LogTimeout time.Duration
 
 // var EnableLogging bool = false //true
-const EnableDebug bool = false //true //
+const EnableDebug bool = false //true
 
 // use virtual storage or not
 const EnableOnMemStorage = true //false
@@ -41,7 +41,7 @@ const (
 	BucketSizeOfHashIndex = 10
 	// probability used for determin node level on SkipList
 	SkipListProb         = 0.5  //0.25
-	ActiveLogKindSetting = INFO // | DEBUGGING | DEBUG_INFO | RDB_OP_FUNC_CALL | BUFFER_INTERNAL_STATE //| DEBUGGING | DEBUG_INFO //| PIN_COUNT_ASSERT //DEBUG_INFO_DETAIL  //DEBUGGING
+	ActiveLogKindSetting = INFO //| COMMIT_ABORT_HANDLE_INFO | NOT_ABORABLE_TXN_FEATURE | DEBUGGING | RDB_OP_FUNC_CALL // | DEBUG_INFO  //| BUFFER_INTERNAL_STATE //| DEBUGGING | DEBUG_INFO //| PIN_COUNT_ASSERT //DEBUG_INFO_DETAIL  //DEBUGGING
 )
 
 type TxnID int32        // transaction id type

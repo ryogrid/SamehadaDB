@@ -67,7 +67,7 @@ func TestTableHeap(t *testing.T) {
 		// (4096 - 24) / (8 + (5 * 2)) => 226.222...
 
 		rid.Set(types.PageID(i/226), uint32(i%226))
-		tuple := th.GetTuple(rid, txn)
+		tuple, _ := th.GetTuple(rid, txn)
 		testingpkg.Equals(t, int32(i*2), tuple.GetValue(schema_, 0).ToInteger())
 		testingpkg.Equals(t, int32((i+1)*2), tuple.GetValue(schema_, 1).ToInteger())
 	}
@@ -91,7 +91,7 @@ func TestTableHeap(t *testing.T) {
 	fmt.Println(tuple_cnt)
 	testingpkg.Assert(t, tuple_cnt == 1000, "quontity of returned tuples differ one of expected.")
 
-	txn_mgr.Commit(txn)
+	txn_mgr.Commit(nil, txn)
 
 	common.TempSuppressOnMemStorage = false
 	common.TempSuppressOnMemStorageMutex.Unlock()
@@ -144,7 +144,7 @@ func TestTableHeapFourCol(t *testing.T) {
 	for i := 0; i < 1000; i++ {
 		rid := &page.RID{}
 		rid.Set(types.PageID(i/145), uint32(i%145))
-		tuple_ := th.GetTuple(rid, txn)
+		tuple_, _ := th.GetTuple(rid, txn)
 		testingpkg.Equals(t, int32(i*2), tuple_.GetValue(schema_, 0).ToInteger())
 		testingpkg.Equals(t, int32((i+1)*2), tuple_.GetValue(schema_, 1).ToInteger())
 		testingpkg.Equals(t, int32((i+2)*2), tuple_.GetValue(schema_, 2).ToInteger())
@@ -169,5 +169,5 @@ func TestTableHeapFourCol(t *testing.T) {
 	}
 	testingpkg.Assert(t, tuple_cnt == 1000, "quontity of returned tuples differ one of expected.")
 
-	txn_mgr.Commit(txn)
+	txn_mgr.Commit(nil, txn)
 }

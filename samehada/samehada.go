@@ -130,7 +130,7 @@ func NewSamehadaDB(dbName string, memKBytes int) *SamehadaDB {
 	}
 
 	shi.bpm.FlushAllPages()
-	shi.transaction_manager.Commit(txn)
+	shi.transaction_manager.Commit(nil, txn)
 
 	shi.GetLogManager().ActivateLogging()
 
@@ -155,7 +155,7 @@ func (sdb *SamehadaDB) ExecuteSQLRetValues(sqlStr string) (error, [][]*types.Val
 
 	if err == nil && plan == nil {
 		// CREATE_TABLE is scceeded
-		sdb.shi_.GetTransactionManager().Commit(txn)
+		sdb.shi_.GetTransactionManager().Commit(sdb.catalog_, txn)
 		return nil, nil
 	} else if err != nil {
 		return err, nil
@@ -168,7 +168,7 @@ func (sdb *SamehadaDB) ExecuteSQLRetValues(sqlStr string) (error, [][]*types.Val
 		// TODO: (SDB) when concurrent execution of transaction is activated, appropriate handling of aborted request is needed
 		sdb.shi_.GetTransactionManager().Abort(sdb.catalog_, txn)
 	} else {
-		sdb.shi_.GetTransactionManager().Commit(txn)
+		sdb.shi_.GetTransactionManager().Commit(sdb.catalog_, txn)
 	}
 
 	outSchema := plan.OutputSchema()

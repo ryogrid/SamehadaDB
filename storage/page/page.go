@@ -109,7 +109,6 @@ func NewEmpty(id types.PageID) *Page {
 
 	return &Page{id, int32(1), false, &[common.PageSize]byte{}, common.NewRWLatch(), make(map[int32]bool, 0), make(map[int32]bool, 0), new(sync.Mutex)}
 
-	//// TODO: (SDB) customized RWMutex for concurrent skip list debug
 	//return &Page{id, uint32(1), false, &[common.PageSize]byte{}, common.NewRWLatchDebug()}
 }
 

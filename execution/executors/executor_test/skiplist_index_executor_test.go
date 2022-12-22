@@ -8,33 +8,6 @@ import (
 	"github.com/ryogrid/SamehadaDB/execution/executors"
 	"github.com/ryogrid/SamehadaDB/execution/expression"
 	"github.com/ryogrid/SamehadaDB/execution/plans"
-	"github.com/ryogrid/SamehadaDB/samehada"
-	"github.com/ryogrid/SamehadaDB/samehada/samehada_util"
-	"github.com/ryogrid/SamehadaDB/storage/access"
-	"github.com/ryogrid/SamehadaDB/storage/buffer"
-	"github.com/ryogrid/SamehadaDB/storage/index/index_constants"
-	"github.com/ryogrid/SamehadaDB/storage/table/column"
-	"github.com/ryogrid/SamehadaDB/storage/table/schema"
-	"github.com/ryogrid/SamehadaDB/storage/tuple"
-	testingpkg "github.com/ryogrid/SamehadaDB/testing"
-	"github.com/ryogrid/SamehadaDB/types"
-	"math"
-	"math/rand"
-	"os"
-	"sync"
-	"sync/atomic"
-	"testing"
-)
-
-/*
-import (
-	"fmt"
-	"github.com/ryogrid/SamehadaDB/catalog"
-	"github.com/ryogrid/SamehadaDB/common"
-	"github.com/ryogrid/SamehadaDB/container/hash"
-	"github.com/ryogrid/SamehadaDB/execution/executors"
-	"github.com/ryogrid/SamehadaDB/execution/expression"
-	"github.com/ryogrid/SamehadaDB/execution/plans"
 	"github.com/ryogrid/SamehadaDB/recovery"
 	"github.com/ryogrid/SamehadaDB/samehada"
 	"github.com/ryogrid/SamehadaDB/samehada/samehada_util"
@@ -54,7 +27,6 @@ import (
 	"sync/atomic"
 	"testing"
 )
-
 
 func TestSkipListIndexPointScan(t *testing.T) {
 	common.TempSuppressOnMemStorageMutex.Lock()
@@ -110,7 +82,7 @@ func TestSkipListIndexPointScan(t *testing.T) {
 
 	bpm.FlushAllPages()
 
-	txn_mgr.Commit(txn)
+	txn_mgr.Commit(nil, txn)
 
 	cases := []executors.IndexPointScanTestCase{{
 		"select a ... WHERE b = 55",
@@ -251,7 +223,7 @@ func TestSkipListSerialIndexRangeScan(t *testing.T) {
 
 	bpm.FlushAllPages()
 
-	txn_mgr.Commit(txn)
+	txn_mgr.Commit(nil, txn)
 
 	cases := []executors.IndexRangeScanTestCase{{
 		"select a ... WHERE a >= 20 and a <= 1225",
@@ -314,18 +286,17 @@ func TestSkipListSerialIndexRangeScan(t *testing.T) {
 		[]*types.Value{nil, nil},
 		4,
 	}}
-//, {
-//		"select a ... WHERE a >= -2147483647 and a <= 1225", // fail because restriction of current SkipList Index impl?
-//		executionEngine,
-//		executorContext,
-//		tableMetadata,
-//		[]executors.Column{{"a", types.Integer}},
-//		executors.Predicate{"a", expression.GreaterThanOrEqual, 20},
-//		int32(tableMetadata.Schema().GetColIndex("a")),
-//		[]types.Value{types.NewInteger(math.MinInt32), types.NewInteger(1225)},
-//		3,
-//	}}
-
+	//, {
+	//		"select a ... WHERE a >= -2147483647 and a <= 1225", // fail because restriction of current SkipList Index impl?
+	//		executionEngine,
+	//		executorContext,
+	//		tableMetadata,
+	//		[]executors.Column{{"a", types.Integer}},
+	//		executors.Predicate{"a", expression.GreaterThanOrEqual, 20},
+	//		int32(tableMetadata.Schema().GetColIndex("a")),
+	//		[]types.Value{types.NewInteger(math.MinInt32), types.NewInteger(1225)},
+	//		3,
+	//	}}
 
 	for _, test := range cases {
 		t.Run(test.Description, func(t *testing.T) {
@@ -377,7 +348,7 @@ func TestAbortWthDeleteUpdateUsingIndexCasePointScan(t *testing.T) {
 	executorContext := executors.NewExecutorContext(c, bpm, txn)
 	executionEngine.Execute(insertPlanNode, executorContext)
 
-	txn_mgr.Commit(txn)
+	txn_mgr.Commit(nil, txn)
 
 	fmt.Println("update and delete rows...")
 	txn = txn_mgr.Begin(nil)
@@ -527,7 +498,7 @@ func TestAbortWthDeleteUpdateUsingIndexCaseRangeScan(t *testing.T) {
 	executorContext := executors.NewExecutorContext(c, bpm, txn)
 	executionEngine.Execute(insertPlanNode, executorContext)
 
-	txn_mgr.Commit(txn)
+	txn_mgr.Commit(nil, txn)
 
 	fmt.Println("update and delete rows...")
 	txn = txn_mgr.Begin(nil)
@@ -609,7 +580,6 @@ func TestAbortWthDeleteUpdateUsingIndexCaseRangeScan(t *testing.T) {
 	testingpkg.Assert(t, types.NewInteger(777).CompareEquals(results[0].GetValue(tableMetadata.Schema(), 0)), "value should be 777")
 	testingpkg.Assert(t, types.NewVarchar("bar").CompareEquals(results[0].GetValue(tableMetadata.Schema(), 1)), "value should be \"bar\"")
 }
-*/
 
 const (
 	SERIAL_EXEC = iota
@@ -768,7 +738,7 @@ func handleFnishedTxn(catalog_ *catalog.Catalog, txn_mgr *access.TransactionMana
 	} else {
 		// fmt.Println(txn.GetSharedLockSet())
 		// fmt.Println(txn.GetExclusiveLockSet())
-		txn_mgr.Commit(txn)
+		txn_mgr.Commit(catalog_, txn)
 		return true
 	}
 }
@@ -807,7 +777,7 @@ func testParallelTxnsQueryingSkipListIndexUsedColumns[T int32 | float32 | string
 	schema_ := schema.NewSchema([]*column.Column{columnA, columnB})
 
 	tableMetadata := c.CreateTable("test_1", schema_, txn)
-	txnMgr.Commit(txn)
+	txnMgr.Commit(nil, txn)
 
 	// ignored when execType is SERIAL_EXEC
 	//const THREAD_NUM = 20 //1 // 10 //20 // 2
@@ -849,7 +819,7 @@ func testParallelTxnsQueryingSkipListIndexUsedColumns[T int32 | float32 | string
 		executePlan(c, shi.GetBufferPoolManager(), txn, insPlan)
 		sumOfAllAccountBalanceAtStart += int32(BALANCE_AT_START + ii)
 	}
-	txnMgr.Commit(txn)
+	txnMgr.Commit(nil, txn)
 
 	txn = txnMgr.Begin(nil)
 
@@ -865,7 +835,8 @@ func testParallelTxnsQueryingSkipListIndexUsedColumns[T int32 | float32 | string
 			casted := val.(string)
 			byteArr := make([]byte, len(casted))
 			copy(byteArr, casted)
-			return int32(hash.GenHashMurMur(byteArr)) % (math.MaxInt32 / stride)
+			//return int32(hash.GenHashMurMur(byteArr)) % (math.MaxInt32 / stride)
+			return int32(hash.GenHashMurMur(byteArr)) //% (math.MaxInt32 / stride)
 		default:
 			panic("unsupported type!")
 		}
@@ -897,7 +868,7 @@ func testParallelTxnsQueryingSkipListIndexUsedColumns[T int32 | float32 | string
 
 	insertedTupleCnt += initialEntryNum * stride
 
-	txnMgr.Commit(txn)
+	txnMgr.Commit(nil, txn)
 
 	ch := make(chan int32)
 
@@ -1042,6 +1013,7 @@ func testParallelTxnsQueryingSkipListIndexUsedColumns[T int32 | float32 | string
 			// append new base value
 			insValsAppendWithLock(newKeyValBase)
 			deleteCheckMapEntriesWithLock(oldKeyValBase)
+			deleteCheckMapEntriesWithLock(newKeyValBase)
 			atomic.AddInt32(&commitedTxnCnt, 1)
 		} else {
 			// rollback removed element
@@ -1096,6 +1068,12 @@ func testParallelTxnsQueryingSkipListIndexUsedColumns[T int32 | float32 | string
 
 		// move money, Random Insert, Randome Delete, Random Update, Random Point Scan, Random Range Scan
 		opType := rand.Intn(8)
+
+		//// move money, Random Insert, Randome Delete, ,Random Point Scan, Random Range Scan
+		//opType := rand.Intn(7)
+		//if opType >= 4 {
+		//	opType += 1
+		//}
 
 		//// move money only
 		//opType := 0
@@ -1340,7 +1318,7 @@ func testParallelTxnsQueryingSkipListIndexUsedColumns[T int32 | float32 | string
 					for jj := int32(0); jj < stride; jj++ {
 						delKeyVal := samehada_util.StrideAdd(samehada_util.StrideMul(delKeyValBase, stride), jj).(T)
 
-						common.ShPrintf(common.DEBUGGING, "Delete(success) op start.\n")
+						common.ShPrintf(common.DEBUGGING, "Delete(success) op start %v.\n", delKeyVal)
 
 						delPlan := createSpecifiedValDeletePlanNode(delKeyVal, c, tableMetadata, keyType, indexKind)
 						results := executePlan(c, shi.GetBufferPoolManager(), txn_, delPlan)
@@ -1607,6 +1585,11 @@ func testParallelTxnsQueryingSkipListIndexUsedColumns[T int32 | float32 | string
 	// final checking of DB stored data
 	// below, txns are execurted serial. so, txn abort due to CC protocol doesn't occur
 
+	// check txn finished state and print these statistics
+	common.SH_Assert(commitedTxnCnt+abortedTxnCnt == executedTxnCnt, "txn counting has bug(1)!")
+	fmt.Printf("commited: %d aborted: %d all: %d (1)\n", commitedTxnCnt, abortedTxnCnt, executedTxnCnt)
+	fmt.Printf("len(insVals):%d len(checkKeyColDupMap):%d len(checkBalanceColDupMap):%d\n", len(insVals), len(checkKeyColDupMap), len(checkBalanceColDupMap))
+
 	// check total volume of accounts
 	checkTotalBalanceNoChange()
 
@@ -1614,6 +1597,7 @@ func testParallelTxnsQueryingSkipListIndexUsedColumns[T int32 | float32 | string
 
 	// col1 ---------------------------------
 	txn_ := txnMgr.Begin(nil)
+	txn_.MakeNotAbortable()
 
 	// check record num (index of col1 is used)
 	collectNumMaybe := insertedTupleCnt - deletedTupleCnt
@@ -1621,10 +1605,50 @@ func testParallelTxnsQueryingSkipListIndexUsedColumns[T int32 | float32 | string
 	rangeScanPlan1 := createSpecifiedRangeScanPlanNode[T](c, tableMetadata, keyType, 0, nil, nil, indexKind)
 	results1 := executePlan(c, shi.GetBufferPoolManager(), txn_, rangeScanPlan1)
 	resultsLen1 := len(results1)
+	common.SH_Assert(txn_.GetState() != access.ABORTED, "last tuple count check is aborted!(1)")
+	for idx, tuple_ := range results1 {
+		common.SH_Assert(tuple_.Size() != 0, fmt.Sprintf("checked tuple's size is zero!!! idx=%d", idx))
+	}
+
+	// check value duplication (first column)
+	rsltCheckMap := make(map[T]T, 0)
+	for _, tuple_ := range results1 {
+		val := tuple_.GetValue(tableMetadata.Schema(), 0).ToIFValue()
+		castedVal := val.(T)
+		if _, ok := rsltCheckMap[castedVal]; ok {
+			fmt.Printf("duplicated key found on result1! rid:%v val:%v\n", tuple_.GetRID(), castedVal)
+		} else {
+			rsltCheckMap[castedVal] = castedVal
+		}
+	}
+
+	// detect tuple which has illegal value at first column (unknown key based value)
+	// -- make map having values which should be in DB
+	okValMap := make(map[T]T, 0)
+	for _, baseKey := range insVals {
+		for ii := int32(0); ii < stride; ii++ {
+			okVal := samehada_util.StrideAdd(samehada_util.StrideMul(baseKey, stride), ii).(T)
+			okValMap[okVal] = okVal
+		}
+	}
+	// -- check values on results1
+	for _, tuple_ := range results1 {
+		val := tuple_.GetValue(tableMetadata.Schema(), 0).ToIFValue()
+		castedVal := val.(T)
+		if _, ok := okValMap[castedVal]; !ok {
+			if !samehada_util.IsContainList[T](accountIds, castedVal) {
+				fmt.Printf("illegal key found on result1! rid:%v val:%v\n", tuple_.GetRID(), castedVal)
+			}
+		}
+	}
+
 	common.SH_Assert(collectNumMaybe == int32(resultsLen1), "records count is not matched with assumed num "+fmt.Sprintf("%d != %d", collectNumMaybe, resultsLen1))
+	finalizeRandomNoSideEffectTxn(txn_)
 
 	if indexKind == index_constants.INDEX_KIND_SKIP_LIST {
 		// check order (col1 when index of it is used)
+		txn_ = txnMgr.Begin(nil)
+		txn_.MakeNotAbortable()
 		var prevVal1 *types.Value = nil
 		for jj := 0; jj < resultsLen1; jj++ {
 			curVal1 := results1[jj].GetValue(tableMetadata.Schema(), 0)
@@ -1639,15 +1663,21 @@ func testParallelTxnsQueryingSkipListIndexUsedColumns[T int32 | float32 | string
 
 	// col2 ----------------------------------
 	txn_ = txnMgr.Begin(nil)
+	txn_.MakeNotAbortable()
 
 	//check record num (index of col2 is used)
 	rangeScanPlan2 := createSpecifiedRangeScanPlanNode[T](c, tableMetadata, keyType, 1, nil, nil, indexKind)
 	results2 := executePlan(c, shi.GetBufferPoolManager(), txn_, rangeScanPlan2)
 	resultsLen2 := len(results2)
+	common.SH_Assert(txn_.GetState() != access.ABORTED, "last tuple count check is aborted!(2)")
 	common.SH_Assert(collectNumMaybe == int32(resultsLen2), "records count is not matched with assumed num "+fmt.Sprintf("%d != %d", collectNumMaybe, resultsLen2))
+	fmt.Printf("collectNumMaybe:%d == resultsLen2:%d\n", collectNumMaybe, resultsLen2)
+	finalizeRandomNoSideEffectTxn(txn_)
 
 	if indexKind == index_constants.INDEX_KIND_SKIP_LIST {
 		// check order (col2 when index of it is used)
+		txn_ = txnMgr.Begin(nil)
+		txn_.MakeNotAbortable()
 		var prevVal2 *types.Value = nil
 		for jj := 0; jj < resultsLen2; jj++ {
 			curVal2 := results2[jj].GetValue(tableMetadata.Schema(), 1)
@@ -1660,63 +1690,39 @@ func testParallelTxnsQueryingSkipListIndexUsedColumns[T int32 | float32 | string
 	}
 	// --------------------------------------
 
-	// check txn finished state and print these statistics
-	common.SH_Assert(commitedTxnCnt+abortedTxnCnt == executedTxnCnt, "txn counting has bug!")
-	fmt.Printf("commited: %d aborted: %d all: %d\n", commitedTxnCnt, abortedTxnCnt, executedTxnCnt)
+	common.SH_Assert(commitedTxnCnt+abortedTxnCnt == executedTxnCnt, "txn counting has bug(2)!")
+	fmt.Printf("commited: %d aborted: %d all: %d (2)\n", commitedTxnCnt, abortedTxnCnt, executedTxnCnt)
 
 	shi.CloseFilesForTesting()
 }
 
 func testSkipListParallelTxnStrideRoot[T int32 | float32 | string](t *testing.T, keyType types.TypeID) {
-	bpoolSize := int32(500)
-	//bpoolSize := int32(50)
-	//bpoolSize := int32(100)
-	//bpoolSize := int32(200)
-	//bpoolSize := int32(30)
+	//bpoolSize := int32(500)
+	bpoolSize := int32(100)
 
 	switch keyType {
 	case types.Integer:
-		//testParallelTxnsQueryingSkipListIndexUsedColumns[T](t, keyType, 400, 50, 13, 0, bpoolSize, index_constants.INDEX_KIND_INVAID, SERIAL_EXEC)
-		//testParallelTxnsQueryingSkipListIndexUsedColumns[T](t, keyType, 400, 500, 13, 0, bpoolSize, index_constants.INDEX_KIND_INVAID, PARALLEL_EXEC)
-		//testParallelTxnsQueryingSkipListIndexUsedColumns[T](t, keyType, 400, 500, 18, 0, bpoolSize, index_constants.INDEX_KIND_INVAID, PARALLEL_EXEC)
-		//testParallelTxnsQueryingSkipListIndexUsedColumns[T](t, keyType, 400, 500, 13, 0, bpoolSize, index_constants.INDEX_KIND_SKIP_LIST, PARALLEL_EXEC)
-		//testParallelTxnsQueryingSkipListIndexUsedColumns[T](t, keyType, 400, 2000, 13, 0, bpoolSize, index_constants.INDEX_KIND_SKIP_LIST, PARALLEL_EXEC, 20)
-		//testParallelTxnsQueryingSkipListIndexUsedColumns[T](t, keyType, 400, 4000, 13, 0, bpoolSize, index_constants.INDEX_KIND_SKIP_LIST, PARALLEL_EXEC, 20)
-		//testParallelTxnsQueryingSkipListIndexUsedColumns[T](t, keyType, 400, 4000, 13, 0, bpoolSize, index_constants.INDEX_KIND_SKIP_LIST, PARALLEL_EXEC, 20)
-		//testParallelTxnsQueryingSkipListIndexUsedColumns[T](t, keyType, 400, 8000, 13, 0, bpoolSize, index_constants.INDEX_KIND_SKIP_LIST, PARALLEL_EXEC, 20)
-		testParallelTxnsQueryingSkipListIndexUsedColumns[T](t, keyType, 400, 32000, 13, 0, bpoolSize, index_constants.INDEX_KIND_SKIP_LIST, PARALLEL_EXEC, 20)
-		//testParallelTxnsQueryingSkipListIndexUsedColumns[T](t, keyType, 400, 16000, 13, 0, bpoolSize, index_constants.INDEX_KIND_SKIP_LIST, PARALLEL_EXEC, 20)
-		//testParallelTxnsQueryingSkipListIndexUsedColumns[T](t, keyType, 400, 4000, 13, 0, bpoolSize, index_constants.INDEX_KIND_SKIP_LIST, SERIAL_EXEC, 20)
-		//testParallelTxnsQueryingSkipListIndexUsedColumns[T](t, keyType, 400, 800, 13, 0, bpoolSize, index_constants.INDEX_KIND_SKIP_LIST, PARALLEL_EXEC)
-
-		//testParallelTxnsQueryingSkipListIndexUsedColumns[T](t, keyType, 400, 2000, 13, 0, bpoolSize, index_constants.INDEX_KIND_SKIP_LIST, SERIAL_EXEC)
-		//testParallelTxnsQueryingSkipListIndexUsedColumns[T](t, keyType, 400, 2000, 13, 0, bpoolSize, index_constants.INDEX_KIND_INVAID, SERIAL_EXEC)
-		//testParallelTxnsQueryingSkipListIndexUsedColumns[T](t, keyType, 400, 500, 13, 0, bpoolSize, index_constants.INDEX_KIND_INVAID, SERIAL_EXEC)
-
-		//testParallelTxnsQueryingSkipListIndexUsedColumns[T](t, keyType, 400, 500, 19, 0, bpoolSize, index_constants.INDEX_KIND_SKIP_LIST, PARALLEL_EXEC)
-		//testParallelTxnsQueryingSkipListIndexUsedColumns[T](t, keyType, 500, 100, 13, 0, bpoolSize, index_constants.INDEX_KIND_SKIP_LIST, SERIAL_EXEC)
-		//testParallelTxnsQueryingSkipListIndexUsedColumns[T](t, keyType, 500, 100, 13, 100, bpoolSize, index_constants.INDEX_KIND_SKIP_LIST)
-		//testParallelTxnsQueryingSkipListIndexUsedColumns[T](t, keyType, 500, 1000, 13, 100, bpoolSize, index_constants.INDEX_KIND_SKIP_LIST)
+		testParallelTxnsQueryingSkipListIndexUsedColumns[T](t, keyType, 400, 2000, 13, 0, bpoolSize, index_constants.INDEX_KIND_INVAID, PARALLEL_EXEC, 20)
 	case types.Varchar:
-		testParallelTxnsQueryingSkipListIndexUsedColumns[T](t, keyType, 50, 100, 13, 100, bpoolSize, index_constants.INDEX_KIND_INVAID, PARALLEL_EXEC, 20)
+		//testParallelTxnsQueryingSkipListIndexUsedColumns[T](t, keyType, 400, 400, 13, 0, bpoolSize, index_constants.INDEX_KIND_INVAID, PARALLEL_EXEC, 20)
+		testParallelTxnsQueryingSkipListIndexUsedColumns[T](t, keyType, 400, 3000, 13, 0, bpoolSize, index_constants.INDEX_KIND_SKIP_LIST, PARALLEL_EXEC, 20)
 	default:
 		panic("not implemented!")
 	}
-
 }
 
 func TestSkipListPrallelTxnStrideInteger(t *testing.T) {
-	//t.Parallel()
-	//if testing.Short() {
-	//	t.Skip("skip this in short mode.")
-	//}
+	t.Parallel()
+	if testing.Short() {
+		t.Skip("skip this in short mode.")
+	}
 	testSkipListParallelTxnStrideRoot[int32](t, types.Integer)
 }
 
-//func TestSkipListPrallelTxnStrideVarchar(t *testing.T) {
-//	//t.Parallel()
-//	//if testing.Short() {
-//	//	t.Skip("skip this in short mode.")
-//	//}
-//	testSkipListParallelTxnStrideRoot[string](t, types.Varchar)
-//}
+func TestSkipListPrallelTxnStrideVarchar(t *testing.T) {
+	t.Parallel()
+	if testing.Short() {
+		t.Skip("skip this in short mode.")
+	}
+	testSkipListParallelTxnStrideRoot[string](t, types.Varchar)
+}

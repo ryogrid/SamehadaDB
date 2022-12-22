@@ -4,6 +4,7 @@
 package access
 
 import (
+	"fmt"
 	"github.com/ryogrid/SamehadaDB/storage/tuple"
 )
 
@@ -38,26 +39,25 @@ func (it *TableHeapIterator) End() bool {
 // The next tuple can be inside the same page of the current tuple
 // or it can be in the next page
 func (it *TableHeapIterator) Next() *tuple.Tuple {
+start:
 	bpm := it.tableHeap.bpm
 	currentPage := CastPageAsTablePage(bpm.FetchPage(it.Current().GetRID().GetPageId()))
 	currentPage.RLatch()
 	currentPage.AddRLatchRecord(int32(it.txn.txn_id))
 
+	//isContinued := false
+	//for {
 	nextTupleRID := currentPage.GetNextTupleRID(it.Current().GetRID(), false)
 	if nextTupleRID == nil {
 		// VARIANT: currentPage is always RLatched after loop
 		for currentPage.GetNextPageId().IsValid() {
 			nextPage := CastPageAsTablePage(bpm.FetchPage(currentPage.GetNextPageId()))
+			bpm.UnpinPage(currentPage.GetPageId(), false)
+			nextPage.RLatch()
+			nextPage.AddRLatchRecord(int32(it.txn.txn_id))
 			currentPage.RemoveRLatchRecord(int32(it.txn.txn_id))
 			currentPage.RUnlatch()
-			//currentPage.WLatch()
-			//currentPage.AddWLatchRecord(int32(it.txn.txn_id))
-			bpm.UnpinPage(currentPage.GetPageId(), false)
-			//currentPage.RemoveWLatchRecord(int32(it.txn.txn_id))
-			//currentPage.WUnlatch()
 			currentPage = nextPage
-			currentPage.RLatch()
-			currentPage.AddRLatchRecord(int32(it.txn.txn_id))
 			nextTupleRID = currentPage.GetNextTupleRID(it.Current().GetRID(), true)
 
 			if nextTupleRID != nil {
@@ -65,20 +65,33 @@ func (it *TableHeapIterator) Next() *tuple.Tuple {
 			}
 		}
 	}
-	currentPage.RemoveRLatchRecord(int32(it.txn.txn_id))
-	currentPage.RUnlatch()
 
-	//currentPage.WLatch()
-	//currentPage.AddWLatchRecord(int32(it.txn.txn_id))
-	bpm.UnpinPage(currentPage.GetPageId(), false)
-	//currentPage.RemoveWLatchRecord(int32(it.txn.txn_id))
-	//currentPage.WUnlatch()
-
-	if nextTupleRID != nil && nextTupleRID.GetPageId().IsValid() {
-		it.tuple = it.tableHeap.GetTuple(nextTupleRID, it.txn)
-	} else {
-		it.tuple = nil
+	//if !isContinued {
+	finalizeCurrentPage := func() {
+		bpm.UnpinPage(currentPage.GetPageId(), false)
+		currentPage.RemoveRLatchRecord(int32(it.txn.txn_id))
+		currentPage.RUnlatch()
+		//}
 	}
 
+	var err error = nil
+	if nextTupleRID != nil && nextTupleRID.GetPageId().IsValid() {
+		//it.tuple, err = it.tableHeap.GetTuple(nextTupleRID, it.txn)
+		it.tuple, err = currentPage.GetTuple(nextTupleRID, it.tableHeap.log_manager, it.lock_manager, it.txn)
+		if it.tuple != nil && err == ErrSelfDeletedCase {
+			//isContinued = true
+			//continue
+			fmt.Println("TableHeapIterator::Next ErrSelfDeletedCase!")
+			finalizeCurrentPage()
+			goto start
+		}
+		//break
+	} else {
+		it.tuple = nil
+		//break
+	}
+	//}
+
+	finalizeCurrentPage()
 	return it.tuple
 }

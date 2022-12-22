@@ -2,6 +2,7 @@ package executors
 
 import (
 	"errors"
+	"fmt"
 	"github.com/ryogrid/SamehadaDB/catalog"
 	"github.com/ryogrid/SamehadaDB/execution/expression"
 	"github.com/ryogrid/SamehadaDB/execution/plans"
@@ -97,11 +98,18 @@ func (e *RangeScanWithIndexExecutor) Init() {
 func (e *RangeScanWithIndexExecutor) Next() (*tuple.Tuple, Done, error) {
 	// iterates through the RIDs got from index
 	var tuple_ *tuple.Tuple = nil
+	var err error = nil
 	for done, _, key, rid := e.ridItr.Next(); !done; done, _, key, rid = e.ridItr.Next() {
-		tuple_ = e.tableMetadata.Table().GetTuple(rid, e.txn)
-		if tuple_ == nil {
+		tuple_, err = e.tableMetadata.Table().GetTuple(rid, e.txn)
+		if tuple_ == nil && (err == nil || err == access.ErrGeneral) {
 			err := errors.New("e.ridItr.Next returned nil")
+			e.txn.SetState(access.ABORTED)
 			return nil, true, err
+		}
+
+		if err == access.ErrSelfDeletedCase {
+			fmt.Println("RangeScanWithIndexExecutor:Next ErrSelfDeletedCase!")
+			continue
 		}
 
 		// check value update after getting iterator which contains snapshot of RIDs and Keys which were stored in Index
@@ -109,7 +117,7 @@ func (e *RangeScanWithIndexExecutor) Next() (*tuple.Tuple, Done, error) {
 		if !curKeyVal.CompareEquals(*key) {
 			// column value corresponding index key is updated
 			e.txn.SetState(access.ABORTED)
-			return nil, true, errors.New("detect value update after iterator created. Transaction should be aborted.")
+			return nil, true, errors.New("detect value update after iterator created. changes transaction state to aborted.")
 		}
 		// check predicate
 		if e.selects(tuple_, e.plan.GetPredicate()) {
