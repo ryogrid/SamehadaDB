@@ -331,10 +331,6 @@ func (tp *TablePage) ApplyDelete(rid *page.RID, txn *Transaction, log_manager *r
 		}
 	}
 
-	if txn.dbgInfo == "Update(random)-Op" {
-		fmt.Println()
-	}
-
 	slot_num := rid.GetSlotNum()
 	common.SH_Assert(slot_num < tp.GetTupleCount(), "Cannot have more slots than tuples.")
 

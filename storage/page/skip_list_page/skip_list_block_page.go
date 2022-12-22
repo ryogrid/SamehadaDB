@@ -285,19 +285,19 @@ func (node *SkipListBlockPage) Insert(key *types.Value, value uint32, bpm *buffe
 		}
 
 		fmt.Println("Insert: key duplicatin occured")
-		// TODO: (SDB) for concurrent running test
+
 		//if node.GetEntry(int(foundIdx), key.ValueType()).Key.CompareEquals(*key) {
 		//	panic("key duplication is not supported yet!")
 		//}
-		//
-		//node.SetEntry(int(foundIdx), &SkipListPair{*key, value})
-		////fmt.Printf("end of Insert of SkipListBlockPage called! : key=%d page.entryCnt=%d len(page.entries)=%d\n", key.ToInteger(), node.entryCnt, len(node.entries))
-		//
-		//if node.GetEntry(int(foundIdx), key.ValueType()).Key.CompareEquals(*key) {
-		//	node.SetEntryCnt(node.GetEntryCnt() - 1)
-		//}
-		//
-		//node.SetLSN(node.GetLSN() + 1)
+		
+		node.SetEntry(int(foundIdx), &SkipListPair{*key, value})
+		//fmt.Printf("end of Insert of SkipListBlockPage called! : key=%d page.entryCnt=%d len(page.entries)=%d\n", key.ToInteger(), node.entryCnt, len(node.entries))
+
+		if node.GetEntry(int(foundIdx), key.ValueType()).Key.CompareEquals(*key) {
+			node.SetEntryCnt(node.GetEntryCnt() - 1)
+		}
+
+		node.SetLSN(node.GetLSN() + 1)
 
 		bpm.UnpinPage(node.GetPageId(), true)
 		node.RemoveWLatchRecord(key.ToInteger())

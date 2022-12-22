@@ -198,7 +198,7 @@ func (t *TableHeap) UpdateTuple(tuple_ *tuple.Tuple, update_col_idxs []int, sche
 		}
 
 		if !is_deleted {
-			fmt.Println("TableHeap::UpdateTuple(): MarkDelete failed")
+			//fmt.Println("TableHeap::UpdateTuple(): MarkDelete failed")
 			txn.SetState(ABORTED)
 			return false, nil, ErrGeneral, nil
 		}
@@ -206,12 +206,12 @@ func (t *TableHeap) UpdateTuple(tuple_ *tuple.Tuple, update_col_idxs []int, sche
 		var err_ error = nil
 		new_rid, err_ = t.InsertTuple(need_follow_tuple, txn, oid)
 		if err_ != nil {
-			fmt.Println("TableHeap::UpdateTuple(): InsertTuple failed")
+			//fmt.Println("TableHeap::UpdateTuple(): InsertTuple failed")
 			txn.SetState(ABORTED)
 			return false, nil, ErrPartialUpdate, nil
 		}
 
-		fmt.Printf("TableHeap::UpdateTuple(): rid:%v new_rid:%v\n", rid, new_rid)
+		//fmt.Printf("TableHeap::UpdateTuple(): rid:%v new_rid:%v\n", rid, new_rid)
 		// change return flag to success
 		is_updated = true
 		isUpdateWithDelInsert = true

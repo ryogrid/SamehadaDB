@@ -199,12 +199,6 @@ func (transaction_manager *TransactionManager) Abort(catalog_ catalog_interface.
 			is_updated, new_rid, _, _ := table.UpdateTuple(item.tuple, nil, nil, item.oid, item.rid, txn, true)
 			if !is_updated {
 				panic("UpdateTuple at rollback failed!")
-				//// TODO: (SDB) temporal impl for special case of UpdateTuple (Abort)
-				//fmt.Println("TransactionManager::Abort make rate handling of current handling WriteRecord(Update)")
-				//tmpList := make([]*WriteRecord, 0)
-				//tmpList = append(tmpList, item)
-				//write_set = append(tmpList, write_set[:len(write_set)-1]...)
-				//continue
 			}
 			// rollback index data
 			// when update is operated as delete and insert (rid change case),
@@ -212,14 +206,14 @@ func (transaction_manager *TransactionManager) Abort(catalog_ catalog_interface.
 			if catalog_ != nil {
 				indexes := catalog_.GetRollbackNeededIndexes(indexMap, item.oid)
 				var tuple_ *tuple.Tuple
-				var err error
+				//var err error
 				if new_rid != nil {
-					tuple_, err = item.table.GetTuple(new_rid, txn)
+					tuple_, _ = item.table.GetTuple(new_rid, txn)
 				} else {
-					tuple_, err = item.table.GetTuple(&item.rid, txn)
+					tuple_, _ = item.table.GetTuple(&item.rid, txn)
 				}
 
-				fmt.Printf("TransactionManager::Abort  rollback of Update! txn.txn_id:%d, tuple_.Size():%d err:%v indexes:%v\n", txn.txn_id, tuple_.Size(), err, indexes)
+				//fmt.Printf("TransactionManager::Abort  rollback of Update! txn.txn_id:%d, tuple_.Size():%d err:%v indexes:%v\n", txn.txn_id, tuple_.Size(), err, indexes)
 				for _, index_ := range indexes {
 					if index_ != nil {
 						colIdx := index_.GetKeyAttrs()[0]

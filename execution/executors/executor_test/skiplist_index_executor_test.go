@@ -8,33 +8,6 @@ import (
 	"github.com/ryogrid/SamehadaDB/execution/executors"
 	"github.com/ryogrid/SamehadaDB/execution/expression"
 	"github.com/ryogrid/SamehadaDB/execution/plans"
-	"github.com/ryogrid/SamehadaDB/samehada"
-	"github.com/ryogrid/SamehadaDB/samehada/samehada_util"
-	"github.com/ryogrid/SamehadaDB/storage/access"
-	"github.com/ryogrid/SamehadaDB/storage/buffer"
-	"github.com/ryogrid/SamehadaDB/storage/index/index_constants"
-	"github.com/ryogrid/SamehadaDB/storage/table/column"
-	"github.com/ryogrid/SamehadaDB/storage/table/schema"
-	"github.com/ryogrid/SamehadaDB/storage/tuple"
-	testingpkg "github.com/ryogrid/SamehadaDB/testing"
-	"github.com/ryogrid/SamehadaDB/types"
-	"math"
-	"math/rand"
-	"os"
-	"sync"
-	"sync/atomic"
-	"testing"
-)
-
-/*
-import (
-	"fmt"
-	"github.com/ryogrid/SamehadaDB/catalog"
-	"github.com/ryogrid/SamehadaDB/common"
-	"github.com/ryogrid/SamehadaDB/container/hash"
-	"github.com/ryogrid/SamehadaDB/execution/executors"
-	"github.com/ryogrid/SamehadaDB/execution/expression"
-	"github.com/ryogrid/SamehadaDB/execution/plans"
 	"github.com/ryogrid/SamehadaDB/recovery"
 	"github.com/ryogrid/SamehadaDB/samehada"
 	"github.com/ryogrid/SamehadaDB/samehada/samehada_util"
@@ -54,7 +27,6 @@ import (
 	"sync/atomic"
 	"testing"
 )
-
 
 func TestSkipListIndexPointScan(t *testing.T) {
 	common.TempSuppressOnMemStorageMutex.Lock()
@@ -110,7 +82,7 @@ func TestSkipListIndexPointScan(t *testing.T) {
 
 	bpm.FlushAllPages()
 
-	txn_mgr.Commit(txn)
+	txn_mgr.Commit(nil, txn)
 
 	cases := []executors.IndexPointScanTestCase{{
 		"select a ... WHERE b = 55",
@@ -251,7 +223,7 @@ func TestSkipListSerialIndexRangeScan(t *testing.T) {
 
 	bpm.FlushAllPages()
 
-	txn_mgr.Commit(txn)
+	txn_mgr.Commit(nil, txn)
 
 	cases := []executors.IndexRangeScanTestCase{{
 		"select a ... WHERE a >= 20 and a <= 1225",
@@ -314,18 +286,17 @@ func TestSkipListSerialIndexRangeScan(t *testing.T) {
 		[]*types.Value{nil, nil},
 		4,
 	}}
-//, {
-//		"select a ... WHERE a >= -2147483647 and a <= 1225", // fail because restriction of current SkipList Index impl?
-//		executionEngine,
-//		executorContext,
-//		tableMetadata,
-//		[]executors.Column{{"a", types.Integer}},
-//		executors.Predicate{"a", expression.GreaterThanOrEqual, 20},
-//		int32(tableMetadata.Schema().GetColIndex("a")),
-//		[]types.Value{types.NewInteger(math.MinInt32), types.NewInteger(1225)},
-//		3,
-//	}}
-
+	//, {
+	//		"select a ... WHERE a >= -2147483647 and a <= 1225", // fail because restriction of current SkipList Index impl?
+	//		executionEngine,
+	//		executorContext,
+	//		tableMetadata,
+	//		[]executors.Column{{"a", types.Integer}},
+	//		executors.Predicate{"a", expression.GreaterThanOrEqual, 20},
+	//		int32(tableMetadata.Schema().GetColIndex("a")),
+	//		[]types.Value{types.NewInteger(math.MinInt32), types.NewInteger(1225)},
+	//		3,
+	//	}}
 
 	for _, test := range cases {
 		t.Run(test.Description, func(t *testing.T) {
@@ -377,7 +348,7 @@ func TestAbortWthDeleteUpdateUsingIndexCasePointScan(t *testing.T) {
 	executorContext := executors.NewExecutorContext(c, bpm, txn)
 	executionEngine.Execute(insertPlanNode, executorContext)
 
-	txn_mgr.Commit(txn)
+	txn_mgr.Commit(nil, txn)
 
 	fmt.Println("update and delete rows...")
 	txn = txn_mgr.Begin(nil)
@@ -527,7 +498,7 @@ func TestAbortWthDeleteUpdateUsingIndexCaseRangeScan(t *testing.T) {
 	executorContext := executors.NewExecutorContext(c, bpm, txn)
 	executionEngine.Execute(insertPlanNode, executorContext)
 
-	txn_mgr.Commit(txn)
+	txn_mgr.Commit(nil, txn)
 
 	fmt.Println("update and delete rows...")
 	txn = txn_mgr.Begin(nil)
@@ -609,7 +580,6 @@ func TestAbortWthDeleteUpdateUsingIndexCaseRangeScan(t *testing.T) {
 	testingpkg.Assert(t, types.NewInteger(777).CompareEquals(results[0].GetValue(tableMetadata.Schema(), 0)), "value should be 777")
 	testingpkg.Assert(t, types.NewVarchar("bar").CompareEquals(results[0].GetValue(tableMetadata.Schema(), 1)), "value should be \"bar\"")
 }
-*/
 
 const (
 	SERIAL_EXEC = iota
@@ -1728,53 +1698,31 @@ func testParallelTxnsQueryingSkipListIndexUsedColumns[T int32 | float32 | string
 
 func testSkipListParallelTxnStrideRoot[T int32 | float32 | string](t *testing.T, keyType types.TypeID) {
 	//bpoolSize := int32(500)
-	//bpoolSize := int32(50)
 	bpoolSize := int32(100)
-	//bpoolSize := int32(200)
-	//bpoolSize := int32(30)
 
 	switch keyType {
 	case types.Integer:
-		//testParallelTxnsQueryingSkipListIndexUsedColumns[T](t, keyType, 400, 2000, 13, 0, bpoolSize, index_constants.INDEX_KIND_SKIP_LIST, PARALLEL_EXEC, 20)
-		//testParallelTxnsQueryingSkipListIndexUsedColumns[T](t, keyType, 400, 4000, 13, 0, bpoolSize, index_constants.INDEX_KIND_SKIP_LIST, PARALLEL_EXEC, 20)
-		//testParallelTxnsQueryingSkipListIndexUsedColumns[T](t, keyType, 400, 4000, 13, 0, bpoolSize, index_constants.INDEX_KIND_SKIP_LIST, PARALLEL_EXEC, 20)
-		//testParallelTxnsQueryingSkipListIndexUsedColumns[T](t, keyType, 400, 8000, 13, 0, bpoolSize, index_constants.INDEX_KIND_SKIP_LIST, PARALLEL_EXEC, 20)
 		testParallelTxnsQueryingSkipListIndexUsedColumns[T](t, keyType, 400, 2000, 13, 0, bpoolSize, index_constants.INDEX_KIND_INVAID, PARALLEL_EXEC, 20)
-		//testParallelTxnsQueryingSkipListIndexUsedColumns[T](t, keyType, 400, 8000, 13, 0, bpoolSize, index_constants.INDEX_KIND_SKIP_LIST, PARALLEL_EXEC, 20)
-		//testParallelTxnsQueryingSkipListIndexUsedColumns[T](t, keyType, 400, 16000, 13, 0, bpoolSize, index_constants.INDEX_KIND_SKIP_LIST, PARALLEL_EXEC, 20)
-		//testParallelTxnsQueryingSkipListIndexUsedColumns[T](t, keyType, 400, 4000, 13, 0, bpoolSize, index_constants.INDEX_KIND_SKIP_LIST, SERIAL_EXEC, 20)
-		//testParallelTxnsQueryingSkipListIndexUsedColumns[T](t, keyType, 400, 800, 13, 0, bpoolSize, index_constants.INDEX_KIND_SKIP_LIST, PARALLEL_EXEC)
 	case types.Varchar:
-		//testParallelTxnsQueryingSkipListIndexUsedColumns[T](t, keyType, 400, 32000, 13, 0, bpoolSize, index_constants.INDEX_KIND_SKIP_LIST, PARALLEL_EXEC, 20)
-		//testParallelTxnsQueryingSkipListIndexUsedColumns[T](t, keyType, 400, 2000, 13, 0, bpoolSize, index_constants.INDEX_KIND_INVAID, SERIAL_EXEC, 20)
-		//testParallelTxnsQueryingSkipListIndexUsedColumns[T](t, keyType, 200, 400, 13, 0, bpoolSize, index_constants.INDEX_KIND_INVAID, SERIAL_EXEC, 20)
-		//testParallelTxnsQueryingSkipListIndexUsedColumns[T](t, keyType, 200, 200, 13, 0, bpoolSize, index_constants.INDEX_KIND_INVAID, PARALLEL_EXEC, 20)
 		testParallelTxnsQueryingSkipListIndexUsedColumns[T](t, keyType, 400, 400, 13, 0, bpoolSize, index_constants.INDEX_KIND_INVAID, PARALLEL_EXEC, 20)
-		//testParallelTxnsQueryingSkipListIndexUsedColumns[T](t, keyType, 400, 800, 13, 0, bpoolSize, index_constants.INDEX_KIND_INVAID, SERIAL_EXEC, 20)
-		//testParallelTxnsQueryingSkipListIndexUsedColumns[T](t, keyType, 400, 2000, 13, 0, bpoolSize, index_constants.INDEX_KIND_INVAID, PARALLEL_EXEC, 20)
 		//testParallelTxnsQueryingSkipListIndexUsedColumns[T](t, keyType, 400, 3000, 13, 0, bpoolSize, index_constants.INDEX_KIND_SKIP_LIST, PARALLEL_EXEC, 20)
-		//testParallelTxnsQueryingSkipListIndexUsedColumns[T](t, keyType, 400, 8000, 13, 0, bpoolSize, index_constants.INDEX_KIND_SKIP_LIST, PARALLEL_EXEC, 20)
-		//testParallelTxnsQueryingSkipListIndexUsedColumns[T](t, keyType, 400, 8000, 13, 0, bpoolSize, index_constants.INDEX_KIND_SKIP_LIST, PARALLEL_EXEC, 20)
-		//testParallelTxnsQueryingSkipListIndexUsedColumns[T](t, keyType, 400, 500, 13, 0, bpoolSize, index_constants.INDEX_KIND_INVAID, PARALLEL_EXEC, 20)
-		//testParallelTxnsQueryingSkipListIndexUsedColumns[T](t, keyType, 400, 1500, 13, 0, bpoolSize, index_constants.INDEX_KIND_INVAID, PARALLEL_EXEC, 20)
 	default:
 		panic("not implemented!")
 	}
-
 }
 
-//func TestSkipListPrallelTxnStrideInteger(t *testing.T) {
-//	//t.Parallel()
-//	//if testing.Short() {
-//	//	t.Skip("skip this in short mode.")
-//	//}
-//	testSkipListParallelTxnStrideRoot[int32](t, types.Integer)
-//}
+func TestSkipListPrallelTxnStrideInteger(t *testing.T) {
+	t.Parallel()
+	if testing.Short() {
+		t.Skip("skip this in short mode.")
+	}
+	testSkipListParallelTxnStrideRoot[int32](t, types.Integer)
+}
 
 func TestSkipListPrallelTxnStrideVarchar(t *testing.T) {
-	//t.Parallel()
-	//if testing.Short() {
-	//	t.Skip("skip this in short mode.")
-	//}
+	t.Parallel()
+	if testing.Short() {
+		t.Skip("skip this in short mode.")
+	}
 	testSkipListParallelTxnStrideRoot[string](t, types.Varchar)
 }
