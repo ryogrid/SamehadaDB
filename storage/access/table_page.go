@@ -330,6 +330,11 @@ func (tp *TablePage) ApplyDelete(rid *page.RID, txn *Transaction, log_manager *r
 			fmt.Printf("TablePage::ApplyDelete called. pageId:%d txn.txn_id:%v dbgInfo:%s rid:%v\n", tp.GetPageId(), txn.txn_id, txn.dbgInfo, *rid)
 		}
 	}
+
+	if txn.dbgInfo == "Update(random)-Op" {
+		fmt.Println()
+	}
+
 	slot_num := rid.GetSlotNum()
 	common.SH_Assert(slot_num < tp.GetTupleCount(), "Cannot have more slots than tuples.")
 

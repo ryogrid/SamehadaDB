@@ -177,7 +177,7 @@ func (transaction_manager *TransactionManager) Abort(catalog_ catalog_interface.
 			tpage.WLatch()
 			tpage.AddWLatchRecord(int32(txn.txn_id))
 			tpage.ApplyDelete(&item.rid, txn, transaction_manager.log_manager)
-			table.bpm.UnpinPage(pageID, false)
+			table.bpm.UnpinPage(pageID, true)
 			tpage.RemoveWLatchRecord(int32(txn.txn_id))
 			tpage.WUnlatch()
 			// rollback index data
