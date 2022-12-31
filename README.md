@@ -60,8 +60,9 @@
   - [x] Hash Index
     - Hash index can be used only equal(==) operator is specified to index having columns
     - When the system exits in not graceful, reconstruction of index data is needed at reboot of system now
-  - [ ] SkipList Index
-  - <del>Tree Based Index</del>
+  - [x] SkipList Index
+    - Alternative of B-tree Index 
+  - <del>B-tree Index</del>
   - [ ] Logging/Recovery of Index Data (Redo/Undo)
 - [ ] JOIN
   - [x] INNER JOIN (Hash Join)
