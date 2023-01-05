@@ -156,7 +156,7 @@ func (sl *SkipList) FindNode(key *types.Value, opType SkipListOpType) (isSuccess
 
 			// memory for checking update existence while no latch having period
 			//beforeLSN := pred.GetLSN()
-			beforePredId := pred.GetPageId()
+			//beforePredId := pred.GetPageId()
 			if pred.GetPageId() != sl.getStartNode().GetPageId() {
 				sl.bpm.UnpinPage(pred.GetPageId(), false)
 			}
@@ -166,17 +166,17 @@ func (sl *SkipList) FindNode(key *types.Value, opType SkipListOpType) (isSuccess
 			pred = skip_list_page.FetchAndCastToBlockPage(sl.bpm, predOfPredId)
 			latchOpWithOpType(pred, SKIP_LIST_UTIL_GET_LATCH, opType)
 
-			// check updating occurred or not
-			beforePred := skip_list_page.FetchAndCastToBlockPage(sl.bpm, beforePredId)
-			latchOpWithOpType(beforePred, SKIP_LIST_UTIL_GET_LATCH, opType)
+			//// check updating occurred or not
+			//beforePred := skip_list_page.FetchAndCastToBlockPage(sl.bpm, beforePredId)
+			//latchOpWithOpType(beforePred, SKIP_LIST_UTIL_GET_LATCH, opType)
 			afterLSN := pred.GetLSN()
 			// check update state of beforePred (pred which was pred before sliding)
 			if predOfPredLSN != afterLSN {
 				// updating exists
 				sl.bpm.UnpinPage(pred.GetPageId(), false)
 				latchOpWithOpType(pred, SKIP_LIST_UTIL_UNLATCH, opType)
-				sl.bpm.UnpinPage(beforePred.GetPageId(), false)
-				latchOpWithOpType(beforePred, SKIP_LIST_UTIL_UNLATCH, opType)
+				//sl.bpm.UnpinPage(beforePred.GetPageId(), false)
+				//latchOpWithOpType(beforePred, SKIP_LIST_UTIL_UNLATCH, opType)
 				if common.EnableDebug {
 					common.ShPrintf(common.DEBUG_INFO, "FindNode: finished with rety. key=%v opType=%d\n", key.ToIFValue(), opType)
 					common.ShPrintf(common.DEBUG_INFO, "pred: ")
@@ -186,8 +186,8 @@ func (sl *SkipList) FindNode(key *types.Value, opType SkipListOpType) (isSuccess
 				}
 				return false, nil, nil, nil
 			}
-			sl.bpm.UnpinPage(beforePred.GetPageId(), false)
-			latchOpWithOpType(beforePred, SKIP_LIST_UTIL_UNLATCH, opType)
+			//sl.bpm.UnpinPage(beforePred.GetPageId(), false)
+			//latchOpWithOpType(beforePred, SKIP_LIST_UTIL_UNLATCH, opType)
 		} else {
 			if curr != nil {
 				sl.bpm.UnpinPage(curr.GetPageId(), false)
