@@ -849,11 +849,11 @@ func testParallelTxnsQueryingSkipListIndexUsedColumns[T int32 | float32 | string
 		keyValBase := getUniqRandomPrimitivVal(keyType, checkKeyColDupMap, checkKeyColDupMapMutex, nil)
 		balanceVal := getInt32ValCorrespondToPassVal(keyValBase)
 		if _, exist := checkBalanceColDupMap[balanceVal]; exist || (balanceVal >= 0 && balanceVal > sumOfAllAccountBalanceAtStart) {
-			delete(checkBalanceColDupMap, balanceVal)
+			delete(checkKeyColDupMap, keyValBase)
 			goto retry0
 		}
 		checkBalanceColDupMap[balanceVal] = balanceVal
-		checkKeyColDupMap[keyValBase] = keyValBase
+		//checkKeyColDupMap[keyValBase] = keyValBase
 
 		for ii := int32(0); ii < stride; ii++ {
 			insKeyVal := samehada_util.StrideAdd(samehada_util.StrideMul(keyValBase, stride), ii).(T)
@@ -1013,7 +1013,7 @@ func testParallelTxnsQueryingSkipListIndexUsedColumns[T int32 | float32 | string
 			// append new base value
 			insValsAppendWithLock(newKeyValBase)
 			deleteCheckMapEntriesWithLock(oldKeyValBase)
-			deleteCheckMapEntriesWithLock(newKeyValBase)
+			//deleteCheckMapEntriesWithLock(newKeyValBase)
 			atomic.AddInt32(&commitedTxnCnt, 1)
 		} else {
 			// rollback removed element
