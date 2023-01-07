@@ -85,6 +85,28 @@ func (e *UpdateExecutor) Next() (*tuple.Tuple, Done, error) {
 				continue
 			} else {
 				index_ := ret
+				//if updateErr == access.ErrPartialUpdate {
+				//	// when tuple is moved page location on update, RID is changed to new value
+				//	// removing index entry is done at commit phase because delete operation uses marking technique
+				//
+				//	index_.DeleteEntry(t, *rid, e.txn)
+				//
+				//	//if updateErr != access.ErrPartialUpdate {
+				//	//	fmt.Println("UpdateExecuter: index entry insert with new_rid. value update of index entry occurs.")
+				//	//	//index_.InsertEntry(new_tuple, *new_rid, e.txn)
+				//	//	index_.InsertEntry(updateTuple, *new_rid, e.txn)
+				//	//}
+				//
+				//	// do nothing
+				//} else {
+				//	index_.DeleteEntry(t, *rid, e.txn)
+				//	//index_.InsertEntry(new_tuple, *rid, e.txn)
+				//	if new_rid != nil {
+				//		index_.InsertEntry(updateTuple, *new_rid, e.txn)
+				//	} else {
+				//		index_.InsertEntry(updateTuple, *rid, e.txn)
+				//	}
+				//}
 				if updateIdxs == nil || samehada_util.IsContainList[int](updateIdxs, ii) {
 					if updateErr == access.ErrPartialUpdate {
 						// when tuple is moved page location on update, RID is changed to new value
@@ -114,6 +136,7 @@ func (e *UpdateExecutor) Next() (*tuple.Tuple, Done, error) {
 						// removing index entry is done at commit phase because delete operation uses marking technique
 
 						index_.DeleteEntry(t, *rid, e.txn)
+
 						//if updateErr != access.ErrPartialUpdate {
 						//	fmt.Println("UpdateExecuter: index entry insert with new_rid. value update of index entry occurs.")
 						//	//index_.InsertEntry(t, *new_rid, e.txn)

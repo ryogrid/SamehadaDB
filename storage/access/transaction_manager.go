@@ -220,7 +220,7 @@ func (transaction_manager *TransactionManager) Abort(catalog_ catalog_interface.
 						bfRlbkKeyVal := catalog_.GetColValFromTupleForRollback(beforRollbackTuple_, colIdx, item.oid)
 						rlbkKeyVal := catalog_.GetColValFromTupleForRollback(tuple_, colIdx, item.oid)
 						if !bfRlbkKeyVal.CompareEquals(*rlbkKeyVal) {
-							// rollback is needed only when column value changed case
+							//rollback is needed only when column value changed case
 							index_.DeleteEntry(beforRollbackTuple_, item.rid, txn)
 							if new_rid != nil {
 								index_.InsertEntry(tuple_, *new_rid, txn)

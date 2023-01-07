@@ -557,9 +557,13 @@ func (tp *TablePage) GetTuple(rid *page.RID, log_manager *recovery.LogManager, l
 			fmt.Println("TablePage:GetTuple ErrSelfDeletedCase (1)!")
 			return tuple.NewTuple(rid, 0, make([]byte, 0)), ErrSelfDeletedCase
 		} else {
-			panic(fmt.Sprintf("TablePage::GetTuple illegal rid passed. rid:%v", *rid))
-			//txn.SetState(ABORTED)
-			//return nil, ErrGeneral
+			//panic(fmt.Sprintf("TablePage::GetTuple illegal rid passed. rid:%v", *rid))
+
+			// when Next method call of RangeSanWithIndexExecutor which uses SkipListIterator as RID itrator is called
+			// the txn enter here.
+
+			txn.SetState(ABORTED)
+			return nil, ErrGeneral
 		}
 	}
 
