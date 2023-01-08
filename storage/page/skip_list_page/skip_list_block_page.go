@@ -284,12 +284,12 @@ func (node *SkipListBlockPage) Insert(key *types.Value, value uint32, bpm *buffe
 			panic("overwriting wrong entry!")
 		}
 
-		fmt.Println("Insert: key duplicatin occured")
+		fmt.Printf("Insert: key duplication occured. %v\n", key.ToIFValue())
 
 		//if node.GetEntry(int(foundIdx), key.ValueType()).Key.CompareEquals(*key) {
 		//	panic("key duplication is not supported yet!")
 		//}
-		
+
 		node.SetEntry(int(foundIdx), &SkipListPair{*key, value})
 		//fmt.Printf("end of Insert of SkipListBlockPage called! : key=%d page.entryCnt=%d len(page.entries)=%d\n", key.ToInteger(), node.entryCnt, len(node.entries))
 
@@ -307,6 +307,8 @@ func (node *SkipListBlockPage) Insert(key *types.Value, value uint32, bpm *buffe
 		}
 		return false
 	} else { // !found
+		//fmt.Printf("Insert %v\n", key.ToIFValue())
+
 		//fmt.Printf("not found at Insert of SkipListBlockPage. foundIdx=%d\n", foundIdx)
 		if node.getFreeSpaceRemaining() < node.GetSpecifiedSLPNeedSpace(&SkipListPair{*key, value}) {
 			// this node is full. so node split is needed
@@ -637,6 +639,8 @@ func (node *SkipListBlockPage) Remove(bpm *buffer.BufferPoolManager, key *types.
 	if common.EnableDebug && common.ActiveLogKindSetting&common.RDB_OP_FUNC_CALL > 0 {
 		fmt.Printf("SkipListBlockPage::Remove: start. key=%v\n", key.ToIFValue())
 	}
+	//fmt.Printf("Remove %v\n", key.ToIFValue())
+
 	found, _, foundIdx := node.FindEntryByKey(key)
 	if found && (node.GetEntryCnt() == 1) {
 		if !node.GetEntry(0, key.ValueType()).Key.CompareEquals(*key) {

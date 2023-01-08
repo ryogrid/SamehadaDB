@@ -141,7 +141,7 @@ func (t *TableHeap) InsertTuple(tuple_ *tuple.Tuple, txn *Transaction, oid uint3
 
 // if specified nil to update_col_idxs and schema_, all data of existed tuple is replaced one of new_tuple
 // if specified not nil, new_tuple also should have all columns defined in schema. but not update target value can be dummy value
-func (t *TableHeap) UpdateTuple(tuple_ *tuple.Tuple, update_col_idxs []int, schema_ *schema.Schema, oid uint32, rid page.RID, txn *Transaction, isRollback bool) (bool, *page.RID, error, *tuple.Tuple) {
+func (t *TableHeap) UpdateTuple(tuple_ *tuple.Tuple, update_col_idxs []int, schema_ *schema.Schema, oid uint32, rid page.RID, txn *Transaction, isRollback bool) (is_success bool, new_rid_ *page.RID, err_ error, update_tuple_ *tuple.Tuple, old_tuple_ *tuple.Tuple) {
 	if common.EnableDebug {
 		if common.ActiveLogKindSetting&common.RDB_OP_FUNC_CALL > 0 {
 			fmt.Printf("TableHeap::UpadteTuple called. txn.txn_id:%v dbgInfo:%s update_col_idxs:%v rid:%v\n", txn.txn_id, txn.dbgInfo, update_col_idxs, rid)
@@ -158,7 +158,7 @@ func (t *TableHeap) UpdateTuple(tuple_ *tuple.Tuple, update_col_idxs []int, sche
 	// If the page could not be found, then abort the transaction.
 	if page_ == nil {
 		txn.SetState(ABORTED)
-		return false, nil, ErrGeneral, nil
+		return false, nil, ErrGeneral, nil, nil
 	}
 	// Update the tuple; but first save the old value for rollbacks.
 	old_tuple := new(tuple.Tuple)
@@ -182,8 +182,10 @@ func (t *TableHeap) UpdateTuple(tuple_ *tuple.Tuple, update_col_idxs []int, sche
 		// as updating
 
 		//// TODO: for debugging
-		//txn.SetState(ABORTED)
-		//return true, nil, nil, nil
+		//if !isRollback {
+		//	txn.SetState(ABORTED)
+		//	return false, nil, nil, nil, nil
+		//}
 
 		// first, delete target tuple (old data)
 		var is_deleted bool
@@ -200,7 +202,7 @@ func (t *TableHeap) UpdateTuple(tuple_ *tuple.Tuple, update_col_idxs []int, sche
 		if !is_deleted {
 			//fmt.Println("TableHeap::UpdateTuple(): MarkDelete failed")
 			txn.SetState(ABORTED)
-			return false, nil, ErrGeneral, nil
+			return false, nil, ErrGeneral, nil, nil
 		}
 
 		var err_ error = nil
@@ -208,7 +210,7 @@ func (t *TableHeap) UpdateTuple(tuple_ *tuple.Tuple, update_col_idxs []int, sche
 		if err_ != nil {
 			//fmt.Println("TableHeap::UpdateTuple(): InsertTuple failed")
 			txn.SetState(ABORTED)
-			return false, nil, ErrPartialUpdate, nil
+			return false, nil, ErrPartialUpdate, nil, old_tuple
 		}
 
 		//fmt.Printf("TableHeap::UpdateTuple(): rid:%v new_rid:%v\n", rid, new_rid)
@@ -236,7 +238,7 @@ func (t *TableHeap) UpdateTuple(tuple_ *tuple.Tuple, update_col_idxs []int, sche
 		common.SH_Assert(len(txn.GetWriteSet()) != 0, "content of write should not be empty.")
 	}
 
-	return is_updated, new_rid, nil, need_follow_tuple
+	return is_updated, new_rid, nil, need_follow_tuple, old_tuple
 }
 
 func (t *TableHeap) MarkDelete(rid *page.RID, oid uint32, txn *Transaction) bool {

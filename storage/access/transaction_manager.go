@@ -194,9 +194,9 @@ func (transaction_manager *TransactionManager) Abort(catalog_ catalog_interface.
 			if common.EnableDebug && common.ActiveLogKindSetting&common.COMMIT_ABORT_HANDLE_INFO > 0 {
 				fmt.Printf("TransactionManager::Abort handle UPDATE write log. txn.txn_id:%v dbgInfo:%s rid:%v tuple.Size()=%d \n", txn.txn_id, txn.dbgInfo, item.rid, item.tuple.Size())
 			}
-			beforRollbackTuple_, _ := item.table.GetTuple(&item.rid, txn)
+			//beforRollbackTuple_, _ := item.table.GetTuple(&item.rid, txn)
 			// rollback record data
-			is_updated, new_rid, _, _ := table.UpdateTuple(item.tuple, nil, nil, item.oid, item.rid, txn, true)
+			is_updated, new_rid, _, _, beforRollbackTuple_ := table.UpdateTuple(item.tuple, nil, nil, item.oid, item.rid, txn, true)
 			if !is_updated {
 				panic("UpdateTuple at rollback failed!")
 			}

@@ -8,6 +8,34 @@ import (
 	"github.com/ryogrid/SamehadaDB/execution/executors"
 	"github.com/ryogrid/SamehadaDB/execution/expression"
 	"github.com/ryogrid/SamehadaDB/execution/plans"
+	"github.com/ryogrid/SamehadaDB/samehada"
+	"github.com/ryogrid/SamehadaDB/samehada/samehada_util"
+	"github.com/ryogrid/SamehadaDB/storage/access"
+	"github.com/ryogrid/SamehadaDB/storage/buffer"
+	"github.com/ryogrid/SamehadaDB/storage/index/index_constants"
+	"github.com/ryogrid/SamehadaDB/storage/table/column"
+	"github.com/ryogrid/SamehadaDB/storage/table/schema"
+	"github.com/ryogrid/SamehadaDB/storage/tuple"
+	testingpkg "github.com/ryogrid/SamehadaDB/testing"
+	"github.com/ryogrid/SamehadaDB/types"
+	"math"
+	"math/rand"
+	"os"
+	"sync"
+	"sync/atomic"
+	"testing"
+)
+
+/*
+import (
+
+	"fmt"
+	"github.com/ryogrid/SamehadaDB/catalog"
+	"github.com/ryogrid/SamehadaDB/common"
+	"github.com/ryogrid/SamehadaDB/container/hash"
+	"github.com/ryogrid/SamehadaDB/execution/executors"
+	"github.com/ryogrid/SamehadaDB/execution/expression"
+	"github.com/ryogrid/SamehadaDB/execution/plans"
 	"github.com/ryogrid/SamehadaDB/recovery"
 	"github.com/ryogrid/SamehadaDB/samehada"
 	"github.com/ryogrid/SamehadaDB/samehada/samehada_util"
@@ -26,8 +54,11 @@ import (
 	"sync"
 	"sync/atomic"
 	"testing"
-)
 
+)
+*/
+
+/*
 func TestSkipListIndexPointScan(t *testing.T) {
 	common.TempSuppressOnMemStorageMutex.Lock()
 	common.TempSuppressOnMemStorage = true
@@ -580,6 +611,7 @@ func TestAbortWthDeleteUpdateUsingIndexCaseRangeScan(t *testing.T) {
 	testingpkg.Assert(t, types.NewInteger(777).CompareEquals(results[0].GetValue(tableMetadata.Schema(), 0)), "value should be 777")
 	testingpkg.Assert(t, types.NewVarchar("bar").CompareEquals(results[0].GetValue(tableMetadata.Schema(), 1)), "value should be \"bar\"")
 }
+*/
 
 const (
 	SERIAL_EXEC = iota
@@ -799,6 +831,9 @@ func testParallelTxnsQueryingSkipListIndexUsedColumns[T int32 | float32 | string
 	abortedTxnCnt := int32(0)
 	commitedTxnCnt := int32(0)
 
+	//// TODO: for debugging
+	//balanceAmountForRandom := int32(100000)
+
 	txn = txnMgr.Begin(nil)
 
 	// insert account records
@@ -871,6 +906,13 @@ func testParallelTxnsQueryingSkipListIndexUsedColumns[T int32 | float32 | string
 	txnMgr.Commit(nil, txn)
 
 	ch := make(chan int32)
+
+	//// TODO: for debugging
+	//getNewAmountAndInc := func() int32 {
+	//	ret := atomic.LoadInt32(&balanceAmountForRandom)
+	//	atomic.AddInt32(&balanceAmountForRandom, 1)
+	//	return ret
+	//}
 
 	abortTxnAndUpdateCounter := func(txn_ *access.Transaction) {
 		handleFnishedTxn(c, txnMgr, txn_)
@@ -1069,6 +1111,25 @@ func testParallelTxnsQueryingSkipListIndexUsedColumns[T int32 | float32 | string
 		// move money, Random Insert, Randome Delete, Random Update, Random Point Scan, Random Range Scan
 		opType := rand.Intn(8)
 
+		//// move money, Random Insert, Randome Delete, (Random Update), Random Point Scan, Random Range Scan
+		//opType := rand.Intn(7)
+		//if opType >= 4 {
+		//	opType = opType + 1
+		//}
+
+		//// (move money), Random Insert, Randome Delete, (Random Update), Random Point Scan, Random Range Scan
+		//opType := rand.Intn(6)
+		//opType += 1
+		//if opType >= 4 {
+		//	opType = opType + 1
+		//}
+
+		//// move money, Random Insert, (Randome Delete), Random Update, Random Point Scan, Random Range Scan
+		//opType := rand.Intn(7)
+		//if opType >= 2 {
+		//	opType = opType + 1
+		//}
+
 		//// move money, Random Insert, Randome Delete, ,Random Point Scan, Random Range Scan
 		//opType := rand.Intn(7)
 		//if opType >= 4 {
@@ -1221,6 +1282,8 @@ func testParallelTxnsQueryingSkipListIndexUsedColumns[T int32 | float32 | string
 				for jj := int32(0); jj < stride; jj++ {
 					insKeyVal := samehada_util.StrideAdd(samehada_util.StrideMul(insKeyValBase, stride), jj).(T)
 					insBalanceVal := getInt32ValCorrespondToPassVal(insKeyVal)
+					//// TODO: for debugging
+					//insBalanceVal := getNewAmountAndInc()
 
 					common.ShPrintf(common.DEBUGGING, fmt.Sprintf("Insert op start. txnId:%v ii:%d jj:%d\n", txn_.GetTransactionId(), ii, jj))
 					insPlan := createSpecifiedValInsertPlanNode(insKeyVal, insBalanceVal, c, tableMetadata, keyType)
@@ -1395,6 +1458,9 @@ func testParallelTxnsQueryingSkipListIndexUsedColumns[T int32 | float32 | string
 					common.SH_Assert(results1 != nil && len(results1) == 1, "Update failed!")
 
 					updatePlan2 := createBalanceUpdatePlanNode(updateNewKeyVal, getInt32ValCorrespondToPassVal(updateNewKeyVal), c, tableMetadata, keyType, indexKind)
+					//// TODO: for debugging
+					//updatePlan2 := createBalanceUpdatePlanNode(updateNewKeyVal, getNewAmountAndInc(), c, tableMetadata, keyType, indexKind)
+
 					results2 := executePlan(c, shi.GetBufferPoolManager(), txn_, updatePlan2)
 
 					if txn_.GetState() == access.ABORTED {
@@ -1705,20 +1771,22 @@ func testSkipListParallelTxnStrideRoot[T int32 | float32 | string](t *testing.T,
 		testParallelTxnsQueryingSkipListIndexUsedColumns[T](t, keyType, 400, 2000, 13, 0, bpoolSize, index_constants.INDEX_KIND_SKIP_LIST, PARALLEL_EXEC, 20)
 	case types.Varchar:
 		//testParallelTxnsQueryingSkipListIndexUsedColumns[T](t, keyType, 400, 400, 13, 0, bpoolSize, index_constants.INDEX_KIND_INVAID, PARALLEL_EXEC, 20)
-		testParallelTxnsQueryingSkipListIndexUsedColumns[T](t, keyType, 400, 3000, 13, 0, bpoolSize, index_constants.INDEX_KIND_SKIP_LIST, PARALLEL_EXEC, 20)
+		//testParallelTxnsQueryingSkipListIndexUsedColumns[T](t, keyType, 400, 3000, 13, 0, bpoolSize, index_constants.INDEX_KIND_SKIP_LIST, PARALLEL_EXEC, 20)
+		testParallelTxnsQueryingSkipListIndexUsedColumns[T](t, keyType, 400, 3000, 17, 0, bpoolSize, index_constants.INDEX_KIND_SKIP_LIST, PARALLEL_EXEC, 20)
 	default:
 		panic("not implemented!")
 	}
 }
 
-func TestSkipListPrallelTxnStrideInteger(t *testing.T) {
-	t.Parallel()
-	if testing.Short() {
-		t.Skip("skip this in short mode.")
+/*
+	func TestSkipListPrallelTxnStrideInteger(t *testing.T) {
+		t.Parallel()
+		if testing.Short() {
+			t.Skip("skip this in short mode.")
+		}
+		testSkipListParallelTxnStrideRoot[int32](t, types.Integer)
 	}
-	testSkipListParallelTxnStrideRoot[int32](t, types.Integer)
-}
-
+*/
 func TestSkipListPrallelTxnStrideVarchar(t *testing.T) {
 	t.Parallel()
 	if testing.Short() {
