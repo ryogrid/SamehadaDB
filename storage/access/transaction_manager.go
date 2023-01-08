@@ -183,7 +183,6 @@ func (transaction_manager *TransactionManager) Abort(catalog_ catalog_interface.
 			// rollback index data
 			if catalog_ != nil {
 				indexes := catalog_.GetRollbackNeededIndexes(indexMap, item.oid)
-				fmt.Println(indexes)
 				for _, index_ := range indexes {
 					if index_ != nil {
 						//index_.DeleteEntry(insertedTuple, item.rid, txn)
@@ -220,7 +219,7 @@ func (transaction_manager *TransactionManager) Abort(catalog_ catalog_interface.
 						colIdx := index_.GetKeyAttrs()[0]
 						bfRlbkKeyVal := catalog_.GetColValFromTupleForRollback(beforRollbackTuple_, colIdx, item.oid)
 						rlbkKeyVal := catalog_.GetColValFromTupleForRollback(tuple_, colIdx, item.oid)
-						if !bfRlbkKeyVal.CompareEquals(*rlbkKeyVal) {
+						if !bfRlbkKeyVal.CompareEquals(*rlbkKeyVal) || new_rid != nil {
 							//rollback is needed only when column value changed case
 							index_.DeleteEntry(beforRollbackTuple_, item.rid, txn)
 							if new_rid != nil {
