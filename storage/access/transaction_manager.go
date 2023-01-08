@@ -183,6 +183,7 @@ func (transaction_manager *TransactionManager) Abort(catalog_ catalog_interface.
 			// rollback index data
 			if catalog_ != nil {
 				indexes := catalog_.GetRollbackNeededIndexes(indexMap, item.oid)
+				fmt.Println(indexes)
 				for _, index_ := range indexes {
 					if index_ != nil {
 						//index_.DeleteEntry(insertedTuple, item.rid, txn)
