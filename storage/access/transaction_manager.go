@@ -4,7 +4,6 @@ import (
 	"fmt"
 	"github.com/ryogrid/SamehadaDB/catalog/catalog_interface"
 	"github.com/ryogrid/SamehadaDB/storage/index"
-	"github.com/ryogrid/SamehadaDB/storage/tuple"
 	"sync"
 
 	"github.com/ryogrid/SamehadaDB/common"
@@ -194,8 +193,7 @@ func (transaction_manager *TransactionManager) Abort(catalog_ catalog_interface.
 			if common.EnableDebug && common.ActiveLogKindSetting&common.COMMIT_ABORT_HANDLE_INFO > 0 {
 				fmt.Printf("TransactionManager::Abort handle UPDATE write log. txn.txn_id:%v dbgInfo:%s rid:%v tuple.Size()=%d \n", txn.txn_id, txn.dbgInfo, item.rid, item.tuple.Size())
 			}
-			//beforRollbackTuple_, _ := item.table.GetTuple(&item.rid, txn)
-			// rollback record data
+
 			is_updated, new_rid, _, _, beforRollbackTuple_ := table.UpdateTuple(item.tuple, nil, nil, item.oid, item.rid, txn, true)
 			if !is_updated {
 				panic("UpdateTuple at rollback failed!")
@@ -205,27 +203,20 @@ func (transaction_manager *TransactionManager) Abort(catalog_ catalog_interface.
 			//  rollback is done for each separated operation
 			if catalog_ != nil {
 				indexes := catalog_.GetRollbackNeededIndexes(indexMap, item.oid)
-				var tuple_ *tuple.Tuple
-				//var err error
-				if new_rid != nil {
-					tuple_, _ = item.table.GetTuple(new_rid, txn)
-				} else {
-					tuple_, _ = item.table.GetTuple(&item.rid, txn)
-				}
 
 				//fmt.Printf("TransactionManager::Abort  rollback of Update! txn.txn_id:%d, tuple_.Size():%d err:%v indexes:%v\n", txn.txn_id, tuple_.Size(), err, indexes)
 				for _, index_ := range indexes {
 					if index_ != nil {
 						colIdx := index_.GetKeyAttrs()[0]
 						bfRlbkKeyVal := catalog_.GetColValFromTupleForRollback(beforRollbackTuple_, colIdx, item.oid)
-						rlbkKeyVal := catalog_.GetColValFromTupleForRollback(tuple_, colIdx, item.oid)
+						rlbkKeyVal := catalog_.GetColValFromTupleForRollback(item.tuple, colIdx, item.oid)
 						if !bfRlbkKeyVal.CompareEquals(*rlbkKeyVal) || new_rid != nil {
 							//rollback is needed only when column value changed case
 							index_.DeleteEntry(beforRollbackTuple_, item.rid, txn)
 							if new_rid != nil {
-								index_.InsertEntry(tuple_, *new_rid, txn)
+								index_.InsertEntry(item.tuple, *new_rid, txn)
 							} else {
-								index_.InsertEntry(tuple_, item.rid, txn)
+								index_.InsertEntry(item.tuple, item.rid, txn)
 							}
 						}
 					}
