@@ -56,7 +56,7 @@ func (t *TableHeap) GetFirstPageId() types.PageID {
 // If the tuple1 is too large (>= page_size):
 // 1. It tries to insert in the next page
 // 2. If there is no next page, it creates a new page and insert in it
-func (t *TableHeap) InsertTuple(tuple_ *tuple.Tuple, txn *Transaction, oid uint32) (rid *page.RID, err error) {
+func (t *TableHeap) InsertTuple(tuple_ *tuple.Tuple, isForUpdate bool, txn *Transaction, oid uint32) (rid *page.RID, err error) {
 	if common.EnableDebug {
 		if common.ActiveLogKindSetting&common.RDB_OP_FUNC_CALL > 0 {
 			fmt.Printf("TableHeap::InsertTuple called. txn.txn_id:%v dbgInfo:%s tuple_:%v\n", txn.txn_id, txn.dbgInfo, *tuple_)
@@ -135,7 +135,9 @@ func (t *TableHeap) InsertTuple(tuple_ *tuple.Tuple, txn *Transaction, oid uint3
 	currentPage.WUnlatch()
 	// Update the transaction's write set.
 	//txn.AddIntoWriteSet(NewWriteRecord(*rid1, INSERT, new(tuple1.Tuple), t, oid))
-	txn.AddIntoWriteSet(NewWriteRecord(rid, nil, INSERT, tuple_, nil, t, oid))
+	if !isForUpdate {
+		txn.AddIntoWriteSet(NewWriteRecord(rid, nil, INSERT, tuple_, nil, t, oid))
+	}
 	return rid, nil
 }
 
@@ -206,7 +208,7 @@ func (t *TableHeap) UpdateTuple(tuple_ *tuple.Tuple, update_col_idxs []int, sche
 		}
 
 		var err_ error = nil
-		new_rid, err_ = t.InsertTuple(need_follow_tuple, txn, oid)
+		new_rid, err_ = t.InsertTuple(need_follow_tuple, true, txn, oid)
 		if err_ != nil {
 			//fmt.Println("TableHeap::UpdateTuple(): InsertTuple failed")
 			txn.SetState(ABORTED)
@@ -231,10 +233,10 @@ func (t *TableHeap) UpdateTuple(tuple_ *tuple.Tuple, update_col_idxs []int, sche
 	// when isUpdateWithDelInsert is true, Update operation write records are already added as two recoreds
 	// (Delete & Insert)
 	if is_updated && txn.GetState() != ABORTED {
-		if !isUpdateWithDelInsert {
-			txn.AddIntoWriteSet(NewWriteRecord(&rid, &rid, UPDATE, old_tuple, need_follow_tuple, t, oid))
-		} else {
+		if isUpdateWithDelInsert {
 			txn.AddIntoWriteSet(NewWriteRecord(&rid, new_rid, UPDATE, old_tuple, need_follow_tuple, t, oid))
+		} else {
+			txn.AddIntoWriteSet(NewWriteRecord(&rid, &rid, UPDATE, old_tuple, need_follow_tuple, t, oid))
 		}
 	}
 

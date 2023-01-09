@@ -50,7 +50,7 @@ func TestTableHeap(t *testing.T) {
 		row = append(row, types.NewInteger(int32((i+1)*2)))
 
 		tuple_ := tuple.NewTupleFromSchema(row, schema_)
-		_, err := th.InsertTuple(tuple_, txn, math.MaxUint32)
+		_, err := th.InsertTuple(tuple_, false, txn, math.MaxUint32)
 		testingpkg.Ok(t, err)
 	}
 
@@ -129,7 +129,7 @@ func TestTableHeapFourCol(t *testing.T) {
 		row = append(row, types.NewInteger(int32((i+3)*2)))
 
 		tuple_ := tuple.NewTupleFromSchema(row, schema_)
-		_, err := th.InsertTuple(tuple_, txn, math.MaxUint32)
+		_, err := th.InsertTuple(tuple_, false, txn, math.MaxUint32)
 		testingpkg.Ok(t, err)
 	}
 
