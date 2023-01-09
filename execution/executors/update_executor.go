@@ -107,15 +107,13 @@ func (e *UpdateExecutor) Next() (*tuple.Tuple, Done, error) {
 
 						// do nothing
 					} else if new_rid != nil {
-						index_.DeleteEntry(t, *rid, e.txn)
-						index_.InsertEntry(updateTuple, *new_rid, e.txn)
+						//index_.DeleteEntry(t, *rid, e.txn)
+						//index_.InsertEntry(updateTuple, *new_rid, e.txn)
+						index_.UpdateEntry(t, *rid, updateTuple, *new_rid, e.txn)
 					} else {
-						index_.DeleteEntry(t, *rid, e.txn)
-						//if new_rid != nil {
-						//	index_.InsertEntry(updateTuple, *new_rid, e.txn)
-						//} else {
-						index_.InsertEntry(updateTuple, *rid, e.txn)
-						//}
+						//index_.DeleteEntry(t, *rid, e.txn)
+						//index_.InsertEntry(updateTuple, *rid, e.txn)
+						index_.UpdateEntry(t, *rid, updateTuple, *rid, e.txn)
 					}
 				} else {
 					if updateErr == access.ErrPartialUpdate {
@@ -132,8 +130,9 @@ func (e *UpdateExecutor) Next() (*tuple.Tuple, Done, error) {
 
 						// do nothing
 					} else if new_rid != nil {
-						index_.DeleteEntry(t, *rid, e.txn)
-						index_.InsertEntry(updateTuple, *new_rid, e.txn)
+						//index_.DeleteEntry(t, *rid, e.txn)
+						//index_.InsertEntry(updateTuple, *new_rid, e.txn)
+						index_.UpdateEntry(t, *rid, updateTuple, *new_rid, e.txn)
 					} else {
 						//index_.DeleteEntry(t, *rid, e.txn)
 						//if new_rid != nil {

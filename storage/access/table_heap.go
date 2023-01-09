@@ -49,11 +49,11 @@ func (t *TableHeap) GetFirstPageId() types.PageID {
 	return t.firstPageId
 }
 
-// InsertTuple inserts a tuple into the table
+// InsertTuple inserts a tuple1 into the table
 // PAY ATTENTION: index entry is not inserted
 //
-// It fetches the first page and tries to insert the tuple there.
-// If the tuple is too large (>= page_size):
+// It fetches the first page and tries to insert the tuple1 there.
+// If the tuple1 is too large (>= page_size):
 // 1. It tries to insert in the next page
 // 2. If there is no next page, it creates a new page and insert in it
 func (t *TableHeap) InsertTuple(tuple_ *tuple.Tuple, txn *Transaction, oid uint32) (rid *page.RID, err error) {
@@ -80,8 +80,8 @@ func (t *TableHeap) InsertTuple(tuple_ *tuple.Tuple, txn *Transaction, oid uint3
 			//currentPage.WUnlatch()
 			break
 		}
-		//if rid == nil && err != nil && err != ErrEmptyTuple && err != ErrNotEnoughSpace {
-		//	//  this route is executed only when rid for assign to new tuple is locked by delete operation currently
+		//if rid1 == nil && err != nil && err != ErrEmptyTuple && err != ErrNotEnoughSpace {
+		//	//  this route is executed only when rid1 for assign to new tuple1 is locked by delete operation currently
 		//
 		//	t.bpm.UnpinPage(currentPage.GetPageId(), false)
 		//	if common.EnableDebug && common.ActiveLogKindSetting&common.PIN_COUNT_ASSERT > 0 {
@@ -134,17 +134,17 @@ func (t *TableHeap) InsertTuple(tuple_ *tuple.Tuple, txn *Transaction, oid uint3
 	currentPage.RemoveWLatchRecord(int32(txn.txn_id))
 	currentPage.WUnlatch()
 	// Update the transaction's write set.
-	//txn.AddIntoWriteSet(NewWriteRecord(*rid, INSERT, new(tuple.Tuple), t, oid))
-	txn.AddIntoWriteSet(NewWriteRecord(*rid, INSERT, tuple_, t, oid))
+	//txn.AddIntoWriteSet(NewWriteRecord(*rid1, INSERT, new(tuple1.Tuple), t, oid))
+	txn.AddIntoWriteSet(NewWriteRecord(rid, nil, INSERT, tuple_, nil, t, oid))
 	return rid, nil
 }
 
-// if specified nil to update_col_idxs and schema_, all data of existed tuple is replaced one of new_tuple
+// if specified nil to update_col_idxs and schema_, all data of existed tuple1 is replaced one of new_tuple
 // if specified not nil, new_tuple also should have all columns defined in schema. but not update target value can be dummy value
 func (t *TableHeap) UpdateTuple(tuple_ *tuple.Tuple, update_col_idxs []int, schema_ *schema.Schema, oid uint32, rid page.RID, txn *Transaction, isRollback bool) (is_success bool, new_rid_ *page.RID, err_ error, update_tuple_ *tuple.Tuple, old_tuple_ *tuple.Tuple) {
 	if common.EnableDebug {
 		if common.ActiveLogKindSetting&common.RDB_OP_FUNC_CALL > 0 {
-			fmt.Printf("TableHeap::UpadteTuple called. txn.txn_id:%v dbgInfo:%s update_col_idxs:%v rid:%v\n", txn.txn_id, txn.dbgInfo, update_col_idxs, rid)
+			fmt.Printf("TableHeap::UpadteTuple called. txn.txn_id:%v dbgInfo:%s update_col_idxs:%v rid1:%v\n", txn.txn_id, txn.dbgInfo, update_col_idxs, rid)
 		}
 		if common.ActiveLogKindSetting&common.BUFFER_INTERNAL_STATE > 0 {
 			t.bpm.PrintBufferUsageState(fmt.Sprintf("TableHeap::UpdateTuple start.  txn.txn_id: %d dbgInfo:%s", txn.txn_id, txn.dbgInfo))
@@ -153,14 +153,14 @@ func (t *TableHeap) UpdateTuple(tuple_ *tuple.Tuple, update_col_idxs []int, sche
 			}()
 		}
 	}
-	// Find the page which contains the tuple.
+	// Find the page which contains the tuple1.
 	page_ := CastPageAsTablePage(t.bpm.FetchPage(rid.GetPageId()))
 	// If the page could not be found, then abort the transaction.
 	if page_ == nil {
 		txn.SetState(ABORTED)
 		return false, nil, ErrGeneral, nil, nil
 	}
-	// Update the tuple; but first save the old value for rollbacks.
+	// Update the tuple1; but first save the old value for rollbacks.
 	old_tuple := new(tuple.Tuple)
 	old_tuple.SetRID(new(page.RID))
 
@@ -177,7 +177,7 @@ func (t *TableHeap) UpdateTuple(tuple_ *tuple.Tuple, update_col_idxs []int, sche
 	var new_rid *page.RID = nil
 	var isUpdateWithDelInsert bool = false
 	if is_updated == false && err == ErrNotEnoughSpace {
-		// delete old_tuple(rid)
+		// delete old_tuple(rid1)
 		// and insert need_follow_tuple(new_rid)
 		// as updating
 
@@ -187,7 +187,7 @@ func (t *TableHeap) UpdateTuple(tuple_ *tuple.Tuple, update_col_idxs []int, sche
 		//	return false, nil, nil, nil, nil
 		//}
 
-		// first, delete target tuple (old data)
+		// first, delete target tuple1 (old data)
 		var is_deleted bool
 		if isRollback {
 			// when this method is used on TransactinManager::Abort,
@@ -196,7 +196,7 @@ func (t *TableHeap) UpdateTuple(tuple_ *tuple.Tuple, update_col_idxs []int, sche
 			// above ApplyDelete does not fail
 			is_deleted = true
 		} else {
-			is_deleted = t.MarkDelete(&rid, oid, txn)
+			is_deleted = t.MarkDelete(&rid, oid, true, txn)
 		}
 
 		if !is_deleted {
@@ -210,10 +210,11 @@ func (t *TableHeap) UpdateTuple(tuple_ *tuple.Tuple, update_col_idxs []int, sche
 		if err_ != nil {
 			//fmt.Println("TableHeap::UpdateTuple(): InsertTuple failed")
 			txn.SetState(ABORTED)
+			txn.AddIntoWriteSet(NewWriteRecord(&rid, nil, DELETE, old_tuple, nil, t, oid))
 			return false, nil, ErrPartialUpdate, nil, old_tuple
 		}
 
-		//fmt.Printf("TableHeap::UpdateTuple(): rid:%v new_rid:%v\n", rid, new_rid)
+		//fmt.Printf("TableHeap::UpdateTuple(): rid1:%v new_rid:%v\n", rid1, new_rid)
 		// change return flag to success
 		is_updated = true
 		isUpdateWithDelInsert = true
@@ -229,8 +230,12 @@ func (t *TableHeap) UpdateTuple(tuple_ *tuple.Tuple, update_col_idxs []int, sche
 	// when txn is ABORTED state case, data is not updated. so adding a write set entry is not needed
 	// when isUpdateWithDelInsert is true, Update operation write records are already added as two recoreds
 	// (Delete & Insert)
-	if is_updated && !isUpdateWithDelInsert && txn.GetState() != ABORTED {
-		txn.AddIntoWriteSet(NewWriteRecord(rid, UPDATE, old_tuple, t, oid))
+	if is_updated && txn.GetState() != ABORTED {
+		if !isUpdateWithDelInsert {
+			txn.AddIntoWriteSet(NewWriteRecord(&rid, &rid, UPDATE, old_tuple, need_follow_tuple, t, oid))
+		} else {
+			txn.AddIntoWriteSet(NewWriteRecord(&rid, new_rid, UPDATE, old_tuple, need_follow_tuple, t, oid))
+		}
 	}
 
 	// TODO: (SDB) for debugging. this code should be removed after finish of debugging
@@ -241,10 +246,11 @@ func (t *TableHeap) UpdateTuple(tuple_ *tuple.Tuple, update_col_idxs []int, sche
 	return is_updated, new_rid, nil, need_follow_tuple, old_tuple
 }
 
-func (t *TableHeap) MarkDelete(rid *page.RID, oid uint32, txn *Transaction) bool {
+// when isForUpdate arg is true, write record is not created
+func (t *TableHeap) MarkDelete(rid *page.RID, oid uint32, isForUpdate bool, txn *Transaction) bool {
 	if common.EnableDebug {
 		if common.ActiveLogKindSetting&common.RDB_OP_FUNC_CALL > 0 {
-			fmt.Printf("TableHeap::MarkDelete called. txn.txn_id:%v rid:%v  dbgInfo:%s\n", txn.txn_id, *rid, txn.dbgInfo)
+			fmt.Printf("TableHeap::MarkDelete called. txn.txn_id:%v rid1:%v  dbgInfo:%s\n", txn.txn_id, *rid, txn.dbgInfo)
 		}
 		if common.ActiveLogKindSetting&common.BUFFER_INTERNAL_STATE > 0 {
 			t.bpm.PrintBufferUsageState(fmt.Sprintf("TableHeap::MarkDelete start.  txn.txn_id: %d dbgInfo:%s", txn.txn_id, txn.dbgInfo))
@@ -253,14 +259,14 @@ func (t *TableHeap) MarkDelete(rid *page.RID, oid uint32, txn *Transaction) bool
 			}()
 		}
 	}
-	// Find the page which contains the tuple.
+	// Find the page which contains the tuple1.
 	page_ := CastPageAsTablePage(t.bpm.FetchPage(rid.GetPageId()))
 	// If the page could not be found, then abort the transaction.
 	if page_ == nil {
 		txn.SetState(ABORTED)
 		return false
 	}
-	// Otherwise, mark the tuple as deleted.
+	// Otherwise, mark the tuple1 as deleted.
 	page_.WLatch()
 	page_.AddWLatchRecord(int32(txn.txn_id))
 	// GetTuple for rollback of Index...
@@ -279,10 +285,10 @@ func (t *TableHeap) MarkDelete(rid *page.RID, oid uint32, txn *Transaction) bool
 	}
 	page_.RemoveWLatchRecord(int32(txn.txn_id))
 	page_.WUnlatch()
-	if is_marked {
+	if is_marked && !isForUpdate {
 		// Update the transaction's write set.
-		//txn.AddIntoWriteSet(NewWriteRecord(*rid, DELETE, new(tuple.Tuple), t, oid))
-		txn.AddIntoWriteSet(NewWriteRecord(*rid, DELETE, tuple_, t, oid))
+		//txn.AddIntoWriteSet(NewWriteRecord(*rid1, DELETE, new(tuple1.Tuple), t, oid))
+		txn.AddIntoWriteSet(NewWriteRecord(rid, nil, DELETE, nil, tuple_, t, oid))
 	}
 
 	return is_marked
@@ -291,7 +297,7 @@ func (t *TableHeap) MarkDelete(rid *page.RID, oid uint32, txn *Transaction) bool
 func (t *TableHeap) ApplyDelete(rid *page.RID, txn *Transaction) {
 	if common.EnableDebug {
 		if common.ActiveLogKindSetting&common.RDB_OP_FUNC_CALL > 0 {
-			fmt.Printf("TableHeap::ApplyDelete called. txn.txn_id:%v rid:%v dbgInfo:%s\n", txn.txn_id, *rid, txn.dbgInfo)
+			fmt.Printf("TableHeap::ApplyDelete called. txn.txn_id:%v rid1:%v dbgInfo:%s\n", txn.txn_id, *rid, txn.dbgInfo)
 		}
 		if common.ActiveLogKindSetting&common.BUFFER_INTERNAL_STATE > 0 {
 			t.bpm.PrintBufferUsageState(fmt.Sprintf("TableHeap::ApplyDelete start. txn.txn_id: %d dbgInfo:%s", txn.txn_id, txn.dbgInfo))
@@ -300,14 +306,14 @@ func (t *TableHeap) ApplyDelete(rid *page.RID, txn *Transaction) {
 			}()
 		}
 	}
-	// Find the page which contains the tuple.
+	// Find the page which contains the tuple1.
 	page_ := CastPageAsTablePage(t.bpm.FetchPage(rid.GetPageId()))
 	common.SH_Assert(page_ != nil, "Couldn't find a page containing that RID.")
-	// Delete the tuple from the page.
+	// Delete the tuple1 from the page.
 	page_.WLatch()
 	page_.AddWLatchRecord(int32(txn.txn_id))
 	page_.ApplyDelete(rid, txn, t.log_manager)
-	//t.lock_manager.WUnlock(txn, []page.RID{*rid})
+	//t.lock_manager.WUnlock(txn, []page.RID{*rid1})
 	t.bpm.UnpinPage(page_.GetPageId(), true)
 	if common.EnableDebug && common.ActiveLogKindSetting&common.PIN_COUNT_ASSERT > 0 {
 		common.SH_Assert(page_.PinCount() == 0, "PinCount is not zero when finish TablePage::ApplyDelete!!!")
@@ -319,7 +325,7 @@ func (t *TableHeap) ApplyDelete(rid *page.RID, txn *Transaction) {
 func (t *TableHeap) RollbackDelete(rid *page.RID, txn *Transaction) {
 	if common.EnableDebug {
 		if common.ActiveLogKindSetting&common.RDB_OP_FUNC_CALL > 0 {
-			fmt.Printf("TableHeap::RollBackDelete called. txn.txn_id:%v  dbgInfo:%s rid:%v\n", txn.txn_id, txn.dbgInfo, *rid)
+			fmt.Printf("TableHeap::RollBackDelete called. txn.txn_id:%v  dbgInfo:%s rid1:%v\n", txn.txn_id, txn.dbgInfo, *rid)
 		}
 		if common.ActiveLogKindSetting&common.BUFFER_INTERNAL_STATE > 0 {
 			t.bpm.PrintBufferUsageState(fmt.Sprintf("TableHeap::RollBackDelete start. txn.txn_id: %d dbgInfo:%s", txn.txn_id, txn.dbgInfo))
@@ -328,7 +334,7 @@ func (t *TableHeap) RollbackDelete(rid *page.RID, txn *Transaction) {
 			}()
 		}
 	}
-	// Find the page which contains the tuple.
+	// Find the page which contains the tuple1.
 	page_ := CastPageAsTablePage(t.bpm.FetchPage(rid.GetPageId()))
 	common.SH_Assert(page_ != nil, "Couldn't find a page containing that RID.")
 	// Rollback the delete.
@@ -343,11 +349,11 @@ func (t *TableHeap) RollbackDelete(rid *page.RID, txn *Transaction) {
 	page_.WUnlatch()
 }
 
-// GetTuple reads a tuple from the table
+// GetTuple reads a tuple1 from the table
 func (t *TableHeap) GetTuple(rid *page.RID, txn *Transaction) (*tuple.Tuple, error) {
 	if common.EnableDebug {
 		if common.ActiveLogKindSetting&common.RDB_OP_FUNC_CALL > 0 {
-			fmt.Printf("TableHeap::GetTuple called. txn.txn_id:%v rid:%v dbgInfo:%s\n", txn.txn_id, *rid, txn.dbgInfo)
+			fmt.Printf("TableHeap::GetTuple called. txn.txn_id:%v rid1:%v dbgInfo:%s\n", txn.txn_id, *rid, txn.dbgInfo)
 		}
 		if common.ActiveLogKindSetting&common.BUFFER_INTERNAL_STATE > 0 {
 			t.bpm.PrintBufferUsageState(fmt.Sprintf("TableHeap::GetTuple start. txn.txn_id: %d dbgInfo:%s", txn.txn_id, txn.dbgInfo))
@@ -375,7 +381,7 @@ func (t *TableHeap) GetTuple(rid *page.RID, txn *Transaction) (*tuple.Tuple, err
 	return ret, err
 }
 
-// GetFirstTuple reads the first tuple from the table
+// GetFirstTuple reads the first tuple1 from the table
 func (t *TableHeap) GetFirstTuple(txn *Transaction) *tuple.Tuple {
 	var rid *page.RID = nil
 	pageId := t.firstPageId
@@ -398,7 +404,7 @@ func (t *TableHeap) GetFirstTuple(txn *Transaction) *tuple.Tuple {
 		return nil
 	}
 
-	// here thread has no pin and latch of page which contains got tuple
+	// here thread has no pin and latch of page which contains got tuple1
 	retTuple, _ := t.GetTuple(rid, txn)
 	return retTuple
 }

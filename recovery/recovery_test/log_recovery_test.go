@@ -318,7 +318,7 @@ func TestUndo(t *testing.T) {
 	txn = samehada_instance.GetTransactionManager().Begin(nil)
 
 	// tuple deletion (rid1)
-	test_table.MarkDelete(rid1, math.MaxUint32, txn)
+	test_table.MarkDelete(rid1, math.MaxUint32, false, txn)
 
 	// tuple updating (rid2)
 	row1 := make([]types.Value, 0)

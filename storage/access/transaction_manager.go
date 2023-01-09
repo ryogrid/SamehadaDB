@@ -79,18 +79,18 @@ func (transaction_manager *TransactionManager) Commit(catalog_ catalog_interface
 	for len(write_set) != 0 {
 		item := write_set[len(write_set)-1]
 		table := item.table
-		rid := item.rid
+		rid := item.rid1
 		if item.wtype == DELETE {
 			// Note that this also releases the lock when holding the page latch.
 
 			if common.EnableDebug && common.ActiveLogKindSetting&common.COMMIT_ABORT_HANDLE_INFO > 0 {
-				fmt.Printf("TransactionManager::Commit handle DELETE write log. txn.txn_id:%v dbgInfo:%s rid:%v\n", txn.txn_id, txn.dbgInfo, rid)
+				fmt.Printf("TransactionManager::Commit handle DELETE write log. txn.txn_id:%v dbgInfo:%s rid1:%v\n", txn.txn_id, txn.dbgInfo, rid)
 			}
 			pageID := rid.GetPageId()
 			tpage := CastPageAsTablePage(table.bpm.FetchPage(pageID))
 			tpage.WLatch()
 			tpage.AddWLatchRecord(int32(txn.txn_id))
-			tpage.ApplyDelete(&item.rid, txn, transaction_manager.log_manager)
+			tpage.ApplyDelete(item.rid1, txn, transaction_manager.log_manager)
 			table.bpm.UnpinPage(tpage.GetPageId(), true)
 			tpage.RemoveWLatchRecord(int32(txn.txn_id))
 			tpage.WUnlatch()
@@ -98,7 +98,7 @@ func (transaction_manager *TransactionManager) Commit(catalog_ catalog_interface
 			//	indexes := catalog_.GetRollbackNeededIndexes(indexMap, item.oid)
 			//	for _, index_ := range indexes {
 			//		if index_ != nil {
-			//			index_.DeleteEntry(item.tuple, item.rid, txn)
+			//			index_.DeleteEntry(item.tuple1, item.rid1, txn)
 			//		}
 			//	}
 			//}
@@ -148,11 +148,11 @@ func (transaction_manager *TransactionManager) Abort(catalog_ catalog_interface.
 		table := item.table
 		if item.wtype == DELETE {
 			if common.EnableDebug && common.ActiveLogKindSetting&common.COMMIT_ABORT_HANDLE_INFO > 0 {
-				fmt.Printf("TransactionManager::Abort handle DELETE write log. txn.txn_id:%v dbgInfo:%s rid:%v\n", txn.txn_id, txn.dbgInfo, item.rid)
+				fmt.Printf("TransactionManager::Abort handle DELETE write log. txn.txn_id:%v dbgInfo:%s rid1:%v\n", txn.txn_id, txn.dbgInfo, item.rid1)
 			}
 
 			// rollback record data
-			table.RollbackDelete(&item.rid, txn)
+			table.RollbackDelete(item.rid1, txn)
 
 			////rollback of index entry is not needed because entry is deleted at commit
 
@@ -160,22 +160,22 @@ func (transaction_manager *TransactionManager) Abort(catalog_ catalog_interface.
 			indexes := catalog_.GetRollbackNeededIndexes(indexMap, item.oid)
 			for _, index_ := range indexes {
 				if index_ != nil {
-					index_.InsertEntry(item.tuple, item.rid, txn)
+					index_.InsertEntry(item.tuple1, *item.rid1, txn)
 				}
 			}
 		} else if item.wtype == INSERT {
 			if common.EnableDebug && common.ActiveLogKindSetting&common.COMMIT_ABORT_HANDLE_INFO > 0 {
-				fmt.Printf("TransactionManager::Abort handle INSERT write log. txn.txn_id:%v dbgInfo:%s rid:%v\n", txn.txn_id, txn.dbgInfo, item.rid)
+				fmt.Printf("TransactionManager::Abort handle INSERT write log. txn.txn_id:%v dbgInfo:%s rid1:%v\n", txn.txn_id, txn.dbgInfo, item.rid1)
 			}
-			//insertedTuple, _ := item.table.GetTuple(&item.rid, txn)
+			//insertedTuple, _ := item.table.GetTuple(&item.rid1, txn)
 			// rollback record data
-			rid := item.rid
+			rid := item.rid1
 			// Note that this also releases the lock when holding the page latch.
 			pageID := rid.GetPageId()
 			tpage := CastPageAsTablePage(table.bpm.FetchPage(pageID))
 			tpage.WLatch()
 			tpage.AddWLatchRecord(int32(txn.txn_id))
-			tpage.ApplyDelete(&item.rid, txn, transaction_manager.log_manager)
+			tpage.ApplyDelete(item.rid1, txn, transaction_manager.log_manager)
 			table.bpm.UnpinPage(pageID, true)
 			tpage.RemoveWLatchRecord(int32(txn.txn_id))
 			tpage.WUnlatch()
@@ -184,26 +184,39 @@ func (transaction_manager *TransactionManager) Abort(catalog_ catalog_interface.
 				indexes := catalog_.GetRollbackNeededIndexes(indexMap, item.oid)
 				for _, index_ := range indexes {
 					if index_ != nil {
-						//index_.DeleteEntry(insertedTuple, item.rid, txn)
-						index_.DeleteEntry(item.tuple, item.rid, txn)
+						//index_.DeleteEntry(insertedTuple, item.rid1, txn)
+						index_.DeleteEntry(item.tuple1, *item.rid1, txn)
 					}
 				}
 			}
 		} else if item.wtype == UPDATE {
 			if common.EnableDebug && common.ActiveLogKindSetting&common.COMMIT_ABORT_HANDLE_INFO > 0 {
-				fmt.Printf("TransactionManager::Abort handle UPDATE write log. txn.txn_id:%v dbgInfo:%s rid:%v tuple.Size()=%d \n", txn.txn_id, txn.dbgInfo, item.rid, item.tuple.Size())
+				fmt.Printf("TransactionManager::Abort handle UPDATE write log. txn.txn_id:%v dbgInfo:%s rid1:%v tuple1.Size()=%d \n", txn.txn_id, txn.dbgInfo, item.rid1, item.tuple1.Size())
 			}
 
-			is_updated, new_rid, _, _, beforRollbackTuple_ := table.UpdateTuple(item.tuple, nil, nil, item.oid, item.rid, txn, true)
-			if !is_updated {
-				panic("UpdateTuple at rollback failed!")
+			var new_rid *page.RID = nil
+			var is_updated bool = false
+			if item.rid1 != item.rid2 {
+				// when rid changed case
+				item.table.ApplyDelete(item.rid2, txn)
+				new_rid, _ = item.table.InsertTuple(item.tuple1, txn, item.oid)
+			} else {
+				// normal case
+				is_updated, new_rid, _, _, _ = table.UpdateTuple(item.tuple1, nil, nil, item.oid, *item.rid1, txn, true)
+				if !is_updated {
+					panic("UpdateTuple at rollback failed!")
+				}
 			}
+
+			//is_updated, new_rid, _, _, beforRollbackTuple_ := table.UpdateTuple(item.tuple1, nil, nil, item.oid, *item.rid1, txn, true)
+
+			// TODO: for debugging
 			if new_rid != nil {
 				//fmt.Println("UpdateTuple at rollback moved record position!")
 				common.NewRIDAtRollback = true
 			}
 			// rollback index data
-			// when update is operated as delete and insert (rid change case),
+			// when update is operated as delete and insert (rid1 change case),
 			//  rollback is done for each separated operation
 			if catalog_ != nil {
 				indexes := catalog_.GetRollbackNeededIndexes(indexMap, item.oid)
@@ -212,15 +225,18 @@ func (transaction_manager *TransactionManager) Abort(catalog_ catalog_interface.
 				for _, index_ := range indexes {
 					if index_ != nil {
 						colIdx := index_.GetKeyAttrs()[0]
-						bfRlbkKeyVal := catalog_.GetColValFromTupleForRollback(beforRollbackTuple_, colIdx, item.oid)
-						rlbkKeyVal := catalog_.GetColValFromTupleForRollback(item.tuple, colIdx, item.oid)
+						bfRlbkKeyVal := catalog_.GetColValFromTupleForRollback(item.tuple2, colIdx, item.oid)
+						rlbkKeyVal := catalog_.GetColValFromTupleForRollback(item.tuple1, colIdx, item.oid)
 						if !bfRlbkKeyVal.CompareEquals(*rlbkKeyVal) || new_rid != nil {
 							//rollback is needed only when column value changed case
-							index_.DeleteEntry(beforRollbackTuple_, item.rid, txn)
 							if new_rid != nil {
-								index_.InsertEntry(item.tuple, *new_rid, txn)
+								//index_.DeleteEntry(beforRollbackTuple_, item.rid1, txn)
+								//index_.InsertEntry(item.tuple1, *new_rid, txn)
+								index_.UpdateEntry(item.tuple2, *item.rid1, item.tuple1, *new_rid, txn)
 							} else {
-								index_.InsertEntry(item.tuple, item.rid, txn)
+								//index_.DeleteEntry(beforRollbackTuple_, item.rid1, txn)
+								//index_.InsertEntry(item.tuple1, item.rid1, txn)
+								index_.UpdateEntry(item.tuple2, *item.rid1, item.tuple1, *item.rid1, txn)
 							}
 						}
 					}

@@ -11,7 +11,7 @@ import (
 // TableHeapIterator is the access method for table heaps
 //
 // It iterates through a table heap when Next is called
-// The tuple that it is being pointed to can be accessed with the method Current
+// The tuple1 that it is being pointed to can be accessed with the method Current
 type TableHeapIterator struct {
 	tableHeap    *TableHeap
 	tuple        *tuple.Tuple
@@ -20,12 +20,12 @@ type TableHeapIterator struct {
 }
 
 // NewTableHeapIterator creates a new table heap operator for the given table heap
-// It points to the first tuple of the table heap
+// It points to the first tuple1 of the table heap
 func NewTableHeapIterator(tableHeap *TableHeap, lock_manager *LockManager, txn *Transaction) *TableHeapIterator {
 	return &TableHeapIterator{tableHeap, tableHeap.GetFirstTuple(txn), lock_manager, txn}
 }
 
-// Current points to the current tuple
+// Current points to the current tuple1
 func (it *TableHeapIterator) Current() *tuple.Tuple {
 	return it.tuple
 }
@@ -35,8 +35,8 @@ func (it *TableHeapIterator) End() bool {
 	return it.Current() == nil
 }
 
-// Next advances the iterator trying to find the next tuple
-// The next tuple can be inside the same page of the current tuple
+// Next advances the iterator trying to find the next tuple1
+// The next tuple1 can be inside the same page of the current tuple1
 // or it can be in the next page
 func (it *TableHeapIterator) Next() *tuple.Tuple {
 start:
@@ -76,7 +76,7 @@ start:
 
 	var err error = nil
 	if nextTupleRID != nil && nextTupleRID.GetPageId().IsValid() {
-		//it.tuple, err = it.tableHeap.GetTuple(nextTupleRID, it.txn)
+		//it.tuple1, err = it.tableHeap.GetTuple(nextTupleRID, it.txn)
 		it.tuple, err = currentPage.GetTuple(nextTupleRID, it.tableHeap.log_manager, it.lock_manager, it.txn)
 		if it.tuple != nil && err == ErrSelfDeletedCase {
 			//isContinued = true
