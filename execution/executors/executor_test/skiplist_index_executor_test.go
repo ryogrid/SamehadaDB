@@ -762,20 +762,20 @@ func executePlan(c *catalog.Catalog, bpm *buffer.BufferPoolManager, txn *access.
 	return executionEngine.Execute(plan, executorContext)
 }
 
-func handleFnishedTxn(catalog_ *catalog.Catalog, txn_mgr *access.TransactionManager, txn *access.Transaction) bool {
-	// fmt.Println(txn.GetState())
-	if txn.GetState() == access.ABORTED {
-		// fmt.Println(txn.GetSharedLockSet())
-		// fmt.Println(txn.GetExclusiveLockSet())
-		txn_mgr.Abort(catalog_, txn)
-		return false
-	} else {
-		// fmt.Println(txn.GetSharedLockSet())
-		// fmt.Println(txn.GetExclusiveLockSet())
-		txn_mgr.Commit(catalog_, txn)
-		return true
-	}
-}
+//func handleFnishedTxn(catalog_ *catalog.Catalog, txn_mgr *access.TransactionManager, txn *access.Transaction) bool {
+//	// fmt.Println(txn.GetState())
+//	if txn.GetState() == access.ABORTED {
+//		// fmt.Println(txn.GetSharedLockSet())
+//		// fmt.Println(txn.GetExclusiveLockSet())
+//		txn_mgr.Abort(catalog_, txn)
+//		return false
+//	} else {
+//		// fmt.Println(txn.GetSharedLockSet())
+//		// fmt.Println(txn.GetExclusiveLockSet())
+//		txn_mgr.Commit(catalog_, txn)
+//		return true
+//	}
+//}
 
 func testParallelTxnsQueryingSkipListIndexUsedColumns[T int32 | float32 | string](t *testing.T, keyType types.TypeID, stride int32, opTimes int32, seedVal int32, initialEntryNum int32, bpoolSize int32, indexKind index_constants.IndexKind, execType int32, threadNum int) {
 	common.ShPrintf(common.DEBUG_INFO, "start of testParallelTxnsQueryingSkipListIndexUsedColumns stride=%d opTimes=%d seedVal=%d initialEntryNum=%d bpoolSize=%d ====================================================\n",
@@ -861,6 +861,28 @@ func testParallelTxnsQueryingSkipListIndexUsedColumns[T int32 | float32 | string
 	txn = txnMgr.Begin(nil)
 
 	insertedTupleCnt += ACCOUNT_NUM
+
+	handleFnishedTxn := func(catalog_ *catalog.Catalog, txn_mgr *access.TransactionManager, txn *access.Transaction) bool {
+		// TODO: for debugging
+		var randVal int
+		randVal = rand.Intn(3)
+		if randVal == 0 || randVal == 1 {
+			txn.SetState(access.ABORTED)
+		}
+
+		// fmt.Println(txn.GetState())
+		if txn.GetState() == access.ABORTED {
+			// fmt.Println(txn.GetSharedLockSet())
+			// fmt.Println(txn.GetExclusiveLockSet())
+			txn_mgr.Abort(catalog_, txn)
+			return false
+		} else {
+			// fmt.Println(txn.GetSharedLockSet())
+			// fmt.Println(txn.GetExclusiveLockSet())
+			txn_mgr.Commit(catalog_, txn)
+			return true
+		}
+	}
 
 	getInt32ValCorrespondToPassVal := func(val interface{}) int32 {
 		switch val.(type) {
@@ -1814,7 +1836,8 @@ func testSkipListParallelTxnStrideRoot[T int32 | float32 | string](t *testing.T,
 		//testParallelTxnsQueryingSkipListIndexUsedColumns[T](t, keyType, 400, 400, 13, 0, bpoolSize, index_constants.INDEX_KIND_INVAID, PARALLEL_EXEC, 20)
 		//testParallelTxnsQueryingSkipListIndexUsedColumns[T](t, keyType, 400, 3000, 13, 0, bpoolSize, index_constants.INDEX_KIND_SKIP_LIST, PARALLEL_EXEC, 20)
 		//testParallelTxnsQueryingSkipListIndexUsedColumns[T](t, keyType, 400, 3000, 17, 0, bpoolSize, index_constants.INDEX_KIND_SKIP_LIST, PARALLEL_EXEC, 20)
-		testParallelTxnsQueryingSkipListIndexUsedColumns[T](t, keyType, 400, 300, 17, 0, bpoolSize, index_constants.INDEX_KIND_SKIP_LIST, PARALLEL_EXEC, 20)
+		//testParallelTxnsQueryingSkipListIndexUsedColumns[T](t, keyType, 400, 300, 17, 0, bpoolSize, index_constants.INDEX_KIND_SKIP_LIST, PARALLEL_EXEC, 20)
+		testParallelTxnsQueryingSkipListIndexUsedColumns[T](t, keyType, 400, 500, 17, 0, bpoolSize, index_constants.INDEX_KIND_SKIP_LIST, SERIAL_EXEC, 20)
 	default:
 		panic("not implemented!")
 	}
