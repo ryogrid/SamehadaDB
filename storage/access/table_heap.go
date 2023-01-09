@@ -233,6 +233,9 @@ func (t *TableHeap) UpdateTuple(tuple_ *tuple.Tuple, update_col_idxs []int, sche
 	// when isUpdateWithDelInsert is true, Update operation write records are already added as two recoreds
 	// (Delete & Insert)
 	if is_updated && txn.GetState() != ABORTED {
+		//if need_follow_tuple == nil {
+		//	panic("need_follow_tuple is nil before create write record of UPDATE.")
+		//}
 		if isUpdateWithDelInsert {
 			txn.AddIntoWriteSet(NewWriteRecord(&rid, new_rid, UPDATE, old_tuple, need_follow_tuple, t, oid))
 		} else {

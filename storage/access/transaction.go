@@ -61,7 +61,7 @@ func NewWriteRecord(rid1 *page.RID, rid2 *page.RID, wtype WType, tuple1 *tuple.T
 	ret.rid2 = rid2
 	ret.wtype = wtype
 	ret.tuple1 = tuple1
-	ret.tuple1 = tuple2
+	ret.tuple2 = tuple2
 	ret.table = table
 	ret.oid = oid
 	return ret

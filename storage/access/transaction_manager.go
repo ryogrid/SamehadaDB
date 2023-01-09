@@ -225,6 +225,9 @@ func (transaction_manager *TransactionManager) Abort(catalog_ catalog_interface.
 				for _, index_ := range indexes {
 					if index_ != nil {
 						colIdx := index_.GetKeyAttrs()[0]
+						//if item.tuple1 == nil || item.tuple2 == nil || item.rid1 == nil || item.rid2 == nil {
+						//	panic(fmt.Sprintf("contents of write record (UPDATE) is illegal. tuple1:%v tuple2:%v rid1:%v rid2:%v", item.tuple1, item.tuple2, item.rid1, item.rid2))
+						//}
 						bfRlbkKeyVal := catalog_.GetColValFromTupleForRollback(item.tuple2, colIdx, item.oid)
 						rlbkKeyVal := catalog_.GetColValFromTupleForRollback(item.tuple1, colIdx, item.oid)
 						if !bfRlbkKeyVal.CompareEquals(*rlbkKeyVal) || new_rid != nil {

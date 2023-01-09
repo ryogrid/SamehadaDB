@@ -69,8 +69,8 @@ func (slidx *SkipListIndex) UpdateEntry(oldKey *tuple.Tuple, oldRID page.RID, ne
 	slidx.rwlatch.WLock()
 	defer slidx.rwlatch.WUnlock()
 
-	slidx.InsertEntry(oldKey, oldRID, transaction)
-	slidx.DeleteEntry(newKey, newRID, transaction)
+	slidx.DeleteEntry(oldKey, oldRID, transaction)
+	slidx.InsertEntry(newKey, newRID, transaction)
 }
 
 // get iterator which iterates entry in key sorted order
