@@ -198,6 +198,10 @@ func (transaction_manager *TransactionManager) Abort(catalog_ catalog_interface.
 			if !is_updated {
 				panic("UpdateTuple at rollback failed!")
 			}
+			if new_rid != nil {
+				//fmt.Println("UpdateTuple at rollback moved record position!")
+				common.NewRIDAtRollback = true
+			}
 			// rollback index data
 			// when update is operated as delete and insert (rid change case),
 			//  rollback is done for each separated operation

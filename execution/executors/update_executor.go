@@ -3,6 +3,7 @@ package executors
 import (
 	"errors"
 	"fmt"
+	"github.com/ryogrid/SamehadaDB/common"
 	"github.com/ryogrid/SamehadaDB/samehada/samehada_util"
 	"github.com/ryogrid/SamehadaDB/storage/page"
 
@@ -70,6 +71,11 @@ func (e *UpdateExecutor) Next() (*tuple.Tuple, Done, error) {
 			is_updated, new_rid, updateErr, updateTuple, _ = e.child.GetTableMetaData().Table().UpdateTuple(new_tuple, nil, nil, e.child.GetTableMetaData().OID(), *rid, e.txn, false)
 		} else {
 			is_updated, new_rid, updateErr, updateTuple, _ = e.child.GetTableMetaData().Table().UpdateTuple(new_tuple, e.plan.GetUpdateColIdxs(), e.child.GetTableMetaData().Schema(), e.child.GetTableMetaData().OID(), *rid, e.txn, false)
+		}
+
+		if new_rid != nil {
+			//fmt.Println("UpdateTuple at UpdateExecuter::Next moved record position!")
+			common.NewRIDAtNormal = true
 		}
 
 		if !is_updated && updateErr != access.ErrPartialUpdate {

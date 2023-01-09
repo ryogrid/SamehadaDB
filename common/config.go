@@ -21,6 +21,10 @@ const EnableOnMemStorage = true //false
 var TempSuppressOnMemStorage = false
 var TempSuppressOnMemStorageMutex sync.Mutex
 
+// TODO: for debugging
+var NewRIDAtNormal = false
+var NewRIDAtRollback = false
+
 const (
 	// invalid page id
 	InvalidPageID = -1

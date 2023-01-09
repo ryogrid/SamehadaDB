@@ -38,6 +38,12 @@ func (slidx *SkipListIndex) DeleteEntry(key *tuple.Tuple, rid page.RID, transact
 	keyVal := key.GetValue(tupleSchema_, slidx.col_idx)
 
 	slidx.container.Remove(&keyVal, samehada_util.PackRIDtoUint32(&rid))
+
+	//// TODO: for debugging
+	//ret := slidx.ScanKey(key, nil)
+	//if len(ret) != 0 {
+	//	panic("index entry remove failed!!!")
+	//}
 }
 
 func (slidx *SkipListIndex) ScanKey(key *tuple.Tuple, transaction interface{}) []page.RID {
