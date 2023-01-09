@@ -232,11 +232,11 @@ func (transaction_manager *TransactionManager) Abort(catalog_ catalog_interface.
 							if new_rid != nil {
 								//index_.DeleteEntry(beforRollbackTuple_, item.rid1, txn)
 								//index_.InsertEntry(item.tuple1, *new_rid, txn)
-								index_.UpdateEntry(item.tuple2, *item.rid1, item.tuple1, *new_rid, txn)
+								index_.UpdateEntry(item.tuple2, *item.rid2, item.tuple1, *new_rid, txn)
 							} else {
 								//index_.DeleteEntry(beforRollbackTuple_, item.rid1, txn)
 								//index_.InsertEntry(item.tuple1, item.rid1, txn)
-								index_.UpdateEntry(item.tuple2, *item.rid1, item.tuple1, *item.rid1, txn)
+								index_.UpdateEntry(item.tuple2, *item.rid2, item.tuple1, *item.rid1, txn)
 							}
 						}
 					}
