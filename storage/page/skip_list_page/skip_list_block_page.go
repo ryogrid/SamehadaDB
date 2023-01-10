@@ -286,7 +286,10 @@ func (node *SkipListBlockPage) Insert(key *types.Value, value uint32, bpm *buffe
 
 		fmt.Printf("Insert: key duplication occured. %v\n", key.ToIFValue())
 		fmt.Printf("oldRID(packed):%d newRID(packed):%d\n", node.GetEntry(int(foundIdx), types.Integer).Value, value)
-		panic("key duplication occured (debugging)")
+
+		//// TODO: for debugging
+		//panic("key duplication occured (debugging)")
+
 		//if node.GetEntry(int(foundIdx), key.ValueType()).Key.CompareEquals(*key) {
 		//	panic("key duplication is not supported yet!")
 		//}
