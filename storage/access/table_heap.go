@@ -293,7 +293,7 @@ func (t *TableHeap) MarkDelete(rid *page.RID, oid uint32, isForUpdate bool, txn 
 	if is_marked && !isForUpdate {
 		// Update the transaction's write set.
 		//txn.AddIntoWriteSet(NewWriteRecord(*rid1, DELETE, new(tuple1.Tuple), t, oid))
-		txn.AddIntoWriteSet(NewWriteRecord(rid, nil, DELETE, nil, tuple_, t, oid))
+		txn.AddIntoWriteSet(NewWriteRecord(rid, nil, DELETE, tuple_, nil, t, oid))
 	}
 
 	return is_marked

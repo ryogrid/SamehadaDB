@@ -134,6 +134,7 @@ func (e *UpdateExecutor) Next() (*tuple.Tuple, Done, error) {
 						//index_.InsertEntry(updateTuple, *new_rid, e.txn)
 						index_.UpdateEntry(t, *rid, updateTuple, *new_rid, e.txn)
 					} else {
+						index_.UpdateEntry(t, *rid, updateTuple, *rid, e.txn)
 						//index_.DeleteEntry(t, *rid, e.txn)
 						//if new_rid != nil {
 						//	index_.InsertEntry(updateTuple, *new_rid, e.txn)
