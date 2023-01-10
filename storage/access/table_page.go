@@ -535,6 +535,16 @@ func (tp *TablePage) GetTuple(rid *page.RID, log_manager *recovery.LogManager, l
 			fmt.Printf("TablePage::GetTuple called. pageId:%d txn.txn_id:%v  dbgInfo:%s rid1:%v\n", tp.GetPageId(), txn.txn_id, txn.dbgInfo, *rid)
 		}
 	}
+
+	// check having appropriate lock or gettable at least a shared access.
+	if log_manager.IsEnabledLogging() {
+		if !txn.IsSharedLocked(rid) && !txn.IsExclusiveLocked(rid) && !lock_manager.LockShared(txn, rid) {
+			//if !lock_manager.LockShared(txn, rid1) && !txn.IsExclusiveLocked(rid1) {
+			txn.SetState(ABORTED)
+			return nil, ErrGeneral
+		}
+	}
+
 	// If somehow we have more slots than tuples, abort transaction
 	if rid.GetSlotNum() >= tp.GetTupleCount() {
 		if log_manager.IsEnabledLogging() {
@@ -559,18 +569,9 @@ func (tp *TablePage) GetTuple(rid *page.RID, log_manager *recovery.LogManager, l
 		} else {
 			//panic(fmt.Sprintf("TablePage::GetTuple illegal rid1 passed. rid1:%v", *rid1))
 
-			// when Next method call of RangeSanWithIndexExecutor which uses SkipListIterator as RID itrator is called
+			// when Next method call of RangeSanWithIndexExecutor which uses SkipListIterator as RID itrator is called,
 			// the txn enter here.
 
-			txn.SetState(ABORTED)
-			return nil, ErrGeneral
-		}
-	}
-
-	// Otherwise we have a valid tuple1, try to acquire at least a shared access.
-	if log_manager.IsEnabledLogging() {
-		if !txn.IsSharedLocked(rid) && !txn.IsExclusiveLocked(rid) && !lock_manager.LockShared(txn, rid) {
-			//if !lock_manager.LockShared(txn, rid1) && !txn.IsExclusiveLocked(rid1) {
 			txn.SetState(ABORTED)
 			return nil, ErrGeneral
 		}
@@ -586,6 +587,9 @@ func (tp *TablePage) GetTuple(rid *page.RID, log_manager *recovery.LogManager, l
 			return tuple.NewTuple(rid, 0, make([]byte, 0)), ErrSelfDeletedCase
 			//return nil, ErrSelfDeletedCase
 		} else {
+			// when RangeSanWithIndexExecutor or PointScanWithIndexExecutor which uses SkipListIterator as RID itrator is called,
+			// the txn enter here.
+
 			fmt.Printf("TablePage::GetTuple faced deleted marked rid1 . rid1:%v\n", *rid)
 			txn.SetState(ABORTED)
 			return nil, ErrGeneral
