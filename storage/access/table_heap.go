@@ -207,10 +207,10 @@ func (t *TableHeap) UpdateTuple(tuple_ *tuple.Tuple, update_col_idxs []int, sche
 			return false, nil, ErrGeneral, nil, nil
 		}
 
-		var err_ error = nil
-		new_rid, err_ = t.InsertTuple(need_follow_tuple, true, txn, oid)
-		if err_ != nil {
-			//fmt.Println("TableHeap::UpdateTuple(): InsertTuple failed")
+		var err2 error = nil
+		new_rid, err2 = t.InsertTuple(need_follow_tuple, true, txn, oid)
+		if err2 != nil {
+			fmt.Println("TableHeap::UpdateTuple(): InsertTuple failed")
 			txn.SetState(ABORTED)
 			txn.AddIntoWriteSet(NewWriteRecord(&rid, nil, DELETE, old_tuple, nil, t, oid))
 			return false, nil, ErrPartialUpdate, nil, old_tuple
