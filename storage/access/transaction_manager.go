@@ -212,7 +212,7 @@ func (transaction_manager *TransactionManager) Abort(catalog_ catalog_interface.
 
 			// TODO: for debugging
 			if new_rid != nil {
-				//fmt.Println("UpdateTuple at rollback moved record position!")
+				//fmt.Printf("UpdateTuple at rollback moved record position! oldRID:%v newRID:%v\n", *item.rid1, *new_rid)
 				common.NewRIDAtRollback = true
 			}
 			// rollback index data

@@ -74,7 +74,7 @@ func (e *UpdateExecutor) Next() (*tuple.Tuple, Done, error) {
 		}
 
 		if new_rid != nil {
-			//fmt.Println("UpdateTuple at UpdateExecuter::Next moved record position!")
+			//fmt.Printf("UpdateTuple at UpdateExecuter::Next moved record position! oldRID:%v newRID:%v\n", *rid, *new_rid)
 			common.NewRIDAtNormal = true
 		}
 

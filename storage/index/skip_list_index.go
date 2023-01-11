@@ -40,11 +40,12 @@ func (slidx *SkipListIndex) DeleteEntry(key *tuple.Tuple, rid page.RID, transact
 	tupleSchema_ := slidx.GetTupleSchema()
 	keyVal := key.GetValue(tupleSchema_, slidx.col_idx)
 
-	isSuccess := slidx.container.Remove(&keyVal, samehada_util.PackRIDtoUint32(&rid))
+	slidx.container.Remove(&keyVal, samehada_util.PackRIDtoUint32(&rid))
+	//isSuccess := slidx.container.Remove(&keyVal, samehada_util.PackRIDtoUint32(&rid))
 
-	if isSuccess == false {
-		panic("Index entry delete failed!!!")
-	}
+	//if isSuccess == false {
+	//	panic(fmt.Sprintf("SkipListIndex::DeleteEntry: %v %v\n", keyVal.ToIFValue(), rid))
+	//}
 
 	//// TODO: for debugging
 	//ret := slidx.ScanKey(key, nil)

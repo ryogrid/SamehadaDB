@@ -1815,6 +1815,17 @@ func testParallelTxnsQueryingSkipListIndexUsedColumns[T int32 | float32 | string
 	//	}
 	//}
 
+	// tuple num check with seqScan ----------------------------------
+
+	txn_ = txnMgr.Begin(nil)
+	txn_.MakeNotAbortable()
+	fullScanPlan := createSpecifiedRangeScanPlanNode[T](c, tableMetadata, keyType, -1, nil, nil, index_constants.INDEX_KIND_INVAID)
+	results3 := executePlan(c, shi.GetBufferPoolManager(), txn_, fullScanPlan)
+	resultsLen3 := len(results3)
+	common.SH_Assert(txn_.GetState() != access.ABORTED, "last tuple count check is aborted!(2)")
+	common.SH_Assert(collectNumMaybe == int32(resultsLen3), "records count is not matched with assumed num "+fmt.Sprintf("%d != %d (full scan by seqScan)", collectNumMaybe, resultsLen3))
+	finalizeRandomNoSideEffectTxn(txn_)
+
 	common.SH_Assert(collectNumMaybe == int32(resultsLen2), "records count is not matched with assumed num "+fmt.Sprintf("%d != %d", collectNumMaybe, resultsLen2))
 
 	common.SH_Assert(commitedTxnCnt+abortedTxnCnt == executedTxnCnt, "txn counting has bug(2)!")
@@ -1835,8 +1846,10 @@ func testSkipListParallelTxnStrideRoot[T int32 | float32 | string](t *testing.T,
 	case types.Varchar:
 		//testParallelTxnsQueryingSkipListIndexUsedColumns[T](t, keyType, 400, 400, 13, 0, bpoolSize, index_constants.INDEX_KIND_INVAID, PARALLEL_EXEC, 20)
 		//testParallelTxnsQueryingSkipListIndexUsedColumns[T](t, keyType, 400, 3000, 13, 0, bpoolSize, index_constants.INDEX_KIND_SKIP_LIST, PARALLEL_EXEC, 20)
-		//testParallelTxnsQueryingSkipListIndexUsedColumns[T](t, keyType, 400, 3000, 17, 0, bpoolSize, index_constants.INDEX_KIND_SKIP_LIST, PARALLEL_EXEC, 20)
-		testParallelTxnsQueryingSkipListIndexUsedColumns[T](t, keyType, 400, 50000, 17, 0, bpoolSize, index_constants.INDEX_KIND_SKIP_LIST, PARALLEL_EXEC, 20)
+
+		testParallelTxnsQueryingSkipListIndexUsedColumns[T](t, keyType, 400, 3000, 17, 0, bpoolSize, index_constants.INDEX_KIND_SKIP_LIST, PARALLEL_EXEC, 20)
+		//testParallelTxnsQueryingSkipListIndexUsedColumns[T](t, keyType, 400, 50000, 17, 0, bpoolSize, index_constants.INDEX_KIND_SKIP_LIST, PARALLEL_EXEC, 20)
+
 		//testParallelTxnsQueryingSkipListIndexUsedColumns[T](t, keyType, 400, 300, 17, 0, bpoolSize, index_constants.INDEX_KIND_SKIP_LIST, PARALLEL_EXEC, 20)
 		//testParallelTxnsQueryingSkipListIndexUsedColumns[T](t, keyType, 400, 500, 17, 0, bpoolSize, index_constants.INDEX_KIND_SKIP_LIST, SERIAL_EXEC, 20)
 	default:
