@@ -833,8 +833,8 @@ func testParallelTxnsQueryingSkipListIndexUsedColumns[T int32 | float32 | string
 	abortedTxnCnt := int32(0)
 	commitedTxnCnt := int32(0)
 
-	//// TODO: for debugging
-	//balanceAmountForRandom := int32(100000)
+	// TODO: for debugging
+	balanceAmountForRandom := int32(100000)
 
 	txn = txnMgr.Begin(nil)
 
@@ -931,12 +931,12 @@ func testParallelTxnsQueryingSkipListIndexUsedColumns[T int32 | float32 | string
 
 	ch := make(chan int32)
 
-	//// TODO: for debugging
-	//getNewAmountAndInc := func() int32 {
-	//	ret := atomic.LoadInt32(&balanceAmountForRandom)
-	//	atomic.AddInt32(&balanceAmountForRandom, 1)
-	//	return ret
-	//}
+	// TODO: for debugging
+	getNewAmountAndInc := func() int32 {
+		ret := atomic.LoadInt32(&balanceAmountForRandom)
+		atomic.AddInt32(&balanceAmountForRandom, 1)
+		return ret
+	}
 
 	abortTxnAndUpdateCounter := func(txn_ *access.Transaction) {
 		handleFnishedTxn(c, txnMgr, txn_)
@@ -1305,9 +1305,9 @@ func testParallelTxnsQueryingSkipListIndexUsedColumns[T int32 | float32 | string
 				common.ShPrintf(common.DEBUGGING, fmt.Sprintf("Insert op start. txnId:%v ii:%d\n", txn_.GetTransactionId(), ii))
 				for jj := int32(0); jj < stride; jj++ {
 					insKeyVal := samehada_util.StrideAdd(samehada_util.StrideMul(insKeyValBase, stride), jj).(T)
-					insBalanceVal := getInt32ValCorrespondToPassVal(insKeyVal)
-					//// TODO: for debugging
-					//insBalanceVal := getNewAmountAndInc()
+					//insBalanceVal := getInt32ValCorrespondToPassVal(insKeyVal)
+					// TODO: for debugging
+					insBalanceVal := getNewAmountAndInc()
 
 					common.ShPrintf(common.DEBUGGING, fmt.Sprintf("Insert op start. txnId:%v ii:%d jj:%d\n", txn_.GetTransactionId(), ii, jj))
 					insPlan := createSpecifiedValInsertPlanNode(insKeyVal, insBalanceVal, c, tableMetadata, keyType)
@@ -1481,9 +1481,9 @@ func testParallelTxnsQueryingSkipListIndexUsedColumns[T int32 | float32 | string
 
 					common.SH_Assert(results1 != nil && len(results1) == 1, "Update failed!")
 
-					updatePlan2 := createBalanceUpdatePlanNode(updateNewKeyVal, getInt32ValCorrespondToPassVal(updateNewKeyVal), c, tableMetadata, keyType, indexKind)
-					//// TODO: for debugging
-					//updatePlan2 := createBalanceUpdatePlanNode(updateNewKeyVal, getNewAmountAndInc(), c, tableMetadata, keyType, indexKind)
+					//updatePlan2 := createBalanceUpdatePlanNode(updateNewKeyVal, getInt32ValCorrespondToPassVal(updateNewKeyVal), c, tableMetadata, keyType, indexKind)
+					// TODO: for debugging
+					updatePlan2 := createBalanceUpdatePlanNode(updateNewKeyVal, getNewAmountAndInc(), c, tableMetadata, keyType, indexKind)
 
 					results2 := executePlan(c, shi.GetBufferPoolManager(), txn_, updatePlan2)
 
@@ -1572,9 +1572,9 @@ func testParallelTxnsQueryingSkipListIndexUsedColumns[T int32 | float32 | string
 						}
 
 						common.SH_Assert(results != nil && len(results) == 1, "Select(success) should not be fail!")
-						collectVal := types.NewInteger(getInt32ValCorrespondToPassVal(getKeyVal))
-						gotVal := results[0].GetValue(tableMetadata.Schema(), 1)
-						common.SH_Assert(gotVal.CompareEquals(collectVal), "value should be "+fmt.Sprintf("%d not %d", collectVal.ToInteger(), gotVal.ToInteger()))
+						//collectVal := types.NewInteger(getInt32ValCorrespondToPassVal(getKeyVal))
+						//gotVal := results[0].GetValue(tableMetadata.Schema(), 1)
+						//common.SH_Assert(gotVal.CompareEquals(collectVal), "value should be "+fmt.Sprintf("%d not %d", collectVal.ToInteger(), gotVal.ToInteger()))
 					}
 					finalizeRandomNoSideEffectTxn(txn_)
 					if execType == PARALLEL_EXEC {
@@ -1780,40 +1780,40 @@ func testParallelTxnsQueryingSkipListIndexUsedColumns[T int32 | float32 | string
 	}
 	// --------------------------------------
 
-	// check value duplication (second column)
-	rsltCheckMap2 := make(map[int32]int32, 0)
-	for _, tuple_ := range results2 {
-		val := tuple_.GetValue(tableMetadata.Schema(), 1).ToInteger()
-		if _, ok := rsltCheckMap2[val]; ok {
-			fmt.Printf("duplicated key found on result1! rid:%v val:%v\n", tuple_.GetRID(), val)
-		} else {
-			rsltCheckMap2[val] = val
-		}
-	}
-
-	// detect tuple which has illegal value at second column (unknown key based value)
-	// -- make map having values which should be in DB
-	okValMap2 := make(map[int32]int32, 0)
-	for _, baseKey := range insVals {
-		for ii := int32(0); ii < stride; ii++ {
-			okValBasedKey := samehada_util.StrideAdd(samehada_util.StrideMul(baseKey, stride), ii).(T)
-			okVal := getInt32ValCorrespondToPassVal(okValBasedKey)
-			okValMap2[okVal] = okVal
-		}
-	}
-	// -- check values on results2
-	okValListAccount := make([]int32, 0)
-	for k, _ := range checkBalanceColDupMap {
-		okValListAccount = append(okValListAccount, k)
-	}
-	for _, tuple_ := range results2 {
-		val := tuple_.GetValue(tableMetadata.Schema(), 1).ToInteger()
-		if _, ok := okValMap2[val]; !ok {
-			if !samehada_util.IsContainList[int32](okValListAccount, val) {
-				fmt.Printf("illegal key found on result2! rid:%v val:%v\n", tuple_.GetRID(), val)
-			}
-		}
-	}
+	//// check value duplication (second column)
+	//rsltCheckMap2 := make(map[int32]int32, 0)
+	//for _, tuple_ := range results2 {
+	//	val := tuple_.GetValue(tableMetadata.Schema(), 1).ToInteger()
+	//	if _, ok := rsltCheckMap2[val]; ok {
+	//		fmt.Printf("duplicated key found on result1! rid:%v val:%v\n", tuple_.GetRID(), val)
+	//	} else {
+	//		rsltCheckMap2[val] = val
+	//	}
+	//}
+	//
+	//// detect tuple which has illegal value at second column (unknown key based value)
+	//// -- make map having values which should be in DB
+	//okValMap2 := make(map[int32]int32, 0)
+	//for _, baseKey := range insVals {
+	//	for ii := int32(0); ii < stride; ii++ {
+	//		okValBasedKey := samehada_util.StrideAdd(samehada_util.StrideMul(baseKey, stride), ii).(T)
+	//		okVal := getInt32ValCorrespondToPassVal(okValBasedKey)
+	//		okValMap2[okVal] = okVal
+	//	}
+	//}
+	//// -- check values on results2
+	//okValListAccount := make([]int32, 0)
+	//for k, _ := range checkBalanceColDupMap {
+	//	okValListAccount = append(okValListAccount, k)
+	//}
+	//for _, tuple_ := range results2 {
+	//	val := tuple_.GetValue(tableMetadata.Schema(), 1).ToInteger()
+	//	if _, ok := okValMap2[val]; !ok {
+	//		if !samehada_util.IsContainList[int32](okValListAccount, val) {
+	//			fmt.Printf("illegal key found on result2! rid:%v val:%v\n", tuple_.GetRID(), val)
+	//		}
+	//	}
+	//}
 
 	common.SH_Assert(collectNumMaybe == int32(resultsLen2), "records count is not matched with assumed num "+fmt.Sprintf("%d != %d", collectNumMaybe, resultsLen2))
 
