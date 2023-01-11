@@ -94,14 +94,15 @@ func (transaction_manager *TransactionManager) Commit(catalog_ catalog_interface
 			table.bpm.UnpinPage(tpage.GetPageId(), true)
 			tpage.RemoveWLatchRecord(int32(txn.txn_id))
 			tpage.WUnlatch()
-			//if catalog_ != nil {
-			//	indexes := catalog_.GetRollbackNeededIndexes(indexMap, item.oid)
-			//	for _, index_ := range indexes {
-			//		if index_ != nil {
-			//			index_.DeleteEntry(item.tuple1, item.rid1, txn)
-			//		}
-			//	}
-			//}
+		} else if item.wtype == UPDATE {
+			if common.EnableDebug && common.ActiveLogKindSetting&common.COMMIT_ABORT_HANDLE_INFO > 0 {
+				fmt.Printf("TransactionManager::Commit handle UPDATE write log. txn.txn_id:%v dbgInfo:%s rid1:%v tuple1.Size()=%d \n", txn.txn_id, txn.dbgInfo, item.rid1, item.tuple1.Size())
+			}
+
+			if item.rid1 != item.rid2 {
+				// when rid changed case only need commit
+				item.table.ApplyDelete(item.rid1, txn)
+			}
 		}
 		write_set = write_set[:len(write_set)-1]
 	}

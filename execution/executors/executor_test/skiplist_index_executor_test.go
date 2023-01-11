@@ -835,6 +835,7 @@ func testParallelTxnsQueryingSkipListIndexUsedColumns[T int32 | float32 | string
 
 	// TODO: for debugging
 	balanceAmountForRandom := int32(100000)
+	balanceAmountForRandomMutex := new(sync.Mutex)
 
 	txn = txnMgr.Begin(nil)
 
@@ -933,8 +934,14 @@ func testParallelTxnsQueryingSkipListIndexUsedColumns[T int32 | float32 | string
 
 	// TODO: for debugging
 	getNewAmountAndInc := func() int32 {
-		ret := atomic.LoadInt32(&balanceAmountForRandom)
-		atomic.AddInt32(&balanceAmountForRandom, 10)
+		//ret := atomic.LoadInt32(&balanceAmountForRandom)
+		//atomic.AddInt32(&balanceAmountForRandom, 10)
+		//return ret
+		var ret int32
+		balanceAmountForRandomMutex.Lock()
+		ret = balanceAmountForRandom
+		balanceAmountForRandom += 10
+		balanceAmountForRandomMutex.Unlock()
 		return ret
 	}
 
