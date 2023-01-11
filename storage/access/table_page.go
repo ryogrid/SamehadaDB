@@ -171,6 +171,19 @@ func (tp *TablePage) UpdateTuple(new_tuple *tuple.Tuple, update_col_idxs []int, 
 	}
 	common.SH_Assert(new_tuple.Size() > 0, "Cannot have empty tuples.")
 
+	if log_manager.IsEnabledLogging() {
+		// Acquire an exclusive lock, upgrading from shared if necessary.
+		if txn.IsSharedLocked(rid) {
+			if !lock_manager.LockUpgrade(txn, rid) {
+				txn.SetState(ABORTED)
+				return false, nil, nil
+			}
+		} else if !txn.IsExclusiveLocked(rid) && !lock_manager.LockExclusive(txn, rid) {
+			txn.SetState(ABORTED)
+			return false, nil, nil
+		}
+	}
+
 	slot_num := rid.GetSlotNum()
 	// If the slot number is invalid, abort the transaction.
 	if slot_num >= tp.GetTupleCount() {
@@ -221,16 +234,6 @@ func (tp *TablePage) UpdateTuple(new_tuple *tuple.Tuple, update_col_idxs []int, 
 	}
 
 	if log_manager.IsEnabledLogging() {
-		// Acquire an exclusive lock, upgrading from shared if necessary.
-		if txn.IsSharedLocked(rid) {
-			if !lock_manager.LockUpgrade(txn, rid) {
-				txn.SetState(ABORTED)
-				return false, nil, nil
-			}
-		} else if !txn.IsExclusiveLocked(rid) && !lock_manager.LockExclusive(txn, rid) {
-			txn.SetState(ABORTED)
-			return false, nil, nil
-		}
 		log_record := recovery.NewLogRecordUpdate(txn.GetTransactionId(), txn.GetPrevLSN(), recovery.UPDATE, *rid, *old_tuple, *update_tuple)
 		lsn := log_manager.AppendLogRecord(log_record)
 		tp.SetLSN(lsn)
@@ -272,6 +275,20 @@ func (tp *TablePage) MarkDelete(rid *page.RID, txn *Transaction, lock_manager *L
 			fmt.Printf("TablePage::MarkDelete called. pageId:%d txn.txn_id:%v dbgInfo:%s  rid1:%v\n", tp.GetPageId(), txn.txn_id, txn.dbgInfo, *rid)
 		}
 	}
+
+	if log_manager.IsEnabledLogging() {
+		// Acquire an exclusive lock, upgrading from a shared lock if necessary.
+		if txn.IsSharedLocked(rid) {
+			if !lock_manager.LockUpgrade(txn, rid) {
+				txn.SetState(ABORTED)
+				return false
+			}
+		} else if !txn.IsExclusiveLocked(rid) && !lock_manager.LockExclusive(txn, rid) {
+			txn.SetState(ABORTED)
+			return false
+		}
+	}
+
 	slot_num := rid.GetSlotNum()
 	// If the slot number is invalid, abort the transaction.
 	if slot_num >= tp.GetTupleCount() {
@@ -291,16 +308,6 @@ func (tp *TablePage) MarkDelete(rid *page.RID, txn *Transaction, lock_manager *L
 	}
 
 	if log_manager.IsEnabledLogging() {
-		// Acquire an exclusive lock, upgrading from a shared lock if necessary.
-		if txn.IsSharedLocked(rid) {
-			if !lock_manager.LockUpgrade(txn, rid) {
-				txn.SetState(ABORTED)
-				return false
-			}
-		} else if !txn.IsExclusiveLocked(rid) && !lock_manager.LockExclusive(txn, rid) {
-			txn.SetState(ABORTED)
-			return false
-		}
 		dummy_tuple := new(tuple.Tuple)
 		log_record := recovery.NewLogRecordInsertDelete(txn.GetTransactionId(), txn.GetPrevLSN(), recovery.MARKDELETE, *rid, dummy_tuple)
 		lsn := log_manager.AppendLogRecord(log_record)
@@ -370,7 +377,7 @@ func (tp *TablePage) ApplyDelete(rid *page.RID, txn *Transaction, log_manager *r
 	tp.SetTupleSize(slot_num, 0)
 	tp.SetTupleOffsetAtSlot(slot_num, 0)
 
-	// Update all tuple1 offsets.
+	// Update all tuple offsets.
 	tuple_count := int(tp.GetTupleCount())
 	for ii := 0; ii < tuple_count; ii++ {
 		tuple_offset_ii := tp.GetTupleOffsetAtSlot(uint32(ii))
@@ -590,7 +597,7 @@ func (tp *TablePage) GetTuple(rid *page.RID, log_manager *recovery.LogManager, l
 			// when RangeSanWithIndexExecutor or PointScanWithIndexExecutor which uses SkipListIterator as RID itrator is called,
 			// the txn enter here.
 
-			fmt.Printf("TablePage::GetTuple faced deleted marked rid1 . rid1:%v\n", *rid)
+			fmt.Printf("TablePage::GetTuple faced deleted marked rid1 . rid1:%v tupleSize:%d tupleOffset:%d\n", *rid, tupleSize, tupleOffset)
 			txn.SetState(ABORTED)
 			return nil, ErrGeneral
 		}
