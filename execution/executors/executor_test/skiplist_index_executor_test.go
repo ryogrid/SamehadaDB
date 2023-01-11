@@ -934,7 +934,7 @@ func testParallelTxnsQueryingSkipListIndexUsedColumns[T int32 | float32 | string
 	// TODO: for debugging
 	getNewAmountAndInc := func() int32 {
 		ret := atomic.LoadInt32(&balanceAmountForRandom)
-		atomic.AddInt32(&balanceAmountForRandom, 1)
+		atomic.AddInt32(&balanceAmountForRandom, 10)
 		return ret
 	}
 
@@ -1815,16 +1815,18 @@ func testParallelTxnsQueryingSkipListIndexUsedColumns[T int32 | float32 | string
 	//	}
 	//}
 
-	// tuple num check with seqScan ----------------------------------
+	// tuple num check with full scan by seqScan ----------------------------------
 
 	txn_ = txnMgr.Begin(nil)
 	txn_.MakeNotAbortable()
 	fullScanPlan := createSpecifiedRangeScanPlanNode[T](c, tableMetadata, keyType, -1, nil, nil, index_constants.INDEX_KIND_INVAID)
 	results3 := executePlan(c, shi.GetBufferPoolManager(), txn_, fullScanPlan)
 	resultsLen3 := len(results3)
-	common.SH_Assert(txn_.GetState() != access.ABORTED, "last tuple count check is aborted!(2)")
+	common.SH_Assert(txn_.GetState() != access.ABORTED, "last tuple count check is aborted!(3)")
 	common.SH_Assert(collectNumMaybe == int32(resultsLen3), "records count is not matched with assumed num "+fmt.Sprintf("%d != %d (full scan by seqScan)", collectNumMaybe, resultsLen3))
 	finalizeRandomNoSideEffectTxn(txn_)
+
+	//----
 
 	common.SH_Assert(collectNumMaybe == int32(resultsLen2), "records count is not matched with assumed num "+fmt.Sprintf("%d != %d", collectNumMaybe, resultsLen2))
 
