@@ -275,7 +275,6 @@ func (node *SkipListBlockPage) Insert(key *types.Value, value uint32, bpm *buffe
 
 	found, _, foundIdx := node.FindEntryByKey(key)
 	isSuccess := false
-	isSplited := false
 	var lockedAndPinnedNodes []*SkipListBlockPage = nil
 	var splitIdx int32 = -1
 	if found {
@@ -327,12 +326,14 @@ func (node *SkipListBlockPage) Insert(key *types.Value, value uint32, bpm *buffe
 
 			common.ShPrintf(common.DEBUG_INFO, "SkipListBlockPage::Insert: node split occured!\n")
 
-			isSplited = true
 			isNeedSplitWithEntryMove := true
 
 			if key.ValueType() == types.Varchar {
 				// entries located post half data space are moved to new node
 				splitIdx, isNeedSplitWithEntryMove = node.getSplitIdxForNotFixed()
+				if isNeedSplitWithEntryMove == false {
+					panic("not implemented yet")
+				}
 			} else {
 				// half of entries are moved to new node
 				splitIdx = node.GetEntryCnt() / 2
@@ -371,7 +372,7 @@ func (node *SkipListBlockPage) Insert(key *types.Value, value uint32, bpm *buffe
 
 					insEntry := &SkipListPair{*key, value}
 					if key.ValueType() == types.Varchar && (newNode.GetSpecifiedSLPNeedSpace(insEntry) > newNode.getFreeSpaceRemaining()) {
-						panic("not enough space for insert (after node split)")
+						panic("not enough space for insert (new node)")
 					}
 					newNode.InsertInner(int(newSmallerIdx), insEntry)
 					bpm.UnpinPage(newNode.GetPageId(), true)
@@ -396,11 +397,7 @@ func (node *SkipListBlockPage) Insert(key *types.Value, value uint32, bpm *buffe
 
 					insEntry := &SkipListPair{*key, value}
 					if key.ValueType() == types.Varchar && (node.GetSpecifiedSLPNeedSpace(insEntry) > node.getFreeSpaceRemaining()) {
-						if isSplited {
-							panic("not enough space for insert (after node split)")
-						} else {
-							panic("not enough space for insert.")
-						}
+						panic("not enough space for insert (parent node)")
 					}
 					node.InsertInner(int(foundIdx), insEntry)
 
