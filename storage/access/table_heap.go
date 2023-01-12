@@ -108,11 +108,11 @@ func (t *TableHeap) InsertTuple(tuple_ *tuple.Tuple, isForUpdate bool, txn *Tran
 			// holding WLatch of currentPage here
 		} else {
 			p := t.bpm.NewPage()
-			currentPage.SetNextPageId(p.GetPageId())
-			currentPageId := currentPage.GetPageId()
 			newPage := CastPageAsTablePage(p)
 			newPage.WLatch()
 			newPage.AddWLatchRecord(int32(txn.txn_id))
+			currentPage.SetNextPageId(p.GetPageId())
+			currentPageId := currentPage.GetPageId()
 			t.bpm.UnpinPage(currentPage.GetPageId(), true)
 			if common.EnableDebug && common.ActiveLogKindSetting&common.PIN_COUNT_ASSERT > 0 {
 				common.SH_Assert(currentPage.PinCount() == 0, "PinCount is not zero when finish TablePage::UpdateTuple!!!")

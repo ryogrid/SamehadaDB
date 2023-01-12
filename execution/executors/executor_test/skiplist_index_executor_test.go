@@ -1135,12 +1135,12 @@ func testParallelTxnsQueryingSkipListIndexUsedColumns[T int32 | float32 | string
 		//// Random Insert only
 		//opType := 1
 
-		//// Random Isert and Random Delete only
-		//opType := rand.Intn(3)
-		//opType += 1
+		// Random Isert and Random Delete only
+		opType := rand.Intn(3)
+		opType += 1
 
-		// move money, Random Insert, Randome Delete, Random Update, Random Point Scan, Random Range Scan
-		opType := rand.Intn(8)
+		//// move money, Random Insert, Randome Delete, Random Update, Random Point Scan, Random Range Scan
+		//opType := rand.Intn(8)
 
 		//// move money, Random Insert, Randome Delete, (Random Update), Random Point Scan, Random Range Scan
 		//opType := rand.Intn(7)
@@ -1856,7 +1856,8 @@ func testSkipListParallelTxnStrideRoot[T int32 | float32 | string](t *testing.T,
 		//testParallelTxnsQueryingSkipListIndexUsedColumns[T](t, keyType, 400, 400, 13, 0, bpoolSize, index_constants.INDEX_KIND_INVAID, PARALLEL_EXEC, 20)
 		//testParallelTxnsQueryingSkipListIndexUsedColumns[T](t, keyType, 400, 3000, 13, 0, bpoolSize, index_constants.INDEX_KIND_SKIP_LIST, PARALLEL_EXEC, 20)
 
-		testParallelTxnsQueryingSkipListIndexUsedColumns[T](t, keyType, 400, 3000, 17, 0, bpoolSize, index_constants.INDEX_KIND_SKIP_LIST, PARALLEL_EXEC, 20)
+		//testParallelTxnsQueryingSkipListIndexUsedColumns[T](t, keyType, 400, 3000, 17, 0, bpoolSize, index_constants.INDEX_KIND_SKIP_LIST, PARALLEL_EXEC, 20)
+		testParallelTxnsQueryingSkipListIndexUsedColumns[T](t, keyType, 400, 9000, 17, 0, bpoolSize, index_constants.INDEX_KIND_SKIP_LIST, PARALLEL_EXEC, 20)
 		//testParallelTxnsQueryingSkipListIndexUsedColumns[T](t, keyType, 400, 50000, 17, 0, bpoolSize, index_constants.INDEX_KIND_SKIP_LIST, PARALLEL_EXEC, 20)
 
 		//testParallelTxnsQueryingSkipListIndexUsedColumns[T](t, keyType, 400, 300, 17, 0, bpoolSize, index_constants.INDEX_KIND_SKIP_LIST, PARALLEL_EXEC, 20)
