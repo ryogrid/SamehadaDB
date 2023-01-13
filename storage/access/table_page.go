@@ -87,7 +87,8 @@ func (tp *TablePage) InsertTuple(tuple *tuple.Tuple, log_manager *recovery.LogMa
 		}
 	}
 
-	if tuple.Size() == 0 {
+	if tuple.Size() <= 0 {
+		panic("tuple size is illegal!!!")
 		return nil, ErrEmptyTuple
 	}
 
@@ -230,6 +231,10 @@ func (tp *TablePage) UpdateTuple(new_tuple *tuple.Tuple, update_col_idxs []int, 
 		update_tuple = tuple.NewTupleFromSchema(update_tuple_values, schema_)
 	}
 
+	if update_tuple.Size() <= 0 {
+		panic("tuple size is illegal!!!")
+	}
+
 	if tp.getFreeSpaceRemaining()+tuple_size < update_tuple.Size() {
 		return false, ErrNotEnoughSpace, update_tuple
 	}
@@ -357,6 +362,10 @@ func (tp *TablePage) ApplyDelete(rid *page.RID, txn *Transaction, log_manager *r
 	}
 	// Otherwise we are rolling back an insert.
 
+	if tuple_size <= 0 {
+		panic("TablePage::ApplyDelete: target tuple size is illegal!!!")
+	}
+
 	if log_manager.IsEnabledLogging() {
 		// We need to copy out the deleted tuple1 for undo purposes.
 		var delete_tuple *tuple.Tuple = new(tuple.Tuple)
@@ -428,6 +437,10 @@ func (tp *TablePage) RollbackDelete(rid *page.RID, txn *Transaction, log_manager
 	if IsDeleted(tuple_size) {
 		tp.SetTupleSize(slot_num, UnsetDeletedFlag(tuple_size))
 	}
+
+	if tuple_size <= 0 {
+		panic("TablePage::RollbackDelete: target tuple size is illegal!!!")
+	}
 }
 
 // Init initializes the table header
@@ -474,6 +487,9 @@ func (tp *TablePage) SetNextPageId(pageId types.PageID) {
 func (tp *TablePage) SetFreeSpacePointer(freeSpacePointer uint32) {
 	if common.EnableDebug {
 		common.SH_Assert(freeSpacePointer <= common.PageSize, "illegal pointer value!!")
+	}
+	if freeSpacePointer < offsetTupleSize {
+		panic(fmt.Sprintf("freeSpacePointer value to be set is illegal !!! fsp:%d\n", freeSpacePointer))
 	}
 	tp.Copy(offsetFreeSpace, types.UInt32(freeSpacePointer).Serialize())
 }
