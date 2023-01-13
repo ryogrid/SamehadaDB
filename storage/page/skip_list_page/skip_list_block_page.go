@@ -251,8 +251,8 @@ func (node *SkipListBlockPage) getSplitIdxForNotFixed() (splitIdx_ int32, isNeed
 	splitIdx := -1
 	for ii := 0; ii < entryCnt; ii++ {
 		curSize = curSize + int(node.GetEntrySize(ii)) + int(sizeEntryInfo)
+		splitIdx = ii
 		if curSize >= halfOfmaxSize {
-			splitIdx = ii
 			break
 		}
 	}
@@ -328,19 +328,16 @@ func (node *SkipListBlockPage) Insert(key *types.Value, value uint32, bpm *buffe
 
 			isNeedSplitWithEntryMove := true
 
-			//if key.ValueType() == types.Varchar {
-			//	// entries located post half data space are moved to new node
-			//	splitIdx, isNeedSplitWithEntryMove = node.getSplitIdxForNotFixed()
-			//	if isNeedSplitWithEntryMove == false {
-			//		panic("not implemented yet")
-			//	}
-			//} else {
-			//	// half of entries are moved to new node
-			//	splitIdx = node.GetEntryCnt() / 2
-			//}
-
-			// TODO: for debugging
-			splitIdx = node.GetEntryCnt() / 2
+			if key.ValueType() == types.Varchar {
+				// entries located post half data space are moved to new node
+				splitIdx, isNeedSplitWithEntryMove = node.getSplitIdxForNotFixed()
+				if isNeedSplitWithEntryMove == false {
+					panic("not implemented yet")
+				}
+			} else {
+				// half of entries are moved to new node
+				splitIdx = node.GetEntryCnt() / 2
+			}
 
 			if isNeedSplitWithEntryMove {
 				// set this node as corner node of level-1

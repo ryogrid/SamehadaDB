@@ -1308,6 +1308,9 @@ func testParallelTxnsQueryingSkipListIndexUsedColumns[T int32 | float32 | string
 				checkBalanceColDupMapSetWithLock(balanceVal)
 
 				txn_ := txnMgr.Begin(nil)
+				// TODO: for debugging
+				txn_.MakeNotAbortable()
+
 				txn_.SetDebugInfo("Insert(random)-Op")
 				common.ShPrintf(common.DEBUGGING, fmt.Sprintf("Insert op start. txnId:%v ii:%d\n", txn_.GetTransactionId(), ii))
 				for jj := int32(0); jj < stride; jj++ {
@@ -1354,6 +1357,10 @@ func testParallelTxnsQueryingSkipListIndexUsedColumns[T int32 | float32 | string
 					deletedValsForDeleteMutex.RUnlock()
 
 					txn_ := txnMgr.Begin(nil)
+
+					// TODO: for debugging
+					txn_.MakeNotAbortable()
+
 					txn_.SetDebugInfo("Delete(fail)-Op")
 					deletedValsForDeleteMutex.RLock()
 					delKeyValBase := samehada_util.ChoiceValFromMap(deletedValsForDelete)
@@ -1407,6 +1414,10 @@ func testParallelTxnsQueryingSkipListIndexUsedColumns[T int32 | float32 | string
 					insValsMutex.Unlock()
 
 					txn_ := txnMgr.Begin(nil)
+
+					// TODO: for debugging
+					txn_.MakeNotAbortable()
+					
 					txn_.SetDebugInfo("Delete(success)-Op")
 
 					for jj := int32(0); jj < stride; jj++ {
