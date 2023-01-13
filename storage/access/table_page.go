@@ -9,6 +9,7 @@ import (
 	"encoding/binary"
 	"fmt"
 	"github.com/ryogrid/SamehadaDB/storage/table/schema"
+	"math"
 	"unsafe"
 
 	"github.com/ryogrid/SamehadaDB/common"
@@ -605,6 +606,12 @@ func (tp *TablePage) GetTuple(rid *page.RID, log_manager *recovery.LogManager, l
 			// the txn enter here.
 
 			fmt.Printf("TablePage::GetTuple faced deleted marked rid1 . rid1:%v tupleSize:%d tupleOffset:%d\n", *rid, tupleSize, tupleOffset)
+
+			// TODO: for debugging
+			if tupleOffset == math.MaxUint32 && tupleSize == math.MaxUint32 {
+				fmt.Printf("Double MaxUint32!!! pageData: %v\n", *tp.GetData())
+			}
+
 			txn.SetState(ABORTED)
 			return nil, ErrGeneral
 		}
