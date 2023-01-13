@@ -1,6 +1,7 @@
 package index
 
 import (
+	"fmt"
 	"github.com/ryogrid/SamehadaDB/common"
 	"github.com/ryogrid/SamehadaDB/container/skip_list"
 	"github.com/ryogrid/SamehadaDB/samehada/samehada_util"
@@ -46,12 +47,13 @@ func (slidx *SkipListIndex) DeleteEntry(key *tuple.Tuple, rid page.RID, transact
 	tupleSchema_ := slidx.GetTupleSchema()
 	keyVal := key.GetValue(tupleSchema_, slidx.col_idx)
 
-	slidx.container.Remove(&keyVal, samehada_util.PackRIDtoUint32(&rid))
-	//isSuccess := slidx.container.Remove(&keyVal, samehada_util.PackRIDtoUint32(&rid))
+	//slidx.container.Remove(&keyVal, samehada_util.PackRIDtoUint32(&rid))
 
-	//if isSuccess == false {
-	//	panic(fmt.Sprintf("SkipListIndex::DeleteEntry: %v %v\n", keyVal.ToIFValue(), rid))
-	//}
+	// TODO: for debugging
+	isSuccess := slidx.container.Remove(&keyVal, samehada_util.PackRIDtoUint32(&rid))
+	if isSuccess == false {
+		panic(fmt.Sprintf("SkipListIndex::DeleteEntry: %v %v\n", keyVal.ToIFValue(), rid))
+	}
 
 	//// TODO: for debugging
 	//ret := slidx.ScanKey(key, nil)
@@ -79,6 +81,8 @@ func (slidx *SkipListIndex) ScanKey(key *tuple.Tuple, transaction interface{}) [
 func (slidx *SkipListIndex) UpdateEntry(oldKey *tuple.Tuple, oldRID page.RID, newKey *tuple.Tuple, newRID page.RID, transaction interface{}) {
 	slidx.rwlatch.WLock()
 	defer slidx.rwlatch.WUnlock()
+
+	//slidx.DeleteEntry(oldKey, oldRID, transaction)
 
 	slidx.DeleteEntry(oldKey, oldRID, transaction)
 	slidx.InsertEntry(newKey, newRID, transaction)

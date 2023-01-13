@@ -274,16 +274,16 @@ func (t *TableHeap) MarkDelete(rid *page.RID, oid uint32, isForUpdate bool, txn 
 	// Otherwise, mark the tuple1 as deleted.
 	page_.WLatch()
 	page_.AddWLatchRecord(int32(txn.txn_id))
-	// GetTuple for rollback of Index...
-	tuple_, err := page_.GetTuple(rid, t.log_manager, t.lock_manager, txn)
-	if tuple_ == nil || err != nil {
-		txn.SetState(ABORTED)
-		page_.RemoveWLatchRecord(int32(txn.txn_id))
-		page_.WUnlatch()
-		t.bpm.UnpinPage(page_.GetPageId(), false)
-		return false
-	}
-	is_marked := page_.MarkDelete(rid, txn, t.lock_manager, t.log_manager)
+	//// GetTuple for rollback of Index...
+	//tuple_, err := page_.GetTuple(rid, t.log_manager, t.lock_manager, txn)
+	//if tuple_ == nil || err != nil {
+	//	txn.SetState(ABORTED)
+	//	t.bpm.UnpinPage(page_.GetPageId(), false)
+	//	page_.RemoveWLatchRecord(int32(txn.txn_id))
+	//	page_.WUnlatch()
+	//	return false
+	//}
+	is_marked, markedTuple := page_.MarkDelete(rid, txn, t.lock_manager, t.log_manager)
 	t.bpm.UnpinPage(page_.GetPageId(), true)
 	if common.EnableDebug && common.ActiveLogKindSetting&common.PIN_COUNT_ASSERT > 0 {
 		common.SH_Assert(page_.PinCount() == 0, "PinCount is not zero when finish TablePage::MarkDelete!!!")
@@ -293,7 +293,7 @@ func (t *TableHeap) MarkDelete(rid *page.RID, oid uint32, isForUpdate bool, txn 
 	if is_marked && !isForUpdate {
 		// Update the transaction's write set.
 		//txn.AddIntoWriteSet(NewWriteRecord(*rid1, DELETE, new(tuple1.Tuple), t, oid))
-		txn.AddIntoWriteSet(NewWriteRecord(rid, nil, DELETE, tuple_, nil, t, oid))
+		txn.AddIntoWriteSet(NewWriteRecord(rid, nil, DELETE, markedTuple, nil, t, oid))
 	}
 
 	return is_marked

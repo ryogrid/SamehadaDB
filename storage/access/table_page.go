@@ -260,7 +260,7 @@ func (tp *TablePage) UpdateTuple(new_tuple *tuple.Tuple, update_col_idxs []int, 
 	return true, nil, update_tuple
 }
 
-func (tp *TablePage) MarkDelete(rid *page.RID, txn *Transaction, lock_manager *LockManager, log_manager *recovery.LogManager) bool {
+func (tp *TablePage) MarkDelete(rid *page.RID, txn *Transaction, lock_manager *LockManager, log_manager *recovery.LogManager) (isMarked bool, markedTuple *tuple.Tuple) {
 	if common.EnableDebug {
 		defer func() {
 			if common.ActiveLogKindSetting&common.DEBUGGING > 0 {
@@ -281,11 +281,11 @@ func (tp *TablePage) MarkDelete(rid *page.RID, txn *Transaction, lock_manager *L
 		if txn.IsSharedLocked(rid) {
 			if !lock_manager.LockUpgrade(txn, rid) {
 				txn.SetState(ABORTED)
-				return false
+				return false, nil
 			}
 		} else if !txn.IsExclusiveLocked(rid) && !lock_manager.LockExclusive(txn, rid) {
 			txn.SetState(ABORTED)
-			return false
+			return false, nil
 		}
 	}
 
@@ -295,7 +295,7 @@ func (tp *TablePage) MarkDelete(rid *page.RID, txn *Transaction, lock_manager *L
 		if log_manager.IsEnabledLogging() {
 			txn.SetState(ABORTED)
 		}
-		return false
+		return false, nil
 	}
 
 	tuple_size := tp.GetTupleSize(slot_num)
@@ -304,7 +304,14 @@ func (tp *TablePage) MarkDelete(rid *page.RID, txn *Transaction, lock_manager *L
 		if log_manager.IsEnabledLogging() {
 			txn.SetState(ABORTED)
 		}
-		return false
+		return false, nil
+	}
+
+	// GetTuple for rollback of Index...
+	tuple_, err := tp.GetTuple(rid, log_manager, lock_manager, txn)
+	if tuple_ == nil || err != nil {
+		txn.SetState(ABORTED)
+		return false, nil
 	}
 
 	if log_manager.IsEnabledLogging() {
@@ -319,7 +326,7 @@ func (tp *TablePage) MarkDelete(rid *page.RID, txn *Transaction, lock_manager *L
 	if tuple_size > 0 {
 		tp.SetTupleSize(slot_num, SetDeletedFlag(tuple_size))
 	}
-	return true
+	return true, tuple_
 }
 
 func (tp *TablePage) ApplyDelete(rid *page.RID, txn *Transaction, log_manager *recovery.LogManager) {

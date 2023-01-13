@@ -182,7 +182,8 @@ func (txn *Transaction) SetState(state TransactionState) {
 
 		}
 	}
-	if common.EnableDebug && common.ActiveLogKindSetting&common.NOT_ABORABLE_TXN_FEATURE > 0 {
+	//if common.EnableDebug && common.ActiveLogKindSetting&common.NOT_ABORABLE_TXN_FEATURE > 0 {
+	if common.ActiveLogKindSetting&common.NOT_ABORABLE_TXN_FEATURE > 0 {
 		if state == ABORTED && txn.abortable == false {
 			fmt.Printf("debuginfo: %s\n", txn.dbgInfo)
 			for _, wr := range txn.GetWriteSet() {
