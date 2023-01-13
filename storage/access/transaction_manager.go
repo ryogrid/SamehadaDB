@@ -129,6 +129,10 @@ func (transaction_manager *TransactionManager) Abort(catalog_ catalog_interface.
 	}
 	//txn.SetState(ABORTED)
 	// on Abort, call of Transaction::SetState(ABORT) panics
+
+	// TODO: for debugging
+	panic("TransactionManager::Abort called!")
+
 	txn.MakeNotAbortable()
 
 	indexMap := make(map[uint32][]index.Index, 0)
