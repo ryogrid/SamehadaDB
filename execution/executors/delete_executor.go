@@ -51,6 +51,9 @@ func (e *DeleteExecutor) Next() (*tuple.Tuple, Done, error) {
 			e.txn.SetState(access.ABORTED)
 			return nil, true, err
 		}
+		if e.txn.GetState() == access.ABORTED {
+			return nil, true, err
+		}
 
 		rid := t.GetRID()
 		tableMetadata := e.child.GetTableMetaData()
