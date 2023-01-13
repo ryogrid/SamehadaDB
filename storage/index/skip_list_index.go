@@ -30,6 +30,9 @@ func NewSkipListIndex(metadata *IndexMetadata, buffer_pool_manager *buffer.Buffe
 }
 
 func (slidx *SkipListIndex) InsertEntry(key *tuple.Tuple, rid page.RID, transaction interface{}) {
+	//slidx.rwlatch.WLock()
+	//defer slidx.rwlatch.WUnlock()
+
 	tupleSchema_ := slidx.GetTupleSchema()
 	keyVal := key.GetValue(tupleSchema_, slidx.col_idx)
 
@@ -37,6 +40,9 @@ func (slidx *SkipListIndex) InsertEntry(key *tuple.Tuple, rid page.RID, transact
 }
 
 func (slidx *SkipListIndex) DeleteEntry(key *tuple.Tuple, rid page.RID, transaction interface{}) {
+	//slidx.rwlatch.WLock()
+	//defer slidx.rwlatch.WUnlock()
+
 	tupleSchema_ := slidx.GetTupleSchema()
 	keyVal := key.GetValue(tupleSchema_, slidx.col_idx)
 

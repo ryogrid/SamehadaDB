@@ -168,6 +168,7 @@ func (transaction_manager *TransactionManager) Abort(catalog_ catalog_interface.
 			if common.EnableDebug && common.ActiveLogKindSetting&common.COMMIT_ABORT_HANDLE_INFO > 0 {
 				fmt.Printf("TransactionManager::Abort handle INSERT write log. txn.txn_id:%v dbgInfo:%s rid1:%v\n", txn.txn_id, txn.dbgInfo, item.rid1)
 			}
+
 			//insertedTuple, _ := item.table.GetTuple(&item.rid1, txn)
 			// rollback record data
 			rid := item.rid1
@@ -180,6 +181,7 @@ func (transaction_manager *TransactionManager) Abort(catalog_ catalog_interface.
 			table.bpm.UnpinPage(pageID, true)
 			tpage.RemoveWLatchRecord(int32(txn.txn_id))
 			tpage.WUnlatch()
+
 			// rollback index data
 			if catalog_ != nil {
 				indexes := catalog_.GetRollbackNeededIndexes(indexMap, item.oid)
