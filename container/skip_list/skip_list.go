@@ -256,7 +256,7 @@ func (sl *SkipList) FindNodeWithEntryIdxForItr(key *types.Value) (found_ bool, n
 	return found, node, idx
 }
 
-func (sl *SkipList) GetValue(key *types.Value) uint32 {
+func (sl *SkipList) GetValue(key *types.Value) uint64 {
 	if common.EnableDebug {
 		if common.ActiveLogKindSetting&common.RDB_OP_FUNC_CALL > 0 {
 			common.ShPrintf(common.DEBUG_INFO, "SkipList::GetValue: start. key=%v\n", key.ToIFValue())
@@ -284,11 +284,11 @@ func (sl *SkipList) GetValue(key *types.Value) uint32 {
 	if found {
 		return entry.Value
 	} else {
-		return math.MaxUint32
+		return math.MaxUint64
 	}
 }
 
-func (sl *SkipList) Insert(key *types.Value, value uint32) (err error) {
+func (sl *SkipList) Insert(key *types.Value, value uint64) (err error) {
 	if common.EnableDebug {
 		if common.ActiveLogKindSetting&common.RDB_OP_FUNC_CALL > 0 {
 			fmt.Printf("SkipList::Insert: start. key=%v\n", key.ToIFValue())
@@ -322,7 +322,7 @@ func (sl *SkipList) Insert(key *types.Value, value uint32) (err error) {
 	return nil
 }
 
-func (sl *SkipList) Remove(key *types.Value, value uint32) (isDeleted_ bool) {
+func (sl *SkipList) Remove(key *types.Value, value uint64) (isDeleted_ bool) {
 	if common.EnableDebug {
 		if common.ActiveLogKindSetting&common.RDB_OP_FUNC_CALL > 0 {
 			fmt.Printf("SkipList::Remove: start. key=%v\n", key.ToIFValue())

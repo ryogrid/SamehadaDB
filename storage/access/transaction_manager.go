@@ -130,19 +130,18 @@ func (transaction_manager *TransactionManager) Abort(catalog_ catalog_interface.
 	//txn.SetState(ABORTED)
 	// on Abort, call of Transaction::SetState(ABORT) panics
 
-	// TODO: for debugging
-	fmt.Printf("debuginfo: %s\n", txn.dbgInfo)
-	for _, wr := range txn.GetWriteSet() {
-		fmt.Printf("write set item: %v\n", *wr)
-		if wr.tuple1 != nil {
-			fmt.Printf("tuple1: %v\n", *(wr.tuple1))
-		}
-		if wr.tuple2 != nil {
-			fmt.Printf("tuple1: %v\n", *(wr.tuple2))
-		}
-	}
-
-	panic("TransactionManager::Abort called!")
+	//// TODO: for debugging
+	//fmt.Printf("debuginfo: %s\n", txn.dbgInfo)
+	//for _, wr := range txn.GetWriteSet() {
+	//	fmt.Printf("write set item: %v\n", *wr)
+	//	if wr.tuple1 != nil {
+	//		fmt.Printf("tuple1: %v\n", *(wr.tuple1))
+	//	}
+	//	if wr.tuple2 != nil {
+	//		fmt.Printf("tuple1: %v\n", *(wr.tuple2))
+	//	}
+	//}
+	//panic("TransactionManager::Abort called!")
 
 	txn.MakeNotAbortable()
 
@@ -217,7 +216,8 @@ func (transaction_manager *TransactionManager) Abort(catalog_ catalog_interface.
 			if item.rid1 != item.rid2 {
 				// when rid changed case
 				item.table.ApplyDelete(item.rid2, txn)
-				new_rid, _ = item.table.InsertTuple(item.tuple1, true, txn, item.oid)
+				//new_rid, _ = item.table.InsertTuple(item.tuple1, true, txn, item.oid)
+				item.table.RollbackDelete(item.rid1, txn)
 			} else {
 				// normal case
 				is_updated, new_rid, _, _, _ = table.UpdateTuple(item.tuple1, nil, nil, item.oid, *item.rid1, txn, true)

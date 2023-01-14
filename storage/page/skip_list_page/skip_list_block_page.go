@@ -30,7 +30,7 @@ import (
 //
 //  Entries format (size in bytes):
 //  ----------------------------------------------------------------------------------------------------------------------------------
-//  | HEADER | ... FREE SPACE ... | ....more entries....| Entry1_key (1+x) | Entry_1 value (4) | Entry0_key (1+x) | Entry_0 value (4)|
+//  | HEADER | ... FREE SPACE ... | ....more entries....| Entry1_key (1+x) | Entry_1 value (8) | Entry0_key (1+x) | Entry_0 value (8)|
 //  ---------------------------------------------------------------------------------------------------------------------------------
 //                                ^                    ^ <-------------- size ---------------> ^ <-------------- size --------------->
 //                                freeSpacePointer     offset(from page head)                  offset(...)
@@ -62,12 +62,12 @@ const (
 	offsetForward                       = offsetEntryCnt + sizeEntryCnt
 	offsetFreeSpacePointer              = offsetForward + sizeForward
 	offsetEntryInfos                    = offsetFreeSpacePointer + sizeFreeSpacePointer
-	sizeEntryValue                      = uint32(4)
+	sizeEntryValue                      = uint32(8)
 )
 
 type SkipListPair struct {
 	Key   types.Value
-	Value uint32
+	Value uint64
 }
 
 type SkipListCornerInfo struct {
@@ -91,7 +91,7 @@ func NewSkipListPairFromBytes(buf []byte, keyType types.TypeID) *SkipListPair {
 	dataLen := len(buf)
 	valPartOffset := dataLen - int(sizeEntryValue)
 	key := types.NewValueFromBytes(buf[:valPartOffset], keyType)
-	value := uint32(types.NewUInt32FromBytes(buf[valPartOffset:]))
+	value := uint64(types.NewUInt64FromBytes(buf[valPartOffset:]))
 	return &SkipListPair{*key, value}
 }
 
@@ -148,7 +148,7 @@ func (node *SkipListBlockPage) KeyAt(idx int32, keyType types.TypeID) *types.Val
 }
 
 // Gets the value at an index in this node
-func (node *SkipListBlockPage) ValueAt(idx int32, keyType types.TypeID) uint32 {
+func (node *SkipListBlockPage) ValueAt(idx int32, keyType types.TypeID) uint64 {
 	val := node.GetEntry(int(idx), keyType).Value
 	return val
 }
@@ -207,7 +207,7 @@ func (node *SkipListBlockPage) FindEntryByKey(key *types.Value) (found bool, ent
 // ATTENTION:
 //
 //	caller should update entryCnt appropriatery after this method call
-func (node *SkipListBlockPage) updateEntryInfosAtInsert(idx int, dataSize uint16) {
+func (node *SkipListBlockPage) updateEntryInfosAtInsert(idx int, dataSize uint32) {
 	// entrries data backward of entry which specifed with idx arg are not changed
 	// because data of new entry is always placed tail of payload area
 
@@ -223,7 +223,7 @@ func (node *SkipListBlockPage) updateEntryInfosAtInsert(idx int, dataSize uint16
 	// set data of new entry
 	entryOffsetVal := node.GetFreeSpacePointer()
 	node.SetEntryOffset(idx+1, uint16(entryOffsetVal))
-	node.SetEntrySize(idx+1, dataSize)
+	node.SetEntrySize(idx+1, uint16(dataSize))
 }
 
 // insert serialized data of slp arg next of idx index entry
@@ -240,7 +240,7 @@ func (node *SkipListBlockPage) InsertInner(idx int, slp *SkipListPair) {
 	copy(node.Data()[offset:], insertData)
 	node.SetFreeSpacePointer(offset)
 
-	node.updateEntryInfosAtInsert(idx, uint16(insertEntrySize))
+	node.updateEntryInfosAtInsert(idx, insertEntrySize)
 	node.SetEntryCnt(node.GetEntryCnt() + 1)
 }
 
@@ -267,7 +267,7 @@ func (node *SkipListBlockPage) getSplitIdxForNotFixed() (splitIdx_ int32, isNeed
 
 // Attempts to insert a key and value into an index in the baccess
 // return value is whether newNode is created or not
-func (node *SkipListBlockPage) Insert(key *types.Value, value uint32, bpm *buffer.BufferPoolManager, corners []SkipListCornerInfo,
+func (node *SkipListBlockPage) Insert(key *types.Value, value uint64, bpm *buffer.BufferPoolManager, corners []SkipListCornerInfo,
 	level int32) (isNeedRetry_ bool) {
 	if common.EnableDebug {
 		common.ShPrintf(common.DEBUG_INFO, "Insert of SkipListBlockPage called! : key=%v\n", key.ToIFValue())
@@ -287,7 +287,7 @@ func (node *SkipListBlockPage) Insert(key *types.Value, value uint32, bpm *buffe
 		oldEntry := node.GetEntry(int(foundIdx), key.ValueType())
 		fmt.Printf("Insert: key duplication occured. %v %v\n", oldEntry.Key.ToIFValue(), key.ToIFValue())
 		oldValue := oldEntry.Value
-		fmt.Printf("oldRID:%d %v newRID:%d %v\n", oldValue, samehada_util.UnpackUint32toRID(oldValue), value, samehada_util.UnpackUint32toRID(value))
+		fmt.Printf("oldRID:%d %v newRID:%d %v\n", oldValue, samehada_util.UnpackUint64toRID(oldValue), value, samehada_util.UnpackUint64toRID(value))
 		fmt.Printf("oldEntry in bytes:%v\n", oldEntry.Serialize())
 		fmt.Printf("newKey in bytes:%v\n", key.Serialize())
 		fmt.Printf("entry num in nodes:%d foundIdx:%d\n", node.GetEntryCnt(), foundIdx)
@@ -495,7 +495,7 @@ func (node *SkipListBlockPage) updateEntryInfosAtRemove(idx int) {
 	// entries info data backward of entry which specifed with idx arg needs to be updated
 	for ii := 0; ii < int(allEntryNum); ii++ {
 		if offset := node.GetEntryOffset(ii); offset < orgDataOffset {
-			node.SetEntryOffset(ii, offset+dataSize)
+			node.SetEntryOffset(ii, uint16(offset)+uint16(dataSize))
 		}
 	}
 
@@ -930,10 +930,10 @@ func (node *SkipListBlockPage) GetEntries(keyType types.TypeID) []*SkipListPair 
 	return retArr
 }
 
-func (node *SkipListBlockPage) GetEntryOffset(idx int) uint16 {
+func (node *SkipListBlockPage) GetEntryOffset(idx int) uint32 {
 	offset := offsetEntryInfos + sizeEntryInfo*uint32(idx)
 
-	return uint16(types.NewUInt16FromBytes(node.Data()[offset : offset+sizeEntryInfoOffset]))
+	return uint32(types.NewUInt16FromBytes(node.Data()[offset : offset+sizeEntryInfoOffset]))
 }
 
 func (node *SkipListBlockPage) SetEntryOffset(idx int, setOffset uint16) {
@@ -944,10 +944,10 @@ func (node *SkipListBlockPage) SetEntryOffset(idx int, setOffset uint16) {
 	copy(node.Data()[offset:], setOffsetInBytes)
 }
 
-func (node *SkipListBlockPage) GetEntrySize(idx int) uint16 {
+func (node *SkipListBlockPage) GetEntrySize(idx int) uint32 {
 	offset := offsetEntryInfos + sizeEntryInfo*uint32(idx) + sizeEntryInfoOffset
 
-	return uint16(types.NewUInt16FromBytes(node.Data()[offset : offset+sizeEntryInfoSize]))
+	return uint32(types.NewUInt16FromBytes(node.Data()[offset : offset+sizeEntryInfoSize]))
 }
 
 func (node *SkipListBlockPage) SetEntrySize(idx int, setSize uint16) {

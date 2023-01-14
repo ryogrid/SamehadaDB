@@ -621,7 +621,7 @@ func (tp *TablePage) GetTuple(rid *page.RID, log_manager *recovery.LogManager, l
 			// when RangeSanWithIndexExecutor or PointScanWithIndexExecutor which uses SkipListIterator as RID itrator is called,
 			// the txn enter here.
 
-			fmt.Printf("TablePage::GetTuple faced deleted marked rid1 . rid1:%v tupleSize:%d tupleOffset:%d\n", *rid, tupleSize, tupleOffset)
+			fmt.Printf("TablePage::GetTuple faced deleted marked record . rid:%v tupleSize:%d tupleOffset:%d\n", *rid, tupleSize, tupleOffset)
 
 			// TODO: for debugging
 			if tupleOffset == math.MaxUint32 && tupleSize == math.MaxUint32 {

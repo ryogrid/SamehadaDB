@@ -47,6 +47,36 @@ func UnpackUint32toRID(value uint32) page.RID {
 	return *ret
 }
 
+func PackRIDtoUint64(value *page.RID) uint64 {
+	buf1 := new(bytes.Buffer)
+	buf2 := new(bytes.Buffer)
+	pack_buf := make([]byte, 8)
+	binary.Write(buf1, binary.LittleEndian, value.PageId)
+	binary.Write(buf2, binary.LittleEndian, value.SlotNum)
+	pageIdInBytes := buf1.Bytes()
+	slotNumInBytes := buf2.Bytes()
+	copy(pack_buf[:4], pageIdInBytes[:])
+	copy(pack_buf[4:], slotNumInBytes[:])
+	return binary.LittleEndian.Uint64(pack_buf)
+}
+
+func UnpackUint64toRID(value uint64) page.RID {
+	packed_buf := new(bytes.Buffer)
+	binary.Write(packed_buf, binary.LittleEndian, value)
+	packedDataInBytes := packed_buf.Bytes()
+	var PageId types.PageID
+	var SlotNum uint32
+	buf := make([]byte, 4)
+	copy(buf[:4], packedDataInBytes[:4])
+	PageId = types.PageID(binary.LittleEndian.Uint32(buf))
+	copy(buf[:4], packedDataInBytes[4:])
+	SlotNum = binary.LittleEndian.Uint32(buf)
+	ret := new(page.RID)
+	ret.PageId = PageId
+	ret.SlotNum = SlotNum
+	return *ret
+}
+
 func GetPonterOfValue(value types.Value) *types.Value {
 	val := value
 	return &val

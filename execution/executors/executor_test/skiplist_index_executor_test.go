@@ -1120,8 +1120,8 @@ func testParallelTxnsQueryingSkipListIndexUsedColumns[T int32 | float32 | string
 		}
 		common.ShPrintf(common.DEBUGGING, "ii=%d\n", ii)
 
-		//// get 0-7
-		//opType := rand.Intn(8)
+		// get 0-7
+		opType := rand.Intn(8)
 
 		//// move money, random Insert, Delete
 		//opType := rand.Intn(4)
@@ -1135,9 +1135,9 @@ func testParallelTxnsQueryingSkipListIndexUsedColumns[T int32 | float32 | string
 		//// Random Insert only
 		//opType := 1
 
-		// Random Isert and Random Delete only
-		opType := rand.Intn(3)
-		opType += 1
+		//// Random Isert and Random Delete only
+		//opType := rand.Intn(3)
+		//opType += 1
 
 		//// move money, Random Insert, Randome Delete, Random Update, Random Point Scan, Random Range Scan
 		//opType := rand.Intn(8)
@@ -1308,8 +1308,8 @@ func testParallelTxnsQueryingSkipListIndexUsedColumns[T int32 | float32 | string
 				checkBalanceColDupMapSetWithLock(balanceVal)
 
 				txn_ := txnMgr.Begin(nil)
-				// TODO: for debugging
-				txn_.MakeNotAbortable()
+				//// TODO: for debugging
+				//txn_.MakeNotAbortable()
 
 				txn_.SetDebugInfo("Insert(random)-Op")
 				common.ShPrintf(common.DEBUGGING, fmt.Sprintf("Insert op start. txnId:%v ii:%d\n", txn_.GetTransactionId(), ii))
@@ -1358,8 +1358,8 @@ func testParallelTxnsQueryingSkipListIndexUsedColumns[T int32 | float32 | string
 
 					txn_ := txnMgr.Begin(nil)
 
-					// TODO: for debugging
-					txn_.MakeNotAbortable()
+					//// TODO: for debugging
+					//txn_.MakeNotAbortable()
 
 					txn_.SetDebugInfo("Delete(fail)-Op")
 					deletedValsForDeleteMutex.RLock()
@@ -1415,8 +1415,8 @@ func testParallelTxnsQueryingSkipListIndexUsedColumns[T int32 | float32 | string
 
 					txn_ := txnMgr.Begin(nil)
 
-					// TODO: for debugging
-					txn_.MakeNotAbortable()
+					//// TODO: for debugging
+					//txn_.MakeNotAbortable()
 
 					txn_.SetDebugInfo("Delete(success)-Op")
 
@@ -1833,6 +1833,9 @@ func testParallelTxnsQueryingSkipListIndexUsedColumns[T int32 | float32 | string
 	//	}
 	//}
 
+	// TODO: for debugging
+	fmt.Printf("NewRIDAtNormal:%v NewRIDAtRollback:%v\n", common.NewRIDAtNormal, common.NewRIDAtRollback)
+
 	// tuple num check with full scan by seqScan ----------------------------------
 
 	txn_ = txnMgr.Begin(nil)
@@ -1850,8 +1853,6 @@ func testParallelTxnsQueryingSkipListIndexUsedColumns[T int32 | float32 | string
 
 	common.SH_Assert(commitedTxnCnt+abortedTxnCnt == executedTxnCnt, "txn counting has bug(2)!")
 	fmt.Printf("commited: %d aborted: %d all: %d (2)\n", commitedTxnCnt, abortedTxnCnt, executedTxnCnt)
-	// TODO: for debugging
-	fmt.Printf("NewRIDAtNormal:%v NewRIDAtRollback:%v\n", common.NewRIDAtNormal, common.NewRIDAtRollback)
 
 	shi.CloseFilesForTesting()
 }
@@ -1869,8 +1870,8 @@ func testSkipListParallelTxnStrideRoot[T int32 | float32 | string](t *testing.T,
 		//testParallelTxnsQueryingSkipListIndexUsedColumns[T](t, keyType, 400, 400, 13, 0, bpoolSize, index_constants.INDEX_KIND_INVAID, PARALLEL_EXEC, 20)
 		//testParallelTxnsQueryingSkipListIndexUsedColumns[T](t, keyType, 400, 3000, 13, 0, bpoolSize, index_constants.INDEX_KIND_SKIP_LIST, PARALLEL_EXEC, 20)
 
-		//testParallelTxnsQueryingSkipListIndexUsedColumns[T](t, keyType, 400, 3000, 17, 0, bpoolSize, index_constants.INDEX_KIND_SKIP_LIST, PARALLEL_EXEC, 20)
 		testParallelTxnsQueryingSkipListIndexUsedColumns[T](t, keyType, 400, 9000, 17, 0, bpoolSize, index_constants.INDEX_KIND_SKIP_LIST, PARALLEL_EXEC, 20)
+		//testParallelTxnsQueryingSkipListIndexUsedColumns[T](t, keyType, 400, 9000, 17, 0, bpoolSize, index_constants.INDEX_KIND_SKIP_LIST, PARALLEL_EXEC, 20)
 		//testParallelTxnsQueryingSkipListIndexUsedColumns[T](t, keyType, 400, 50000, 17, 0, bpoolSize, index_constants.INDEX_KIND_SKIP_LIST, PARALLEL_EXEC, 20)
 
 		//testParallelTxnsQueryingSkipListIndexUsedColumns[T](t, keyType, 400, 300, 17, 0, bpoolSize, index_constants.INDEX_KIND_SKIP_LIST, PARALLEL_EXEC, 20)
