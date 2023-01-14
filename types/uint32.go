@@ -10,6 +10,7 @@ import (
 
 type UInt16 uint16
 type UInt32 uint32
+type UInt64 uint64
 type Int32 int32
 type Bool bool
 
@@ -33,8 +34,21 @@ func (id UInt32) Serialize() []byte {
 	return buf.Bytes()
 }
 
+// Serialize casts it to []byte
+func (id UInt64) Serialize() []byte {
+	buf := new(bytes.Buffer)
+	binary.Write(buf, binary.LittleEndian, id)
+	return buf.Bytes()
+}
+
 func NewUInt32FromBytes(data []byte) (ret_ UInt32) {
 	var ret UInt32
+	binary.Read(bytes.NewBuffer(data), binary.LittleEndian, &ret)
+	return ret
+}
+
+func NewUInt64FromBytes(data []byte) (ret_ UInt64) {
+	var ret UInt64
 	binary.Read(bytes.NewBuffer(data), binary.LittleEndian, &ret)
 	return ret
 }

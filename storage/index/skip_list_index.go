@@ -37,7 +37,7 @@ func (slidx *SkipListIndex) InsertEntry(key *tuple.Tuple, rid page.RID, transact
 	tupleSchema_ := slidx.GetTupleSchema()
 	keyVal := key.GetValue(tupleSchema_, slidx.col_idx)
 
-	slidx.container.Insert(&keyVal, samehada_util.PackRIDtoUint32(&rid))
+	slidx.container.Insert(&keyVal, samehada_util.PackRIDtoUint64(&rid))
 }
 
 func (slidx *SkipListIndex) DeleteEntry(key *tuple.Tuple, rid page.RID, transaction interface{}) {
@@ -50,7 +50,7 @@ func (slidx *SkipListIndex) DeleteEntry(key *tuple.Tuple, rid page.RID, transact
 	//slidx.container.Remove(&keyVal, samehada_util.PackRIDtoUint32(&rid))
 
 	// TODO: for debugging
-	isSuccess := slidx.container.Remove(&keyVal, samehada_util.PackRIDtoUint32(&rid))
+	isSuccess := slidx.container.Remove(&keyVal, samehada_util.PackRIDtoUint64(&rid))
 	if isSuccess == false {
 		panic(fmt.Sprintf("SkipListIndex::DeleteEntry: %v %v\n", keyVal.ToIFValue(), rid))
 	}
@@ -71,9 +71,9 @@ func (slidx *SkipListIndex) ScanKey(key *tuple.Tuple, transaction interface{}) [
 
 	ret_arr := make([]page.RID, 0)
 	packed_value := slidx.container.GetValue(&keyVal)
-	if packed_value != math.MaxUint32 {
+	if packed_value != math.MaxUint64 {
 		// when packed_vale == math.MaxUint32 => true, keyVal is not found on index
-		ret_arr = append(ret_arr, samehada_util.UnpackUint32toRID(packed_value))
+		ret_arr = append(ret_arr, samehada_util.UnpackUint64toRID(packed_value))
 	}
 	return ret_arr
 }
