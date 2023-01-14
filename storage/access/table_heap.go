@@ -228,10 +228,9 @@ func (t *TableHeap) UpdateTuple(tuple_ *tuple.Tuple, update_col_idxs []int, sche
 		(txn.GetState() == ABORTED && is_updated == false) || (txn.GetState() != ABORTED && is_updated == true) || (txn.GetState() == ABORTED && is_updated == true && update_col_idxs == nil),
 		fmt.Sprintf("illegal internal state! txnState:%d is_updated:%v", txn.state, is_updated))
 
-	// Update the transaction's write set.
+	// add appropriate transaction's write set of Update.
 	// when txn is ABORTED state case, data is not updated. so adding a write set entry is not needed
-	// when isUpdateWithDelInsert is true, Update operation write records are already added as two recoreds
-	// (Delete & Insert)
+	// when err == ErrNotEnoughSpace route and old tuple delete is only succeeded, DELETE write set entry is added above (no come here)
 	if is_updated && txn.GetState() != ABORTED {
 		//if need_follow_tuple == nil {
 		//	panic("need_follow_tuple is nil before create write record of UPDATE.")
