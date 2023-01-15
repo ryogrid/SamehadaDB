@@ -248,15 +248,19 @@ func (transaction_manager *TransactionManager) Abort(catalog_ catalog_interface.
 								//}
 							} else {
 								// do UPSERT
-								index_.InsertEntry(item.tuple2, *new_rid, txn)
+								index_.InsertEntry(item.tuple1, *new_rid, txn)
 							}
 						} else {
 							if !bfRlbkKeyVal.CompareEquals(*rlbkKeyVal) {
 								//rollback is needed only when column value changed case
 								index_.UpdateEntry(item.tuple2, *item.rid2, item.tuple1, *item.rid1, txn)
 							} else {
-								// do UPSERT
-								index_.InsertEntry(item.tuple1, *item.rid1, txn)
+								if item.rid1.PageId == item.rid2.PageId && item.rid1.SlotNum == item.rid2.SlotNum {
+									// do nothing
+								} else {
+									// do UPSERT
+									index_.InsertEntry(item.tuple1, *item.rid1, txn)
+								}
 							}
 						}
 					}

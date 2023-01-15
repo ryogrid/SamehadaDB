@@ -650,9 +650,9 @@ func createBalanceUpdatePlanNode[T int32 | float32 | string](keyColumnVal T, new
 	default:
 		panic("not implemented!")
 	}
-	//updatePlanNode := plans.NewUpdatePlanNode(row, []int{1}, skipListPointScanP)
+	updatePlanNode := plans.NewUpdatePlanNode(row, []int{1}, skipListPointScanP)
 	//updatePlanNode := plans.NewUpdatePlanNode(row, []int{0, 1}, skipListPointScanP)
-	updatePlanNode := plans.NewUpdatePlanNode(row, nil, skipListPointScanP)
+	//updatePlanNode := plans.NewUpdatePlanNode(row, nil, skipListPointScanP)
 
 	return updatePlanNode
 }
