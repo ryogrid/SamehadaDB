@@ -9,7 +9,6 @@ import (
 	"encoding/binary"
 	"fmt"
 	"github.com/ryogrid/SamehadaDB/storage/table/schema"
-	"math"
 	"unsafe"
 
 	"github.com/ryogrid/SamehadaDB/common"
@@ -104,10 +103,6 @@ func (tp *TablePage) InsertTuple(tuple *tuple.Tuple, log_manager *recovery.LogMa
 			break
 		}
 	}
-
-	//if tp.GetTupleCount() == slot && tuple1.Size()+sizeTuple > tp.getFreeSpaceRemaining() {
-	//	return nil, ErrNoFreeSlot
-	//}
 
 	rid := &page.RID{}
 	rid.Set(tp.GetPageId(), slot)
@@ -371,10 +366,8 @@ func (tp *TablePage) ApplyDelete(rid *page.RID, txn *Transaction, log_manager *r
 		var delete_tuple *tuple.Tuple = new(tuple.Tuple)
 		delete_tuple.SetSize(tuple_size)
 		delete_tuple.SetData(make([]byte, delete_tuple.Size()))
-		//memcpy(delete_tuple.Data(), tp.Data()+tuple_offset, delete_tuple.Size())
 		copy(delete_tuple.Data(), tp.Data()[tuple_offset:tuple_offset+delete_tuple.Size()])
 		delete_tuple.SetRID(rid)
-		//delete_tuple.allocated = true
 
 		common.SH_Assert(txn.IsExclusiveLocked(rid), "We must own the exclusive lock!")
 		log_record := recovery.NewLogRecordInsertDelete(txn.GetTransactionId(), txn.GetPrevLSN(), recovery.APPLYDELETE, *rid, delete_tuple)
@@ -386,8 +379,6 @@ func (tp *TablePage) ApplyDelete(rid *page.RID, txn *Transaction, log_manager *r
 	free_space_pointer := tp.GetFreeSpacePointer()
 	common.SH_Assert(tuple_offset >= free_space_pointer, "Free space appears before tuples.")
 
-	// memmove(GetData() + free_space_pointer + tuple_size, GetData() + free_space_pointer,
-	// tuple_offset - free_space_pointer);
 	copy(tp.Data()[free_space_pointer+tuple_size:], tp.Data()[free_space_pointer:tuple_offset])
 
 	tp.SetFreeSpacePointer(free_space_pointer + tuple_size)
@@ -458,7 +449,6 @@ func (tp *TablePage) Init(pageId types.PageID, prevPageId types.PageID, log_mana
 	}
 	// Log that we are creating a new page.
 	if log_manager.IsEnabledLogging() {
-		//txn_ := (*Transaction)(unsafe.Pointer(&txn))
 		log_record := recovery.NewLogRecordNewPage(txn.GetTransactionId(), txn.GetPrevLSN(), recovery.NEWPAGE, prevPageId)
 		lsn := log_manager.AppendLogRecord(log_record)
 		tp.Page.SetLSN(lsn)
@@ -505,10 +495,6 @@ func (tp *TablePage) setTuple(slot uint32, tuple *tuple.Tuple) {
 	tp.Copy(offsetTupleSize+sizeTuple*slot, types.UInt32(tuple.Size()).Serialize()) // set tuple1 size at slot
 }
 
-//func (tp *TablePage) GetPageId() types.PageID {
-//	return types.NewPageIDFromBytes(tp.Data()[:])
-//}
-
 func (tp *TablePage) GetNextPageId() types.PageID {
 	return types.NewPageIDFromBytes(tp.Data()[offSetNextPageId:])
 }
@@ -539,7 +525,6 @@ func (tp *TablePage) SetTupleSize(slot_num uint32, size uint32) {
 	buf := new(bytes.Buffer)
 	binary.Write(buf, binary.LittleEndian, size)
 	sizeInBytes := buf.Bytes()
-	//memcpy(GetData() + OFFSET_TUPLE_SIZE + SIZE_TUPLE * slot_num, &size, sizeof(uint32_t));
 	copy(tp.Data()[offsetTupleSize+sizeTuple*slot_num:], sizeInBytes)
 }
 
@@ -570,7 +555,6 @@ func (tp *TablePage) GetTuple(rid *page.RID, log_manager *recovery.LogManager, l
 	// check having appropriate lock or gettable at least a shared access.
 	if log_manager.IsEnabledLogging() {
 		if !txn.IsSharedLocked(rid) && !txn.IsExclusiveLocked(rid) && !lock_manager.LockShared(txn, rid) {
-			//if !lock_manager.LockShared(txn, rid1) && !txn.IsExclusiveLocked(rid1) {
 			txn.SetState(ABORTED)
 			return nil, ErrGeneral
 		}
@@ -592,9 +576,6 @@ func (tp *TablePage) GetTuple(rid *page.RID, log_manager *recovery.LogManager, l
 	if tupleOffset == 0 && tupleSize == 0 {
 		if txn.IsExclusiveLocked(rid) {
 			// txn which deletes target tuple1 is current txn
-
-			//tupleSize = UnsetDeletedFlag(tupleSize)
-			//return nil, ErrSelfDeletedCase
 			fmt.Println("TablePage:GetTuple ErrSelfDeletedCase (1)!")
 			return tuple.NewTuple(rid, 0, make([]byte, 0)), ErrSelfDeletedCase
 		} else {
@@ -612,8 +593,6 @@ func (tp *TablePage) GetTuple(rid *page.RID, log_manager *recovery.LogManager, l
 	if IsDeleted(tupleSize) {
 		if txn.IsExclusiveLocked(rid) {
 			// txn which deletes target tuple1 is current txn
-
-			//tupleSize = UnsetDeletedFlag(tupleSize)
 			fmt.Println("TablePage:GetTuple ErrSelfDeletedCase (2)!")
 			return tuple.NewTuple(rid, 0, make([]byte, 0)), ErrSelfDeletedCase
 			//return nil, ErrSelfDeletedCase
@@ -622,11 +601,6 @@ func (tp *TablePage) GetTuple(rid *page.RID, log_manager *recovery.LogManager, l
 			// the txn enter here.
 
 			fmt.Printf("TablePage::GetTuple faced deleted marked record . rid:%v tupleSize:%d tupleOffset:%d\n", *rid, tupleSize, tupleOffset)
-
-			// TODO: for debugging
-			if tupleOffset == math.MaxUint32 && tupleSize == math.MaxUint32 {
-				fmt.Printf("Double MaxUint32!!! pageData: %v\n", *tp.GetData())
-			}
 
 			txn.SetState(ABORTED)
 			return nil, ErrGeneral

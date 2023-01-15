@@ -1207,7 +1207,7 @@ func TestAbortWIthDeleteUpdate(t *testing.T) {
 
 	// TODO: this assertion is comment-outed due to temporal modification of testee for passing TestSkipListPrallelTxnStrideInteger
 	//       this should be reverted at appropriate timing
-	//testingpkg.Assert(t, len(results) == 0, "")
+	testingpkg.Assert(t, len(results) == 0, "")
 
 	txn_mgr.Abort(c, txn)
 
@@ -2022,7 +2022,6 @@ func TestInsertAndSpecifiedColumnUpdate(t *testing.T) {
 	testingpkg.Assert(t, types.NewVarchar("updated").CompareEquals(results[0].GetValue(outSchema, 1)), "value should be 'updated'")
 }
 
-// TODO: (SDB) this testcase should be reverted after debugging (TestInsertAndSpecifiedColumnUpdatePageMoveCase)
 func TestInsertAndSpecifiedColumnUpdatePageMoveCase(t *testing.T) {
 	if !common.EnableOnMemStorage {
 		os.Remove(t.Name() + ".db")

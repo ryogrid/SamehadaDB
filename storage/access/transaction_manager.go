@@ -62,9 +62,7 @@ func (transaction_manager *TransactionManager) Commit(catalog_ catalog_interface
 	}
 	// on Commit, call of Transaction::SetState(ABORT) panics
 	txn.MakeNotAbortable()
-	//txn.SetState(COMMITTED)
 
-	//indexMap := make(map[uint32][]index.Index, 0)
 	// Perform all deletes before we commit.
 	write_set := txn.GetWriteSet()
 	if common.EnableDebug {
@@ -74,7 +72,6 @@ func (transaction_manager *TransactionManager) Commit(catalog_ catalog_interface
 			writeSetStr += fmt.Sprintf("%v ", *writeItem)
 		}
 		common.ShPrintf(common.RDB_OP_FUNC_CALL, "TransactionManager::Commit txn.txn_id:%v dbgInfo:%s write_set:%s\n", txn.txn_id, txn.dbgInfo, writeSetStr)
-		//common.ShPrintf(common.RDB_OP_FUNC_CALL, "\n")
 	}
 	for len(write_set) != 0 {
 		item := write_set[len(write_set)-1]
@@ -127,9 +124,6 @@ func (transaction_manager *TransactionManager) Abort(catalog_ catalog_interface.
 	if common.EnableDebug {
 		common.ShPrintf(common.RDB_OP_FUNC_CALL, "TransactionManager::Abort called. txn.txn_id:%v dbgInfo:%s\n", txn.txn_id, txn.dbgInfo)
 	}
-	//txn.SetState(ABORTED)
-	// on Abort, call of Transaction::SetState(ABORT) panics
-
 	//// TODO: for debugging
 	//fmt.Printf("debuginfo: %s\n", txn.dbgInfo)
 	//for _, wr := range txn.GetWriteSet() {
@@ -143,6 +137,7 @@ func (transaction_manager *TransactionManager) Abort(catalog_ catalog_interface.
 	//}
 	//panic("TransactionManager::Abort called!")
 
+	// on Abort, call of Transaction::SetState(ABORT) panics
 	txn.MakeNotAbortable()
 
 	indexMap := make(map[uint32][]index.Index, 0)
@@ -151,11 +146,9 @@ func (transaction_manager *TransactionManager) Abort(catalog_ catalog_interface.
 	if common.EnableDebug && common.ActiveLogKindSetting&common.RDB_OP_FUNC_CALL > 0 {
 		writeSetStr := ""
 		for _, writeItem := range write_set {
-			//common.ShPrintf(common.RDB_OP_FUNC_CALL, "%v ", *writeItem)
 			writeSetStr += fmt.Sprintf("%v ", *writeItem)
 		}
 		fmt.Printf("TransactionManager::Abort txn.txn_id:%v  dbgInfo:%s write_set: %s\n", txn.txn_id, txn.dbgInfo, writeSetStr)
-		//common.ShPrintf(common.RDB_OP_FUNC_CALL, "\n")
 	}
 	// Rollback before releasing the access.
 	for len(write_set) != 0 {
@@ -216,7 +209,6 @@ func (transaction_manager *TransactionManager) Abort(catalog_ catalog_interface.
 			if item.rid1 != item.rid2 {
 				// when rid changed case
 				item.table.ApplyDelete(item.rid2, txn)
-				//new_rid, _ = item.table.InsertTuple(item.tuple1, true, txn, item.oid)
 				item.table.RollbackDelete(item.rid1, txn)
 			} else {
 				// normal case
@@ -225,8 +217,6 @@ func (transaction_manager *TransactionManager) Abort(catalog_ catalog_interface.
 					panic("UpdateTuple at rollback failed!")
 				}
 			}
-
-			//is_updated, new_rid, _, _, beforRollbackTuple_ := table.UpdateTuple(item.tuple1, nil, nil, item.oid, *item.rid1, txn, true)
 
 			// TODO: for debugging
 			if new_rid != nil {
@@ -251,12 +241,8 @@ func (transaction_manager *TransactionManager) Abort(catalog_ catalog_interface.
 						if !bfRlbkKeyVal.CompareEquals(*rlbkKeyVal) || new_rid != nil {
 							//rollback is needed only when column value changed case
 							if new_rid != nil {
-								//index_.DeleteEntry(beforRollbackTuple_, item.rid1, txn)
-								//index_.InsertEntry(item.tuple1, *new_rid, txn)
 								index_.UpdateEntry(item.tuple2, *item.rid2, item.tuple1, *new_rid, txn)
 							} else {
-								//index_.DeleteEntry(beforRollbackTuple_, item.rid1, txn)
-								//index_.InsertEntry(item.tuple1, item.rid1, txn)
 								index_.UpdateEntry(item.tuple2, *item.rid2, item.tuple1, *item.rid1, txn)
 							}
 						}

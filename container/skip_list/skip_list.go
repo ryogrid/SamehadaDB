@@ -73,13 +73,9 @@ func latchOpWithOpType(node *skip_list_page.SkipListBlockPage, getOrUnlatch Latc
 		}
 	default:
 		if getOrUnlatch == SKIP_LIST_UTIL_GET_LATCH {
-			//node.RLatch()
-			//node.AddRLatchRecord(int32(-1 * opType * 1000))
 			node.WLatch()
 			node.AddWLatchRecord(int32(-1 * opType * 1000))
 		} else if getOrUnlatch == SKIP_LIST_UTIL_UNLATCH {
-			//node.RemoveRLatchRecord(int32(-1 * opType * 1000))
-			//node.RUnlatch()
 			node.RemoveWLatchRecord(int32(-1 * opType * 1000))
 			node.WUnlatch()
 		} else {
@@ -108,10 +104,6 @@ func (sl *SkipList) FindNode(key *types.Value, opType SkipListOpType) (isSuccess
 	latchOpWithOpType(pred, SKIP_LIST_UTIL_GET_LATCH, opType)
 	sl.bpm.IncPinOfPage(pred)
 
-	// loop invariant: pred.key < searchKey
-	//fmt.Println("---")
-	//fmt.Println(key.ToInteger())
-	//moveCnt := 0
 	predOfPredId := types.InvalidPageID
 	predOfPredLSN := types.LSN(-1)
 	predOfCorners := make([]skip_list_page.SkipListCornerInfo, skip_list_page.MAX_FOWARD_LIST_LEN)
@@ -154,9 +146,6 @@ func (sl *SkipList) FindNode(key *types.Value, opType SkipListOpType) (isSuccess
 			sl.bpm.UnpinPage(curr.GetPageId(), false)
 			latchOpWithOpType(curr, SKIP_LIST_UTIL_UNLATCH, opType)
 
-			// memory for checking update existence while no latch having period
-			//beforeLSN := pred.GetLSN()
-			//beforePredId := pred.GetPageId()
 			if pred.GetPageId() != sl.getStartNode().GetPageId() {
 				sl.bpm.UnpinPage(pred.GetPageId(), false)
 			}
@@ -166,17 +155,12 @@ func (sl *SkipList) FindNode(key *types.Value, opType SkipListOpType) (isSuccess
 			pred = skip_list_page.FetchAndCastToBlockPage(sl.bpm, predOfPredId)
 			latchOpWithOpType(pred, SKIP_LIST_UTIL_GET_LATCH, opType)
 
-			//// check updating occurred or not
-			//beforePred := skip_list_page.FetchAndCastToBlockPage(sl.bpm, beforePredId)
-			//latchOpWithOpType(beforePred, SKIP_LIST_UTIL_GET_LATCH, opType)
+			// check updating occurred or not
 			afterLSN := pred.GetLSN()
-			// check update state of beforePred (pred which was pred before sliding)
 			if predOfPredLSN != afterLSN {
 				// updating exists
 				sl.bpm.UnpinPage(pred.GetPageId(), false)
 				latchOpWithOpType(pred, SKIP_LIST_UTIL_UNLATCH, opType)
-				//sl.bpm.UnpinPage(beforePred.GetPageId(), false)
-				//latchOpWithOpType(beforePred, SKIP_LIST_UTIL_UNLATCH, opType)
 				if common.EnableDebug {
 					common.ShPrintf(common.DEBUG_INFO, "FindNode: finished with rety. key=%v opType=%d\n", key.ToIFValue(), opType)
 					common.ShPrintf(common.DEBUG_INFO, "pred: ")
@@ -186,8 +170,6 @@ func (sl *SkipList) FindNode(key *types.Value, opType SkipListOpType) (isSuccess
 				}
 				return false, nil, nil, nil
 			}
-			//sl.bpm.UnpinPage(beforePred.GetPageId(), false)
-			//latchOpWithOpType(beforePred, SKIP_LIST_UTIL_UNLATCH, opType)
 		} else {
 			if curr != nil {
 				sl.bpm.UnpinPage(curr.GetPageId(), false)
@@ -361,31 +343,6 @@ func (sl *SkipList) Remove(key *types.Value, value uint64) (isDeleted_ bool) {
 	}
 	return isDeleted
 }
-
-//func (sl *SkipList) GetRangeScanIterator(rangeStartKey *types.Value, rangeEndKey *types.Value) *SkipListIterator {
-//	ret := new(SkipListIterator)
-//
-//	//headerPage := skip_list_page.FetchAndCastToHeaderPage(sl.bpm, sl.headerPageID)
-//	headerPage := sl.getHeaderPage()
-//
-//	ret.sl = sl
-//	ret.bpm = sl.bpm
-//	//ret.curNode = skip_list_page.FetchAndCastToBlockPage(sl.bpm, headerPage.GetListStartPageId())
-//	ret.curNode = sl.getStartNode()
-//	ret.curPageSlotIdx = 0
-//	ret.rangeStartKey = rangeStartKey
-//	ret.rangeEndKey = rangeEndKey
-//	ret.keyType = headerPage.GetKeyType()
-//
-//	if rangeStartKey != nil {
-//		//sl.bpm.UnpinPage(headerPage.GetListStartPageId(), false)
-//		ret.curNode = nil
-//	}
-//
-//	//sl.bpm.UnpinPage(sl.headerPageID, false)
-//
-//	return ret
-//}
 
 func (sl *SkipList) Iterator(rangeStartKey *types.Value, rangeEndKey *types.Value) *SkipListIterator {
 	if common.EnableDebug {

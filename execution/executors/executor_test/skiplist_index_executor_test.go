@@ -932,7 +932,6 @@ func testParallelTxnsQueryingSkipListIndexUsedColumns[T int32 | float32 | string
 
 	ch := make(chan int32)
 
-	// TODO: for debugging
 	getNewAmountAndInc := func() int32 {
 		//ret := atomic.LoadInt32(&balanceAmountForRandom)
 		//atomic.AddInt32(&balanceAmountForRandom, 10)
@@ -1308,15 +1307,12 @@ func testParallelTxnsQueryingSkipListIndexUsedColumns[T int32 | float32 | string
 				checkBalanceColDupMapSetWithLock(balanceVal)
 
 				txn_ := txnMgr.Begin(nil)
-				//// TODO: for debugging
-				//txn_.MakeNotAbortable()
 
 				txn_.SetDebugInfo("Insert(random)-Op")
 				common.ShPrintf(common.DEBUGGING, fmt.Sprintf("Insert op start. txnId:%v ii:%d\n", txn_.GetTransactionId(), ii))
 				for jj := int32(0); jj < stride; jj++ {
 					insKeyVal := samehada_util.StrideAdd(samehada_util.StrideMul(insKeyValBase, stride), jj).(T)
 					//insBalanceVal := getInt32ValCorrespondToPassVal(insKeyVal)
-					// TODO: for debugging
 					insBalanceVal := getNewAmountAndInc()
 
 					common.ShPrintf(common.DEBUGGING, fmt.Sprintf("Insert op start. txnId:%v ii:%d jj:%d\n", txn_.GetTransactionId(), ii, jj))
@@ -1357,9 +1353,6 @@ func testParallelTxnsQueryingSkipListIndexUsedColumns[T int32 | float32 | string
 					deletedValsForDeleteMutex.RUnlock()
 
 					txn_ := txnMgr.Begin(nil)
-
-					//// TODO: for debugging
-					//txn_.MakeNotAbortable()
 
 					txn_.SetDebugInfo("Delete(fail)-Op")
 					deletedValsForDeleteMutex.RLock()
@@ -1414,9 +1407,6 @@ func testParallelTxnsQueryingSkipListIndexUsedColumns[T int32 | float32 | string
 					insValsMutex.Unlock()
 
 					txn_ := txnMgr.Begin(nil)
-
-					//// TODO: for debugging
-					//txn_.MakeNotAbortable()
 
 					txn_.SetDebugInfo("Delete(success)-Op")
 
@@ -1500,7 +1490,6 @@ func testParallelTxnsQueryingSkipListIndexUsedColumns[T int32 | float32 | string
 					common.SH_Assert(results1 != nil && len(results1) == 1, "Update failed!")
 
 					//updatePlan2 := createBalanceUpdatePlanNode(updateNewKeyVal, getInt32ValCorrespondToPassVal(updateNewKeyVal), c, tableMetadata, keyType, indexKind)
-					// TODO: for debugging
 					updatePlan2 := createBalanceUpdatePlanNode(updateNewKeyVal, getNewAmountAndInc(), c, tableMetadata, keyType, indexKind)
 
 					results2 := executePlan(c, shi.GetBufferPoolManager(), txn_, updatePlan2)

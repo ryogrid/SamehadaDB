@@ -76,21 +76,15 @@ start:
 
 	var err error = nil
 	if nextTupleRID != nil && nextTupleRID.GetPageId().IsValid() {
-		//it.tuple1, err = it.tableHeap.GetTuple(nextTupleRID, it.txn)
 		it.tuple, err = currentPage.GetTuple(nextTupleRID, it.tableHeap.log_manager, it.lock_manager, it.txn)
 		if it.tuple != nil && err == ErrSelfDeletedCase {
-			//isContinued = true
-			//continue
 			fmt.Println("TableHeapIterator::Next ErrSelfDeletedCase!")
 			finalizeCurrentPage()
 			goto start
 		}
-		//break
 	} else {
 		it.tuple = nil
-		//break
 	}
-	//}
 
 	finalizeCurrentPage()
 	return it.tuple
