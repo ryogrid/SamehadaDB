@@ -68,6 +68,10 @@ func (htidx *LinearProbeHashTableIndex) ScanKey(key *tuple.Tuple, transaction in
 	return ret_arr
 }
 
+func (htidx *LinearProbeHashTableIndex) UpdateEntry(oldKey *tuple.Tuple, oldRID page.RID, newKey *tuple.Tuple, newRID page.RID, transaction interface{}) {
+	panic("not implemented yet")
+}
+
 func (htidx *LinearProbeHashTableIndex) GetRangeScanIterator(startkey *tuple.Tuple, endKey *tuple.Tuple, txn interface{}) IndexRangeScanIterator {
 	return nil
 }

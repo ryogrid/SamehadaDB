@@ -3,6 +3,7 @@ package executors
 import (
 	"errors"
 	"fmt"
+	"github.com/ryogrid/SamehadaDB/common"
 	"github.com/ryogrid/SamehadaDB/samehada/samehada_util"
 	"github.com/ryogrid/SamehadaDB/storage/page"
 
@@ -65,10 +66,16 @@ func (e *UpdateExecutor) Next() (*tuple.Tuple, Done, error) {
 		var new_rid *page.RID = nil
 		var updateErr error = nil
 		var updateTuple *tuple.Tuple
+		//var oldTuple *tuple.Tuple
 		if e.plan.GetUpdateColIdxs() == nil {
-			is_updated, new_rid, updateErr, updateTuple = e.child.GetTableMetaData().Table().UpdateTuple(new_tuple, nil, nil, e.child.GetTableMetaData().OID(), *rid, e.txn, false)
+			is_updated, new_rid, updateErr, updateTuple, _ = e.child.GetTableMetaData().Table().UpdateTuple(new_tuple, nil, nil, e.child.GetTableMetaData().OID(), *rid, e.txn, false)
 		} else {
-			is_updated, new_rid, updateErr, updateTuple = e.child.GetTableMetaData().Table().UpdateTuple(new_tuple, e.plan.GetUpdateColIdxs(), e.child.GetTableMetaData().Schema(), e.child.GetTableMetaData().OID(), *rid, e.txn, false)
+			is_updated, new_rid, updateErr, updateTuple, _ = e.child.GetTableMetaData().Table().UpdateTuple(new_tuple, e.plan.GetUpdateColIdxs(), e.child.GetTableMetaData().Schema(), e.child.GetTableMetaData().OID(), *rid, e.txn, false)
+		}
+
+		if new_rid != nil {
+			//fmt.Printf("UpdateTuple at UpdateExecuter::Next moved record position! oldRID:%v newRID:%v\n", *rid, *new_rid)
+			common.NewRIDAtNormal = true
 		}
 
 		if !is_updated && updateErr != access.ErrPartialUpdate {
@@ -99,14 +106,14 @@ func (e *UpdateExecutor) Next() (*tuple.Tuple, Done, error) {
 						//}
 
 						// do nothing
+					} else if new_rid != nil {
+						//index_.DeleteEntry(t, *rid, e.txn)
+						//index_.InsertEntry(updateTuple, *new_rid, e.txn)
+						index_.UpdateEntry(t, *rid, updateTuple, *new_rid, e.txn)
 					} else {
-						index_.DeleteEntry(t, *rid, e.txn)
-						//index_.InsertEntry(new_tuple, *rid, e.txn)
-						if new_rid != nil {
-							index_.InsertEntry(updateTuple, *new_rid, e.txn)
-						} else {
-							index_.InsertEntry(updateTuple, *rid, e.txn)
-						}
+						//index_.DeleteEntry(t, *rid, e.txn)
+						//index_.InsertEntry(updateTuple, *rid, e.txn)
+						index_.UpdateEntry(t, *rid, updateTuple, *rid, e.txn)
 					}
 				} else {
 					if updateErr == access.ErrPartialUpdate {
@@ -114,6 +121,7 @@ func (e *UpdateExecutor) Next() (*tuple.Tuple, Done, error) {
 						// removing index entry is done at commit phase because delete operation uses marking technique
 
 						index_.DeleteEntry(t, *rid, e.txn)
+
 						//if updateErr != access.ErrPartialUpdate {
 						//	fmt.Println("UpdateExecuter: index entry insert with new_rid. value update of index entry occurs.")
 						//	//index_.InsertEntry(t, *new_rid, e.txn)
@@ -121,7 +129,13 @@ func (e *UpdateExecutor) Next() (*tuple.Tuple, Done, error) {
 						//}
 
 						// do nothing
+					} else if new_rid != nil {
+						//index_.DeleteEntry(t, *rid, e.txn)
+						//index_.InsertEntry(updateTuple, *new_rid, e.txn)
+						index_.UpdateEntry(t, *rid, updateTuple, *new_rid, e.txn)
 					} else {
+						//index_.UpdateEntry(t, *rid, updateTuple, *rid, e.txn)
+
 						//index_.DeleteEntry(t, *rid, e.txn)
 						//if new_rid != nil {
 						//	index_.InsertEntry(updateTuple, *new_rid, e.txn)

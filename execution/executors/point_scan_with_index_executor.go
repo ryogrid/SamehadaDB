@@ -79,6 +79,10 @@ func (e *PointScanWithIndexExecutor) Init() {
 }
 
 func (e *PointScanWithIndexExecutor) Next() (*tuple.Tuple, Done, error) {
+	if e.txn.GetState() == access.ABORTED {
+		return nil, true, access.ErrGeneral
+	}
+
 	if len(e.foundTuples) > 0 {
 		tuple_ := e.foundTuples[0]
 		e.foundTuples = e.foundTuples[1:]

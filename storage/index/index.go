@@ -100,6 +100,8 @@ type Index interface {
 	InsertEntry(*tuple.Tuple, page.RID, interface{})
 	// delete the index entry linked to given tuple
 	DeleteEntry(*tuple.Tuple, page.RID, interface{})
+	// update entry. internally, delete first entry and insert seconde entry atomically
+	UpdateEntry(*tuple.Tuple, page.RID, *tuple.Tuple, page.RID, interface{})
 	ScanKey(*tuple.Tuple, interface{}) []page.RID
 	// pass start key and end key. nil is also ok.
 	GetRangeScanIterator(*tuple.Tuple, *tuple.Tuple, interface{}) IndexRangeScanIterator

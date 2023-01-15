@@ -50,7 +50,7 @@ func NewLockRequest(txn_id types.TxnID, lock_mode LockMode) *LockRequest {
 
 type LockRequestQueue struct {
 	request_queue []*LockRequest
-	//std::condition_variable cv  // for notifying blocked transactions on this rid
+	//std::condition_variable cv  // for notifying blocked transactions on this rid1
 	upgrading bool
 }
 
@@ -149,11 +149,11 @@ func isContainTxnID(list []types.TxnID, txnID types.TxnID) bool {
 /**
 * Acquire a lock on RID in shared mode. See [LOCK_NOTE] in header file.
 * @param txn the transaction requesting the shared lock
-* @param rid the RID to be locked in shared mode
+* @param rid1 the RID to be locked in shared mode
 * @return true if the lock is granted, false otherwise
  */
 func (lock_manager *LockManager) LockShared(txn *Transaction, rid *page.RID) bool {
-	//fmt.Printf("called LockShared, %v\n", rid)
+	//fmt.Printf("called LockShared, %v\n", rid1)
 	lock_manager.mutex.Lock()
 	defer lock_manager.mutex.Unlock()
 	slock_set := txn.GetSharedLockSet()
@@ -189,11 +189,11 @@ func (lock_manager *LockManager) LockShared(txn *Transaction, rid *page.RID) boo
 /**
 * Acquire a lock on RID in exclusive mode. See [LOCK_NOTE] in header file.
 * @param txn the transaction requesting the exclusive lock
-* @param rid the RID to be locked in exclusive mode
+* @param rid1 the RID to be locked in exclusive mode
 * @return true if the lock is granted, false otherwise
  */
 func (lock_manager *LockManager) LockExclusive(txn *Transaction, rid *page.RID) bool {
-	//fmt.Printf("called LockExclusive, %v\n", rid)
+	//fmt.Printf("called LockExclusive, %v\n", rid1)
 	lock_manager.mutex.Lock()
 	defer lock_manager.mutex.Unlock()
 	exlock_set := txn.GetExclusiveLockSet()
@@ -221,11 +221,11 @@ func (lock_manager *LockManager) LockExclusive(txn *Transaction, rid *page.RID) 
 /**
 * Upgrade a lock from a shared lock to an exclusive access.
 * @param txn the transaction requesting the lock upgrade
-* @param rid the RID that should already be locked in shared mode by the requesting transaction
+* @param rid1 the RID that should already be locked in shared mode by the requesting transaction
 * @return true if the upgrade is successful, false otherwise
  */
 func (lock_manager *LockManager) LockUpgrade(txn *Transaction, rid *page.RID) bool {
-	//fmt.Printf("called LockUpgrade %v\n", rid)
+	//fmt.Printf("called LockUpgrade %v\n", rid1)
 	lock_manager.mutex.Lock()
 	defer lock_manager.mutex.Unlock()
 	//slock_set := txn.GetSharedLockSet()
@@ -248,7 +248,7 @@ func (lock_manager *LockManager) LockUpgrade(txn *Transaction, rid *page.RID) bo
 				lock_manager.exclusive_lock_table[*rid] = txn.GetTransactionId()
 				elock_set = append(elock_set, *rid)
 				txn.SetExclusiveLockSet(elock_set)
-				//slock_set = removeRID(slock_set, *rid)
+				//slock_set = removeRID(slock_set, *rid1)
 				//txn.SetSharedLockSet(slock_set)
 				return true
 			}
@@ -261,7 +261,7 @@ func (lock_manager *LockManager) LockUpgrade(txn *Transaction, rid *page.RID) bo
 /**
 * Release the lock held by the access.
 * @param txn the transaction releasing the lock, it should actually hold the lock
-* @param rid the RID that is locked by the transaction
+* @param rid1 the RID that is locked by the transaction
 * @return true if the unlock is successful, false otherwise
  */
 func (lock_manager *LockManager) Unlock(txn *Transaction, rid_list []page.RID) bool {
