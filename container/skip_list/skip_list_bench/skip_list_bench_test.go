@@ -102,7 +102,7 @@ func TestSkipListBench8_2(t *testing.T) {
 					for _, wk := range work {
 						switch wk.OpType {
 						case skip_list.SKIP_LIST_OP_REMOVE:
-							sl.Remove(wk.Val, uint32(wk.Val.ToInteger()))
+							sl.Remove(wk.Val, uint64(wk.Val.ToInteger()))
 						case skip_list.SKIP_LIST_OP_GET:
 							sl.GetValue(wk.Val)
 						default:
@@ -142,7 +142,7 @@ func genInitialSLAndWorkArr(dbName string) (*skip_list.SkipList, *workArray) {
 	for ii := 0; ii < INITIAL_VAL_NUM; ii++ {
 		tmpValBase := ii //rand.Int31()
 		tmpVal := samehada_util.GetPonterOfValue(types.NewInteger(int32(tmpValBase)))
-		sl.Insert(tmpVal, uint32(tmpValBase))
+		sl.Insert(tmpVal, uint64(tmpValBase))
 		if ii%WORK_NUM == 0 {
 			fmt.Printf("genInitialSLAndWorkArr: %d entries inserted.\n", ii)
 		}

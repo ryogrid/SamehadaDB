@@ -238,12 +238,25 @@ func (transaction_manager *TransactionManager) Abort(catalog_ catalog_interface.
 						//}
 						bfRlbkKeyVal := catalog_.GetColValFromTupleForRollback(item.tuple2, colIdx, item.oid)
 						rlbkKeyVal := catalog_.GetColValFromTupleForRollback(item.tuple1, colIdx, item.oid)
-						if !bfRlbkKeyVal.CompareEquals(*rlbkKeyVal) || new_rid != nil {
-							//rollback is needed only when column value changed case
-							if new_rid != nil {
+						if new_rid != nil {
+							if !bfRlbkKeyVal.CompareEquals(*rlbkKeyVal) {
 								index_.UpdateEntry(item.tuple2, *item.rid2, item.tuple1, *new_rid, txn)
+								//if new_rid != nil {
+								//	index_.UpdateEntry(item.tuple2, *item.rid2, item.tuple1, *new_rid, txn)
+								//} else {
+								//	index_.UpdateEntry(item.tuple2, *item.rid2, item.tuple1, *item.rid1, txn)
+								//}
 							} else {
+								// do UPSERT
+								index_.InsertEntry(item.tuple2, *new_rid, txn)
+							}
+						} else {
+							if !bfRlbkKeyVal.CompareEquals(*rlbkKeyVal) {
+								//rollback is needed only when column value changed case
 								index_.UpdateEntry(item.tuple2, *item.rid2, item.tuple1, *item.rid1, txn)
+							} else {
+								// do UPSERT
+								index_.InsertEntry(item.tuple1, *item.rid1, txn)
 							}
 						}
 					}

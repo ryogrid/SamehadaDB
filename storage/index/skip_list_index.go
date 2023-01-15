@@ -2,7 +2,6 @@ package index
 
 import (
 	"fmt"
-	"github.com/ryogrid/SamehadaDB/common"
 	"github.com/ryogrid/SamehadaDB/container/skip_list"
 	"github.com/ryogrid/SamehadaDB/samehada/samehada_util"
 	"github.com/ryogrid/SamehadaDB/storage/buffer"
@@ -18,7 +17,7 @@ type SkipListIndex struct {
 	metadata  *IndexMetadata
 	// idx of target column on table
 	col_idx uint32
-	rwlatch common.ReaderWriterLatch
+	//rwlatch common.ReaderWriterLatch
 }
 
 func NewSkipListIndex(metadata *IndexMetadata, buffer_pool_manager *buffer.BufferPoolManager, col_idx uint32) *SkipListIndex {
@@ -26,7 +25,7 @@ func NewSkipListIndex(metadata *IndexMetadata, buffer_pool_manager *buffer.Buffe
 	ret.metadata = metadata
 	ret.container = *skip_list.NewSkipList(buffer_pool_manager, ret.metadata.GetTupleSchema().GetColumn(col_idx).GetType())
 	ret.col_idx = col_idx
-	ret.rwlatch = common.NewRWLatch()
+	//ret.rwlatch = common.NewRWLatch()
 	return ret
 }
 
@@ -54,8 +53,8 @@ func (slidx *SkipListIndex) DeleteEntry(key *tuple.Tuple, rid page.RID, transact
 }
 
 func (slidx *SkipListIndex) ScanKey(key *tuple.Tuple, transaction interface{}) []page.RID {
-	slidx.rwlatch.RLock()
-	defer slidx.rwlatch.RUnlock()
+	//slidx.rwlatch.RLock()
+	//defer slidx.rwlatch.RUnlock()
 
 	tupleSchema_ := slidx.GetTupleSchema()
 	keyVal := key.GetValue(tupleSchema_, slidx.col_idx)
@@ -70,8 +69,8 @@ func (slidx *SkipListIndex) ScanKey(key *tuple.Tuple, transaction interface{}) [
 }
 
 func (slidx *SkipListIndex) UpdateEntry(oldKey *tuple.Tuple, oldRID page.RID, newKey *tuple.Tuple, newRID page.RID, transaction interface{}) {
-	slidx.rwlatch.WLock()
-	defer slidx.rwlatch.WUnlock()
+	//slidx.rwlatch.WLock()
+	//defer slidx.rwlatch.WUnlock()
 
 	slidx.DeleteEntry(oldKey, oldRID, transaction)
 	slidx.InsertEntry(newKey, newRID, transaction)
