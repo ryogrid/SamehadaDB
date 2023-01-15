@@ -51,10 +51,13 @@ func (e *DeleteExecutor) Next() (*tuple.Tuple, Done, error) {
 			e.txn.SetState(access.ABORTED)
 			return nil, true, err
 		}
+		if e.txn.GetState() == access.ABORTED {
+			return nil, true, err
+		}
 
 		rid := t.GetRID()
 		tableMetadata := e.child.GetTableMetaData()
-		is_marked := tableMetadata.Table().MarkDelete(rid, tableMetadata.OID(), e.txn)
+		is_marked := tableMetadata.Table().MarkDelete(rid, tableMetadata.OID(), false, e.txn)
 		if !is_marked {
 			err := errors.New("marking tuple deleted failed. PageId:SlotNum = " + string(rid.GetPageId()) + ":" + fmt.Sprint(rid.GetSlotNum()))
 			e.txn.SetState(access.ABORTED)

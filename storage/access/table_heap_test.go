@@ -36,7 +36,7 @@ func TestTableHeap(t *testing.T) {
 
 	th := NewTableHeap(bpm, log_manager, lock_manager, txn)
 
-	// this schema creates a tuple of size 8 bytes
+	// this schema creates a tuple1 of size 8 bytes
 	// it means that a page can only contains 254 tuples of this schema
 	columnA := column.NewColumn("a", types.Integer, false, index_constants.INDEX_KIND_INVAID, types.PageID(-1), nil)
 	columnB := column.NewColumn("b", types.Integer, false, index_constants.INDEX_KIND_INVAID, types.PageID(-1), nil)
@@ -50,7 +50,7 @@ func TestTableHeap(t *testing.T) {
 		row = append(row, types.NewInteger(int32((i+1)*2)))
 
 		tuple_ := tuple.NewTupleFromSchema(row, schema_)
-		_, err := th.InsertTuple(tuple_, txn, math.MaxUint32)
+		_, err := th.InsertTuple(tuple_, false, txn, math.MaxUint32)
 		testingpkg.Ok(t, err)
 	}
 
@@ -63,7 +63,7 @@ func TestTableHeap(t *testing.T) {
 	for i := 0; i < 1000; i++ {
 		rid := &page.RID{}
 		//// (4096 - 24) / (8 + (4 * 2)) => 254.5
-		//rid.Set(types.PageID(i/254), uint32(i%254))
+		//rid1.Set(types.PageID(i/254), uint32(i%254))
 		// (4096 - 24) / (8 + (5 * 2)) => 226.222...
 
 		rid.Set(types.PageID(i/226), uint32(i%226))
@@ -109,7 +109,7 @@ func TestTableHeapFourCol(t *testing.T) {
 
 	th := NewTableHeap(bpm, log_manager, lock_manager, txn)
 
-	// this schema creates a tuple of size (4 + 1) * 4 => 20 bytes (when includes metadata at header the value is 28)
+	// this schema creates a tuple1 of size (4 + 1) * 4 => 20 bytes (when includes metadata at header the value is 28)
 	// it means that a page can only contains 145 tuples of this schema
 	// (4096 - 24) / 28 => 145.4285...
 	columnA := column.NewColumn("a", types.Integer, false, index_constants.INDEX_KIND_INVAID, types.PageID(-1), nil)
@@ -129,7 +129,7 @@ func TestTableHeapFourCol(t *testing.T) {
 		row = append(row, types.NewInteger(int32((i+3)*2)))
 
 		tuple_ := tuple.NewTupleFromSchema(row, schema_)
-		_, err := th.InsertTuple(tuple_, txn, math.MaxUint32)
+		_, err := th.InsertTuple(tuple_, false, txn, math.MaxUint32)
 		testingpkg.Ok(t, err)
 	}
 

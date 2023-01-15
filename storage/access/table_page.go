@@ -31,13 +31,13 @@ const offSetTupleCount = uint32(20)
 const offsetTupleOffset = uint32(24)
 const offsetTupleSize = uint32(28)
 
-const ErrEmptyTuple = errors.Error("tuple cannot be empty.")
+const ErrEmptyTuple = errors.Error("tuple1 cannot be empty.")
 const ErrNotEnoughSpace = errors.Error("there is not enough space.")
-const ErrSelfDeletedCase = errors.Error("encont self deleted tuple.")
+const ErrSelfDeletedCase = errors.Error("encont self deleted tuple1.")
 const ErrGeneral = errors.Error("some error is occured!")
 
 // delete and insert are needed, but delete is only succeeded case
-const ErrPartialUpdate = errors.Error("update with new rid is succeeded partially")
+const ErrPartialUpdate = errors.Error("update with new rid1 is succeeded partially")
 
 //const ErrNoFreeSlot = errors.Error("could not find a free slot")
 
@@ -69,7 +69,7 @@ func CastPageAsTablePage(page *page.Page) *TablePage {
 	return (*TablePage)(unsafe.Pointer(page))
 }
 
-// Inserts a tuple into the table
+// Inserts a tuple1 into the table
 func (tp *TablePage) InsertTuple(tuple *tuple.Tuple, log_manager *recovery.LogManager, lock_manager *LockManager, txn *Transaction) (*page.RID, error) {
 	if common.EnableDebug {
 		defer func() {
@@ -78,15 +78,16 @@ func (tp *TablePage) InsertTuple(tuple *tuple.Tuple, log_manager *recovery.LogMa
 				common.SH_Assert(tp.GetPageId() == tp.GetPageId(), fmt.Sprintf("pageId data is inconsitent! %d != %d txnId:%d txnState:%d txn.dbgInfo:%s", tp.GetPageId(), tp.GetPageId(), txn.GetTransactionId(), txn.state, txn.dbgInfo))
 			}
 			if common.ActiveLogKindSetting&common.RDB_OP_FUNC_CALL > 0 {
-				fmt.Printf("TablePage::InsertTuple returned. pageId:%d GetPageId():%d txn.txn_id:%v txnState:%d dbgInfo:%s FreeSpacePointer:%d TupleCount:%d FreeSpaceRemaining:%d tuple:%v\n", tp.GetPageId(), tp.GetPageId(), txn.txn_id, txn.state, txn.dbgInfo, tp.GetFreeSpacePointer(), tp.GetTupleCount(), tp.getFreeSpaceRemaining(), *tuple)
+				fmt.Printf("TablePage::InsertTuple returned. pageId:%d GetPageId():%d txn.txn_id:%v txnState:%d dbgInfo:%s FreeSpacePointer:%d TupleCount:%d FreeSpaceRemaining:%d tuple1:%v\n", tp.GetPageId(), tp.GetPageId(), txn.txn_id, txn.state, txn.dbgInfo, tp.GetFreeSpacePointer(), tp.GetTupleCount(), tp.getFreeSpaceRemaining(), *tuple)
 			}
 		}()
 		if common.ActiveLogKindSetting&common.RDB_OP_FUNC_CALL > 0 {
-			fmt.Printf("TablePage::InsertTuple called. pageId:%d txn.txn_id:%v dbgInfo:%s tuple:%v\n", tp.GetPageId(), txn.txn_id, txn.dbgInfo, *tuple)
+			fmt.Printf("TablePage::InsertTuple called. pageId:%d txn.txn_id:%v dbgInfo:%s tuple1:%v\n", tp.GetPageId(), txn.txn_id, txn.dbgInfo, *tuple)
 		}
 	}
 
-	if tuple.Size() == 0 {
+	if tuple.Size() <= 0 {
+		panic("tuple size is illegal!!!")
 		return nil, ErrEmptyTuple
 	}
 
@@ -103,20 +104,16 @@ func (tp *TablePage) InsertTuple(tuple *tuple.Tuple, log_manager *recovery.LogMa
 		}
 	}
 
-	//if tp.GetTupleCount() == slot && tuple.Size()+sizeTuple > tp.getFreeSpaceRemaining() {
-	//	return nil, ErrNoFreeSlot
-	//}
-
 	rid := &page.RID{}
 	rid.Set(tp.GetPageId(), slot)
 
 	if log_manager.IsEnabledLogging() {
-		// Acquire an exclusive lock on the new tuple.
+		// Acquire an exclusive lock on the new tuple1.
 		locked := lock_manager.LockExclusive(txn, rid)
 		if !locked {
 			//txn.SetState(ABORTED)
 			return nil, errors.Error("could not acquire an exclusive lock of found slot (=RID)")
-			// fmt.Printf("Locking a new tuple should always work. rid: %v\n", rid)
+			// fmt.Printf("Locking a new tuple1 should always work. rid1: %v\n", rid1)
 			// lock_manager.PrintLockTables()
 			// os.Stdout.Sync()
 			// panic("")
@@ -127,7 +124,7 @@ func (tp *TablePage) InsertTuple(tuple *tuple.Tuple, log_manager *recovery.LogMa
 
 	if common.EnableDebug {
 		setFSP := tp.GetFreeSpacePointer() - tuple.Size()
-		common.SH_Assert(setFSP <= common.PageSize, fmt.Sprintf("illegal pointer value!! txnId:%d txnState:%d txn.dbgInfo:%s rid:%v GetPageId():%d setFSP:%d", txn.txn_id, txn.state, txn.dbgInfo, *rid, tp.GetPageId(), setFSP))
+		common.SH_Assert(setFSP <= common.PageSize, fmt.Sprintf("illegal pointer value!! txnId:%d txnState:%d txn.dbgInfo:%s rid1:%v GetPageId():%d setFSP:%d", txn.txn_id, txn.state, txn.dbgInfo, *rid, tp.GetPageId(), setFSP))
 	}
 
 	tp.SetFreeSpacePointer(tp.GetFreeSpacePointer() - tuple.Size())
@@ -139,8 +136,8 @@ func (tp *TablePage) InsertTuple(tuple *tuple.Tuple, log_manager *recovery.LogMa
 
 	// Write the log record.
 	if log_manager.IsEnabledLogging() {
-		//common.SH_Assert(!txn.IsSharedLocked(rid) && !txn.IsExclusiveLocked(rid), "A new tuple should not be locked.")
-		//common.SH_Assert(locked, "Locking a new tuple should always work.")
+		//common.SH_Assert(!txn.IsSharedLocked(rid1) && !txn.IsExclusiveLocked(rid1), "A new tuple1 should not be locked.")
+		//common.SH_Assert(locked, "Locking a new tuple1 should always work.")
 		log_record := recovery.NewLogRecordInsertDelete(txn.GetTransactionId(), txn.GetPrevLSN(), recovery.INSERT, *rid, tuple)
 		lsn := log_manager.AppendLogRecord(log_record)
 		tp.Page.SetLSN(lsn)
@@ -150,9 +147,9 @@ func (tp *TablePage) InsertTuple(tuple *tuple.Tuple, log_manager *recovery.LogMa
 	return rid, nil
 }
 
-// if specified nil to update_col_idxs and schema_, all data of existed tuple is replaced one of new_tuple
+// if specified nil to update_col_idxs and schema_, all data of existed tuple1 is replaced one of new_tuple
 // if specified not nil, new_tuple also should have all columns defined in schema. but not update target value can be dummy value
-// return Tuple pointer when updated tuple need to be moved new page location and it should be inserted after old data deleted, otherwise returned nil
+// return Tuple pointer when updated tuple1 need to be moved new page location and it should be inserted after old data deleted, otherwise returned nil
 func (tp *TablePage) UpdateTuple(new_tuple *tuple.Tuple, update_col_idxs []int, schema_ *schema.Schema, old_tuple *tuple.Tuple, rid *page.RID, txn *Transaction,
 	lock_manager *LockManager, log_manager *recovery.LogManager) (bool, error, *tuple.Tuple) {
 	if common.EnableDebug {
@@ -166,10 +163,23 @@ func (tp *TablePage) UpdateTuple(new_tuple *tuple.Tuple, update_col_idxs []int, 
 			}
 		}()
 		if common.ActiveLogKindSetting&common.RDB_OP_FUNC_CALL > 0 {
-			fmt.Printf("TablePage::UpdateTuple called. pageId:%d txn.txn_id:%v dbgInfo:%s new_tuple:%v update_col_idxs:%v rid:%v\n", tp.GetPageId(), txn.txn_id, txn.dbgInfo, *new_tuple, update_col_idxs, *rid)
+			fmt.Printf("TablePage::UpdateTuple called. pageId:%d txn.txn_id:%v dbgInfo:%s new_tuple:%v update_col_idxs:%v rid1:%v\n", tp.GetPageId(), txn.txn_id, txn.dbgInfo, *new_tuple, update_col_idxs, *rid)
 		}
 	}
 	common.SH_Assert(new_tuple.Size() > 0, "Cannot have empty tuples.")
+
+	if log_manager.IsEnabledLogging() {
+		// Acquire an exclusive lock, upgrading from shared if necessary.
+		if txn.IsSharedLocked(rid) {
+			if !lock_manager.LockUpgrade(txn, rid) {
+				txn.SetState(ABORTED)
+				return false, nil, nil
+			}
+		} else if !txn.IsExclusiveLocked(rid) && !lock_manager.LockExclusive(txn, rid) {
+			txn.SetState(ABORTED)
+			return false, nil, nil
+		}
+	}
 
 	slot_num := rid.GetSlotNum()
 	// If the slot number is invalid, abort the transaction.
@@ -180,7 +190,7 @@ func (tp *TablePage) UpdateTuple(new_tuple *tuple.Tuple, update_col_idxs []int, 
 		return false, nil, nil
 	}
 	tuple_size := tp.GetTupleSize(slot_num)
-	// If the tuple is deleted, abort the transaction.
+	// If the tuple1 is deleted, abort the transaction.
 	if IsDeleted(tuple_size) {
 		if log_manager.IsEnabledLogging() {
 			txn.SetState(ABORTED)
@@ -196,7 +206,7 @@ func (tp *TablePage) UpdateTuple(new_tuple *tuple.Tuple, update_col_idxs []int, 
 	old_tuple.SetData(old_tuple_data)
 	old_tuple.SetRID(rid)
 
-	// setup tuple for updating
+	// setup tuple1 for updating
 	var update_tuple *tuple.Tuple = nil
 	if update_col_idxs == nil || schema_ == nil {
 		update_tuple = new_tuple
@@ -216,21 +226,15 @@ func (tp *TablePage) UpdateTuple(new_tuple *tuple.Tuple, update_col_idxs []int, 
 		update_tuple = tuple.NewTupleFromSchema(update_tuple_values, schema_)
 	}
 
+	if update_tuple.Size() <= 0 {
+		panic("tuple size is illegal!!!")
+	}
+
 	if tp.getFreeSpaceRemaining()+tuple_size < update_tuple.Size() {
 		return false, ErrNotEnoughSpace, update_tuple
 	}
 
 	if log_manager.IsEnabledLogging() {
-		// Acquire an exclusive lock, upgrading from shared if necessary.
-		if txn.IsSharedLocked(rid) {
-			if !lock_manager.LockUpgrade(txn, rid) {
-				txn.SetState(ABORTED)
-				return false, nil, nil
-			}
-		} else if !txn.IsExclusiveLocked(rid) && !lock_manager.LockExclusive(txn, rid) {
-			txn.SetState(ABORTED)
-			return false, nil, nil
-		}
 		log_record := recovery.NewLogRecordUpdate(txn.GetTransactionId(), txn.GetPrevLSN(), recovery.UPDATE, *rid, *old_tuple, *update_tuple)
 		lsn := log_manager.AppendLogRecord(log_record)
 		tp.SetLSN(lsn)
@@ -246,7 +250,7 @@ func (tp *TablePage) UpdateTuple(new_tuple *tuple.Tuple, update_col_idxs []int, 
 	copy(tp.GetData()[tuple_offset+tuple_size-update_tuple.Size():], update_tuple.Data()[:update_tuple.Size()])
 	tp.SetTupleSize(slot_num, update_tuple.Size())
 
-	// Update all tuple offsets.
+	// Update all tuple1 offsets.
 	tuple_cnt := int(tp.GetTupleCount())
 	for ii := 0; ii < tuple_cnt; ii++ {
 		tuple_offset_i := tp.GetTupleOffsetAtSlot(uint32(ii))
@@ -257,7 +261,7 @@ func (tp *TablePage) UpdateTuple(new_tuple *tuple.Tuple, update_col_idxs []int, 
 	return true, nil, update_tuple
 }
 
-func (tp *TablePage) MarkDelete(rid *page.RID, txn *Transaction, lock_manager *LockManager, log_manager *recovery.LogManager) bool {
+func (tp *TablePage) MarkDelete(rid *page.RID, txn *Transaction, lock_manager *LockManager, log_manager *recovery.LogManager) (isMarked bool, markedTuple *tuple.Tuple) {
 	if common.EnableDebug {
 		defer func() {
 			if common.ActiveLogKindSetting&common.DEBUGGING > 0 {
@@ -269,25 +273,8 @@ func (tp *TablePage) MarkDelete(rid *page.RID, txn *Transaction, lock_manager *L
 			}
 		}()
 		if common.ActiveLogKindSetting&common.RDB_OP_FUNC_CALL > 0 {
-			fmt.Printf("TablePage::MarkDelete called. pageId:%d txn.txn_id:%v dbgInfo:%s  rid:%v\n", tp.GetPageId(), txn.txn_id, txn.dbgInfo, *rid)
+			fmt.Printf("TablePage::MarkDelete called. pageId:%d txn.txn_id:%v dbgInfo:%s  rid1:%v\n", tp.GetPageId(), txn.txn_id, txn.dbgInfo, *rid)
 		}
-	}
-	slot_num := rid.GetSlotNum()
-	// If the slot number is invalid, abort the transaction.
-	if slot_num >= tp.GetTupleCount() {
-		if log_manager.IsEnabledLogging() {
-			txn.SetState(ABORTED)
-		}
-		return false
-	}
-
-	tuple_size := tp.GetTupleSize(slot_num)
-	// If the tuple is already deleted, abort the transaction.
-	if IsDeleted(tuple_size) {
-		if log_manager.IsEnabledLogging() {
-			txn.SetState(ABORTED)
-		}
-		return false
 	}
 
 	if log_manager.IsEnabledLogging() {
@@ -295,12 +282,40 @@ func (tp *TablePage) MarkDelete(rid *page.RID, txn *Transaction, lock_manager *L
 		if txn.IsSharedLocked(rid) {
 			if !lock_manager.LockUpgrade(txn, rid) {
 				txn.SetState(ABORTED)
-				return false
+				return false, nil
 			}
 		} else if !txn.IsExclusiveLocked(rid) && !lock_manager.LockExclusive(txn, rid) {
 			txn.SetState(ABORTED)
-			return false
+			return false, nil
 		}
+	}
+
+	slot_num := rid.GetSlotNum()
+	// If the slot number is invalid, abort the transaction.
+	if slot_num >= tp.GetTupleCount() {
+		if log_manager.IsEnabledLogging() {
+			txn.SetState(ABORTED)
+		}
+		return false, nil
+	}
+
+	tuple_size := tp.GetTupleSize(slot_num)
+	// If the tuple1 is already deleted, abort the transaction.
+	if IsDeleted(tuple_size) {
+		if log_manager.IsEnabledLogging() {
+			txn.SetState(ABORTED)
+		}
+		return false, nil
+	}
+
+	// GetTuple for rollback of Index...
+	tuple_, err := tp.GetTuple(rid, log_manager, lock_manager, txn)
+	if tuple_ == nil || err != nil {
+		txn.SetState(ABORTED)
+		return false, nil
+	}
+
+	if log_manager.IsEnabledLogging() {
 		dummy_tuple := new(tuple.Tuple)
 		log_record := recovery.NewLogRecordInsertDelete(txn.GetTransactionId(), txn.GetPrevLSN(), recovery.MARKDELETE, *rid, dummy_tuple)
 		lsn := log_manager.AppendLogRecord(log_record)
@@ -308,11 +323,11 @@ func (tp *TablePage) MarkDelete(rid *page.RID, txn *Transaction, lock_manager *L
 		txn.SetPrevLSN(lsn)
 	}
 
-	// Mark the tuple as deleted.
+	// Mark the tuple1 as deleted.
 	if tuple_size > 0 {
 		tp.SetTupleSize(slot_num, SetDeletedFlag(tuple_size))
 	}
-	return true
+	return true, tuple_
 }
 
 func (tp *TablePage) ApplyDelete(rid *page.RID, txn *Transaction, log_manager *recovery.LogManager) {
@@ -327,7 +342,7 @@ func (tp *TablePage) ApplyDelete(rid *page.RID, txn *Transaction, log_manager *r
 			}
 		}()
 		if common.ActiveLogKindSetting&common.RDB_OP_FUNC_CALL > 0 {
-			fmt.Printf("TablePage::ApplyDelete called. pageId:%d txn.txn_id:%v dbgInfo:%s rid:%v\n", tp.GetPageId(), txn.txn_id, txn.dbgInfo, *rid)
+			fmt.Printf("TablePage::ApplyDelete called. pageId:%d txn.txn_id:%v dbgInfo:%s rid1:%v\n", tp.GetPageId(), txn.txn_id, txn.dbgInfo, *rid)
 		}
 	}
 
@@ -342,15 +357,17 @@ func (tp *TablePage) ApplyDelete(rid *page.RID, txn *Transaction, log_manager *r
 	}
 	// Otherwise we are rolling back an insert.
 
+	if tuple_size <= 0 {
+		panic("TablePage::ApplyDelete: target tuple size is illegal!!!")
+	}
+
 	if log_manager.IsEnabledLogging() {
-		// We need to copy out the deleted tuple for undo purposes.
+		// We need to copy out the deleted tuple1 for undo purposes.
 		var delete_tuple *tuple.Tuple = new(tuple.Tuple)
 		delete_tuple.SetSize(tuple_size)
 		delete_tuple.SetData(make([]byte, delete_tuple.Size()))
-		//memcpy(delete_tuple.Data(), tp.Data()+tuple_offset, delete_tuple.Size())
 		copy(delete_tuple.Data(), tp.Data()[tuple_offset:tuple_offset+delete_tuple.Size()])
 		delete_tuple.SetRID(rid)
-		//delete_tuple.allocated = true
 
 		common.SH_Assert(txn.IsExclusiveLocked(rid), "We must own the exclusive lock!")
 		log_record := recovery.NewLogRecordInsertDelete(txn.GetTransactionId(), txn.GetPrevLSN(), recovery.APPLYDELETE, *rid, delete_tuple)
@@ -362,8 +379,6 @@ func (tp *TablePage) ApplyDelete(rid *page.RID, txn *Transaction, log_manager *r
 	free_space_pointer := tp.GetFreeSpacePointer()
 	common.SH_Assert(tuple_offset >= free_space_pointer, "Free space appears before tuples.")
 
-	// memmove(GetData() + free_space_pointer + tuple_size, GetData() + free_space_pointer,
-	// tuple_offset - free_space_pointer);
 	copy(tp.Data()[free_space_pointer+tuple_size:], tp.Data()[free_space_pointer:tuple_offset])
 
 	tp.SetFreeSpacePointer(free_space_pointer + tuple_size)
@@ -392,7 +407,7 @@ func (tp *TablePage) RollbackDelete(rid *page.RID, txn *Transaction, log_manager
 			}
 		}()
 		if common.ActiveLogKindSetting&common.RDB_OP_FUNC_CALL > 0 {
-			fmt.Printf("TablePage::RollbackDelete called. pageId:%d txn.txn_id:%v dbgInfo:%s rid:%v\n", tp.GetPageId(), txn.txn_id, txn.dbgInfo, *rid)
+			fmt.Printf("TablePage::RollbackDelete called. pageId:%d txn.txn_id:%v dbgInfo:%s rid1:%v\n", tp.GetPageId(), txn.txn_id, txn.dbgInfo, *rid)
 		}
 	}
 	// Log the rollback.
@@ -413,6 +428,10 @@ func (tp *TablePage) RollbackDelete(rid *page.RID, txn *Transaction, log_manager
 	if IsDeleted(tuple_size) {
 		tp.SetTupleSize(slot_num, UnsetDeletedFlag(tuple_size))
 	}
+
+	if tuple_size <= 0 {
+		panic("TablePage::RollbackDelete: target tuple size is illegal!!!")
+	}
 }
 
 // Init initializes the table header
@@ -430,7 +449,6 @@ func (tp *TablePage) Init(pageId types.PageID, prevPageId types.PageID, log_mana
 	}
 	// Log that we are creating a new page.
 	if log_manager.IsEnabledLogging() {
-		//txn_ := (*Transaction)(unsafe.Pointer(&txn))
 		log_record := recovery.NewLogRecordNewPage(txn.GetTransactionId(), txn.GetPrevLSN(), recovery.NEWPAGE, prevPageId)
 		lsn := log_manager.AppendLogRecord(log_record)
 		tp.Page.SetLSN(lsn)
@@ -460,6 +478,9 @@ func (tp *TablePage) SetFreeSpacePointer(freeSpacePointer uint32) {
 	if common.EnableDebug {
 		common.SH_Assert(freeSpacePointer <= common.PageSize, "illegal pointer value!!")
 	}
+	if freeSpacePointer < offsetTupleSize {
+		panic(fmt.Sprintf("freeSpacePointer value to be set is illegal !!! fsp:%d\n", freeSpacePointer))
+	}
 	tp.Copy(offsetFreeSpace, types.UInt32(freeSpacePointer).Serialize())
 }
 
@@ -469,14 +490,10 @@ func (tp *TablePage) SetTupleCount(tupleCount uint32) {
 
 func (tp *TablePage) setTuple(slot uint32, tuple *tuple.Tuple) {
 	fsp := tp.GetFreeSpacePointer()
-	tp.Copy(fsp, tuple.Data())                                                      // copy tuple to data starting at free space pointer
-	tp.Copy(offsetTupleOffset+sizeTuple*slot, types.UInt32(fsp).Serialize())        // set tuple offset at slot
-	tp.Copy(offsetTupleSize+sizeTuple*slot, types.UInt32(tuple.Size()).Serialize()) // set tuple size at slot
+	tp.Copy(fsp, tuple.Data())                                                      // copy tuple1 to data starting at free space pointer
+	tp.Copy(offsetTupleOffset+sizeTuple*slot, types.UInt32(fsp).Serialize())        // set tuple1 offset at slot
+	tp.Copy(offsetTupleSize+sizeTuple*slot, types.UInt32(tuple.Size()).Serialize()) // set tuple1 size at slot
 }
-
-//func (tp *TablePage) GetPageId() types.PageID {
-//	return types.NewPageIDFromBytes(tp.Data()[:])
-//}
 
 func (tp *TablePage) GetNextPageId() types.PageID {
 	return types.NewPageIDFromBytes(tp.Data()[offSetNextPageId:])
@@ -490,7 +507,7 @@ func (tp *TablePage) GetTupleOffsetAtSlot(slot_num uint32) uint32 {
 	return uint32(types.NewUInt32FromBytes(tp.Data()[offsetTupleOffset+sizeTuple*slot_num:]))
 }
 
-/** Set tuple offset at slot slot_num. */
+/** Set tuple1 offset at slot slot_num. */
 func (tp *TablePage) SetTupleOffsetAtSlot(slot_num uint32, offset uint32) {
 	buf := new(bytes.Buffer)
 	binary.Write(buf, binary.LittleEndian, offset)
@@ -503,12 +520,11 @@ func (tp *TablePage) GetTupleSize(slot_num uint32) uint32 {
 	return uint32(types.NewUInt32FromBytes(tp.Data()[offsetTupleSize+sizeTuple*slot_num:]))
 }
 
-/** Set tuple size at slot slot_num. */
+/** Set tuple1 size at slot slot_num. */
 func (tp *TablePage) SetTupleSize(slot_num uint32, size uint32) {
 	buf := new(bytes.Buffer)
 	binary.Write(buf, binary.LittleEndian, size)
 	sizeInBytes := buf.Bytes()
-	//memcpy(GetData() + OFFSET_TUPLE_SIZE + SIZE_TUPLE * slot_num, &size, sizeof(uint32_t));
 	copy(tp.Data()[offsetTupleSize+sizeTuple*slot_num:], sizeInBytes)
 }
 
@@ -532,9 +548,18 @@ func (tp *TablePage) GetTuple(rid *page.RID, log_manager *recovery.LogManager, l
 			}
 		}()
 		if common.ActiveLogKindSetting&common.RDB_OP_FUNC_CALL > 0 {
-			fmt.Printf("TablePage::GetTuple called. pageId:%d txn.txn_id:%v  dbgInfo:%s rid:%v\n", tp.GetPageId(), txn.txn_id, txn.dbgInfo, *rid)
+			fmt.Printf("TablePage::GetTuple called. pageId:%d txn.txn_id:%v  dbgInfo:%s rid1:%v\n", tp.GetPageId(), txn.txn_id, txn.dbgInfo, *rid)
 		}
 	}
+
+	// check having appropriate lock or gettable at least a shared access.
+	if log_manager.IsEnabledLogging() {
+		if !txn.IsSharedLocked(rid) && !txn.IsExclusiveLocked(rid) && !lock_manager.LockShared(txn, rid) {
+			txn.SetState(ABORTED)
+			return nil, ErrGeneral
+		}
+	}
+
 	// If somehow we have more slots than tuples, abort transaction
 	if rid.GetSlotNum() >= tp.GetTupleCount() {
 		if log_manager.IsEnabledLogging() {
@@ -547,42 +572,36 @@ func (tp *TablePage) GetTuple(rid *page.RID, log_manager *recovery.LogManager, l
 	tupleOffset := tp.GetTupleOffsetAtSlot(slot)
 	tupleSize := tp.GetTupleSize(slot)
 
-	// target tuple should be deleted completely (= operation is commited)
+	// target tuple1 should be deleted completely (= operation is commited)
 	if tupleOffset == 0 && tupleSize == 0 {
 		if txn.IsExclusiveLocked(rid) {
-			// txn which deletes target tuple is current txn
-
-			//tupleSize = UnsetDeletedFlag(tupleSize)
-			//return nil, ErrSelfDeletedCase
+			// txn which deletes target tuple1 is current txn
 			fmt.Println("TablePage:GetTuple ErrSelfDeletedCase (1)!")
 			return tuple.NewTuple(rid, 0, make([]byte, 0)), ErrSelfDeletedCase
 		} else {
-			panic(fmt.Sprintf("TablePage::GetTuple illegal rid passed. rid:%v", *rid))
-			//txn.SetState(ABORTED)
-			//return nil, ErrGeneral
-		}
-	}
+			//panic(fmt.Sprintf("TablePage::GetTuple illegal rid1 passed. rid1:%v", *rid1))
 
-	// Otherwise we have a valid tuple, try to acquire at least a shared access.
-	if log_manager.IsEnabledLogging() {
-		if !txn.IsSharedLocked(rid) && !txn.IsExclusiveLocked(rid) && !lock_manager.LockShared(txn, rid) {
-			//if !lock_manager.LockShared(txn, rid) && !txn.IsExclusiveLocked(rid) {
+			// when Next method call of RangeSanWithIndexExecutor which uses SkipListIterator as RID itrator is called,
+			// the txn enter here.
+
 			txn.SetState(ABORTED)
 			return nil, ErrGeneral
 		}
 	}
 
-	// If the tuple is marked as deleted
+	// If the tuple1 is marked as deleted
 	if IsDeleted(tupleSize) {
 		if txn.IsExclusiveLocked(rid) {
-			// txn which deletes target tuple is current txn
-
-			//tupleSize = UnsetDeletedFlag(tupleSize)
+			// txn which deletes target tuple1 is current txn
 			fmt.Println("TablePage:GetTuple ErrSelfDeletedCase (2)!")
 			return tuple.NewTuple(rid, 0, make([]byte, 0)), ErrSelfDeletedCase
 			//return nil, ErrSelfDeletedCase
 		} else {
-			fmt.Printf("TablePage::GetTuple faced deleted marked rid . rid:%v\n", *rid)
+			// when RangeSanWithIndexExecutor or PointScanWithIndexExecutor which uses SkipListIterator as RID itrator is called,
+			// the txn enter here.
+
+			fmt.Printf("TablePage::GetTuple faced deleted marked record . rid:%v tupleSize:%d tupleOffset:%d\n", *rid, tupleSize, tupleOffset)
+
 			txn.SetState(ABORTED)
 			return nil, ErrGeneral
 		}
@@ -597,7 +616,7 @@ func (tp *TablePage) GetTuple(rid *page.RID, log_manager *recovery.LogManager, l
 func (tp *TablePage) GetTupleFirstRID() *page.RID {
 	firstRID := &page.RID{}
 
-	// Find and return the first valid tuple.
+	// Find and return the first valid tuple1.
 	tupleCount := tp.GetTupleCount()
 	for ii := uint32(0); ii < tupleCount; ii++ {
 		if tp.GetTupleSize(ii) > 0 {
@@ -612,7 +631,7 @@ func (tp *TablePage) GetTupleFirstRID() *page.RID {
 func (tp *TablePage) GetNextTupleRID(curRID *page.RID, isNextPage bool) *page.RID {
 	nextRID := &page.RID{}
 
-	// Find and return the first valid tuple after our current slot number.
+	// Find and return the first valid tuple1 after our current slot number.
 	tupleCount := tp.GetTupleCount()
 	var init_val uint32 = 0
 	if !isNextPage {
@@ -627,17 +646,17 @@ func (tp *TablePage) GetNextTupleRID(curRID *page.RID, isNextPage bool) *page.RI
 	return nil
 }
 
-/** @return true if the tuple is deleted or empty */
+/** @return true if the tuple1 is deleted or empty */
 func IsDeleted(tuple_size uint32) bool {
 	return tuple_size&uint32(deleteMask) == uint32(deleteMask) || tuple_size == 0
 }
 
-/** @return tuple size with the deleted flag set */
+/** @return tuple1 size with the deleted flag set */
 func SetDeletedFlag(tuple_size uint32) uint32 {
 	return tuple_size | uint32(deleteMask)
 }
 
-/** @return tuple size with the deleted flag unset */
+/** @return tuple1 size with the deleted flag unset */
 func UnsetDeletedFlag(tuple_size uint32) uint32 {
 	return tuple_size & (^uint32(deleteMask))
 }

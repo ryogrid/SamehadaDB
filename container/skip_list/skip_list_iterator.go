@@ -102,7 +102,7 @@ func (itr *SkipListIterator) Next() (done bool, err error, key *types.Value, rid
 	if itr.curEntryIdx < int32(len(itr.entryList)) {
 		ret := itr.entryList[itr.curEntryIdx]
 		itr.curEntryIdx++
-		tmpRID := samehada_util.UnpackUint32toRID(ret.Value)
+		tmpRID := samehada_util.UnpackUint64toRID(ret.Value)
 		return false, nil, samehada_util.GetPonterOfValue(ret.Key), &tmpRID
 	} else {
 		return true, nil, nil, nil

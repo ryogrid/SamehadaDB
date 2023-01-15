@@ -112,6 +112,10 @@ func (e *RangeScanWithIndexExecutor) Next() (*tuple.Tuple, Done, error) {
 			continue
 		}
 
+		if e.txn.GetState() == access.ABORTED {
+			return nil, true, access.ErrGeneral
+		}
+
 		// check value update after getting iterator which contains snapshot of RIDs and Keys which were stored in Index
 		curKeyVal := tuple_.GetValue(e.tableMetadata.Schema(), uint32(e.plan.GetColIdx()))
 		if !curKeyVal.CompareEquals(*key) {

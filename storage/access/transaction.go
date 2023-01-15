@@ -44,20 +44,24 @@ const (
  * WriteRecord tracks information related to a write.
  */
 type WriteRecord struct {
-	rid   page.RID
+	rid1  *page.RID
+	rid2  *page.RID
 	wtype WType
-	/** The tuple is used only for the updateoperation. */
-	tuple *tuple.Tuple
+	/** The tuple1 is used only for the updateoperation. */
+	tuple1 *tuple.Tuple
+	tuple2 *tuple.Tuple
 	/** The table heap specifies which table this write record is for. */
 	table *TableHeap
 	oid   uint32 // for rollback of index data
 }
 
-func NewWriteRecord(rid page.RID, wtype WType, tuple *tuple.Tuple, table *TableHeap, oid uint32) *WriteRecord {
+func NewWriteRecord(rid1 *page.RID, rid2 *page.RID, wtype WType, tuple1 *tuple.Tuple, tuple2 *tuple.Tuple, table *TableHeap, oid uint32) *WriteRecord {
 	ret := new(WriteRecord)
-	ret.rid = rid
+	ret.rid1 = rid1
+	ret.rid2 = rid2
 	ret.wtype = wtype
-	ret.tuple = tuple
+	ret.tuple1 = tuple1
+	ret.tuple2 = tuple2
 	ret.table = table
 	ret.oid = oid
 	return ret
@@ -150,14 +154,14 @@ func isContainsRID(list []page.RID, rid page.RID) bool {
 	return false
 }
 
-/** @return true if rid is shared locked by this transaction */
+/** @return true if rid1 is shared locked by this transaction */
 func (txn *Transaction) IsSharedLocked(rid *page.RID) bool {
 	ret := isContainsRID(txn.shared_lock_set, *rid)
 	//fmt.Printf("called IsSharedLocked: %v\n", ret)
 	return ret
 }
 
-/** @return true if rid is exclusively locked by this transaction */
+/** @return true if rid1 is exclusively locked by this transaction */
 func (txn *Transaction) IsExclusiveLocked(rid *page.RID) bool {
 	ret := isContainsRID(txn.exclusive_lock_set, *rid)
 	//fmt.Printf("called IsExclusiveLocked: %v\n", ret)
@@ -178,8 +182,19 @@ func (txn *Transaction) SetState(state TransactionState) {
 
 		}
 	}
-	if common.EnableDebug && common.ActiveLogKindSetting&common.NOT_ABORABLE_TXN_FEATURE > 0 {
+	//if common.EnableDebug && common.ActiveLogKindSetting&common.NOT_ABORABLE_TXN_FEATURE > 0 {
+	if common.ActiveLogKindSetting&common.NOT_ABORABLE_TXN_FEATURE > 0 {
 		if state == ABORTED && txn.abortable == false {
+			fmt.Printf("debuginfo: %s\n", txn.dbgInfo)
+			for _, wr := range txn.GetWriteSet() {
+				fmt.Printf("write set item: %v\n", *wr)
+				if wr.tuple1 != nil {
+					fmt.Printf("tuple1: %v\n", *(wr.tuple1))
+				}
+				if wr.tuple2 != nil {
+					fmt.Printf("tuple1: %v\n", *(wr.tuple2))
+				}
+			}
 			panic("this txn is not abortable!!!")
 		}
 	}
