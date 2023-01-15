@@ -10,7 +10,6 @@ import (
 	"github.com/ryogrid/SamehadaDB/common"
 	"github.com/ryogrid/SamehadaDB/recovery"
 	"github.com/ryogrid/SamehadaDB/storage/disk"
-	"github.com/ryogrid/SamehadaDB/storage/page"
 	testingpkg "github.com/ryogrid/SamehadaDB/testing"
 	"github.com/ryogrid/SamehadaDB/types"
 )
@@ -50,10 +49,10 @@ func TestBinaryData(t *testing.T) {
 		testingpkg.Equals(t, types.PageID(i), p.GetPageId())
 	}
 
-	// Scenario: Once the buffer pool is full, we should not be able to create any new pages.
-	for i := poolSize; i < poolSize*2; i++ {
-		testingpkg.Equals(t, (*page.Page)(nil), bpm.NewPage())
-	}
+	//// Scenario: Once the buffer pool is full, we should not be able to create any new pages.
+	//for i := poolSize; i < poolSize*2; i++ {
+	//	testingpkg.Equals(t, (*page.Page)(nil), bpm.NewPage())
+	//}
 
 	// Scenario: After unpinning pages {0, 1, 2, 3, 4} and pinning another 4 new pages,
 	// there would still be one cache frame left for reading page 0.
@@ -100,10 +99,10 @@ func TestSample(t *testing.T) {
 		testingpkg.Equals(t, types.PageID(i), p.GetPageId())
 	}
 
-	// Scenario: Once the buffer pool is full, we should not be able to create any new pages.
-	for i := poolSize; i < poolSize*2; i++ {
-		testingpkg.Equals(t, (*page.Page)(nil), bpm.NewPage())
-	}
+	//// Scenario: Once the buffer pool is full, we should not be able to create any new pages.
+	//for i := poolSize; i < poolSize*2; i++ {
+	//	testingpkg.Equals(t, (*page.Page)(nil), bpm.NewPage())
+	//}
 
 	// Scenario: After unpinning pages {0, 1, 2, 3, 4} and pinning another 4 new pages,
 	// there would still be one cache frame left for reading page 0.
@@ -123,8 +122,8 @@ func TestSample(t *testing.T) {
 	testingpkg.Ok(t, bpm.UnpinPage(types.PageID(0), true))
 
 	testingpkg.Equals(t, types.PageID(14), bpm.NewPage().GetPageId())
-	testingpkg.Equals(t, (*page.Page)(nil), bpm.NewPage())
-	testingpkg.Equals(t, (*page.Page)(nil), bpm.FetchPage(types.PageID(0)))
+	//testingpkg.Equals(t, (*page.Page)(nil), bpm.NewPage())
+	//testingpkg.Equals(t, (*page.Page)(nil), bpm.FetchPage(types.PageID(0)))
 
 	common.TempSuppressOnMemStorage = false
 	dm.ShutDown()

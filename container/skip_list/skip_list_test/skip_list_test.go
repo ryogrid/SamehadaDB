@@ -272,6 +272,7 @@ func TestBSearchOfSkipLisBlockPage2(t *testing.T) {
 	// set entries
 	for ii := 1; ii < 50; ii++ {
 		bpage.WLatch()
+		bpm.IncPinOfPage(bpage)
 		bpage.Insert(samehada_util.GetPonterOfValue(types.NewInteger(int32(ii*10))), uint32(ii*10), bpm, nil, 1)
 		//bpage.SetEntries(append(bpage.GetEntries(types.Integer), &skip_list_page.SkipListPair{types.NewInteger(int32(ii * 10)), uint32(ii * 10)}))
 	}
@@ -301,6 +302,7 @@ func TestBSearchOfSkipLisBlockPage2(t *testing.T) {
 	// set entries
 	for ii := 1; ii < 51; ii++ {
 		bpage.WLatch()
+		bpm.IncPinOfPage(bpage)
 		bpage.Insert(samehada_util.GetPonterOfValue(types.NewInteger(int32(ii*10))), uint32(ii*10), bpm, nil, 1)
 		//bpage.SetEntries(append(bpage.GetEntries(types.Integer), &skip_list_page.SkipListPair{types.NewInteger(int32(ii * 10)), uint32(ii * 10)}))
 	}
