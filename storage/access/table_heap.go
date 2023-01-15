@@ -77,7 +77,7 @@ func (t *TableHeap) InsertTuple(tuple_ *tuple.Tuple, isForUpdate bool, txn *Tran
 	for {
 		rid, err = currentPage.InsertTuple(tuple_, t.log_manager, t.lock_manager, txn)
 		if err == nil || err == ErrEmptyTuple {
-			currentPage.WUnlatch()
+			//currentPage.WUnlatch()
 			break
 		}
 
