@@ -180,15 +180,15 @@ func ChoiceValFromMap[T int32 | float32 | string, V int32 | float32 | string](m 
 	return ans
 }
 
-func GetValueForSkipListEntry(val interface{}) uint32 {
-	var ret uint32
+func GetValueForSkipListEntry(val interface{}) uint64 {
+	var ret uint64
 	switch val.(type) {
 	case int32:
-		ret = uint32(val.(int32))
+		ret = uint64(val.(int32))
 	case float32:
-		ret = uint32(val.(float32))
+		ret = uint64(val.(float32))
 	case string:
-		ret = uint32(len(val.(string)))
+		ret = uint64(len(val.(string)))
 	default:
 		panic("unsupported type!")
 	}

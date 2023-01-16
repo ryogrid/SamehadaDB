@@ -42,7 +42,7 @@ func TestSerializationOfSkipLisBlockPage(t *testing.T) {
 	bpage.SetForwardEntry(5, types.PageID(11))
 	bpage.SetFreeSpacePointer(common.PageSize - 9)
 	// EntryCnt is incremented to 2
-	// freeSpacePointer is decremented size of entry (1+2+7+4 => 14)
+	// freeSpacePointer is decremented size of entry (1+2+7+8 => 18)
 	bpage.SetEntry(1, &skip_list_page.SkipListPair{types.NewVarchar("abcdeff"), 12345})
 
 	testingpkg.SimpleAssert(t, bpage.GetPageId() == 7)
@@ -51,7 +51,7 @@ func TestSerializationOfSkipLisBlockPage(t *testing.T) {
 	testingpkg.SimpleAssert(t, bpage.GetLevel() == 4)
 	testingpkg.SimpleAssert(t, bpage.GetForwardEntry(5) == types.PageID(11))
 
-	testingpkg.SimpleAssert(t, bpage.GetFreeSpacePointer() == (common.PageSize-9-14))
+	testingpkg.SimpleAssert(t, bpage.GetFreeSpacePointer() == (common.PageSize-9-18))
 	entry := bpage.GetEntry(1, types.Varchar)
 	testingpkg.SimpleAssert(t, entry.Key.CompareEquals(types.NewVarchar("abcdeff")))
 	testingpkg.SimpleAssert(t, entry.Value == 12345)
@@ -208,7 +208,7 @@ func TestBSearchOfSkipLisBlockPage(t *testing.T) {
 	}))
 	// set entries
 	for ii := 1; ii < 50; ii++ {
-		bpage.SetEntries(append(bpage.GetEntries(types.Integer), &skip_list_page.SkipListPair{types.NewInteger(int32(ii * 10)), uint32(ii * 10)}))
+		bpage.SetEntries(append(bpage.GetEntries(types.Integer), &skip_list_page.SkipListPair{types.NewInteger(int32(ii * 10)), uint64(ii * 10)}))
 	}
 	bpage.SetEntryCnt(int32(len(bpage.GetEntries(types.Integer))))
 
@@ -217,9 +217,9 @@ func TestBSearchOfSkipLisBlockPage(t *testing.T) {
 		found, entry, idx := bpage.FindEntryByKey(&key)
 		//fmt.Println(ii)
 		if ii%2 == 0 {
-			testingpkg.SimpleAssert(t, found == true && entry.Value == uint32(key.ToInteger()))
+			testingpkg.SimpleAssert(t, found == true && entry.Value == uint64(key.ToInteger()))
 		} else {
-			testingpkg.SimpleAssert(t, found == false && uint32(key.ToInteger())-bpage.ValueAt(idx, types.Integer) == 5)
+			testingpkg.SimpleAssert(t, found == false && uint64(key.ToInteger())-bpage.ValueAt(idx, types.Integer) == 5)
 		}
 	}
 
@@ -231,7 +231,7 @@ func TestBSearchOfSkipLisBlockPage(t *testing.T) {
 	}))
 	// set entries
 	for ii := 1; ii < 51; ii++ {
-		bpage.SetEntries(append(bpage.GetEntries(types.Integer), &skip_list_page.SkipListPair{types.NewInteger(int32(ii * 10)), uint32(ii * 10)}))
+		bpage.SetEntries(append(bpage.GetEntries(types.Integer), &skip_list_page.SkipListPair{types.NewInteger(int32(ii * 10)), uint64(ii * 10)}))
 	}
 	bpage.SetEntryCnt(int32(len(bpage.GetEntries(types.Integer))))
 
@@ -240,9 +240,9 @@ func TestBSearchOfSkipLisBlockPage(t *testing.T) {
 		found, entry, idx := bpage.FindEntryByKey(&key)
 		//fmt.Println(ii)
 		if ii%2 == 0 {
-			testingpkg.SimpleAssert(t, found == true && entry.Value == uint32(key.ToInteger()))
+			testingpkg.SimpleAssert(t, found == true && entry.Value == uint64(key.ToInteger()))
 		} else {
-			testingpkg.SimpleAssert(t, found == false && uint32(key.ToInteger())-bpage.ValueAt(idx, types.Integer) == 5)
+			testingpkg.SimpleAssert(t, found == false && uint64(key.ToInteger())-bpage.ValueAt(idx, types.Integer) == 5)
 		}
 	}
 
@@ -273,8 +273,8 @@ func TestBSearchOfSkipLisBlockPage2(t *testing.T) {
 	for ii := 1; ii < 50; ii++ {
 		bpage.WLatch()
 		bpm.IncPinOfPage(bpage)
-		bpage.Insert(samehada_util.GetPonterOfValue(types.NewInteger(int32(ii*10))), uint32(ii*10), bpm, nil, 1)
-		//bpage.SetEntries(append(bpage.GetEntries(types.Integer), &skip_list_page.SkipListPair{types.NewInteger(int32(ii * 10)), uint32(ii * 10)}))
+		bpage.Insert(samehada_util.GetPonterOfValue(types.NewInteger(int32(ii*10))), uint64(ii*10), bpm, nil, 1)
+		//bpage.SetEntries(append(bpage.GetEntries(types.Integer), &skip_list_page.SkipListPair{types.NewInteger(int32(ii * 10)), uint64(ii * 10)}))
 	}
 	bpage.WLatch()
 	bpage.SetEntryCnt(int32(len(bpage.GetEntries(types.Integer))))
@@ -284,9 +284,9 @@ func TestBSearchOfSkipLisBlockPage2(t *testing.T) {
 		found, entry, idx := bpage.FindEntryByKey(&key)
 		//fmt.Println(ii)
 		if ii%2 == 0 {
-			testingpkg.SimpleAssert(t, found == true && entry.Value == uint32(key.ToInteger()))
+			testingpkg.SimpleAssert(t, found == true && entry.Value == uint64(key.ToInteger()))
 		} else {
-			testingpkg.SimpleAssert(t, found == false && uint32(key.ToInteger())-bpage.ValueAt(idx, types.Integer) == 5)
+			testingpkg.SimpleAssert(t, found == false && uint64(key.ToInteger())-bpage.ValueAt(idx, types.Integer) == 5)
 		}
 	}
 	bpage.WUnlatch()
@@ -303,8 +303,8 @@ func TestBSearchOfSkipLisBlockPage2(t *testing.T) {
 	for ii := 1; ii < 51; ii++ {
 		bpage.WLatch()
 		bpm.IncPinOfPage(bpage)
-		bpage.Insert(samehada_util.GetPonterOfValue(types.NewInteger(int32(ii*10))), uint32(ii*10), bpm, nil, 1)
-		//bpage.SetEntries(append(bpage.GetEntries(types.Integer), &skip_list_page.SkipListPair{types.NewInteger(int32(ii * 10)), uint32(ii * 10)}))
+		bpage.Insert(samehada_util.GetPonterOfValue(types.NewInteger(int32(ii*10))), uint64(ii*10), bpm, nil, 1)
+		//bpage.SetEntries(append(bpage.GetEntries(types.Integer), &skip_list_page.SkipListPair{types.NewInteger(int32(ii * 10)), uint64(ii * 10)}))
 	}
 	bpage.WLatch()
 	bpage.SetEntryCnt(int32(len(bpage.GetEntries(types.Integer))))
@@ -314,9 +314,9 @@ func TestBSearchOfSkipLisBlockPage2(t *testing.T) {
 		found, entry, idx := bpage.FindEntryByKey(&key)
 		//fmt.Println(ii)
 		if ii%2 == 0 {
-			testingpkg.SimpleAssert(t, found == true && entry.Value == uint32(key.ToInteger()))
+			testingpkg.SimpleAssert(t, found == true && entry.Value == uint64(key.ToInteger()))
 		} else {
-			testingpkg.SimpleAssert(t, found == false && uint32(key.ToInteger())-bpage.ValueAt(idx, types.Integer) == 5)
+			testingpkg.SimpleAssert(t, found == false && uint64(key.ToInteger())-bpage.ValueAt(idx, types.Integer) == 5)
 		}
 	}
 	bpage.WUnlatch()
@@ -376,7 +376,7 @@ func TestSkipListSimple(t *testing.T) {
 	for _, insVal := range insVals {
 		//fmt.Printf("insCnt: %d\n", insCnt)
 		insCnt++
-		sl.Insert(samehada_util.GetPonterOfValue(types.NewInteger(int32(insVal))), uint32(insVal))
+		sl.Insert(samehada_util.GetPonterOfValue(types.NewInteger(int32(insVal))), uint64(insVal))
 	}
 
 	//confirmSkipListContent(t, sl, 11)
@@ -388,7 +388,7 @@ func TestSkipListSimple(t *testing.T) {
 		if res == math.MaxUint32 {
 			t.Errorf("result should not be nil")
 		} else {
-			testingpkg.SimpleAssert(t, uint32(i*11) == res)
+			testingpkg.SimpleAssert(t, uint64(i*11) == res)
 		}
 	}
 
@@ -399,14 +399,14 @@ func TestSkipListSimple(t *testing.T) {
 		if res == math.MaxUint32 {
 			panic("result should not be nil")
 		} else {
-			testingpkg.SimpleAssert(t, uint32(i*11) == res)
+			testingpkg.SimpleAssert(t, uint64(i*11) == res)
 		}
 
 		// check no existance after delete
-		sl.Remove(samehada_util.GetPonterOfValue(types.NewInteger(int32(i*11))), uint32(i*11))
+		sl.Remove(samehada_util.GetPonterOfValue(types.NewInteger(int32(i*11))), uint64(i*11))
 
 		res = sl.GetValue(samehada_util.GetPonterOfValue(types.NewInteger(int32(i * 11))))
-		testingpkg.SimpleAssert(t, math.MaxUint32 == res)
+		testingpkg.SimpleAssert(t, math.MaxUint64 == res)
 		//fmt.Println("contents listing after delete")
 		//confirmSkipListContent(t, sl, -1)
 	}
@@ -442,7 +442,7 @@ func TestSkipListInsertAndDeleteAll(t *testing.T) {
 	for _, insVal := range insVals {
 		common.ShPrintf(common.DEBUG_INFO, "insCnt: %d\n", insCnt)
 		insCnt++
-		sl.Insert(samehada_util.GetPonterOfValue(types.NewInteger(int32(insVal))), uint32(insVal))
+		sl.Insert(samehada_util.GetPonterOfValue(types.NewInteger(int32(insVal))), uint64(insVal))
 	}
 
 	//confirmSkipListContent(t, sl, 11)
@@ -454,21 +454,21 @@ func TestSkipListInsertAndDeleteAll(t *testing.T) {
 		if res == math.MaxUint32 {
 			t.Errorf("result should not be nil")
 		} else {
-			testingpkg.SimpleAssert(t, uint32(i*11) == res)
+			testingpkg.SimpleAssert(t, uint64(i*11) == res)
 		}
 	}
 
 	// delete all values
 	for i := (5000 - 1); i >= 0; i-- {
 		// delete
-		isDeleted := sl.Remove(samehada_util.GetPonterOfValue(types.NewInteger(int32(i*11))), uint32(i*11))
+		isDeleted := sl.Remove(samehada_util.GetPonterOfValue(types.NewInteger(int32(i*11))), uint64(i*11))
 		common.ShPrintf(common.DEBUG_INFO, "i=%d i*11=%d\n", i, i*11)
 		testingpkg.SimpleAssert(t, isDeleted == true)
 
 		// check no existance after delete
 		res := sl.GetValue(samehada_util.GetPonterOfValue(types.NewInteger(int32(i * 11))))
 		common.ShPrintf(common.DEBUG_INFO, "i=%d i*11=%d res=%d\n", i, i*11, res)
-		testingpkg.SimpleAssert(t, math.MaxUint32 == res)
+		testingpkg.SimpleAssert(t, math.MaxUint64 == res)
 	}
 
 	//////////// remove from head ///////
@@ -478,7 +478,7 @@ func TestSkipListInsertAndDeleteAll(t *testing.T) {
 	for _, insVal := range insVals {
 		//fmt.Printf("insCnt: %d\n", insCnt)
 		insCnt++
-		sl.Insert(samehada_util.GetPonterOfValue(types.NewInteger(int32(insVal))), uint32(insVal))
+		sl.Insert(samehada_util.GetPonterOfValue(types.NewInteger(int32(insVal))), uint64(insVal))
 	}
 
 	// Get entries
@@ -488,21 +488,21 @@ func TestSkipListInsertAndDeleteAll(t *testing.T) {
 		if res == math.MaxUint32 {
 			t.Errorf("result should not be nil")
 		} else {
-			testingpkg.SimpleAssert(t, uint32(i*11) == res)
+			testingpkg.SimpleAssert(t, uint64(i*11) == res)
 		}
 	}
 
 	// delete all values
 	for i := 0; i < 5000; i++ {
 		// delete
-		isDeleted := sl.Remove(samehada_util.GetPonterOfValue(types.NewInteger(int32(i*11))), uint32(i*11))
+		isDeleted := sl.Remove(samehada_util.GetPonterOfValue(types.NewInteger(int32(i*11))), uint64(i*11))
 		common.ShPrintf(common.DEBUG_INFO, "i=%d i*11=%d\n", i, i*11)
 		testingpkg.SimpleAssert(t, isDeleted == true)
 
 		// check no existance after delete
 		res := sl.GetValue(samehada_util.GetPonterOfValue(types.NewInteger(int32(i * 11))))
 		common.ShPrintf(common.DEBUG_INFO, "i=%d i*11=%d res=%d\n", i, i*11, res)
-		testingpkg.SimpleAssert(t, math.MaxUint32 == res)
+		testingpkg.SimpleAssert(t, math.MaxUint64 == res)
 	}
 
 	shi.Shutdown(false)
@@ -527,7 +527,7 @@ func TestSkipListItr(t *testing.T) {
 
 	for _, insVal := range insVals {
 		//fmt.Println(insVal)
-		sl.Insert(samehada_util.GetPonterOfValue(types.NewInteger(int32(insVal))), uint32(insVal))
+		sl.Insert(samehada_util.GetPonterOfValue(types.NewInteger(int32(insVal))), uint64(insVal))
 	}
 
 	//fmt.Println("--------------")
@@ -709,7 +709,7 @@ func insertRandom[T int32 | float32 | string](sl *skip_list.SkipList, num int32,
 
 		pairVal := samehada_util.GetValueForSkipListEntry(insVal)
 
-		sl.Insert(samehada_util.GetPonterOfValue(types.NewValue(insVal)), pairVal)
+		sl.Insert(samehada_util.GetPonterOfValue(types.NewValue(insVal)), uint64(pairVal))
 		//fmt.Printf("sl.Insert at insertRandom: ii=%d, insVal=%d len(*insVals)=%d\n", ii, insVal, len(insVals))
 		*insVals = append(*insVals, insVal)
 	}
@@ -723,7 +723,7 @@ func removeRandom[T int32 | float32 | string](t *testing.T, sl *skip_list.SkipLi
 
 			pairVal := samehada_util.GetValueForSkipListEntry(insVal)
 
-			isDeleted := sl.Remove(samehada_util.GetPonterOfValue(types.NewValue(insVal)), pairVal)
+			isDeleted := sl.Remove(samehada_util.GetPonterOfValue(types.NewValue(insVal)), uint64(pairVal))
 			if isAlreadyRemoved(insVal, *removedVals) {
 				fmt.Printf("delete duplicated value should not be occur! opStep=%d, ii=%d tmpIdx=%d insVal=%v len(*insVals)=%d len(*removedVals)=%d\n", opStep, ii, tmpIdx, insVal, len(*insVals), len(*removedVals))
 				panic("delete duplicated value should not be occur!")
@@ -736,7 +736,7 @@ func removeRandom[T int32 | float32 | string](t *testing.T, sl *skip_list.SkipLi
 			testingpkg.SimpleAssert(t, isDeleted == true || isAlreadyRemoved(insVal, *removedVals))
 
 			// check removed val does not exist
-			isDeleted = sl.Remove(samehada_util.GetPonterOfValue(types.NewValue(insVal)), pairVal)
+			isDeleted = sl.Remove(samehada_util.GetPonterOfValue(types.NewValue(insVal)), uint64(pairVal))
 			if isDeleted != false {
 				fmt.Printf("isDeleted should not be true! opStep=%d, ii=%d tmpIdx=%d insVal=%v len(*insVals)=%d len(*removedVals)=%d\n", opStep, ii, tmpIdx, insVal, len(*insVals), len(*removedVals))
 				panic("isDeleted should be false!")
@@ -815,7 +815,7 @@ func testSkipListMix[T int32 | float32 | string](t *testing.T, keyType types.Typ
 
 		pairVal := samehada_util.GetValueForSkipListEntry(insVal)
 
-		sl.Insert(samehada_util.GetPonterOfValue(types.NewValue(insVal)), pairVal)
+		sl.Insert(samehada_util.GetPonterOfValue(types.NewValue(insVal)), uint64(pairVal))
 		insVals = append(insVals, insVal)
 		entriesOnListNum++
 	}
@@ -952,7 +952,7 @@ func testSkipListMixParallel[T int32 | float32 | string](t *testing.T, keyType t
 
 		pairVal := samehada_util.GetValueForSkipListEntry(insVal)
 
-		sl.Insert(samehada_util.GetPonterOfValue(types.NewValue(insVal)), pairVal)
+		sl.Insert(samehada_util.GetPonterOfValue(types.NewValue(insVal)), uint64(pairVal))
 		insVals = append(insVals, insVal)
 	}
 
@@ -1003,7 +1003,7 @@ func testSkipListMixParallel[T int32 | float32 | string](t *testing.T, keyType t
 				pairVal := samehada_util.GetValueForSkipListEntry(insVal)
 
 				common.ShPrintf(common.DEBUGGING, "Insert op start.")
-				sl.Insert(samehada_util.GetPonterOfValue(types.NewValue(insVal)), pairVal)
+				sl.Insert(samehada_util.GetPonterOfValue(types.NewValue(insVal)), uint64(pairVal))
 				//fmt.Printf("sl.Insert at insertRandom: ii=%d, insVal=%d len(*insVals)=%d\n", ii, insVal, len(insVals))
 				insValsMutex.Lock()
 				insVals = append(insVals, insVal)
@@ -1048,7 +1048,7 @@ func testSkipListMixParallel[T int32 | float32 | string](t *testing.T, keyType t
 					pairVal := samehada_util.GetValueForSkipListEntry(insVal)
 
 					common.ShPrintf(common.DEBUGGING, "Remove(success) op start.")
-					isDeleted := sl.Remove(samehada_util.GetPonterOfValue(types.NewValue(insVal)), pairVal)
+					isDeleted := sl.Remove(samehada_util.GetPonterOfValue(types.NewValue(insVal)), uint64(pairVal))
 					if isDeleted == true {
 						removedValsMutex.Lock()
 						removedVals = append(removedVals, insVal)
@@ -1082,7 +1082,7 @@ func testSkipListMixParallel[T int32 | float32 | string](t *testing.T, keyType t
 
 				common.ShPrintf(common.DEBUGGING, "Get op start.")
 				gotVal := sl.GetValue(&getTgt)
-				if gotVal == math.MaxUint32 {
+				if gotVal == math.MaxUint64 {
 					removedValsMutex.RLock()
 					if ok := isAlreadyRemoved(getTgtBase, removedVals); !ok {
 						removedValsMutex.RUnlock()
@@ -1146,7 +1146,7 @@ func testSkipListMixParallelBulk[T int32 | float32 | string](t *testing.T, keyTy
 
 		pairVal := samehada_util.GetValueForSkipListEntry(insVal)
 
-		sl.Insert(samehada_util.GetPonterOfValue(types.NewValue(insVal)), pairVal)
+		sl.Insert(samehada_util.GetPonterOfValue(types.NewValue(insVal)), uint64(pairVal))
 		insVals = append(insVals, insVal)
 	}
 
@@ -1198,7 +1198,7 @@ func testSkipListMixParallelBulk[T int32 | float32 | string](t *testing.T, keyTy
 					pairVal := samehada_util.GetValueForSkipListEntry(insVal)
 
 					common.ShPrintf(common.DEBUGGING, "Insert op start.")
-					sl.Insert(samehada_util.GetPonterOfValue(types.NewValue(insVal)), pairVal)
+					sl.Insert(samehada_util.GetPonterOfValue(types.NewValue(insVal)), uint64(pairVal))
 					//fmt.Printf("sl.Insert at insertRandom: ii=%d, insVal=%d len(*insVals)=%d\n", ii, insVal, len(insVals))
 					insValsMutex.Lock()
 					insVals = append(insVals, insVal)
@@ -1249,7 +1249,7 @@ func testSkipListMixParallelBulk[T int32 | float32 | string](t *testing.T, keyTy
 						pairVal := samehada_util.GetValueForSkipListEntry(insVal)
 
 						common.ShPrintf(common.DEBUGGING, "Remove(success) op start.")
-						isDeleted := sl.Remove(samehada_util.GetPonterOfValue(types.NewValue(insVal)), pairVal)
+						isDeleted := sl.Remove(samehada_util.GetPonterOfValue(types.NewValue(insVal)), uint64(pairVal))
 						if isDeleted == true {
 							removedValsMutex.Lock()
 							removedVals = append(removedVals, insVal)
@@ -1286,7 +1286,7 @@ func testSkipListMixParallelBulk[T int32 | float32 | string](t *testing.T, keyTy
 
 					common.ShPrintf(common.DEBUGGING, "Get op start.")
 					gotVal := sl.GetValue(&getTgt)
-					if gotVal == math.MaxUint32 {
+					if gotVal == math.MaxUint64 {
 						removedValsMutex.RLock()
 						if ok := isAlreadyRemoved(getTgtBase, removedVals); !ok {
 							removedValsMutex.RUnlock()
@@ -1357,7 +1357,7 @@ func testSkipListMixParallelStride[T int32 | float32 | string](t *testing.T, key
 			pairVal := samehada_util.GetValueForSkipListEntry(insVal)
 
 			common.ShPrintf(common.DEBUGGING, "Insert op start.")
-			sl.Insert(samehada_util.GetPonterOfValue(types.NewValue(insVal)), pairVal)
+			sl.Insert(samehada_util.GetPonterOfValue(types.NewValue(insVal)), uint64(pairVal))
 			//fmt.Printf("sl.Insert at insertRandom: ii=%d, insValBase=%d len(*insVals)=%d\n", ii, insValBase, len(insVals))
 		}
 
@@ -1416,7 +1416,7 @@ func testSkipListMixParallelStride[T int32 | float32 | string](t *testing.T, key
 					pairVal := samehada_util.GetValueForSkipListEntry(insVal)
 
 					common.ShPrintf(common.DEBUGGING, "Insert op start.")
-					sl.Insert(samehada_util.GetPonterOfValue(types.NewValue(insVal)), pairVal)
+					sl.Insert(samehada_util.GetPonterOfValue(types.NewValue(insVal)), uint64(pairVal))
 					//fmt.Printf("sl.Insert at insertRandom: ii=%d, insValBase=%d len(*insVals)=%d\n", ii, insValBase, len(insVals))
 				}
 				insValsMutex.Lock()
@@ -1482,7 +1482,7 @@ func testSkipListMixParallelStride[T int32 | float32 | string](t *testing.T, key
 						removedValsForGetAndRemove[delVal] = delVal
 						removedValsForGetMutex.Unlock()
 
-						isDeleted := sl.Remove(samehada_util.GetPonterOfValue(types.NewValue(delVal)), pairVal)
+						isDeleted := sl.Remove(samehada_util.GetPonterOfValue(types.NewValue(delVal)), uint64(pairVal))
 						if isDeleted == true {
 							// append to map after doing remove op for other fail remove op thread
 							removedValsForRemoveMutex.Lock()
@@ -1523,7 +1523,7 @@ func testSkipListMixParallelStride[T int32 | float32 | string](t *testing.T, key
 
 					common.ShPrintf(common.DEBUGGING, "Get op start.")
 					gotVal := sl.GetValue(&getTgtVal)
-					if gotVal == math.MaxUint32 {
+					if gotVal == math.MaxUint64 {
 						removedValsForGetMutex.RLock()
 						if _, ok := removedValsForGetAndRemove[getTgt]; !ok {
 							removedValsForGetMutex.RUnlock()
@@ -1595,7 +1595,7 @@ func testSkipListMixParallelStrideAddedIterator[T int32 | float32 | string](t *t
 			pairVal := samehada_util.GetValueForSkipListEntry(insVal)
 
 			common.ShPrintf(common.DEBUGGING, "Insert op start.")
-			sl.Insert(samehada_util.GetPonterOfValue(types.NewValue(insVal)), pairVal)
+			sl.Insert(samehada_util.GetPonterOfValue(types.NewValue(insVal)), uint64(pairVal))
 			//fmt.Printf("sl.Insert at insertRandom: ii=%d, insValBase=%d len(*insVals)=%d\n", ii, insValBase, len(insVals))
 		}
 
@@ -1654,7 +1654,7 @@ func testSkipListMixParallelStrideAddedIterator[T int32 | float32 | string](t *t
 					pairVal := samehada_util.GetValueForSkipListEntry(insVal)
 
 					common.ShPrintf(common.DEBUGGING, "Insert op start.")
-					sl.Insert(samehada_util.GetPonterOfValue(types.NewValue(insVal)), pairVal)
+					sl.Insert(samehada_util.GetPonterOfValue(types.NewValue(insVal)), uint64(pairVal))
 					//fmt.Printf("sl.Insert at insertRandom: ii=%d, insValBase=%d len(*insVals)=%d\n", ii, insValBase, len(insVals))
 				}
 				insValsMutex.Lock()
@@ -1720,7 +1720,7 @@ func testSkipListMixParallelStrideAddedIterator[T int32 | float32 | string](t *t
 						removedValsForGetAndRemove[delVal] = delVal
 						removedValsForGetMutex.Unlock()
 
-						isDeleted := sl.Remove(samehada_util.GetPonterOfValue(types.NewValue(delVal)), pairVal)
+						isDeleted := sl.Remove(samehada_util.GetPonterOfValue(types.NewValue(delVal)), uint64(pairVal))
 						if isDeleted == true {
 							// append to map after doing remove op for other fail remove op thread
 							removedValsForRemoveMutex.Lock()
@@ -1761,7 +1761,7 @@ func testSkipListMixParallelStrideAddedIterator[T int32 | float32 | string](t *t
 
 					common.ShPrintf(common.DEBUGGING, "Get op start.")
 					gotVal := sl.GetValue(&getTgtVal)
-					if gotVal == math.MaxUint32 {
+					if gotVal == math.MaxUint64 {
 						removedValsForGetMutex.RLock()
 						if _, ok := removedValsForGetAndRemove[getTgt]; !ok {
 							removedValsForGetMutex.RUnlock()
@@ -2051,9 +2051,9 @@ func TestSkipListMixParallelStrideAddedIteratorVarchar(t *testing.T) {
 
 func testSkipListInsertGetEven(t *testing.T, sl *skip_list.SkipList, ch chan string) {
 	for ii := int32(0); ii < 10000; ii = ii + 2 {
-		sl.Insert(samehada_util.GetPonterOfValue(types.NewInteger(ii)), uint32(ii))
+		sl.Insert(samehada_util.GetPonterOfValue(types.NewInteger(ii)), uint64(ii))
 		gotVal := sl.GetValue(samehada_util.GetPonterOfValue(types.NewInteger(ii)))
-		if gotVal == math.MaxUint32 {
+		if gotVal == math.MaxUint64 {
 			t.Fail()
 			fmt.Printf("value %d is not found!\n", ii)
 			panic("inserted value not found!")
@@ -2065,9 +2065,9 @@ func testSkipListInsertGetEven(t *testing.T, sl *skip_list.SkipList, ch chan str
 
 func testSkipListInsertGetOdd(t *testing.T, sl *skip_list.SkipList, ch chan string) {
 	for ii := int32(1); ii < 10000; ii = ii + 2 {
-		sl.Insert(samehada_util.GetPonterOfValue(types.NewInteger(ii)), uint32(ii))
+		sl.Insert(samehada_util.GetPonterOfValue(types.NewInteger(ii)), uint64(ii))
 		gotVal := sl.GetValue(samehada_util.GetPonterOfValue(types.NewInteger(ii)))
-		if gotVal == math.MaxUint32 {
+		if gotVal == math.MaxUint64 {
 			fmt.Printf("value %d is not found!\n", ii)
 		}
 	}
@@ -2077,11 +2077,11 @@ func testSkipListInsertGetOdd(t *testing.T, sl *skip_list.SkipList, ch chan stri
 
 func testSkipListInsertGetEvenSeparate(t *testing.T, sl *skip_list.SkipList, ch chan string) {
 	for ii := int32(0); ii < 100000; ii = ii + 2 {
-		sl.Insert(samehada_util.GetPonterOfValue(types.NewInteger(ii)), uint32(ii))
+		sl.Insert(samehada_util.GetPonterOfValue(types.NewInteger(ii)), uint64(ii))
 	}
 	for ii := int32(0); ii < 100000; ii = ii + 2 {
 		gotVal := sl.GetValue(samehada_util.GetPonterOfValue(types.NewInteger(ii)))
-		if gotVal == math.MaxUint32 {
+		if gotVal == math.MaxUint64 {
 			t.Fail()
 			fmt.Printf("value %d is not found!\n", ii)
 			panic("inserted value not found!")
@@ -2093,12 +2093,12 @@ func testSkipListInsertGetEvenSeparate(t *testing.T, sl *skip_list.SkipList, ch 
 
 func testSkipListInsertGetOddSeparate(t *testing.T, sl *skip_list.SkipList, ch chan string) {
 	for ii := int32(1); ii < 100000; ii = ii + 2 {
-		sl.Insert(samehada_util.GetPonterOfValue(types.NewInteger(ii)), uint32(ii))
+		sl.Insert(samehada_util.GetPonterOfValue(types.NewInteger(ii)), uint64(ii))
 	}
 
 	for ii := int32(1); ii < 100000; ii = ii + 2 {
 		gotVal := sl.GetValue(samehada_util.GetPonterOfValue(types.NewInteger(ii)))
-		if gotVal == math.MaxUint32 {
+		if gotVal == math.MaxUint64 {
 			fmt.Printf("value %d is not found!\n", ii)
 		}
 	}
@@ -2111,18 +2111,18 @@ func testSkipListInsertGetInsert3stride1and3(t *testing.T, sl *skip_list.SkipLis
 	// insert 012345678...
 	//        ^  ^  ^
 	for ii := int32(0); ii < 10000; ii++ {
-		sl.Insert(samehada_util.GetPonterOfValue(types.NewInteger(3*ii)), uint32(3*ii))
+		sl.Insert(samehada_util.GetPonterOfValue(types.NewInteger(3*ii)), uint64(3*ii))
 		gotVal := sl.GetValue(samehada_util.GetPonterOfValue(types.NewInteger(3 * ii)))
-		if gotVal == math.MaxUint32 {
+		if gotVal == math.MaxUint64 {
 			fmt.Printf("value %d is not found!\n", ii)
 		}
 	}
 	// insert 012345678...
 	//          ^  ^  ^
 	for ii := int32(0); ii < 10000; ii++ {
-		sl.Insert(samehada_util.GetPonterOfValue(types.NewInteger(3*ii+2)), uint32(3*ii+2))
+		sl.Insert(samehada_util.GetPonterOfValue(types.NewInteger(3*ii+2)), uint64(3*ii+2))
 		gotVal := sl.GetValue(samehada_util.GetPonterOfValue(types.NewInteger(3*ii + 2)))
-		if gotVal == math.MaxUint32 {
+		if gotVal == math.MaxUint64 {
 			fmt.Printf("value %d is not found!\n", ii)
 		}
 	}
@@ -2134,9 +2134,9 @@ func testSkipListInsertGetRemove3stride2(t *testing.T, sl *skip_list.SkipList, c
 	// insert 012345678...
 	//         ^  ^  ^
 	for ii := int32(0); ii < 10000; ii++ {
-		sl.Insert(samehada_util.GetPonterOfValue(types.NewInteger(3*ii+1)), uint32(3*ii+1))
+		sl.Insert(samehada_util.GetPonterOfValue(types.NewInteger(3*ii+1)), uint64(3*ii+1))
 		gotVal := sl.GetValue(samehada_util.GetPonterOfValue(types.NewInteger(3*ii + 1)))
-		if gotVal == math.MaxUint32 {
+		if gotVal == math.MaxUint64 {
 			fmt.Printf("value %d is not found!\n", ii)
 			panic("inserted value not found!")
 		}
@@ -2144,13 +2144,13 @@ func testSkipListInsertGetRemove3stride2(t *testing.T, sl *skip_list.SkipList, c
 	// remove 012345678... from tail
 	//        ^^ ^^ ^^
 	for ii := int32(10000 - 1); ii >= 0; ii-- {
-		sl.Remove(samehada_util.GetPonterOfValue(types.NewInteger(3*ii+1)), uint32(3*ii+1))
+		sl.Remove(samehada_util.GetPonterOfValue(types.NewInteger(3*ii+1)), uint64(3*ii+1))
 		gotVal := sl.GetValue(samehada_util.GetPonterOfValue(types.NewInteger(3*ii + 1)))
-		if gotVal != math.MaxUint32 {
+		if gotVal != math.MaxUint64 {
 			fmt.Printf("value %d should be not found!\n", 3*ii+1)
 			panic("remove should be failed!")
 		}
-		sl.Remove(samehada_util.GetPonterOfValue(types.NewInteger(3*ii)), uint32(3*ii))
+		sl.Remove(samehada_util.GetPonterOfValue(types.NewInteger(3*ii)), uint64(3*ii))
 		// no check because another thread have not finished insert
 	}
 
