@@ -5,7 +5,6 @@ import (
 	"encoding/binary"
 	"fmt"
 	"github.com/ryogrid/SamehadaDB/common"
-	"github.com/ryogrid/SamehadaDB/samehada/samehada_util"
 	"github.com/ryogrid/SamehadaDB/storage/buffer"
 	"github.com/ryogrid/SamehadaDB/storage/page"
 	"github.com/ryogrid/SamehadaDB/types"
@@ -277,13 +276,14 @@ func (node *SkipListBlockPage) Insert(key *types.Value, value uint64, bpm *buffe
 			panic("overwriting wrong entry!")
 		}
 
+		//fmt.Println("Insert: key duplication occured.")
 		oldEntry := node.GetEntry(int(foundIdx), key.ValueType())
 		fmt.Printf("Insert: key duplication occured. %v %v\n", oldEntry.Key.ToIFValue(), key.ToIFValue())
-		oldValue := oldEntry.Value
-		fmt.Printf("oldRID:%d %v newRID:%d %v\n", oldValue, samehada_util.UnpackUint64toRID(oldValue), value, samehada_util.UnpackUint64toRID(value))
-		fmt.Printf("oldEntry in bytes:%v\n", oldEntry.Serialize())
-		fmt.Printf("newKey in bytes:%v\n", key.Serialize())
-		fmt.Printf("entry num in nodes:%d foundIdx:%d\n", node.GetEntryCnt(), foundIdx)
+		//oldValue := oldEntry.Value
+		//fmt.Printf("oldRID:%d %v newRID:%d %v\n", oldValue, samehada_util.UnpackUint64toRID(oldValue), value, samehada_util.UnpackUint64toRID(value))
+		//fmt.Printf("oldEntry in bytes:%v\n", oldEntry.Serialize())
+		//fmt.Printf("newKey in bytes:%v\n", key.Serialize())
+		//fmt.Printf("entry num in nodes:%d foundIdx:%d\n", node.GetEntryCnt(), foundIdx)
 		//panic("key duplication occured (debugging)")
 
 		//if node.GetEntry(int(foundIdx), key.ValueType()).Key.CompareEquals(*key) {
