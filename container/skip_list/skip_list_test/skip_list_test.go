@@ -1969,6 +1969,14 @@ func TestSkipListMixParallelStrideInteger(t *testing.T) {
 	testSkipListMixParallelStrideRoot[int32](t, types.Integer)
 }
 
+func TestSkipListMixParallelStrideFloat(t *testing.T) {
+	//t.Parallel()
+	if testing.Short() {
+		t.Skip("skip this in short mode.")
+	}
+	testSkipListMixParallelStrideRoot[float32](t, types.Float)
+}
+
 func TestSkipListMixParallelStrideVarchar(t *testing.T) {
 	t.Parallel()
 	if testing.Short() {
