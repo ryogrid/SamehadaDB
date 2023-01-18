@@ -130,9 +130,9 @@ func GetRandomPrimitiveVal[T int32 | float32 | string](keyType types.TypeID, max
 	switch keyType {
 	case types.Integer:
 		var val int32
-		specifiedMax, ok := maxVal.(*int32)
+		specifiedMax, ok := maxVal.(int32)
 		if ok {
-			val = rand.Int31n(*specifiedMax)
+			val = rand.Int31n(specifiedMax)
 		} else {
 			val = rand.Int31()
 		}
@@ -144,13 +144,15 @@ func GetRandomPrimitiveVal[T int32 | float32 | string](keyType types.TypeID, max
 		var ret interface{} = val
 		return ret.(T)
 	case types.Float:
-		var ret interface{}
-		specifiedMax, ok := maxVal.(*int32)
-		if ok {
-			ret = float32(rand.Int31n(*specifiedMax))
-		} else {
-			ret = rand.Float32()
-		}
+		//var ret interface{}
+		//specifiedMax, ok := maxVal.(float32)
+		//if ok {
+		//	ret = specifiedMax * rand.Float32()
+		//} else {
+		//	ret = rand.Float32()
+		//}
+		val := 100.0 + rand.Float32()
+		var ret interface{} = val
 		return ret.(T)
 	case types.Varchar:
 		//var ret interface{} = *samehada_util.GetRandomStr(1000)
@@ -200,7 +202,7 @@ func StrideAdd(base interface{}, k interface{}) interface{} {
 	case int32:
 		return base.(int32) + k.(int32)
 	case float32:
-		return base.(float32) + k.(float32)
+		return base.(float32) + float32(k.(int32))
 	case string:
 		//buf := make([]byte, k.(int32))
 		//memset(buf, 'Z')
@@ -215,7 +217,7 @@ func StrideMul(base interface{}, k interface{}) interface{} {
 	case int32:
 		return base.(int32) * k.(int32)
 	case float32:
-		return base.(float32) * k.(float32)
+		return base.(float32) * float32(k.(int32))
 	case string:
 		//return "DEADBEAF" + base.(string)
 		//buf := make([]byte, k.(int32))

@@ -51,7 +51,7 @@ func NewSkipListStartBlockPage(bpm *buffer.BufferPoolManager, keyType types.Type
 	case types.Integer:
 		startNode = NewSkipListBlockPage(bpm, MAX_FOWARD_LIST_LEN, SkipListPair{types.NewInteger(math.MinInt32), 0})
 	case types.Float:
-		startNode = NewSkipListBlockPage(bpm, MAX_FOWARD_LIST_LEN, SkipListPair{types.NewFloat(math.SmallestNonzeroFloat32), 0})
+		startNode = NewSkipListBlockPage(bpm, MAX_FOWARD_LIST_LEN, SkipListPair{types.NewFloat(-1 * math.MaxFloat32), 0})
 	case types.Varchar:
 		v := types.NewVarchar("")
 		v.SetInfMin()

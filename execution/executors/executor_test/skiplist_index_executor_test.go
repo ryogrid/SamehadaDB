@@ -1294,11 +1294,18 @@ func testParallelTxnsQueryingSkipListIndexUsedColumns[T int32 | float32 | string
 		case 1: // Insert
 			randomInsertOpFunc := func() {
 			retry2:
-				tmpMax := math.MaxInt32 / stride
-				insKeyValBase := getUniqRandomPrimitivVal(keyType, checkKeyColDupMap, checkKeyColDupMapMutex, &tmpMax)
+				var tmpMax interface{}
+				if keyType == types.Float {
+					tmpMax = math.MaxFloat32 / float32(stride)
+				} else {
+					tmpMax = math.MaxInt32 / stride
+				}
+
+				insKeyValBase := getUniqRandomPrimitivVal(keyType, checkKeyColDupMap, checkKeyColDupMapMutex, tmpMax)
 				balanceVal := getInt32ValCorrespondToPassVal(insKeyValBase)
 				checkBalanceColDupMapMutex.RLock()
-				if _, exist := checkBalanceColDupMap[balanceVal]; exist || (balanceVal >= 0 && balanceVal < sumOfAllAccountBalanceAtStart) {
+				//if _, exist := checkBalanceColDupMap[balanceVal]; exist || (balanceVal >= 0 && balanceVal < sumOfAllAccountBalanceAtStart) {
+				if _, exist := checkBalanceColDupMap[balanceVal]; exist {
 					checkBalanceColDupMapMutex.RUnlock()
 					checkKeyColDupMapDeleteWithLock(insKeyValBase)
 					goto retry2
@@ -1458,7 +1465,12 @@ func testParallelTxnsQueryingSkipListIndexUsedColumns[T int32 | float32 | string
 				}
 				insValsMutex.Unlock()
 			retry3:
-				tmpMax := math.MaxInt32 / stride
+				var tmpMax interface{}
+				if keyType == types.Float {
+					tmpMax = math.MaxFloat32 / float32(stride)
+				} else {
+					tmpMax = math.MaxInt32 / stride
+				}
 				updateNewKeyValBase := getUniqRandomPrimitivVal(keyType, checkKeyColDupMap, checkKeyColDupMapMutex, &tmpMax)
 				newBalanceVal := getInt32ValCorrespondToPassVal(updateNewKeyValBase)
 				checkBalanceColDupMapMutex.RLock()
@@ -1855,6 +1867,8 @@ func testSkipListParallelTxnStrideRoot[T int32 | float32 | string](t *testing.T,
 		//testParallelTxnsQueryingSkipListIndexUsedColumns[T](t, keyType, 400, 3000, 13, 0, bpoolSize, index_constants.INDEX_KIND_SKIP_LIST, PARALLEL_EXEC, 20)
 		//testParallelTxnsQueryingSkipListIndexUsedColumns[T](t, keyType, 400, 30000, 13, 0, bpoolSize, index_constants.INDEX_KIND_SKIP_LIST, PARALLEL_EXEC, 20)
 		testParallelTxnsQueryingSkipListIndexUsedColumns[T](t, keyType, 400, 30000, 13, 0, bpoolSize, index_constants.INDEX_KIND_SKIP_LIST, PARALLEL_EXEC, 20)
+	case types.Float:
+		testParallelTxnsQueryingSkipListIndexUsedColumns[T](t, keyType, 400, 30000, 13, 0, bpoolSize, index_constants.INDEX_KIND_SKIP_LIST, PARALLEL_EXEC, 20)
 	case types.Varchar:
 		//testParallelTxnsQueryingSkipListIndexUsedColumns[T](t, keyType, 400, 400, 13, 0, bpoolSize, index_constants.INDEX_KIND_INVAID, PARALLEL_EXEC, 20)
 		//testParallelTxnsQueryingSkipListIndexUsedColumns[T](t, keyType, 400, 3000, 13, 0, bpoolSize, index_constants.INDEX_KIND_SKIP_LIST, PARALLEL_EXEC, 20)
@@ -1878,10 +1892,18 @@ func testSkipListParallelTxnStrideRoot[T int32 | float32 | string](t *testing.T,
 //	testSkipListParallelTxnStrideRoot[int32](t, types.Integer)
 //}
 
-func TestSkipListPrallelTxnStrideVarchar(t *testing.T) {
+func TestSkipListPrallelTxnStrideFloat(t *testing.T) {
 	t.Parallel()
 	if testing.Short() {
 		t.Skip("skip this in short mode.")
 	}
-	testSkipListParallelTxnStrideRoot[string](t, types.Varchar)
+	testSkipListParallelTxnStrideRoot[float32](t, types.Float)
 }
+
+//func TestSkipListPrallelTxnStrideVarchar(t *testing.T) {
+//	t.Parallel()
+//	if testing.Short() {
+//		t.Skip("skip this in short mode.")
+//	}
+//	testSkipListParallelTxnStrideRoot[string](t, types.Varchar)
+//}
