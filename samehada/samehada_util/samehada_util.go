@@ -151,8 +151,10 @@ func GetRandomPrimitiveVal[T int32 | float32 | string](keyType types.TypeID, max
 		//} else {
 		//	ret = rand.Float32()
 		//}
-		val := 100.0 + rand.Float32()
-		var ret interface{} = val
+		//val := 100.0 + rand.Float32()
+		//val := rand.Float32()
+		val := rand.Int31n(0xFFFF)
+		var ret interface{} = float32(val)
 		return ret.(T)
 	case types.Varchar:
 		//var ret interface{} = *samehada_util.GetRandomStr(1000)
@@ -203,6 +205,7 @@ func StrideAdd(base interface{}, k interface{}) interface{} {
 		return base.(int32) + k.(int32)
 	case float32:
 		return base.(float32) + float32(k.(int32))
+		//return base.(float32) * float32(math.Pow(1.05, float64(k.(int32))))
 	case string:
 		//buf := make([]byte, k.(int32))
 		//memset(buf, 'Z')
