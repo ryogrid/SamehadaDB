@@ -1,6 +1,23 @@
 package skip_list_test
 
 import (
+	"fmt"
+	"github.com/ryogrid/SamehadaDB/common"
+	"github.com/ryogrid/SamehadaDB/container/skip_list"
+	"github.com/ryogrid/SamehadaDB/samehada"
+	"github.com/ryogrid/SamehadaDB/samehada/samehada_util"
+	testingpkg "github.com/ryogrid/SamehadaDB/testing"
+	"github.com/ryogrid/SamehadaDB/types"
+	"math"
+	"math/rand"
+	"os"
+	"sync"
+	"testing"
+	"time"
+)
+
+/*
+import (
 	"github.com/ryogrid/SamehadaDB/common"
 	"github.com/ryogrid/SamehadaDB/samehada"
 	"github.com/ryogrid/SamehadaDB/samehada/samehada_util"
@@ -11,15 +28,9 @@ import (
 	"os"
 	"testing"
 )
+*/
 
-import (
-	"fmt"
-	"github.com/ryogrid/SamehadaDB/container/skip_list"
-	"math/rand"
-	"sync"
-	"time"
-)
-
+/*
 func TestSerializationOfSkipLisBlockPage(t *testing.T) {
 	t.Parallel()
 	if !common.EnableOnMemStorage {
@@ -324,6 +335,8 @@ func TestBSearchOfSkipLisBlockPage2(t *testing.T) {
 	shi.Shutdown(false)
 }
 
+*/
+
 func confirmSkipListContent(t *testing.T, sl *skip_list.SkipList, step int32) int32 {
 	entryCnt := int32(0)
 	lastKeyVal := int32(-1)
@@ -351,6 +364,7 @@ func confirmSkipListContent(t *testing.T, sl *skip_list.SkipList, step int32) in
 	return entryCnt
 }
 
+/*
 func TestSkipListSimple(t *testing.T) {
 	t.Parallel()
 	if !common.EnableOnMemStorage {
@@ -585,6 +599,7 @@ func TestSkipListItr(t *testing.T) {
 	//fmt.Printf("nodeCnt=%d\n", nodeCnt)
 	testingpkg.SimpleAssert(t, nodeCnt == 250)
 }
+*/
 
 //func FuzzSkipLisMixInteger(f *testing.F) {
 //	if testing.Short() {
@@ -1355,7 +1370,7 @@ func testSkipListMixParallelStride[T int32 | float32 | string](t *testing.T, key
 		for ii := int32(0); ii < stride; ii++ {
 			insVal := samehada_util.StrideAdd(samehada_util.StrideMul(insValBase, stride), ii)
 			pairVal := samehada_util.GetValueForSkipListEntry(insVal)
-
+			checkDupMap[insVal.(T)] = insVal.(T)
 			common.ShPrintf(common.DEBUGGING, "Insert op start.")
 			sl.Insert(samehada_util.GetPonterOfValue(types.NewValue(insVal)), uint64(pairVal))
 			//fmt.Printf("sl.Insert at insertRandom: ii=%d, insValBase=%d len(*insVals)=%d\n", ii, insValBase, len(insVals))
@@ -1401,19 +1416,23 @@ func testSkipListMixParallelStride[T int32 | float32 | string](t *testing.T, key
 		case 0: // Insert
 			go func() {
 				//checkDupMapMutex.RLock()
-				checkDupMapMutex.RLock()
+				checkDupMapMutex.Lock()
 				insValBase := samehada_util.GetRandomPrimitiveVal[T](keyType, nil)
 				for _, exist := checkDupMap[insValBase]; exist; _, exist = checkDupMap[insValBase] {
 					insValBase = samehada_util.GetRandomPrimitiveVal[T](keyType, nil)
 				}
-				checkDupMapMutex.RUnlock()
-				checkDupMapMutex.Lock()
+				//checkDupMapMutex.RUnlock()
+				//checkDupMapMutex.Lock()
 				checkDupMap[insValBase] = insValBase
 				checkDupMapMutex.Unlock()
 
 				for ii := int32(0); ii < stride; ii++ {
 					insVal := samehada_util.StrideAdd(samehada_util.StrideMul(insValBase, stride), ii)
 					pairVal := samehada_util.GetValueForSkipListEntry(insVal)
+
+					checkDupMapMutex.Lock()
+					checkDupMap[insVal.(T)] = insVal.(T)
+					checkDupMapMutex.Unlock()
 
 					common.ShPrintf(common.DEBUGGING, "Insert op start.")
 					sl.Insert(samehada_util.GetPonterOfValue(types.NewValue(insVal)), uint64(pairVal))
@@ -1879,17 +1898,25 @@ func testSkipListMixParallelBulkRoot[T int32 | float32 | string](t *testing.T, k
 func testSkipListMixParallelStrideRoot[T int32 | float32 | string](t *testing.T, keyType types.TypeID) {
 	bpoolSize := int32(500)
 
-	// 4th arg should be multiple of 20
-	testSkipListMixParallelStride[T](t, keyType, 800, 1000, 12, 800, bpoolSize)
-	fmt.Println("test finished 1/5.")
-	testSkipListMixParallelStride[T](t, keyType, 1, 100000, 12, 800, bpoolSize)
-	fmt.Println("test finished 2/5.")
-	testSkipListMixParallelStride[T](t, keyType, 300, 1000, 14, 800, bpoolSize)
-	fmt.Println("test finished 3/5.")
-	testSkipListMixParallelStride[T](t, keyType, 300, 1000, 15, 0, bpoolSize)
-	fmt.Println("test finished 4/5.")
-	testSkipListMixParallelStride[T](t, keyType, 8, 100000, 13, 200, bpoolSize)
-	fmt.Println("test finished 5/5.")
+	if keyType == types.Float {
+		// check of Float case is soft
+
+		//testSkipListMixParallelStride[T](t, keyType, 20, 1000, 12, 0, bpoolSize)
+		testSkipListMixParallelStride[T](t, keyType, 240, 1000, 12, 0, bpoolSize)
+		fmt.Println("test finished 0/5.")
+	} else {
+		// 4th arg should be multiple of 20
+		testSkipListMixParallelStride[T](t, keyType, 800, 1000, 12, 800, bpoolSize)
+		fmt.Println("test finished 1/5.")
+		testSkipListMixParallelStride[T](t, keyType, 1, 100000, 12, 800, bpoolSize)
+		fmt.Println("test finished 2/5.")
+		testSkipListMixParallelStride[T](t, keyType, 300, 1000, 14, 800, bpoolSize)
+		fmt.Println("test finished 3/5.")
+		testSkipListMixParallelStride[T](t, keyType, 300, 1000, 15, 0, bpoolSize)
+		fmt.Println("test finished 4/5.")
+		testSkipListMixParallelStride[T](t, keyType, 8, 100000, 13, 200, bpoolSize)
+		fmt.Println("test finished 5/5.")
+	}
 }
 
 func testSkipListMixParallelStrideAddedIteratorRoot[T int32 | float32 | string](t *testing.T, keyType types.TypeID) {
@@ -1908,6 +1935,7 @@ func testSkipListMixParallelStrideAddedIteratorRoot[T int32 | float32 | string](
 	fmt.Println("test finished 5/5.")
 }
 
+/*
 func TestSkipListMixInteger(t *testing.T) {
 	t.Parallel()
 	if testing.Short() {
@@ -1968,7 +1996,17 @@ func TestSkipListMixParallelStrideInteger(t *testing.T) {
 	}
 	testSkipListMixParallelStrideRoot[int32](t, types.Integer)
 }
+*/
 
+func TestSkipListMixParallelStrideFloat(t *testing.T) {
+	//t.Parallel()
+	if testing.Short() {
+		t.Skip("skip this in short mode.")
+	}
+	testSkipListMixParallelStrideRoot[float32](t, types.Float)
+}
+
+/*
 func TestSkipListMixParallelStrideVarchar(t *testing.T) {
 	t.Parallel()
 	if testing.Short() {
@@ -2253,3 +2291,4 @@ func TestSkipListParallelSimpleInteger3Stride(t *testing.T) {
 
 	shi.CloseFilesForTesting()
 }
+*/

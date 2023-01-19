@@ -128,7 +128,7 @@ func (t *Tuple) GetValueInBytes(schema *schema.Schema, colIndex uint32) []byte {
 		buf := bytes.NewBuffer(t.data[offset:])
 		isNull := new(bool)
 		binary.Read(buf, binary.LittleEndian, isNull)
-		v := new(int32)
+		v := new(float32)
 		binary.Read(buf, binary.LittleEndian, v)
 		retBuf := new(bytes.Buffer)
 		binary.Write(retBuf, binary.LittleEndian, *isNull)

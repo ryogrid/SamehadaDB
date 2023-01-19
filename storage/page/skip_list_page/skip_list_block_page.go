@@ -819,6 +819,9 @@ func (node *SkipListBlockPage) GetEntryOffset(idx int) uint32 {
 }
 
 func (node *SkipListBlockPage) SetEntryOffset(idx int, setOffset uint16) {
+	if setOffset == 0 {
+		panic("SetEntryOffset passed setOffset=0.")
+	}
 	buf := new(bytes.Buffer)
 	binary.Write(buf, binary.LittleEndian, setOffset)
 	setOffsetInBytes := buf.Bytes()
@@ -859,7 +862,11 @@ func (node *SkipListBlockPage) SetFreeSpacePointer(pointOffset uint32) {
 
 func (node *SkipListBlockPage) GetEntry(idx int, keyType types.TypeID) *SkipListPair {
 	offset := node.GetEntryOffset(idx)
-	return NewSkipListPairFromBytes(node.Data()[offset:offset+node.GetEntrySize(idx)], keyType)
+	entrySize := node.GetEntrySize(idx)
+	//if idx == 218 {
+	//	fmt.Printf("%d %d %d %d %d %d\n", node.GetEntryOffset(idx-3), node.GetEntrySize(idx-3), node.GetEntryOffset(idx-2), node.GetEntrySize(idx-2), node.GetEntryOffset(idx-1), node.GetEntrySize(idx-1))
+	//}
+	return NewSkipListPairFromBytes(node.Data()[offset:offset+entrySize], keyType)
 }
 
 // ATTENTION:

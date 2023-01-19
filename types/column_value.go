@@ -467,7 +467,7 @@ func (v Value) SetInfMin() *Value {
 		*v.integer = math.MinInt32
 		return &v
 	case Float:
-		*v.float = math.SmallestNonzeroFloat32
+		*v.float = -1.0 * math.MaxFloat32
 		return &v
 	case Varchar:
 		*v.varchar = "SamehadaDBInfMinValue"
@@ -498,7 +498,7 @@ func (v Value) IsInfMin() bool {
 	case Integer:
 		return *v.integer == math.MinInt32
 	case Float:
-		return *v.float == math.SmallestNonzeroFloat32
+		return *v.float == -1.0*math.MaxFloat32
 	case Varchar:
 		return *v.varchar == "SamehadaDBInfMinValue"
 	case Boolean:
