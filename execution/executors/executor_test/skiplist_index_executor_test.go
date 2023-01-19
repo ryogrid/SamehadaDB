@@ -1302,6 +1302,14 @@ func testParallelTxnsQueryingSkipListIndexUsedColumns[T int32 | float32 | string
 				}
 
 				insKeyValBase := getUniqRandomPrimitivVal(keyType, checkKeyColDupMap, checkKeyColDupMapMutex, tmpMax)
+				//if keyType == types.Float {
+				//	checkKeyColDupMapMutex.Lock()
+				//	for jj := int32(0); jj < stride; jj++ {
+				//		preInsKeyVal := samehada_util.StrideAdd(samehada_util.StrideMul(insKeyValBase, stride), jj).(T)
+				//		checkKeyColDupMap[preInsKeyVal] = preInsKeyVal
+				//	}
+				//	checkKeyColDupMapMutex.Unlock()
+				//}
 				balanceVal := getInt32ValCorrespondToPassVal(insKeyValBase)
 				checkBalanceColDupMapMutex.RLock()
 				//if _, exist := checkBalanceColDupMap[balanceVal]; exist || (balanceVal >= 0 && balanceVal < sumOfAllAccountBalanceAtStart) {
@@ -1317,6 +1325,7 @@ func testParallelTxnsQueryingSkipListIndexUsedColumns[T int32 | float32 | string
 
 				txn_.SetDebugInfo("Insert(random)-Op")
 				common.ShPrintf(common.DEBUGGING, fmt.Sprintf("Insert op start. txnId:%v ii:%d\n", txn_.GetTransactionId(), ii))
+
 				for jj := int32(0); jj < stride; jj++ {
 					insKeyVal := samehada_util.StrideAdd(samehada_util.StrideMul(insKeyValBase, stride), jj).(T)
 					//insBalanceVal := getInt32ValCorrespondToPassVal(insKeyVal)
@@ -1479,6 +1488,15 @@ func testParallelTxnsQueryingSkipListIndexUsedColumns[T int32 | float32 | string
 					tmpMax = math.MaxInt32 / stride
 				}
 				updateNewKeyValBase := getUniqRandomPrimitivVal(keyType, checkKeyColDupMap, checkKeyColDupMapMutex, &tmpMax)
+				//// because avoiding duplication at Float is hard
+				//if keyType == types.Float {
+				//	checkKeyColDupMapMutex.Lock()
+				//	for jj := int32(0); jj < stride; jj++ {
+				//		preInsKeyVal := samehada_util.StrideAdd(samehada_util.StrideMul(updateKeyValBase, stride), jj).(T)
+				//		checkKeyColDupMap[preInsKeyVal] = preInsKeyVal
+				//	}
+				//	checkKeyColDupMapMutex.Unlock()
+				//}
 				newBalanceVal := getInt32ValCorrespondToPassVal(updateNewKeyValBase)
 				checkBalanceColDupMapMutex.RLock()
 				if _, exist := checkBalanceColDupMap[newBalanceVal]; exist || (newBalanceVal >= 0 && newBalanceVal <= sumOfAllAccountBalanceAtStart) {
