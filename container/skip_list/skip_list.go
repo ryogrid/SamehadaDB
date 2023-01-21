@@ -153,6 +153,10 @@ func (sl *SkipList) FindNode(key *types.Value, opType SkipListOpType) (isSuccess
 
 			// go backward for gathering appropriate corner nodes info
 			pred = skip_list_page.FetchAndCastToBlockPage(sl.bpm, predOfPredId)
+			if pred == nil {
+				// pred has been deallocated
+				return false, nil, nil, nil
+			}
 			latchOpWithOpType(pred, SKIP_LIST_UTIL_GET_LATCH, opType)
 
 			// check updating occurred or not
@@ -334,7 +338,7 @@ func (sl *SkipList) Remove(key *types.Value, value uint64) (isDeleted_ bool) {
 		if isNodeShouldBeDeleted {
 			// TODO: (SDB) need implement DeallocatePage collectly and need WLach of corners[0]
 			//             so, when activate calliing DeallocatePage, node.Remove method should be modified
-			//sl.bpm.DeallocatePage(corners[0].PageId)
+			sl.bpm.DeallocatePage(corners[0].PageId)
 		}
 	}
 

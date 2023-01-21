@@ -135,6 +135,8 @@ func (d *VirtualDiskManagerImpl) AllocatePage() types.PageID {
 // Need bitmap in header page for tracking pages
 // This does not actually need to do anything for now.
 func (d *VirtualDiskManagerImpl) DeallocatePage(pageID types.PageID) {
+	d.dbFileMutex.Lock()
+	defer d.dbFileMutex.Unlock()
 	d.reusableSpceIDs = append(d.reusableSpceIDs, pageID)
 }
 

@@ -480,6 +480,8 @@ func validateNoChangeAndGetLock(bpm *buffer.BufferPoolManager, checkNodes []Skip
 
 		isPassed := false
 		if node == nil {
+			// node has been deallocated
+
 			common.ShPrintf(common.DEBUG_INFO, "validateNoChangeAndGetLock: validation failed. go retry.\n")
 			unlockAndUnpinNodes(bpm, validatedNodes, false)
 
@@ -523,6 +525,8 @@ func validateNoChangeAndGetLock(bpm *buffer.BufferPoolManager, checkNodes []Skip
 	if additonalCheckNode != nil {
 		node := FetchAndCastToBlockPage(bpm, additonalCheckNode.PageId)
 		if node == nil {
+			// node has been deallocated
+
 			common.ShPrintf(common.DEBUG_INFO, "validateNoChangeAndGetLock: additionalCheckNode validation failed. go retry.\n")
 			unlockAndUnpinNodes(bpm, validatedNodes, false)
 			return false, nil

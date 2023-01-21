@@ -277,7 +277,6 @@ func (b *BufferPoolManager) NewPage() *page.Page {
 	return pg
 }
 
-// TODO: this make disk space reusable when VirtualDiskManagerImple is used only now
 // DeallocatePage make disk space of db file which is idenfied by pageID
 // ATTENTION: when deallocated page is requested fetch, BPM return nil
 func (b *BufferPoolManager) DeallocatePage(pageID types.PageID) error {
@@ -287,9 +286,9 @@ func (b *BufferPoolManager) DeallocatePage(pageID types.PageID) error {
 	//2.   If P exists, but has a non-zero pin-count, return false. Someone is using the page.
 	//3.   Otherwise, P can be deleted. Remove P from the page table, reset its metadata and return it to the free list.
 
-	// TODO: this effects when b.diskManage is VirtualDiskManager Impl only
+	// TODO: this methods effects only when b.diskManage is VirtualDiskManager Impl (BPM::DeallocatePage)
+	//       and when use this, related component should consider nil returning by FetchPage
 	b.diskManager.DeallocatePage(pageID)
-
 	if common.EnableOnMemStorage {
 		var frameID FrameID
 		var ok bool
@@ -303,6 +302,8 @@ func (b *BufferPoolManager) DeallocatePage(pageID types.PageID) error {
 		page := b.pages[frameID]
 		page.WLatch()
 		page.AddWLatchRecord(-1)
+		// avoiding flushing current content
+		page.SetIsDirty(false)
 		//if page.PinCount() > 0 {
 		//	page.RemoveWLatchRecord(-1)
 		//	page.WUnlatch()
