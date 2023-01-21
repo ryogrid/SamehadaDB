@@ -184,8 +184,11 @@ func (d *VirtualDiskManagerImpl) WriteLog(log_data []byte) {
 	d.flush_log = true
 
 	d.numFlushes += 1
-	// sequence write
-	d.log.Write(log_data)
+
+	// not doing write log because VirtualDisk can't test logging/recovery
+	//// sequence write
+	//d.log.Write(log_data)
+
 	d.flush_log = false
 }
 
