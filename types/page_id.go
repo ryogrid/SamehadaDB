@@ -6,10 +6,13 @@ package types
 import (
 	"bytes"
 	"encoding/binary"
+	"github.com/ryogrid/SamehadaDB/errors"
 )
 
 // PageID is the type of the page identifier
 type PageID int32
+
+const DeallocatedPageErr = errors.Error("dellocated Page ID is passed.")
 
 // InvalidPageID represents an invalid page GetPageId
 const InvalidPageID = PageID(-1)

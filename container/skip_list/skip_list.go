@@ -332,9 +332,9 @@ func (sl *SkipList) Remove(key *types.Value, value uint64) (isDeleted_ bool) {
 		// lock and pin which is got FindNode are released on Remove method
 
 		if isNodeShouldBeDeleted {
-			// TODO: (SDB) need implement DeletePage collectly and need WLach of corners[0]
-			//             so, when activate calliing DeletePage, node.Remove method should be modified
-			//sl.bpm.DeletePage(corners[0].PageId)
+			// TODO: (SDB) need implement DeallocatePage collectly and need WLach of corners[0]
+			//             so, when activate calliing DeallocatePage, node.Remove method should be modified
+			//sl.bpm.DeallocatePage(corners[0].PageId)
 		}
 	}
 
