@@ -1229,7 +1229,7 @@ func testParallelTxnsQueryingSkipListIndexUsedColumns[T int32 | float32 | string
 					newBalance1 = getUniqRandomPrimitivVal(types.Integer, checkBalanceColDupMap, checkBalanceColDupMapMutex, &balance1)
 					newBalance2 = balance2 + (balance1 - newBalance1)
 					checkBalanceColDupMapMutex.Lock()
-					if _, exist := checkBalanceColDupMap[newBalance2]; exist {
+					if _, exist := checkBalanceColDupMap[newBalance2]; exist || newBalance2 <= 0 {
 						delete(checkBalanceColDupMap, newBalance1)
 						checkBalanceColDupMapMutex.Unlock()
 						goto retry1_1
@@ -1241,7 +1241,7 @@ func testParallelTxnsQueryingSkipListIndexUsedColumns[T int32 | float32 | string
 					newBalance2 = getUniqRandomPrimitivVal(types.Integer, checkBalanceColDupMap, checkBalanceColDupMapMutex, &balance2)
 					newBalance1 = balance1 + (balance2 - newBalance2)
 					checkBalanceColDupMapMutex.Lock()
-					if _, exist := checkBalanceColDupMap[newBalance1]; exist {
+					if _, exist := checkBalanceColDupMap[newBalance1]; exist || newBalance1 <= 0 {
 						delete(checkBalanceColDupMap, newBalance2)
 						checkBalanceColDupMapMutex.Unlock()
 						goto retry1_2
@@ -1255,6 +1255,9 @@ func testParallelTxnsQueryingSkipListIndexUsedColumns[T int32 | float32 | string
 
 				common.ShPrintf(common.DEBUGGING, "Update account op start.\n")
 
+				if newBalance1 > sumOfAllAccountBalanceAtStart || newBalance1 < 0 {
+					fmt.Printf("money move op: newBalance1 is broken. %d\n", newBalance1)
+				}
 				updatePlan1 := createBalanceUpdatePlanNode(accountIds[idx1], newBalance1, c, tableMetadata, keyType, indexKind)
 				updateRslt1 := executePlan(c, shi.GetBufferPoolManager(), txn_, updatePlan1)
 
@@ -1268,6 +1271,9 @@ func testParallelTxnsQueryingSkipListIndexUsedColumns[T int32 | float32 | string
 
 				common.SH_Assert(len(updateRslt1) == 1 && txn_.GetState() != access.ABORTED, fmt.Sprintf("account update fails!(1) txn_.txn_id:%v", txn_.GetTransactionId()))
 
+				if newBalance2 > sumOfAllAccountBalanceAtStart || newBalance2 < 0 {
+					fmt.Printf("money move op: newBalance2 is broken. %d\n", newBalance2)
+				}
 				updatePlan2 := createBalanceUpdatePlanNode(accountIds[idx2], newBalance2, c, tableMetadata, keyType, indexKind)
 				updateRslt2 := executePlan(c, shi.GetBufferPoolManager(), txn_, updatePlan2)
 
