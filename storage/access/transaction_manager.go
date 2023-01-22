@@ -147,6 +147,7 @@ func (transaction_manager *TransactionManager) Abort(catalog_ catalog_interface.
 	RIDConvMap := make(map[page.RID]*page.RID, 0)
 	convRID := func(orgRID *page.RID) (convedRID *page.RID) {
 		if tmpRID, ok := RIDConvMap[*orgRID]; ok {
+			fmt.Println("Abort: RID conversion occured.")
 			return tmpRID
 		} else {
 			return orgRID
@@ -268,7 +269,6 @@ func (transaction_manager *TransactionManager) Abort(catalog_ catalog_interface.
 							}
 						} else {
 							if !bfRlbkKeyVal.CompareEquals(*rlbkKeyVal) {
-								//rollback is needed only when column value changed case
 								index_.UpdateEntry(item.tuple2, *convRID(item.rid2), item.tuple1, *convRID(item.rid1), txn)
 							} else {
 								if convRID(item.rid1).PageId == convRID(item.rid2).PageId && convRID(item.rid1).SlotNum == convRID(item.rid2).SlotNum {

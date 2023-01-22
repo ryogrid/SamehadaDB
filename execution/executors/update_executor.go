@@ -97,6 +97,7 @@ func (e *UpdateExecutor) Next() (*tuple.Tuple, Done, error) {
 						// when tuple is moved page location on update, RID is changed to new value
 						// removing index entry is done at commit phase because delete operation uses marking technique
 
+						fmt.Println("DeleteEntry due to ErrPartialUpdate occured.")
 						index_.DeleteEntry(t, *rid, e.txn)
 
 						//if updateErr != access.ErrPartialUpdate {
@@ -120,6 +121,7 @@ func (e *UpdateExecutor) Next() (*tuple.Tuple, Done, error) {
 						// when tuple is moved page location on update, RID is changed to new value
 						// removing index entry is done at commit phase because delete operation uses marking technique
 
+						fmt.Println("DeleteEntry due to ErrPartialUpdate occured.")
 						index_.DeleteEntry(t, *rid, e.txn)
 
 						//if updateErr != access.ErrPartialUpdate {
@@ -132,6 +134,8 @@ func (e *UpdateExecutor) Next() (*tuple.Tuple, Done, error) {
 					} else if new_rid != nil {
 						//index_.DeleteEntry(t, *rid, e.txn)
 
+						//// TODO: for debugging!!!
+						//fmt.Printf("do Upsert: %d\n", updateTuple.GetValue(e.GetTableMetaData().Schema(), 1).ToInteger())
 						// do UPSERT
 						index_.InsertEntry(updateTuple, *new_rid, e.txn)
 
