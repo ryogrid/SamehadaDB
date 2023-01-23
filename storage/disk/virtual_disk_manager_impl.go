@@ -3,7 +3,6 @@ package disk
 import (
 	"errors"
 	"fmt"
-	"github.com/ryogrid/SamehadaDB/samehada/samehada_util"
 	"strings"
 	"sync"
 
@@ -27,6 +26,7 @@ type VirtualDiskManagerImpl struct {
 	logFileMutex    *sync.Mutex
 	reusableSpceIDs []types.PageID
 	spaceIDConvMap  map[types.PageID]types.PageID
+	deallocedIDMap  map[types.PageID]bool
 }
 
 func NewVirtualDiskManagerImpl(dbFilename string) DiskManager {
@@ -41,7 +41,7 @@ func NewVirtualDiskManagerImpl(dbFilename string) DiskManager {
 	fileSize := int64(0)
 	nextPageID := types.PageID(0)
 
-	return &VirtualDiskManagerImpl{file, dbFilename, file_1, logfname, nextPageID, 0, fileSize, false, 0, new(sync.Mutex), new(sync.Mutex), make([]types.PageID, 0), make(map[types.PageID]types.PageID)}
+	return &VirtualDiskManagerImpl{file, dbFilename, file_1, logfname, nextPageID, 0, fileSize, false, 0, new(sync.Mutex), new(sync.Mutex), make([]types.PageID, 0), make(map[types.PageID]types.PageID), make(map[types.PageID]bool)}
 }
 
 // ShutDown closes of the database file
@@ -49,15 +49,13 @@ func (d *VirtualDiskManagerImpl) ShutDown() {
 	// do nothing
 }
 
+// spaceID(pageID) conversion for reuse of file space which is allocated to deallocated page
 func (d *VirtualDiskManagerImpl) convToSpaceID(pageID types.PageID) (spaceID types.PageID) {
-	var retID types.PageID = pageID
-
-	// trac conversion entries
-	for convedID, ok := d.spaceIDConvMap[retID]; ok; convedID, ok = d.spaceIDConvMap[retID] {
-		retID = convedID
+	if convedID, exist := d.spaceIDConvMap[pageID]; exist {
+		return convedID
+	} else {
+		return pageID
 	}
-
-	return retID
 }
 
 // Write a page to the database file
@@ -80,7 +78,7 @@ func (d *VirtualDiskManagerImpl) ReadPage(pageID types.PageID, pageData []byte) 
 	d.dbFileMutex.Lock()
 	defer d.dbFileMutex.Unlock()
 
-	if samehada_util.IsContainList[types.PageID](d.reusableSpceIDs, pageID) {
+	if _, exist := d.deallocedIDMap[pageID]; exist {
 		return types.DeallocatedPageErr
 	}
 
@@ -137,7 +135,14 @@ func (d *VirtualDiskManagerImpl) AllocatePage() types.PageID {
 func (d *VirtualDiskManagerImpl) DeallocatePage(pageID types.PageID) {
 	d.dbFileMutex.Lock()
 	defer d.dbFileMutex.Unlock()
-	d.reusableSpceIDs = append(d.reusableSpceIDs, pageID)
+	d.deallocedIDMap[pageID] = true
+	if convedID, exist := d.spaceIDConvMap[pageID]; exist {
+		d.reusableSpceIDs = append(d.reusableSpceIDs, convedID)
+		delete(d.spaceIDConvMap, pageID)
+	} else {
+		d.reusableSpceIDs = append(d.reusableSpceIDs, pageID)
+	}
+
 }
 
 // GetNumWrites returns the number of disk writes
