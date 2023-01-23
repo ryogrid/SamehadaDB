@@ -288,11 +288,11 @@ func (b *BufferPoolManager) DeallocatePage(pageID types.PageID) error {
 
 	// TODO: this methods effects only when b.diskManage is VirtualDiskManager Impl (BPM::DeallocatePage)
 	//       and when use this, related component should consider nil returning by FetchPage
-	b.diskManager.DeallocatePage(pageID)
 	if common.EnableOnMemStorage {
 		var frameID FrameID
 		var ok bool
 		b.mutex.Lock()
+		b.diskManager.DeallocatePage(pageID)
 		if frameID, ok = b.pageTable[pageID]; !ok {
 			// nothing is needed for loaded data on BPM
 			b.mutex.Unlock()
