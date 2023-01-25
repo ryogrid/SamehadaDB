@@ -63,7 +63,7 @@ func (d *VirtualDiskManagerImpl) WritePage(pageId types.PageID, pageData []byte)
 	d.dbFileMutex.Lock()
 	defer d.dbFileMutex.Unlock()
 
-	offset := int64(d.convToSpaceID(pageId) * common.PageSize)
+	offset := int64(d.convToSpaceID(pageId)) * int64(common.PageSize)
 	d.db.WriteAt(pageData, offset)
 
 	if offset >= d.size {
@@ -82,7 +82,7 @@ func (d *VirtualDiskManagerImpl) ReadPage(pageID types.PageID, pageData []byte) 
 		return types.DeallocatedPageErr
 	}
 
-	offset := int64(d.convToSpaceID(pageID) * common.PageSize)
+	offset := int64(d.convToSpaceID(pageID)) * int64(common.PageSize)
 
 	//currentSize := int64(len(d.db.Bytes()))
 	//if offset > currentSize || offset+int64(len(pageData)) > currentSize {
