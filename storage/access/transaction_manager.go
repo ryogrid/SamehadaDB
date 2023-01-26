@@ -141,6 +141,22 @@ func (transaction_manager *TransactionManager) Abort(catalog_ catalog_interface.
 	txn.MakeNotAbortable()
 
 	indexMap := make(map[uint32][]index.Index, 0)
+
+	// table for RID conversion
+	// when rid of record is changed at UpdateTuple on this method, conversion is needed for appropriate rollback.
+	RIDConvMap := make(map[page.RID]*page.RID, 0)
+	convRID := func(orgRID *page.RID) (convedRID *page.RID) {
+		if tmpRID, ok := RIDConvMap[*orgRID]; ok {
+			fmt.Println("Abort: RID conversion occured.")
+			return tmpRID
+		} else {
+			return orgRID
+		}
+	}
+	updateRIDConvMap := func(orgRID *page.RID, changedRID *page.RID) {
+		RIDConvMap[*orgRID] = changedRID
+	}
+
 	write_set := txn.GetWriteSet()
 
 	if common.EnableDebug && common.ActiveLogKindSetting&common.RDB_OP_FUNC_CALL > 0 {
@@ -160,7 +176,7 @@ func (transaction_manager *TransactionManager) Abort(catalog_ catalog_interface.
 			}
 
 			// rollback record data
-			table.RollbackDelete(item.rid1, txn)
+			table.RollbackDelete(convRID(item.rid1), txn)
 
 			////rollback of index entry is not needed because entry is deleted at commit
 
@@ -168,7 +184,7 @@ func (transaction_manager *TransactionManager) Abort(catalog_ catalog_interface.
 			indexes := catalog_.GetRollbackNeededIndexes(indexMap, item.oid)
 			for _, index_ := range indexes {
 				if index_ != nil {
-					index_.InsertEntry(item.tuple1, *item.rid1, txn)
+					index_.InsertEntry(item.tuple1, *convRID(item.rid1), txn)
 				}
 			}
 		} else if item.wtype == INSERT {
@@ -178,13 +194,13 @@ func (transaction_manager *TransactionManager) Abort(catalog_ catalog_interface.
 
 			//insertedTuple, _ := item.table.GetTuple(&item.rid1, txn)
 			// rollback record data
-			rid := item.rid1
+			rid := convRID(item.rid1)
 			// Note that this also releases the lock when holding the page latch.
 			pageID := rid.GetPageId()
 			tpage := CastPageAsTablePage(table.bpm.FetchPage(pageID))
 			tpage.WLatch()
 			tpage.AddWLatchRecord(int32(txn.txn_id))
-			tpage.ApplyDelete(item.rid1, txn, transaction_manager.log_manager)
+			tpage.ApplyDelete(convRID(item.rid1), txn, transaction_manager.log_manager)
 			table.bpm.UnpinPage(pageID, true)
 			tpage.RemoveWLatchRecord(int32(txn.txn_id))
 			tpage.WUnlatch()
@@ -195,7 +211,7 @@ func (transaction_manager *TransactionManager) Abort(catalog_ catalog_interface.
 				for _, index_ := range indexes {
 					if index_ != nil {
 						//index_.DeleteEntry(insertedTuple, item.rid1, txn)
-						index_.DeleteEntry(item.tuple1, *item.rid1, txn)
+						index_.DeleteEntry(item.tuple1, *convRID(item.rid1), txn)
 					}
 				}
 			}
@@ -206,20 +222,21 @@ func (transaction_manager *TransactionManager) Abort(catalog_ catalog_interface.
 
 			var new_rid *page.RID = nil
 			var is_updated bool = false
-			if item.rid1 != item.rid2 {
+			if *convRID(item.rid1) != *convRID(item.rid2) {
 				// when rid changed case
-				item.table.ApplyDelete(item.rid2, txn)
-				item.table.RollbackDelete(item.rid1, txn)
+				item.table.ApplyDelete(convRID(item.rid2), txn)
+				item.table.RollbackDelete(convRID(item.rid1), txn)
 			} else {
 				// normal case
-				is_updated, new_rid, _, _, _ = table.UpdateTuple(item.tuple1, nil, nil, item.oid, *item.rid1, txn, true)
+				is_updated, new_rid, _, _, _ = table.UpdateTuple(item.tuple1, nil, nil, item.oid, *convRID(item.rid1), txn, true)
 				if !is_updated {
 					panic("UpdateTuple at rollback failed!")
 				}
 			}
 
-			// TODO: for debugging
 			if new_rid != nil {
+				updateRIDConvMap(convRID(item.rid1), new_rid)
+				// TODO: for debugging
 				//fmt.Printf("UpdateTuple at rollback moved record position! oldRID:%v newRID:%v\n", *item.rid1, *new_rid)
 				common.NewRIDAtRollback = true
 			}
@@ -240,7 +257,7 @@ func (transaction_manager *TransactionManager) Abort(catalog_ catalog_interface.
 						rlbkKeyVal := catalog_.GetColValFromTupleForRollback(item.tuple1, colIdx, item.oid)
 						if new_rid != nil {
 							if !bfRlbkKeyVal.CompareEquals(*rlbkKeyVal) {
-								index_.UpdateEntry(item.tuple2, *item.rid2, item.tuple1, *new_rid, txn)
+								index_.UpdateEntry(item.tuple2, *convRID(item.rid2), item.tuple1, *new_rid, txn)
 								//if new_rid != nil {
 								//	index_.UpdateEntry(item.tuple2, *item.rid2, item.tuple1, *new_rid, txn)
 								//} else {
@@ -252,14 +269,13 @@ func (transaction_manager *TransactionManager) Abort(catalog_ catalog_interface.
 							}
 						} else {
 							if !bfRlbkKeyVal.CompareEquals(*rlbkKeyVal) {
-								//rollback is needed only when column value changed case
-								index_.UpdateEntry(item.tuple2, *item.rid2, item.tuple1, *item.rid1, txn)
+								index_.UpdateEntry(item.tuple2, *convRID(item.rid2), item.tuple1, *convRID(item.rid1), txn)
 							} else {
-								if item.rid1.PageId == item.rid2.PageId && item.rid1.SlotNum == item.rid2.SlotNum {
+								if convRID(item.rid1).PageId == convRID(item.rid2).PageId && convRID(item.rid1).SlotNum == convRID(item.rid2).SlotNum {
 									// do nothing
 								} else {
 									// do UPSERT
-									index_.InsertEntry(item.tuple1, *item.rid1, txn)
+									index_.InsertEntry(item.tuple1, *convRID(item.rid1), txn)
 								}
 							}
 						}

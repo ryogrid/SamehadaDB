@@ -13,17 +13,20 @@ import (
 
 // DiskManagerImpl is the disk implementation of DiskManager
 type VirtualDiskManagerImpl struct {
-	db           *memfile.File //[]byte
-	fileName     string
-	log          *memfile.File //[]byte
-	fileName_log string
-	nextPageID   types.PageID
-	numWrites    uint64
-	size         int64
-	flush_log    bool
-	numFlushes   uint64
-	dbFileMutex  *sync.Mutex
-	logFileMutex *sync.Mutex
+	db              *memfile.File //[]byte
+	fileName        string
+	log             *memfile.File //[]byte
+	fileName_log    string
+	nextPageID      types.PageID
+	numWrites       uint64
+	size            int64
+	flush_log       bool
+	numFlushes      uint64
+	dbFileMutex     *sync.Mutex
+	logFileMutex    *sync.Mutex
+	reusableSpceIDs []types.PageID
+	spaceIDConvMap  map[types.PageID]types.PageID
+	deallocedIDMap  map[types.PageID]bool
 }
 
 func NewVirtualDiskManagerImpl(dbFilename string) DiskManager {
@@ -38,7 +41,7 @@ func NewVirtualDiskManagerImpl(dbFilename string) DiskManager {
 	fileSize := int64(0)
 	nextPageID := types.PageID(0)
 
-	return &VirtualDiskManagerImpl{file, dbFilename, file_1, logfname, nextPageID, 0, fileSize, false, 0, new(sync.Mutex), new(sync.Mutex)}
+	return &VirtualDiskManagerImpl{file, dbFilename, file_1, logfname, nextPageID, 0, fileSize, false, 0, new(sync.Mutex), new(sync.Mutex), make([]types.PageID, 0), make(map[types.PageID]types.PageID), make(map[types.PageID]bool)}
 }
 
 // ShutDown closes of the database file
@@ -46,12 +49,21 @@ func (d *VirtualDiskManagerImpl) ShutDown() {
 	// do nothing
 }
 
+// spaceID(pageID) conversion for reuse of file space which is allocated to deallocated page
+func (d *VirtualDiskManagerImpl) convToSpaceID(pageID types.PageID) (spaceID types.PageID) {
+	if convedID, exist := d.spaceIDConvMap[pageID]; exist {
+		return convedID
+	} else {
+		return pageID
+	}
+}
+
 // Write a page to the database file
 func (d *VirtualDiskManagerImpl) WritePage(pageId types.PageID, pageData []byte) error {
 	d.dbFileMutex.Lock()
 	defer d.dbFileMutex.Unlock()
 
-	offset := int64(pageId * common.PageSize)
+	offset := int64(d.convToSpaceID(pageId)) * int64(common.PageSize)
 	d.db.WriteAt(pageData, offset)
 
 	if offset >= d.size {
@@ -66,7 +78,11 @@ func (d *VirtualDiskManagerImpl) ReadPage(pageID types.PageID, pageData []byte) 
 	d.dbFileMutex.Lock()
 	defer d.dbFileMutex.Unlock()
 
-	offset := int64(pageID * common.PageSize)
+	if _, exist := d.deallocedIDMap[pageID]; exist {
+		return types.DeallocatedPageErr
+	}
+
+	offset := int64(d.convToSpaceID(pageID)) * int64(common.PageSize)
 
 	//currentSize := int64(len(d.db.Bytes()))
 	//if offset > currentSize || offset+int64(len(pageData)) > currentSize {
@@ -89,7 +105,18 @@ func (d *VirtualDiskManagerImpl) ReadPage(pageID types.PageID, pageData []byte) 
 func (d *VirtualDiskManagerImpl) AllocatePage() types.PageID {
 	d.dbFileMutex.Lock()
 
-	ret := d.nextPageID
+	var ret types.PageID
+	ret = d.nextPageID
+	if len(d.reusableSpceIDs) > 0 {
+		reuseID := d.reusableSpceIDs[0]
+		if len(d.reusableSpceIDs) == 1 {
+			d.reusableSpceIDs = make([]types.PageID, 0)
+		} else {
+			d.reusableSpceIDs = d.reusableSpceIDs[1:]
+		}
+		d.spaceIDConvMap[ret] = reuseID
+	}
+	d.nextPageID++
 
 	//// extend db file for avoiding later ReadPage and WritePage fails
 	//zeroClearedPageData := make([]byte, common.PageSize)
@@ -99,14 +126,24 @@ func (d *VirtualDiskManagerImpl) AllocatePage() types.PageID {
 	//d.dbFileMutex.WLock()
 	defer d.dbFileMutex.Unlock()
 
-	d.nextPageID++
 	return ret
 }
 
 // DeallocatePage deallocates page
 // Need bitmap in header page for tracking pages
 // This does not actually need to do anything for now.
-func (d *VirtualDiskManagerImpl) DeallocatePage(pageID types.PageID) {}
+func (d *VirtualDiskManagerImpl) DeallocatePage(pageID types.PageID) {
+	d.dbFileMutex.Lock()
+	defer d.dbFileMutex.Unlock()
+	d.deallocedIDMap[pageID] = true
+	if convedID, exist := d.spaceIDConvMap[pageID]; exist {
+		d.reusableSpceIDs = append(d.reusableSpceIDs, convedID)
+		delete(d.spaceIDConvMap, pageID)
+	} else {
+		d.reusableSpceIDs = append(d.reusableSpceIDs, pageID)
+	}
+
+}
 
 // GetNumWrites returns the number of disk writes
 func (d *VirtualDiskManagerImpl) GetNumWrites() uint64 {
@@ -152,8 +189,11 @@ func (d *VirtualDiskManagerImpl) WriteLog(log_data []byte) {
 	d.flush_log = true
 
 	d.numFlushes += 1
-	// sequence write
-	d.log.Write(log_data)
+
+	// not doing write log because VirtualDisk can't test logging/recovery
+	//// sequence write
+	//d.log.Write(log_data)
+
 	d.flush_log = false
 }
 

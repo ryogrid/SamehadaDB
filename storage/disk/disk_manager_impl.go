@@ -96,7 +96,7 @@ func (d *DiskManagerImpl) WritePage(pageId types.PageID, pageData []byte) error 
 	d.dbFileMutex.Lock()
 	defer d.dbFileMutex.Unlock()
 
-	offset := int64(pageId * common.PageSize)
+	offset := int64(pageId) * int64(common.PageSize)
 	d.db.Seek(offset, io.SeekStart)
 	bytesWritten, err := d.db.Write(pageData)
 	if err != nil {
@@ -123,7 +123,7 @@ func (d *DiskManagerImpl) ReadPage(pageID types.PageID, pageData []byte) error {
 	d.dbFileMutex.Lock()
 	defer d.dbFileMutex.Unlock()
 
-	offset := int64(pageID * common.PageSize)
+	offset := int64(pageID) * int64(common.PageSize)
 
 	fileInfo, err := d.db.Stat()
 	if err != nil {

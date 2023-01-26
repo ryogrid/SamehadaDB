@@ -31,11 +31,12 @@ type PageIF interface {
 
 // Page represents an abstract page on disk
 type Page struct {
-	id       types.PageID           // idenfies the page. It is used to find the offset of the page on disk
-	pinCount int32                  //int32                 // counts how many goroutines are acessing it
-	isDirty  bool                   // the page was modified but not flushed
-	data     *[common.PageSize]byte // bytes stored in disk
-	rwlatch_ common.ReaderWriterLatch
+	id            types.PageID           // idenfies the page. It is used to find the offset of the page on disk
+	pinCount      int32                  //int32                 // counts how many goroutines are acessing it
+	isDirty       bool                   // the page was modified but not flushed
+	isDeallocated bool                   // whether this is deallocated or not
+	data          *[common.PageSize]byte // bytes stored in disk
+	rwlatch_      common.ReaderWriterLatch
 	// for debug
 	WLatchMap      map[int32]bool
 	RLatchMap      map[int32]bool
@@ -87,6 +88,14 @@ func (p *Page) IsDirty() bool {
 	return p.isDirty
 }
 
+func (p *Page) IsDeallocated() bool {
+	return p.isDeallocated
+}
+
+func (p *Page) SetIsDeallocated(isDeallocated bool) {
+	p.isDeallocated = isDeallocated
+}
+
 // Copy copies data to the page's data
 func (p *Page) Copy(offset uint32, data []byte) {
 	copy(p.data[offset:], data)
@@ -94,7 +103,7 @@ func (p *Page) Copy(offset uint32, data []byte) {
 
 // New creates a new page
 func New(id types.PageID, isDirty bool, data *[common.PageSize]byte) *Page {
-	return &Page{id, int32(1), isDirty, data, common.NewRWLatch(), make(map[int32]bool, 0), make(map[int32]bool, 0), new(sync.Mutex)}
+	return &Page{id, int32(1), isDirty, false, data, common.NewRWLatch(), make(map[int32]bool, 0), make(map[int32]bool, 0), new(sync.Mutex)}
 
 	//// when using "go-deadlock" package
 	//return &Page{id, int32(1), isDirty, data, common.NewRWLatchTrace()}
@@ -107,7 +116,7 @@ func New(id types.PageID, isDirty bool, data *[common.PageSize]byte) *Page {
 func NewEmpty(id types.PageID) *Page {
 	//return &Page{id, int32(1), false, &[common.PageSize]byte{}, common.NewUpgradableMutex()}
 
-	return &Page{id, int32(1), false, &[common.PageSize]byte{}, common.NewRWLatch(), make(map[int32]bool, 0), make(map[int32]bool, 0), new(sync.Mutex)}
+	return &Page{id, int32(1), false, false, &[common.PageSize]byte{}, common.NewRWLatch(), make(map[int32]bool, 0), make(map[int32]bool, 0), new(sync.Mutex)}
 
 	//return &Page{id, uint32(1), false, &[common.PageSize]byte{}, common.NewRWLatchDebug()}
 }

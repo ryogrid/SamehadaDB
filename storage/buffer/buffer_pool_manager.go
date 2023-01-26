@@ -34,6 +34,11 @@ func (b *BufferPoolManager) FetchPage(pageID types.PageID) *page.Page {
 	//b.mutex.WLock()
 	b.mutex.Lock()
 	if frameID, ok := b.pageTable[pageID]; ok {
+		if frameID == DEALLOCATED_FRAME {
+			b.mutex.Unlock()
+			return nil
+		}
+
 		pg := b.pages[frameID]
 		if common.EnableDebug && common.ActiveLogKindSetting&common.PIN_COUNT_ASSERT > 0 {
 			common.SH_Assert(pg.PinCount() == 0 || ( /*pg.PinCount() == 1 && */ pg.GetPageId() == 4 || pg.GetPageId() == 5 || pg.GetPageId() == 7 || pg.GetPageId() == 8),
@@ -98,6 +103,11 @@ func (b *BufferPoolManager) FetchPage(pageID types.PageID) *page.Page {
 	}
 	err := b.diskManager.ReadPage(pageID, data)
 	if err != nil {
+		if err == types.DeallocatedPageErr {
+			// target page was already deallocated
+			b.mutex.Unlock()
+			return nil
+		}
 		fmt.Println(err)
 		panic("ReadPage returned error!")
 		//return nil
@@ -128,6 +138,12 @@ func (b *BufferPoolManager) UnpinPage(pageID types.PageID, isDirty bool) error {
 	b.mutex.Lock()
 	//b.mutex.RLock()
 	if frameID, ok := b.pageTable[pageID]; ok {
+		if frameID == DEALLOCATED_FRAME {
+			b.mutex.Unlock()
+			// do nothing
+			return nil
+		}
+
 		pg := b.pages[frameID]
 		//b.mutex.RUnlock()
 		pg.DecPinCount()
@@ -261,53 +277,59 @@ func (b *BufferPoolManager) NewPage() *page.Page {
 	return pg
 }
 
-// DeletePage make disk space of db file which is idenfied by pageID
-func (b *BufferPoolManager) DeletePage(pageID types.PageID) error {
-	// 0.   Make sure you call DiskManager::DeallocatePage!
-	// 1.   Search the page table for the requested page (P).
-	// 1.   If P does not exist, return true.
-	// 2.   If P exists, but has a non-zero pin-count, return false. Someone is using the page.
-	// 3.   Otherwise, P can be deleted. Remove P from the page table, reset its metadata and return it to the free list.
+// DeallocatePage make disk space of db file which is idenfied by pageID
+// ATTENTION: when deallocated page is requested fetch, BPM return nil
+func (b *BufferPoolManager) DeallocatePage(pageID types.PageID) error {
+	//0.   Make sure you call DiskManager::DeallocatePage!
+	//1.   Search the page table for the requested page (P).
+	//1.   If P does not exist, return true.
+	//2.   If P exists, but has a non-zero pin-count, return false. Someone is using the page.
+	//3.   Otherwise, P can be deleted. Remove P from the page table, reset its metadata and return it to the free list.
 
-	//// operations even if the page is not on memory ////
+	// TODO: this methods effects only when b.diskManage is VirtualDiskManager Impl (BPM::DeallocatePage)
+	//       and when use this, related component should consider nil returning by FetchPage
+	if common.EnableOnMemStorage {
+		var frameID FrameID
+		var ok bool
+		b.mutex.Lock()
+		b.diskManager.DeallocatePage(pageID)
+		if frameID, ok = b.pageTable[pageID]; !ok {
+			// nothing is needed for loaded data on BPM
+			b.mutex.Unlock()
+			return nil
+		}
 
-	// do something if needed
-	b.diskManager.DeallocatePage(pageID)
-	// TODO: (SDB) implement reusable page list and add pageId to it (BufferPoolManager::DeletePage)
+		page := b.pages[frameID]
+		page.WLatch()
+		page.AddWLatchRecord(-1)
+		// avoiding flushing current content
+		page.SetIsDirty(false)
+		//if page.PinCount() > 0 {
+		//	page.RemoveWLatchRecord(-1)
+		//	page.WUnlatch()
+		//	b.mutex.Unlock()
+		//	return nil
+		//	//panic("Pin count greater than 0")
+		//	//return errors.New("Pin count greater than 0")
+		//}
 
-	////////////////////////////////////////////////////////
+		// when the page is on memory
+		//if page.GetPageId() == pageID {
 
-	var frameID FrameID
-	var ok bool
-	b.mutex.Lock()
-	if frameID, ok = b.pageTable[pageID]; !ok {
-		b.mutex.Unlock()
-		//panic("delete target page not found on pageTable")
-		return nil
-	}
+		//delete(b.pageTable, pageID)
+		b.pageTable[pageID] = DEALLOCATED_FRAME
+		// eliminate the page(frame) from cache out candidate list
+		(*b.replacer).Pin(frameID)
+		b.freeList = append(b.freeList, frameID)
 
-	page := b.pages[frameID]
-	page.WLatch()
-	page.AddWLatchRecord(-1)
-	if page.PinCount() > 0 {
+		//}
+
 		page.RemoveWLatchRecord(-1)
 		page.WUnlatch()
 		b.mutex.Unlock()
+
 		return nil
-		//panic("Pin count greater than 0")
-		//return errors.New("Pin count greater than 0")
 	}
-
-	// when the page is on memory
-	if page.GetPageId() == pageID {
-		delete(b.pageTable, pageID)
-		(*b.replacer).Pin(frameID)
-		b.freeList = append(b.freeList, frameID)
-	}
-
-	page.RemoveWLatchRecord(-1)
-	page.WUnlatch()
-	b.mutex.Unlock()
 
 	return nil
 }

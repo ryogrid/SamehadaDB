@@ -137,7 +137,7 @@ func (e *HashJoinExecutor) Next() (*tuple.Tuple, Done, error) {
 
 				// hash join finished, delete all the tmp page we created
 				for _, tmp_page_id := range e.tmp_page_ids_ {
-					e.context.GetBufferPoolManager().DeletePage(tmp_page_id)
+					e.context.GetBufferPoolManager().DeallocatePage(tmp_page_id)
 				}
 				return tmp_tuple, true, nil
 			}

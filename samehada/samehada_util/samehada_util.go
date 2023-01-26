@@ -82,14 +82,16 @@ func GetPonterOfValue(value types.Value) *types.Value {
 	return &val
 }
 
-// min length is 100
+// min length is 50
 func GetRandomStr(maxLength int32) *string {
 	alphabets :=
-		"ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz"
+		"ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz!#$%&'(),-./:;<=>?@[]^_`{|}~"
+	//"ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz"
 	var len_ int
-	for len_ < 100 {
+	for len_ < 50 {
 		len_ = 1 + (rand.Intn(math.MaxInt32))%(int(maxLength)-1)
 	}
+	//len_ = 1 + (rand.Intn(math.MaxInt32))%(int(maxLength)-1)
 
 	s := ""
 	for j := 0; j < len_; j++ {
@@ -158,8 +160,8 @@ func GetRandomPrimitiveVal[T int32 | float32 | string](keyType types.TypeID, max
 		return ret.(T)
 	case types.Varchar:
 		//var ret interface{} = *samehada_util.GetRandomStr(1000)
-		var ret interface{} = *GetRandomStr(500)
-		//var ret interface{} = *samehada_util.GetRandomStr(50)
+		//var ret interface{} = *GetRandomStr(500)
+		var ret interface{} = *GetRandomStr(200)
 		return ret.(T)
 	default:
 		panic("not supported keyType")

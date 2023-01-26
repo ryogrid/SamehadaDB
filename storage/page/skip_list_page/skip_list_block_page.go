@@ -279,6 +279,10 @@ func (node *SkipListBlockPage) Insert(key *types.Value, value uint64, bpm *buffe
 		//fmt.Println("Insert: key duplication occured.")
 		oldEntry := node.GetEntry(int(foundIdx), key.ValueType())
 		fmt.Printf("Insert: key duplication occured. %v %v\n", oldEntry.Key.ToIFValue(), key.ToIFValue())
+
+		//// TODO: for debugging. print call stack.
+		//common.RuntimeStack()
+
 		//oldValue := oldEntry.Value
 		//fmt.Printf("oldRID:%d %v newRID:%d %v\n", oldValue, samehada_util.UnpackUint64toRID(oldValue), value, samehada_util.UnpackUint64toRID(value))
 		//fmt.Printf("oldEntry in bytes:%v\n", oldEntry.Serialize())
@@ -480,6 +484,8 @@ func validateNoChangeAndGetLock(bpm *buffer.BufferPoolManager, checkNodes []Skip
 
 		isPassed := false
 		if node == nil {
+			// node has been deallocated
+
 			common.ShPrintf(common.DEBUG_INFO, "validateNoChangeAndGetLock: validation failed. go retry.\n")
 			unlockAndUnpinNodes(bpm, validatedNodes, false)
 
@@ -523,6 +529,8 @@ func validateNoChangeAndGetLock(bpm *buffer.BufferPoolManager, checkNodes []Skip
 	if additonalCheckNode != nil {
 		node := FetchAndCastToBlockPage(bpm, additonalCheckNode.PageId)
 		if node == nil {
+			// node has been deallocated
+
 			common.ShPrintf(common.DEBUG_INFO, "validateNoChangeAndGetLock: additionalCheckNode validation failed. go retry.\n")
 			unlockAndUnpinNodes(bpm, validatedNodes, false)
 			return false, nil
