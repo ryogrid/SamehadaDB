@@ -13,10 +13,13 @@
 
 # Current Status
 - SamehadaDB can be used as simple embedded DB (library form)
-  - [Simple Single Page Application Demo (TODO App)](https://todo-samehada.ryogrid.net/todo/))
+  - [Simple Single Page Application Demo (TODO App)](http://samehada.ryogrid.net:8080/todo/)))
   - Above demo uses SamehadaDB on backend API server
     - [Modification for migration from PostgreSQL to SamehadaDB we did](https://github.com/ryogrid/TODO-Fullstack-App-Go-Gin-Postgres-React/commit/48e7a9f25570e15e29a279ebc24396698bf1d80a)
-    - [All app codes](https://github.com/ryogrid/TODO-Fullstack-App-Go-Gin-Postgres-React/tree/6f00e7beb2a452522fd8818d326e7572c77cf4aa)
+    - [All app codes](https://github.com/ryogrid/TODO-Fullstack-App-Go-Gin-Postgres-React/tree/8bb5a2cb57ce8bb694e6f9b49cd5926631519dd9)
+      - builded frontend JS code is little bit modified directly for escape from re-compile...
+      - above code tree can be deployed to AWS Elastic Beanstalk (on not https and use 8080 port)
+        - PORT env should be configure to 8080 from AWS console
 - **ATTENTION: SamehadaDB is not developed for productional use! There are no warranties!**
 - By the way, procedure described on next section executes almost all defined unit tests except these of taking long time
 
