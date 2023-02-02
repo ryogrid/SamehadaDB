@@ -28,7 +28,7 @@
   - If you use Windows, you can select both Windows native environment and WSL Ubuntu environment
 - If you select Windows native environments or golang environment which is installed with package system can't execute SamehadaDB, you should install official binary directly
   - Please refer [Download and Install - The Go Programming Language](https://go.dev/doc/install)
-- Executing almost all unit tests which test several features and components of SamehadaDB except several tests taking long time
+- Executing all unit tests which test several features and components of SamehadaDB except several tests taking long time
   - $ git clone https://github.com/ryogrid/SamehadaDB.git
   - $ cd SamehadaDB
   - $ go clean -testcache; go test ./... -short -v
