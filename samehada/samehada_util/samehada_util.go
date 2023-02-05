@@ -82,16 +82,16 @@ func GetPonterOfValue(value types.Value) *types.Value {
 	return &val
 }
 
-// min length is 50
+// min length is 1
 func GetRandomStr(maxLength int32) *string {
 	alphabets :=
 		"ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz!#$%&'(),-./:;<=>?@[]^_`{|}~"
 	//"ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz"
 	var len_ int
-	for len_ < 50 {
-		len_ = 1 + (rand.Intn(math.MaxInt32))%(int(maxLength)-1)
-	}
-	//len_ = 1 + (rand.Intn(math.MaxInt32))%(int(maxLength)-1)
+	//for len_ < 50 {
+	//	len_ = 1 + (rand.Intn(math.MaxInt32))%(int(maxLength)-1)
+	//}
+	len_ = 1 + (rand.Intn(math.MaxInt32))%(int(maxLength)-1)
 
 	s := ""
 	for j := 0; j < len_; j++ {
