@@ -102,7 +102,7 @@
 - [Wiki on this repo](https://github.com/ryogrid/SamehadaDB/wiki)
 
 ## About Skip List Index SamehadaDB has
-- [Recipie of on-disk concurrent skip list for RDBMS's Index](https://gist.github.com/ryogrid/b72d9634954927ed28d80d4494fff2aa)
+- [Implementation of on-disk concurrent skip list for an alternative of B-tree Index](https://ryogrid.github.io/articles/skiplist_en)
 
 ## Advisor
 - [kumagi](https://github.com/kumagi) and more!
