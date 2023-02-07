@@ -55,7 +55,7 @@ func reconstructIndexDataOfATbl(t *catalog.TableMetadata, c *catalog.Catalog, dm
 					// zero clear specifed space of db file
 					dman.WritePage(blockPageId, zeroClearedBuf)
 				}
-			case index_constants.INDEX_KIND_SKIP_LIST:
+			case index_constants.INDEX_KIND_UNIQ_SKIP_LIST:
 				// do nothing here
 				// (Since SkipList index can't reuse past allocated pages, data clear of allocated pages
 				//  are not needed...)

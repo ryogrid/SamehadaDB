@@ -12,7 +12,7 @@ import (
 	"math"
 )
 
-type SkipListIndex struct {
+type UniqSkipListIndex struct {
 	container skip_list.SkipList
 	metadata  *IndexMetadata
 	// idx of target column on table
@@ -20,8 +20,8 @@ type SkipListIndex struct {
 	//rwlatch common.ReaderWriterLatch
 }
 
-func NewSkipListIndex(metadata *IndexMetadata, buffer_pool_manager *buffer.BufferPoolManager, col_idx uint32) *SkipListIndex {
-	ret := new(SkipListIndex)
+func NewUniqSkipListIndex(metadata *IndexMetadata, buffer_pool_manager *buffer.BufferPoolManager, col_idx uint32) *UniqSkipListIndex {
+	ret := new(UniqSkipListIndex)
 	ret.metadata = metadata
 	ret.container = *skip_list.NewSkipList(buffer_pool_manager, ret.metadata.GetTupleSchema().GetColumn(col_idx).GetType())
 	ret.col_idx = col_idx
@@ -29,7 +29,7 @@ func NewSkipListIndex(metadata *IndexMetadata, buffer_pool_manager *buffer.Buffe
 	return ret
 }
 
-func (slidx *SkipListIndex) InsertEntry(key *tuple.Tuple, rid page.RID, transaction interface{}) {
+func (slidx *UniqSkipListIndex) InsertEntry(key *tuple.Tuple, rid page.RID, transaction interface{}) {
 	//slidx.rwlatch.WLock()
 	//defer slidx.rwlatch.WUnlock()
 
@@ -39,7 +39,7 @@ func (slidx *SkipListIndex) InsertEntry(key *tuple.Tuple, rid page.RID, transact
 	slidx.container.Insert(&keyVal, samehada_util.PackRIDtoUint64(&rid))
 }
 
-func (slidx *SkipListIndex) DeleteEntry(key *tuple.Tuple, rid page.RID, transaction interface{}) {
+func (slidx *UniqSkipListIndex) DeleteEntry(key *tuple.Tuple, rid page.RID, transaction interface{}) {
 	//slidx.rwlatch.WLock()
 	//defer slidx.rwlatch.WUnlock()
 
@@ -48,11 +48,11 @@ func (slidx *SkipListIndex) DeleteEntry(key *tuple.Tuple, rid page.RID, transact
 
 	isSuccess := slidx.container.Remove(&keyVal, samehada_util.PackRIDtoUint64(&rid))
 	if isSuccess == false {
-		panic(fmt.Sprintf("SkipListIndex::DeleteEntry: %v %v\n", keyVal.ToIFValue(), rid))
+		panic(fmt.Sprintf("UniqSkipListIndex::DeleteEntry: %v %v\n", keyVal.ToIFValue(), rid))
 	}
 }
 
-func (slidx *SkipListIndex) ScanKey(key *tuple.Tuple, transaction interface{}) []page.RID {
+func (slidx *UniqSkipListIndex) ScanKey(key *tuple.Tuple, transaction interface{}) []page.RID {
 	//slidx.rwlatch.RLock()
 	//defer slidx.rwlatch.RUnlock()
 
@@ -68,7 +68,7 @@ func (slidx *SkipListIndex) ScanKey(key *tuple.Tuple, transaction interface{}) [
 	return ret_arr
 }
 
-func (slidx *SkipListIndex) UpdateEntry(oldKey *tuple.Tuple, oldRID page.RID, newKey *tuple.Tuple, newRID page.RID, transaction interface{}) {
+func (slidx *UniqSkipListIndex) UpdateEntry(oldKey *tuple.Tuple, oldRID page.RID, newKey *tuple.Tuple, newRID page.RID, transaction interface{}) {
 	//slidx.rwlatch.WLock()
 	//defer slidx.rwlatch.WUnlock()
 
@@ -79,7 +79,7 @@ func (slidx *SkipListIndex) UpdateEntry(oldKey *tuple.Tuple, oldRID page.RID, ne
 // get iterator which iterates entry in key sorted order
 // and iterates specified key range.
 // when start_key arg is nil , start point is head of entry list. when end_key, end point is tail of the list
-func (slidx *SkipListIndex) GetRangeScanIterator(start_key *tuple.Tuple, end_key *tuple.Tuple, transaction interface{}) IndexRangeScanIterator {
+func (slidx *UniqSkipListIndex) GetRangeScanIterator(start_key *tuple.Tuple, end_key *tuple.Tuple, transaction interface{}) IndexRangeScanIterator {
 	tupleSchema_ := slidx.GetTupleSchema()
 	var start_val *types.Value = nil
 	if start_key != nil {
@@ -95,20 +95,20 @@ func (slidx *SkipListIndex) GetRangeScanIterator(start_key *tuple.Tuple, end_key
 }
 
 // Return the metadata object associated with the index
-func (slidx *SkipListIndex) GetMetadata() *IndexMetadata { return slidx.metadata }
+func (slidx *UniqSkipListIndex) GetMetadata() *IndexMetadata { return slidx.metadata }
 
-func (slidx *SkipListIndex) GetIndexColumnCount() uint32 {
+func (slidx *UniqSkipListIndex) GetIndexColumnCount() uint32 {
 	return slidx.metadata.GetIndexColumnCount()
 }
 
-func (slidx *SkipListIndex) GetName() *string { return slidx.metadata.GetName() }
+func (slidx *UniqSkipListIndex) GetName() *string { return slidx.metadata.GetName() }
 
-func (slidx *SkipListIndex) GetTupleSchema() *schema.Schema {
+func (slidx *UniqSkipListIndex) GetTupleSchema() *schema.Schema {
 	return slidx.metadata.GetTupleSchema()
 }
 
-func (slidx *SkipListIndex) GetKeyAttrs() []uint32 { return slidx.metadata.GetKeyAttrs() }
+func (slidx *UniqSkipListIndex) GetKeyAttrs() []uint32 { return slidx.metadata.GetKeyAttrs() }
 
-func (slidx *SkipListIndex) GetHeaderPageId() types.PageID {
+func (slidx *UniqSkipListIndex) GetHeaderPageId() types.PageID {
 	return slidx.container.GetHeaderPageId()
 }

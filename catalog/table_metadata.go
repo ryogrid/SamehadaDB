@@ -43,10 +43,10 @@ func NewTableMetadata(schema *schema.Schema, name string, table *access.TableHea
 				// because first allocation occurs when table creation is processed (not launched DB instace from existing db file which has difinition of this table)
 				// so, for first allocation case, allocated page GetPageId of header page need to be set to column info here
 				column_.SetIndexHeaderPageId(hIdx.GetHeaderPageId())
-			case index_constants.INDEX_KIND_SKIP_LIST:
+			case index_constants.INDEX_KIND_UNIQ_SKIP_LIST:
 				// currently, SkipList Index always use new pages even if relaunch
 				im := index.NewIndexMetadata(column_.GetColumnName()+"_index", name, schema, []uint32{uint32(idx)})
-				slIdx := index.NewSkipListIndex(im, table.GetBufferPoolManager(), uint32(idx))
+				slIdx := index.NewUniqSkipListIndex(im, table.GetBufferPoolManager(), uint32(idx))
 				indexes = append(indexes, slIdx)
 				//column_.SetIndexHeaderPageId(slIdx.GetHeaderPageId())
 			default:

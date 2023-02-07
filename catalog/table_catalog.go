@@ -84,7 +84,7 @@ func RecoveryCatalogFromCatalogPage(bpm *buffer.BufferPoolManager, log_manager *
 			indexKind := tuple.GetValue(ColumnsCatalogSchema(), ColumnsCatalogSchema().GetColIndex("index_kind")).ToInteger()
 			indexHeaderPageId := tuple.GetValue(ColumnsCatalogSchema(), ColumnsCatalogSchema().GetColIndex("index_header_page_id")).ToInteger()
 
-			column_ := column.NewColumn(columnName, types.TypeID(columnType), false, index_constants.INDEX_KIND_INVAID, types.PageID(indexHeaderPageId), nil)
+			column_ := column.NewColumn(columnName, types.TypeID(columnType), false, index_constants.INDEX_KIND_INVALID, types.PageID(indexHeaderPageId), nil)
 			column_.SetFixedLength(uint32(fixedLength))
 			column_.SetVariableLength(uint32(variableLength))
 			column_.SetOffset(uint32(columnOffset))

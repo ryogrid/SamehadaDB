@@ -34,7 +34,7 @@ func TestTableCatalogReload(t *testing.T) {
 	txn := samehada_instance.GetTransactionManager().Begin(nil)
 	catalog_old := catalog.BootstrapCatalog(bpm, samehada_instance.GetLogManager(), samehada_instance.GetLockManager(), txn)
 
-	columnA := column.NewColumn("a", types.Integer, false, index_constants.INDEX_KIND_INVAID, types.PageID(-1), nil)
+	columnA := column.NewColumn("a", types.Integer, false, index_constants.INDEX_KIND_INVALID, types.PageID(-1), nil)
 	columnB := column.NewColumn("b", types.Integer, true, index_constants.INDEX_KIND_HASH, types.PageID(-1), nil)
 	schema_ := schema.NewSchema([]*column.Column{columnA, columnB})
 
