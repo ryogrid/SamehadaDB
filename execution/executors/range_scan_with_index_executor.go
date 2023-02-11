@@ -35,62 +35,13 @@ func NewRangeScanWithIndexExecutor(context *ExecutorContext, plan *plans.RangeSc
 func (e *RangeScanWithIndexExecutor) Init() {
 	schema_ := e.tableMetadata.Schema()
 
-	//colIdxOfPred := comparison.GetLeftSideColIdx()
-	//colNum := int(e.tableMetadata.GetColumnNum())
-	//var index_ index.Index = nil
-	//var indexColNum int = -1
-	//for {
-	//	index_ = nil
-	//	for ii := indexColNum + 1; ii < colNum; ii++ {
-	//		ret := e.tableMetadata.GetIndex(ii)
-	//		if ret == nil {
-	//			continue
-	//		} else {
-	//			index_ = ret
-	//			indexColNum = ii
-	//			break
-	//		}
-	//	}
-	//
-	//	if index_ == nil || indexColNum == -1 {
-	//		fmt.Printf("colIdxOfPred=%d,indexColNum=%d\n", colIdxOfPred, indexColNum)
-	//		panic("RangeScanWithIndexExecutor assumes that table which has index are passed.")
-	//	}
-	//	if colIdxOfPred != uint32(indexColNum) {
-	//		// find next index having column
-	//		continue
-	//	}
-	//	break
-	//}
-
 	indexColNum := int(e.plan.GetColIdx())
 	index_ := e.tableMetadata.GetIndex(indexColNum)
 
 	dummyTupleStart := tuple.GenTupleForIndexSearch(schema_, uint32(indexColNum), e.plan.GetStartRange())
 	dummyTupleEnd := tuple.GenTupleForIndexSearch(schema_, uint32(indexColNum), e.plan.GetEndRange())
 	e.ridItr = index_.GetRangeScanIterator(dummyTupleStart, dummyTupleEnd, e.txn)
-
-	// currently result num is one
-	//rids := index_.ScanKey(dummyTuple, e.txn)
-	//for _, rid := range rids {
-	//	tuple_ := e.tableMetadata.Table().GetTuple(&rid, e.txn)
-	//	if tuple_ == nil {
-	//		e.foundTuples = make([]*tuple.Tuple, 0)
-	//		return
-	//	}
-	//	e.foundTuples = append(e.foundTuples, tuple_)
-	//}
 }
-
-//func (e *RangeScanWithIndexExecutor) Next() (*tuple.Tuple, Done, error) {
-//	if len(e.foundTuples) > 0 {
-//		tuple_ := e.foundTuples[0]
-//		e.foundTuples = e.foundTuples[1:]
-//		return e.projects(tuple_), false, nil
-//	}
-//
-//	return nil, true, nil
-//}
 
 // Next implements the next method for the sequential scan operator
 // It uses the table heap iterator to iterate through the table heap
@@ -115,6 +66,11 @@ func (e *RangeScanWithIndexExecutor) Next() (*tuple.Tuple, Done, error) {
 		if e.txn.GetState() == access.ABORTED {
 			return nil, true, access.ErrGeneral
 		}
+
+		//metadata.GetTupleSchema().GetColumn(col_idx).GetType())
+
+		// TODO: (SDB) when Index is SkipListIndex (not UniqSkipListIndex), original key is deserialized from key variable
+		//             to do above, using switch syntax with type check is needed
 
 		// check value update after getting iterator which contains snapshot of RIDs and Keys which were stored in Index
 		curKeyVal := tuple_.GetValue(e.tableMetadata.Schema(), uint32(e.plan.GetColIdx()))

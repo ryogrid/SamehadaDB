@@ -20,12 +20,14 @@ type SkipListIndex struct {
 	//rwlatch common.ReaderWriterLatch
 }
 
-// TODO: (SDB) all function and methods should be modified appropriately to support key duplication
-
 func NewSkipListIndex(metadata *IndexMetadata, buffer_pool_manager *buffer.BufferPoolManager, col_idx uint32) *SkipListIndex {
 	ret := new(SkipListIndex)
 	ret.metadata = metadata
-	ret.container = *skip_list.NewSkipList(buffer_pool_manager, ret.metadata.GetTupleSchema().GetColumn(col_idx).GetType())
+	//ret.container = *skip_list.NewSkipList(buffer_pool_manager, ret.metadata.GetTupleSchema().GetColumn(col_idx).GetType())
+
+	// SkipListIndex uses special technique to support key duplication with SkipList supporting unique key only
+	// for the thechnique, key type is fixed to Varchar (comparison is done on dict order as byte array)
+	ret.container = *skip_list.NewSkipList(buffer_pool_manager, types.Varchar)
 	ret.col_idx = col_idx
 	//ret.rwlatch = common.NewRWLatch()
 	return ret
@@ -109,7 +111,6 @@ func (slidx *SkipListIndex) GetRangeScanIterator(start_key *tuple.Tuple, end_key
 		biggestKeyVal = types.NewValueFromBytes(biggestKeyValBytes, types.Varchar)
 	}
 
-	// TODO: (SDB) Kyes on got itr may be replaced original value...
 	// Attention: returned itr's containing keys are string type Value which is constructed with byte arr of concatenated  original key and value
 	return slidx.container.Iterator(smallestKeyVal, biggestKeyVal)
 }
