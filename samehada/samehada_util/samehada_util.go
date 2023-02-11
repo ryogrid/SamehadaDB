@@ -234,7 +234,7 @@ func StrideMul(base interface{}, k interface{}) interface{} {
 }
 
 // note: this converts with considering endian of program execution environment
-func convToDicOrderComparableBytes[T int32 | float32](orgVal T, valType types.TypeID) []byte {
+func encodeToDicOrderComparableBytes[T int32 | float32](orgVal T, valType types.TypeID) []byte {
 	// TODO: (SDB) need implement ConvToDicOrderComparableBytes
 	if valType == types.Float {
 		const signMask uint32 = 0x80000000
@@ -248,6 +248,26 @@ func convToDicOrderComparableBytes[T int32 | float32](orgVal T, valType types.Ty
 		retBuf := new(bytes.Buffer)
 		binary.Write(retBuf, binary.BigEndian, u)
 		return retBuf.Bytes()
+	}
+
+	panic("not implemented yet")
+}
+
+// note: this converts with considering endian of program execution environment
+func decodeToDicOrderComparableBytes(convedArr []byte, valType types.TypeID) interface{} {
+	// TODO: (SDB) need implement ConvToDicOrderComparableBytes
+	if valType == types.Float {
+		const signMask uint32 = 0x80000000
+		buf := bytes.NewBuffer(convedArr)
+		var u uint32
+		binary.Read(buf, binary.BigEndian, &u)
+
+		if u&signMask > 0 {
+			u &= ^signMask
+		} else {
+			u = ^u
+		}
+		return math.Float32frombits(u)
 	}
 
 	panic("not implemented yet")
