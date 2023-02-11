@@ -84,7 +84,7 @@
   - Currently, functions of the library are not thread safe and concurrent transaction is not supported
 - [ ] Deduplication of Result Records (Distinct)
 - [ ] Query Optimization
-- [ ] AS clause (View Management)
+- [ ] AS clause
 - [ ] JOIN (more than two tables)
 - [ ] Nested Query
 - [ ] DB Connector (Driver) or Other Kind Access Interface
