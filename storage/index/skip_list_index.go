@@ -66,22 +66,20 @@ func (slidx *SkipListIndex) ScanKey(key *tuple.Tuple, txn interface{}) []page.RI
 
 	tupleSchema_ := slidx.GetTupleSchema()
 	orgKeyVal := key.GetValue(tupleSchema_, slidx.col_idx)
-	smallestKeyValBytes := samehada_util.ConvValueAndRIDToDicOrderComparableBytes(&orgKeyVal, &page.RID{-1, 0})
+	smallestKeyValBytes := samehada_util.ConvValueAndRIDToDicOrderComparableBytes(&orgKeyVal, &page.RID{0, 0})
 	smallestKeyVal := types.NewValueFromBytes(smallestKeyValBytes, types.Varchar)
 	biggestKeyValBytes := samehada_util.ConvValueAndRIDToDicOrderComparableBytes(&orgKeyVal, &page.RID{math.MaxInt32, math.MaxUint32})
 	biggestKeyVal := types.NewValueFromBytes(biggestKeyValBytes, types.Varchar)
 
+	// Attention: returned itr's containing keys are string type Value which is constructed with byte arr of concatenated  original key and value
 	rangeItr := slidx.container.Iterator(smallestKeyVal, biggestKeyVal)
 
-	// TODO: (SDB) impl of this file under this line is not done yet
-
-	ret_arr := make([]page.RID, 0)
-	packed_value := slidx.container.GetValue(&keyVal)
-	if packed_value != math.MaxUint64 {
-		// when packed_vale == math.MaxUint32 => true, keyVal is not found on index
-		ret_arr = append(ret_arr, samehada_util.UnpackUint64toRID(packed_value))
+	retArr := make([]page.RID, 0)
+	for done, _, _, rid := rangeItr.Next(); !done; done, _, _, rid = rangeItr.Next() {
+		retArr = append(retArr, *rid)
 	}
-	return ret_arr
+
+	return retArr
 }
 
 func (slidx *SkipListIndex) UpdateEntry(oldKey *tuple.Tuple, oldRID page.RID, newKey *tuple.Tuple, newRID page.RID, txn interface{}) {
@@ -97,17 +95,23 @@ func (slidx *SkipListIndex) UpdateEntry(oldKey *tuple.Tuple, oldRID page.RID, ne
 // when start_key arg is nil , start point is head of entry list. when end_key, end point is tail of the list
 func (slidx *SkipListIndex) GetRangeScanIterator(start_key *tuple.Tuple, end_key *tuple.Tuple, transaction interface{}) IndexRangeScanIterator {
 	tupleSchema_ := slidx.GetTupleSchema()
-	var start_val *types.Value = nil
+	var smallestKeyVal *types.Value = nil
 	if start_key != nil {
-		start_val = samehada_util.GetPonterOfValue(start_key.GetValue(tupleSchema_, slidx.col_idx))
+		orgStartKeyVal := start_key.GetValue(tupleSchema_, slidx.col_idx)
+		smallestKeyValBytes := samehada_util.ConvValueAndRIDToDicOrderComparableBytes(&orgStartKeyVal, &page.RID{0, 0})
+		smallestKeyVal = types.NewValueFromBytes(smallestKeyValBytes, types.Varchar)
 	}
 
-	var end_val *types.Value = nil
+	var biggestKeyVal *types.Value = nil
 	if end_key != nil {
-		end_val = samehada_util.GetPonterOfValue(end_key.GetValue(tupleSchema_, slidx.col_idx))
+		orgEndKeyVal := end_key.GetValue(tupleSchema_, slidx.col_idx)
+		biggestKeyValBytes := samehada_util.ConvValueAndRIDToDicOrderComparableBytes(&orgEndKeyVal, &page.RID{math.MaxInt32, math.MaxUint32})
+		biggestKeyVal = types.NewValueFromBytes(biggestKeyValBytes, types.Varchar)
 	}
 
-	return slidx.container.Iterator(start_val, end_val)
+	// TODO: (SDB) Kyes on got itr may be replaced original value...
+	// Attention: returned itr's containing keys are string type Value which is constructed with byte arr of concatenated  original key and value
+	return slidx.container.Iterator(smallestKeyVal, biggestKeyVal)
 }
 
 // Return the metadata object associated with the index
