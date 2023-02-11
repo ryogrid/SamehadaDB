@@ -31,35 +31,49 @@ func NewSkipListIndex(metadata *IndexMetadata, buffer_pool_manager *buffer.Buffe
 	return ret
 }
 
-func (slidx *SkipListIndex) InsertEntry(key *tuple.Tuple, rid page.RID, transaction interface{}) {
+func (slidx *SkipListIndex) InsertEntry(key *tuple.Tuple, rid page.RID, txn interface{}) {
 	//slidx.rwlatch.WLock()
 	//defer slidx.rwlatch.WUnlock()
 
 	tupleSchema_ := slidx.GetTupleSchema()
-	keyVal := key.GetValue(tupleSchema_, slidx.col_idx)
+	orgKeyVal := key.GetValue(tupleSchema_, slidx.col_idx)
+	convedKeyValBytes := samehada_util.ConvValueAndRIDToDicOrderComparableBytes(&orgKeyVal, &rid)
 
-	slidx.container.Insert(&keyVal, samehada_util.PackRIDtoUint64(&rid))
+	convedKeyVal := types.NewValueFromBytes(convedKeyValBytes, types.Varchar)
+
+	slidx.container.Insert(convedKeyVal, samehada_util.PackRIDtoUint64(&rid))
 }
 
-func (slidx *SkipListIndex) DeleteEntry(key *tuple.Tuple, rid page.RID, transaction interface{}) {
+func (slidx *SkipListIndex) DeleteEntry(key *tuple.Tuple, rid page.RID, txn interface{}) {
 	//slidx.rwlatch.WLock()
 	//defer slidx.rwlatch.WUnlock()
 
 	tupleSchema_ := slidx.GetTupleSchema()
-	keyVal := key.GetValue(tupleSchema_, slidx.col_idx)
+	orgKeyVal := key.GetValue(tupleSchema_, slidx.col_idx)
+	convedKeyValBytes := samehada_util.ConvValueAndRIDToDicOrderComparableBytes(&orgKeyVal, &rid)
 
-	isSuccess := slidx.container.Remove(&keyVal, samehada_util.PackRIDtoUint64(&rid))
+	convedKeyVal := types.NewValueFromBytes(convedKeyValBytes, types.Varchar)
+
+	isSuccess := slidx.container.Remove(convedKeyVal, 0)
 	if isSuccess == false {
-		panic(fmt.Sprintf("SkipListIndex::DeleteEntry: %v %v\n", keyVal.ToIFValue(), rid))
+		panic(fmt.Sprintf("SkipListIndex::DeleteEntry: %v %v\n", convedKeyVal.ToIFValue(), rid))
 	}
 }
 
-func (slidx *SkipListIndex) ScanKey(key *tuple.Tuple, transaction interface{}) []page.RID {
+func (slidx *SkipListIndex) ScanKey(key *tuple.Tuple, txn interface{}) []page.RID {
 	//slidx.rwlatch.RLock()
 	//defer slidx.rwlatch.RUnlock()
 
 	tupleSchema_ := slidx.GetTupleSchema()
-	keyVal := key.GetValue(tupleSchema_, slidx.col_idx)
+	orgKeyVal := key.GetValue(tupleSchema_, slidx.col_idx)
+	smallestKeyValBytes := samehada_util.ConvValueAndRIDToDicOrderComparableBytes(&orgKeyVal, &page.RID{-1, 0})
+	smallestKeyVal := types.NewValueFromBytes(smallestKeyValBytes, types.Varchar)
+	biggestKeyValBytes := samehada_util.ConvValueAndRIDToDicOrderComparableBytes(&orgKeyVal, &page.RID{math.MaxInt32, math.MaxUint32})
+	biggestKeyVal := types.NewValueFromBytes(biggestKeyValBytes, types.Varchar)
+
+	rangeItr := slidx.container.Iterator(smallestKeyVal, biggestKeyVal)
+
+	// TODO: (SDB) impl of this file under this line is not done yet
 
 	ret_arr := make([]page.RID, 0)
 	packed_value := slidx.container.GetValue(&keyVal)
@@ -70,12 +84,12 @@ func (slidx *SkipListIndex) ScanKey(key *tuple.Tuple, transaction interface{}) [
 	return ret_arr
 }
 
-func (slidx *SkipListIndex) UpdateEntry(oldKey *tuple.Tuple, oldRID page.RID, newKey *tuple.Tuple, newRID page.RID, transaction interface{}) {
+func (slidx *SkipListIndex) UpdateEntry(oldKey *tuple.Tuple, oldRID page.RID, newKey *tuple.Tuple, newRID page.RID, txn interface{}) {
 	//slidx.rwlatch.WLock()
 	//defer slidx.rwlatch.WUnlock()
 
-	slidx.DeleteEntry(oldKey, oldRID, transaction)
-	slidx.InsertEntry(newKey, newRID, transaction)
+	slidx.DeleteEntry(oldKey, oldRID, txn)
+	slidx.InsertEntry(newKey, newRID, txn)
 }
 
 // get iterator which iterates entry in key sorted order

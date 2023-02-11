@@ -233,6 +233,17 @@ func StrideMul(base interface{}, k interface{}) interface{} {
 	}
 }
 
+// note: this converts with considering endian of program execution environment
+func convToDicOrderComparableBytes[T int32 | float32](orgVal T) []byte {
+	// TODO: (SDB) need implement ConvToDicOrderComparableBytes
+	panic("not implemented yet")
+}
+
+func ConvValueAndRIDToDicOrderComparableBytes(orgVal *types.Value, rid *page.RID) []byte {
+	// TODO: (SDB) need implement ConvToDicOrderComparableBytes
+	panic("not implemented yet")
+}
+
 func TimeoutPanic() {
 	common.RuntimeStack()
 	os.Stdout.Sync()
