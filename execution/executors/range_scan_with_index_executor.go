@@ -83,6 +83,7 @@ func (e *RangeScanWithIndexExecutor) Next() (*tuple.Tuple, Done, error) {
 			}
 		case *index.SkipListIndex:
 			orgKeyBytes := []byte(key.ToString())
+			// TODO: (SDB) conversion of byte array is needed before getting Value type instance
 			orgKey := types.NewValueFromBytes(orgKeyBytes[:len(orgKeyBytes)-8], orgKeyType) // Value part is 8bytes fixed
 			if !curKeyVal.CompareEquals(*orgKey) {
 				// column value corresponding index key is updated

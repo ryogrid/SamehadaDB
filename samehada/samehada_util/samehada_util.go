@@ -234,8 +234,22 @@ func StrideMul(base interface{}, k interface{}) interface{} {
 }
 
 // note: this converts with considering endian of program execution environment
-func convToDicOrderComparableBytes[T int32 | float32](orgVal T) []byte {
+func convToDicOrderComparableBytes[T int32 | float32](orgVal T, valType types.TypeID) []byte {
 	// TODO: (SDB) need implement ConvToDicOrderComparableBytes
+	if valType == types.Float {
+		const signMask uint32 = 0x80000000
+		f := orgVal.(float32)
+		u := math.Float32bits(f)
+		if f >= 0 {
+			u |= signMask
+		} else {
+			u = ^u
+		}
+		retBuf := new(bytes.Buffer)
+		binary.Write(retBuf, binary.BigEndian, u)
+		return retBuf.Bytes()
+	}
+
 	panic("not implemented yet")
 }
 

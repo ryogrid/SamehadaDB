@@ -147,7 +147,7 @@ func (transaction_manager *TransactionManager) Abort(catalog_ catalog_interface.
 	RIDConvMap := make(map[page.RID]*page.RID, 0)
 	convRID := func(orgRID *page.RID) (convedRID *page.RID) {
 		if tmpRID, ok := RIDConvMap[*orgRID]; ok {
-			fmt.Println("Abort: RID conversion occured.")
+			//fmt.Println("Abort: RID conversion occured.")
 			return tmpRID
 		} else {
 			return orgRID
