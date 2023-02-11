@@ -50,6 +50,11 @@ func (e *RangeScanWithIndexExecutor) Next() (*tuple.Tuple, Done, error) {
 	// iterates through the RIDs got from index
 	var tuple_ *tuple.Tuple = nil
 	var err error = nil
+
+	indexColNum := int(e.plan.GetColIdx())
+	index_ := e.tableMetadata.GetIndex(indexColNum)
+	orgKeyType := index_.GetMetadata().GetTupleSchema().GetColumn(uint32(indexColNum)).GetType()
+
 	for done, _, key, rid := e.ridItr.Next(); !done; done, _, key, rid = e.ridItr.Next() {
 		tuple_, err = e.tableMetadata.Table().GetTuple(rid, e.txn)
 		if tuple_ == nil && (err == nil || err == access.ErrGeneral) {
@@ -67,18 +72,25 @@ func (e *RangeScanWithIndexExecutor) Next() (*tuple.Tuple, Done, error) {
 			return nil, true, access.ErrGeneral
 		}
 
-		//metadata.GetTupleSchema().GetColumn(col_idx).GetType())
-
-		// TODO: (SDB) when Index is SkipListIndex (not UniqSkipListIndex), original key is deserialized from key variable
-		//             to do above, using switch syntax with type check is needed
-
 		// check value update after getting iterator which contains snapshot of RIDs and Keys which were stored in Index
 		curKeyVal := tuple_.GetValue(e.tableMetadata.Schema(), uint32(e.plan.GetColIdx()))
-		if !curKeyVal.CompareEquals(*key) {
-			// column value corresponding index key is updated
-			e.txn.SetState(access.ABORTED)
-			return nil, true, errors.New("detect value update after iterator created. changes transaction state to aborted.")
+		switch index_.(type) {
+		case *index.UniqSkipListIndex:
+			if !curKeyVal.CompareEquals(*key) {
+				// column value corresponding index key is updated
+				e.txn.SetState(access.ABORTED)
+				return nil, true, errors.New("detect value update after iterator created. changes transaction state to aborted.")
+			}
+		case *index.SkipListIndex:
+			orgKeyBytes := []byte(key.ToString())
+			orgKey := types.NewValueFromBytes(orgKeyBytes[:len(orgKeyBytes)-8], orgKeyType) // Value part is 8bytes fixed
+			if !curKeyVal.CompareEquals(*orgKey) {
+				// column value corresponding index key is updated
+				e.txn.SetState(access.ABORTED)
+				return nil, true, errors.New("detect value update after iterator created. changes transaction state to aborted.")
+			}
 		}
+
 		// check predicate
 		if e.selects(tuple_, e.plan.GetPredicate()) {
 			tuple_.SetRID(rid)
