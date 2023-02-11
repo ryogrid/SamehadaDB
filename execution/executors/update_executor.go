@@ -136,10 +136,10 @@ func (e *UpdateExecutor) Next() (*tuple.Tuple, Done, error) {
 
 						//// TODO: for debugging!!!
 						//fmt.Printf("do Upsert: %d\n", updateTuple.GetValue(e.GetTableMetaData().Schema(), 1).ToInteger())
-						// do UPSERT
-						index_.InsertEntry(updateTuple, *new_rid, e.txn)
+						//// do UPSERT
+						//index_.InsertEntry(updateTuple, *new_rid, e.txn)
 
-						//index_.UpdateEntry(t, *rid, updateTuple, *new_rid, e.txn)
+						index_.UpdateEntry(t, *rid, updateTuple, *new_rid, e.txn)
 					} else {
 						//index_.UpdateEntry(t, *rid, updateTuple, *rid, e.txn)
 

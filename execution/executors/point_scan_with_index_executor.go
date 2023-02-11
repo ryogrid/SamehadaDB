@@ -1,13 +1,11 @@
 package executors
 
 import (
-	"fmt"
 	"github.com/ryogrid/SamehadaDB/samehada/samehada_util"
 
 	"github.com/ryogrid/SamehadaDB/catalog"
 	"github.com/ryogrid/SamehadaDB/execution/plans"
 	"github.com/ryogrid/SamehadaDB/storage/access"
-	"github.com/ryogrid/SamehadaDB/storage/index"
 	"github.com/ryogrid/SamehadaDB/storage/table/schema"
 	"github.com/ryogrid/SamehadaDB/storage/tuple"
 	"github.com/ryogrid/SamehadaDB/types"
@@ -36,40 +34,54 @@ func (e *PointScanWithIndexExecutor) Init() {
 	schema_ := e.tableMetadata.Schema()
 	colIdxOfPred := comparison.GetLeftSideColIdx()
 
-	colNum := int(e.tableMetadata.GetColumnNum())
+	//colNum := int(e.tableMetadata.GetColumnNum())
+	//
+	//var index_ index.Index = nil
+	//var indexColNum int = -1
+	//for {
+	//	index_ = nil
+	//	for ii := indexColNum + 1; ii < colNum; ii++ {
+	//		ret := e.tableMetadata.GetIndex(ii)
+	//		if ret == nil {
+	//			continue
+	//		} else {
+	//			index_ = ret
+	//			indexColNum = ii
+	//			break
+	//		}
+	//	}
+	//
+	//	if index_ == nil || indexColNum == -1 {
+	//		fmt.Printf("colIdxOfPred=%d,indexColNum=%d\n", colIdxOfPred, indexColNum)
+	//		panic("PointScanWithIndexExecutor assumes that table which has index are passed.")
+	//	}
+	//	if colIdxOfPred != uint32(indexColNum) {
+	//		// find next index having column
+	//		continue
+	//	}
+	//	break
+	//}
+	//
+	//dummyTuple := tuple.GenTupleForIndexSearch(schema_, uint32(indexColNum), samehada_util.GetPonterOfValue(comparison.GetRightSideValue(nil, schema_)))
 
-	var index_ index.Index = nil
-	var indexColNum int = -1
-	for {
-		index_ = nil
-		for ii := indexColNum + 1; ii < colNum; ii++ {
-			ret := e.tableMetadata.GetIndex(ii)
-			if ret == nil {
-				continue
-			} else {
-				index_ = ret
-				indexColNum = ii
-				break
-			}
-		}
-
-		if index_ == nil || indexColNum == -1 {
-			fmt.Printf("colIdxOfPred=%d,indexColNum=%d\n", colIdxOfPred, indexColNum)
-			panic("PointScanWithIndexExecutor assumes that table which has index are passed.")
-		}
-		if colIdxOfPred != uint32(indexColNum) {
-			// find next index having column
-			continue
-		}
-		break
+	index_ := e.tableMetadata.GetIndex(int(colIdxOfPred))
+	if index_ == nil {
+		panic("PointScanWithIndexExecutor assumed index does not exist!.")
 	}
 
-	dummyTuple := tuple.GenTupleForIndexSearch(schema_, uint32(indexColNum), samehada_util.GetPonterOfValue(comparison.GetRightSideValue(nil, schema_)))
+	scanKey := samehada_util.GetPonterOfValue(comparison.GetRightSideValue(nil, schema_))
+	dummyTuple := tuple.GenTupleForIndexSearch(schema_, uint32(colIdxOfPred), scanKey)
 	rids := index_.ScanKey(dummyTuple, e.txn)
 	for _, rid := range rids {
 		tuple_, err := e.tableMetadata.Table().GetTuple(&rid, e.txn)
 		if tuple_ == nil && err != access.ErrSelfDeletedCase {
 			//fmt.Println("PointScanWithIndexExecutor:Init ErrSelfDeletedCase!")
+			e.foundTuples = make([]*tuple.Tuple, 0)
+			e.txn.SetState(access.ABORTED)
+			return
+		}
+		if !tuple_.GetValue(schema_, colIdxOfPred).CompareEquals(*scanKey) {
+			// found record is updated and commited case
 			e.foundTuples = make([]*tuple.Tuple, 0)
 			e.txn.SetState(access.ABORTED)
 			return
