@@ -39,7 +39,7 @@ func (slidx *SkipListIndex) InsertEntry(key *tuple.Tuple, rid page.RID, txn inte
 
 	tupleSchema_ := slidx.GetTupleSchema()
 	orgKeyVal := key.GetValue(tupleSchema_, slidx.col_idx)
-	convedKeyValBytes := samehada_util.ConvValueAndRIDToDicOrderComparableBytes(&orgKeyVal, &rid)
+	convedKeyValBytes := samehada_util.EncodeValueAndRIDToDicOrderComparableBytes(&orgKeyVal, &rid)
 
 	convedKeyVal := types.NewValueFromBytes(convedKeyValBytes, types.Varchar)
 
@@ -52,7 +52,7 @@ func (slidx *SkipListIndex) DeleteEntry(key *tuple.Tuple, rid page.RID, txn inte
 
 	tupleSchema_ := slidx.GetTupleSchema()
 	orgKeyVal := key.GetValue(tupleSchema_, slidx.col_idx)
-	convedKeyValBytes := samehada_util.ConvValueAndRIDToDicOrderComparableBytes(&orgKeyVal, &rid)
+	convedKeyValBytes := samehada_util.EncodeValueAndRIDToDicOrderComparableBytes(&orgKeyVal, &rid)
 
 	convedKeyVal := types.NewValueFromBytes(convedKeyValBytes, types.Varchar)
 
@@ -68,9 +68,9 @@ func (slidx *SkipListIndex) ScanKey(key *tuple.Tuple, txn interface{}) []page.RI
 
 	tupleSchema_ := slidx.GetTupleSchema()
 	orgKeyVal := key.GetValue(tupleSchema_, slidx.col_idx)
-	smallestKeyValBytes := samehada_util.ConvValueAndRIDToDicOrderComparableBytes(&orgKeyVal, &page.RID{0, 0})
+	smallestKeyValBytes := samehada_util.EncodeValueAndRIDToDicOrderComparableBytes(&orgKeyVal, &page.RID{0, 0})
 	smallestKeyVal := types.NewValueFromBytes(smallestKeyValBytes, types.Varchar)
-	biggestKeyValBytes := samehada_util.ConvValueAndRIDToDicOrderComparableBytes(&orgKeyVal, &page.RID{math.MaxInt32, math.MaxUint32})
+	biggestKeyValBytes := samehada_util.EncodeValueAndRIDToDicOrderComparableBytes(&orgKeyVal, &page.RID{math.MaxInt32, math.MaxUint32})
 	biggestKeyVal := types.NewValueFromBytes(biggestKeyValBytes, types.Varchar)
 
 	// Attention: returned itr's containing keys are string type Value which is constructed with byte arr of concatenated  original key and value
@@ -100,14 +100,14 @@ func (slidx *SkipListIndex) GetRangeScanIterator(start_key *tuple.Tuple, end_key
 	var smallestKeyVal *types.Value = nil
 	if start_key != nil {
 		orgStartKeyVal := start_key.GetValue(tupleSchema_, slidx.col_idx)
-		smallestKeyValBytes := samehada_util.ConvValueAndRIDToDicOrderComparableBytes(&orgStartKeyVal, &page.RID{0, 0})
+		smallestKeyValBytes := samehada_util.EncodeValueAndRIDToDicOrderComparableBytes(&orgStartKeyVal, &page.RID{0, 0})
 		smallestKeyVal = types.NewValueFromBytes(smallestKeyValBytes, types.Varchar)
 	}
 
 	var biggestKeyVal *types.Value = nil
 	if end_key != nil {
 		orgEndKeyVal := end_key.GetValue(tupleSchema_, slidx.col_idx)
-		biggestKeyValBytes := samehada_util.ConvValueAndRIDToDicOrderComparableBytes(&orgEndKeyVal, &page.RID{math.MaxInt32, math.MaxUint32})
+		biggestKeyValBytes := samehada_util.EncodeValueAndRIDToDicOrderComparableBytes(&orgEndKeyVal, &page.RID{math.MaxInt32, math.MaxUint32})
 		biggestKeyVal = types.NewValueFromBytes(biggestKeyValBytes, types.Varchar)
 	}
 

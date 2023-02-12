@@ -10,6 +10,7 @@ import (
 	"math/rand"
 	"os"
 	"strconv"
+	"unsafe"
 )
 
 func FileExists(filename string) bool {
@@ -233,21 +234,41 @@ func StrideMul(base interface{}, k interface{}) interface{} {
 	}
 }
 
+const SIGN_MASK_BIG uint32 = 0x80000000
+const SIGN_MASK_SMALL byte = 0x80
+
+// true = big endian, false = little endian
+func getEndian() (ret bool) {
+	var i int = 0x1
+	bs := (*[4]byte)(unsafe.Pointer(&i))
+	if bs[0] == 0 {
+		return true
+	} else {
+		return false
+	}
+}
+
 // note: this converts with considering endian of program execution environment
 func encodeToDicOrderComparableBytes[T int32 | float32](orgVal T, valType types.TypeID) []byte {
-	// TODO: (SDB) need implement ConvToDicOrderComparableBytes
 	if valType == types.Float {
-		const signMask uint32 = 0x80000000
 		f := orgVal.(float32)
 		u := math.Float32bits(f)
 		if f >= 0 {
-			u |= signMask
+			u |= SIGN_MASK_BIG
 		} else {
 			u = ^u
 		}
-		retBuf := new(bytes.Buffer)
-		binary.Write(retBuf, binary.BigEndian, u)
-		return retBuf.Bytes()
+		buf := new(bytes.Buffer)
+		binary.Write(buf, binary.BigEndian, u)
+		return buf.Bytes()
+	} else if valType == types.Integer {
+		i := orgVal.(int32)
+		u := uint32(i)
+		buf := new(bytes.Buffer)
+		binary.Write(buf, binary.BigEndian, u)
+		convedArr := buf.Bytes()
+		convedArr[0] ^= SIGN_MASK_SMALL
+		return convedArr
 	}
 
 	panic("not implemented yet")
@@ -255,26 +276,38 @@ func encodeToDicOrderComparableBytes[T int32 | float32](orgVal T, valType types.
 
 // note: this converts with considering endian of program execution environment
 func decodeToDicOrderComparableBytes(convedArr []byte, valType types.TypeID) interface{} {
-	// TODO: (SDB) need implement ConvToDicOrderComparableBytes
 	if valType == types.Float {
-		const signMask uint32 = 0x80000000
 		buf := bytes.NewBuffer(convedArr)
 		var u uint32
 		binary.Read(buf, binary.BigEndian, &u)
 
-		if u&signMask > 0 {
-			u &= ^signMask
+		if u&SIGN_MASK_BIG > 0 {
+			u &= ^SIGN_MASK_BIG
 		} else {
 			u = ^u
 		}
 		return math.Float32frombits(u)
+	} else if valType == types.Integer {
+		convedArr_ := make([]byte, 4)
+		copy(convedArr_, convedArr)
+		convedArr_[0] ^= SIGN_MASK_SMALL
+		buf := bytes.NewBuffer(convedArr_)
+		var u uint32
+		binary.Write(buf, binary.BigEndian, &u)
+
+		return int32(u)
 	}
 
 	panic("not implemented yet")
 }
 
-func ConvValueAndRIDToDicOrderComparableBytes(orgVal *types.Value, rid *page.RID) []byte {
-	// TODO: (SDB) need implement ConvToDicOrderComparableBytes
+func EncodeValueAndRIDToDicOrderComparableBytes(orgVal *types.Value, rid *page.RID) []byte {
+	// TODO: (SDB) need implement EncodeValueAndRIDToDicOrderComparableBytes
+	panic("not implemented yet")
+}
+
+func ExtractOrgKeyFromDicOrderComparableEncodedVarchar(encodedVal *types.Value, valType types.TypeID) *types.Value {
+	// TODO: (SDB) need implement ExtractOrgKeyFromDicOrderComparableEncodedVarchar
 	panic("not implemented yet")
 }
 
