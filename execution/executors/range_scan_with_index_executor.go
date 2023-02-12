@@ -6,6 +6,7 @@ import (
 	"github.com/ryogrid/SamehadaDB/catalog"
 	"github.com/ryogrid/SamehadaDB/execution/expression"
 	"github.com/ryogrid/SamehadaDB/execution/plans"
+	"github.com/ryogrid/SamehadaDB/samehada/samehada_util"
 	"github.com/ryogrid/SamehadaDB/storage/access"
 	"github.com/ryogrid/SamehadaDB/storage/index"
 	"github.com/ryogrid/SamehadaDB/storage/table/schema"
@@ -82,9 +83,7 @@ func (e *RangeScanWithIndexExecutor) Next() (*tuple.Tuple, Done, error) {
 				return nil, true, errors.New("detect value update after iterator created. changes transaction state to aborted.")
 			}
 		case *index.SkipListIndex:
-			orgKeyBytes := []byte(key.ToString())
-			// TODO: (SDB) conversion of byte array is needed before getting Value type instance
-			orgKey := types.NewValueFromBytes(orgKeyBytes[:len(orgKeyBytes)-8], orgKeyType) // Value part is 8bytes fixed
+			orgKey := samehada_util.ExtractOrgKeyFromDicOrderComparableEncodedVarchar(key, orgKeyType)
 			if !curKeyVal.CompareEquals(*orgKey) {
 				// column value corresponding index key is updated
 				e.txn.SetState(access.ABORTED)

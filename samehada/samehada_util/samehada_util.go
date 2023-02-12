@@ -301,7 +301,8 @@ func decodeFromDicOrderComparableBytes(convedArr []byte, valType types.TypeID) i
 	panic("not implemented yet")
 }
 
-func EncodeValueAndRIDToDicOrderComparableBytes(orgVal *types.Value, rid *page.RID) []byte {
+func EncodeValueAndRIDToDicOrderComparableBytes(orgVal *types.Value, rid *page.RID) *types.Value {
+
 	// TODO: (SDB) need implement EncodeValueAndRIDToDicOrderComparableBytes
 	panic("not implemented yet")
 }
