@@ -23,7 +23,6 @@ type SkipListIndex struct {
 func NewSkipListIndex(metadata *IndexMetadata, buffer_pool_manager *buffer.BufferPoolManager, col_idx uint32) *SkipListIndex {
 	ret := new(SkipListIndex)
 	ret.metadata = metadata
-	//ret.container = *skip_list.NewSkipList(buffer_pool_manager, ret.metadata.GetTupleSchema().GetColumn(col_idx).GetType())
 
 	// SkipListIndex uses special technique to support key duplication with SkipList supporting unique key only
 	// for the thechnique, key type is fixed to Varchar (comparison is done on dict order as byte array)

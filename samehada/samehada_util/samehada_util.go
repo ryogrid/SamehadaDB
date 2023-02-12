@@ -302,14 +302,55 @@ func decodeFromDicOrderComparableBytes(convedArr []byte, valType types.TypeID) i
 }
 
 func EncodeValueAndRIDToDicOrderComparableBytes(orgVal *types.Value, rid *page.RID) *types.Value {
-
-	// TODO: (SDB) need implement EncodeValueAndRIDToDicOrderComparableBytes
-	panic("not implemented yet")
+	arrToFill := make([]byte, 0)
+	switch orgVal.ValueType() {
+	case types.Integer:
+		convedBytes := encodeToDicOrderComparableBytes(orgVal, types.Integer)
+		totalSizeBytes := types.UInt16(len(convedBytes) + 8).Serialize()
+		// {false, firstByte of str len, secondeByte}
+		arrToFill = append(arrToFill, []byte{0, totalSizeBytes[0], totalSizeBytes[1]}...)
+		arrToFill = append(arrToFill, convedBytes...)
+		arrToFill = append(arrToFill, types.UInt64(PackRIDtoUint64(rid)).Serialize()...)
+		return types.NewValueFromBytes(arrToFill, types.Varchar)
+	case types.Float:
+		convedBytes := encodeToDicOrderComparableBytes(orgVal, types.Float)
+		totalSizeBytes := types.UInt16(len(convedBytes) + 8).Serialize()
+		// {false, firstByte of str len, secondeByte}
+		arrToFill = append(arrToFill, []byte{0, totalSizeBytes[0], totalSizeBytes[1]}...)
+		arrToFill = append(arrToFill, convedBytes...)
+		arrToFill = append(arrToFill, types.UInt64(PackRIDtoUint64(rid)).Serialize()...)
+		return types.NewValueFromBytes(arrToFill, types.Varchar)
+	case types.Varchar:
+		convedBytes := orgVal.Serialize()
+		strLen := uint16(len(orgVal.ToString()))
+		strLenBytes := types.UInt16(strLen + 8).Serialize()
+		// {false, firstByte of str len, secondeByte}
+		arrToFill = append(arrToFill, []byte{0, strLenBytes[0], strLenBytes[1]}...)
+		arrToFill = append(arrToFill, convedBytes[3:]...)
+		arrToFill = append(arrToFill, types.UInt64(PackRIDtoUint64(rid)).Serialize()...)
+		return types.NewValueFromBytes(arrToFill, types.Varchar)
+	default:
+		panic("not supported type")
+	}
 }
 
 func ExtractOrgKeyFromDicOrderComparableEncodedVarchar(encodedVal *types.Value, valType types.TypeID) *types.Value {
-	// TODO: (SDB) need implement ExtractOrgKeyFromDicOrderComparableEncodedVarchar
-	panic("not implemented yet")
+	switch valType {
+	case types.Integer:
+		encodedStrBytes := encodedVal.Serialize()
+		retVal := types.NewValue(decodeFromDicOrderComparableBytes(encodedStrBytes[3:len(encodedStrBytes)-8], valType).(int32))
+		return &retVal
+	case types.Float:
+		encodedStrBytes := encodedVal.Serialize()
+		retVal := types.NewValue(decodeFromDicOrderComparableBytes(encodedStrBytes[3:len(encodedStrBytes)-8], valType).(float32))
+		return &retVal
+	case types.Varchar:
+		encodedStr := encodedVal.ToString()
+		orgStr := encodedStr[3 : len(encodedStr)-8]
+		return GetPonterOfValue(types.NewVarchar(orgStr))
+	default:
+		panic("not supported type")
+	}
 }
 
 func TimeoutPanic() {
