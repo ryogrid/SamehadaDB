@@ -250,7 +250,8 @@ func getEndian() (ret bool) {
 
 // note: this converts with considering endian of program execution environment
 func encodeToDicOrderComparableBytes(orgVal interface{}, valType types.TypeID) []byte {
-	if valType == types.Float {
+	switch valType {
+	case types.Float:
 		f := orgVal.(float32)
 		u := math.Float32bits(f)
 		if f >= 0 {
@@ -261,7 +262,7 @@ func encodeToDicOrderComparableBytes(orgVal interface{}, valType types.TypeID) [
 		buf := new(bytes.Buffer)
 		binary.Write(buf, binary.BigEndian, u)
 		return buf.Bytes()
-	} else if valType == types.Integer {
+	case valType:
 		i := orgVal.(int32)
 		u := uint32(i)
 		buf := new(bytes.Buffer)
@@ -269,14 +270,15 @@ func encodeToDicOrderComparableBytes(orgVal interface{}, valType types.TypeID) [
 		convedArr := buf.Bytes()
 		convedArr[0] ^= SIGN_MASK_SMALL
 		return convedArr
+	default:
+		panic("not supported type")
 	}
-
-	panic("not implemented yet")
 }
 
 // note: this converts with considering endian of program execution environment
 func decodeFromDicOrderComparableBytes(convedArr []byte, valType types.TypeID) interface{} {
-	if valType == types.Float {
+	switch valType {
+	case types.Float:
 		buf := bytes.NewBuffer(convedArr)
 		var u uint32
 		binary.Read(buf, binary.BigEndian, &u)
@@ -287,18 +289,18 @@ func decodeFromDicOrderComparableBytes(convedArr []byte, valType types.TypeID) i
 			u = ^u
 		}
 		return math.Float32frombits(u)
-	} else if valType == types.Integer {
+	case types.Integer:
 		convedArr_ := make([]byte, 4)
 		copy(convedArr_, convedArr)
 		convedArr_[0] ^= SIGN_MASK_SMALL
 		buf := bytes.NewBuffer(convedArr_)
 		var u uint32
 		binary.Read(buf, binary.BigEndian, &u)
-
 		return int32(u)
+	default:
+		panic("not suppoted type")
 	}
 
-	panic("not implemented yet")
 }
 
 func EncodeValueAndRIDToDicOrderComparableBytes(orgVal *types.Value, rid *page.RID) *types.Value {
