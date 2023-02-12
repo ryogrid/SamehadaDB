@@ -307,7 +307,7 @@ func EncodeValueAndRIDToDicOrderComparableBytes(orgVal *types.Value, rid *page.R
 	arrToFill := make([]byte, 0)
 	switch orgVal.ValueType() {
 	case types.Integer:
-		convedBytes := encodeToDicOrderComparableBytes(orgVal, types.Integer)
+		convedBytes := encodeToDicOrderComparableBytes(orgVal.ToInteger(), types.Integer)
 		totalSizeBytes := types.UInt16(len(convedBytes) + 8).Serialize()
 		// {false, firstByte of str len, secondeByte}
 		arrToFill = append(arrToFill, []byte{0, totalSizeBytes[0], totalSizeBytes[1]}...)
@@ -315,7 +315,7 @@ func EncodeValueAndRIDToDicOrderComparableBytes(orgVal *types.Value, rid *page.R
 		arrToFill = append(arrToFill, types.UInt64(PackRIDtoUint64(rid)).Serialize()...)
 		return types.NewValueFromBytes(arrToFill, types.Varchar)
 	case types.Float:
-		convedBytes := encodeToDicOrderComparableBytes(orgVal, types.Float)
+		convedBytes := encodeToDicOrderComparableBytes(orgVal.ToFloat(), types.Float)
 		totalSizeBytes := types.UInt16(len(convedBytes) + 8).Serialize()
 		// {false, firstByte of str len, secondeByte}
 		arrToFill = append(arrToFill, []byte{0, totalSizeBytes[0], totalSizeBytes[1]}...)
@@ -348,7 +348,7 @@ func ExtractOrgKeyFromDicOrderComparableEncodedVarchar(encodedVal *types.Value, 
 		return &retVal
 	case types.Varchar:
 		encodedStr := encodedVal.ToString()
-		orgStr := encodedStr[3 : len(encodedStr)-8]
+		orgStr := encodedStr[:len(encodedStr)-8]
 		return GetPonterOfValue(types.NewVarchar(orgStr))
 	default:
 		panic("not supported type")
