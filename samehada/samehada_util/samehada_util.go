@@ -249,7 +249,7 @@ func getEndian() (ret bool) {
 }
 
 // note: this converts with considering endian of program execution environment
-func encodeToDicOrderComparableBytes[T int32 | float32](orgVal T, valType types.TypeID) []byte {
+func encodeToDicOrderComparableBytes(orgVal interface{}, valType types.TypeID) []byte {
 	if valType == types.Float {
 		f := orgVal.(float32)
 		u := math.Float32bits(f)
@@ -275,7 +275,7 @@ func encodeToDicOrderComparableBytes[T int32 | float32](orgVal T, valType types.
 }
 
 // note: this converts with considering endian of program execution environment
-func decodeToDicOrderComparableBytes(convedArr []byte, valType types.TypeID) interface{} {
+func decodeFromDicOrderComparableBytes(convedArr []byte, valType types.TypeID) interface{} {
 	if valType == types.Float {
 		buf := bytes.NewBuffer(convedArr)
 		var u uint32
@@ -293,7 +293,7 @@ func decodeToDicOrderComparableBytes(convedArr []byte, valType types.TypeID) int
 		convedArr_[0] ^= SIGN_MASK_SMALL
 		buf := bytes.NewBuffer(convedArr_)
 		var u uint32
-		binary.Write(buf, binary.BigEndian, &u)
+		binary.Read(buf, binary.BigEndian, &u)
 
 		return int32(u)
 	}
