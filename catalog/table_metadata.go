@@ -48,7 +48,11 @@ func NewTableMetadata(schema *schema.Schema, name string, table *access.TableHea
 				im := index.NewIndexMetadata(column_.GetColumnName()+"_index", name, schema, []uint32{uint32(idx)})
 				slIdx := index.NewUniqSkipListIndex(im, table.GetBufferPoolManager(), uint32(idx))
 				indexes = append(indexes, slIdx)
-				//column_.SetIndexHeaderPageId(slIdx.GetHeaderPageId())
+			case index_constants.INDEX_KIND_SKIP_LIST:
+				// currently, SkipList Index always use new pages even if relaunch
+				im := index.NewIndexMetadata(column_.GetColumnName()+"_index", name, schema, []uint32{uint32(idx)})
+				slIdx := index.NewSkipListIndex(im, table.GetBufferPoolManager(), uint32(idx))
+				indexes = append(indexes, slIdx)
 			default:
 				panic("illegal index kind!")
 			}

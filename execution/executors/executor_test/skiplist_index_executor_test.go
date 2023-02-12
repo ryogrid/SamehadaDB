@@ -645,7 +645,7 @@ func createBalanceUpdatePlanNode[T int32 | float32 | string](keyColumnVal T, new
 	switch indexKind {
 	case index_constants.INDEX_KIND_INVALID:
 		skipListPointScanP = plans.NewSeqScanPlanNode(tm.Schema(), expression_.(*expression.Comparison), tm.OID())
-	case index_constants.INDEX_KIND_UNIQ_SKIP_LIST:
+	case index_constants.INDEX_KIND_UNIQ_SKIP_LIST, index_constants.INDEX_KIND_SKIP_LIST:
 		skipListPointScanP = plans.NewPointScanWithIndexPlanNode(tm.Schema(), expression_.(*expression.Comparison), tm.OID())
 	default:
 		panic("not implemented!")
@@ -680,7 +680,7 @@ func createSpecifiedValDeletePlanNode[T int32 | float32 | string](keyColumnVal T
 	switch indexKind {
 	case index_constants.INDEX_KIND_INVALID:
 		skipListPointScanP = plans.NewSeqScanPlanNode(tm.Schema(), expression_.(*expression.Comparison), tm.OID())
-	case index_constants.INDEX_KIND_UNIQ_SKIP_LIST:
+	case index_constants.INDEX_KIND_UNIQ_SKIP_LIST, index_constants.INDEX_KIND_SKIP_LIST:
 		skipListPointScanP = plans.NewPointScanWithIndexPlanNode(tm.Schema(), expression_.(*expression.Comparison), tm.OID())
 	default:
 		panic("not implemented!")
@@ -704,7 +704,7 @@ func createAccountIdUpdatePlanNode[T int32 | float32 | string](keyColumnVal T, n
 	switch indexKind {
 	case index_constants.INDEX_KIND_INVALID:
 		skipListPointScanP = plans.NewSeqScanPlanNode(tm.Schema(), expression_.(*expression.Comparison), tm.OID())
-	case index_constants.INDEX_KIND_UNIQ_SKIP_LIST:
+	case index_constants.INDEX_KIND_UNIQ_SKIP_LIST, index_constants.INDEX_KIND_SKIP_LIST:
 		skipListPointScanP = plans.NewPointScanWithIndexPlanNode(tm.Schema(), expression_.(*expression.Comparison), tm.OID())
 	default:
 		panic("not implemented!")
@@ -725,7 +725,7 @@ func createSpecifiedPointScanPlanNode[T int32 | float32 | string](getKeyVal T, c
 	switch indexKind {
 	case index_constants.INDEX_KIND_INVALID:
 		skipListPointScanP = plans.NewSeqScanPlanNode(tm.Schema(), expression_.(*expression.Comparison), tm.OID())
-	case index_constants.INDEX_KIND_UNIQ_SKIP_LIST:
+	case index_constants.INDEX_KIND_UNIQ_SKIP_LIST, index_constants.INDEX_KIND_SKIP_LIST:
 		skipListPointScanP = plans.NewPointScanWithIndexPlanNode(tm.Schema(), expression_.(*expression.Comparison), tm.OID())
 	default:
 		panic("not implemented!")
@@ -741,7 +741,7 @@ func createSpecifiedRangeScanPlanNode[T int32 | float32 | string](c *catalog.Cat
 	switch indexKind {
 	case index_constants.INDEX_KIND_INVALID:
 		skipListRangeScanP = plans.NewSeqScanPlanNode(tm.Schema(), nil, tm.OID())
-	case index_constants.INDEX_KIND_UNIQ_SKIP_LIST:
+	case index_constants.INDEX_KIND_UNIQ_SKIP_LIST, index_constants.INDEX_KIND_SKIP_LIST:
 		if rangeStartKey != nil {
 			startVal = samehada_util.GetPonterOfValue(types.NewValue(*rangeStartKey))
 		}
@@ -805,6 +805,9 @@ func testParallelTxnsQueryingSkipListIndexUsedColumns[T int32 | float32 | string
 	case index_constants.INDEX_KIND_UNIQ_SKIP_LIST:
 		columnA = column.NewColumn("account_id", keyType, true, index_constants.INDEX_KIND_UNIQ_SKIP_LIST, types.PageID(-1), nil)
 		columnB = column.NewColumn("balance", types.Integer, true, index_constants.INDEX_KIND_UNIQ_SKIP_LIST, types.PageID(-1), nil)
+	case index_constants.INDEX_KIND_SKIP_LIST:
+		columnA = column.NewColumn("account_id", keyType, true, index_constants.INDEX_KIND_SKIP_LIST, types.PageID(-1), nil)
+		columnB = column.NewColumn("balance", types.Integer, true, index_constants.INDEX_KIND_SKIP_LIST, types.PageID(-1), nil)
 	default:
 		panic("not implemented!")
 	}
@@ -1703,7 +1706,7 @@ func testParallelTxnsQueryingSkipListIndexUsedColumns[T int32 | float32 | string
 					return
 				}
 
-				if indexKind == index_constants.INDEX_KIND_UNIQ_SKIP_LIST {
+				if indexKind == index_constants.INDEX_KIND_UNIQ_SKIP_LIST || indexKind == index_constants.INDEX_KIND_SKIP_LIST {
 					resultsLen := len(results)
 					var prevVal *types.Value = nil
 					for jj := 0; jj < resultsLen; jj++ {
@@ -1792,7 +1795,7 @@ func testParallelTxnsQueryingSkipListIndexUsedColumns[T int32 | float32 | string
 	common.SH_Assert(collectNumMaybe == int32(resultsLen1), "records count is not matched with assumed num "+fmt.Sprintf("%d != %d", collectNumMaybe, resultsLen1))
 	finalizeRandomNoSideEffectTxn(txn_)
 
-	if indexKind == index_constants.INDEX_KIND_UNIQ_SKIP_LIST {
+	if indexKind == index_constants.INDEX_KIND_UNIQ_SKIP_LIST || indexKind == index_constants.INDEX_KIND_SKIP_LIST {
 		// check order (col1 when index of it is used)
 		txn_ = txnMgr.Begin(nil)
 		txn_.MakeNotAbortable()
@@ -1821,7 +1824,7 @@ func testParallelTxnsQueryingSkipListIndexUsedColumns[T int32 | float32 | string
 	fmt.Printf("collectNumMaybe:%d == resultsLen2:%d\n", collectNumMaybe, resultsLen2)
 	finalizeRandomNoSideEffectTxn(txn_)
 
-	if indexKind == index_constants.INDEX_KIND_UNIQ_SKIP_LIST {
+	if indexKind == index_constants.INDEX_KIND_UNIQ_SKIP_LIST || indexKind == index_constants.INDEX_KIND_SKIP_LIST {
 		// check order (col2 when index of it is used)
 		txn_ = txnMgr.Begin(nil)
 		txn_.MakeNotAbortable()
@@ -1904,7 +1907,8 @@ func testSkipListParallelTxnStrideRoot[T int32 | float32 | string](t *testing.T,
 	case types.Integer:
 		//testParallelTxnsQueryingSkipListIndexUsedColumns[T](t, keyType, 400, 3000, 13, 0, bpoolSize, index_constants.INDEX_KIND_UNIQ_SKIP_LIST, PARALLEL_EXEC, 20)
 		//testParallelTxnsQueryingSkipListIndexUsedColumns[T](t, keyType, 400, 30000, 13, 0, bpoolSize, index_constants.INDEX_KIND_UNIQ_SKIP_LIST, PARALLEL_EXEC, 20)
-		testParallelTxnsQueryingSkipListIndexUsedColumns[T](t, keyType, 400, 30000, 13, 0, bpoolSize, index_constants.INDEX_KIND_UNIQ_SKIP_LIST, PARALLEL_EXEC, 20)
+		//testParallelTxnsQueryingSkipListIndexUsedColumns[T](t, keyType, 400, 30000, 13, 0, bpoolSize, index_constants.INDEX_KIND_UNIQ_SKIP_LIST, PARALLEL_EXEC, 20)
+		testParallelTxnsQueryingSkipListIndexUsedColumns[T](t, keyType, 400, 30000, 13, 0, bpoolSize, index_constants.INDEX_KIND_SKIP_LIST, PARALLEL_EXEC, 20)
 	case types.Float:
 		//testParallelTxnsQueryingSkipListIndexUsedColumns[T](t, keyType, 400, 30000, 13, 0, bpoolSize, index_constants.INDEX_KIND_UNIQ_SKIP_LIST, PARALLEL_EXEC, 20)
 		testParallelTxnsQueryingSkipListIndexUsedColumns[T](t, keyType, 240, 1000, 13, 0, bpoolSize, index_constants.INDEX_KIND_UNIQ_SKIP_LIST, PARALLEL_EXEC, 20)
@@ -1923,13 +1927,13 @@ func testSkipListParallelTxnStrideRoot[T int32 | float32 | string](t *testing.T,
 	}
 }
 
-//func TestSkipListPrallelTxnStrideInteger(t *testing.T) {
-//	t.Parallel()
-//	if testing.Short() {
-//		t.Skip("skip this in short mode.")
-//	}
-//	testSkipListParallelTxnStrideRoot[int32](t, types.Integer)
-//}
+func TestSkipListPrallelTxnStrideInteger(t *testing.T) {
+	t.Parallel()
+	if testing.Short() {
+		t.Skip("skip this in short mode.")
+	}
+	testSkipListParallelTxnStrideRoot[int32](t, types.Integer)
+}
 
 //func TestSkipListPrallelTxnStrideFloat(t *testing.T) {
 //	t.Parallel()
