@@ -1204,7 +1204,7 @@ func TestAbortWIthDeleteUpdate(t *testing.T) {
 	seqPlan = plans.NewSeqScanPlanNode(outSchema, expression_, tableMetadata.OID())
 	results = executionEngine.Execute(seqPlan, executorContext)
 
-	// TODO: this assertion is comment-outed due to temporal modification of testee for passing TestSkipListPrallelTxnStrideInteger
+	// TODO: this assertion is comment-outed due to temporal modification of testee for passing TestUniqSkipListPrallelTxnStrideInteger
 	//       this should be reverted at appropriate timing
 	testingpkg.Assert(t, len(results) == 0, "")
 

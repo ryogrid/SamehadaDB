@@ -28,39 +28,7 @@ import (
 	"testing"
 )
 
-/*
-import (
-
-	"fmt"
-	"github.com/ryogrid/SamehadaDB/catalog"
-	"github.com/ryogrid/SamehadaDB/common"
-	"github.com/ryogrid/SamehadaDB/container/hash"
-	"github.com/ryogrid/SamehadaDB/execution/executors"
-	"github.com/ryogrid/SamehadaDB/execution/expression"
-	"github.com/ryogrid/SamehadaDB/execution/plans"
-	"github.com/ryogrid/SamehadaDB/recovery"
-	"github.com/ryogrid/SamehadaDB/samehada"
-	"github.com/ryogrid/SamehadaDB/samehada/samehada_util"
-	"github.com/ryogrid/SamehadaDB/storage/access"
-	"github.com/ryogrid/SamehadaDB/storage/buffer"
-	"github.com/ryogrid/SamehadaDB/storage/disk"
-	"github.com/ryogrid/SamehadaDB/storage/index/index_constants"
-	"github.com/ryogrid/SamehadaDB/storage/table/column"
-	"github.com/ryogrid/SamehadaDB/storage/table/schema"
-	"github.com/ryogrid/SamehadaDB/storage/tuple"
-	testingpkg "github.com/ryogrid/SamehadaDB/testing"
-	"github.com/ryogrid/SamehadaDB/types"
-	"math"
-	"math/rand"
-	"os"
-	"sync"
-	"sync/atomic"
-	"testing"
-
-)
-*/
-
-func TestSkipListIndexPointScan(t *testing.T) {
+func TestUniqSkipListIndexPointScan(t *testing.T) {
 	common.TempSuppressOnMemStorageMutex.Lock()
 	common.TempSuppressOnMemStorage = true
 
@@ -201,7 +169,7 @@ func TestSkipListIndexPointScan(t *testing.T) {
 	common.TempSuppressOnMemStorageMutex.Unlock()
 }
 
-func TestSkipListSerialIndexRangeScan(t *testing.T) {
+func TestUniqSkipListSerialIndexRangeScan(t *testing.T) {
 	common.TempSuppressOnMemStorageMutex.Lock()
 	common.TempSuppressOnMemStorage = true
 
@@ -318,17 +286,6 @@ func TestSkipListSerialIndexRangeScan(t *testing.T) {
 		[]*types.Value{nil, nil},
 		4,
 	}}
-	//, {
-	//		"select a ... WHERE a >= -2147483647 and a <= 1225", // fail because restriction of current SkipList Index impl?
-	//		executionEngine,
-	//		executorContext,
-	//		tableMetadata,
-	//		[]executors.Column{{"a", types.Integer}},
-	//		executors.Predicate{"a", expression.GreaterThanOrEqual, 20},
-	//		int32(tableMetadata.Schema().GetColIndex("a")),
-	//		[]types.Value{types.NewInteger(math.MinInt32), types.NewInteger(1225)},
-	//		3,
-	//	}}
 
 	for _, test := range cases {
 		t.Run(test.Description, func(t *testing.T) {
@@ -341,7 +298,7 @@ func TestSkipListSerialIndexRangeScan(t *testing.T) {
 	common.TempSuppressOnMemStorageMutex.Unlock()
 }
 
-func TestAbortWthDeleteUpdateUsingIndexCasePointScan(t *testing.T) {
+func TestAbortWthDeleteUpdateUniqSkipListIndexCasePointScan(t *testing.T) {
 	diskManager := disk.NewDiskManagerTest()
 	defer diskManager.ShutDown()
 	log_mgr := recovery.NewLogManager(&diskManager)
@@ -490,7 +447,7 @@ func TestAbortWthDeleteUpdateUsingIndexCasePointScan(t *testing.T) {
 	testingpkg.Assert(t, len(results) == 1, "")
 }
 
-func TestAbortWthDeleteUpdateUsingIndexCaseRangeScan(t *testing.T) {
+func TestAbortWthDeleteUpdateUniqSkipListIndexCaseRangeScan(t *testing.T) {
 	diskManager := disk.NewDiskManagerTest()
 	defer diskManager.ShutDown()
 	log_mgr := recovery.NewLogManager(&diskManager)
@@ -762,23 +719,8 @@ func executePlan(c *catalog.Catalog, bpm *buffer.BufferPoolManager, txn *access.
 	return executionEngine.Execute(plan, executorContext)
 }
 
-//func handleFnishedTxn(catalog_ *catalog.Catalog, txn_mgr *access.TransactionManager, txn *access.Transaction) bool {
-//	// fmt.Println(txn.GetState())
-//	if txn.GetState() == access.ABORTED {
-//		// fmt.Println(txn.GetSharedLockSet())
-//		// fmt.Println(txn.GetExclusiveLockSet())
-//		txn_mgr.Abort(catalog_, txn)
-//		return false
-//	} else {
-//		// fmt.Println(txn.GetSharedLockSet())
-//		// fmt.Println(txn.GetExclusiveLockSet())
-//		txn_mgr.Commit(catalog_, txn)
-//		return true
-//	}
-//}
-
-func testParallelTxnsQueryingSkipListIndexUsedColumns[T int32 | float32 | string](t *testing.T, keyType types.TypeID, stride int32, opTimes int32, seedVal int32, initialEntryNum int32, bpoolSize int32, indexKind index_constants.IndexKind, execType int32, threadNum int) {
-	common.ShPrintf(common.DEBUG_INFO, "start of testParallelTxnsQueryingSkipListIndexUsedColumns stride=%d opTimes=%d seedVal=%d initialEntryNum=%d bpoolSize=%d ====================================================\n",
+func testParallelTxnsQueryingUniqSkipListIndexUsedColumns[T int32 | float32 | string](t *testing.T, keyType types.TypeID, stride int32, opTimes int32, seedVal int32, initialEntryNum int32, bpoolSize int32, indexKind index_constants.IndexKind, execType int32, threadNum int) {
+	common.ShPrintf(common.DEBUG_INFO, "start of testParallelTxnsQueryingUniqSkipListIndexUsedColumns stride=%d opTimes=%d seedVal=%d initialEntryNum=%d bpoolSize=%d ====================================================\n",
 		stride, opTimes, seedVal, initialEntryNum, bpoolSize)
 
 	if !common.EnableOnMemStorage {
@@ -936,9 +878,6 @@ func testParallelTxnsQueryingSkipListIndexUsedColumns[T int32 | float32 | string
 	ch := make(chan int32)
 
 	getNewAmountAndInc := func() int32 {
-		//ret := atomic.LoadInt32(&balanceAmountForRandom)
-		//atomic.AddInt32(&balanceAmountForRandom, 10)
-		//return ret
 		var ret int32
 		balanceAmountForRandomMutex.Lock()
 		ret = balanceAmountForRandom
@@ -967,12 +906,6 @@ func testParallelTxnsQueryingSkipListIndexUsedColumns[T int32 | float32 | string
 		delete(checkKeyColDupMap, keyVal)
 		checkKeyColDupMapMutex.Unlock()
 	}
-
-	//checkKeyColDupMapSetWithLock := func(keyVal T) {
-	//	checkKeyColDupMapMutex.Lock()
-	//	checkKeyColDupMap[keyVal] = keyVal
-	//	checkKeyColDupMapMutex.Unlock()
-	//}
 
 	checkBalanceColDupMapDeleteWithLock := func(balanceVal int32) {
 		checkBalanceColDupMapMutex.Lock()
@@ -1311,17 +1244,8 @@ func testParallelTxnsQueryingSkipListIndexUsedColumns[T int32 | float32 | string
 				}
 
 				insKeyValBase := getUniqRandomPrimitivVal(keyType, checkKeyColDupMap, checkKeyColDupMapMutex, tmpMax)
-				//if keyType == types.Float {
-				//	checkKeyColDupMapMutex.Lock()
-				//	for jj := int32(0); jj < stride; jj++ {
-				//		preInsKeyVal := samehada_util.StrideAdd(samehada_util.StrideMul(insKeyValBase, stride), jj).(T)
-				//		checkKeyColDupMap[preInsKeyVal] = preInsKeyVal
-				//	}
-				//	checkKeyColDupMapMutex.Unlock()
-				//}
 				balanceVal := getInt32ValCorrespondToPassVal(insKeyValBase)
 				checkBalanceColDupMapMutex.RLock()
-				//if _, exist := checkBalanceColDupMap[balanceVal]; exist || (balanceVal >= 0 && balanceVal < sumOfAllAccountBalanceAtStart) {
 				if _, exist := checkBalanceColDupMap[balanceVal]; exist {
 					checkBalanceColDupMapMutex.RUnlock()
 					checkKeyColDupMapDeleteWithLock(insKeyValBase)
@@ -1497,15 +1421,7 @@ func testParallelTxnsQueryingSkipListIndexUsedColumns[T int32 | float32 | string
 					tmpMax = math.MaxInt32 / stride
 				}
 				updateNewKeyValBase := getUniqRandomPrimitivVal(keyType, checkKeyColDupMap, checkKeyColDupMapMutex, &tmpMax)
-				//// because avoiding duplication at Float is hard
-				//if keyType == types.Float {
-				//	checkKeyColDupMapMutex.Lock()
-				//	for jj := int32(0); jj < stride; jj++ {
-				//		preInsKeyVal := samehada_util.StrideAdd(samehada_util.StrideMul(updateKeyValBase, stride), jj).(T)
-				//		checkKeyColDupMap[preInsKeyVal] = preInsKeyVal
-				//	}
-				//	checkKeyColDupMapMutex.Unlock()
-				//}
+
 				newBalanceVal := getInt32ValCorrespondToPassVal(updateNewKeyValBase)
 				checkBalanceColDupMapMutex.RLock()
 				if _, exist := checkBalanceColDupMap[newBalanceVal]; exist || (newBalanceVal >= 0 && newBalanceVal <= sumOfAllAccountBalanceAtStart) {
@@ -1899,54 +1815,54 @@ func testParallelTxnsQueryingSkipListIndexUsedColumns[T int32 | float32 | string
 	shi.CloseFilesForTesting()
 }
 
-func testSkipListParallelTxnStrideRoot[T int32 | float32 | string](t *testing.T, keyType types.TypeID) {
+func testUniqSkipListParallelTxnStrideRoot[T int32 | float32 | string](t *testing.T, keyType types.TypeID) {
 	bpoolSize := int32(500)
 	//bpoolSize := int32(100)
 
 	switch keyType {
 	case types.Integer:
-		//testParallelTxnsQueryingSkipListIndexUsedColumns[T](t, keyType, 400, 3000, 13, 0, bpoolSize, index_constants.INDEX_KIND_UNIQ_SKIP_LIST, PARALLEL_EXEC, 20)
-		//testParallelTxnsQueryingSkipListIndexUsedColumns[T](t, keyType, 400, 30000, 13, 0, bpoolSize, index_constants.INDEX_KIND_UNIQ_SKIP_LIST, PARALLEL_EXEC, 20)
-		//testParallelTxnsQueryingSkipListIndexUsedColumns[T](t, keyType, 400, 30000, 13, 0, bpoolSize, index_constants.INDEX_KIND_UNIQ_SKIP_LIST, PARALLEL_EXEC, 20)
-		testParallelTxnsQueryingSkipListIndexUsedColumns[T](t, keyType, 400, 30000, 13, 0, bpoolSize, index_constants.INDEX_KIND_SKIP_LIST, PARALLEL_EXEC, 20)
+		//testParallelTxnsQueryingUniqSkipListIndexUsedColumns[T](t, keyType, 400, 3000, 13, 0, bpoolSize, index_constants.INDEX_KIND_UNIQ_SKIP_LIST, PARALLEL_EXEC, 20)
+		//testParallelTxnsQueryingUniqSkipListIndexUsedColumns[T](t, keyType, 400, 30000, 13, 0, bpoolSize, index_constants.INDEX_KIND_UNIQ_SKIP_LIST, PARALLEL_EXEC, 20)
+		//testParallelTxnsQueryingUniqSkipListIndexUsedColumns[T](t, keyType, 400, 30000, 13, 0, bpoolSize, index_constants.INDEX_KIND_UNIQ_SKIP_LIST, PARALLEL_EXEC, 20)
+		testParallelTxnsQueryingUniqSkipListIndexUsedColumns[T](t, keyType, 400, 30000, 13, 0, bpoolSize, index_constants.INDEX_KIND_SKIP_LIST, PARALLEL_EXEC, 20)
 	case types.Float:
-		//testParallelTxnsQueryingSkipListIndexUsedColumns[T](t, keyType, 400, 30000, 13, 0, bpoolSize, index_constants.INDEX_KIND_UNIQ_SKIP_LIST, PARALLEL_EXEC, 20)
-		testParallelTxnsQueryingSkipListIndexUsedColumns[T](t, keyType, 240, 1000, 13, 0, bpoolSize, index_constants.INDEX_KIND_UNIQ_SKIP_LIST, PARALLEL_EXEC, 20)
+		//testParallelTxnsQueryingUniqSkipListIndexUsedColumns[T](t, keyType, 400, 30000, 13, 0, bpoolSize, index_constants.INDEX_KIND_UNIQ_SKIP_LIST, PARALLEL_EXEC, 20)
+		testParallelTxnsQueryingUniqSkipListIndexUsedColumns[T](t, keyType, 240, 1000, 13, 0, bpoolSize, index_constants.INDEX_KIND_UNIQ_SKIP_LIST, PARALLEL_EXEC, 20)
 	case types.Varchar:
-		//testParallelTxnsQueryingSkipListIndexUsedColumns[T](t, keyType, 400, 400, 13, 0, bpoolSize, index_constants.INDEX_KIND_INVALID, PARALLEL_EXEC, 20)
-		//testParallelTxnsQueryingSkipListIndexUsedColumns[T](t, keyType, 400, 3000, 13, 0, bpoolSize, index_constants.INDEX_KIND_UNIQ_SKIP_LIST, PARALLEL_EXEC, 20)
+		//testParallelTxnsQueryingUniqSkipListIndexUsedColumns[T](t, keyType, 400, 400, 13, 0, bpoolSize, index_constants.INDEX_KIND_INVALID, PARALLEL_EXEC, 20)
+		//testParallelTxnsQueryingUniqSkipListIndexUsedColumns[T](t, keyType, 400, 3000, 13, 0, bpoolSize, index_constants.INDEX_KIND_UNIQ_SKIP_LIST, PARALLEL_EXEC, 20)
 
-		//testParallelTxnsQueryingSkipListIndexUsedColumns[T](t, keyType, 400, 90000, 17, 0, bpoolSize, index_constants.INDEX_KIND_UNIQ_SKIP_LIST, PARALLEL_EXEC, 20)
-		testParallelTxnsQueryingSkipListIndexUsedColumns[T](t, keyType, 400, 9000, 17, 0, bpoolSize, index_constants.INDEX_KIND_UNIQ_SKIP_LIST, PARALLEL_EXEC, 20)
-		//testParallelTxnsQueryingSkipListIndexUsedColumns[T](t, keyType, 400, 50000, 17, 0, bpoolSize, index_constants.INDEX_KIND_UNIQ_SKIP_LIST, PARALLEL_EXEC, 20)
+		//testParallelTxnsQueryingUniqSkipListIndexUsedColumns[T](t, keyType, 400, 90000, 17, 0, bpoolSize, index_constants.INDEX_KIND_UNIQ_SKIP_LIST, PARALLEL_EXEC, 20)
+		testParallelTxnsQueryingUniqSkipListIndexUsedColumns[T](t, keyType, 400, 9000, 17, 0, bpoolSize, index_constants.INDEX_KIND_UNIQ_SKIP_LIST, PARALLEL_EXEC, 20)
+		//testParallelTxnsQueryingUniqSkipListIndexUsedColumns[T](t, keyType, 400, 50000, 17, 0, bpoolSize, index_constants.INDEX_KIND_UNIQ_SKIP_LIST, PARALLEL_EXEC, 20)
 
-		//testParallelTxnsQueryingSkipListIndexUsedColumns[T](t, keyType, 400, 300, 17, 0, bpoolSize, index_constants.INDEX_KIND_UNIQ_SKIP_LIST, PARALLEL_EXEC, 20)
-		//testParallelTxnsQueryingSkipListIndexUsedColumns[T](t, keyType, 400, 500, 17, 0, bpoolSize, index_constants.INDEX_KIND_UNIQ_SKIP_LIST, SERIAL_EXEC, 20)
+		//testParallelTxnsQueryingUniqSkipListIndexUsedColumns[T](t, keyType, 400, 300, 17, 0, bpoolSize, index_constants.INDEX_KIND_UNIQ_SKIP_LIST, PARALLEL_EXEC, 20)
+		//testParallelTxnsQueryingUniqSkipListIndexUsedColumns[T](t, keyType, 400, 500, 17, 0, bpoolSize, index_constants.INDEX_KIND_UNIQ_SKIP_LIST, SERIAL_EXEC, 20)
 	default:
 		panic("not implemented!")
 	}
 }
 
-func TestSkipListPrallelTxnStrideInteger(t *testing.T) {
+func TestUniqSkipListPrallelTxnStrideInteger(t *testing.T) {
 	t.Parallel()
 	if testing.Short() {
 		t.Skip("skip this in short mode.")
 	}
-	testSkipListParallelTxnStrideRoot[int32](t, types.Integer)
+	testUniqSkipListParallelTxnStrideRoot[int32](t, types.Integer)
 }
 
-//func TestSkipListPrallelTxnStrideFloat(t *testing.T) {
-//	t.Parallel()
-//	if testing.Short() {
-//		t.Skip("skip this in short mode.")
-//	}
-//	testSkipListParallelTxnStrideRoot[float32](t, types.Float)
-//}
-
-func TestSkipListPrallelTxnStrideVarchar(t *testing.T) {
+func TestUniqSkipListPrallelTxnStrideFloat(t *testing.T) {
 	t.Parallel()
 	if testing.Short() {
 		t.Skip("skip this in short mode.")
 	}
-	testSkipListParallelTxnStrideRoot[string](t, types.Varchar)
+	testUniqSkipListParallelTxnStrideRoot[float32](t, types.Float)
+}
+
+func TestUniqSkipListPrallelTxnStrideVarchar(t *testing.T) {
+	t.Parallel()
+	if testing.Short() {
+		t.Skip("skip this in short mode.")
+	}
+	testUniqSkipListParallelTxnStrideRoot[string](t, types.Varchar)
 }

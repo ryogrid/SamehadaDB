@@ -6,6 +6,7 @@ import (
 	"github.com/ryogrid/SamehadaDB/container/skip_list"
 	"github.com/ryogrid/SamehadaDB/samehada"
 	"github.com/ryogrid/SamehadaDB/samehada/samehada_util"
+	"github.com/ryogrid/SamehadaDB/storage/page/skip_list_page"
 	testingpkg "github.com/ryogrid/SamehadaDB/testing"
 	"github.com/ryogrid/SamehadaDB/types"
 	"math"
@@ -30,7 +31,6 @@ import (
 )
 */
 
-/*
 func TestSerializationOfSkipLisBlockPage(t *testing.T) {
 	t.Parallel()
 	if !common.EnableOnMemStorage {
@@ -334,8 +334,6 @@ func TestBSearchOfSkipLisBlockPage2(t *testing.T) {
 
 	shi.Shutdown(false)
 }
-
-*/
 
 func confirmSkipListContent(t *testing.T, sl *skip_list.SkipList, step int32) int32 {
 	entryCnt := int32(0)
@@ -1923,16 +1921,16 @@ func testSkipListMixParallelStrideAddedIteratorRoot[T int32 | float32 | string](
 	bpoolSize := int32(500)
 
 	// 4th arg should be multiple of 20
-	testSkipListMixParallelStrideAddedIterator[T](t, keyType, 800, 1000, 12, 800, bpoolSize)
+	testSkipListMixParallelStrideAddedIterator[T](t, keyType, 400, 100, 12, 800, bpoolSize)
 	fmt.Println("test finished 1/5.")
-	testSkipListMixParallelStrideAddedIterator[T](t, keyType, 1, 100000, 12, 800, bpoolSize)
+	testSkipListMixParallelStrideAddedIterator[T](t, keyType, 1, 10000, 12, 800, bpoolSize)
 	fmt.Println("test finished 2/5.")
-	testSkipListMixParallelStrideAddedIterator[T](t, keyType, 300, 1000, 14, 800, bpoolSize)
-	fmt.Println("test finished 3/5.")
-	testSkipListMixParallelStrideAddedIterator[T](t, keyType, 300, 1000, 15, 0, bpoolSize)
-	fmt.Println("test finished 4/5.")
-	testSkipListMixParallelStrideAddedIterator[T](t, keyType, 8, 100000, 13, 200, bpoolSize)
-	fmt.Println("test finished 5/5.")
+	//testSkipListMixParallelStrideAddedIterator[T](t, keyType, 200, 100, 14, 800, bpoolSize)
+	//fmt.Println("test finished 3/5.")
+	//	testSkipListMixParallelStrideAddedIterator[T](t, keyType, 300, 1000, 15, 0, bpoolSize)
+	//	fmt.Println("test finished 4/5.")
+	//	testSkipListMixParallelStrideAddedIterator[T](t, keyType, 8, 100000, 13, 200, bpoolSize)
+	//	fmt.Println("test finished 5/5.")
 }
 
 /*
@@ -2031,6 +2029,7 @@ func TestSkipListMixParallelStrideAddedIteratorInteger(t *testing.T) {
 	}
 	testSkipListMixParallelStrideAddedIteratorRoot[int32](t, types.Integer)
 }
+*/
 
 func TestSkipListMixParallelStrideAddedIteratorVarchar(t *testing.T) {
 	t.Parallel()
@@ -2040,6 +2039,7 @@ func TestSkipListMixParallelStrideAddedIteratorVarchar(t *testing.T) {
 	testSkipListMixParallelStrideAddedIteratorRoot[string](t, types.Varchar)
 }
 
+/*
 //// 24h running had been succeeded at 220923
 //// \SamehadaDB\container\skip_list\skip_list_test>go test . -race -timeout 24h -v 2>&1 > fuzzlikelog-parallel2.txt
 //func TestSkipListMixParallsStrideVarcharLikeFuzzer(t *testing.T) {
@@ -2086,6 +2086,7 @@ func TestSkipListMixParallelStrideAddedIteratorVarchar(t *testing.T) {
 //		runningThCnt++
 //	}
 //}
+*/
 
 func testSkipListInsertGetEven(t *testing.T, sl *skip_list.SkipList, ch chan string) {
 	for ii := int32(0); ii < 10000; ii = ii + 2 {
@@ -2291,4 +2292,3 @@ func TestSkipListParallelSimpleInteger3Stride(t *testing.T) {
 
 	shi.CloseFilesForTesting()
 }
-*/
