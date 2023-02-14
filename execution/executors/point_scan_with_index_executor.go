@@ -73,7 +73,8 @@ func (e *PointScanWithIndexExecutor) Init() {
 	dummyTuple := tuple.GenTupleForIndexSearch(schema_, uint32(colIdxOfPred), scanKey)
 	rids := index_.ScanKey(dummyTuple, e.txn)
 	for _, rid := range rids {
-		tuple_, err := e.tableMetadata.Table().GetTuple(&rid, e.txn)
+		rid_ := rid
+		tuple_, err := e.tableMetadata.Table().GetTuple(&rid_, e.txn)
 		if tuple_ == nil && err != access.ErrSelfDeletedCase {
 			//fmt.Println("PointScanWithIndexExecutor:Init ErrSelfDeletedCase!")
 			e.foundTuples = make([]*tuple.Tuple, 0)
