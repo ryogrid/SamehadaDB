@@ -1,1 +1,99 @@
-package executor
+package executor_test
+
+import (
+	"fmt"
+	"github.com/ryogrid/SamehadaDB/catalog"
+	"github.com/ryogrid/SamehadaDB/common"
+	"github.com/ryogrid/SamehadaDB/samehada"
+	"github.com/ryogrid/SamehadaDB/storage/index/index_constants"
+	"github.com/ryogrid/SamehadaDB/storage/table/column"
+	"github.com/ryogrid/SamehadaDB/storage/table/schema"
+	testingpkg "github.com/ryogrid/SamehadaDB/testing"
+	"github.com/ryogrid/SamehadaDB/types"
+	"os"
+	"testing"
+)
+
+func testKeyDuplicateInsertDeleteWithSkipListIndex[T float32 | int32 | string](t *testing.T, keyType types.TypeID) {
+	if !common.EnableOnMemStorage {
+		os.Remove(t.Name() + ".db")
+		os.Remove(t.Name() + ".log")
+	}
+
+	shi := samehada.NewSamehadaInstance(t.Name(), 500)
+	shi.GetLogManager().ActivateLogging()
+	testingpkg.Assert(t, shi.GetLogManager().IsEnabledLogging(), "")
+	fmt.Println("System logging is active.")
+	txnMgr := shi.GetTransactionManager()
+
+	txn := txnMgr.Begin(nil)
+
+	c := catalog.BootstrapCatalog(shi.GetBufferPoolManager(), shi.GetLogManager(), shi.GetLockManager(), txn)
+
+	columnA := column.NewColumn("account_id", keyType, true, index_constants.INDEX_KIND_SKIP_LIST, types.PageID(-1), nil)
+	columnB := column.NewColumn("balance", types.Integer, true, index_constants.INDEX_KIND_SKIP_LIST, types.PageID(-1), nil)
+	schema_ := schema.NewSchema([]*column.Column{columnA, columnB})
+	tableMetadata := c.CreateTable("test_1", schema_, txn)
+
+	txnMgr.Commit(c, txn)
+
+	txn = txnMgr.Begin(nil)
+
+	var accountId interface{}
+	switch keyType {
+	case types.Integer:
+		accountId = int32(10)
+	case types.Float:
+		accountId = float32(-5.2)
+	case types.Varchar:
+		accountId = "duplicateTest"
+	default:
+		panic("unsuppoted value type")
+	}
+
+	insPlan1 := createSpecifiedValInsertPlanNode(accountId.(T), int32(100), c, tableMetadata, keyType)
+	result := executePlan(c, shi.GetBufferPoolManager(), txn, insPlan1)
+	insPlan2 := createSpecifiedValInsertPlanNode(accountId.(T), int32(101), c, tableMetadata, keyType)
+	result = executePlan(c, shi.GetBufferPoolManager(), txn, insPlan2)
+	insPlan3 := createSpecifiedValInsertPlanNode(accountId.(T), int32(102), c, tableMetadata, keyType)
+	result = executePlan(c, shi.GetBufferPoolManager(), txn, insPlan3)
+
+	txnMgr.Commit(c, txn)
+
+	txn = txnMgr.Begin(nil)
+
+	scanP := createSpecifiedPointScanPlanNode(accountId.(T), c, tableMetadata, keyType, index_constants.INDEX_KIND_SKIP_LIST)
+	result = executePlan(c, shi.GetBufferPoolManager(), txn, scanP)
+	testingpkg.Assert(t, len(result) == 3, "duplicated key point scan got illegal results.")
+	rid1 := result[0].GetRID()
+	rid2 := result[1].GetRID()
+	rid3 := result[2].GetRID()
+	fmt.Printf("%v %v %v\n", *rid1, *rid2, *rid3)
+
+	indexCol1 := tableMetadata.GetIndex(0)
+	indexCol2 := tableMetadata.GetIndex(1)
+
+	indexCol1.DeleteEntry(result[0], *rid1, txn)
+	indexCol2.DeleteEntry(result[0], *rid1, txn)
+	scanP = createSpecifiedPointScanPlanNode(accountId.(T), c, tableMetadata, keyType, index_constants.INDEX_KIND_SKIP_LIST)
+	result = executePlan(c, shi.GetBufferPoolManager(), txn, scanP)
+	testingpkg.Assert(t, len(result) == 2, "duplicated key point scan got illegal results.")
+
+	indexCol1.DeleteEntry(result[1], *rid2, txn)
+	indexCol2.DeleteEntry(result[1], *rid2, txn)
+	scanP = createSpecifiedPointScanPlanNode(accountId.(T), c, tableMetadata, keyType, index_constants.INDEX_KIND_SKIP_LIST)
+	result = executePlan(c, shi.GetBufferPoolManager(), txn, scanP)
+	testingpkg.Assert(t, len(result) == 1, "duplicated key point scan got illegal results.")
+
+	indexCol1.DeleteEntry(result[2], *rid3, txn)
+	indexCol2.DeleteEntry(result[2], *rid3, txn)
+	scanP = createSpecifiedPointScanPlanNode(accountId.(T), c, tableMetadata, keyType, index_constants.INDEX_KIND_SKIP_LIST)
+	result = executePlan(c, shi.GetBufferPoolManager(), txn, scanP)
+	testingpkg.Assert(t, len(result) == 0, "duplicated key point scan got illegal results.")
+
+	txnMgr.Commit(c, txn)
+}
+
+func TestKeyDuplicateInsertDeleteWithSkipListIndexInt(t *testing.T) {
+	testKeyDuplicateInsertDeleteWithSkipListIndex[int32](t, types.Integer)
+}
