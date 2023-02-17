@@ -82,14 +82,14 @@ func testKeyDuplicateInsertDeleteWithSkipListIndex[T float32 | int32 | string](t
 	result = executePlan(c, shi.GetBufferPoolManager(), txn, scanP)
 	testingpkg.Assert(t, len(result) == 2, "duplicated key point scan got illegal results.")
 
-	indexCol1.DeleteEntry(result[1], *rid2, txn)
-	indexCol2.DeleteEntry(result[1], *rid2, txn)
+	indexCol1.DeleteEntry(result[0], *rid2, txn)
+	indexCol2.DeleteEntry(result[0], *rid2, txn)
 	scanP = createSpecifiedPointScanPlanNode(accountId.(T), c, tableMetadata, keyType, index_constants.INDEX_KIND_SKIP_LIST)
 	result = executePlan(c, shi.GetBufferPoolManager(), txn, scanP)
 	testingpkg.Assert(t, len(result) == 1, "duplicated key point scan got illegal results.")
 
-	indexCol1.DeleteEntry(result[2], *rid3, txn)
-	indexCol2.DeleteEntry(result[2], *rid3, txn)
+	indexCol1.DeleteEntry(result[0], *rid3, txn)
+	indexCol2.DeleteEntry(result[0], *rid3, txn)
 	scanP = createSpecifiedPointScanPlanNode(accountId.(T), c, tableMetadata, keyType, index_constants.INDEX_KIND_SKIP_LIST)
 	result = executePlan(c, shi.GetBufferPoolManager(), txn, scanP)
 	testingpkg.Assert(t, len(result) == 0, "duplicated key point scan got illegal results.")
@@ -99,4 +99,12 @@ func testKeyDuplicateInsertDeleteWithSkipListIndex[T float32 | int32 | string](t
 
 func TestKeyDuplicateInsertDeleteWithSkipListIndexInt(t *testing.T) {
 	testKeyDuplicateInsertDeleteWithSkipListIndex[int32](t, types.Integer)
+}
+
+func TestKeyDuplicateInsertDeleteWithSkipListIndexFloat(t *testing.T) {
+	testKeyDuplicateInsertDeleteWithSkipListIndex[float32](t, types.Float)
+}
+
+func TestKeyDuplicateInsertDeleteWithSkipListIndexVarchar(t *testing.T) {
+	testKeyDuplicateInsertDeleteWithSkipListIndex[string](t, types.Varchar)
 }
