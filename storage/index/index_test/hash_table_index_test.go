@@ -27,7 +27,6 @@ func TestPackAndUnpackRID32(t *testing.T) {
 	rid.SlotNum = 1027
 
 	packed_val := samehada_util.PackRIDtoUint32(rid)
-	fmt.Println(packed_val)
 	unpacked_val := samehada_util.UnpackUint32toRID(packed_val)
 
 	testingpkg.Assert(t, unpacked_val.PageId == 55, "")
@@ -40,7 +39,6 @@ func TestPackAndUnpackRID64(t *testing.T) {
 	rid.SlotNum = 1027
 
 	packed_val := samehada_util.PackRIDtoUint64(rid)
-	fmt.Println(packed_val)
 	unpacked_val := samehada_util.UnpackUint64toRID(packed_val)
 
 	testingpkg.Assert(t, unpacked_val.PageId == 55, "")

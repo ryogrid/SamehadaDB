@@ -3,7 +3,6 @@ package samehada_util
 import (
 	"bytes"
 	"encoding/binary"
-	"fmt"
 	"github.com/ryogrid/SamehadaDB/common"
 	"github.com/ryogrid/SamehadaDB/storage/page"
 	"github.com/ryogrid/SamehadaDB/types"
@@ -73,6 +72,7 @@ func UnpackUint64toRID(value uint64) page.RID {
 	PageId = types.PageID(binary.BigEndian.Uint32(buf))
 	copy(buf[:4], packedDataInBytes[4:])
 	SlotNum = binary.BigEndian.Uint32(buf)
+	SlotNum = SlotNum
 	ret := new(page.RID)
 	ret.PageId = PageId
 	ret.SlotNum = SlotNum
@@ -326,12 +326,16 @@ func EncodeValueAndRIDToDicOrderComparableBytes(orgVal *types.Value, rid *page.R
 	case types.Varchar:
 		convedBytes := orgVal.Serialize()
 		strLen := uint16(len(orgVal.ToString()))
-		strLenBytes := types.UInt16(strLen + 8).Serialize()
+		strLenBytes := types.UInt16(strLen + 4 + 8).Serialize()
 		// {false, firstByte of str len, secondeByte}
 		arrToFill = append(arrToFill, []byte{0, strLenBytes[1], strLenBytes[0]}...)
 		arrToFill = append(arrToFill, convedBytes[3:]...)
+		// value {0,0,0,0} is for avoiding revesed dict ordering
+		// ex: "abcde" should be bigger than "abcd" conbined any RID value
+		//     on UTF-9, no charactor exist whose numeric representation is lesser than 0x00000000 at byte unit dict order
+		arrToFill = append(arrToFill, []byte{0, 0, 0, 0}...)
 		arrToFill = append(arrToFill, types.UInt64(PackRIDtoUint64(rid)).Serialize()...)
-		fmt.Println(arrToFill)
+		//fmt.Println(arrToFill)
 		return types.NewValueFromBytes(arrToFill, types.Varchar)
 	default:
 		panic("not supported type")
@@ -350,7 +354,7 @@ func ExtractOrgKeyFromDicOrderComparableEncodedVarchar(encodedVal *types.Value, 
 		return &retVal
 	case types.Varchar:
 		encodedStr := encodedVal.ToString()
-		orgStr := encodedStr[:len(encodedStr)-8]
+		orgStr := encodedStr[:len(encodedStr)-(4+8)]
 		return GetPonterOfValue(types.NewVarchar(orgStr))
 	default:
 		panic("not supported type")
