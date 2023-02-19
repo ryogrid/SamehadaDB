@@ -3,6 +3,7 @@ package samehada_util
 import (
 	"bytes"
 	"encoding/binary"
+	"fmt"
 	"github.com/ryogrid/SamehadaDB/common"
 	"github.com/ryogrid/SamehadaDB/storage/page"
 	"github.com/ryogrid/SamehadaDB/types"
@@ -22,26 +23,26 @@ func PackRIDtoUint32(value *page.RID) uint32 {
 	buf1 := new(bytes.Buffer)
 	buf2 := new(bytes.Buffer)
 	pack_buf := make([]byte, 4)
-	binary.Write(buf1, binary.LittleEndian, value.PageId)
-	binary.Write(buf2, binary.LittleEndian, value.SlotNum)
+	binary.Write(buf1, binary.BigEndian, value.PageId)
+	binary.Write(buf2, binary.BigEndian, value.SlotNum)
 	pageIdInBytes := buf1.Bytes()
 	slotNumInBytes := buf2.Bytes()
-	copy(pack_buf[:2], pageIdInBytes[:2])
-	copy(pack_buf[2:], slotNumInBytes[:2])
-	return binary.LittleEndian.Uint32(pack_buf)
+	copy(pack_buf[:2], pageIdInBytes[2:])
+	copy(pack_buf[2:], slotNumInBytes[2:])
+	return binary.BigEndian.Uint32(pack_buf)
 }
 
 func UnpackUint32toRID(value uint32) page.RID {
 	packed_buf := new(bytes.Buffer)
-	binary.Write(packed_buf, binary.LittleEndian, value)
+	binary.Write(packed_buf, binary.BigEndian, value)
 	packedDataInBytes := packed_buf.Bytes()
 	var PageId types.PageID
 	var SlotNum uint32
 	buf := make([]byte, 4)
-	copy(buf[:2], packedDataInBytes[:2])
-	PageId = types.PageID(binary.LittleEndian.Uint32(buf))
-	copy(buf[:2], packedDataInBytes[2:])
-	SlotNum = binary.LittleEndian.Uint32(buf)
+	copy(buf[2:], packedDataInBytes[:2])
+	PageId = types.PageID(binary.BigEndian.Uint32(buf))
+	copy(buf[2:], packedDataInBytes[2:])
+	SlotNum = binary.BigEndian.Uint32(buf)
 	ret := new(page.RID)
 	ret.PageId = PageId
 	ret.SlotNum = SlotNum
@@ -52,26 +53,26 @@ func PackRIDtoUint64(value *page.RID) uint64 {
 	buf1 := new(bytes.Buffer)
 	buf2 := new(bytes.Buffer)
 	pack_buf := make([]byte, 8)
-	binary.Write(buf1, binary.LittleEndian, value.PageId)
-	binary.Write(buf2, binary.LittleEndian, value.SlotNum)
+	binary.Write(buf1, binary.BigEndian, value.PageId)
+	binary.Write(buf2, binary.BigEndian, value.SlotNum)
 	pageIdInBytes := buf1.Bytes()
 	slotNumInBytes := buf2.Bytes()
-	copy(pack_buf[:4], pageIdInBytes[:])
 	copy(pack_buf[4:], slotNumInBytes[:])
-	return binary.LittleEndian.Uint64(pack_buf)
+	copy(pack_buf[:4], pageIdInBytes[:])
+	return binary.BigEndian.Uint64(pack_buf)
 }
 
 func UnpackUint64toRID(value uint64) page.RID {
 	packed_buf := new(bytes.Buffer)
-	binary.Write(packed_buf, binary.LittleEndian, value)
+	binary.Write(packed_buf, binary.BigEndian, value)
 	packedDataInBytes := packed_buf.Bytes()
 	var PageId types.PageID
 	var SlotNum uint32
 	buf := make([]byte, 4)
 	copy(buf[:4], packedDataInBytes[:4])
-	PageId = types.PageID(binary.LittleEndian.Uint32(buf))
+	PageId = types.PageID(binary.BigEndian.Uint32(buf))
 	copy(buf[:4], packedDataInBytes[4:])
-	SlotNum = binary.LittleEndian.Uint32(buf)
+	SlotNum = binary.BigEndian.Uint32(buf)
 	ret := new(page.RID)
 	ret.PageId = PageId
 	ret.SlotNum = SlotNum
@@ -310,7 +311,7 @@ func EncodeValueAndRIDToDicOrderComparableBytes(orgVal *types.Value, rid *page.R
 		convedBytes := encodeToDicOrderComparableBytes(orgVal.ToInteger(), types.Integer)
 		totalSizeBytes := types.UInt16(len(convedBytes) + 8).Serialize()
 		// {false, firstByte of str len, secondeByte}
-		arrToFill = append(arrToFill, []byte{0, totalSizeBytes[0], totalSizeBytes[1]}...)
+		arrToFill = append(arrToFill, []byte{0, totalSizeBytes[1], totalSizeBytes[0]}...)
 		arrToFill = append(arrToFill, convedBytes...)
 		arrToFill = append(arrToFill, types.UInt64(PackRIDtoUint64(rid)).Serialize()...)
 		return types.NewValueFromBytes(arrToFill, types.Varchar)
@@ -318,7 +319,7 @@ func EncodeValueAndRIDToDicOrderComparableBytes(orgVal *types.Value, rid *page.R
 		convedBytes := encodeToDicOrderComparableBytes(orgVal.ToFloat(), types.Float)
 		totalSizeBytes := types.UInt16(len(convedBytes) + 8).Serialize()
 		// {false, firstByte of str len, secondeByte}
-		arrToFill = append(arrToFill, []byte{0, totalSizeBytes[0], totalSizeBytes[1]}...)
+		arrToFill = append(arrToFill, []byte{0, totalSizeBytes[1], totalSizeBytes[0]}...)
 		arrToFill = append(arrToFill, convedBytes...)
 		arrToFill = append(arrToFill, types.UInt64(PackRIDtoUint64(rid)).Serialize()...)
 		return types.NewValueFromBytes(arrToFill, types.Varchar)
@@ -327,9 +328,10 @@ func EncodeValueAndRIDToDicOrderComparableBytes(orgVal *types.Value, rid *page.R
 		strLen := uint16(len(orgVal.ToString()))
 		strLenBytes := types.UInt16(strLen + 8).Serialize()
 		// {false, firstByte of str len, secondeByte}
-		arrToFill = append(arrToFill, []byte{0, strLenBytes[0], strLenBytes[1]}...)
+		arrToFill = append(arrToFill, []byte{0, strLenBytes[1], strLenBytes[0]}...)
 		arrToFill = append(arrToFill, convedBytes[3:]...)
 		arrToFill = append(arrToFill, types.UInt64(PackRIDtoUint64(rid)).Serialize()...)
+		fmt.Println(arrToFill)
 		return types.NewValueFromBytes(arrToFill, types.Varchar)
 	default:
 		panic("not supported type")

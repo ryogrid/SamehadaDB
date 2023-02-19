@@ -99,6 +99,6 @@ func TestEncDecOrgKeyAndRIDConcated(t *testing.T) {
 	testing2.SimpleAssert(t, floatVal2.CompareGreaterThan(*floatVal4))
 
 	charVal1 := testEncDecOrgKeyAndRIDConcated(t, GetPonterOfValue(types.NewVarchar("abcd")), types.Varchar, page.RID{-1, 128})
-	charVal2 := testEncDecOrgKeyAndRIDConcated(t, GetPonterOfValue(types.NewVarchar("bbcde")), types.Varchar, page.RID{-1, 128})
+	charVal2 := testEncDecOrgKeyAndRIDConcated(t, GetPonterOfValue(types.NewVarchar("abcde")), types.Varchar, page.RID{-1, 128})
 	testing2.SimpleAssert(t, charVal2.CompareGreaterThan(*charVal1))
 }

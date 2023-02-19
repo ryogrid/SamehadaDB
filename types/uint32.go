@@ -17,13 +17,13 @@ type Bool bool
 // Serialize casts it to []byte
 func (id UInt16) Serialize() []byte {
 	buf := new(bytes.Buffer)
-	binary.Write(buf, binary.LittleEndian, id)
+	binary.Write(buf, binary.BigEndian, id)
 	return buf.Bytes()
 }
 
 func NewUInt16FromBytes(data []byte) (ret_ UInt16) {
 	var ret UInt16
-	binary.Read(bytes.NewBuffer(data), binary.LittleEndian, &ret)
+	binary.Read(bytes.NewBuffer(data), binary.BigEndian, &ret)
 	return ret
 }
 
