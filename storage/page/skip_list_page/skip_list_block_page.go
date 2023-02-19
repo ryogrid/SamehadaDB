@@ -830,9 +830,10 @@ func (node *SkipListBlockPage) SetEntryOffset(idx int, setOffset uint16) {
 	if setOffset == 0 {
 		panic("SetEntryOffset passed setOffset=0.")
 	}
-	buf := new(bytes.Buffer)
-	binary.Write(buf, binary.LittleEndian, setOffset)
-	setOffsetInBytes := buf.Bytes()
+	//buf := new(bytes.Buffer)
+	//binary.Write(buf, binary.LittleEndian, setOffset)
+	//setOffsetInBytes := buf.Bytes()
+	setOffsetInBytes := types.UInt16(setOffset).Serialize()
 	offset := offsetEntryInfos + sizeEntryInfo*uint32(idx)
 	copy(node.Data()[offset:], setOffsetInBytes)
 }
@@ -844,9 +845,10 @@ func (node *SkipListBlockPage) GetEntrySize(idx int) uint32 {
 }
 
 func (node *SkipListBlockPage) SetEntrySize(idx int, setSize uint16) {
-	buf := new(bytes.Buffer)
-	binary.Write(buf, binary.LittleEndian, setSize)
-	setSizeInBytes := buf.Bytes()
+	//buf := new(bytes.Buffer)
+	//binary.Write(buf, binary.LittleEndian, setSize)
+	//setSizeInBytes := buf.Bytes()
+	setSizeInBytes := types.UInt16(setSize).Serialize()
 	offset := offsetEntryInfos + sizeEntryInfo*uint32(idx) + sizeEntryInfoOffset
 	copy(node.Data()[offset:], setSizeInBytes)
 }
