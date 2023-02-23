@@ -197,7 +197,7 @@ func testParallelTxnsQueryingSkipListIndexUsedColumns[T int32 | float32 | string
 
 	txn = txnMgr.Begin(nil)
 
-	checkKeyAndLockItIfExistInsVals := func(keyVal T) (isLocked bool) {
+	checkKeyAndLockItIfExistInsValsAndDeletedValsForDelete := func(keyVal T) (isLocked bool) {
 		// TODO: (SDB) when keyVal is found in insVals and it is flagged
 		//             and/or is found in deletedValsForDelete and it is flagged, return true
 		//             when it is not flagged, make entry flagged up
@@ -205,14 +205,14 @@ func testParallelTxnsQueryingSkipListIndexUsedColumns[T int32 | float32 | string
 		panic("not implemented yet")
 	}
 
-	getKeyAndLockItInsVals := func() (isFound bool, retKey *T) {
+	getKeyAndLockItInsValsAndDeletedValsForDelete := func() (isFound bool, retKey *T) {
 		// TODO: (SDB) select key which is not flagged in insVals and deletedValsForDelete
 		//             and making the flag of insVals and deletedValsForDelete up
 		//             when appropriate key is not found, return false
 		panic("not implemented yet")
 	}
 
-	addKeyOrIncMappedValueInsVals := func(keyVal T) {
+	putEntryOrIncMappedValueInsVals := func(keyVal T) {
 		// TODO: (SDB) add key or inc mapped val with keyVal
 		//             and delete key_val entry from deletedValsForDelete
 		//             additionaly, when keyVal is already exist case,
@@ -220,8 +220,13 @@ func testParallelTxnsQueryingSkipListIndexUsedColumns[T int32 | float32 | string
 		panic("not implemented yet")
 	}
 
-	rollbkFlaggedEntryInsVals := func(keyVal T) {
-		// TODO: (SDB) rollback updated states which is done by getKeyAndLockItInsVals or checkKeyAndLockItIfExistInsVals
+	unFlaggedEntryInsVals := func(keyVal T) {
+		// TODO: (SDB) unFlagg
+		panic("not implemented yet")
+	}
+
+	applyFlaggedEntryInsVals := func(keyVal T) {
+		// TODO: (SDB) remove flagged entry
 		panic("not implemented yet")
 	}
 
@@ -231,8 +236,18 @@ func testParallelTxnsQueryingSkipListIndexUsedColumns[T int32 | float32 | string
 		panic("not implemented yet")
 	}
 
-	rollbkEntryDeletedValsForDelete := func(key_val T) {
-		// TODO: (SDB) rollback updated states which is done by getkeyAndLockItDeletedValsForDelete
+	putEntryDeletedValsForDelete := func(keyVal T) {
+		// TODO: (SDB) need implement
+		panic("not implemented yet")
+	}
+
+	removeEntryDeletedValsForDelete := func(keyVal T) {
+		// TODO: (SDB) need implement
+		panic("not implemented yet")
+	}
+
+	unFlaggedEntryDeletedValsForDelete := func(key_val T) {
+		// TODO: (SDB) rollback updated states which is done by getAkeyAndLockItDeletedValsForDelete
 		panic("not implemented yet")
 	}
 
@@ -289,7 +304,7 @@ func testParallelTxnsQueryingSkipListIndexUsedColumns[T int32 | float32 | string
 		}
 
 		//insVals = append(insVals, keyValBase)
-		addKeyOrIncMappedValueInsVals(keyValBase)
+		putEntryOrIncMappedValueInsVals(keyValBase)
 	}
 
 	txnMgr.Commit(nil, txn)
@@ -305,15 +320,15 @@ func testParallelTxnsQueryingSkipListIndexUsedColumns[T int32 | float32 | string
 		}
 	}
 
-	checkKeyColDupMapDeleteWithLock := func(keyVal T) {
-		checkKeyColDupMapMutex.Lock()
-		delete(checkKeyColDupMap, keyVal)
-		checkKeyColDupMapMutex.Unlock()
-	}
+	//checkKeyColDupMapDeleteWithLock := func(keyVal T) {
+	//	checkKeyColDupMapMutex.Lock()
+	//	delete(checkKeyColDupMap, keyVal)
+	//	checkKeyColDupMapMutex.Unlock()
+	//}
 
-	deleteCheckMapEntriesWithLock := func(keyValBase T) {
-		checkKeyColDupMapDeleteWithLock(keyValBase)
-	}
+	//deleteCheckMapEntriesWithLock := func(keyValBase T) {
+	//	checkKeyColDupMapDeleteWithLock(keyValBase)
+	//}
 
 	finalizeRandomNoSideEffectTxn := func(txn_ *access.Transaction) {
 		txnOk := handleFnishedTxn(c, txnMgr, txn_)
@@ -367,13 +382,14 @@ func testParallelTxnsQueryingSkipListIndexUsedColumns[T int32 | float32 | string
 		// TODO: (SDB) need update logic as key duplication support version
 		txnOk := handleFnishedTxn(c, txnMgr, txn_)
 		if txnOk {
-			insValsAppendWithLock(insKeyValBase)
-			//putCheckMapEntriesWithLock(insKeyValBase)
-			atomic.AddInt32(&insertedTupleCnt, stride)
+			//insValsAppendWithLock(insKeyValBase)
+			putEntryOrIncMappedValueInsVals(insKeyValBase)
 			atomic.AddInt32(&commitedTxnCnt, 1)
 		} else {
 			// rollback
-			deleteCheckMapEntriesWithLock(insKeyValBase)
+			//deleteCheckMapEntriesWithLock(insKeyValBase)
+			unFlaggedEntryInsVals(insKeyValBase)
+			unFlaggedEntryDeletedValsForDelete(insKeyValBase)
 			atomic.AddInt32(&abortedTxnCnt, 1)
 		}
 		atomic.AddInt32(&executedTxnCnt, 1)
@@ -383,15 +399,18 @@ func testParallelTxnsQueryingSkipListIndexUsedColumns[T int32 | float32 | string
 		// TODO: (SDB) need update logic as key duplication support version
 		txnOk := handleFnishedTxn(c, txnMgr, txn_)
 		if txnOk {
-			deletedValsForDeleteMutex.Lock()
-			deletedValsForDelete[delKeyValBase] = delKeyValBase
-			deletedValsForDeleteMutex.Unlock()
-			deleteCheckMapEntriesWithLock(delKeyValBase)
-			atomic.AddInt32(&deletedTupleCnt, stride)
+			//deletedValsForDeleteMutex.Lock()
+			//deletedValsForDelete[delKeyValBase] = delKeyValBase
+			//deletedValsForDeleteMutex.Unlock()
+			//deleteCheckMapEntriesWithLock(delKeyValBase)
+			applyFlaggedEntryInsVals(delKeyValBase)
+			putEntryDeletedValsForDelete(delKeyValBase)
 			atomic.AddInt32(&commitedTxnCnt, 1)
 		} else {
 			// rollback removed element
-			insValsAppendWithLock(delKeyValBase)
+			//insValsAppendWithLock(delKeyValBase)
+			unFlaggedEntryInsVals(delKeyValBase)
+			unFlaggedEntryDeletedValsForDelete(delKeyValBase)
 			atomic.AddInt32(&abortedTxnCnt, 1)
 		}
 		atomic.AddInt32(&executedTxnCnt, 1)
@@ -399,17 +418,50 @@ func testParallelTxnsQueryingSkipListIndexUsedColumns[T int32 | float32 | string
 
 	finalizeRandomUpdateTxn := func(txn_ *access.Transaction, oldKeyValBase T, newKeyValBase T) {
 		// TODO: (SDB) need update logic as key duplication support version
+
+		// TODO: (SDB) update need lock key oldKey and newKey at start of operation
 		txnOk := handleFnishedTxn(c, txnMgr, txn_)
 		if txnOk {
 			// append new base value
-			insValsAppendWithLock(newKeyValBase)
-			deleteCheckMapEntriesWithLock(oldKeyValBase)
-			//deleteCheckMapEntriesWithLock(newKeyValBase)
+			//insValsAppendWithLock(newKeyValBase)
+			//deleteCheckMapEntriesWithLock(oldKeyValBase)
+			applyFlaggedEntryInsVals(newKeyValBase)
+			removeEntryDeletedValsForDelete(newKeyValBase)
 			atomic.AddInt32(&commitedTxnCnt, 1)
 		} else {
 			// rollback removed element
-			insValsAppendWithLock(oldKeyValBase)
-			deleteCheckMapEntriesWithLock(newKeyValBase)
+			//insValsAppendWithLock(oldKeyValBase)
+			//deleteCheckMapEntriesWithLock(newKeyValBase)
+			unFlaggedEntryInsVals(newKeyValBase)
+			unFlaggedEntryDeletedValsForDelete(newKeyValBase)
+			atomic.AddInt32(&abortedTxnCnt, 1)
+		}
+		atomic.AddInt32(&executedTxnCnt, 1)
+	}
+
+	finalizeSelectNotExistingTxn := func(txn_ *access.Transaction, getKeyValBase T) {
+		// TODO: (SDB) need update logic as key duplication support version
+		txnOk := handleFnishedTxn(c, txnMgr, txn_)
+		if txnOk {
+			unFlaggedEntryInsVals(getKeyValBase)
+			unFlaggedEntryDeletedValsForDelete(getKeyValBase)
+			atomic.AddInt32(&commitedTxnCnt, 1)
+		} else {
+			unFlaggedEntryInsVals(getKeyValBase)
+			unFlaggedEntryDeletedValsForDelete(getKeyValBase)
+			atomic.AddInt32(&abortedTxnCnt, 1)
+		}
+		atomic.AddInt32(&executedTxnCnt, 1)
+	}
+
+	finalizeSelectExistingTxn := func(txn_ *access.Transaction, getKeyValBase T) {
+		// TODO: (SDB) need update logic as key duplication support version
+		txnOk := handleFnishedTxn(c, txnMgr, txn_)
+		if txnOk {
+			unFlaggedEntryInsVals(getKeyValBase)
+			atomic.AddInt32(&commitedTxnCnt, 1)
+		} else {
+			unFlaggedEntryInsVals(getKeyValBase)
 			atomic.AddInt32(&abortedTxnCnt, 1)
 		}
 		atomic.AddInt32(&executedTxnCnt, 1)
@@ -610,7 +662,7 @@ func testParallelTxnsQueryingSkipListIndexUsedColumns[T int32 | float32 | string
 
 				insKeyValBase := getNotDupWithAccountRandomPrimitivVal[T](keyType, checkKeyColDupMap, checkKeyColDupMapMutex, tmpMax)
 
-				isLocked := checkKeyAndLockItIfExistInsVals(insKeyValBase)
+				isLocked := checkKeyAndLockItIfExistInsValsAndDeletedValsForDelete(insKeyValBase)
 				// selected insKeyValBase can not be inserted, so this routine exits
 				if isLocked {
 					if execType == PARALLEL_EXEC {
@@ -699,7 +751,7 @@ func testParallelTxnsQueryingSkipListIndexUsedColumns[T int32 | float32 | string
 				randomDeleteSuccessOpFunc := func() {
 					insValsMutex.Lock()
 					var delKeyValBase T
-					isFound, delKeyValBaseP := getKeyAndLockItInsVals()
+					isFound, delKeyValBaseP := getKeyAndLockItInsValsAndDeletedValsForDelete()
 					if !isFound {
 						if execType == PARALLEL_EXEC {
 							ch <- 1
@@ -743,7 +795,7 @@ func testParallelTxnsQueryingSkipListIndexUsedColumns[T int32 | float32 | string
 			randomUpdateOpFunc := func() {
 				insValsMutex.Lock()
 				var updateKeyValBase T
-				isFound, updateKeyValBaseP := getKeyAndLockItInsVals()
+				isFound, updateKeyValBaseP := getKeyAndLockItInsValsAndDeletedValsForDelete()
 				if !isFound {
 					if execType == PARALLEL_EXEC {
 						ch <- 1
@@ -832,8 +884,8 @@ func testParallelTxnsQueryingSkipListIndexUsedColumns[T int32 | float32 | string
 						common.SH_Assert(results != nil && len(results) == 0, "Select(fail) should be fail!")
 					}
 
-					// TODO: (SDB) need finalize function for select of not existing entry case
-					finalizeRandomNoSideEffectTxn(txn_)
+					finalizeSelectNotExistingTxn(txn_, getTgtBase)
+					//finalizeRandomNoSideEffectTxn(txn_)
 					if execType == PARALLEL_EXEC {
 						ch <- 1
 					}
@@ -845,7 +897,7 @@ func testParallelTxnsQueryingSkipListIndexUsedColumns[T int32 | float32 | string
 				}
 			} else { // 50% is Select to existing entry
 				randomPointScanSuccessOpFunc := func() {
-					isFound, getKeyValBaseP := getKeyAndLockItInsVals()
+					isFound, getKeyValBaseP := getKeyAndLockItInsValsAndDeletedValsForDelete()
 					var getKeyValBase T
 					if !isFound {
 						if execType == PARALLEL_EXEC {
@@ -873,8 +925,9 @@ func testParallelTxnsQueryingSkipListIndexUsedColumns[T int32 | float32 | string
 						gotVal := results[0].GetValue(tableMetadata.Schema(), 1)
 						common.SH_Assert(gotVal.CompareEquals(collectVal), "value should be "+fmt.Sprintf("%d not %d", collectVal.ToInteger(), gotVal.ToInteger()))
 					}
-					// TODO: (SDB) need finalize function for select of existing entry case
-					finalizeRandomNoSideEffectTxn(txn_)
+
+					finalizeSelectExistingTxn(txn_, getKeyValBase)
+					//finalizeRandomNoSideEffectTxn(txn_)
 					if execType == PARALLEL_EXEC {
 						ch <- 1
 					}
