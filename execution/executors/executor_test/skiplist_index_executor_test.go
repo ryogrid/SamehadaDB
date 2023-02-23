@@ -158,7 +158,6 @@ func testParallelTxnsQueryingSkipListIndexUsedColumns[T int32 | float32 | string
 
 	rand.Seed(int64(seedVal))
 
-	//insVals := make([]T, 0)
 	insVals := make(map[T]uint32, 0)
 	insValsMutex := new(sync.RWMutex)
 	//deletedValsForDelete := make(map[T]T, 0)
@@ -167,8 +166,6 @@ func testParallelTxnsQueryingSkipListIndexUsedColumns[T int32 | float32 | string
 	checkKeyColDupMap := make(map[T]T)
 	checkKeyColDupMapMutex := new(sync.RWMutex)
 
-	insertedTupleCnt := int32(0)
-	deletedTupleCnt := int32(0)
 	executedTxnCnt := int32(0)
 	abortedTxnCnt := int32(0)
 	commitedTxnCnt := int32(0)
@@ -200,12 +197,11 @@ func testParallelTxnsQueryingSkipListIndexUsedColumns[T int32 | float32 | string
 
 	txn = txnMgr.Begin(nil)
 
-	insertedTupleCnt += ACCOUNT_NUM
-
 	checkKeyAndLockItIfExistInsVals := func(keyVal T) (isLocked bool) {
-		// TODO: (SDB) when keyVal is found in insVals and it is flagged, return true
-		//             when it is not flagged, make entry flagged up and make a entry flagged up
-		//             in deletedValsForDelete if exist
+		// TODO: (SDB) when keyVal is found in insVals and it is flagged
+		//             and/or is found in deletedValsForDelete and it is flagged, return true
+		//             when it is not flagged, make entry flagged up
+		//             and meke entry flagged up in deletedValsForDelete if exist
 		panic("not implemented yet")
 	}
 
@@ -216,9 +212,11 @@ func testParallelTxnsQueryingSkipListIndexUsedColumns[T int32 | float32 | string
 		panic("not implemented yet")
 	}
 
-	addKeyOrIncAMappedValueInsVals := func(keyVal T) {
+	addKeyOrIncMappedValueInsVals := func(keyVal T) {
 		// TODO: (SDB) add key or inc mapped val with keyVal
 		//             and delete key_val entry from deletedValsForDelete
+		//             additionaly, when keyVal is already exist case,
+		//             make flagged entry flagged down
 		panic("not implemented yet")
 	}
 
@@ -234,7 +232,7 @@ func testParallelTxnsQueryingSkipListIndexUsedColumns[T int32 | float32 | string
 	}
 
 	rollbkEntryDeletedValsForDelete := func(key_val T) {
-		// TODO: (SDB) rollback updated states which is done by getAkeyAndLockItDeletedValsForDelete
+		// TODO: (SDB) rollback updated states which is done by getkeyAndLockItDeletedValsForDelete
 		panic("not implemented yet")
 	}
 
@@ -291,10 +289,8 @@ func testParallelTxnsQueryingSkipListIndexUsedColumns[T int32 | float32 | string
 		}
 
 		//insVals = append(insVals, keyValBase)
-		addKeyOrIncAMappedValueInsVals(keyValBase)
+		addKeyOrIncMappedValueInsVals(keyValBase)
 	}
-
-	insertedTupleCnt += initialEntryNum * stride
 
 	txnMgr.Commit(nil, txn)
 
@@ -307,12 +303,6 @@ func testParallelTxnsQueryingSkipListIndexUsedColumns[T int32 | float32 | string
 		if execType == PARALLEL_EXEC {
 			ch <- 1
 		}
-	}
-
-	insValsAppendWithLock := func(keyVal T) {
-		insValsMutex.Lock()
-		insVals = append(insVals, keyVal)
-		insValsMutex.Unlock()
 	}
 
 	checkKeyColDupMapDeleteWithLock := func(keyVal T) {
@@ -390,6 +380,7 @@ func testParallelTxnsQueryingSkipListIndexUsedColumns[T int32 | float32 | string
 	}
 
 	finalizeRandomDeleteTxn := func(txn_ *access.Transaction, delKeyValBase T) {
+		// TODO: (SDB) need update logic as key duplication support version
 		txnOk := handleFnishedTxn(c, txnMgr, txn_)
 		if txnOk {
 			deletedValsForDeleteMutex.Lock()
@@ -619,6 +610,15 @@ func testParallelTxnsQueryingSkipListIndexUsedColumns[T int32 | float32 | string
 
 				insKeyValBase := getNotDupWithAccountRandomPrimitivVal[T](keyType, checkKeyColDupMap, checkKeyColDupMapMutex, tmpMax)
 
+				isLocked := checkKeyAndLockItIfExistInsVals(insKeyValBase)
+				// selected insKeyValBase can not be inserted, so this routine exits
+				if isLocked {
+					if execType == PARALLEL_EXEC {
+						ch <- 1
+					}
+					return
+				}
+
 				txn_ := txnMgr.Begin(nil)
 
 				txn_.SetDebugInfo("Insert(random)-Op")
@@ -655,22 +655,19 @@ func testParallelTxnsQueryingSkipListIndexUsedColumns[T int32 | float32 | string
 			if tmpRand == 0 {
 				// 50% is Delete to not existing entry
 				randomDeleteFailOpFunc := func() {
-					deletedValsForDeleteMutex.RLock()
-					if len(deletedValsForDelete) == 0 {
-						deletedValsForDeleteMutex.RUnlock()
+					txn_ := txnMgr.Begin(nil)
+
+					txn_.SetDebugInfo("Delete(fail)-Op")
+					isFound, delKeyValBaseP := getKeyAndLockItDeletedValsForDelete()
+					var delKeyValBase T
+					if !isFound {
 						if execType == PARALLEL_EXEC {
 							ch <- 1
 						}
 						return
+					} else {
+						delKeyValBase = *delKeyValBaseP
 					}
-					deletedValsForDeleteMutex.RUnlock()
-
-					txn_ := txnMgr.Begin(nil)
-
-					txn_.SetDebugInfo("Delete(fail)-Op")
-					deletedValsForDeleteMutex.RLock()
-					delKeyValBase := samehada_util.ChoiceValFromMap(deletedValsForDelete)
-					deletedValsForDeleteMutex.RUnlock()
 					for jj := int32(0); jj < stride; jj++ {
 						delKeyVal := samehada_util.StrideAdd(samehada_util.StrideMul(delKeyValBase, stride), jj).(T)
 
@@ -701,24 +698,16 @@ func testParallelTxnsQueryingSkipListIndexUsedColumns[T int32 | float32 | string
 				// 50% is Delete to existing entry
 				randomDeleteSuccessOpFunc := func() {
 					insValsMutex.Lock()
-					if len(insVals)-1 < 0 {
-						insValsMutex.Unlock()
+					var delKeyValBase T
+					isFound, delKeyValBaseP := getKeyAndLockItInsVals()
+					if !isFound {
 						if execType == PARALLEL_EXEC {
 							ch <- 1
 						}
 						return
-					}
-					tmpIdx := int(rand.Intn(len(insVals)))
-					delKeyValBase := insVals[tmpIdx]
-					if len(insVals) == 1 {
-						// make empty
-						insVals = make([]T, 0)
-					} else if len(insVals)-1 == tmpIdx {
-						insVals = insVals[:len(insVals)-1]
 					} else {
-						insVals = append(insVals[:tmpIdx], insVals[tmpIdx+1:]...)
+						delKeyValBase = *delKeyValBaseP
 					}
-					insValsMutex.Unlock()
 
 					txn_ := txnMgr.Begin(nil)
 
@@ -753,24 +742,16 @@ func testParallelTxnsQueryingSkipListIndexUsedColumns[T int32 | float32 | string
 		case 4: // Random Update
 			randomUpdateOpFunc := func() {
 				insValsMutex.Lock()
-				if len(insVals) == 0 {
-					insValsMutex.Unlock()
+				var updateKeyValBase T
+				isFound, updateKeyValBaseP := getKeyAndLockItInsVals()
+				if !isFound {
 					if execType == PARALLEL_EXEC {
 						ch <- 1
 					}
 					return
-				}
-				tmpIdx := int(rand.Intn(len(insVals)))
-				updateKeyValBase := insVals[tmpIdx]
-				if len(insVals) == 1 {
-					// make empty
-					insVals = make([]T, 0)
-				} else if len(insVals)-1 == tmpIdx {
-					insVals = insVals[:len(insVals)-1]
 				} else {
-					insVals = append(insVals[:tmpIdx], insVals[tmpIdx+1:]...)
+					updateKeyValBase = *updateKeyValBaseP
 				}
-				insValsMutex.Unlock()
 
 				var tmpMax interface{}
 				if keyType == types.Float {
@@ -825,16 +806,16 @@ func testParallelTxnsQueryingSkipListIndexUsedColumns[T int32 | float32 | string
 			tmpRand := rand.Intn(2)
 			if tmpRand == 0 { // 50% is Select to not existing entry
 				randomPointScanFailOpFunc := func() {
-					deletedValsForDeleteMutex.RLock()
-					if len(deletedValsForDelete) == 0 {
-						deletedValsForDeleteMutex.RUnlock()
+					isFound, getTgtBaseP := getKeyAndLockItDeletedValsForDelete()
+					var getTgtBase T
+					if !isFound {
 						if execType == PARALLEL_EXEC {
 							ch <- 1
 						}
 						return
+					} else {
+						getTgtBase = *getTgtBaseP
 					}
-					getTgtBase := samehada_util.ChoiceValFromMap(deletedValsForDelete)
-					deletedValsForDeleteMutex.RUnlock()
 					txn_ := txnMgr.Begin(nil)
 					txn_.SetDebugInfo("Select(point|fail)-Op")
 					for jj := int32(0); jj < stride; jj++ {
@@ -850,6 +831,8 @@ func testParallelTxnsQueryingSkipListIndexUsedColumns[T int32 | float32 | string
 
 						common.SH_Assert(results != nil && len(results) == 0, "Select(fail) should be fail!")
 					}
+
+					// TODO: (SDB) need finalize function for select of not existing entry case
 					finalizeRandomNoSideEffectTxn(txn_)
 					if execType == PARALLEL_EXEC {
 						ch <- 1
@@ -862,18 +845,16 @@ func testParallelTxnsQueryingSkipListIndexUsedColumns[T int32 | float32 | string
 				}
 			} else { // 50% is Select to existing entry
 				randomPointScanSuccessOpFunc := func() {
-					insValsMutex.RLock()
-					if len(insVals) == 0 {
-						insValsMutex.RUnlock()
+					isFound, getKeyValBaseP := getKeyAndLockItInsVals()
+					var getKeyValBase T
+					if !isFound {
 						if execType == PARALLEL_EXEC {
 							ch <- 1
 						}
 						return
+					} else {
+						getKeyValBase = *getKeyValBaseP
 					}
-					tmpIdx := int(rand.Intn(len(insVals)))
-					//fmt.Printf("sl.GetValue at testSkipListMix: jj=%d, tmpIdx=%d insVals[tmpIdx]=%d len(*insVals)=%d len(*deletedValsForSelectUpdate)=%d\n", jj, tmpIdx, insVals[tmpIdx], len(insVals), len(deletedValsForSelectUpdate))
-					getKeyValBase := insVals[tmpIdx]
-					insValsMutex.RUnlock()
 					txn_ := txnMgr.Begin(nil)
 					txn_.SetDebugInfo("Select(point|success)-Op")
 					for jj := int32(0); jj < stride; jj++ {
@@ -892,6 +873,7 @@ func testParallelTxnsQueryingSkipListIndexUsedColumns[T int32 | float32 | string
 						gotVal := results[0].GetValue(tableMetadata.Schema(), 1)
 						common.SH_Assert(gotVal.CompareEquals(collectVal), "value should be "+fmt.Sprintf("%d not %d", collectVal.ToInteger(), gotVal.ToInteger()))
 					}
+					// TODO: (SDB) need finalize function for select of existing entry case
 					finalizeRandomNoSideEffectTxn(txn_)
 					if execType == PARALLEL_EXEC {
 						ch <- 1
@@ -1007,6 +989,7 @@ func testParallelTxnsQueryingSkipListIndexUsedColumns[T int32 | float32 | string
 	txn_.MakeNotAbortable()
 
 	// check record num (index of col1 is used)
+	// TODO: (sdb) value should be calculated with info of insVals, stride, initialEntryNum and ACCOUNT_NUM
 	collectNumMaybe := insertedTupleCnt - deletedTupleCnt
 
 	rangeScanPlan1 := createSpecifiedRangeScanPlanNode[T](c, tableMetadata, keyType, 0, nil, nil, indexKind)

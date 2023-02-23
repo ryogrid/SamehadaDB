@@ -170,7 +170,7 @@ func GetRandomPrimitiveVal[T int32 | float32 | string](keyType types.TypeID, max
 	}
 }
 
-func ChoiceValFromMap[T int32 | float32 | string, V int32 | float32 | string](m map[T]V) T {
+func ChoiceValFromMap[T int32 | float32 | string, V int32 | float32 | string | bool](m map[T]V) T {
 	l := len(m)
 	i := 0
 
