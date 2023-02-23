@@ -158,9 +158,11 @@ func testParallelTxnsQueryingSkipListIndexUsedColumns[T int32 | float32 | string
 
 	rand.Seed(int64(seedVal))
 
-	insVals := make([]T, 0)
+	//insVals := make([]T, 0)
+	insVals := make(map[T]uint32, 0)
 	insValsMutex := new(sync.RWMutex)
-	deletedValsForDelete := make(map[T]T, 0)
+	//deletedValsForDelete := make(map[T]T, 0)
+	deletedValsForDelete := make(map[T]bool, 0)
 	deletedValsForDeleteMutex := new(sync.RWMutex)
 	checkKeyColDupMap := make(map[T]T)
 	checkKeyColDupMapMutex := new(sync.RWMutex)
@@ -199,6 +201,36 @@ func testParallelTxnsQueryingSkipListIndexUsedColumns[T int32 | float32 | string
 	txn = txnMgr.Begin(nil)
 
 	insertedTupleCnt += ACCOUNT_NUM
+
+	getAKeyAndLockItInsVals := func() (isFound bool, retKey *T) {
+		// TODO: (SDB) select key which is not flagged in insVals and deletedValsForDelete
+		//             and making the flag of insVals and deletedValsForDelete up
+		//             when appropriate key is not found, return false
+		panic("not implemented yet")
+	}
+
+	addKeyOrIncAMappedValueInsVals := func(keyVal T, isNotTxnEnd bool) (isKeyLocked bool) {
+		// TODO: (SDB) add key or inc mapped val with keyVal
+		//             and delete key_val entry from deletedValsForDelete
+		//             when isNotTxnEnd arg is true and key_val enry in insVal is flagged, return true
+		panic("not implemented yet")
+	}
+
+	rollbkEntryInsVals := func(keyVal T) {
+		// TODO: (SDB) rollback updated states which is done by getAKeyAndLockItInsVals
+		panic("not implemented yet")
+	}
+
+	getAkeyAndLockItDeletedValsForDelete := func() (isFound bool, retKey *T) {
+		// TODO: (SDB) select key which is not flaged in deletedValsForDelete
+		//             when appropriate key is not found, return false
+		panic("not implemented yet")
+	}
+
+	rollbkEntryDeletedValsForDelete := func(key_val T) {
+		// TODO: (SDB) rollback updated states which is done by getAkeyAndLockItDeletedValsForDelete
+		panic("not implemented yet")
+	}
 
 	handleFnishedTxn := func(catalog_ *catalog.Catalog, txn_mgr *access.TransactionManager, txn *access.Transaction) bool {
 		//// TODO: for debugging
