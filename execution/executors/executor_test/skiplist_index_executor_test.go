@@ -202,26 +202,32 @@ func testParallelTxnsQueryingSkipListIndexUsedColumns[T int32 | float32 | string
 
 	insertedTupleCnt += ACCOUNT_NUM
 
-	getAKeyAndLockItInsVals := func() (isFound bool, retKey *T) {
+	checkKeyAndLockItIfExistInsVals := func(keyVal T) (isLocked bool) {
+		// TODO: (SDB) when keyVal is found in insVals and it is flagged, return true
+		//             when it is not flagged, make entry flagged up and make a entry flagged up
+		//             in deletedValsForDelete if exist
+		panic("not implemented yet")
+	}
+
+	getKeyAndLockItInsVals := func() (isFound bool, retKey *T) {
 		// TODO: (SDB) select key which is not flagged in insVals and deletedValsForDelete
 		//             and making the flag of insVals and deletedValsForDelete up
 		//             when appropriate key is not found, return false
 		panic("not implemented yet")
 	}
 
-	addKeyOrIncAMappedValueInsVals := func(keyVal T, isNotTxnEnd bool) (isKeyLocked bool) {
+	addKeyOrIncAMappedValueInsVals := func(keyVal T) {
 		// TODO: (SDB) add key or inc mapped val with keyVal
 		//             and delete key_val entry from deletedValsForDelete
-		//             when isNotTxnEnd arg is true and key_val enry in insVal is flagged, return true
 		panic("not implemented yet")
 	}
 
-	rollbkEntryInsVals := func(keyVal T) {
-		// TODO: (SDB) rollback updated states which is done by getAKeyAndLockItInsVals
+	rollbkFlaggedEntryInsVals := func(keyVal T) {
+		// TODO: (SDB) rollback updated states which is done by getKeyAndLockItInsVals or checkKeyAndLockItIfExistInsVals
 		panic("not implemented yet")
 	}
 
-	getAkeyAndLockItDeletedValsForDelete := func() (isFound bool, retKey *T) {
+	getKeyAndLockItDeletedValsForDelete := func() (isFound bool, retKey *T) {
 		// TODO: (SDB) select key which is not flaged in deletedValsForDelete
 		//             when appropriate key is not found, return false
 		panic("not implemented yet")
@@ -284,7 +290,8 @@ func testParallelTxnsQueryingSkipListIndexUsedColumns[T int32 | float32 | string
 			executePlan(c, shi.GetBufferPoolManager(), txn, insPlan)
 		}
 
-		insVals = append(insVals, keyValBase)
+		//insVals = append(insVals, keyValBase)
+		addKeyOrIncAMappedValueInsVals(keyValBase)
 	}
 
 	insertedTupleCnt += initialEntryNum * stride
@@ -367,6 +374,7 @@ func testParallelTxnsQueryingSkipListIndexUsedColumns[T int32 | float32 | string
 	}
 
 	finalizeRandomInsertTxn := func(txn_ *access.Transaction, insKeyValBase T) {
+		// TODO: (SDB) need update logic as key duplication support version
 		txnOk := handleFnishedTxn(c, txnMgr, txn_)
 		if txnOk {
 			insValsAppendWithLock(insKeyValBase)
@@ -399,6 +407,7 @@ func testParallelTxnsQueryingSkipListIndexUsedColumns[T int32 | float32 | string
 	}
 
 	finalizeRandomUpdateTxn := func(txn_ *access.Transaction, oldKeyValBase T, newKeyValBase T) {
+		// TODO: (SDB) need update logic as key duplication support version
 		txnOk := handleFnishedTxn(c, txnMgr, txn_)
 		if txnOk {
 			// append new base value
@@ -676,6 +685,7 @@ func testParallelTxnsQueryingSkipListIndexUsedColumns[T int32 | float32 | string
 						common.SH_Assert(results != nil && len(results) == 0, "delete(fail) should not be fail!")
 					}
 
+					// TODO: (SDB) need filize function for delete of not existing etry case
 					finalizeRandomNoSideEffectTxn(txn_)
 
 					if execType == PARALLEL_EXEC {
@@ -909,6 +919,7 @@ func testParallelTxnsQueryingSkipListIndexUsedColumns[T int32 | float32 | string
 				diffToMakeNoExist := int32(10)
 				rangeStartKey := insVals[tmpIdx1]
 				rangeEndKey := insVals[tmpIdx2]
+				// TODO: (SDB) need consideration of choiced EndKey < StartKey case
 				insValsMutex.RUnlock()
 				// get 0-8 value
 				tmpRand := rand.Intn(9)
