@@ -366,3 +366,17 @@ func TimeoutPanic() {
 	os.Stdout.Sync()
 	panic("timeout reached")
 }
+
+const flagMask = uint32(1 << ((8 * 4) - 1))
+
+func IsFlagUp(val uint32) bool {
+	return val&uint32(flagMask) == uint32(flagMask) || val == 0
+}
+
+func SetFlag(val uint32) uint32 {
+	return val | uint32(flagMask)
+}
+
+func UnsetFlag(val uint32) uint32 {
+	return val & (^uint32(flagMask))
+}
