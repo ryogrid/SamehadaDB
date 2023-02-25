@@ -212,6 +212,12 @@ func testParallelTxnsQueryingSkipListIndexUsedColumns[T int32 | float32 | string
 		panic("not implemented yet")
 	}
 
+	getKeyAndLockItDeletedValsForDelete := func() (isFound bool, retKey *T) {
+		// TODO: (SDB) select key which is not flaged in deletedValsForDelete
+		//             when appropriate key is not found, return false
+		panic("not implemented yet")
+	}
+
 	putEntryOrIncMappedValueInsVals := func(keyVal T) {
 		// TODO: (SDB) add key or inc mapped val with keyVal
 		//             and delete key_val entry from deletedValsForDelete
@@ -227,12 +233,6 @@ func testParallelTxnsQueryingSkipListIndexUsedColumns[T int32 | float32 | string
 
 	applyFlaggedEntryInsVals := func(keyVal T) {
 		// TODO: (SDB) remove flagged entry
-		panic("not implemented yet")
-	}
-
-	getKeyAndLockItDeletedValsForDelete := func() (isFound bool, retKey *T) {
-		// TODO: (SDB) select key which is not flaged in deletedValsForDelete
-		//             when appropriate key is not found, return false
 		panic("not implemented yet")
 	}
 
@@ -384,6 +384,7 @@ func testParallelTxnsQueryingSkipListIndexUsedColumns[T int32 | float32 | string
 		if txnOk {
 			//insValsAppendWithLock(insKeyValBase)
 			putEntryOrIncMappedValueInsVals(insKeyValBase)
+			removeEntryDeletedValsForDelete(insKeyValBase)
 			atomic.AddInt32(&commitedTxnCnt, 1)
 		} else {
 			// rollback
@@ -395,7 +396,27 @@ func testParallelTxnsQueryingSkipListIndexUsedColumns[T int32 | float32 | string
 		atomic.AddInt32(&executedTxnCnt, 1)
 	}
 
-	finalizeRandomDeleteTxn := func(txn_ *access.Transaction, delKeyValBase T) {
+	finalizeRandomDeleteNotExistingTxn := func(txn_ *access.Transaction, delKeyValBase T) {
+		// TODO: (SDB) need update logic as key duplication support version
+		txnOk := handleFnishedTxn(c, txnMgr, txn_)
+		if txnOk {
+			//deletedValsForDeleteMutex.Lock()
+			//deletedValsForDelete[delKeyValBase] = delKeyValBase
+			//deletedValsForDeleteMutex.Unlock()
+			//deleteCheckMapEntriesWithLock(delKeyValBase)
+			unFlaggedEntryInsVals(delKeyValBase)
+			unFlaggedEntryDeletedValsForDelete(delKeyValBase)
+			atomic.AddInt32(&commitedTxnCnt, 1)
+		} else {
+			// rollback removed element
+			unFlaggedEntryInsVals(delKeyValBase)
+			unFlaggedEntryDeletedValsForDelete(delKeyValBase)
+			atomic.AddInt32(&abortedTxnCnt, 1)
+		}
+		atomic.AddInt32(&executedTxnCnt, 1)
+	}
+
+	finalizeRandomDeleteExistingTxn := func(txn_ *access.Transaction, delKeyValBase T) {
 		// TODO: (SDB) need update logic as key duplication support version
 		txnOk := handleFnishedTxn(c, txnMgr, txn_)
 		if txnOk {
@@ -425,15 +446,16 @@ func testParallelTxnsQueryingSkipListIndexUsedColumns[T int32 | float32 | string
 			// append new base value
 			//insValsAppendWithLock(newKeyValBase)
 			//deleteCheckMapEntriesWithLock(oldKeyValBase)
-			applyFlaggedEntryInsVals(newKeyValBase)
-			removeEntryDeletedValsForDelete(newKeyValBase)
+			applyFlaggedEntryInsVals(oldKeyValBase)
+			putEntryOrIncMappedValueInsVals(newKeyValBase)
+			putEntryDeletedValsForDelete(oldKeyValBase)
 			atomic.AddInt32(&commitedTxnCnt, 1)
 		} else {
 			// rollback removed element
 			//insValsAppendWithLock(oldKeyValBase)
 			//deleteCheckMapEntriesWithLock(newKeyValBase)
-			unFlaggedEntryInsVals(newKeyValBase)
-			unFlaggedEntryDeletedValsForDelete(newKeyValBase)
+			unFlaggedEntryInsVals(oldKeyValBase)
+			unFlaggedEntryDeletedValsForDelete(oldKeyValBase)
 			atomic.AddInt32(&abortedTxnCnt, 1)
 		}
 		atomic.AddInt32(&executedTxnCnt, 1)
@@ -459,9 +481,11 @@ func testParallelTxnsQueryingSkipListIndexUsedColumns[T int32 | float32 | string
 		txnOk := handleFnishedTxn(c, txnMgr, txn_)
 		if txnOk {
 			unFlaggedEntryInsVals(getKeyValBase)
+			unFlaggedEntryDeletedValsForDelete(getKeyValBase)
 			atomic.AddInt32(&commitedTxnCnt, 1)
 		} else {
 			unFlaggedEntryInsVals(getKeyValBase)
+			unFlaggedEntryDeletedValsForDelete(getKeyValBase)
 			atomic.AddInt32(&abortedTxnCnt, 1)
 		}
 		atomic.AddInt32(&executedTxnCnt, 1)
@@ -735,8 +759,9 @@ func testParallelTxnsQueryingSkipListIndexUsedColumns[T int32 | float32 | string
 					}
 
 					// TODO: (SDB) need filize function for delete of not existing etry case
-					finalizeRandomNoSideEffectTxn(txn_)
 
+					//finalizeRandomNoSideEffectTxn(txn_)
+					finalizeRandomDeleteNotExistingTxn(txn_, delKeyValBase)
 					if execType == PARALLEL_EXEC {
 						ch <- 1
 					}
@@ -780,7 +805,7 @@ func testParallelTxnsQueryingSkipListIndexUsedColumns[T int32 | float32 | string
 						common.SH_Assert(results != nil && len(results) == 1, "Delete(success) failed!")
 					}
 
-					finalizeRandomDeleteTxn(txn_, delKeyValBase)
+					finalizeRandomDeleteExistingTxn(txn_, delKeyValBase)
 					if execType == PARALLEL_EXEC {
 						ch <- 1
 					}
@@ -1090,8 +1115,8 @@ func testParallelTxnsQueryingSkipListIndexUsedColumns[T int32 | float32 | string
 
 	if indexKind == index_constants.INDEX_KIND_SKIP_LIST {
 		// check order (col1 when index of it is used)
-		txn_ = txnMgr.Begin(nil)
-		txn_.MakeNotAbortable()
+		//txn_ = txnMgr.Begin(nil)
+		//txn_.MakeNotAbortable()
 		var prevVal1 *types.Value = nil
 		for jj := 0; jj < resultsLen1; jj++ {
 			curVal1 := results1[jj].GetValue(tableMetadata.Schema(), 0)
@@ -1100,7 +1125,7 @@ func testParallelTxnsQueryingSkipListIndexUsedColumns[T int32 | float32 | string
 			}
 			prevVal1 = &curVal1
 		}
-		finalizeRandomNoSideEffectTxn(txn_)
+		//finalizeRandomNoSideEffectTxn(txn_)
 	}
 	// ---------------------------------------
 
@@ -1119,8 +1144,8 @@ func testParallelTxnsQueryingSkipListIndexUsedColumns[T int32 | float32 | string
 
 	if indexKind == index_constants.INDEX_KIND_SKIP_LIST {
 		// check order (col2 when index of it is used)
-		txn_ = txnMgr.Begin(nil)
-		txn_.MakeNotAbortable()
+		//txn_ = txnMgr.Begin(nil)
+		//txn_.MakeNotAbortable()
 		var prevVal2 *types.Value = nil
 		for jj := 0; jj < resultsLen2; jj++ {
 			curVal2 := results2[jj].GetValue(tableMetadata.Schema(), 1)
@@ -1129,7 +1154,7 @@ func testParallelTxnsQueryingSkipListIndexUsedColumns[T int32 | float32 | string
 			}
 			prevVal2 = &curVal2
 		}
-		finalizeRandomNoSideEffectTxn(txn_)
+		//finalizeRandomNoSideEffectTxn(txn_)
 	}
 	// --------------------------------------
 
