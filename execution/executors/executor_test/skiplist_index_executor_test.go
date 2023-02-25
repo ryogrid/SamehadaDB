@@ -974,12 +974,17 @@ func testParallelTxnsQueryingSkipListIndexUsedColumns[T int32 | float32 | string
 					return
 				}
 				common.ShPrintf(common.DEBUGGING, "Select(success) op start.\n")
-				tmpIdx1 := int(rand.Intn(len(insVals)))
-				tmpIdx2 := int(rand.Intn(len(insVals)))
+				//tmpIdx1 := int(rand.Intn(len(insVals)))
+				//tmpIdx2 := int(rand.Intn(len(insVals)))
 				diffToMakeNoExist := int32(10)
-				rangeStartKey := insVals[tmpIdx1]
-				rangeEndKey := insVals[tmpIdx2]
-				// TODO: (SDB) need consideration of choiced EndKey < StartKey case
+				//rangeStartKey := insVals[tmpIdx1]
+				//rangeEndKey := insVals[tmpIdx2]
+			rangeSelectRetry:
+				var rangeStartKey T = samehada_util.ChoiceValFromMap(insVals)
+				var rangeEndKey T = samehada_util.ChoiceValFromMap(insVals)
+				for rangeEndKey < rangeStartKey {
+					goto rangeSelectRetry
+				}
 				insValsMutex.RUnlock()
 				// get 0-8 value
 				tmpRand := rand.Intn(9)
@@ -1067,8 +1072,8 @@ func testParallelTxnsQueryingSkipListIndexUsedColumns[T int32 | float32 | string
 	txn_.MakeNotAbortable()
 
 	// check record num (index of col1 is used)
-	// TODO: (sdb) value should be calculated with info of insVals, stride, initialEntryNum and ACCOUNT_NUM
-	collectNumMaybe := insertedTupleCnt - deletedTupleCnt
+	collectNum := stride*(int32(len(insVals))+initialEntryNum) + ACCOUNT_NUM
+	//collectNum := insertedTupleCnt - deletedTupleCnt
 
 	rangeScanPlan1 := createSpecifiedRangeScanPlanNode[T](c, tableMetadata, keyType, 0, nil, nil, indexKind)
 	results1 := executePlan(c, shi.GetBufferPoolManager(), txn_, rangeScanPlan1)
@@ -1110,7 +1115,7 @@ func testParallelTxnsQueryingSkipListIndexUsedColumns[T int32 | float32 | string
 		}
 	}
 
-	common.SH_Assert(collectNumMaybe == int32(resultsLen1), "records count is not matched with assumed num "+fmt.Sprintf("%d != %d", collectNumMaybe, resultsLen1))
+	common.SH_Assert(collectNum == int32(resultsLen1), "records count is not matched with assumed num "+fmt.Sprintf("%d != %d", collectNum, resultsLen1))
 	finalizeRandomNoSideEffectTxn(txn_)
 
 	if indexKind == index_constants.INDEX_KIND_SKIP_LIST {
@@ -1138,8 +1143,8 @@ func testParallelTxnsQueryingSkipListIndexUsedColumns[T int32 | float32 | string
 	results2 := executePlan(c, shi.GetBufferPoolManager(), txn_, rangeScanPlan2)
 	resultsLen2 := len(results2)
 	common.SH_Assert(txn_.GetState() != access.ABORTED, "last tuple count check is aborted!(2)")
-	//common.SH_Assert(collectNumMaybe == int32(resultsLen2), "records count is not matched with assumed num "+fmt.Sprintf("%d != %d", collectNumMaybe, resultsLen2))
-	fmt.Printf("collectNumMaybe:%d == resultsLen2:%d\n", collectNumMaybe, resultsLen2)
+	//common.SH_Assert(collectNum == int32(resultsLen2), "records count is not matched with assumed num "+fmt.Sprintf("%d != %d", collectNum, resultsLen2))
+	fmt.Printf("collectNum:%d == resultsLen2:%d\n", collectNum, resultsLen2)
 	finalizeRandomNoSideEffectTxn(txn_)
 
 	if indexKind == index_constants.INDEX_KIND_SKIP_LIST {
@@ -1191,12 +1196,12 @@ func testParallelTxnsQueryingSkipListIndexUsedColumns[T int32 | float32 | string
 	resultsLen3 := len(results3)
 	common.SH_Assert(txn_.GetState() != access.ABORTED, "last tuple count check is aborted!(3)")
 	fmt.Printf("resultsLen3: %d\n", resultsLen3)
-	//common.SH_Assert(collectNumMaybe == int32(resultsLen3), "records count is not matched with assumed num "+fmt.Sprintf("%d != %d (full scan by seqScan)", collectNumMaybe, resultsLen3))
+	//common.SH_Assert(collectNum == int32(resultsLen3), "records count is not matched with assumed num "+fmt.Sprintf("%d != %d (full scan by seqScan)", collectNum, resultsLen3))
 	finalizeRandomNoSideEffectTxn(txn_)
 
 	//----
 
-	//common.SH_Assert(collectNumMaybe == int32(resultsLen2), "records count is not matched with assumed num "+fmt.Sprintf("%d != %d", collectNumMaybe, resultsLen2))
+	//common.SH_Assert(collectNum == int32(resultsLen2), "records count is not matched with assumed num "+fmt.Sprintf("%d != %d", collectNum, resultsLen2))
 
 	common.SH_Assert(commitedTxnCnt+abortedTxnCnt == executedTxnCnt, "txn counting has bug(2)!")
 	fmt.Printf("commited: %d aborted: %d all: %d (2)\n", commitedTxnCnt, abortedTxnCnt, executedTxnCnt)
