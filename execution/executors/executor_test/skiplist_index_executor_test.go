@@ -197,34 +197,122 @@ func testParallelTxnsQueryingSkipListIndexUsedColumns[T int32 | float32 | string
 
 	txn = txnMgr.Begin(nil)
 
+	// TODO: (SDB) check lock aquire order and do nested lock aquire at funcs which access insVals and deletedValsForDelete
+	//             for appropriate locking.
+	//             at current impl, inconsistent marked states can be occured and several func may crashes.
+
 	// marked state means locked state
 	checkKeyAndMarkItIfExistInsValsAndDeletedValsForDelete := func(keyVal T) (isMarked bool) {
-		// TODO: (SDB) when keyVal is found in insVals and it is flagged
-		//             and/or is found in deletedValsForDelete and it is flagged, return true
-		//             when it is not flagged, make entry flagged up
-		//             and meke entry flagged up in deletedValsForDelete if exist
-		panic("not implemented yet")
+		//  when keyVal is found in insVals and it is flagged
+		//  and/or is found in deletedValsForDelete and it is flagged, return true
+		//  when it is not flagged, make entry flagged up
+		//  and meke entry flagged up in deletedValsForDelete if exist
+		ret := false
+		insValsMutex.Lock()
+		if val, ok := insVals[keyVal]; ok {
+			if samehada_util.IsFlagUp(val) {
+				ret = true
+			} else {
+				insVals[keyVal] = samehada_util.SetFlag(val)
+			}
+		}
+		insValsMutex.Unlock()
+		deletedValsForDeleteMutex.Lock()
+		if val, ok := deletedValsForDelete[keyVal]; ok {
+			if val {
+				ret = true
+			} else {
+				deletedValsForDelete[keyVal] = true
+			}
+		}
+		deletedValsForDeleteMutex.Unlock()
+
+		return ret
 	}
 
 	getKeyAndMarkItInsValsAndDeletedValsForDelete := func() (isFound bool, retKey *T) {
-		// TODO: (SDB) select key which is not flagged in insVals and deletedValsForDelete
-		//             and making the flag of insVals and deletedValsForDelete up
-		//             when appropriate key is not found, return false
-		panic("not implemented yet")
+		// select key which is not flagged in insVals and deletedValsForDelete
+		// and making the flag of insVals and deletedValsForDelete up
+		// when appropriate key is not found, return false
+		triedCnt := 0
+	getKeyRetry:
+		insValsMutex.Lock()
+		insValsLen := len(insVals)
+		if insValsLen == 0 {
+			insValsMutex.Unlock()
+			return false, nil
+		}
+		choicedInsKey := samehada_util.ChoiceKeyFromMap(insVals)
+		for ; samehada_util.IsFlagUp(insVals[choicedInsKey]); choicedInsKey = samehada_util.ChoiceKeyFromMap(insVals) {
+			triedCnt++
+			if triedCnt > insValsLen {
+				// avoiding endless loop
+				insValsMutex.Unlock()
+				return false, nil
+			}
+		}
+		insValsMutex.Unlock()
+		deletedValsForDeleteMutex.Lock()
+		if deletedValsForDelete[choicedInsKey] {
+			// entry is marked
+			deletedValsForDeleteMutex.Unlock()
+			// do retry
+			goto getKeyRetry
+		}
+		deletedValsForDelete[choicedInsKey] = true
+		deletedValsForDeleteMutex.Unlock()
+		insValsMutex.Lock()
+		insVals[choicedInsKey] = samehada_util.SetFlag(insVals[choicedInsKey])
+		insValsMutex.Unlock()
+
+		return true, &choicedInsKey
 	}
 
 	getKeyAndMarkItDeletedValsForDelete := func() (isFound bool, retKey *T) {
-		// TODO: (SDB) select key which is not flaged in deletedValsForDelete
-		//             when appropriate key is not found, return false
-		panic("not implemented yet")
+		// select key which is not flaged in deletedValsForDelete
+		// when appropriate key is not found, return false
+		// when found, make found key flagged and return (true, the value)
+		triedCnt := 0
+		deletedValsForDeleteMutex.Lock()
+		deletedValsForDeleteLen := len(deletedValsForDelete)
+		if deletedValsForDeleteLen == 0 {
+			deletedValsForDeleteMutex.Unlock()
+			return false, nil
+		}
+		choicedDelValForDelKey := samehada_util.ChoiceKeyFromMap(deletedValsForDelete)
+		for ; deletedValsForDelete[choicedDelValForDelKey]; choicedDelValForDelKey = samehada_util.ChoiceKeyFromMap(deletedValsForDelete) {
+			triedCnt++
+			if triedCnt > deletedValsForDeleteLen {
+				// avoiding endless loop
+				deletedValsForDeleteMutex.Unlock()
+				return false, nil
+			}
+		}
+		deletedValsForDelete[choicedDelValForDelKey] = true
+		deletedValsForDeleteMutex.Unlock()
+
+		return true, &choicedDelValForDelKey
 	}
 
 	putEntryOrIncMappedValueInsVals := func(keyVal T) {
-		// TODO: (SDB) add key or inc mapped val with keyVal
-		//             and delete key_val entry from deletedValsForDelete
-		//             additionaly, when keyVal is already exist case,
-		//             make flagged entry flagged down
-		panic("not implemented yet")
+		insValsMutex.Lock()
+		if val, ok := insVals[keyVal]; ok {
+			if samehada_util.IsFlagUp(val) {
+				insVals[keyVal] = samehada_util.UnsetFlag(val) + 1
+			} else {
+				insVals[keyVal] = val + 1
+			}
+		} else {
+			insVals[keyVal] = 1
+		}
+		insValsMutex.Unlock()
+
+		deletedValsForDeleteMutex.Lock()
+		if _, ok := deletedValsForDelete[keyVal]; ok {
+			delete(deletedValsForDelete, keyVal)
+		}
+		deletedValsForDeleteMutex.Unlock()
+
 	}
 
 	unMarkEntryInsVals := func(keyVal T) {
@@ -1007,8 +1095,8 @@ func testParallelTxnsQueryingSkipListIndexUsedColumns[T int32 | float32 | string
 				//rangeStartKey := insVals[tmpIdx1]
 				//rangeEndKey := insVals[tmpIdx2]
 			rangeSelectRetry:
-				var rangeStartKey T = samehada_util.ChoiceValFromMap(insVals)
-				var rangeEndKey T = samehada_util.ChoiceValFromMap(insVals)
+				var rangeStartKey T = samehada_util.ChoiceKeyFromMap(insVals)
+				var rangeEndKey T = samehada_util.ChoiceKeyFromMap(insVals)
 				for rangeEndKey < rangeStartKey {
 					goto rangeSelectRetry
 				}

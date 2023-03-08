@@ -1458,7 +1458,7 @@ func testSkipListMixParallelStride[T int32 | float32 | string](t *testing.T, key
 
 					for ii := int32(0); ii < stride; ii++ {
 						removedValsForRemoveMutex.RLock()
-						delVal := samehada_util.ChoiceValFromMap(removedValsForRemove)
+						delVal := samehada_util.ChoiceKeyFromMap(removedValsForRemove)
 						removedValsForRemoveMutex.RUnlock()
 
 						common.ShPrintf(common.DEBUGGING, "Remove(fail) op start.")
@@ -1696,7 +1696,7 @@ func testSkipListMixParallelStrideAddedIterator[T int32 | float32 | string](t *t
 
 					for ii := int32(0); ii < stride; ii++ {
 						removedValsForRemoveMutex.RLock()
-						delVal := samehada_util.ChoiceValFromMap(removedValsForRemove)
+						delVal := samehada_util.ChoiceKeyFromMap(removedValsForRemove)
 						removedValsForRemoveMutex.RUnlock()
 
 						common.ShPrintf(common.DEBUGGING, "Remove(fail) op start.")

@@ -1312,7 +1312,7 @@ func testParallelTxnsQueryingUniqSkipListIndexUsedColumns[T int32 | float32 | st
 
 					txn_.SetDebugInfo("Delete(fail)-Op")
 					deletedValsForDeleteMutex.RLock()
-					delKeyValBase := samehada_util.ChoiceValFromMap(deletedValsForDelete)
+					delKeyValBase := samehada_util.ChoiceKeyFromMap(deletedValsForDelete)
 					deletedValsForDeleteMutex.RUnlock()
 					for jj := int32(0); jj < stride; jj++ {
 						delKeyVal := samehada_util.StrideAdd(samehada_util.StrideMul(delKeyValBase, stride), jj).(T)
@@ -1493,7 +1493,7 @@ func testParallelTxnsQueryingUniqSkipListIndexUsedColumns[T int32 | float32 | st
 						}
 						return
 					}
-					getTgtBase := samehada_util.ChoiceValFromMap(deletedValsForDelete)
+					getTgtBase := samehada_util.ChoiceKeyFromMap(deletedValsForDelete)
 					deletedValsForDeleteMutex.RUnlock()
 					txn_ := txnMgr.Begin(nil)
 					txn_.SetDebugInfo("Select(point|fail)-Op")
