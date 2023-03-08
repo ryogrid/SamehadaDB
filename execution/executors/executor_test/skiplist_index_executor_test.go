@@ -295,6 +295,10 @@ func testParallelTxnsQueryingSkipListIndexUsedColumns[T int32 | float32 | string
 	}
 
 	putEntryOrIncMappedValueInsVals := func(keyVal T) {
+		// put key or inc mapped val with keyVal
+		// and delete keyVal entry from deletedValsForDelete
+		// additionaly, when keyVal is already exist case,
+		// make flagged entry flagged down
 		insValsMutex.Lock()
 		if val, ok := insVals[keyVal]; ok {
 			if samehada_util.IsFlagUp(val) {
