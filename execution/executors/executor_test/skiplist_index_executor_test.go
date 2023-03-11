@@ -249,7 +249,7 @@ func testParallelTxnsQueryingSkipListIndexUsedColumns[T int32 | float32 | string
 			if triedCnt > insValsLen {
 				// avoiding endless loop
 				insValsMutex.Unlock()
-				deletedValsForDeleteMutex.Lock()
+				deletedValsForDeleteMutex.Unlock()
 				return false, nil
 			}
 		}
