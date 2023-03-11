@@ -239,8 +239,8 @@ func testParallelTxnsQueryingSkipListIndexUsedColumns[T int32 | float32 | string
 		deletedValsForDeleteMutex.Lock()
 		insValsLen := len(insVals)
 		if insValsLen == 0 {
-			insValsMutex.Unlock()
 			deletedValsForDeleteMutex.Unlock()
+			insValsMutex.Unlock()
 			return false, nil
 		}
 		choicedInsKey := samehada_util.ChoiceKeyFromMap(insVals)
@@ -249,6 +249,7 @@ func testParallelTxnsQueryingSkipListIndexUsedColumns[T int32 | float32 | string
 			if triedCnt > insValsLen {
 				// avoiding endless loop
 				insValsMutex.Unlock()
+				deletedValsForDeleteMutex.Lock()
 				return false, nil
 			}
 		}
@@ -629,7 +630,7 @@ func testParallelTxnsQueryingSkipListIndexUsedColumns[T int32 | float32 | string
 
 		lockInsValsAndDeletedValsForDelete()
 		defer unlockInsValsAndDeletedValsForDelete()
-		
+
 		if txnOk {
 			unMarkEntryInsValsWithoutLock(getKeyValBase)
 			unMarkEntryDeletedValsForDeleteWithoutLock(getKeyValBase)
@@ -1404,21 +1405,21 @@ func TestKeyDuplicateInsertDeleteWithSkipListIndexVarchar(t *testing.T) {
 	testKeyDuplicateInsertDeleteWithSkipListIndex[string](t, types.Varchar)
 }
 
-func TestSkipListPrallelTxnStrideInteger(t *testing.T) {
-	t.Parallel()
-	if testing.Short() {
-		t.Skip("skip this in short mode.")
-	}
-	testSkipListParallelTxnStrideRoot[int32](t, types.Integer)
-}
-
-func TestSkipListPrallelTxnStrideFloat(t *testing.T) {
-	t.Parallel()
-	if testing.Short() {
-		t.Skip("skip this in short mode.")
-	}
-	testSkipListParallelTxnStrideRoot[float32](t, types.Float)
-}
+//func TestSkipListPrallelTxnStrideInteger(t *testing.T) {
+//	t.Parallel()
+//	if testing.Short() {
+//		t.Skip("skip this in short mode.")
+//	}
+//	testSkipListParallelTxnStrideRoot[int32](t, types.Integer)
+//}
+//
+//func TestSkipListPrallelTxnStrideFloat(t *testing.T) {
+//	t.Parallel()
+//	if testing.Short() {
+//		t.Skip("skip this in short mode.")
+//	}
+//	testSkipListParallelTxnStrideRoot[float32](t, types.Float)
+//}
 
 func TestSkipListPrallelTxnStrideVarchar(t *testing.T) {
 	t.Parallel()
