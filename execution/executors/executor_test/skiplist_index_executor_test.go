@@ -1373,7 +1373,10 @@ func testSkipListParallelTxnStrideRoot[T int32 | float32 | string](t *testing.T,
 		//testParallelTxnsQueryingUniqSkipListIndexUsedColumns[T](t, keyType, 400, 3000, 13, 0, bpoolSize, index_constants.INDEX_KIND_UNIQ_SKIP_LIST, PARALLEL_EXEC, 20)
 		//testParallelTxnsQueryingUniqSkipListIndexUsedColumns[T](t, keyType, 400, 30000, 13, 0, bpoolSize, index_constants.INDEX_KIND_UNIQ_SKIP_LIST, PARALLEL_EXEC, 20)
 		//testParallelTxnsQueryingUniqSkipListIndexUsedColumns[T](t, keyType, 400, 30000, 13, 0, bpoolSize, index_constants.INDEX_KIND_UNIQ_SKIP_LIST, PARALLEL_EXEC, 20)
-		testParallelTxnsQueryingSkipListIndexUsedColumns[T](t, keyType, 400, 30000, 13, 0, bpoolSize, index_constants.INDEX_KIND_SKIP_LIST, PARALLEL_EXEC, 20)
+
+		//testParallelTxnsQueryingSkipListIndexUsedColumns[T](t, keyType, 400, 30000, 13, 0, bpoolSize, index_constants.INDEX_KIND_SKIP_LIST, PARALLEL_EXEC, 20)
+		testParallelTxnsQueryingSkipListIndexUsedColumns[T](t, keyType, 400, 30000, 13, 0, bpoolSize, index_constants.INDEX_KIND_SKIP_LIST, SERIAL_EXEC, 20)
+
 		//testParallelTxnsQueryingSkipListIndexUsedColumns[T](t, keyType, 400, 3000, 13, 0, bpoolSize, index_constants.INDEX_KIND_SKIP_LIST, PARALLEL_EXEC, 20)
 	case types.Float:
 		//testParallelTxnsQueryingUniqSkipListIndexUsedColumns[T](t, keyType, 400, 30000, 13, 0, bpoolSize, index_constants.INDEX_KIND_UNIQ_SKIP_LIST, PARALLEL_EXEC, 20)
@@ -1405,14 +1408,14 @@ func TestKeyDuplicateInsertDeleteWithSkipListIndexVarchar(t *testing.T) {
 	testKeyDuplicateInsertDeleteWithSkipListIndex[string](t, types.Varchar)
 }
 
-//func TestSkipListPrallelTxnStrideInteger(t *testing.T) {
-//	t.Parallel()
-//	if testing.Short() {
-//		t.Skip("skip this in short mode.")
-//	}
-//	testSkipListParallelTxnStrideRoot[int32](t, types.Integer)
-//}
-//
+func TestSkipListPrallelTxnStrideInteger(t *testing.T) {
+	t.Parallel()
+	if testing.Short() {
+		t.Skip("skip this in short mode.")
+	}
+	testSkipListParallelTxnStrideRoot[int32](t, types.Integer)
+}
+
 //func TestSkipListPrallelTxnStrideFloat(t *testing.T) {
 //	t.Parallel()
 //	if testing.Short() {
@@ -1421,10 +1424,10 @@ func TestKeyDuplicateInsertDeleteWithSkipListIndexVarchar(t *testing.T) {
 //	testSkipListParallelTxnStrideRoot[float32](t, types.Float)
 //}
 
-func TestSkipListPrallelTxnStrideVarchar(t *testing.T) {
-	t.Parallel()
-	if testing.Short() {
-		t.Skip("skip this in short mode.")
-	}
-	testSkipListParallelTxnStrideRoot[string](t, types.Varchar)
-}
+//func TestSkipListPrallelTxnStrideVarchar(t *testing.T) {
+//	t.Parallel()
+//	if testing.Short() {
+//		t.Skip("skip this in short mode.")
+//	}
+//	testSkipListParallelTxnStrideRoot[string](t, types.Varchar)
+//}
