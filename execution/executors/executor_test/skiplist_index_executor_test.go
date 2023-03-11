@@ -253,14 +253,18 @@ func testParallelTxnsQueryingSkipListIndexUsedColumns[T int32 | float32 | string
 				return false, nil
 			}
 		}
-		if deletedValsForDelete[choicedInsKey] {
-			// entry is marked
-			insValsMutex.Unlock()
-			deletedValsForDeleteMutex.Unlock()
-			// do retry
-			goto getKeyRetry
+		if val, ok := deletedValsForDelete[choicedInsKey]; ok {
+			if val {
+				// entry is marked
+				insValsMutex.Unlock()
+				deletedValsForDeleteMutex.Unlock()
+				// do retry
+				goto getKeyRetry
+			} else { // entry is ot marked
+				// mark and go forward
+				deletedValsForDelete[choicedInsKey] = true
+			}
 		}
-		deletedValsForDelete[choicedInsKey] = true
 		insVals[choicedInsKey] = samehada_util.SetFlag(insVals[choicedInsKey])
 		deletedValsForDeleteMutex.Unlock()
 		insValsMutex.Unlock()
@@ -295,11 +299,13 @@ func testParallelTxnsQueryingSkipListIndexUsedColumns[T int32 | float32 | string
 		return true, &choicedDelValForDelKey
 	}
 
+	// utility func for funcs alled when doing finalize txn
 	lockInsValsAndDeletedValsForDelete := func() {
 		insValsMutex.Lock()
 		deletedValsForDeleteMutex.Lock()
 	}
 
+	// utility func for funcs alled when doing finalize txn
 	unlockInsValsAndDeletedValsForDelete := func() {
 		deletedValsForDeleteMutex.Unlock()
 		insValsMutex.Unlock()
@@ -369,10 +375,10 @@ func testParallelTxnsQueryingSkipListIndexUsedColumns[T int32 | float32 | string
 		//deletedValsForDeleteMutex.Lock()
 		//defer deletedValsForDeleteMutex.Unlock()
 
-		if val, ok := deletedValsForDelete[keyVal]; ok {
-			if val { // true is marked case
-				delete(deletedValsForDelete, keyVal)
-			}
+		if _, ok := deletedValsForDelete[keyVal]; ok {
+			//if val { // true is marked case
+			delete(deletedValsForDelete, keyVal)
+			//}
 		}
 	}
 
@@ -456,16 +462,6 @@ func testParallelTxnsQueryingSkipListIndexUsedColumns[T int32 | float32 | string
 		}
 	}
 
-	//checkKeyColDupMapDeleteWithLock := func(keyVal T) {
-	//	checkKeyColDupMapMutex.Lock()
-	//	delete(checkKeyColDupMap, keyVal)
-	//	checkKeyColDupMapMutex.Unlock()
-	//}
-
-	//deleteCheckMapEntriesWithLock := func(keyValBase T) {
-	//	checkKeyColDupMapDeleteWithLock(keyValBase)
-	//}
-
 	finalizeRandomNoSideEffectTxn := func(txn_ *access.Transaction) {
 		txnOk := handleFnishedTxn(c, txnMgr, txn_)
 
@@ -521,13 +517,11 @@ func testParallelTxnsQueryingSkipListIndexUsedColumns[T int32 | float32 | string
 		defer unlockInsValsAndDeletedValsForDelete()
 
 		if txnOk {
-			//insValsAppendWithLock(insKeyValBase)
 			putEntryOrIncMappedValueInsValsWithoutLock(insKeyValBase)
 			removeEntryDeletedValsForDeleteWithoutLock(insKeyValBase)
 			atomic.AddInt32(&commitedTxnCnt, 1)
 		} else {
-			// rollback
-			//deleteCheckMapEntriesWithLock(insKeyValBase)
+			// unlock marked element
 			unMarkEntryInsValsWithoutLock(insKeyValBase)
 			unMarkEntryDeletedValsForDeleteWithoutLock(insKeyValBase)
 			atomic.AddInt32(&abortedTxnCnt, 1)
@@ -546,11 +540,13 @@ func testParallelTxnsQueryingSkipListIndexUsedColumns[T int32 | float32 | string
 			//deletedValsForDelete[delKeyValBase] = delKeyValBase
 			//deletedValsForDeleteMutex.Unlock()
 			//deleteCheckMapEntriesWithLock(delKeyValBase)
+
+			// unlock marked element
 			unMarkEntryInsValsWithoutLock(delKeyValBase)
 			unMarkEntryDeletedValsForDeleteWithoutLock(delKeyValBase)
 			atomic.AddInt32(&commitedTxnCnt, 1)
 		} else {
-			// rollback removed element
+			// unlock marked element
 			unMarkEntryInsValsWithoutLock(delKeyValBase)
 			unMarkEntryDeletedValsForDeleteWithoutLock(delKeyValBase)
 			atomic.AddInt32(&abortedTxnCnt, 1)
@@ -565,16 +561,11 @@ func testParallelTxnsQueryingSkipListIndexUsedColumns[T int32 | float32 | string
 		defer unlockInsValsAndDeletedValsForDelete()
 
 		if txnOk {
-			//deletedValsForDeleteMutex.Lock()
-			//deletedValsForDelete[delKeyValBase] = delKeyValBase
-			//deletedValsForDeleteMutex.Unlock()
-			//deleteCheckMapEntriesWithLock(delKeyValBase)
 			applyMarkedEntryInsValsWithoutLock(delKeyValBase)
 			putEntryDeletedValsForDeleteWithoutLock(delKeyValBase)
 			atomic.AddInt32(&commitedTxnCnt, 1)
 		} else {
-			// rollback removed element
-			//insValsAppendWithLock(delKeyValBase)
+			// unlock marked element
 			unMarkEntryInsValsWithoutLock(delKeyValBase)
 			unMarkEntryDeletedValsForDeleteWithoutLock(delKeyValBase)
 			atomic.AddInt32(&abortedTxnCnt, 1)
@@ -589,17 +580,13 @@ func testParallelTxnsQueryingSkipListIndexUsedColumns[T int32 | float32 | string
 		defer unlockInsValsAndDeletedValsForDelete()
 
 		if txnOk {
-			// append new base value
-			//insValsAppendWithLock(newKeyValBase)
-			//deleteCheckMapEntriesWithLock(oldKeyValBase)
 			applyMarkedEntryInsValsWithoutLock(oldKeyValBase)
-			putEntryOrIncMappedValueInsValsWithoutLock(newKeyValBase)
 			putEntryDeletedValsForDeleteWithoutLock(oldKeyValBase)
+			putEntryOrIncMappedValueInsValsWithoutLock(newKeyValBase)
+			removeEntryDeletedValsForDeleteWithoutLock(newKeyValBase)
 			atomic.AddInt32(&commitedTxnCnt, 1)
 		} else {
-			// rollback removed element
-			//insValsAppendWithLock(oldKeyV9alBase)
-			//deleteCheckMapEntriesWithLock(newKeyValBase)
+			// unlock marked element
 			unMarkEntryInsValsWithoutLock(oldKeyValBase)
 			unMarkEntryDeletedValsForDeleteWithoutLock(oldKeyValBase)
 			atomic.AddInt32(&abortedTxnCnt, 1)
@@ -614,10 +601,12 @@ func testParallelTxnsQueryingSkipListIndexUsedColumns[T int32 | float32 | string
 		defer unlockInsValsAndDeletedValsForDelete()
 
 		if txnOk {
+			// unlock marked element
 			unMarkEntryInsValsWithoutLock(getKeyValBase)
 			unMarkEntryDeletedValsForDeleteWithoutLock(getKeyValBase)
 			atomic.AddInt32(&commitedTxnCnt, 1)
 		} else {
+			// unlock marked element
 			unMarkEntryInsValsWithoutLock(getKeyValBase)
 			unMarkEntryDeletedValsForDeleteWithoutLock(getKeyValBase)
 			atomic.AddInt32(&abortedTxnCnt, 1)
@@ -632,10 +621,12 @@ func testParallelTxnsQueryingSkipListIndexUsedColumns[T int32 | float32 | string
 		defer unlockInsValsAndDeletedValsForDelete()
 
 		if txnOk {
+			// unlock marked element
 			unMarkEntryInsValsWithoutLock(getKeyValBase)
 			unMarkEntryDeletedValsForDeleteWithoutLock(getKeyValBase)
 			atomic.AddInt32(&commitedTxnCnt, 1)
 		} else {
+			// unlock marked element
 			unMarkEntryInsValsWithoutLock(getKeyValBase)
 			unMarkEntryDeletedValsForDeleteWithoutLock(getKeyValBase)
 			atomic.AddInt32(&abortedTxnCnt, 1)
