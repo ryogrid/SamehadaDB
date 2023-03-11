@@ -55,7 +55,7 @@ func (slidx *SkipListIndex) DeleteEntry(key *tuple.Tuple, rid page.RID, txn inte
 
 	// TODO: (SDB) for debug
 	//fmt.Printf("SkipListIndex::DeleteEntry: %v %v\n", convedKeyVal.ToIFValue(), rid)
-	revertedOrgKey := samehada_util.ExtractOrgKeyFromDicOrderComparableEncodedVarchar(convedKeyVal, types.Varchar)
+	revertedOrgKey := samehada_util.ExtractOrgKeyFromDicOrderComparableEncodedVarchar(convedKeyVal, orgKeyVal.ValueType())
 	if !revertedOrgKey.CompareEquals(orgKeyVal) {
 		panic("key conversion may fail!")
 	}
