@@ -197,11 +197,9 @@ func testParallelTxnsQueryingSkipListIndexUsedColumns[T int32 | float32 | string
 
 	txn = txnMgr.Begin(nil)
 
-	// TODO: (SDB) check lock aquire order and do nested lock aquire at funcs which access insVals and deletedValsForDelete
-	//             for appropriate locking.
-	//             at current impl, inconsistent marked states can be occured and several func may crashes.
+	// note: marked(flagged up) state means locked state
 
-	// marked state means locked state
+	// this func is used when start a operation
 	checkKeyAndMarkItIfExistInsValsAndDeletedValsForDelete := func(keyVal T) (isMarked bool) {
 		//  when keyVal is found in insVals and it is flagged
 		//  and/or is found in deletedValsForDelete and it is flagged, return true
@@ -230,6 +228,7 @@ func testParallelTxnsQueryingSkipListIndexUsedColumns[T int32 | float32 | string
 		return ret
 	}
 
+	// this func is used when start a operation
 	getKeyAndMarkItInsValsAndDeletedValsForDelete := func() (isFound bool, retKey *T) {
 		// select key which is not flagged in insVals and deletedValsForDelete
 		// and making the flag of insVals and deletedValsForDelete up
@@ -268,6 +267,7 @@ func testParallelTxnsQueryingSkipListIndexUsedColumns[T int32 | float32 | string
 		return true, &choicedInsKey
 	}
 
+	// this func is used when start a operation
 	getKeyAndMarkItDeletedValsForDelete := func() (isFound bool, retKey *T) {
 		// select key which is not flaged in deletedValsForDelete
 		// when appropriate key is not found, return false
@@ -294,13 +294,25 @@ func testParallelTxnsQueryingSkipListIndexUsedColumns[T int32 | float32 | string
 		return true, &choicedDelValForDelKey
 	}
 
-	putEntryOrIncMappedValueInsVals := func(keyVal T) {
+	lockInsValsAndDeletedValsForDelete := func() {
+		insValsMutex.Lock()
+		deletedValsForDeleteMutex.Lock()
+	}
+
+	unlockInsValsAndDeletedValsForDelete := func() {
+		deletedValsForDeleteMutex.Unlock()
+		insValsMutex.Unlock()
+	}
+
+	// this func is used when doing finalize txn
+	putEntryOrIncMappedValueInsValsWithoutLock := func(keyVal T) {
 		// put key or inc mapped val with keyVal
 		// and delete keyVal entry from deletedValsForDelete
 		// additionaly, when keyVal is already exist case,
 		// make flagged entry flagged down
-		insValsMutex.Lock()
-		deletedValsForDeleteMutex.Lock()
+
+		//insValsMutex.Lock()
+		//deletedValsForDeleteMutex.Lock()
 		if val, ok := insVals[keyVal]; ok {
 			if samehada_util.IsFlagUp(val) {
 				insVals[keyVal] = samehada_util.UnsetFlag(val) + 1
@@ -314,13 +326,14 @@ func testParallelTxnsQueryingSkipListIndexUsedColumns[T int32 | float32 | string
 		if _, ok := deletedValsForDelete[keyVal]; ok {
 			delete(deletedValsForDelete, keyVal)
 		}
-		deletedValsForDeleteMutex.Unlock()
-		insValsMutex.Unlock()
+		//deletedValsForDeleteMutex.Unlock()
+		//insValsMutex.Unlock()
 	}
 
-	unMarkEntryInsVals := func(keyVal T) {
-		insValsMutex.Lock()
-		defer insValsMutex.Unlock()
+	// this func is used when doing finalize txn
+	unMarkEntryInsValsWithoutLock := func(keyVal T) {
+		//insValsMutex.Lock()
+		//defer insValsMutex.Unlock()
 
 		if val, ok := insVals[keyVal]; ok {
 			if samehada_util.IsFlagUp(val) {
@@ -329,9 +342,10 @@ func testParallelTxnsQueryingSkipListIndexUsedColumns[T int32 | float32 | string
 		}
 	}
 
-	applyMarkedEntryInsVals := func(keyVal T) {
-		insValsMutex.Lock()
-		defer insValsMutex.Unlock()
+	// this func is used when doing finalize txn
+	applyMarkedEntryInsValsWithoutLock := func(keyVal T) {
+		//insValsMutex.Lock()
+		//defer insValsMutex.Unlock()
 
 		if val, ok := insVals[keyVal]; ok {
 			if samehada_util.IsFlagUp(val) {
@@ -340,17 +354,19 @@ func testParallelTxnsQueryingSkipListIndexUsedColumns[T int32 | float32 | string
 		}
 	}
 
-	putEntryDeletedValsForDelete := func(keyVal T) {
-		deletedValsForDeleteMutex.Lock()
-		defer deletedValsForDeleteMutex.Unlock()
+	// this func is used when doing finalize txn
+	putEntryDeletedValsForDeleteWithoutLock := func(keyVal T) {
+		//deletedValsForDeleteMutex.Lock()
+		//defer deletedValsForDeleteMutex.Unlock()
 
 		// default value is false. the value represents that key is not marked
 		deletedValsForDelete[keyVal] = false
 	}
 
-	removeEntryDeletedValsForDelete := func(keyVal T) {
-		deletedValsForDeleteMutex.Lock()
-		defer deletedValsForDeleteMutex.Unlock()
+	// this func is used when doing finalize txn
+	removeEntryDeletedValsForDeleteWithoutLock := func(keyVal T) {
+		//deletedValsForDeleteMutex.Lock()
+		//defer deletedValsForDeleteMutex.Unlock()
 
 		if val, ok := deletedValsForDelete[keyVal]; ok {
 			if val { // true is marked case
@@ -359,9 +375,10 @@ func testParallelTxnsQueryingSkipListIndexUsedColumns[T int32 | float32 | string
 		}
 	}
 
-	unMarkEntryDeletedValsForDelete := func(keyVal T) {
-		deletedValsForDeleteMutex.Lock()
-		defer deletedValsForDeleteMutex.Unlock()
+	// this func is used when doing finalize txn
+	unMarkEntryDeletedValsForDeleteWithoutLock := func(keyVal T) {
+		//deletedValsForDeleteMutex.Lock()
+		//defer deletedValsForDeleteMutex.Unlock()
 
 		if val, ok := deletedValsForDelete[keyVal]; ok {
 			if val { // true is marked case
@@ -422,7 +439,7 @@ func testParallelTxnsQueryingSkipListIndexUsedColumns[T int32 | float32 | string
 		}
 
 		//insVals = append(insVals, keyValBase)
-		putEntryOrIncMappedValueInsVals(keyValBase)
+		putEntryOrIncMappedValueInsValsWithoutLock(keyValBase)
 	}
 
 	txnMgr.Commit(nil, txn)
@@ -498,16 +515,20 @@ func testParallelTxnsQueryingSkipListIndexUsedColumns[T int32 | float32 | string
 
 	finalizeRandomInsertTxn := func(txn_ *access.Transaction, insKeyValBase T) {
 		txnOk := handleFnishedTxn(c, txnMgr, txn_)
+
+		lockInsValsAndDeletedValsForDelete()
+		defer unlockInsValsAndDeletedValsForDelete()
+
 		if txnOk {
 			//insValsAppendWithLock(insKeyValBase)
-			putEntryOrIncMappedValueInsVals(insKeyValBase)
-			removeEntryDeletedValsForDelete(insKeyValBase)
+			putEntryOrIncMappedValueInsValsWithoutLock(insKeyValBase)
+			removeEntryDeletedValsForDeleteWithoutLock(insKeyValBase)
 			atomic.AddInt32(&commitedTxnCnt, 1)
 		} else {
 			// rollback
 			//deleteCheckMapEntriesWithLock(insKeyValBase)
-			unMarkEntryInsVals(insKeyValBase)
-			unMarkEntryDeletedValsForDelete(insKeyValBase)
+			unMarkEntryInsValsWithoutLock(insKeyValBase)
+			unMarkEntryDeletedValsForDeleteWithoutLock(insKeyValBase)
 			atomic.AddInt32(&abortedTxnCnt, 1)
 		}
 		atomic.AddInt32(&executedTxnCnt, 1)
@@ -515,18 +536,22 @@ func testParallelTxnsQueryingSkipListIndexUsedColumns[T int32 | float32 | string
 
 	finalizeRandomDeleteNotExistingTxn := func(txn_ *access.Transaction, delKeyValBase T) {
 		txnOk := handleFnishedTxn(c, txnMgr, txn_)
+
+		lockInsValsAndDeletedValsForDelete()
+		defer unlockInsValsAndDeletedValsForDelete()
+
 		if txnOk {
 			//deletedValsForDeleteMutex.Lock()
 			//deletedValsForDelete[delKeyValBase] = delKeyValBase
 			//deletedValsForDeleteMutex.Unlock()
 			//deleteCheckMapEntriesWithLock(delKeyValBase)
-			unMarkEntryInsVals(delKeyValBase)
-			unMarkEntryDeletedValsForDelete(delKeyValBase)
+			unMarkEntryInsValsWithoutLock(delKeyValBase)
+			unMarkEntryDeletedValsForDeleteWithoutLock(delKeyValBase)
 			atomic.AddInt32(&commitedTxnCnt, 1)
 		} else {
 			// rollback removed element
-			unMarkEntryInsVals(delKeyValBase)
-			unMarkEntryDeletedValsForDelete(delKeyValBase)
+			unMarkEntryInsValsWithoutLock(delKeyValBase)
+			unMarkEntryDeletedValsForDeleteWithoutLock(delKeyValBase)
 			atomic.AddInt32(&abortedTxnCnt, 1)
 		}
 		atomic.AddInt32(&executedTxnCnt, 1)
@@ -534,19 +559,23 @@ func testParallelTxnsQueryingSkipListIndexUsedColumns[T int32 | float32 | string
 
 	finalizeRandomDeleteExistingTxn := func(txn_ *access.Transaction, delKeyValBase T) {
 		txnOk := handleFnishedTxn(c, txnMgr, txn_)
+
+		lockInsValsAndDeletedValsForDelete()
+		defer unlockInsValsAndDeletedValsForDelete()
+
 		if txnOk {
 			//deletedValsForDeleteMutex.Lock()
 			//deletedValsForDelete[delKeyValBase] = delKeyValBase
 			//deletedValsForDeleteMutex.Unlock()
 			//deleteCheckMapEntriesWithLock(delKeyValBase)
-			applyMarkedEntryInsVals(delKeyValBase)
-			putEntryDeletedValsForDelete(delKeyValBase)
+			applyMarkedEntryInsValsWithoutLock(delKeyValBase)
+			putEntryDeletedValsForDeleteWithoutLock(delKeyValBase)
 			atomic.AddInt32(&commitedTxnCnt, 1)
 		} else {
 			// rollback removed element
 			//insValsAppendWithLock(delKeyValBase)
-			unMarkEntryInsVals(delKeyValBase)
-			unMarkEntryDeletedValsForDelete(delKeyValBase)
+			unMarkEntryInsValsWithoutLock(delKeyValBase)
+			unMarkEntryDeletedValsForDeleteWithoutLock(delKeyValBase)
 			atomic.AddInt32(&abortedTxnCnt, 1)
 		}
 		atomic.AddInt32(&executedTxnCnt, 1)
@@ -554,20 +583,24 @@ func testParallelTxnsQueryingSkipListIndexUsedColumns[T int32 | float32 | string
 
 	finalizeRandomUpdateTxn := func(txn_ *access.Transaction, oldKeyValBase T, newKeyValBase T) {
 		txnOk := handleFnishedTxn(c, txnMgr, txn_)
+
+		lockInsValsAndDeletedValsForDelete()
+		defer unlockInsValsAndDeletedValsForDelete()
+
 		if txnOk {
 			// append new base value
 			//insValsAppendWithLock(newKeyValBase)
 			//deleteCheckMapEntriesWithLock(oldKeyValBase)
-			applyMarkedEntryInsVals(oldKeyValBase)
-			putEntryOrIncMappedValueInsVals(newKeyValBase)
-			putEntryDeletedValsForDelete(oldKeyValBase)
+			applyMarkedEntryInsValsWithoutLock(oldKeyValBase)
+			putEntryOrIncMappedValueInsValsWithoutLock(newKeyValBase)
+			putEntryDeletedValsForDeleteWithoutLock(oldKeyValBase)
 			atomic.AddInt32(&commitedTxnCnt, 1)
 		} else {
 			// rollback removed element
-			//insValsAppendWithLock(oldKeyValBase)
+			//insValsAppendWithLock(oldKeyV9alBase)
 			//deleteCheckMapEntriesWithLock(newKeyValBase)
-			unMarkEntryInsVals(oldKeyValBase)
-			unMarkEntryDeletedValsForDelete(oldKeyValBase)
+			unMarkEntryInsValsWithoutLock(oldKeyValBase)
+			unMarkEntryDeletedValsForDeleteWithoutLock(oldKeyValBase)
 			atomic.AddInt32(&abortedTxnCnt, 1)
 		}
 		atomic.AddInt32(&executedTxnCnt, 1)
@@ -575,13 +608,17 @@ func testParallelTxnsQueryingSkipListIndexUsedColumns[T int32 | float32 | string
 
 	finalizeSelectNotExistingTxn := func(txn_ *access.Transaction, getKeyValBase T) {
 		txnOk := handleFnishedTxn(c, txnMgr, txn_)
+
+		lockInsValsAndDeletedValsForDelete()
+		defer unlockInsValsAndDeletedValsForDelete()
+
 		if txnOk {
-			unMarkEntryInsVals(getKeyValBase)
-			unMarkEntryDeletedValsForDelete(getKeyValBase)
+			unMarkEntryInsValsWithoutLock(getKeyValBase)
+			unMarkEntryDeletedValsForDeleteWithoutLock(getKeyValBase)
 			atomic.AddInt32(&commitedTxnCnt, 1)
 		} else {
-			unMarkEntryInsVals(getKeyValBase)
-			unMarkEntryDeletedValsForDelete(getKeyValBase)
+			unMarkEntryInsValsWithoutLock(getKeyValBase)
+			unMarkEntryDeletedValsForDeleteWithoutLock(getKeyValBase)
 			atomic.AddInt32(&abortedTxnCnt, 1)
 		}
 		atomic.AddInt32(&executedTxnCnt, 1)
@@ -589,13 +626,17 @@ func testParallelTxnsQueryingSkipListIndexUsedColumns[T int32 | float32 | string
 
 	finalizeSelectExistingTxn := func(txn_ *access.Transaction, getKeyValBase T) {
 		txnOk := handleFnishedTxn(c, txnMgr, txn_)
+
+		lockInsValsAndDeletedValsForDelete()
+		defer unlockInsValsAndDeletedValsForDelete()
+		
 		if txnOk {
-			unMarkEntryInsVals(getKeyValBase)
-			unMarkEntryDeletedValsForDelete(getKeyValBase)
+			unMarkEntryInsValsWithoutLock(getKeyValBase)
+			unMarkEntryDeletedValsForDeleteWithoutLock(getKeyValBase)
 			atomic.AddInt32(&commitedTxnCnt, 1)
 		} else {
-			unMarkEntryInsVals(getKeyValBase)
-			unMarkEntryDeletedValsForDelete(getKeyValBase)
+			unMarkEntryInsValsWithoutLock(getKeyValBase)
+			unMarkEntryDeletedValsForDeleteWithoutLock(getKeyValBase)
 			atomic.AddInt32(&abortedTxnCnt, 1)
 		}
 		atomic.AddInt32(&executedTxnCnt, 1)
@@ -868,8 +909,6 @@ func testParallelTxnsQueryingSkipListIndexUsedColumns[T int32 | float32 | string
 						common.SH_Assert(results != nil && len(results) == 0, "delete(fail) should be fail!")
 					}
 
-					// TODO: (SDB) need filize function for delete of not existing etry case
-
 					//finalizeRandomNoSideEffectTxn(txn_)
 					finalizeRandomDeleteNotExistingTxn(txn_, delKeyValBase)
 					if execType == PARALLEL_EXEC {
@@ -928,7 +967,6 @@ func testParallelTxnsQueryingSkipListIndexUsedColumns[T int32 | float32 | string
 		case 4: // Random Update
 			randomUpdateOpFunc := func() {
 				var updateKeyValBase T
-				// TODO: (SDB) need lock old key also
 				isFound, updateKeyValBaseP := getKeyAndMarkItInsValsAndDeletedValsForDelete()
 				if !isFound {
 					if execType == PARALLEL_EXEC {
@@ -946,6 +984,13 @@ func testParallelTxnsQueryingSkipListIndexUsedColumns[T int32 | float32 | string
 					tmpMax = math.MaxInt32 / stride
 				}
 				updateNewKeyValBase := getNotDupWithAccountRandomPrimitivVal[T](keyType, checkKeyColDupMap, checkKeyColDupMapMutex, &tmpMax)
+				isMarked := checkKeyAndMarkItIfExistInsValsAndDeletedValsForDelete(updateNewKeyValBase)
+				if isMarked {
+					if execType == PARALLEL_EXEC {
+						ch <- 1
+					}
+					return
+				}
 
 				txn_ := txnMgr.Begin(nil)
 				txn_.SetDebugInfo("Update(random)-Op")
