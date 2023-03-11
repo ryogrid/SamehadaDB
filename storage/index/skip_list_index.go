@@ -39,7 +39,7 @@ func (slidx *SkipListIndex) InsertEntry(key *tuple.Tuple, rid page.RID, txn inte
 	tupleSchema_ := slidx.GetTupleSchema()
 	orgKeyVal := key.GetValue(tupleSchema_, slidx.col_idx)
 
-	convedKeyVal := samehada_util.EncodeValueAndRIDToDicOrderComparableBytes(&orgKeyVal, &rid)
+	convedKeyVal := samehada_util.EncodeValueAndRIDToDicOrderComparableVarchar(&orgKeyVal, &rid)
 
 	slidx.container.Insert(convedKeyVal, samehada_util.PackRIDtoUint64(&rid))
 }
@@ -51,7 +51,14 @@ func (slidx *SkipListIndex) DeleteEntry(key *tuple.Tuple, rid page.RID, txn inte
 	tupleSchema_ := slidx.GetTupleSchema()
 	orgKeyVal := key.GetValue(tupleSchema_, slidx.col_idx)
 
-	convedKeyVal := samehada_util.EncodeValueAndRIDToDicOrderComparableBytes(&orgKeyVal, &rid)
+	convedKeyVal := samehada_util.EncodeValueAndRIDToDicOrderComparableVarchar(&orgKeyVal, &rid)
+
+	// TODO: (SDB) for debug
+	//fmt.Printf("SkipListIndex::DeleteEntry: %v %v\n", convedKeyVal.ToIFValue(), rid)
+	revertedOrgKey := samehada_util.ExtractOrgKeyFromDicOrderComparableEncodedVarchar(convedKeyVal, types.Varchar)
+	if !revertedOrgKey.CompareEquals(orgKeyVal) {
+		panic("key conversion may fail!")
+	}
 
 	isSuccess := slidx.container.Remove(convedKeyVal, 0)
 	if isSuccess == false {
@@ -65,8 +72,8 @@ func (slidx *SkipListIndex) ScanKey(key *tuple.Tuple, txn interface{}) []page.RI
 
 	tupleSchema_ := slidx.GetTupleSchema()
 	orgKeyVal := key.GetValue(tupleSchema_, slidx.col_idx)
-	smallestKeyVal := samehada_util.EncodeValueAndRIDToDicOrderComparableBytes(&orgKeyVal, &page.RID{0, 0})
-	biggestKeyVal := samehada_util.EncodeValueAndRIDToDicOrderComparableBytes(&orgKeyVal, &page.RID{math.MaxInt32, math.MaxUint32})
+	smallestKeyVal := samehada_util.EncodeValueAndRIDToDicOrderComparableVarchar(&orgKeyVal, &page.RID{0, 0})
+	biggestKeyVal := samehada_util.EncodeValueAndRIDToDicOrderComparableVarchar(&orgKeyVal, &page.RID{math.MaxInt32, math.MaxUint32})
 
 	// Attention: returned itr's containing keys are string type Value which is constructed with byte arr of concatenated  original key and value
 	rangeItr := slidx.container.Iterator(smallestKeyVal, biggestKeyVal)
@@ -96,13 +103,13 @@ func (slidx *SkipListIndex) GetRangeScanIterator(start_key *tuple.Tuple, end_key
 	var smallestKeyVal *types.Value = nil
 	if start_key != nil {
 		orgStartKeyVal := start_key.GetValue(tupleSchema_, slidx.col_idx)
-		smallestKeyVal = samehada_util.EncodeValueAndRIDToDicOrderComparableBytes(&orgStartKeyVal, &page.RID{0, 0})
+		smallestKeyVal = samehada_util.EncodeValueAndRIDToDicOrderComparableVarchar(&orgStartKeyVal, &page.RID{0, 0})
 	}
 
 	var biggestKeyVal *types.Value = nil
 	if end_key != nil {
 		orgEndKeyVal := end_key.GetValue(tupleSchema_, slidx.col_idx)
-		biggestKeyVal = samehada_util.EncodeValueAndRIDToDicOrderComparableBytes(&orgEndKeyVal, &page.RID{math.MaxInt32, math.MaxUint32})
+		biggestKeyVal = samehada_util.EncodeValueAndRIDToDicOrderComparableVarchar(&orgEndKeyVal, &page.RID{math.MaxInt32, math.MaxUint32})
 	}
 
 	return slidx.container.Iterator(smallestKeyVal, biggestKeyVal)

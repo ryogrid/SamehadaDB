@@ -31,7 +31,7 @@ func testEncDecToComparableByteArr(t *testing.T, val interface{}, valType types.
 }
 
 func testEncDecOrgKeyAndRIDConcated(t *testing.T, val *types.Value, valType types.TypeID, rid page.RID) *types.Value {
-	encdKey := EncodeValueAndRIDToDicOrderComparableBytes(val, &rid)
+	encdKey := EncodeValueAndRIDToDicOrderComparableVarchar(val, &rid)
 	decedKey := ExtractOrgKeyFromDicOrderComparableEncodedVarchar(encdKey, valType)
 	testing2.SimpleAssert(t, val.CompareEquals(*decedKey))
 	return encdKey

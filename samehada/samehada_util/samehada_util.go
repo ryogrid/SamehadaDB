@@ -304,7 +304,7 @@ func decodeFromDicOrderComparableBytes(convedArr []byte, valType types.TypeID) i
 
 }
 
-func EncodeValueAndRIDToDicOrderComparableBytes(orgVal *types.Value, rid *page.RID) *types.Value {
+func EncodeValueAndRIDToDicOrderComparableVarchar(orgVal *types.Value, rid *page.RID) *types.Value {
 	arrToFill := make([]byte, 0)
 	switch orgVal.ValueType() {
 	case types.Integer:
