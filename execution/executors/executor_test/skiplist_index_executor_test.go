@@ -1401,23 +1401,23 @@ func TestKeyDuplicateInsertDeleteWithSkipListIndexVarchar(t *testing.T) {
 	testKeyDuplicateInsertDeleteWithSkipListIndex[string](t, types.Varchar)
 }
 
-//func TestSkipListPrallelTxnStrideInteger(t *testing.T) {
-//	t.Parallel()
-//	if testing.Short() {
-//		t.Skip("skip this in short mode.")
-//	}
-//	testSkipListParallelTxnStrideRoot[int32](t, types.Integer)
-//}
+func TestKeyDuplicateSkipListPrallelTxnStrideInteger(t *testing.T) {
+	t.Parallel()
+	if testing.Short() {
+		t.Skip("skip this in short mode.")
+	}
+	testSkipListParallelTxnStrideRoot[int32](t, types.Integer)
+}
 
-//func TestSkipListPrallelTxnStrideFloat(t *testing.T) {
-//	t.Parallel()
-//	if testing.Short() {
-//		t.Skip("skip this in short mode.")
-//	}
-//	testSkipListParallelTxnStrideRoot[float32](t, types.Float)
-//}
+func TestKeyDuplicateSkipListPrallelTxnStrideFloat(t *testing.T) {
+	t.Parallel()
+	if testing.Short() {
+		t.Skip("skip this in short mode.")
+	}
+	testSkipListParallelTxnStrideRoot[float32](t, types.Float)
+}
 
-func TestSkipListPrallelTxnStrideVarchar(t *testing.T) {
+func TestKeyDuplicateSkipListPrallelTxnStrideVarchar(t *testing.T) {
 	t.Parallel()
 	if testing.Short() {
 		t.Skip("skip this in short mode.")
