@@ -849,8 +849,13 @@ func testParallelTxnsQueryingSkipListIndexUsedColumns[T int32 | float32 | string
 
 					common.ShPrintf(common.DEBUGGING, fmt.Sprintf("Insert op start. txnId:%v ii:%d jj:%d\n", txn_.GetTransactionId(), ii, jj))
 					insPlan := createSpecifiedValInsertPlanNode(insKeyVal, insBalanceVal, c, tableMetadata, keyType)
-					executePlan(c, shi.GetBufferPoolManager(), txn_, insPlan)
 
+					// insert two same record
+					executePlan(c, shi.GetBufferPoolManager(), txn_, insPlan)
+					if txn_.GetState() == access.ABORTED {
+						break
+					}
+					executePlan(c, shi.GetBufferPoolManager(), txn_, insPlan)
 					if txn_.GetState() == access.ABORTED {
 						break
 					}
@@ -1218,7 +1223,7 @@ func testParallelTxnsQueryingSkipListIndexUsedColumns[T int32 | float32 | string
 	txn_.MakeNotAbortable()
 
 	// check record num (index of col1 is used)
-	collectNum := stride*(int32(len(insVals))+initialEntryNum) + ACCOUNT_NUM
+	collectNum := stride*(int32(len(insVals)*2)+initialEntryNum) + ACCOUNT_NUM
 	//collectNum := insertedTupleCnt - deletedTupleCnt
 
 	rangeScanPlan1 := createSpecifiedRangeScanPlanNode[T](c, tableMetadata, keyType, 0, nil, nil, indexKind)
