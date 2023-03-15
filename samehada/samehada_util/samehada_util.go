@@ -93,7 +93,10 @@ func GetRandomStr(maxLength int32) *string {
 	//for len_ < 50 {
 	//	len_ = 1 + (rand.Intn(math.MaxInt32))%(int(maxLength)-1)
 	//}
-	len_ = 1 + (rand.Intn(math.MaxInt32))%(int(maxLength)-1)
+	//len_ = 1 + (rand.Intn(math.MaxInt32))%(int(maxLength)-1)
+
+	// TODO: for debugging
+	len_ = 50
 
 	s := ""
 	for j := 0; j < len_; j++ {
