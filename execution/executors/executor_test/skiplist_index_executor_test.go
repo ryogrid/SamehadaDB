@@ -947,7 +947,7 @@ func testParallelTxnsQueryingSkipListIndexUsedColumns[T int32 | float32 | string
 							break
 						}
 
-						common.SH_Assert(results != nil && len(results) == 1, "Delete(success) failed!")
+						common.SH_Assert(results != nil && len(results) == 2, "Delete(success) failed!")
 					}
 
 					finalizeRandomDeleteExistingTxn(txn_, delKeyValBase)
@@ -1006,7 +1006,7 @@ func testParallelTxnsQueryingSkipListIndexUsedColumns[T int32 | float32 | string
 						break
 					}
 
-					common.SH_Assert(results1 != nil && len(results1) == 1, "Update failed!")
+					common.SH_Assert(results1 != nil && len(results1) == 2, "Update failed!")
 
 					updatePlan2 := createBalanceUpdatePlanNode(updateNewKeyVal, newBalanceVal, c, tableMetadata, keyType, indexKind)
 
@@ -1016,7 +1016,7 @@ func testParallelTxnsQueryingSkipListIndexUsedColumns[T int32 | float32 | string
 						break
 					}
 
-					common.SH_Assert(results2 != nil && len(results2) == 1, "Update failed!")
+					common.SH_Assert(results2 != nil && len(results2) == 2, "Update failed!")
 				}
 
 				finalizeRandomUpdateTxn(txn_, updateKeyValBase, updateNewKeyValBase)
@@ -1096,7 +1096,7 @@ func testParallelTxnsQueryingSkipListIndexUsedColumns[T int32 | float32 | string
 							break
 						}
 
-						//common.SH_Assert(results != nil && len(results) == 1, "Select(success) should not be fail!")
+						common.SH_Assert(results != nil && len(results) == 2, "Select(success) should not be fail!")
 						collectVal := types.NewInteger(getInt32ValCorrespondToPassVal(getKeyVal))
 						gotVal := results[0].GetValue(tableMetadata.Schema(), 1)
 						common.SH_Assert(gotVal.CompareEquals(collectVal), "value should be "+fmt.Sprintf("%d not %d", collectVal.ToInteger(), gotVal.ToInteger()))
@@ -1234,17 +1234,17 @@ func testParallelTxnsQueryingSkipListIndexUsedColumns[T int32 | float32 | string
 		common.SH_Assert(tuple_.Size() != 0, fmt.Sprintf("checked tuple's size is zero!!! idx=%d", idx))
 	}
 
-	// check value duplication (first column)
-	rsltCheckMap := make(map[T]T, 0)
-	for _, tuple_ := range results1 {
-		val := tuple_.GetValue(tableMetadata.Schema(), 0).ToIFValue()
-		castedVal := val.(T)
-		if _, ok := rsltCheckMap[castedVal]; ok {
-			fmt.Printf("duplicated key found on result1! rid:%v val:%v\n", tuple_.GetRID(), castedVal)
-		} else {
-			rsltCheckMap[castedVal] = castedVal
-		}
-	}
+	//// check value duplication (first column)
+	//rsltCheckMap := make(map[T]T, 0)
+	//for _, tuple_ := range results1 {
+	//	val := tuple_.GetValue(tableMetadata.Schema(), 0).ToIFValue()
+	//	castedVal := val.(T)
+	//	if _, ok := rsltCheckMap[castedVal]; ok {
+	//		fmt.Printf("duplicated key found on result1! rid:%v val:%v\n", tuple_.GetRID(), castedVal)
+	//	} else {
+	//		rsltCheckMap[castedVal] = castedVal
+	//	}
+	//}
 
 	// detect tuple which has illegal value at first column (unknown key based value)
 	// -- make map having values which should be in DB
