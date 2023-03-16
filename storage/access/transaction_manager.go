@@ -234,12 +234,6 @@ func (transaction_manager *TransactionManager) Abort(catalog_ catalog_interface.
 				}
 			}
 
-			if new_rid != nil {
-				updateRIDConvMap(convRID(item.rid1), new_rid)
-				// TODO: for debugging
-				//fmt.Printf("UpdateTuple at rollback moved record position! oldRID:%v newRID:%v\n", *item.rid1, *new_rid)
-				common.NewRIDAtRollback = true
-			}
 			// rollback index data
 			// when update is operated as delete and insert (rid1 change case),
 			//  rollback is done for each separated operation
@@ -278,6 +272,12 @@ func (transaction_manager *TransactionManager) Abort(catalog_ catalog_interface.
 						}
 					}
 				}
+			}
+			if new_rid != nil {
+				updateRIDConvMap(convRID(item.rid1), new_rid)
+				// TODO: for debugging
+				//fmt.Printf("UpdateTuple at rollback moved record position! oldRID:%v newRID:%v\n", *item.rid1, *new_rid)
+				common.NewRIDAtRollback = true
 			}
 		}
 		write_set = write_set[:len(write_set)-1]
