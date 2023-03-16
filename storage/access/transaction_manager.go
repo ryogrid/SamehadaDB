@@ -147,7 +147,7 @@ func (transaction_manager *TransactionManager) Abort(catalog_ catalog_interface.
 	RIDConvMap := make(map[page.RID]*page.RID, 0)
 	convRID := func(orgRID *page.RID) (convedRID *page.RID) {
 		if tmpRID, ok := RIDConvMap[*orgRID]; ok {
-			fmt.Println("Abort: RID conversion occured.")
+			//fmt.Println("Abort: RID conversion occured.")
 			return tmpRID
 		} else {
 			return orgRID
@@ -234,12 +234,6 @@ func (transaction_manager *TransactionManager) Abort(catalog_ catalog_interface.
 				}
 			}
 
-			if new_rid != nil {
-				updateRIDConvMap(convRID(item.rid1), new_rid)
-				// TODO: for debugging
-				//fmt.Printf("UpdateTuple at rollback moved record position! oldRID:%v newRID:%v\n", *item.rid1, *new_rid)
-				common.NewRIDAtRollback = true
-			}
 			// rollback index data
 			// when update is operated as delete and insert (rid1 change case),
 			//  rollback is done for each separated operation
@@ -258,14 +252,10 @@ func (transaction_manager *TransactionManager) Abort(catalog_ catalog_interface.
 						if new_rid != nil {
 							if !bfRlbkKeyVal.CompareEquals(*rlbkKeyVal) {
 								index_.UpdateEntry(item.tuple2, *convRID(item.rid2), item.tuple1, *new_rid, txn)
-								//if new_rid != nil {
-								//	index_.UpdateEntry(item.tuple2, *item.rid2, item.tuple1, *new_rid, txn)
-								//} else {
-								//	index_.UpdateEntry(item.tuple2, *item.rid2, item.tuple1, *item.rid1, txn)
-								//}
 							} else {
-								// do UPSERT
-								index_.InsertEntry(item.tuple1, *new_rid, txn)
+								//// do UPSERT
+								//index_.InsertEntry(item.tuple1, *new_rid, txn)
+								index_.UpdateEntry(item.tuple2, *convRID(item.rid2), item.tuple1, *new_rid, txn)
 							}
 						} else {
 							if !bfRlbkKeyVal.CompareEquals(*rlbkKeyVal) {
@@ -274,13 +264,20 @@ func (transaction_manager *TransactionManager) Abort(catalog_ catalog_interface.
 								if convRID(item.rid1).PageId == convRID(item.rid2).PageId && convRID(item.rid1).SlotNum == convRID(item.rid2).SlotNum {
 									// do nothing
 								} else {
-									// do UPSERT
-									index_.InsertEntry(item.tuple1, *convRID(item.rid1), txn)
+									//// do UPSERT
+									//index_.InsertEntry(item.tuple1, *convRID(item.rid1), txn)
+									index_.UpdateEntry(item.tuple2, *convRID(item.rid2), item.tuple1, *convRID(item.rid1), txn)
 								}
 							}
 						}
 					}
 				}
+			}
+			if new_rid != nil {
+				updateRIDConvMap(convRID(item.rid1), new_rid)
+				// TODO: for debugging
+				//fmt.Printf("UpdateTuple at rollback moved record position! oldRID:%v newRID:%v\n", *item.rid1, *new_rid)
+				common.NewRIDAtRollback = true
 			}
 		}
 		write_set = write_set[:len(write_set)-1]

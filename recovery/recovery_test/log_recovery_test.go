@@ -178,8 +178,8 @@ func TestRedo(t *testing.T) {
 
 	var rid *page.RID
 	var rid1 *page.RID
-	col1 := column.NewColumn("a", types.Varchar, false, index_constants.INDEX_KIND_INVAID, types.PageID(-1), nil)
-	col2 := column.NewColumn("b", types.Integer, false, index_constants.INDEX_KIND_INVAID, types.PageID(-1), nil)
+	col1 := column.NewColumn("a", types.Varchar, false, index_constants.INDEX_KIND_INVALID, types.PageID(-1), nil)
+	col2 := column.NewColumn("b", types.Integer, false, index_constants.INDEX_KIND_INVALID, types.PageID(-1), nil)
 	cols := []*column.Column{col1, col2}
 	schema_ := schema.NewSchema(cols)
 	tuple_ := ConstructTuple(schema_)
@@ -290,8 +290,8 @@ func TestUndo(t *testing.T) {
 		txn)
 	first_page_id := test_table.GetFirstPageId()
 
-	col1 := column.NewColumn("a", types.Varchar, false, index_constants.INDEX_KIND_INVAID, types.PageID(-1), nil)
-	col2 := column.NewColumn("b", types.Integer, false, index_constants.INDEX_KIND_INVAID, types.PageID(-1), nil)
+	col1 := column.NewColumn("a", types.Varchar, false, index_constants.INDEX_KIND_INVALID, types.PageID(-1), nil)
+	col2 := column.NewColumn("b", types.Integer, false, index_constants.INDEX_KIND_INVALID, types.PageID(-1), nil)
 	cols := []*column.Column{col1, col2}
 
 	schema_ := schema.NewSchema(cols)
@@ -441,8 +441,8 @@ func TestCheckpoint(t *testing.T) {
 		txn)
 	samehada_instance.GetTransactionManager().Commit(nil, txn)
 
-	col1 := column.NewColumn("a", types.Varchar, false, index_constants.INDEX_KIND_INVAID, types.PageID(-1), nil)
-	col2 := column.NewColumn("b", types.Integer, false, index_constants.INDEX_KIND_INVAID, types.PageID(-1), nil)
+	col1 := column.NewColumn("a", types.Varchar, false, index_constants.INDEX_KIND_INVALID, types.PageID(-1), nil)
+	col2 := column.NewColumn("b", types.Integer, false, index_constants.INDEX_KIND_INVALID, types.PageID(-1), nil)
 	cols := []*column.Column{col1, col2}
 	schema_ := schema.NewSchema(cols)
 

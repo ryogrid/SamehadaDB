@@ -50,23 +50,6 @@ func (im *IndexMetadata) GetIndexColumnCount() uint32 { return uint32(len(im.key
 // columns
 func (im *IndexMetadata) GetKeyAttrs() []uint32 { return im.key_attrs }
 
-/*
-   // Get a string representation for debugging
-   std::string ToString() const {
-	 std::stringstream os;
-
-	 os << "IndexMetadata["
-		<< "Name = " << name_ << ", "
-		<< "Type = B+Tree, "
-		<< "Table name = " << table_name_ << "] :: ";
-	 os << key_schema_->ToString();
-
-	 return os.str();
-   }
-
-  private:
-*/
-
 /////////////////////////////////////////////////////////////////////
 // Index class definition
 /////////////////////////////////////////////////////////////////////
@@ -105,15 +88,4 @@ type Index interface {
 	ScanKey(*tuple.Tuple, interface{}) []page.RID
 	// pass start key and end key. nil is also ok.
 	GetRangeScanIterator(*tuple.Tuple, *tuple.Tuple, interface{}) IndexRangeScanIterator
-
-	/*
-	      // Get a string representation for debugging
-	      std::string ToString() const {
-	   	 std::stringstream os;
-
-	   	 os << "INDEX: (" << GetName() << ")";
-	   	 os << metadata_->ToString();
-	   	 return os.str();
-	      }
-	*/
 }

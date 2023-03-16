@@ -6,6 +6,7 @@ import (
 	"github.com/ryogrid/SamehadaDB/catalog"
 	"github.com/ryogrid/SamehadaDB/execution/expression"
 	"github.com/ryogrid/SamehadaDB/execution/plans"
+	"github.com/ryogrid/SamehadaDB/samehada/samehada_util"
 	"github.com/ryogrid/SamehadaDB/storage/access"
 	"github.com/ryogrid/SamehadaDB/storage/index"
 	"github.com/ryogrid/SamehadaDB/storage/table/schema"
@@ -35,62 +36,13 @@ func NewRangeScanWithIndexExecutor(context *ExecutorContext, plan *plans.RangeSc
 func (e *RangeScanWithIndexExecutor) Init() {
 	schema_ := e.tableMetadata.Schema()
 
-	//colIdxOfPred := comparison.GetLeftSideColIdx()
-	//colNum := int(e.tableMetadata.GetColumnNum())
-	//var index_ index.Index = nil
-	//var indexColNum int = -1
-	//for {
-	//	index_ = nil
-	//	for ii := indexColNum + 1; ii < colNum; ii++ {
-	//		ret := e.tableMetadata.GetIndex(ii)
-	//		if ret == nil {
-	//			continue
-	//		} else {
-	//			index_ = ret
-	//			indexColNum = ii
-	//			break
-	//		}
-	//	}
-	//
-	//	if index_ == nil || indexColNum == -1 {
-	//		fmt.Printf("colIdxOfPred=%d,indexColNum=%d\n", colIdxOfPred, indexColNum)
-	//		panic("RangeScanWithIndexExecutor assumes that table which has index are passed.")
-	//	}
-	//	if colIdxOfPred != uint32(indexColNum) {
-	//		// find next index having column
-	//		continue
-	//	}
-	//	break
-	//}
-
 	indexColNum := int(e.plan.GetColIdx())
 	index_ := e.tableMetadata.GetIndex(indexColNum)
 
 	dummyTupleStart := tuple.GenTupleForIndexSearch(schema_, uint32(indexColNum), e.plan.GetStartRange())
 	dummyTupleEnd := tuple.GenTupleForIndexSearch(schema_, uint32(indexColNum), e.plan.GetEndRange())
 	e.ridItr = index_.GetRangeScanIterator(dummyTupleStart, dummyTupleEnd, e.txn)
-
-	// currently result num is one
-	//rids := index_.ScanKey(dummyTuple, e.txn)
-	//for _, rid := range rids {
-	//	tuple_ := e.tableMetadata.Table().GetTuple(&rid, e.txn)
-	//	if tuple_ == nil {
-	//		e.foundTuples = make([]*tuple.Tuple, 0)
-	//		return
-	//	}
-	//	e.foundTuples = append(e.foundTuples, tuple_)
-	//}
 }
-
-//func (e *RangeScanWithIndexExecutor) Next() (*tuple.Tuple, Done, error) {
-//	if len(e.foundTuples) > 0 {
-//		tuple_ := e.foundTuples[0]
-//		e.foundTuples = e.foundTuples[1:]
-//		return e.projects(tuple_), false, nil
-//	}
-//
-//	return nil, true, nil
-//}
 
 // Next implements the next method for the sequential scan operator
 // It uses the table heap iterator to iterate through the table heap
@@ -99,6 +51,11 @@ func (e *RangeScanWithIndexExecutor) Next() (*tuple.Tuple, Done, error) {
 	// iterates through the RIDs got from index
 	var tuple_ *tuple.Tuple = nil
 	var err error = nil
+
+	indexColNum := int(e.plan.GetColIdx())
+	index_ := e.tableMetadata.GetIndex(indexColNum)
+	orgKeyType := index_.GetMetadata().GetTupleSchema().GetColumn(uint32(indexColNum)).GetType()
+
 	for done, _, key, rid := e.ridItr.Next(); !done; done, _, key, rid = e.ridItr.Next() {
 		tuple_, err = e.tableMetadata.Table().GetTuple(rid, e.txn)
 		if tuple_ == nil && (err == nil || err == access.ErrGeneral) {
@@ -118,11 +75,22 @@ func (e *RangeScanWithIndexExecutor) Next() (*tuple.Tuple, Done, error) {
 
 		// check value update after getting iterator which contains snapshot of RIDs and Keys which were stored in Index
 		curKeyVal := tuple_.GetValue(e.tableMetadata.Schema(), uint32(e.plan.GetColIdx()))
-		if !curKeyVal.CompareEquals(*key) {
-			// column value corresponding index key is updated
-			e.txn.SetState(access.ABORTED)
-			return nil, true, errors.New("detect value update after iterator created. changes transaction state to aborted.")
+		switch index_.(type) {
+		case *index.UniqSkipListIndex:
+			if !curKeyVal.CompareEquals(*key) {
+				// column value corresponding index key is updated
+				e.txn.SetState(access.ABORTED)
+				return nil, true, errors.New("detect value update after iterator created. changes transaction state to aborted.")
+			}
+		case *index.SkipListIndex:
+			orgKey := samehada_util.ExtractOrgKeyFromDicOrderComparableEncodedVarchar(key, orgKeyType)
+			if !curKeyVal.CompareEquals(*orgKey) {
+				// column value corresponding index key is updated
+				e.txn.SetState(access.ABORTED)
+				return nil, true, errors.New("detect value update after iterator created. changes transaction state to aborted.")
+			}
 		}
+
 		// check predicate
 		if e.selects(tuple_, e.plan.GetPredicate()) {
 			tuple_.SetRID(rid)
