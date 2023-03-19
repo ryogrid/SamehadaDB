@@ -271,6 +271,8 @@ func (d *DiskManagerImpl) WriteLog(log_data []byte) {
 	// check for I/O error
 	if err != nil {
 		fmt.Println("I/O error while writing log")
+		fmt.Println(err)
+		panic("I/O error while writing log")
 		return
 	}
 	// needs to flush to keep disk file in sync

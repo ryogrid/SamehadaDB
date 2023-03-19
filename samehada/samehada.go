@@ -189,6 +189,17 @@ func (sdb *SamehadaDB) Shutdown() {
 	sdb.shi_.Shutdown(false)
 }
 
+func (sdb *SamehadaDB) ShutdownForTescase() {
+	// set a flag which is check by checkpointing thread
+	sdb.chkpntMgr.StopCheckpointTh()
+	sdb.shi_.Shutdown(false)
+}
+
+func (sdb *SamehadaDB) ForceCheckpointingForTestcase() {
+	sdb.chkpntMgr.BeginCheckpoint()
+	sdb.chkpntMgr.EndCheckpoint()
+}
+
 func ConvTupleListToValues(schema_ *schema.Schema, result []*tuple.Tuple) [][]*types.Value {
 	retVals := make([][]*types.Value, 0)
 	for _, tuple_ := range result {
