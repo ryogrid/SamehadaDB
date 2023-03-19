@@ -150,7 +150,7 @@ func (log_recovery *LogRecovery) Redo() (types.LSN, bool) {
 				page_ :=
 					access.CastPageAsTablePage(log_recovery.buffer_pool_manager.FetchPage(log_record.Delete_rid.GetPageId()))
 				if page_.GetLSN() < log_record.GetLSN() {
-					page_.ApplyDelete(&log_record.Delete_rid, nil, nil)
+					page_.ApplyDelete(&log_record.Delete_rid, nil, log_recovery.log_manager)
 					page_.SetLSN(log_record.GetLSN())
 					isRedoOccured = true
 				}
