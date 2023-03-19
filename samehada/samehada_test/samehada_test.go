@@ -256,7 +256,7 @@ func TestRebootAndReturnIFValuesWithSnapshot(t *testing.T) {
 	db := samehada.NewSamehadaDB(t.Name(), 10*1024)
 	db.ExecuteSQL("CREATE TABLE name_age_list(name VARCHAR(256), age INT);")
 	db.ExecuteSQL("INSERT INTO name_age_list(name, age) VALUES ('鈴木', 20);")
-	db.ExecuteSQL("INSERT INTO name_age_list(name, age) VALUES ('青木', 22);")
+	db.ExecuteSQL("INSERT INTO name_age_list(name, age) VALUES ('saklasjさいあｐしえあｓｄｋあｌｋ;ぢえああ', 22);")
 	db.ExecuteSQL("INSERT INTO name_age_list(name, age) VALUES ('山田', 25);")
 	db.ExecuteSQL("INSERT INTO name_age_list(name, age) VALUES ('加藤', 18);")
 	db.ExecuteSQL("INSERT INTO name_age_list(name, age) VALUES ('木村', 18);")
@@ -265,6 +265,7 @@ func TestRebootAndReturnIFValuesWithSnapshot(t *testing.T) {
 	db.ForceCheckpointingForTestcase()
 
 	db.ExecuteSQL("UPDATE name_age_list SET name = '鮫肌' WHERE age <= 20;")
+	db.ExecuteSQL("UPDATE name_age_list SET name = 'lksaｊぁｓあいえあいえじゃｓｌｋｆｄじゃか' WHERE name = 'saklasjさいあｐしえあｓｄｋあｌｋ;ぢえああ';")
 	_, results1 := db.ExecuteSQL("SELECT * FROM name_age_list WHERE name = '鮫肌';")
 	fmt.Println("---")
 	for _, resultRow := range results1 {
