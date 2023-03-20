@@ -138,7 +138,7 @@ func NewSamehadaDB(dbName string, memKBytes int) *SamehadaDB {
 	pnner := planner.NewSimplePlanner(c, shi.GetBufferPoolManager())
 
 	chkpntMgr := concurrency.NewCheckpointManager(shi.GetTransactionManager(), shi.GetLogManager(), shi.GetBufferPoolManager())
-	chkpntMgr.StartCheckpointTh()
+	//chkpntMgr.StartCheckpointTh()
 
 	return &SamehadaDB{shi, c, exec_engine, chkpntMgr, pnner}
 }
