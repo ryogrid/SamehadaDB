@@ -14,7 +14,7 @@ var LogTimeout time.Duration
 const EnableDebug bool = false //true
 
 // use virtual storage or not
-const EnableOnMemStorage = true //false
+const EnableOnMemStorage = false //true //false
 
 // when this is true, virtual storage use is suppressed
 // for test case which can't work with virtual storage
