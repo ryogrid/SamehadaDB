@@ -158,6 +158,7 @@ func (sdb *SamehadaDB) ExecuteSQLRetValues(sqlStr string) (error, [][]*types.Val
 		sdb.shi_.GetTransactionManager().Commit(sdb.catalog_, txn)
 		return nil, nil
 	} else if err != nil {
+		sdb.shi_.GetTransactionManager().Commit(sdb.catalog_, txn)
 		return err, nil
 	}
 
