@@ -154,10 +154,11 @@ func (sdb *SamehadaDB) ExecuteSQLRetValues(sqlStr string) (error, [][]*types.Val
 	err, plan := sdb.planner_.MakePlan(qi, txn)
 
 	if err == nil && plan == nil {
-		// CREATE_TABLE is scceeded
+		// some problem exists on SQL string
 		sdb.shi_.GetTransactionManager().Commit(sdb.catalog_, txn)
 		return nil, nil
 	} else if err != nil {
+		// already table exist case
 		sdb.shi_.GetTransactionManager().Commit(sdb.catalog_, txn)
 		return err, nil
 	}
