@@ -1,6 +1,7 @@
 package concurrency
 
 import (
+	"fmt"
 	"github.com/ryogrid/SamehadaDB/recovery"
 	"github.com/ryogrid/SamehadaDB/storage/access"
 	"github.com/ryogrid/SamehadaDB/storage/buffer"
@@ -28,12 +29,16 @@ func NewCheckpointManager(
 func (checkpoint_manager *CheckpointManager) StartCheckpointTh() {
 	go func() {
 		for checkpoint_manager.IsCheckpointActive() {
-			time.Sleep(time.Minute * 5)
+			// TODO: (SDB) for debugging
+			time.Sleep(time.Second * 30)
+			//time.Sleep(time.Minute * 5)
 			if !checkpoint_manager.IsCheckpointActive() {
 				break
 			}
+			fmt.Println("CheckpointTh: start checkpointing.")
 			checkpoint_manager.BeginCheckpoint()
 			checkpoint_manager.EndCheckpoint()
+			fmt.Println("CheckpointTh: finish checkpointing.")
 		}
 	}()
 }

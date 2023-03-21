@@ -7,6 +7,7 @@ import (
 	testingpkg "github.com/ryogrid/SamehadaDB/testing"
 	"os"
 	"testing"
+	"time"
 )
 
 // TODO: (SDB) need to check query result (TestInsertAndMultiItemPredicateSelect)
@@ -243,7 +244,7 @@ func TestRebootAndReturnIFValues(t *testing.T) {
 	common.TempSuppressOnMemStorageMutex.Unlock()
 }
 
-func TestRebootAndReturnIFValuesWithSnapshot(t *testing.T) {
+func TestRebootAndReturnIFValuesWithCheckpoint(t *testing.T) {
 	common.TempSuppressOnMemStorageMutex.Lock()
 	common.TempSuppressOnMemStorage = true
 
@@ -258,11 +259,15 @@ func TestRebootAndReturnIFValuesWithSnapshot(t *testing.T) {
 	db.ExecuteSQL("INSERT INTO name_age_list(name, age) VALUES ('鈴木', 20);")
 	db.ExecuteSQL("INSERT INTO name_age_list(name, age) VALUES ('saklasjさいあｐしえあｓｄｋあｌｋ;ぢえああ', 22);")
 	db.ExecuteSQL("INSERT INTO name_age_list(name, age) VALUES ('山田', 25);")
+
+	// wait until checkpointing thread runs
+	time.Sleep(70 * time.Second)
+
 	db.ExecuteSQL("INSERT INTO name_age_list(name, age) VALUES ('加藤', 18);")
 	db.ExecuteSQL("INSERT INTO name_age_list(name, age) VALUES ('木村', 18);")
 	db.ExecuteSQL("DELETE from name_age_list WHERE age = 20;")
 
-	db.ForceCheckpointingForTestcase()
+	//db.ForceCheckpointingForTestcase()
 
 	db.ExecuteSQL("UPDATE name_age_list SET name = '鮫肌' WHERE age <= 20;")
 	db.ExecuteSQL("UPDATE name_age_list SET name = 'lksaｊぁｓあいえあいえじゃｓｌｋｆｄじゃか' WHERE name = 'saklasjさいあｐしえあｓｄｋあｌｋ;ぢえああ';")
