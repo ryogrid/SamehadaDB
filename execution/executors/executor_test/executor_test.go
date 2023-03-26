@@ -2241,7 +2241,6 @@ func TestInsertAndSpecifiedColumnUpdatePageMoveRecovery(t *testing.T) {
 	seqPlan = plans.NewSeqScanPlanNode(outSchema, expression_, tableMetadata.OID())
 	results = executionEngine.Execute(seqPlan, executorContext)
 
-	results = executionEngine.Execute(seqPlan, executorContext)
 	testingpkg.Assert(t, types.NewInteger(99).CompareEquals(results[0].GetValue(outSchema, 0)), "value should be 99")
 	testingpkg.Assert(t, types.NewVarchar("k").CompareEquals(results[0].GetValue(outSchema, 1)), "value should be 'updated_xxxxxxxxxxxxxxxxxxxxxxxxx'")
 

@@ -7,8 +7,6 @@ package tuple
 import (
 	"bytes"
 	"encoding/binary"
-	"fmt"
-
 	"github.com/ryogrid/SamehadaDB/storage/page"
 	"github.com/ryogrid/SamehadaDB/storage/table/schema"
 	"github.com/ryogrid/SamehadaDB/types"
@@ -101,10 +99,6 @@ func (t *Tuple) GetValue(schema *schema.Schema, colIndex uint32) types.Value {
 	}
 
 	value := types.NewValueFromBytes(t.data[offset:], column.GetType())
-	// TODO: (sdb) for debug
-	if column.GetType() == types.Integer {
-		fmt.Printf("%d\n", value.ToInteger())
-	}
 	if value == nil {
 		panic(value)
 	}
