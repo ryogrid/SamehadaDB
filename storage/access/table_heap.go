@@ -170,6 +170,9 @@ func (t *TableHeap) UpdateTuple(tuple_ *tuple.Tuple, update_col_idxs []int, sche
 		// and insert need_follow_tuple(new_rid)
 		// as updating
 
+		// TODO: (SDB) for debug
+		fmt.Println("TableHeap::UpdateTuple changing rid occured!")
+
 		// first, delete target tuple1 (old data)
 		var is_deleted bool
 		if isRollback {

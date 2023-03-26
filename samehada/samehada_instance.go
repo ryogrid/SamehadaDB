@@ -78,6 +78,7 @@ func (si *SamehadaInstance) Shutdown(IsRemoveFiles bool) {
 		si.disk_manager.RemoveDBFile()
 		si.disk_manager.RemoveLogFile()
 	} else {
+		si.log_manager.Flush()
 		// TODO: (SDB) flush only dirty pages
 		si.bpm.FlushAllPages()
 		// close only
