@@ -5,7 +5,6 @@ package executors
 
 import (
 	"errors"
-	"fmt"
 	"github.com/ryogrid/SamehadaDB/catalog"
 	"github.com/ryogrid/SamehadaDB/execution/expression"
 	"github.com/ryogrid/SamehadaDB/execution/plans"
@@ -52,10 +51,10 @@ func (e *SeqScanExecutor) Next() (*tuple.Tuple, Done, error) {
 			return nil, true, err
 		}
 
-		// TODO: (sdb) for debug
-		if e.plan.OutputSchema().GetColumn(0).GetType() == types.Integer {
-			fmt.Printf("%d\n", t.GetValue(e.plan.OutputSchema(), 0).ToInteger())
-		}
+		//// TODO: (sdb) for debug
+		//if e.plan.OutputSchema().GetColumn(0).GetType() == types.Integer {
+		//	fmt.Printf("%d\n", t.GetValue(e.plan.OutputSchema(), 0).ToInteger())
+		//}
 
 		if e.selects(t, e.plan.GetPredicate()) {
 			break

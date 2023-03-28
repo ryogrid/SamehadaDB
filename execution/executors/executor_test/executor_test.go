@@ -2183,11 +2183,12 @@ func TestInsertAndSpecifiedColumnUpdatePageMoveRecovery(t *testing.T) {
 	log_mgr = shi.GetLogManager()
 	lock_mgr = shi.GetLockManager()
 	txn_mgr = shi.GetTransactionManager()
+	bpm = shi.GetBufferPoolManager()
 
 	log_recovery := log_recovery.NewLogRecovery(
 		shi.GetDiskManager(),
-		shi.GetBufferPoolManager(),
-		shi.GetLogManager())
+		bpm,
+		log_mgr)
 
 	txn = txn_mgr.Begin(nil)
 	c = catalog.RecoveryCatalogFromCatalogPage(bpm, log_mgr, lock_mgr, txn)
@@ -2196,23 +2197,9 @@ func TestInsertAndSpecifiedColumnUpdatePageMoveRecovery(t *testing.T) {
 	executorContext = executors.NewExecutorContext(c, bpm, txn)
 	executorContext.SetTransaction(txn)
 
-	//// check updated recored existance
-	//fmt.Println("select and check value (1) ...")
 	outColumnA := column.NewColumn("a", types.Integer, false, index_constants.INDEX_KIND_INVALID, types.PageID(-1), nil)
 	outColumnB := column.NewColumn("b", types.Varchar, false, index_constants.INDEX_KIND_INVALID, types.PageID(-1), nil)
 	outSchema := schema.NewSchema([]*column.Column{outColumnA, outColumnB})
-	//
-	//pred = executors.Predicate{"a", expression.Equal, 300}
-	//tmpColVal = new(expression.ColumnValue)
-	//tmpColVal.SetTupleIndex(0)
-	//tmpColVal.SetColIndex(tableMetadata.Schema().GetColIndex(pred.LeftColumn))
-	//expression_ = expression.NewComparison(tmpColVal, expression.NewConstantValue(executors.GetValue(pred.RightColumn), executors.GetValueType(pred.RightColumn)), pred.Operator, types.Boolean)
-	//
-	//seqPlan := plans.NewSeqScanPlanNode(outSchema, expression_, tableMetadata.OID())
-	//results := executionEngine.Execute(seqPlan, executorContext)
-	//
-	//testingpkg.Assert(t, types.NewInteger(300).CompareEquals(results[0].GetValue(outSchema, 0)), "value should be 99")
-	//testingpkg.Assert(t, types.NewVarchar("updated_xxxxxxxxxxxxxxxxxxxxxxxxx").CompareEquals(results[0].GetValue(outSchema, 1)), "value should be 'updated_xxxxxxxxxxxxxxxxxxxxxxxxx'")
 
 	// disable logging
 	log_mgr.DeactivateLogging()
@@ -2226,6 +2213,12 @@ func TestInsertAndSpecifiedColumnUpdatePageMoveRecovery(t *testing.T) {
 
 	// check updated value does not exist (a = 300)
 	fmt.Println("select and check value (2) ...")
+	pred = executors.Predicate{"a", expression.Equal, 300}
+	tmpColVal = new(expression.ColumnValue)
+	tmpColVal.SetTupleIndex(0)
+	tmpColVal.SetColIndex(tableMetadata.Schema().GetColIndex(pred.LeftColumn))
+	expression_ = expression.NewComparison(tmpColVal, expression.NewConstantValue(executors.GetValue(pred.RightColumn), executors.GetValueType(pred.LeftColumn)), pred.Operator, types.Boolean)
+
 	seqPlan := plans.NewSeqScanPlanNode(outSchema, expression_, tableMetadata.OID())
 	results := executionEngine.Execute(seqPlan, executorContext)
 	testingpkg.Assert(t, len(results) == 0, "updated value should not be exist")
@@ -2244,99 +2237,11 @@ func TestInsertAndSpecifiedColumnUpdatePageMoveRecovery(t *testing.T) {
 	testingpkg.Assert(t, types.NewInteger(99).CompareEquals(results[0].GetValue(outSchema, 0)), "value should be 99")
 	testingpkg.Assert(t, types.NewVarchar("k").CompareEquals(results[0].GetValue(outSchema, 1)), "value should be 'updated_xxxxxxxxxxxxxxxxxxxxxxxxx'")
 
-	//txn_mgr.Commit(nil, txn)
-	//bpm.FlushAllPages()
-
 	shi.Shutdown(true)
 
 	common.TempSuppressOnMemStorage = false
 	common.TempSuppressOnMemStorageMutex.Unlock()
 }
-
-//// used for debugging Insert of SkipListIndex
-//func TestInsertAndSpecifiedColumnUpdatePageMoveCaseUseSLIdx(t *testing.T) {
-//	os.Remove(t.Name() + ".db")
-//	os.Remove(t.Name() + ".log")
-//
-//	shi := samehada.NewSamehadaInstance(t.Name(), common.BufferPoolMaxFrameNumForTest)
-//	shi.GetLogManager().ActivateLogging()
-//	testingpkg.Assert(t, common.EnableLogging, "")
-//	fmt.Println("System logging is active.")
-//
-//	log_mgr := shi.GetLogManager()
-//	txn_mgr := shi.GetTransactionManager()
-//	bpm := shi.GetBufferPoolManager()
-//	lock_mgr := shi.GetLockManager()
-//
-//	txn := txn_mgr.Begin(nil)
-//
-//	c := catalog.BootstrapCatalog(bpm, log_mgr, lock_mgr, txn)
-//
-//	columnA := column.NewColumn("a", types.Integer, false, index_constants.INDEX_KIND_INVALID, types.PageID(-1), nil)
-//	columnB := column.NewColumn("b", types.Varchar, true, index_constants.INDEX_KIND_SKIP_LIST, types.PageID(-1), nil)
-//	schema_ := schema.NewSchema([]*column.Column{columnA, columnB})
-//
-//	tableMetadata := c.CreateTable("test_1", schema_, txn)
-//
-//	// fill tuples around max amount of a page
-//	rows := make([][]types.Value, 0)
-//	for ii := 0; ii < 214; ii++ {
-//		row := make([]types.Value, 0)
-//		row = append(row, types.NewInteger(int32(ii)))
-//		row = append(row, types.NewVarchar(strconv.Itoa(ii)))
-//
-//		rows = append(rows, row)
-//	}
-//	executionEngine := &executors.ExecutionEngine{}
-//	executorContext := executors.NewExecutorContext(c, bpm, txn)
-//	insertPlanNode := plans.NewInsertPlanNode(rows, tableMetadata.OID())
-//	executionEngine.Execute(insertPlanNode, executorContext)
-//
-//	txn_mgr.Commit(txn)
-//
-//	fmt.Println("update a row...")
-//	txn = txn_mgr.Begin(nil)
-//	executorContext.SetTransaction(txn)
-//
-//	row := make([]types.Value, 0)
-//	row = append(row, types.NewInteger(-1))                                  // dummy value
-//	row = append(row, types.NewVarchar("updated_xxxxxxxxxxxxxxxxxxxxxxxxx")) //target column
-//
-//	pred := executors.Predicate{"a", expression.Equal, 99}
-//	tmpColVal := new(expression.ColumnValue)
-//	tmpColVal.SetTupleIndex(0)
-//	tmpColVal.SetColIndex(tableMetadata.Schema().GetColIndex(pred.LeftColumn))
-//	expression_ := expression.NewComparison(tmpColVal, expression.NewConstantValue(executors.GetValue(pred.RightColumn), executors.GetValueType(pred.LeftColumn)), pred.Operator, types.Boolean)
-//
-//	updatePlanNode := plans.NewUpdatePlanNode(row, []int{1}, expression_, tableMetadata.OID())
-//	executionEngine.Execute(updatePlanNode, executorContext)
-//
-//	txn_mgr.Commit(txn)
-//
-//	fmt.Println("select and check value...")
-//	txn = txn_mgr.Begin(nil)
-//	executorContext.SetTransaction(txn)
-//
-//	outColumnA := column.NewColumn("a", types.Integer, false, index_constants.INDEX_KIND_INVALID, types.PageID(-1), nil)
-//	outColumnB := column.NewColumn("b", types.Varchar, false, index_constants.INDEX_KIND_INVALID, types.PageID(-1), nil)
-//	outSchema := schema.NewSchema([]*column.Column{outColumnA, outColumnB})
-//
-//	pred = executors.Predicate{"a", expression.Equal, 99}
-//	tmpColVal = new(expression.ColumnValue)
-//	tmpColVal.SetTupleIndex(0)
-//	tmpColVal.SetColIndex(tableMetadata.Schema().GetColIndex(pred.LeftColumn))
-//	expression_ = expression.NewComparison(tmpColVal, expression.NewConstantValue(executors.GetValue(pred.RightColumn), executors.GetValueType(pred.RightColumn)), pred.Operator, types.Boolean)
-//
-//	seqPlan := plans.NewSeqScanPlanNode(outSchema, expression_, tableMetadata.OID())
-//	results := executionEngine.Execute(seqPlan, executorContext)
-//
-//	txn_mgr.Commit(txn)
-//
-//	bpm.FlushAllPages()
-//
-//	testingpkg.Assert(t, types.NewInteger(99).CompareEquals(results[0].GetValue(outSchema, 0)), "value should be 99")
-//	testingpkg.Assert(t, types.NewVarchar("updated_xxxxxxxxxxxxxxxxxxxxxxxxx").CompareEquals(results[0].GetValue(outSchema, 1)), "value should be 'updated_xxxxxxxxxxxxxxxxxxxxxxxxx'")
-//}
 
 func TestSimpleSeqScanAndOrderBy(t *testing.T) {
 	// SELECT a, b, FROM test_1 ORDER BY a, b
