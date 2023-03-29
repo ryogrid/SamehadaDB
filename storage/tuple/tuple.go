@@ -7,7 +7,6 @@ package tuple
 import (
 	"bytes"
 	"encoding/binary"
-
 	"github.com/ryogrid/SamehadaDB/storage/page"
 	"github.com/ryogrid/SamehadaDB/storage/table/schema"
 	"github.com/ryogrid/SamehadaDB/types"
