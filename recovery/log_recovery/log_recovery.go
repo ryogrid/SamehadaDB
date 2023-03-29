@@ -289,7 +289,7 @@ func (log_recovery *LogRecovery) Undo() bool {
 					// second, insert updated tuple to other page
 					for {
 						new_rid, err2 = page_.InsertTuple(need_follow_tuple, log_recovery.log_manager, nil, nil)
-						if err == nil || err2 == access.ErrEmptyTuple {
+						if err2 == nil || err2 == access.ErrEmptyTuple {
 							//page_.WUnlatch()
 							break
 						}
@@ -298,7 +298,7 @@ func (log_recovery *LogRecovery) Undo() bool {
 						nextPageId := page_.GetNextPageId()
 						if nextPageId.IsValid() {
 							nextPage := access.CastPageAsTablePage(log_recovery.buffer_pool_manager.FetchPage(nextPageId))
-							log_recovery.buffer_pool_manager.UnpinPage(page_.GetPageId(), false)
+							log_recovery.buffer_pool_manager.UnpinPage(page_.GetPageId(), true)
 							page_ = nextPage
 						} else {
 							p := log_recovery.buffer_pool_manager.NewPage()
@@ -315,7 +315,7 @@ func (log_recovery *LogRecovery) Undo() bool {
 						updateRIDConvMap(&org_update_rid, new_rid)
 					}
 				}
-				log_recovery.buffer_pool_manager.UnpinPage(org_update_rid.GetPageId(), true)
+				log_recovery.buffer_pool_manager.UnpinPage(page_.GetPageId(), true)
 
 				isUndoOccured = true
 			}

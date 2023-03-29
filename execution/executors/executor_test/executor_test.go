@@ -2235,7 +2235,168 @@ func TestInsertAndSpecifiedColumnUpdatePageMoveRecovery(t *testing.T) {
 	results = executionEngine.Execute(seqPlan, executorContext)
 
 	testingpkg.Assert(t, types.NewInteger(99).CompareEquals(results[0].GetValue(outSchema, 0)), "value should be 99")
-	testingpkg.Assert(t, types.NewVarchar("k").CompareEquals(results[0].GetValue(outSchema, 1)), "value should be 'updated_xxxxxxxxxxxxxxxxxxxxxxxxx'")
+	testingpkg.Assert(t, types.NewVarchar("k").CompareEquals(results[0].GetValue(outSchema, 1)), "value should be 'k'")
+
+	shi.Shutdown(true)
+
+	common.TempSuppressOnMemStorage = false
+	common.TempSuppressOnMemStorageMutex.Unlock()
+}
+
+func TestInsertAndSpecifiedColumnUpdatePageMoveOccurOnRecovery(t *testing.T) {
+	common.TempSuppressOnMemStorageMutex.Lock()
+	common.TempSuppressOnMemStorage = true
+
+	// clear all state of DB
+	if !common.EnableOnMemStorage || common.TempSuppressOnMemStorage == true {
+		os.Remove(t.Name() + ".db")
+		os.Remove(t.Name() + ".log")
+	}
+
+	shi := samehada.NewSamehadaInstance(t.Name(), common.BufferPoolMaxFrameNumForTest)
+	shi.GetLogManager().ActivateLogging()
+	testingpkg.Assert(t, shi.GetLogManager().IsEnabledLogging(), "")
+	fmt.Println("System logging is active.")
+
+	log_mgr := shi.GetLogManager()
+	txn_mgr := shi.GetTransactionManager()
+	bpm := shi.GetBufferPoolManager()
+	lock_mgr := shi.GetLockManager()
+
+	txn := txn_mgr.Begin(nil)
+
+	c := catalog.BootstrapCatalog(bpm, log_mgr, lock_mgr, txn)
+
+	columnA := column.NewColumn("a", types.Integer, false, index_constants.INDEX_KIND_INVALID, types.PageID(-1), nil)
+	columnB := column.NewColumn("b", types.Varchar, false, index_constants.INDEX_KIND_INVALID, types.PageID(-1), nil)
+	schema_ := schema.NewSchema([]*column.Column{columnA, columnB})
+
+	tableMetadata := c.CreateTable("test_1", schema_, txn)
+
+	// fill tuples around max amount of a page
+	rows := make([][]types.Value, 0)
+	//for ii := 0; ii < 214; ii++ {
+	//for ii := 0; ii < 200; ii++ {
+	for ii := 0; ii < 180; ii++ {
+		row := make([]types.Value, 0)
+		row = append(row, types.NewInteger(int32(ii)))
+		row = append(row, types.NewVarchar("k"))
+
+		rows = append(rows, row)
+	}
+	row := make([]types.Value, 0)
+	row = append(row, types.NewInteger(180))
+	row = append(row, types.NewVarchar("kkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkk"))
+	rows = append(rows, row)
+
+	executionEngine := &executors.ExecutionEngine{}
+	executorContext := executors.NewExecutorContext(c, bpm, txn)
+	insertPlanNode := plans.NewInsertPlanNode(rows, tableMetadata.OID())
+	executionEngine.Execute(insertPlanNode, executorContext)
+
+	txn_mgr.Commit(nil, txn)
+
+	fmt.Println("update a row...")
+	txn = txn_mgr.Begin(nil)
+	executorContext.SetTransaction(txn)
+
+	row = make([]types.Value, 0)
+	row = append(row, types.NewInteger(300))
+	row = append(row, types.NewVarchar("k")) //target column
+
+	pred := executors.Predicate{"a", expression.Equal, 180}
+	tmpColVal := new(expression.ColumnValue)
+	tmpColVal.SetTupleIndex(0)
+	tmpColVal.SetColIndex(tableMetadata.Schema().GetColIndex(pred.LeftColumn))
+	expression_ := expression.NewComparison(tmpColVal, expression.NewConstantValue(executors.GetValue(pred.RightColumn), executors.GetValueType(pred.LeftColumn)), pred.Operator, types.Boolean)
+
+	seqScanPlan := plans.NewSeqScanPlanNode(tableMetadata.Schema(), expression_, tableMetadata.OID())
+	updatePlanNode := plans.NewUpdatePlanNode(row, []int{0, 1}, seqScanPlan)
+	executionEngine.Execute(updatePlanNode, executorContext)
+
+	// not commit "txn"
+
+	fmt.Println("filling a row...")
+	txn2 := txn_mgr.Begin(nil)
+
+	rows2 := make([][]types.Value, 0)
+	for ii := 0; ii < 30; ii++ {
+		row := make([]types.Value, 0)
+		row = append(row, types.NewInteger(int32(ii)))
+		row = append(row, types.NewVarchar("k"))
+
+		rows2 = append(rows2, row)
+	}
+
+	executionEngine = &executors.ExecutionEngine{}
+	executorContext = executors.NewExecutorContext(c, bpm, txn2)
+	insertPlanNode = plans.NewInsertPlanNode(rows2, tableMetadata.OID())
+	executionEngine.Execute(insertPlanNode, executorContext)
+
+	// commit filling "txn2"
+	txn_mgr.Commit(nil, txn2)
+
+	// system crash before finish "txn"
+	shi.Shutdown(false)
+
+	// restart system
+	shi = samehada.NewSamehadaInstance(t.Name(), common.BufferPoolMaxFrameNumForTest)
+	log_mgr = shi.GetLogManager()
+	lock_mgr = shi.GetLockManager()
+	txn_mgr = shi.GetTransactionManager()
+	bpm = shi.GetBufferPoolManager()
+
+	log_recovery := log_recovery.NewLogRecovery(
+		shi.GetDiskManager(),
+		bpm,
+		log_mgr)
+
+	txn = txn_mgr.Begin(nil)
+	c = catalog.RecoveryCatalogFromCatalogPage(bpm, log_mgr, lock_mgr, txn)
+	tableMetadata = c.GetTableByName("test_1")
+
+	executorContext = executors.NewExecutorContext(c, bpm, txn)
+	executorContext.SetTransaction(txn)
+
+	outColumnA := column.NewColumn("a", types.Integer, false, index_constants.INDEX_KIND_INVALID, types.PageID(-1), nil)
+	outColumnB := column.NewColumn("b", types.Varchar, false, index_constants.INDEX_KIND_INVALID, types.PageID(-1), nil)
+	outSchema := schema.NewSchema([]*column.Column{outColumnA, outColumnB})
+
+	// disable logging
+	log_mgr.DeactivateLogging()
+
+	// do recovery from Log
+	log_recovery.Redo()
+	log_recovery.Undo()
+
+	// reactivate logging
+	log_mgr.ActivateLogging()
+
+	// check updated value does not exist (a = 300)
+	fmt.Println("select and check value (2) ...")
+	pred = executors.Predicate{"a", expression.Equal, 300}
+	tmpColVal = new(expression.ColumnValue)
+	tmpColVal.SetTupleIndex(0)
+	tmpColVal.SetColIndex(tableMetadata.Schema().GetColIndex(pred.LeftColumn))
+	expression_ = expression.NewComparison(tmpColVal, expression.NewConstantValue(executors.GetValue(pred.RightColumn), executors.GetValueType(pred.LeftColumn)), pred.Operator, types.Boolean)
+
+	seqPlan := plans.NewSeqScanPlanNode(outSchema, expression_, tableMetadata.OID())
+	results := executionEngine.Execute(seqPlan, executorContext)
+	testingpkg.Assert(t, len(results) == 0, "updated value should not be exist")
+
+	// check updated value is rollbaced (Undo rollbacked not commited transaction)
+	fmt.Println("select and check value (3) ...")
+	pred = executors.Predicate{"a", expression.Equal, 180}
+	tmpColVal = new(expression.ColumnValue)
+	tmpColVal.SetTupleIndex(0)
+	tmpColVal.SetColIndex(tableMetadata.Schema().GetColIndex(pred.LeftColumn))
+	expression_ = expression.NewComparison(tmpColVal, expression.NewConstantValue(executors.GetValue(pred.RightColumn), executors.GetValueType(pred.RightColumn)), pred.Operator, types.Boolean)
+
+	seqPlan = plans.NewSeqScanPlanNode(outSchema, expression_, tableMetadata.OID())
+	results = executionEngine.Execute(seqPlan, executorContext)
+
+	testingpkg.Assert(t, types.NewInteger(180).CompareEquals(results[0].GetValue(outSchema, 0)), "value should be 180")
+	testingpkg.Assert(t, types.NewVarchar("kkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkk").CompareEquals(results[0].GetValue(outSchema, 1)), "value should be 'kkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkk'")
 
 	shi.Shutdown(true)
 
