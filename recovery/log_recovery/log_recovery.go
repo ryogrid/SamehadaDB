@@ -276,7 +276,7 @@ func (log_recovery *LogRecovery) Undo() bool {
 				var org_update_rid page.RID = *convRID(&log_record.Update_rid)
 				page_ :=
 					access.CastPageAsTablePage(log_recovery.buffer_pool_manager.FetchPage(org_update_rid.GetPageId()))
-				is_updated, err, need_follow_tuple := page_.UpdateTuple(&log_record.Old_tuple, nil, nil, &log_record.New_tuple, &log_record.Update_rid, nil, nil, log_recovery.log_manager)
+				is_updated, err, need_follow_tuple := page_.UpdateTuple(&log_record.Old_tuple, nil, nil, &log_record.New_tuple, convRID(&log_record.Update_rid), nil, nil, log_recovery.log_manager)
 
 				if is_updated == false && err == access.ErrNotEnoughSpace {
 					// when rid is changed case (data is move to new page)

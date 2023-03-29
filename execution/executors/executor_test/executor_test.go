@@ -2275,8 +2275,6 @@ func TestInsertAndSpecifiedColumnUpdatePageMoveOccurOnRecovery(t *testing.T) {
 
 	// fill tuples around max amount of a page
 	rows := make([][]types.Value, 0)
-	//for ii := 0; ii < 214; ii++ {
-	//for ii := 0; ii < 200; ii++ {
 	for ii := 0; ii < 180; ii++ {
 		row := make([]types.Value, 0)
 		row = append(row, types.NewInteger(int32(ii)))
@@ -2296,13 +2294,9 @@ func TestInsertAndSpecifiedColumnUpdatePageMoveOccurOnRecovery(t *testing.T) {
 
 	txn_mgr.Commit(nil, txn)
 
-	fmt.Println("update a row...")
+	fmt.Println("a update operation which does not change data size and a update operation which changes datasize...")
 	txn = txn_mgr.Begin(nil)
 	executorContext.SetTransaction(txn)
-
-	row = make([]types.Value, 0)
-	row = append(row, types.NewInteger(300))
-	row = append(row, types.NewVarchar("k")) //target column
 
 	pred := executors.Predicate{"a", expression.Equal, 180}
 	tmpColVal := new(expression.ColumnValue)
@@ -2310,8 +2304,26 @@ func TestInsertAndSpecifiedColumnUpdatePageMoveOccurOnRecovery(t *testing.T) {
 	tmpColVal.SetColIndex(tableMetadata.Schema().GetColIndex(pred.LeftColumn))
 	expression_ := expression.NewComparison(tmpColVal, expression.NewConstantValue(executors.GetValue(pred.RightColumn), executors.GetValueType(pred.LeftColumn)), pred.Operator, types.Boolean)
 
+	row = make([]types.Value, 0)
+	row = append(row, types.NewInteger(180))
+	row = append(row, types.NewVarchar("kkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkka")) //target column
+
 	seqScanPlan := plans.NewSeqScanPlanNode(tableMetadata.Schema(), expression_, tableMetadata.OID())
 	updatePlanNode := plans.NewUpdatePlanNode(row, []int{0, 1}, seqScanPlan)
+	executionEngine.Execute(updatePlanNode, executorContext)
+
+	pred = executors.Predicate{"a", expression.Equal, 180}
+	tmpColVal = new(expression.ColumnValue)
+	tmpColVal.SetTupleIndex(0)
+	tmpColVal.SetColIndex(tableMetadata.Schema().GetColIndex(pred.LeftColumn))
+	expression_ = expression.NewComparison(tmpColVal, expression.NewConstantValue(executors.GetValue(pred.RightColumn), executors.GetValueType(pred.LeftColumn)), pred.Operator, types.Boolean)
+
+	row = make([]types.Value, 0)
+	row = append(row, types.NewInteger(300))
+	row = append(row, types.NewVarchar("k")) //target column
+
+	seqScanPlan = plans.NewSeqScanPlanNode(tableMetadata.Schema(), expression_, tableMetadata.OID())
+	updatePlanNode = plans.NewUpdatePlanNode(row, []int{0, 1}, seqScanPlan)
 	executionEngine.Execute(updatePlanNode, executorContext)
 
 	// not commit "txn"
