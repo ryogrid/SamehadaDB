@@ -93,7 +93,7 @@
 - [ ] Deallocate and Reuse Page
   - Need tracking page usage by BufferPoolManager or TableHeap and need bitmap in header page corresponding to the tracking
 - [ ] UNION clause
-- [ ] Eliminate Data Processing with Placing All Scanned Tuples on the Memory
+- [ ] Materialization (implementation of component for temporal teble management)
 - [ ] Communication over SSL/TLS
 - [ ] Authentication
 
