@@ -1,3 +1,5 @@
+[![test](https://github.com/ryogrid/SamehadaDB/actions/workflows/ci.yaml/badge.svg?event=push)](https://github.com/ryogrid/SamehadaDB/actions/workflows/ci.yaml)
+
 <img src="SamehadaDB_logo.png" width="500px" />
 
 # Overview
