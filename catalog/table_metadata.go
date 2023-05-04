@@ -18,7 +18,9 @@ type TableMetadata struct {
 	// index data class obj of each column
 	// if column has no index, respond element is nil
 	indexes []index.Index
-	oid     uint32
+	// locking is needed when accessing statiscs.colStats[x]
+	statiscs *TableStatistics
+	oid      uint32
 }
 
 func NewTableMetadata(schema *schema.Schema, name string, table *access.TableHeap, oid uint32) *TableMetadata {
@@ -26,6 +28,7 @@ func NewTableMetadata(schema *schema.Schema, name string, table *access.TableHea
 	ret.schema = schema
 	ret.name = name
 	ret.table = table
+	ret.statiscs = NewTableStatistics(schema)
 	ret.oid = oid
 
 	indexes := make([]index.Index, 0)

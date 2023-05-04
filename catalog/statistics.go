@@ -1,6 +1,7 @@
 package catalog
 
 import (
+	"github.com/ryogrid/SamehadaDB/common"
 	"github.com/ryogrid/SamehadaDB/execution/plans"
 	"github.com/ryogrid/SamehadaDB/storage/table/schema"
 	"github.com/ryogrid/SamehadaDB/types"
@@ -35,6 +36,7 @@ type ColumnStats[T int32 | float32 | string] struct {
 	Count    int64
 	Distinct int64
 	ColType  types.TypeID
+	Latch    common.ReaderWriterLatch
 }
 
 func NewColumnStats[T int32 | float32 | string](colType types.TypeID) *ColumnStats[T] {
@@ -58,16 +60,16 @@ func (cs *ColumnStats[T]) EstimateCount() float64 {
 
 type TableStatistics struct {
 	// any => *ColumnStats[T]
-	stats []any
+	colStats []any
 }
 
-func NewTableStatistics() *TableStatistics {
+func NewTableStatistics(schema_ *schema.Schema) *TableStatistics {
 	// TODO: (SDB) not implemented yet
 	return nil
 }
 
-func (ts *TableStatistics) Columns() int32 {
-	return int32(len(ts.stats))
+func (ts *TableStatistics) columns() int32 {
+	return int32(len(ts.colStats))
 }
 
 func (ts *TableStatistics) EstimateCount(col_idx int32, from *types.Value, to *types.Value) float64 {
