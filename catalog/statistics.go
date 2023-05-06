@@ -68,7 +68,7 @@ func NewTableStatistics(schema_ *schema.Schema) *TableStatistics {
 	return nil
 }
 
-func (ts *TableStatistics) columns() int32 {
+func (ts *TableStatistics) ColumnNum() int32 {
 	return int32(len(ts.colStats))
 }
 
