@@ -65,6 +65,7 @@ func (e *ExecutionEngine) CreateExecutor(plan plans.Plan, context *ExecutorConte
 		return NewOrderbyExecutor(context, p, e.CreateExecutor(plan.GetChildAt(0), context))
 	case *plans.SelectionPlanNode:
 		return NewSelectionExecutor(context, p, e.CreateExecutor(plan.GetChildAt(0), context))
+		// TODO: (SDB) need to add newly implemented plan nodes
 	}
 	return nil
 }
