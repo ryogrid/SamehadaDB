@@ -17,7 +17,9 @@ const (
 	Limit
 	IndexPointScan
 	IndexRangeScan
+	NestedLoopJoin
 	HashJoin
+	IndexJoin
 	Aggregation
 	Orderby
 	Filter
