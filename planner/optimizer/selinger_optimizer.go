@@ -2,6 +2,14 @@ package optimizer
 
 import "github.com/ryogrid/SamehadaDB/execution/plans"
 
+type CostAndPlan struct {
+	// TODO: (SDB) not implemented yet
+}
+
+type Range struct {
+	// TODO: (SDB) not implemented yet
+}
+
 type SelingerOptimizer struct {
 	// TODO: (SDB) not implemented yet
 }
