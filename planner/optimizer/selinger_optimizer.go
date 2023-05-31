@@ -1,9 +1,13 @@
 package optimizer
 
-import "github.com/ryogrid/SamehadaDB/execution/plans"
+import (
+	"github.com/ryogrid/SamehadaDB/execution/plans"
+	"github.com/ryogrid/SamehadaDB/parser"
+)
 
 type CostAndPlan struct {
-	// TODO: (SDB) not implemented yet
+	cost int64
+	plan plans.Plan
 }
 
 type Range struct {
@@ -24,7 +28,7 @@ func (so *SelingerOptimizer) bestScan() (error, plans.Plan) {
 	return nil, nil
 }
 
-func (so *SelingerOptimizer) bestJoin() (error, plans.Plan) {
+func (so *SelingerOptimizer) bestJoin(where *parser.BinaryOpExpression, baseTableCP plans.Plan, JoinTableCP plans.Plan) (error, plans.Plan) {
 	// TODO: (SDB) not implemented yet
 	return nil, nil
 }
