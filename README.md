@@ -94,6 +94,8 @@
   - [ ] REST
 - [ ] Deallocate and Reuse Page
   - Need tracking page usage by BufferPoolManager or TableHeap and need bitmap in header page corresponding to the tracking
+- [ ] Optimization of INSERT
+  - Current implementation searches a free space which is enough for insert data with sequential scan from head (this is slow on exsisting large amount of records situation) 
 - [ ] UNION clause
 - [ ] Materialization (implementation of component for temporal teble management)
 - [ ] Communication over SSL/TLS
