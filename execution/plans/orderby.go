@@ -65,3 +65,8 @@ func (p *OrderbyPlanNode) GetOrderbyTypes() []OrderbyType { return p.orderby_typ
 func (p *OrderbyPlanNode) GetTableOID() uint32 {
 	return p.children[0].GetTableOID()
 }
+
+func (p *OrderbyPlanNode) AccessRowCount() uint64 {
+	// TODO: (SDB) not implemented yet
+	return 0
+}

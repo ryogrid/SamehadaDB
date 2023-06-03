@@ -88,6 +88,11 @@ func (p *AggregationPlanNode) GetTableOID() uint32 {
 	return p.children[0].GetTableOID()
 }
 
+func (p *AggregationPlanNode) AccessRowCount() uint64 {
+	// TODO: (SDB) not implemented yet
+	return 0
+}
+
 type AggregateKey struct {
 	Group_bys_ []*types.Value
 }

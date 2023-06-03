@@ -31,6 +31,7 @@ type Plan interface {
 	GetChildren() []Plan
 	GetType() PlanType
 	GetTableOID() uint32
+	AccessRowCount() uint64
 }
 
 /**

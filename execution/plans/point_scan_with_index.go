@@ -32,3 +32,8 @@ func (p *PointScanWithIndexPlanNode) GetTableOID() uint32 {
 func (p *PointScanWithIndexPlanNode) GetType() PlanType {
 	return IndexPointScan
 }
+
+func (p *PointScanWithIndexPlanNode) AccessRowCount() uint64 {
+	// TODO: (SDB) not implemented yet
+	return 0
+}

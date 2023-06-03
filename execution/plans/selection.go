@@ -34,3 +34,8 @@ func (p *SelectionPlanNode) GetSelectColumns() *schema.Schema {
 func (p *SelectionPlanNode) GetTableOID() uint32 {
 	return p.children[0].GetTableOID()
 }
+
+func (p *SelectionPlanNode) AccessRowCount() uint64 {
+	// TODO: (SDB) not implemented yet
+	return 0
+}

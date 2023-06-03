@@ -62,3 +62,8 @@ func (p *IndexJoinPlanNode) GetRightKeys() []expression.Expression { return p.ri
 func (p *IndexJoinPlanNode) GetTableOID() uint32 {
 	return math.MaxUint32
 }
+
+func (p *IndexJoinPlanNode) AccessRowCount() uint64 {
+	// TODO: (SDB) not implemented yet
+	return 0
+}

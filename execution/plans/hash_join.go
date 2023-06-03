@@ -65,3 +65,8 @@ func (p *HashJoinPlanNode) GetRightKeys() []expression.Expression { return p.rig
 func (p *HashJoinPlanNode) GetTableOID() uint32 {
 	return math.MaxUint32
 }
+
+func (p *HashJoinPlanNode) AccessRowCount() uint64 {
+	// TODO: (SDB) not implemented yet
+	return 0
+}

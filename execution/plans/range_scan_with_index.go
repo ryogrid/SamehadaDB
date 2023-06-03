@@ -48,3 +48,8 @@ func (p *RangeScanWithIndexPlanNode) GetEndRange() *types.Value {
 func (p *RangeScanWithIndexPlanNode) GetType() PlanType {
 	return IndexRangeScan
 }
+
+func (p *RangeScanWithIndexPlanNode) AccessRowCount() uint64 {
+	// TODO: (SDB) not implemented yet
+	return 0
+}

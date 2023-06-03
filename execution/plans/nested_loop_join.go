@@ -62,3 +62,8 @@ func (p *NestedLoopJoinPlanNode) GetRightKeys() []expression.Expression { return
 func (p *NestedLoopJoinPlanNode) GetTableOID() uint32 {
 	return math.MaxUint32
 }
+
+func (p *NestedLoopJoinPlanNode) AccessRowCount() uint64 {
+	// TODO: (SDB) not implemented yet
+	return 0
+}

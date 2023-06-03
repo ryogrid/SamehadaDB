@@ -3,6 +3,7 @@ module github.com/ryogrid/SamehadaDB
 go 1.18
 
 require (
+	github.com/deckarep/golang-set/v2 v2.3.0
 	github.com/devlights/gomy v0.4.0
 	github.com/dsnet/golib/memfile v1.0.0
 	github.com/pingcap/parser v0.0.0-20200623164729-3a18f1e5dceb

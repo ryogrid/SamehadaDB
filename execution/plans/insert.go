@@ -36,3 +36,8 @@ func (p *InsertPlanNode) GetRawValues() [][]types.Value {
 func (p *InsertPlanNode) GetType() PlanType {
 	return Insert
 }
+
+func (p *InsertPlanNode) AccessRowCount() uint64 {
+	// TODO: (SDB) not implemented yet
+	return 0
+}

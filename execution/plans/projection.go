@@ -28,3 +28,8 @@ func (p *ProjectionPlanNode) GetProjectionColumns() *schema.Schema {
 func (p *ProjectionPlanNode) GetTableOID() uint32 {
 	return p.children[0].GetTableOID()
 }
+
+func (p *ProjectionPlanNode) AccessRowCount() uint64 {
+	// TODO: (SDB) not implemented yet
+	return 0
+}
