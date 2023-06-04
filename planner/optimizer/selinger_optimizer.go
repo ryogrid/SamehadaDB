@@ -6,7 +6,7 @@ import (
 )
 
 type CostAndPlan struct {
-	cost int64
+	cost uint64
 	plan plans.Plan
 }
 

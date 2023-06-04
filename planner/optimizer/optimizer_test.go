@@ -5,6 +5,8 @@ import (
 	mapset "github.com/deckarep/golang-set/v2"
 	"github.com/ryogrid/SamehadaDB/common"
 	"github.com/ryogrid/SamehadaDB/parser"
+	testingpkg "github.com/ryogrid/SamehadaDB/testing"
+
 	//"strings"
 	"testing"
 )
@@ -34,10 +36,18 @@ func containsAny(map1 mapset.Set[string], map2 mapset.Set[string]) bool {
 	}
 }
 
+func makeSet[T comparable](from []*T) mapset.Set[T] {
+	joined := mapset.NewSet[T]()
+	for _, f := range from {
+		joined.Add(*f)
+	}
+	return joined
+}
+
 func TestBestJoin(t *testing.T) {
-	// TODO: (SDB) not implemented yet
+	// TODO: (SDB) setup of query is needed at TestBestJoin
 	query := new(parser.QueryInfo)
-	optimalPlans := make(map[mapset.Set[string]]CostAndPlan, 100)
+	optimalPlans := make(map[mapset.Set[string]]CostAndPlan)
 	for ii := 0; ii < len(query.JoinTables_); ii += 1 {
 		for baseTableFrom, baseTableCP := range optimalPlans {
 			for joinTableFrom, joinTableCP := range optimalPlans {
@@ -50,15 +60,16 @@ func TestBestJoin(t *testing.T) {
 				joinedTables := baseTableFrom.Union(joinTableFrom)
 				common.SH_Assert(1 < joinedTables.Cardinality(), "joinedTables.Cardinality() is illegal!")
 				cost := bestJoinPlan.AccessRowCount()
-				/*
-					auto iter = optimal_plans.find(joined_tables);
-					if (iter == optimal_plans.end()) {
-						optimal_plans.emplace(joined_tables, CostAndPlan{cost, best_join});
-					} else if (cost < iter->second.cost) {
-						iter->second = CostAndPlan{cost, best_join};
-					}
-				*/
+
+				if existedPlan, ok := optimalPlans[joinedTables]; ok {
+					optimalPlans[joinedTables] = CostAndPlan{cost, bestJoinPlan}
+				} else if cost < existedPlan.cost {
+					optimalPlans[joinedTables] = CostAndPlan{cost, bestJoinPlan}
+				}
 			}
 		}
 	}
+	_, ok := optimalPlans[makeSet(query.JoinTables_)]
+	testingpkg.Assert(t, ok, "plan which includes all tables is not found")
+
 }
