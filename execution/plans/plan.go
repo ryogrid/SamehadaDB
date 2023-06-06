@@ -22,7 +22,8 @@ const (
 	IndexJoin
 	Aggregation
 	Orderby
-	Filter
+	Projection
+	Selection
 )
 
 type Plan interface {

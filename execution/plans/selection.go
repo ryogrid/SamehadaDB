@@ -20,7 +20,7 @@ func NewSelectionPlanNode(child Plan, selectColumns *schema.Schema, predicate ex
 }
 
 func (p *SelectionPlanNode) GetType() PlanType {
-	return Filter
+	return Selection
 }
 
 func (p *SelectionPlanNode) GetPredicate() expression.Expression {

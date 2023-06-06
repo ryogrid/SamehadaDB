@@ -1,27 +1,26 @@
 package plans
 
 import (
-	"github.com/ryogrid/SamehadaDB/execution/expression"
-	"github.com/ryogrid/SamehadaDB/storage/table/schema"
+	"github.com/ryogrid/SamehadaDB/parser"
 )
 
 // TODO: (SDB) not implemented yet (projection.go)
 
 type ProjectionPlanNode struct {
 	*AbstractPlanNode
-	projectionColumns *schema.Schema
+	projectionColumns []*parser.SelectFieldExpression
 }
 
-func NewProjectionPlanNode(child Plan, selectColumns *schema.Schema, predicate expression.Expression) Plan {
+func NewProjectionPlanNode(child Plan, selectColumns []*parser.SelectFieldExpression) Plan {
 	childOutSchema := child.OutputSchema()
 	return &ProjectionPlanNode{&AbstractPlanNode{childOutSchema, []Plan{child}}, selectColumns}
 }
 
 func (p *ProjectionPlanNode) GetType() PlanType {
-	return Filter
+	return Projection
 }
 
-func (p *ProjectionPlanNode) GetProjectionColumns() *schema.Schema {
+func (p *ProjectionPlanNode) GetProjectionColumns() []*parser.SelectFieldExpression {
 	return p.projectionColumns
 }
 
