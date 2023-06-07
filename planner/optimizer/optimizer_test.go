@@ -3,9 +3,13 @@ package optimizer
 import (
 	"fmt"
 	mapset "github.com/deckarep/golang-set/v2"
+	"github.com/ryogrid/SamehadaDB/catalog"
 	"github.com/ryogrid/SamehadaDB/common"
+	"github.com/ryogrid/SamehadaDB/execution/executors"
 	"github.com/ryogrid/SamehadaDB/execution/plans"
 	"github.com/ryogrid/SamehadaDB/parser"
+	"github.com/ryogrid/SamehadaDB/samehada"
+	"github.com/ryogrid/SamehadaDB/storage/access"
 	testingpkg "github.com/ryogrid/SamehadaDB/testing"
 
 	//"strings"
@@ -33,9 +37,8 @@ func makeSet[T comparable](from []*T) mapset.Set[T] {
 	return joined
 }
 
-func TestBestJoin(t *testing.T) {
-	// TODO: (SDB) setup of query and optimalPlan is needed at TestBestJoin
-	query := new(parser.QueryInfo)
+func testBestJoinInner(t *testing.T, query *parser.QueryInfo, exec_ctx *executors.ExecutorContext, c *catalog.Catalog, txn *access.Transaction) {
+	// TODO: (SDB) need to setup of optimalPlan which is needed at BestJoin
 	optimalPlans := make(map[mapset.Set[string]]CostAndPlan)
 
 	for ii := 0; ii < len(query.JoinTables_); ii += 1 {
@@ -67,4 +70,24 @@ func TestBestJoin(t *testing.T) {
 	solution = plans.NewProjectionPlanNode(solution, query.SelectFields_)
 
 	fmt.Println(solution)
+}
+
+func TestBestJoin(t *testing.T) {
+	shi := samehada.NewSamehadaInstance(t.Name(), common.BufferPoolMaxFrameNumForTest)
+	shi.GetLogManager().ActivateLogging()
+	testingpkg.Assert(t, shi.GetLogManager().IsEnabledLogging(), "")
+	fmt.Println("System logging is active.")
+
+	txn_mgr := shi.GetTransactionManager()
+	txn := txn_mgr.Begin(nil)
+
+	c := catalog.BootstrapCatalog(shi.GetBufferPoolManager(), shi.GetLogManager(), shi.GetLockManager(), txn)
+	exec_ctx := executors.NewExecutorContext(c, shi.GetBufferPoolManager(), txn)
+
+	// TODO: (SDB) need to create tables for use in query
+	// TODO: (SDB) need to setup of statistics data of created tables and query which uses the tables for testing BestJoin func
+	//table_info, _ := executors.GenerateTestTabls(c, exec_ctx, txn)
+	query := new(parser.QueryInfo)
+
+	testBestJoinInner(t, query, exec_ctx, c, txn)
 }
