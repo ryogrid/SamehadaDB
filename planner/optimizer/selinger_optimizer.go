@@ -54,6 +54,15 @@ func (so *SelingerOptimizer) bestScan() (error, plans.Plan) {
 func (so *SelingerOptimizer) bestJoin(where *parser.BinaryOpExpression, baseTableCP plans.Plan, JoinTableCP plans.Plan) (error, plans.Plan) {
 	// TODO: (SDB) not implemented yet
 
+	isColumnValue := func(v interface{}) bool {
+		switch v.(type) {
+		case *expression.ColumnValue:
+			return true
+		default:
+			return false
+		}
+	}
+
 	// pair<ColumnName, ColumnName>
 	var equals []pair.Pair[string, string] = make([]pair.Pair[string, string], 0)
 	//stack<Expression>
@@ -62,39 +71,29 @@ func (so *SelingerOptimizer) bestJoin(where *parser.BinaryOpExpression, baseTabl
 	// vector<Expression>
 	var relatedExp = make([]interface{}, 0)
 	for exp.Len() > 0 {
-		/*
-		   const Expression here = exp.top();
-		   exp.pop();
-		   switch (here->Type()) {
-		     case TypeTag::kBinaryExp: {
-		       const auto& be = here->AsBinaryExpression();
-		       if (be.Op() == BinaryOperation::kEquals &&
-		           be.Right()->Type() == TypeTag::kColumnValue &&
-		           be.Left()->Type() == TypeTag::kColumnValue) {
-		         const auto& cv_l = be.Left()->AsColumnValue();
-		         const auto& cv_r = be.Right()->AsColumnValue();
-		         if (0 <= left->GetSchema().Offset(cv_l.GetColumnName()) &&
-		             0 <= right->GetSchema().Offset(cv_r.GetColumnName())) {
-		           equals.emplace_back(cv_l.GetColumnName(), cv_r.GetColumnName());
-		           related_exp.push_back(here);
-		         } else if (0 <= right->GetSchema().Offset(cv_l.GetColumnName()) &&
-		                    0 <= left->GetSchema().Offset(cv_r.GetColumnName())) {
-		           equals.emplace_back(cv_r.GetColumnName(), cv_l.GetColumnName());
-		           related_exp.push_back(here);
-		         }
-		       }
-		       if (be.Op() == BinaryOperation::kAnd) {
-		         exp.push(be.Left());
-		         exp.push(be.Right());
-		       }
-		       break;
-		     }
-		     case TypeTag::kColumnValue:
-		     case TypeTag::kConstantValue:
-		       // Ignore.
-		       break;
-		   }
-		*/
+		here := exp.Pop().(*parser.BinaryOpExpression)
+		if here.GetType() == parser.Compare {
+			if here.ComparisonOperationType_ == expression.Equal && isColumnValue(here.Left_) && isColumnValue(here.Right_) {
+				/*
+				   const auto& cv_l = be.Left()->AsColumnValue();
+				   const auto& cv_r = be.Right()->AsColumnValue();
+				   if (0 <= left->GetSchema().Offset(cv_l.GetColumnName()) &&
+				       0 <= right->GetSchema().Offset(cv_r.GetColumnName())) {
+				     equals.emplace_back(cv_l.GetColumnName(), cv_r.GetColumnName());
+				     related_exp.push_back(here);
+				   } else if (0 <= right->GetSchema().Offset(cv_l.GetColumnName()) &&
+				              0 <= left->GetSchema().Offset(cv_r.GetColumnName())) {
+				     equals.emplace_back(cv_r.GetColumnName(), cv_l.GetColumnName());
+				     related_exp.push_back(here);
+				   }
+				*/
+			}
+		} else if here.GetType() == parser.Logical {
+			if here.LogicalOperationType_ == expression.AND {
+				exp.Push(here.Left_)
+				exp.Push(here.Right_)
+			}
+		}
 	}
 
 	/*
