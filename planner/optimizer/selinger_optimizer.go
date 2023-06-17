@@ -3,8 +3,10 @@ package optimizer
 import (
 	stack "github.com/golang-collections/collections/stack"
 	pair "github.com/notEpsilon/go-pair"
+	"github.com/ryogrid/SamehadaDB/execution/expression"
 	"github.com/ryogrid/SamehadaDB/execution/plans"
 	"github.com/ryogrid/SamehadaDB/parser"
+	"github.com/ryogrid/SamehadaDB/types"
 )
 
 type CostAndPlan struct {
@@ -12,7 +14,26 @@ type CostAndPlan struct {
 	plan plans.Plan
 }
 
+type Direction bool
+
+const (
+	DIR_LIGHT Direction = false
+	DIR_LEFT  Direction = true
+)
+
 type Range struct {
+	min           *types.Value
+	max           *types.Value
+	min_inclusive bool
+	max_inclusive bool
+}
+
+func (r *Range) Empty() bool {
+	// TODO: (SDB) not implemented yet
+	return false
+}
+
+func (r *Range) Update(op expression.ComparisonType, rhs *types.Value, dir Direction) {
 	// TODO: (SDB) not implemented yet
 }
 

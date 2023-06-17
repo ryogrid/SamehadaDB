@@ -18,6 +18,7 @@ type distinctCounter[T int32 | float32 | string] struct {
 
 func NewDistinctCounter[T int32 | float32 | string](colType types.TypeID) *distinctCounter[T] {
 	// TODO: (SDB) not implemented yet
+
 	return nil
 }
 
