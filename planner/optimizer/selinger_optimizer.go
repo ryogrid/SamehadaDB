@@ -64,7 +64,7 @@ func (so *SelingerOptimizer) bestJoin(where *parser.BinaryOpExpression, left pla
 	}
 
 	// pair<ColumnName, ColumnName>
-	var equals []pair.Pair[*string, *string] = make([]pair.Pair[string, string], 0)
+	var equals []pair.Pair[*string, *string] = make([]pair.Pair[*string, *string], 0)
 	//stack<Expression> exp
 	exp := stack.New()
 	exp.Push(where)
