@@ -3,10 +3,12 @@ package optimizer
 import (
 	stack "github.com/golang-collections/collections/stack"
 	pair "github.com/notEpsilon/go-pair"
+	"github.com/ryogrid/SamehadaDB/catalog"
 	"github.com/ryogrid/SamehadaDB/execution/expression"
 	"github.com/ryogrid/SamehadaDB/execution/plans"
 	"github.com/ryogrid/SamehadaDB/parser"
 	"github.com/ryogrid/SamehadaDB/types"
+	"math"
 )
 
 type CostAndPlan struct {
@@ -38,6 +40,7 @@ func (r *Range) Update(op expression.ComparisonType, rhs *types.Value, dir Direc
 }
 
 type SelingerOptimizer struct {
+	c *catalog.Catalog
 	// TODO: (SDB) not implemented yet
 }
 
@@ -51,7 +54,7 @@ func (so *SelingerOptimizer) bestScan() (error, plans.Plan) {
 	return nil, nil
 }
 
-func (so *SelingerOptimizer) bestJoin(where *parser.BinaryOpExpression, left plans.Plan, right plans.Plan) (error, plans.Plan) {
+func (so *SelingerOptimizer) bestJoin(where *parser.BinaryOpExpression, left plans.Plan, right plans.Plan) plans.Plan {
 	// TODO: (SDB) not implemented yet
 
 	isColumnName := func(v interface{}) bool {
@@ -94,72 +97,82 @@ func (so *SelingerOptimizer) bestJoin(where *parser.BinaryOpExpression, left pla
 		}
 	}
 
-	/*
-	  std::vector<Plan> candidates;
-	  if (!equals.empty()) {
-	    std::vector<ColumnName> left_cols;
-	    std::vector<ColumnName> right_cols;
-	    left_cols.reserve(equals.size());
-	    right_cols.reserve(equals.size());
-	    for (auto&& cn : equals) {
-	      left_cols.emplace_back(std::move(cn.first));
-	      right_cols.emplace_back(std::move(cn.second));
-	    }
-	    // HashJoin.
-	    candidates.push_back(
-	        std::make_shared<ProductPlan>(left, left_cols, right, right_cols));
-	    candidates.push_back(
-	        std::make_shared<ProductPlan>(right, right_cols, left, left_cols));
+	candidates := make([]plans.Plan, 0)
+	if len(equals) > 0 {
+		left_cols := make([]*string, len(equals))
+		right_cols := make([]*string, len(equals))
+		for _, cn := range equals {
+			left_cols = append(left_cols, cn.First)
+			right_cols = append(right_cols, cn.Second)
+		}
 
-	    // IndexJoin.
-	    // 通常のSelingerと異なりベースとするテーブルは既にjoinされている前提で処理している
-	    // また、最適コストを算出済みの部分組み合わせは一方向にjoinしていく前提ではない？？？
-	    // (右側にしか新たに加えるテーブルを置かないルールで、左から右にjoinしていくことになる？？？
-	    //  HashJoinの '新 ++ ベース' のケースがあるのでそうはならない？？？)
-	    if (const Table* right_tbl = right->ScanSource()) {
-	      for (size_t i = 0; i < right_tbl->IndexCount(); ++i) {
-	        const Index& right_idx = right_tbl->GetIndex(i);
-	        const Schema& right_schema = right_tbl->GetSchema();
-	        ASSIGN_OR_CRASH(std::shared_ptr<TableStatistics>, stat,
-	                        ctx.GetStats(right_tbl->GetSchema().Name()));
-	        for (const auto& rcol : right_cols) {
-	          if (rcol == right_schema.GetColumn(right_idx.sc_.key_[0]).Name()) {
-	            candidates.push_back(std::make_shared<ProductPlan>(
-	                left, left_cols, *right_tbl, right_idx, right_cols, *stat));
-	          }
-	        }
-	      }
-	    }
-	  }
-	  if (candidates.empty()) {
-	    if (0 < related_exp.size()) {
-	      Expression final_selection = related_exp.back();
-	      related_exp.pop_back();
-	      // T1.C1 = T2.C2 のようなカラム値が同値かチェックする item が大本のwhere句にあったが
-	      // 上のwhileループ内でcandidatesに加えられるような組み合わせが存在しなかった場合candidatesが
-	      // 空なのでここにきて、ここでは使われなかった条件を活かして出力カラム数を減らす用selectionを構築する？
-	      for (const auto& e : related_exp) {
-	        final_selection =
-	            BinaryExpressionExp(e, BinaryOperation::kAnd, final_selection);
-	      }
-	      Plan ans = std::make_shared<ProductPlan>(left, right);
-	      candidates.push_back(std::make_shared<SelectionPlan>(ans, final_selection,
-	                                                           ans->GetStats()));
-	    } else {
-	      // T1.C1 = T2.C2 のようなカラム値が同値かチェックする item が大本のwhere句に無かった場合
-	      // 上のwhileループがスルーされ、candidatesが空なのでここにくる。
-	      // 活かすことのできる同値の条件が存在しないためselectionの付加は行わない？
-	      candidates.push_back(std::make_shared<ProductPlan>(left, right));
-	    }
-	  }
+		// TODO: (SDB) need finalize of setup Plan Nodes later
+
+		// HashJoin (note: appended plans are temporal (not completely setuped))
+		// candidates.push_back(std::make_shared<ProductPlan>(left, left_cols, right, right_cols));
+		var tmpPlan plans.Plan = plans.NewHashJoinPlanNode(nil, []plans.Plan{left, right}, nil, nil, nil)
+		candidates = append(candidates, tmpPlan)
+		// candidates.push_back(std::make_shared<ProductPlan>(right, right_cols, left, left_cols));
+		tmpPlan = plans.NewHashJoinPlanNode(nil, []plans.Plan{right, left}, nil, nil, nil)
+		candidates = append(candidates, tmpPlan)
+
+		// IndexJoin
+		// 通常のSelingerと異なりベースとするテーブルは既にjoinされている前提で処理している
+		// また、最適コストを算出済みの部分組み合わせは一方向にjoinしていく前提ではない？？？
+		// (右側にしか新たに加えるテーブルを置かないルールで、左から右にjoinしていくことになる？？？
+		//  HashJoinの '新 ++ ベース' のケースがあるのでそうはならない？？？)
+
+		// if (const Table* right_tbl = right->ScanSource()) {
+		// first item on condition below checks whether right Plan deal only one table
+		if right.GetTableOID() != math.MaxUint32 && len(so.c.GetTableByOID(right.GetTableOID()).Indexes()) > 0 {
+			// for (size_t i = 0; i < right_tbl->IndexCount(); ++i) {
+			// const Index& right_idx = right_tbl->GetIndex(i);
+			for _, right_idx := range so.c.GetTableByOID(right.GetTableOID()).Indexes() {
+				//ASSIGN_OR_CRASH(std::shared_ptr<TableStatistics>, stat,
+				//	ctx.GetStats(right_tbl->GetSchema().Name()));
+				for _, rcol := range right_cols {
+					if right_idx.GetTupleSchema().IsHaveColumn(rcol) {
+						// note: appended plans are temporal (not completely setuped)
+						// candidates.push_back(std::make_shared<ProductPlan>(left, left_cols, *right_tbl, right_idx, right_cols, *stat));
+						candidates = append(candidates, plans.NewIndexJoinPlanNode(nil, []plans.Plan{left, right}, nil, nil, nil))
+					}
+				}
+			}
+		}
+	}
+	if len(candidates) == 0 {
+		if 0 < len(relatedExp) {
+			/*
+				          Expression final_selection = related_exp.back();
+					      related_exp.pop_back();
+					      // T1.C1 = T2.C2 のようなカラム値が同値かチェックする item が大本のwhere句にあったが
+					      // 上のwhileループ内でcandidatesに加えられるような組み合わせが存在しなかった場合candidatesが
+					      // 空なのでここにきて、ここでは使われなかった条件を活かして出力カラム数を減らす用selectionを構築する？
+					      for (const auto& e : related_exp) {
+					        final_selection =
+					            BinaryExpressionExp(e, BinaryOperation::kAnd, final_selection);
+					      }
+					      Plan ans = std::make_shared<ProductPlan>(left, right);
+					      candidates.push_back(std::make_shared<SelectionPlan>(ans, final_selection,
+					                                                           ans->GetStats()));
+			*/
+		} else {
+			/*
+						// T1.C1 = T2.C2 のようなカラム値が同値かチェックする item が大本のwhere句に無かった場合
+				      // 上のwhileループがスルーされ、candidatesが空なのでここにくる。
+				      // 活かすことのできる同値の条件が存在しないためselectionの付加は行わない？
+				      candidates.push_back(std::make_shared<ProductPlan>(left, right));
+			*/
+		}
+	}
+	/*
 	  std::sort(candidates.begin(), candidates.end(),
 	            [](const Plan& a, const Plan& b) {
 	              return a->AccessRowCount() < b->AccessRowCount();
 	            });
-	  return candidates[0];
 	*/
 
-	return nil, nil
+	return candidates[0]
 }
 
 func (so *SelingerOptimizer) Optimize() (error, plans.Plan) {

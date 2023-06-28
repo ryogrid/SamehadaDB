@@ -47,7 +47,7 @@ func testBestJoinInner(t *testing.T, query *parser.QueryInfo, exec_ctx *executor
 				if containsAny(baseTableFrom, joinTableFrom) {
 					continue
 				}
-				_, bestJoinPlan := new(SelingerOptimizer).bestJoin(query.WhereExpression_, baseTableCP.plan, joinTableCP.plan)
+				bestJoinPlan := new(SelingerOptimizer).bestJoin(query.WhereExpression_, baseTableCP.plan, joinTableCP.plan)
 				fmt.Println(bestJoinPlan)
 
 				joinedTables := baseTableFrom.Union(joinTableFrom)
