@@ -365,8 +365,13 @@ func ExtractOrgKeyFromDicOrderComparableEncodedVarchar(encodedVal *types.Value, 
 	}
 }
 
-func ConvParsedBinaryOpExprToExpIfOne(convSrc *parser.BinaryOpExpression) expression.Expression {
-	// TODO: (SDB) not implemented yet (ConvParsedBinaryOpExprToExpIfOne)
+func ConvParsedBinaryOpExprToExpIFOne(convSrc *parser.BinaryOpExpression) expression.Expression {
+	// TODO: (SDB) not implemented yet (ConvParsedBinaryOpExprToExpIFOne)
+	return nil
+}
+
+func ConvParsedSelectionExprToExpIFOne(convSrc []*parser.SelectFieldExpression) expression.Expression {
+	// TODO: (SDB) not implemented yet (ConvParsedSelectionExprToExpIFOne)
 	return nil
 }
 

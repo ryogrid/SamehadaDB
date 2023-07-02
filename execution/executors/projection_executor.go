@@ -56,16 +56,16 @@ func (e *ProjectionExecutor) selects(tuple *tuple.Tuple, predicate expression.Ex
 // project applies the projection operator defined by the output schema
 // It transform the tuple into a new tuple that corresponds to the output schema
 func (e *ProjectionExecutor) projects(tuple_ *tuple.Tuple) *tuple.Tuple {
-	srcOutSchema := e.plan.OutputSchema()
-	filterSchema := e.plan.GetProjectionColumns()
+	srcOutSchema := e.plan.GetChildAt(0).OutputSchema()
+	projectSchema := e.plan.OutputSchema()
 
 	values := []types.Value{}
-	for i := uint32(0); i < filterSchema.GetColumnCount(); i++ {
-		colIndex := srcOutSchema.GetColIndex(filterSchema.GetColumns()[i].GetColumnName())
+	for i := uint32(0); i < projectSchema.GetColumnCount(); i++ {
+		colIndex := srcOutSchema.GetColIndex(projectSchema.GetColumns()[i].GetColumnName())
 		values = append(values, tuple_.GetValue(srcOutSchema, colIndex))
 	}
 
-	return tuple.NewTupleFromSchema(values, filterSchema)
+	return tuple.NewTupleFromSchema(values, projectSchema)
 }
 
 func (e *ProjectionExecutor) GetTableMetaData() *catalog.TableMetadata {

@@ -159,7 +159,7 @@ func (so *SelingerOptimizer) bestJoin(where *parser.BinaryOpExpression, left pla
 			// Plan ans = std::make_shared<ProductPlan>(left, right);
 			ans := plans.NewNestedLoopJoinPlanNode(nil, []plans.Plan{left, right}, nil, nil, nil)
 			// candidates.push_back(std::make_shared<SelectionPlan>(ans, final_selection, ans->GetStats()));
-			candidates = append(candidates, plans.NewSelectionPlanNode(ans, ans.OutputSchema(), samehada_util.ConvParsedBinaryOpExprToExpIfOne(finalSelection)))
+			candidates = append(candidates, plans.NewSelectionPlanNode(ans, ans.OutputSchema(), samehada_util.ConvParsedBinaryOpExprToExpIFOne(finalSelection)))
 		} else {
 			// unfortunatelly, construction of NestedLoopJoinPlan with no optimization is needed
 
