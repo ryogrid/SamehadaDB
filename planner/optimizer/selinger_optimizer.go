@@ -7,8 +7,10 @@ import (
 	"github.com/ryogrid/SamehadaDB/execution/expression"
 	"github.com/ryogrid/SamehadaDB/execution/plans"
 	"github.com/ryogrid/SamehadaDB/parser"
+	"github.com/ryogrid/SamehadaDB/samehada/samehada_util"
 	"github.com/ryogrid/SamehadaDB/types"
 	"math"
+	"sort"
 )
 
 type CostAndPlan struct {
@@ -72,7 +74,7 @@ func (so *SelingerOptimizer) bestJoin(where *parser.BinaryOpExpression, left pla
 	exp := stack.New()
 	exp.Push(where)
 	// vector<Expression> relatedExp
-	var relatedExp = make([]interface{}, 0)
+	var relatedExp = make([]*parser.BinaryOpExpression, 0)
 	for exp.Len() > 0 {
 		here := exp.Pop().(*parser.BinaryOpExpression)
 		if here.GetType() == parser.Compare {
@@ -113,14 +115,11 @@ func (so *SelingerOptimizer) bestJoin(where *parser.BinaryOpExpression, left pla
 		var tmpPlan plans.Plan = plans.NewHashJoinPlanNode(nil, []plans.Plan{left, right}, nil, nil, nil)
 		candidates = append(candidates, tmpPlan)
 		// candidates.push_back(std::make_shared<ProductPlan>(right, right_cols, left, left_cols));
+		// TODO: (SDB) finalize of setup Plan Nodes is needed later (HashJoinPlanNode)
 		tmpPlan = plans.NewHashJoinPlanNode(nil, []plans.Plan{right, left}, nil, nil, nil)
 		candidates = append(candidates, tmpPlan)
 
 		// IndexJoin
-		// 通常のSelingerと異なりベースとするテーブルは既にjoinされている前提で処理している
-		// また、最適コストを算出済みの部分組み合わせは一方向にjoinしていく前提ではない？？？
-		// (右側にしか新たに加えるテーブルを置かないルールで、左から右にjoinしていくことになる？？？
-		//  HashJoinの '新 ++ ベース' のケースがあるのでそうはならない？？？)
 
 		// if (const Table* right_tbl = right->ScanSource()) {
 		// first item on condition below checks whether right Plan deal only one table
@@ -134,44 +133,44 @@ func (so *SelingerOptimizer) bestJoin(where *parser.BinaryOpExpression, left pla
 					if right_idx.GetTupleSchema().IsHaveColumn(rcol) {
 						// note: appended plans are temporal (not completely setuped)
 						// candidates.push_back(std::make_shared<ProductPlan>(left, left_cols, *right_tbl, right_idx, right_cols, *stat));
+						// TODO: (SDB) finalize of setup Plan Nodes is needed later (IndexJoinPlanNode)
 						candidates = append(candidates, plans.NewIndexJoinPlanNode(nil, []plans.Plan{left, right}, nil, nil, nil))
 					}
 				}
 			}
 		}
 	}
+
+	// when *where* hash no condition which matches records of *left* and *light*
 	if len(candidates) == 0 {
 		if 0 < len(relatedExp) {
-			/*
-				          Expression final_selection = related_exp.back();
-					      related_exp.pop_back();
-					      // T1.C1 = T2.C2 のようなカラム値が同値かチェックする item が大本のwhere句にあったが
-					      // 上のwhileループ内でcandidatesに加えられるような組み合わせが存在しなかった場合candidatesが
-					      // 空なのでここにきて、ここでは使われなかった条件を活かして出力カラム数を減らす用selectionを構築する？
-					      for (const auto& e : related_exp) {
-					        final_selection =
-					            BinaryExpressionExp(e, BinaryOperation::kAnd, final_selection);
-					      }
-					      Plan ans = std::make_shared<ProductPlan>(left, right);
-					      candidates.push_back(std::make_shared<SelectionPlan>(ans, final_selection,
-					                                                           ans->GetStats()));
-			*/
+			// when *where* hash conditions related to columns of *left* and *light*
+
+			finalSelection := relatedExp[len(relatedExp)-1]
+			relatedExp = relatedExp[:len(relatedExp)-1]
+
+			// construct SelectionPlan which has a NestedLoopJoinPlan as child with usable predicate
+
+			for _, exp := range relatedExp {
+				finalSelection = &parser.BinaryOpExpression{expression.AND, -1, finalSelection, exp}
+			}
+
+			// TODO: (SDB) finalize of setup Plan Nodes is needed later (NestedLoopJoinPlanNode)
+			// Plan ans = std::make_shared<ProductPlan>(left, right);
+			ans := plans.NewNestedLoopJoinPlanNode(nil, []plans.Plan{left, right}, nil, nil, nil)
+			// candidates.push_back(std::make_shared<SelectionPlan>(ans, final_selection, ans->GetStats()));
+			candidates = append(candidates, plans.NewSelectionPlanNode(ans, ans.OutputSchema(), samehada_util.ConvParsedBinaryOpExprToExpIfOne(finalSelection)))
 		} else {
-			/*
-						// T1.C1 = T2.C2 のようなカラム値が同値かチェックする item が大本のwhere句に無かった場合
-				      // 上のwhileループがスルーされ、candidatesが空なのでここにくる。
-				      // 活かすことのできる同値の条件が存在しないためselectionの付加は行わない？
-				      candidates.push_back(std::make_shared<ProductPlan>(left, right));
-			*/
+			// unfortunatelly, construction of NestedLoopJoinPlan with no optimization is needed
+
+			// TODO: (SDB) finalize of setup Plan Nodes is needed later (NestedLoopJoinPlanNode)
+			candidates = append(candidates, plans.NewNestedLoopJoinPlanNode(nil, []plans.Plan{left, right}, nil, nil, nil))
 		}
 	}
-	/*
-	  std::sort(candidates.begin(), candidates.end(),
-	            [](const Plan& a, const Plan& b) {
-	              return a->AccessRowCount() < b->AccessRowCount();
-	            });
-	*/
 
+	sort.Slice(candidates, func(i, j int) bool {
+		return candidates[i].AccessRowCount() < candidates[j].AccessRowCount()
+	})
 	return candidates[0]
 }
 
