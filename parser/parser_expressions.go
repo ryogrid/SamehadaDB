@@ -6,11 +6,44 @@ import (
 	"github.com/ryogrid/SamehadaDB/types"
 )
 
+type BinaryOpExpType int
+
+const (
+	Compare BinaryOpExpType = iota
+	Logical
+	IsNull
+	ColumnName
+	Constant
+)
+
 type BinaryOpExpression struct {
 	LogicalOperationType_    expression.LogicalOpType
 	ComparisonOperationType_ expression.ComparisonType
 	Left_                    interface{}
 	Right_                   interface{}
+}
+
+func (expr *BinaryOpExpression) GetType() BinaryOpExpType {
+	isValue := func(v interface{}) bool {
+		switch v.(type) {
+		case *types.Value:
+			return true
+		default:
+			return false
+		}
+	}
+
+	if expr.ComparisonOperationType_ != -1 {
+		if expr.Right_ != nil && isValue(expr.Right_) && expr.Right_.(types.Value).IsNull() {
+			return IsNull
+		} else {
+			return Compare
+		}
+	} else if expr.LogicalOperationType_ != -1 {
+		return Logical
+	} else {
+		return ColumnName
+	}
 }
 
 type SetExpression struct {

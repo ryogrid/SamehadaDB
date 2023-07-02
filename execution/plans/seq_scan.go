@@ -32,3 +32,8 @@ func (p *SeqScanPlanNode) GetTableOID() uint32 {
 func (p *SeqScanPlanNode) GetType() PlanType {
 	return SeqScan
 }
+
+func (p *SeqScanPlanNode) AccessRowCount() uint64 {
+	// TODO: (SDB) not implemented yet
+	return 0
+}

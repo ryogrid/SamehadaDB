@@ -44,3 +44,8 @@ func (p *UpdatePlanNode) GetRawValues() []types.Value {
 func (p *UpdatePlanNode) GetUpdateColIdxs() []int {
 	return p.update_col_idxs
 }
+
+func (p *UpdatePlanNode) AccessRowCount() uint64 {
+	// TODO: (SDB) not implemented yet
+	return 0
+}

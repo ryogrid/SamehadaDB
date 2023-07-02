@@ -28,3 +28,8 @@ func (p *LimitPlanNode) GetType() PlanType {
 func (p *LimitPlanNode) GetTableOID() uint32 {
 	return p.children[0].GetTableOID()
 }
+
+func (p *LimitPlanNode) AccessRowCount() uint64 {
+	// TODO: (SDB) not implemented yet
+	return 0
+}

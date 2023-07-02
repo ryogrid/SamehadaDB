@@ -19,6 +19,11 @@ func (p *DeletePlanNode) GetTableOID() uint32 {
 	return p.children[0].GetTableOID()
 }
 
+func (p *DeletePlanNode) AccessRowCount() uint64 {
+	// TODO: (SDB) not implemented yet
+	return 0
+}
+
 //func (p *DeletePlanNode) GetPredicate() expression.Expression {
 //	return p.predicate
 //}

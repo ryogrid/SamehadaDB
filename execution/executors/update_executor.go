@@ -123,32 +123,10 @@ func (e *UpdateExecutor) Next() (*tuple.Tuple, Done, error) {
 
 						fmt.Println("DeleteEntry due to ErrPartialUpdate occured.")
 						index_.DeleteEntry(t, *rid, e.txn)
-
-						//if updateErr != access.ErrPartialUpdate {
-						//	fmt.Println("UpdateExecuter: index entry insert with new_rid. value update of index entry occurs.")
-						//	//index_.InsertEntry(t, *new_rid, e.txn)
-						//	index_.InsertEntry(updateTuple, *new_rid, e.txn)
-						//}
-
-						// do nothing
 					} else if new_rid != nil {
-						//index_.DeleteEntry(t, *rid, e.txn)
-
-						//// TODO: for debugging!!!
-						//fmt.Printf("do Upsert: %d\n", updateTuple.GetValue(e.GetTableMetaData().Schema(), 1).ToInteger())
-						//// do UPSERT
-						//index_.InsertEntry(updateTuple, *new_rid, e.txn)
-
 						index_.UpdateEntry(t, *rid, updateTuple, *new_rid, e.txn)
 					} else {
-						//index_.UpdateEntry(t, *rid, updateTuple, *rid, e.txn)
-
-						//index_.DeleteEntry(t, *rid, e.txn)
-						//if new_rid != nil {
-						//	index_.InsertEntry(updateTuple, *new_rid, e.txn)
-						//} else {
-						//	index_.InsertEntry(updateTuple, *rid, e.txn)
-						//}
+						// do nothing
 					}
 				}
 			}

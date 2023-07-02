@@ -13,21 +13,21 @@ import (
 
 // do filtering according to WHERE clause for Plan(Executor) which has no filtering feature
 
-type FilterExecutor struct {
+type SlectionExecutor struct {
 	context *ExecutorContext
-	plan    *plans.FilterPlanNode // contains information about where clause
-	child   Executor              // the child executor that will provide tuples to the this executor
+	plan    *plans.SelectionPlanNode // contains information about where clause
+	child   Executor                 // the child executor that will provide tuples to the this executor
 }
 
-func NewFilterExecutor(context *ExecutorContext, plan *plans.FilterPlanNode, child Executor) Executor {
-	return &FilterExecutor{context, plan, child}
+func NewSelectionExecutor(context *ExecutorContext, plan *plans.SelectionPlanNode, child Executor) Executor {
+	return &SlectionExecutor{context, plan, child}
 }
 
-func (e *FilterExecutor) Init() {
+func (e *SlectionExecutor) Init() {
 	e.child.Init()
 }
 
-func (e *FilterExecutor) Next() (*tuple.Tuple, Done, error) {
+func (e *SlectionExecutor) Next() (*tuple.Tuple, Done, error) {
 	for t, done, err := e.child.Next(); !done; t, done, err = e.child.Next() {
 		if err != nil {
 			return nil, done, err
@@ -48,18 +48,18 @@ func (e *FilterExecutor) Next() (*tuple.Tuple, Done, error) {
 	return nil, true, nil
 }
 
-func (e *FilterExecutor) GetOutputSchema() *schema.Schema {
+func (e *SlectionExecutor) GetOutputSchema() *schema.Schema {
 	return e.plan.OutputSchema()
 }
 
 // select evaluates an expression on the tuple
-func (e *FilterExecutor) selects(tuple *tuple.Tuple, predicate expression.Expression) bool {
+func (e *SlectionExecutor) selects(tuple *tuple.Tuple, predicate expression.Expression) bool {
 	return predicate == nil || predicate.Evaluate(tuple, e.GetOutputSchema()).ToBoolean()
 }
 
 // project applies the projection operator defined by the output schema
 // It transform the tuple into a new tuple that corresponds to the output schema
-func (e *FilterExecutor) projects(tuple_ *tuple.Tuple) *tuple.Tuple {
+func (e *SlectionExecutor) projects(tuple_ *tuple.Tuple) *tuple.Tuple {
 	srcOutSchema := e.plan.OutputSchema()
 	filterSchema := e.plan.GetSelectColumns()
 
@@ -72,4 +72,6 @@ func (e *FilterExecutor) projects(tuple_ *tuple.Tuple) *tuple.Tuple {
 	return tuple.NewTupleFromSchema(values, filterSchema)
 }
 
-func (e *FilterExecutor) GetTableMetaData() *catalog.TableMetadata { return e.child.GetTableMetaData() }
+func (e *SlectionExecutor) GetTableMetaData() *catalog.TableMetadata {
+	return e.child.GetTableMetaData()
+}

@@ -68,6 +68,15 @@ func (s *Schema) GetColumns() []*column.Column {
 	return s.columns
 }
 
+func (s *Schema) IsHaveColumn(columnName *string) bool {
+	for _, col := range s.columns {
+		if col.GetColumnName() == *columnName {
+			return true
+		}
+	}
+	return false
+}
+
 func CopySchema(from *Schema, attrs []uint32) *Schema {
 	var cols_obj []column.Column
 	var cols_p []*column.Column

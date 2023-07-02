@@ -51,7 +51,6 @@ func (e *SeqScanExecutor) Next() (*tuple.Tuple, Done, error) {
 			return nil, true, err
 		}
 
-		//// TODO: (sdb) for debug
 		//if e.plan.OutputSchema().GetColumn(0).GetType() == types.Integer {
 		//	fmt.Printf("%d\n", t.GetValue(e.plan.OutputSchema(), 0).ToInteger())
 		//}

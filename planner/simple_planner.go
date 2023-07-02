@@ -202,7 +202,10 @@ func (pner *SimplePlanner) MakeSelectPlanWithJoin() (error, plans.Plan) {
 	if hasWhere {
 		whereExp := pner.ConstructPredicate([]*schema.Schema{outFinal})
 		// filter joined recoreds with predicate which is specified on WHERE clause if needed
-		filterPlan := plans.NewFilterPlanNode(joinPlan, filterOut, whereExp)
+
+		// TODO: (SDB) need to use ProjectionPlan and SelectionPlan
+		//             current code does both
+		filterPlan := plans.NewSelectionPlanNode(joinPlan, filterOut, whereExp)
 		return nil, filterPlan
 	} else {
 		// has no WHERE clause
@@ -256,7 +259,7 @@ func processPredicateTreeNode(node *parser.BinaryOpExpression, tgtTblSchemas []*
 		//var tmpColIdx uint32
 		//if len(tgtTblSchemas) > 1 {
 		//	// with JOIN case
-		//	// because FilterExecutor is used, refer outSchema
+		//	// because SlectionExecutor is used, refer outSchema
 		//	tmpColIdx = outSchema.GetColIndex(colName)
 		//} else {
 		//	// without JOIN case
