@@ -40,6 +40,43 @@ func makeSet[T comparable](from []*T) mapset.Set[T] {
 
 func testBestScanInner(t *testing.T, query *parser.QueryInfo, exec_ctx *executors.ExecutorContext, c *catalog.Catalog, txn *access.Transaction) {
 	// TODO: (SDB) not implemented yet (testBestScanInner)
+
+	/*
+	  if (query.from_.empty()) {
+	    throw std::runtime_error("No table specified");
+	  }
+	  std::unordered_map<std::unordered_set<std::string>, CostAndPlan>
+	      optimal_plans;
+
+	  // 1. Initialize every single tables to start.
+	  std::unordered_set<ColumnName> touched_columns =
+	      query.where_->TouchedColumns();
+	  for (const auto& sel : query.select_) {
+	    touched_columns.merge(sel.expression->TouchedColumns());
+	  }
+	  for (const auto& from : query.from_) {
+	    ASSIGN_OR_RETURN(std::shared_ptr<Table>, tbl, ctx.GetTable(from));
+	    ASSIGN_OR_RETURN(std::shared_ptr<TableStatistics>, stats,
+	                     ctx.GetStats(from));
+
+	    // Push down all selection & projection.
+	    std::vector<NamedExpression> project_target;
+	    for (size_t i = 0; i < tbl->GetSchema().ColumnCount(); ++i) {
+	      for (const auto& touched_col : touched_columns) {
+	        const Column& table_col = tbl->GetSchema().GetColumn(i);
+	        if (table_col.Name().name == touched_col.name &&
+	            (touched_col.schema.empty() ||
+	             touched_col.schema == tbl->GetSchema().Name())) {
+	          project_target.emplace_back(table_col.Name());
+	        }
+	      }
+	    }
+	    Plan scan = BestScan(project_target, *tbl, query.where_, *stats);
+	    optimal_plans.emplace(std::unordered_set({from}),
+	                          CostAndPlan{scan->AccessRowCount(), scan});
+	  }
+	  assert(optimal_plans.size() == query.from_.size());
+	*/
 }
 
 func testBestJoinInner(t *testing.T, query *parser.QueryInfo, exec_ctx *executors.ExecutorContext, c *catalog.Catalog, txn *access.Transaction) {
