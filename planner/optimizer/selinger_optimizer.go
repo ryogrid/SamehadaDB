@@ -8,6 +8,7 @@ import (
 	"github.com/ryogrid/SamehadaDB/execution/plans"
 	"github.com/ryogrid/SamehadaDB/parser"
 	"github.com/ryogrid/SamehadaDB/samehada/samehada_util"
+	"github.com/ryogrid/SamehadaDB/storage/table/schema"
 	"github.com/ryogrid/SamehadaDB/types"
 	"math"
 	"sort"
@@ -51,8 +52,114 @@ func NewSelingerOptimizer() Optimizer {
 	return nil
 }
 
-func (so *SelingerOptimizer) bestScan() (error, plans.Plan) {
+func (so *SelingerOptimizer) bestScan(selection *parser.SelectFieldExpression, where *parser.BinaryOpExpression, table *schema.Schema, c *catalog.Catalog) (error, plans.Plan) {
 	// TODO: (SDB) not implemented yet
+	/*
+	  const Schema& sc = from.GetSchema();
+	  size_t minimum_cost = std::numeric_limits<size_t>::max();
+	  Plan best_scan;
+	  // Get { first-column offset => index offset } map.
+	  std::unordered_map<slot_t, size_t> candidates = from.AvailableKeyIndex();
+	  // Prepare all range of candidates.
+	  std::unordered_map<slot_t, Range> ranges;
+	  ranges.reserve(candidates.size());
+	  for (const auto& it : candidates) {
+	    ranges.emplace(it.first, Range());
+	  }
+	  std::vector<Expression> stack;
+	  stack.push_back(where);
+	  std::vector<Expression> related_ops;
+	  while (!stack.empty()) {
+	    Expression exp = stack.back();
+	    stack.pop_back();
+	    if (exp->Type() == TypeTag::kBinaryExp) {
+	      const BinaryExpression& be = exp->AsBinaryExpression();
+	      if (be.Op() == BinaryOperation::kAnd) {
+	        stack.push_back(be.Left());
+	        stack.push_back(be.Right());
+	        continue;
+	      }
+	      if (IsComparison(be.Op())) {
+	        if (be.Left()->Type() == TypeTag::kColumnValue &&
+	            be.Right()->Type() == TypeTag::kConstantValue) {
+	          const ColumnValue& cv = be.Left()->AsColumnValue();
+	          const int offset = sc.Offset(cv.GetColumnName());
+	          if (0 <= offset) {
+	            related_ops.push_back(exp);
+	            auto iter = ranges.find(offset);
+	            if (iter != ranges.end()) {
+	              iter->second.Update(be.Op(),
+	                                  be.Right()->AsConstantValue().GetValue(),
+	                                  Range::Dir::kRight);
+	            }
+	          }
+	        } else if (be.Left()->Type() == TypeTag::kColumnValue &&
+	                   be.Right()->Type() == TypeTag::kConstantValue) {
+	          const ColumnValue& cv = be.Right()->AsColumnValue();
+	          const int offset = sc.Offset(cv.GetColumnName());
+	          if (0 <= offset) {
+	            related_ops.push_back(exp);
+	            auto iter = ranges.find(offset);
+	            if (iter != ranges.end()) {
+	              iter->second.Update(be.Op(),
+	                                  be.Left()->AsConstantValue().GetValue(),
+	                                  Range::Dir::kLeft);
+	            }
+	          }
+	        }
+	      }
+	      if (be.Op() == BinaryOperation::kOr) {
+	        assert(!"Not supported!");
+	      }
+	    }
+	  }
+	  Expression scan_exp;
+	  if (!related_ops.empty()) {
+	    scan_exp = related_ops[0];
+	    for (size_t i = 1; i < related_ops.size(); ++i) {
+	      scan_exp =
+	          BinaryExpressionExp(scan_exp, BinaryOperation::kAnd, related_ops[i]);
+	    }
+	  }
+
+	  // Build all IndexScan.
+	  for (const auto& range : ranges) {
+	    slot_t key = range.first;
+	    const Range& span = range.second;
+	    if (span.Empty()) {
+	      continue;
+	    }
+	    const Index& target_idx = from.GetIndex(candidates[key]);
+	    Plan new_plan = IndexScanSelect(from, target_idx, stat, *span.min,
+	                                    *span.max, scan_exp, select);
+	    // (ryo_grid) ?????
+	    if (!TouchOnly(scan_exp, from.GetSchema().GetColumn(key).Name())) {
+	      new_plan = std::make_shared<SelectionPlan>(new_plan, scan_exp, stat);
+	    }
+	    if (select.size() != new_plan->GetSchema().ColumnCount()) {
+	      new_plan = std::make_shared<ProjectionPlan>(new_plan, select);
+	    }
+	    if (new_plan->AccessRowCount() < minimum_cost) {
+	      best_scan = new_plan;
+	      minimum_cost = new_plan->AccessRowCount();
+	    }
+	  }
+
+	  Plan full_scan_plan(new FullScanPlan(from, stat));
+	  if (scan_exp) {
+	    full_scan_plan =
+	        std::make_shared<SelectionPlan>(full_scan_plan, scan_exp, stat);
+	  }
+	  if (select.size() != full_scan_plan->GetSchema().ColumnCount()) {
+	    full_scan_plan = std::make_shared<ProjectionPlan>(full_scan_plan, select);
+	  }
+	  if (full_scan_plan->AccessRowCount() < minimum_cost) {
+	    best_scan = full_scan_plan;
+	    minimum_cost = full_scan_plan->AccessRowCount();
+	  }
+	  return best_scan;
+	*/
+
 	return nil, nil
 }
 
@@ -174,6 +281,7 @@ func (so *SelingerOptimizer) bestJoin(where *parser.BinaryOpExpression, left pla
 	return candidates[0]
 }
 
+// TODO: (SDB) adding support of ON clause (Optimize, bestJoin, bestScan)
 func (so *SelingerOptimizer) Optimize() (error, plans.Plan) {
 	// TODO: (SDB) not implemented yet
 	return nil, nil
