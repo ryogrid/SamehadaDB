@@ -71,6 +71,7 @@ func NewSelingerOptimizer() *SelingerOptimizer {
 	return nil
 }
 
+// TODO: (SDB) caller should pass *where* args which is deep copied
 func (so *SelingerOptimizer) bestScan(selection []*parser.SelectFieldExpression, where *parser.BinaryOpExpression, from *catalog.TableMetadata, c *catalog.Catalog, stats *catalog.TableStatistics) (plans.Plan, error) {
 	// TODO: (SDB) not implemented yet
 
@@ -211,6 +212,7 @@ func (so *SelingerOptimizer) bestScan(selection []*parser.SelectFieldExpression,
 	return nil, nil
 }
 
+// TODO: (SDB) caller should pass *where* args which is deep copied
 func (so *SelingerOptimizer) bestJoin(where *parser.BinaryOpExpression, left plans.Plan, right plans.Plan) (plans.Plan, error) {
 	// TODO: (SDB) not implemented yet
 
@@ -328,6 +330,10 @@ func (so *SelingerOptimizer) bestJoin(where *parser.BinaryOpExpression, left pla
 	})
 	return candidates[0], nil
 }
+
+// TODO: (SDB) caller should check predicate whether it is optimizable and
+//	           if not, caller can't call this function
+//             (predicate including bracket or OR operation case is not supported now)
 
 // TODO: (SDB) adding support of ON clause (Optimize, bestJoin, bestScan)
 func (so *SelingerOptimizer) Optimize() (plans.Plan, error) {
