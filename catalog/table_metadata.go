@@ -101,3 +101,7 @@ func (t *TableMetadata) GetColumnNum() uint32 {
 func (t *TableMetadata) Indexes() []index.Index {
 	return t.indexes
 }
+
+func (t *TableMetadata) GetStatistics() *TableStatistics {
+	return t.statiscs
+}

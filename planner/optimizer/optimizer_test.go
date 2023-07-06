@@ -11,6 +11,7 @@ import (
 	"github.com/ryogrid/SamehadaDB/samehada"
 	"github.com/ryogrid/SamehadaDB/samehada/samehada_util"
 	"github.com/ryogrid/SamehadaDB/storage/access"
+	"github.com/ryogrid/SamehadaDB/storage/table/column"
 	testingpkg "github.com/ryogrid/SamehadaDB/testing"
 
 	//"strings"
@@ -41,42 +42,31 @@ func makeSet[T comparable](from []*T) mapset.Set[T] {
 func testBestScanInner(t *testing.T, query *parser.QueryInfo, exec_ctx *executors.ExecutorContext, c *catalog.Catalog, txn *access.Transaction) {
 	// TODO: (SDB) not implemented yet (testBestScanInner)
 
-	/*
-	  if (query.from_.empty()) {
-	    throw std::runtime_error("No table specified");
-	  }
-	  std::unordered_map<std::unordered_set<std::string>, CostAndPlan>
-	      optimal_plans;
+	optimalPlans := make(map[mapset.Set[string]]CostAndPlan)
 
-	  // 1. Initialize every single tables to start.
-	  std::unordered_set<ColumnName> touched_columns =
-	      query.where_->TouchedColumns();
-	  for (const auto& sel : query.select_) {
-	    touched_columns.merge(sel.expression->TouchedColumns());
-	  }
-	  for (const auto& from : query.from_) {
-	    ASSIGN_OR_RETURN(std::shared_ptr<Table>, tbl, ctx.GetTable(from));
-	    ASSIGN_OR_RETURN(std::shared_ptr<TableStatistics>, stats,
-	                     ctx.GetStats(from));
-
-	    // Push down all selection & projection.
-	    std::vector<NamedExpression> project_target;
-	    for (size_t i = 0; i < tbl->GetSchema().ColumnCount(); ++i) {
-	      for (const auto& touched_col : touched_columns) {
-	        const Column& table_col = tbl->GetSchema().GetColumn(i);
-	        if (table_col.Name().name == touched_col.name &&
-	            (touched_col.schema.empty() ||
-	             touched_col.schema == tbl->GetSchema().Name())) {
-	          project_target.emplace_back(table_col.Name());
-	        }
-	      }
-	    }
-	    Plan scan = BestScan(project_target, *tbl, query.where_, *stats);
-	    optimal_plans.emplace(std::unordered_set({from}),
-	                          CostAndPlan{scan->AccessRowCount(), scan});
-	  }
-	  assert(optimal_plans.size() == query.from_.size());
-	*/
+	// 1. Initialize every single tables to start.
+	touchedColumns := query.WhereExpression_.TouchedColumns()
+	for _, item := range query.SelectFields_ {
+		touchedColumns = touchedColumns.Union(item.TouchedColumns())
+	}
+	for _, from := range query.JoinTables_ {
+		tbl := c.GetTableByName(*from)
+		stats := c.GetTableByName(*from).GetStatistics()
+		projectTarget := make([]*column.Column, 0)
+		// Push down all selection & projection.
+		for ii := 0; ii < int(tbl.GetColumnNum()); ii++ {
+			for _, touchedCol := range touchedColumns.ToSlice() {
+				tableCol := tbl.Schema().GetColumn(uint32(ii))
+				// TODO: (SDB) GetColumnName() value should contain table name. if not,  rewrite of this comparison code is needed
+				if tableCol.GetColumnName() == touchedCol.GetColumnName() {
+					projectTarget = append(projectTarget, tableCol)
+				}
+			}
+		}
+		scan, _ := NewSelingerOptimizer().bestScan(query.SelectFields_, query.WhereExpression_, tbl.Schema(), c, stats)
+		optimalPlans[makeSet([]*string{from})] = CostAndPlan{scan.AccessRowCount(), scan}
+	}
+	samehada_util.SHAssert(len(optimalPlans) == len(query.JoinTables_), "len(optimalPlans) != len(query.JoinTables_)")
 }
 
 func testBestJoinInner(t *testing.T, query *parser.QueryInfo, exec_ctx *executors.ExecutorContext, c *catalog.Catalog, txn *access.Transaction) {
@@ -90,7 +80,7 @@ func testBestJoinInner(t *testing.T, query *parser.QueryInfo, exec_ctx *executor
 				if containsAny(baseTableFrom, joinTableFrom) {
 					continue
 				}
-				bestJoinPlan := new(SelingerOptimizer).bestJoin(query.WhereExpression_, baseTableCP.plan, joinTableCP.plan)
+				bestJoinPlan, _ := NewSelingerOptimizer().bestJoin(query.WhereExpression_, baseTableCP.plan, joinTableCP.plan)
 				fmt.Println(bestJoinPlan)
 
 				joinedTables := baseTableFrom.Union(joinTableFrom)

@@ -32,7 +32,7 @@ func (dc *distinctCounter[T]) ToColumnStats() *ColumnStats[T] {
 }
 
 type ColumnStats[T int32 | float32 | string] struct {
-	Nax      T
+	Max      T
 	Min      T
 	Count    int64
 	Distinct int64

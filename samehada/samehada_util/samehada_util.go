@@ -375,6 +375,12 @@ func ConvParsedSelectionExprToExpIFOne(convSrc []*parser.SelectFieldExpression) 
 	return nil
 }
 
+func SHAssert(cond bool, msg string) {
+	if !cond {
+		panic(msg)
+	}
+}
+
 func TimeoutPanic() {
 	common.RuntimeStack()
 	os.Stdout.Sync()

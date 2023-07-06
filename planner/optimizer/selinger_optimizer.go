@@ -47,12 +47,12 @@ type SelingerOptimizer struct {
 	// TODO: (SDB) not implemented yet
 }
 
-func NewSelingerOptimizer() Optimizer {
+func NewSelingerOptimizer() *SelingerOptimizer {
 	// TODO: (SDB) not implemented yet
 	return nil
 }
 
-func (so *SelingerOptimizer) bestScan(selection *parser.SelectFieldExpression, where *parser.BinaryOpExpression, table *schema.Schema, c *catalog.Catalog) (error, plans.Plan) {
+func (so *SelingerOptimizer) bestScan(selection []*parser.SelectFieldExpression, where *parser.BinaryOpExpression, table *schema.Schema, c *catalog.Catalog, stats *catalog.TableStatistics) (plans.Plan, error) {
 	// TODO: (SDB) not implemented yet
 	/*
 	  const Schema& sc = from.GetSchema();
@@ -163,7 +163,7 @@ func (so *SelingerOptimizer) bestScan(selection *parser.SelectFieldExpression, w
 	return nil, nil
 }
 
-func (so *SelingerOptimizer) bestJoin(where *parser.BinaryOpExpression, left plans.Plan, right plans.Plan) plans.Plan {
+func (so *SelingerOptimizer) bestJoin(where *parser.BinaryOpExpression, left plans.Plan, right plans.Plan) (plans.Plan, error) {
 	// TODO: (SDB) not implemented yet
 
 	isColumnName := func(v interface{}) bool {
@@ -278,11 +278,11 @@ func (so *SelingerOptimizer) bestJoin(where *parser.BinaryOpExpression, left pla
 	sort.Slice(candidates, func(i, j int) bool {
 		return candidates[i].AccessRowCount() < candidates[j].AccessRowCount()
 	})
-	return candidates[0]
+	return candidates[0], nil
 }
 
 // TODO: (SDB) adding support of ON clause (Optimize, bestJoin, bestScan)
-func (so *SelingerOptimizer) Optimize() (error, plans.Plan) {
+func (so *SelingerOptimizer) Optimize() (plans.Plan, error) {
 	// TODO: (SDB) not implemented yet
 	return nil, nil
 }
