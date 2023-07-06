@@ -97,91 +97,100 @@ func (so *SelingerOptimizer) bestScan(selection []*parser.SelectFieldExpression,
 	for key, _ := range candidates {
 		ranges[key] = NewRange(sc.GetColumn(uint32(key)).GetType())
 	}
-	/*
-	  std::vector<Expression> stack;
-	  stack.push_back(where);
-	  std::vector<Expression> related_ops;
-	*/
 
-	/*
-	  while (!stack.empty()) {
-	    Expression exp = stack.back();
-	    stack.pop_back();
-	    if (exp->Type() == TypeTag::kBinaryExp) {
-	      const BinaryExpression& be = exp->AsBinaryExpression();
-	      if (be.Op() == BinaryOperation::kAnd) {
-	        stack.push_back(be.Left());
-	        stack.push_back(be.Right());
-	        continue;
-	      }
-	      if (IsComparison(be.Op())) {
-	        if (be.Left()->Type() == TypeTag::kColumnValue &&
-	            be.Right()->Type() == TypeTag::kConstantValue) {
-	          const ColumnValue& cv = be.Left()->AsColumnValue();
-	          const int offset = sc.Offset(cv.GetColumnName());
-	          if (0 <= offset) {
-	            related_ops.push_back(exp);
-	            auto iter = ranges.find(offset);
-	            if (iter != ranges.end()) {
-	              iter->second.Update(be.Op(),
-	                                  be.Right()->AsConstantValue().GetValue(),
-	                                  Range::Dir::kRight);
-	            }
-	          }
-	        } else if (be.Left()->Type() == TypeTag::kColumnValue &&
-	                   be.Right()->Type() == TypeTag::kConstantValue) {
-	          const ColumnValue& cv = be.Right()->AsColumnValue();
-	          const int offset = sc.Offset(cv.GetColumnName());
-	          if (0 <= offset) {
-	            related_ops.push_back(exp);
-	            auto iter = ranges.find(offset);
-	            if (iter != ranges.end()) {
-	              iter->second.Update(be.Op(),
-	                                  be.Left()->AsConstantValue().GetValue(),
-	                                  Range::Dir::kLeft);
-	            }
-	          }
-	        }
-	      }
-	      if (be.Op() == BinaryOperation::kOr) {
-	        assert(!"Not supported!");
-	      }
-	    }
-	  }
-	  Expression scan_exp;
-	  if (!related_ops.empty()) {
-	    scan_exp = related_ops[0];
-	    for (size_t i = 1; i < related_ops.size(); ++i) {
-	      scan_exp =
-	          BinaryExpressionExp(scan_exp, BinaryOperation::kAnd, related_ops[i]);
-	    }
-	  }
-	*/
+	//std::vector<Expression> stack
+	stack := stack.New[*parser.BinaryOpExpression]()
+	stack.Push(where)
+	//std::vector<Expression> related_ops
+	relatedOps := make([]*parser.BinaryOpExpression, 0)
+	for stack.Len() > 0 {
+		//Expression exp = stack.back()
+		//stack.pop_back()
+		exp := stack.Pop().(*parser.BinaryOpExpression)
+		//if (exp->Type() == TypeTag::kBinaryExp) {
+		if exp.GetType() == parser.Logical {
+			/*
+					const BinaryExpression& be = exp->AsBinaryExpression();
+					if (be.Op() == BinaryOperation::kAnd) {
+						stack.push_back(be.Left());
+						stack.push_back(be.Right());
+						continue;
+					}
+					if (IsComparison(be.Op())) {
+						if (be.Left()->Type() == TypeTag::kColumnValue &&
+							be.Right()->Type() == TypeTag::kConstantValue) {
+							const ColumnValue& cv = be.Left()->AsColumnValue();
+							const int offset = sc.Offset(cv.GetColumnName());
+							if (0 <= offset) {
+								related_ops.push_back(exp);
+								auto iter = ranges.find(offset);
+								if (iter != ranges.end()) {
+									iter->second.Update(be.Op(),
+										be.Right()->AsConstantValue().GetValue(),
+										Range::Dir::kRight);
+								}
+							}
+						} else if (be.Left()->Type() == TypeTag::kColumnValue &&
+							be.Right()->Type() == TypeTag::kConstantValue) {
+							const ColumnValue& cv = be.Right()->AsColumnValue();
+							const int offset = sc.Offset(cv.GetColumnName());
+							if (0 <= offset) {
+								related_ops.push_back(exp);
+								auto iter = ranges.find(offset);
+								if (iter != ranges.end()) {
+									iter->second.Update(be.Op(),
+										be.Left()->AsConstantValue().GetValue(),
+										Range::Dir::kLeft);
+								}
+							}
+						}
+					}
+					if (be.Op() == BinaryOperation::kOr) {
+						assert(!"Not supported!");
+					}
+				}
+			*/
+		}
+	}
 
-	/*
-	  // Build all IndexScan.
-	  for (const auto& range : ranges) {
-	    slot_t key = range.first;
-	    const Range& span = range.second;
-	    if (span.Empty()) {
-	      continue;
-	    }
-	    const Index& target_idx = from.GetIndex(candidates[key]);
-	    Plan new_plan = IndexScanSelect(from, target_idx, stat, *span.min,
-	                                    *span.max, scan_exp, select);
-	    // (ryo_grid) ?????
-	    if (!TouchOnly(scan_exp, from.GetSchema().GetColumn(key).Name())) {
-	      new_plan = std::make_shared<SelectionPlan>(new_plan, scan_exp, stat);
-	    }
-	    if (select.size() != new_plan->GetSchema().ColumnCount()) {
-	      new_plan = std::make_shared<ProjectionPlan>(new_plan, select);
-	    }
-	    if (new_plan->AccessRowCount() < minimum_cost) {
-	      best_scan = new_plan;
-	      minimum_cost = new_plan->AccessRowCount();
-	    }
-	  }
-	*/
+	// Expression scan_exp;
+	// TODO: (SDB) doing BinaryOpExpression to Expression subtype conversion is better here?
+	var scanExp *parser.BinaryOpExpression
+	if len(relatedOps) > 0 {
+		scanExp = relatedOps[0]
+		for ii := 1; ii < len(relatedOps); ii++ {
+			/*
+			   scan_exp =
+			       BinaryExpressionExp(scan_exp, BinaryOperation::kAnd, related_ops[i]);
+			*/
+		}
+	}
+
+	// Build all IndexScan.
+	//for (const auto& range : ranges) {
+	//slot_t key = range.first;
+	//const Range& span = range.second;
+	for key, span := range ranges {
+		/*
+		   if (span.Empty()) {
+		     continue;
+		   }
+		   const Index& target_idx = from.GetIndex(candidates[key]);
+		   Plan new_plan = IndexScanSelect(from, target_idx, stat, *span.min,
+		                                   *span.max, scan_exp, select);
+		   // (ryo_grid) ?????
+		   if (!TouchOnly(scan_exp, from.GetSchema().GetColumn(key).Name())) {
+		     new_plan = std::make_shared<SelectionPlan>(new_plan, scan_exp, stat);
+		   }
+		   if (select.size() != new_plan->GetSchema().ColumnCount()) {
+		     new_plan = std::make_shared<ProjectionPlan>(new_plan, select);
+		   }
+		   if (new_plan->AccessRowCount() < minimum_cost) {
+		     best_scan = new_plan;
+		     minimum_cost = new_plan->AccessRowCount();
+		   }
+		*/
+	}
 
 	/*
 	  Plan full_scan_plan(new FullScanPlan(from, stat));
@@ -217,7 +226,7 @@ func (so *SelingerOptimizer) bestJoin(where *parser.BinaryOpExpression, left pla
 	// pair<ColumnName, ColumnName>
 	var equals []pair.Pair[*string, *string] = make([]pair.Pair[*string, *string], 0)
 	//stack<Expression> exp
-	exp := stack.New()
+	exp := stack.New[*parser.BinaryOpExpression]()
 	exp.Push(where)
 	// vector<Expression> relatedExp
 	var relatedExp = make([]*parser.BinaryOpExpression, 0)
