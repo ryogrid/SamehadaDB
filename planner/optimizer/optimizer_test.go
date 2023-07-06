@@ -63,7 +63,7 @@ func testBestScanInner(t *testing.T, query *parser.QueryInfo, exec_ctx *executor
 				}
 			}
 		}
-		scan, _ := NewSelingerOptimizer().bestScan(query.SelectFields_, query.WhereExpression_, tbl.Schema(), c, stats)
+		scan, _ := NewSelingerOptimizer().bestScan(query.SelectFields_, query.WhereExpression_, tbl, c, stats)
 		optimalPlans[makeSet([]*string{from})] = CostAndPlan{scan.AccessRowCount(), scan}
 	}
 	samehada_util.SHAssert(len(optimalPlans) == len(query.JoinTables_), "len(optimalPlans) != len(query.JoinTables_)")
@@ -80,6 +80,8 @@ func testBestJoinInner(t *testing.T, query *parser.QueryInfo, exec_ctx *executor
 				if containsAny(baseTableFrom, joinTableFrom) {
 					continue
 				}
+				// TODO: (SDB) (len(baseTable) + len(joinTable) == ii + 1) should be checked?
+				//             and (len(baseTable) == 1 or len(joinTable) == 1) should be checked?
 				bestJoinPlan, _ := NewSelingerOptimizer().bestJoin(query.WhereExpression_, baseTableCP.plan, joinTableCP.plan)
 				fmt.Println(bestJoinPlan)
 
@@ -87,6 +89,8 @@ func testBestJoinInner(t *testing.T, query *parser.QueryInfo, exec_ctx *executor
 				common.SH_Assert(1 < joinedTables.Cardinality(), "joinedTables.Cardinality() is illegal!")
 				cost := bestJoinPlan.AccessRowCount()
 
+				// TODO: (SDB) update target should be changed to tempolal table?
+				//             (its scope is same ii value loop and it is merged to optimalPlans at end of the ii loop)
 				if existedPlan, ok := optimalPlans[joinedTables]; ok {
 					optimalPlans[joinedTables] = CostAndPlan{cost, bestJoinPlan}
 				} else if cost < existedPlan.cost {

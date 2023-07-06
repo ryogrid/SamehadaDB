@@ -8,7 +8,6 @@ import (
 	"github.com/ryogrid/SamehadaDB/execution/plans"
 	"github.com/ryogrid/SamehadaDB/parser"
 	"github.com/ryogrid/SamehadaDB/samehada/samehada_util"
-	"github.com/ryogrid/SamehadaDB/storage/table/schema"
 	"github.com/ryogrid/SamehadaDB/types"
 	"math"
 	"sort"
@@ -33,6 +32,26 @@ type Range struct {
 	max_inclusive bool
 }
 
+func NewRange(valType types.TypeID) *Range {
+	retRange := new(Range)
+	switch valType {
+	case types.Integer:
+		retRange.min = samehada_util.GetPonterOfValue(types.NewInteger(math.MinInt32))
+		retRange.max = samehada_util.GetPonterOfValue(types.NewInteger(math.MaxInt32))
+	case types.Float:
+		retRange.min = samehada_util.GetPonterOfValue(types.NewFloat(math.SmallestNonzeroFloat32))
+		retRange.max = samehada_util.GetPonterOfValue(types.NewFloat(math.MaxFloat32))
+	case types.Varchar:
+		retRange.min = samehada_util.GetPonterOfValue(types.NewVarchar("")).SetInfMin()
+		retRange.max = samehada_util.GetPonterOfValue(types.NewVarchar("")).SetInfMax()
+	default:
+		panic("invalid type")
+	}
+	retRange.min_inclusive = false
+	retRange.max_inclusive = false
+	return retRange
+}
+
 func (r *Range) Empty() bool {
 	// TODO: (SDB) not implemented yet
 	return false
@@ -52,23 +71,39 @@ func NewSelingerOptimizer() *SelingerOptimizer {
 	return nil
 }
 
-func (so *SelingerOptimizer) bestScan(selection []*parser.SelectFieldExpression, where *parser.BinaryOpExpression, table *schema.Schema, c *catalog.Catalog, stats *catalog.TableStatistics) (plans.Plan, error) {
+func (so *SelingerOptimizer) bestScan(selection []*parser.SelectFieldExpression, where *parser.BinaryOpExpression, from *catalog.TableMetadata, c *catalog.Catalog, stats *catalog.TableStatistics) (plans.Plan, error) {
 	// TODO: (SDB) not implemented yet
+
+	AvailableKeyIndex := func() map[int]int {
+		retMap := make(map[int]int, 0)
+		idxArr := from.Indexes()
+		for idx, idxObj := range idxArr {
+			if idxObj != nil {
+				retMap[idx] = idx
+			}
+		}
+		return retMap
+	}
+
+	// const Schema& sc = from.GetSchema();
+	sc := from.Schema()
+	minimamCost := math.MaxUint64
+	var bestScan plans.Plan
+	// Get { index key column offset => index offset } map
+	//std::unordered_map<slot_t, size_t> candidates = from.AvailableKeyIndex();
+	candidates := AvailableKeyIndex()
+	// Prepare all range of candidates
+	ranges := make(map[int]*Range, 0)
+	for key, _ := range candidates {
+		ranges[key] = NewRange(sc.GetColumn(uint32(key)).GetType())
+	}
 	/*
-	  const Schema& sc = from.GetSchema();
-	  size_t minimum_cost = std::numeric_limits<size_t>::max();
-	  Plan best_scan;
-	  // Get { first-column offset => index offset } map.
-	  std::unordered_map<slot_t, size_t> candidates = from.AvailableKeyIndex();
-	  // Prepare all range of candidates.
-	  std::unordered_map<slot_t, Range> ranges;
-	  ranges.reserve(candidates.size());
-	  for (const auto& it : candidates) {
-	    ranges.emplace(it.first, Range());
-	  }
 	  std::vector<Expression> stack;
 	  stack.push_back(where);
 	  std::vector<Expression> related_ops;
+	*/
+
+	/*
 	  while (!stack.empty()) {
 	    Expression exp = stack.back();
 	    stack.pop_back();
@@ -121,7 +156,9 @@ func (so *SelingerOptimizer) bestScan(selection []*parser.SelectFieldExpression,
 	          BinaryExpressionExp(scan_exp, BinaryOperation::kAnd, related_ops[i]);
 	    }
 	  }
+	*/
 
+	/*
 	  // Build all IndexScan.
 	  for (const auto& range : ranges) {
 	    slot_t key = range.first;
@@ -144,7 +181,9 @@ func (so *SelingerOptimizer) bestScan(selection []*parser.SelectFieldExpression,
 	      minimum_cost = new_plan->AccessRowCount();
 	    }
 	  }
+	*/
 
+	/*
 	  Plan full_scan_plan(new FullScanPlan(from, stat));
 	  if (scan_exp) {
 	    full_scan_plan =
