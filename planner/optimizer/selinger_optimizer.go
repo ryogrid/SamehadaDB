@@ -71,6 +71,24 @@ func NewSelingerOptimizer() *SelingerOptimizer {
 	return nil
 }
 
+func isColumnName(v interface{}) bool {
+	switch v.(type) {
+	case *string:
+		return true
+	default:
+		return false
+	}
+}
+
+func isConstantValue(v interface{}) bool {
+	switch v.(type) {
+	case *types.Value:
+		return true
+	default:
+		return false
+	}
+}
+
 // TODO: (SDB) caller should pass *where* args which is deep copied
 func (so *SelingerOptimizer) bestScan(selection []*parser.SelectFieldExpression, where *parser.BinaryOpExpression, from *catalog.TableMetadata, c *catalog.Catalog, stats *catalog.TableStatistics) (plans.Plan, error) {
 	// TODO: (SDB) not implemented yet
@@ -100,57 +118,56 @@ func (so *SelingerOptimizer) bestScan(selection []*parser.SelectFieldExpression,
 	}
 
 	//std::vector<Expression> stack
-	stack := stack.New[*parser.BinaryOpExpression]()
-	stack.Push(where)
+	stack_ := stack.New[*parser.BinaryOpExpression]()
+	stack_.Push(where)
 	//std::vector<Expression> related_ops
 	relatedOps := make([]*parser.BinaryOpExpression, 0)
-	for stack.Len() > 0 {
+	for stack_.Len() > 0 {
 		//Expression exp = stack.back()
 		//stack.pop_back()
-		exp := stack.Pop().(*parser.BinaryOpExpression)
+		exp := stack_.Pop().(*parser.BinaryOpExpression)
 		//if (exp->Type() == TypeTag::kBinaryExp) {
 		if exp.GetType() == parser.Logical {
-			/*
-					const BinaryExpression& be = exp->AsBinaryExpression();
-					if (be.Op() == BinaryOperation::kAnd) {
-						stack.push_back(be.Left());
-						stack.push_back(be.Right());
-						continue;
-					}
-					if (IsComparison(be.Op())) {
-						if (be.Left()->Type() == TypeTag::kColumnValue &&
-							be.Right()->Type() == TypeTag::kConstantValue) {
-							const ColumnValue& cv = be.Left()->AsColumnValue();
-							const int offset = sc.Offset(cv.GetColumnName());
-							if (0 <= offset) {
-								related_ops.push_back(exp);
-								auto iter = ranges.find(offset);
-								if (iter != ranges.end()) {
-									iter->second.Update(be.Op(),
-										be.Right()->AsConstantValue().GetValue(),
-										Range::Dir::kRight);
-								}
-							}
-						} else if (be.Left()->Type() == TypeTag::kColumnValue &&
-							be.Right()->Type() == TypeTag::kConstantValue) {
-							const ColumnValue& cv = be.Right()->AsColumnValue();
-							const int offset = sc.Offset(cv.GetColumnName());
-							if (0 <= offset) {
-								related_ops.push_back(exp);
-								auto iter = ranges.find(offset);
-								if (iter != ranges.end()) {
-									iter->second.Update(be.Op(),
-										be.Left()->AsConstantValue().GetValue(),
-										Range::Dir::kLeft);
-								}
+			//const BinaryExpression& be = exp->AsBinaryExpression();
+			if exp.LogicalOperationType_ == expression.AND {
+				stack_.Push(exp.Left_)
+				stack_.Push(exp.Right_)
+				continue
+			} else {
+				panic("OR on predicate is not supported now!")
+			}
+		} else if exp.GetType() == parser.Compare {
+			if isColumnName(exp.Left_) && isConstantValue(exp.Right_) {
+				//const ColumnValue& cv = be.Left()->AsColumnValue();
+				//const int offset = sc.Offset(cv.GetColumnName());
+				//if (0 <= offset) {
+				if sc.GetColIndex(*exp.Left_.(*string)) != math.MaxUint32 {
+					relatedOps = append(relatedOps, exp)
+					/*
+							auto iter = ranges.find(offset);
+							if (iter != ranges.end()) {
+								iter->second.Update(be.Op(),
+									be.Right()->AsConstantValue().GetValue(),
+									Range::Dir::kRight);
 							}
 						}
-					}
-					if (be.Op() == BinaryOperation::kOr) {
-						assert(!"Not supported!");
-					}
+					*/
 				}
-			*/
+			} else if isColumnName(exp.Right_) && isConstantValue(exp.Left_) {
+				/*
+					const ColumnValue& cv = be.Right()->AsColumnValue();
+					const int offset = sc.Offset(cv.GetColumnName());
+					if (0 <= offset) {
+						related_ops.push_back(exp);
+						auto iter = ranges.find(offset);
+						if (iter != ranges.end()) {
+							iter->second.Update(be.Op(),
+								be.Left()->AsConstantValue().GetValue(),
+								Range::Dir::kLeft);
+						}
+					}
+				*/
+			}
 		}
 	}
 
@@ -215,15 +232,6 @@ func (so *SelingerOptimizer) bestScan(selection []*parser.SelectFieldExpression,
 // TODO: (SDB) caller should pass *where* args which is deep copied
 func (so *SelingerOptimizer) bestJoin(where *parser.BinaryOpExpression, left plans.Plan, right plans.Plan) (plans.Plan, error) {
 	// TODO: (SDB) not implemented yet
-
-	isColumnName := func(v interface{}) bool {
-		switch v.(type) {
-		case *string:
-			return true
-		default:
-			return false
-		}
-	}
 
 	// pair<ColumnName, ColumnName>
 	var equals []pair.Pair[*string, *string] = make([]pair.Pair[*string, *string], 0)
