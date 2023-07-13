@@ -21,7 +21,7 @@ type CostAndPlan struct {
 type Direction bool
 
 const (
-	DIR_LIGHT Direction = false
+	DIR_RIGHT Direction = false
 	DIR_LEFT  Direction = true
 )
 
@@ -141,7 +141,8 @@ func (so *SelingerOptimizer) bestScan(selection []*parser.SelectFieldExpression,
 				//const ColumnValue& cv = be.Left()->AsColumnValue();
 				//const int offset = sc.Offset(cv.GetColumnName());
 				//if (0 <= offset) {
-				if sc.GetColIndex(*exp.Left_.(*string)) != math.MaxUint32 {
+				colIdx := sc.GetColIndex(*exp.Left_.(*string))
+				if colIdx != math.MaxUint32 {
 					relatedOps = append(relatedOps, exp)
 					/*
 							auto iter = ranges.find(offset);
@@ -152,30 +153,39 @@ func (so *SelingerOptimizer) bestScan(selection []*parser.SelectFieldExpression,
 							}
 						}
 					*/
+					if rng, ok := ranges[int(colIdx)]; ok {
+						rng.Update(exp.ComparisonOperationType_, exp.Right_.(*types.Value), DIR_RIGHT)
+					}
 				}
 			} else if isColumnName(exp.Right_) && isConstantValue(exp.Left_) {
-				/*
-					const ColumnValue& cv = be.Right()->AsColumnValue();
-					const int offset = sc.Offset(cv.GetColumnName());
-					if (0 <= offset) {
-						related_ops.push_back(exp);
-						auto iter = ranges.find(offset);
-						if (iter != ranges.end()) {
-							iter->second.Update(be.Op(),
-								be.Left()->AsConstantValue().GetValue(),
-								Range::Dir::kLeft);
+				//const ColumnValue& cv = be.Right()->AsColumnValue();
+				//const int offset = sc.Offset(cv.GetColumnName());
+				//if (0 <= offset) {
+				colIdx := sc.GetColIndex(*exp.Right_.(*string))
+				if colIdx != math.MaxUint32 {
+					relatedOps = append(relatedOps, exp)
+					/*
+							auto iter = ranges.find(offset);
+							if (iter != ranges.end()) {
+								iter->second.Update(be.Op(),
+									be.Left()->AsConstantValue().GetValue(),
+									Range::Dir::kLeft);
+							}
 						}
+					*/
+					if rng, ok := ranges[int(colIdx)]; ok {
+						rng.Update(exp.ComparisonOperationType_, exp.Left_.(*types.Value), DIR_LEFT)
 					}
-				*/
+				}
 			}
 		}
 	}
 
 	// Expression scan_exp;
-	// TODO: (SDB) doing BinaryOpExpression to Expression subtype conversion is better here?
-	var scanExp *parser.BinaryOpExpression
+	//var scanExp *parser.BinaryOpExpression
+	var scanExp expression.Expression
 	if len(relatedOps) > 0 {
-		scanExp = relatedOps[0]
+		scanExp = samehada_util.ConvParsedBinaryOpExprToExpIFOne(relatedOps[0])
 		for ii := 1; ii < len(relatedOps); ii++ {
 			/*
 			   scan_exp =
@@ -189,10 +199,10 @@ func (so *SelingerOptimizer) bestScan(selection []*parser.SelectFieldExpression,
 	//slot_t key = range.first;
 	//const Range& span = range.second;
 	for key, span := range ranges {
+		if span.Empty() {
+			continue
+		}
 		/*
-		   if (span.Empty()) {
-		     continue;
-		   }
 		   const Index& target_idx = from.GetIndex(candidates[key]);
 		   Plan new_plan = IndexScanSelect(from, target_idx, stat, *span.min,
 		                                   *span.max, scan_exp, select);
