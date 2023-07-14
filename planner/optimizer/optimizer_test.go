@@ -121,7 +121,7 @@ func TestBestScan(t *testing.T) {
 	c := catalog.BootstrapCatalog(shi.GetBufferPoolManager(), shi.GetLogManager(), shi.GetLockManager(), txn)
 	exec_ctx := executors.NewExecutorContext(c, shi.GetBufferPoolManager(), txn)
 
-	// TODO: (SDB) need to create tables for use in query
+	// TODO: (SDB) need to setup tables for use in query
 	// TODO: (SDB) need to setup of statistics data of created tables and query which uses the tables for testing BestJoin func
 	//table_info, _ := executors.GenerateTestTabls(c, exec_ctx, txn)
 	query := new(parser.QueryInfo)

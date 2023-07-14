@@ -8,6 +8,7 @@ import (
 	"github.com/ryogrid/SamehadaDB/execution/plans"
 	"github.com/ryogrid/SamehadaDB/parser"
 	"github.com/ryogrid/SamehadaDB/samehada/samehada_util"
+	"github.com/ryogrid/SamehadaDB/storage/table/schema"
 	"github.com/ryogrid/SamehadaDB/types"
 	"math"
 	"sort"
@@ -89,6 +90,11 @@ func isConstantValue(v interface{}) bool {
 	}
 }
 
+func touchOnly(where expression.Expression, colName string) bool {
+	// TODO: (SDB) not implemented yet
+	return false
+}
+
 // TODO: (SDB) caller should pass *where* args which is deep copied
 func (so *SelingerOptimizer) bestScan(selection []*parser.SelectFieldExpression, where *parser.BinaryOpExpression, from *catalog.TableMetadata, c *catalog.Catalog, stats *catalog.TableStatistics) (plans.Plan, error) {
 	// TODO: (SDB) not implemented yet
@@ -106,7 +112,7 @@ func (so *SelingerOptimizer) bestScan(selection []*parser.SelectFieldExpression,
 
 	// const Schema& sc = from.GetSchema();
 	sc := from.Schema()
-	minimamCost := math.MaxUint64
+	var minimamCost uint64 = math.MaxUint64
 	var bestScan plans.Plan
 	// Get { index key column offset => index offset } map
 	//std::unordered_map<slot_t, size_t> candidates = from.AvailableKeyIndex();
@@ -202,22 +208,24 @@ func (so *SelingerOptimizer) bestScan(selection []*parser.SelectFieldExpression,
 		if span.Empty() {
 			continue
 		}
-		/*
-		   const Index& target_idx = from.GetIndex(candidates[key]);
-		   Plan new_plan = IndexScanSelect(from, target_idx, stat, *span.min,
-		                                   *span.max, scan_exp, select);
-		   // (ryo_grid) ?????
-		   if (!TouchOnly(scan_exp, from.GetSchema().GetColumn(key).Name())) {
-		     new_plan = std::make_shared<SelectionPlan>(new_plan, scan_exp, stat);
-		   }
-		   if (select.size() != new_plan->GetSchema().ColumnCount()) {
-		     new_plan = std::make_shared<ProjectionPlan>(new_plan, select);
-		   }
-		   if (new_plan->AccessRowCount() < minimum_cost) {
-		     best_scan = new_plan;
-		     minimum_cost = new_plan->AccessRowCount();
-		   }
-		*/
+		//targetIndex := from.GetIndex(candidates[key])
+		// Plan new_plan = IndexScanSelect(from, target_idx, stat, *span.min,*span.max, scan_exp, select);
+		newPlan := plans.NewRangeScanWithIndexPlanNode(schema.ConvSelectFieldExpToOutputSchema(selection), from.OID(), int32(key), scanExp, span.min, span.max)
+		// if (!TouchOnly(scan_exp, from.GetSchema().GetColumn(key).Name())) {
+		if !touchOnly(scanExp, sc.GetColumn(uint32(key)).GetColumnName()) {
+			/*
+			   new_plan = std::make_shared<SelectionPlan>(new_plan, scan_exp, stat);
+			*/
+		}
+		if len(selection) != int(newPlan.OutputSchema().GetColumnCount()) {
+			/*
+			   new_plan = std::make_shared<ProjectionPlan>(new_plan, select);
+			*/
+		}
+		if newPlan.AccessRowCount() < minimamCost {
+			bestScan = newPlan
+			minimamCost = newPlan.AccessRowCount()
+		}
 	}
 
 	/*
