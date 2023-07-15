@@ -189,7 +189,7 @@ func (so *SelingerOptimizer) bestScan(selection []*parser.SelectFieldExpression,
 
 	// Expression scan_exp;
 	//var scanExp *parser.BinaryOpExpression
-	var scanExp expression.Expression
+	var scanExp expression.Expression = nil
 	if len(relatedOps) > 0 {
 		scanExp = samehada_util.ConvParsedBinaryOpExprToExpIFOne(relatedOps[0])
 		for ii := 1; ii < len(relatedOps); ii++ {
@@ -230,21 +230,26 @@ func (so *SelingerOptimizer) bestScan(selection []*parser.SelectFieldExpression,
 
 	/*
 	  Plan full_scan_plan(new FullScanPlan(from, stat));
-	  if (scan_exp) {
-	    full_scan_plan =
-	        std::make_shared<SelectionPlan>(full_scan_plan, scan_exp, stat);
-	  }
-	  if (select.size() != full_scan_plan->GetSchema().ColumnCount()) {
-	    full_scan_plan = std::make_shared<ProjectionPlan>(full_scan_plan, select);
-	  }
-	  if (full_scan_plan->AccessRowCount() < minimum_cost) {
-	    best_scan = full_scan_plan;
-	    minimum_cost = full_scan_plan->AccessRowCount();
-	  }
-	  return best_scan;
 	*/
+	fullScanPlan := plans.NewSeqScanPlanNode(sc, scanExp, from.OID())
+	if scanExp != nil {
+		/*
+		   full_scan_plan =
+		       std::make_shared<SelectionPlan>(full_scan_plan, scan_exp, stat);
+		*/
+	}
 
-	return nil, nil
+	if len(selection) != int(sc.GetColumnCount()) {
+		/*
+			full_scan_plan = std::make_shared<ProjectionPlan>(full_scan_plan, select);
+		*/
+	}
+	if fullScanPlan.AccessRowCount() < minimamCost {
+		bestScan = fullScanPlan
+		minimamCost = fullScanPlan.AccessRowCount()
+	}
+
+	return bestScan, nil
 }
 
 // TODO: (SDB) caller should pass *where* args which is deep copied
