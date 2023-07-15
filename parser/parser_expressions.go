@@ -1,8 +1,11 @@
 package parser
 
 import (
+	mapset "github.com/deckarep/golang-set/v2"
 	"github.com/ryogrid/SamehadaDB/execution/expression"
 	"github.com/ryogrid/SamehadaDB/execution/plans"
+	"github.com/ryogrid/SamehadaDB/storage/table/column"
+	"github.com/ryogrid/SamehadaDB/storage/table/schema"
 	"github.com/ryogrid/SamehadaDB/types"
 )
 
@@ -46,6 +49,11 @@ func (expr *BinaryOpExpression) GetType() BinaryOpExpType {
 	}
 }
 
+func (expr *BinaryOpExpression) TouchedColumns() mapset.Set[*column.Column] {
+	// TODO: (SDB) not implemented yet (BinaryOpExpression::TouchedColumns)
+	return nil
+}
+
 type SetExpression struct {
 	ColName_     *string
 	UpdateValue_ *types.Value
@@ -68,7 +76,27 @@ type SelectFieldExpression struct {
 	ColName_   *string
 }
 
+func (sf *SelectFieldExpression) TouchedColumns() mapset.Set[*column.Column] {
+	// TODO: (SDB) not implemented yet (SeelectFieldExpression::SelectFieldExpression)
+	return nil
+}
+
 type OrderByExpression struct {
 	IsDesc_  bool
 	ColName_ *string
+}
+
+func ConvParsedSelectFieldExpToOutputSchema(selection []*SelectFieldExpression) *schema.Schema {
+	// TODO: (SDB) not implemented yet
+	return nil
+}
+
+func ConvParsedBinaryOpExprToExpIFOne(convSrc *BinaryOpExpression) expression.Expression {
+	// TODO: (SDB) not implemented yet (ConvParsedBinaryOpExprToExpIFOne)
+	return nil
+}
+
+func ConvParsedSelectionExprToExpIFOne(convSrc []*SelectFieldExpression) expression.Expression {
+	// TODO: (SDB) not implemented yet (ConvParsedSelectionExprToExpIFOne)
+	return nil
 }

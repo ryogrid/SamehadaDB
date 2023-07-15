@@ -93,3 +93,8 @@ func (c *LogicalOp) GetChildAt(child_idx uint32) Expression {
 func (c *LogicalOp) SetChildAt(child_idx uint32, child Expression) {
 	c.children[child_idx] = child
 }
+
+func AppendLogicalCondition(baseConds Expression, opType LogicalOpType, addCond Expression) Expression {
+	// TODO: (SDB) not implemented yet
+	return nil
+}

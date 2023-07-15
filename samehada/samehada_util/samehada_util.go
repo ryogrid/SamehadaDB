@@ -4,8 +4,6 @@ import (
 	"bytes"
 	"encoding/binary"
 	"github.com/ryogrid/SamehadaDB/common"
-	"github.com/ryogrid/SamehadaDB/execution/expression"
-	"github.com/ryogrid/SamehadaDB/parser"
 	"github.com/ryogrid/SamehadaDB/storage/page"
 	"github.com/ryogrid/SamehadaDB/types"
 	"math"
@@ -365,14 +363,10 @@ func ExtractOrgKeyFromDicOrderComparableEncodedVarchar(encodedVal *types.Value, 
 	}
 }
 
-func ConvParsedBinaryOpExprToExpIFOne(convSrc *parser.BinaryOpExpression) expression.Expression {
-	// TODO: (SDB) not implemented yet (ConvParsedBinaryOpExprToExpIFOne)
-	return nil
-}
-
-func ConvParsedSelectionExprToExpIFOne(convSrc []*parser.SelectFieldExpression) expression.Expression {
-	// TODO: (SDB) not implemented yet (ConvParsedSelectionExprToExpIFOne)
-	return nil
+func SHAssert(cond bool, msg string) {
+	if !cond {
+		panic(msg)
+	}
 }
 
 func TimeoutPanic() {
