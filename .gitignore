@@ -1,0 +1,9 @@
+*.xml
+*.txt
+*.db
+*.log
+*.pdf
+
+.vscode/
+cpp_impl/
+execution/pkg/
