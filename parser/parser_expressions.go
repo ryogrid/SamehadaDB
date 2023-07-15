@@ -5,6 +5,7 @@ import (
 	"github.com/ryogrid/SamehadaDB/execution/expression"
 	"github.com/ryogrid/SamehadaDB/execution/plans"
 	"github.com/ryogrid/SamehadaDB/storage/table/column"
+	"github.com/ryogrid/SamehadaDB/storage/table/schema"
 	"github.com/ryogrid/SamehadaDB/types"
 )
 
@@ -83,4 +84,19 @@ func (sf *SelectFieldExpression) TouchedColumns() mapset.Set[*column.Column] {
 type OrderByExpression struct {
 	IsDesc_  bool
 	ColName_ *string
+}
+
+func ConvParsedSelectFieldExpToOutputSchema(selection []*SelectFieldExpression) *schema.Schema {
+	// TODO: (SDB) not implemented yet
+	return nil
+}
+
+func ConvParsedBinaryOpExprToExpIFOne(convSrc *BinaryOpExpression) expression.Expression {
+	// TODO: (SDB) not implemented yet (ConvParsedBinaryOpExprToExpIFOne)
+	return nil
+}
+
+func ConvParsedSelectionExprToExpIFOne(convSrc []*SelectFieldExpression) expression.Expression {
+	// TODO: (SDB) not implemented yet (ConvParsedSelectionExprToExpIFOne)
+	return nil
 }

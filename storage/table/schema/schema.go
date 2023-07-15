@@ -4,7 +4,6 @@
 package schema
 
 import (
-	"github.com/ryogrid/SamehadaDB/parser"
 	"github.com/ryogrid/SamehadaDB/storage/table/column"
 	"math"
 )
@@ -91,9 +90,4 @@ func CopySchema(from *Schema, attrs []uint32) *Schema {
 	ret := new(Schema)
 	ret.columns = cols_p
 	return ret
-}
-
-func ConvSelectFieldExpToOutputSchema(selection []*parser.SelectFieldExpression) *Schema {
-	// TODO: (SDB) not implemented yet
-	return nil
 }
