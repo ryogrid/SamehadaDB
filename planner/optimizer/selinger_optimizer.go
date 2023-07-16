@@ -59,22 +59,23 @@ func NewRange(valType types.TypeID) *Range {
 }
 
 func (r *Range) Empty() bool {
-	// TODO: (SDB) not implemented yet
+	// TODO: (SDB) [OPT] not implemented yet (Range::Empty)
 	return false
 }
 
 func (r *Range) Update(op expression.ComparisonType, rhs *types.Value, dir Direction) {
-	// TODO: (SDB) not implemented yet
+	// TODO: (SDB) [OPT] not implemented yet (Range::Update)
 }
 
 type SelingerOptimizer struct {
 	c *catalog.Catalog
-	// TODO: (SDB) not implemented yet
+	// TODO: (SDB) [OPT] not implemented yet (SelingerOptimizer struct)
 }
 
 func NewSelingerOptimizer() *SelingerOptimizer {
-	// TODO: (SDB) not implemented yet
-	return nil
+	ret := new(SelingerOptimizer)
+	// TODO: (SDB) [OPT] not implemented yet (NewSelingerOptimizer)
+	return ret
 }
 
 func containsAny(map1 mapset.Set[string], map2 mapset.Set[string]) bool {
@@ -86,39 +87,13 @@ func containsAny(map1 mapset.Set[string], map2 mapset.Set[string]) bool {
 	}
 }
 
-func makeSet[T comparable](from []*T) mapset.Set[T] {
-	joined := mapset.NewSet[T]()
-	for _, f := range from {
-		joined.Add(*f)
-	}
-	return joined
-}
-
-func isColumnName(v interface{}) bool {
-	switch v.(type) {
-	case *string:
-		return true
-	default:
-		return false
-	}
-}
-
-func isConstantValue(v interface{}) bool {
-	switch v.(type) {
-	case *types.Value:
-		return true
-	default:
-		return false
-	}
-}
-
 func touchOnly(where expression.Expression, colName string) bool {
-	// TODO: (SDB) not implemented yet
+	// TODO: (SDB) [OPT] not implemented yet (touchOnly)
 	return false
 }
 
-// TODO: (SDB) caller should pass *where* args which is deep copied
-func (so *SelingerOptimizer) bestScan(selection []*parser.SelectFieldExpression, where *parser.BinaryOpExpression, from *catalog.TableMetadata, c *catalog.Catalog, stats *catalog.TableStatistics) (plans.Plan, error) {
+// TODO: (SDB) [OPT] caller should pass *where* args which is deep copied (SelingerOptimizer::findBestScan)
+func (so *SelingerOptimizer) findBestScan(selection []*parser.SelectFieldExpression, where *parser.BinaryOpExpression, from *catalog.TableMetadata, c *catalog.Catalog, stats *catalog.TableStatistics) (plans.Plan, error) {
 	availableKeyIndex := func() map[int]int {
 		retMap := make(map[int]int, 0)
 		idxArr := from.Indexes()
@@ -163,7 +138,7 @@ func (so *SelingerOptimizer) bestScan(selection []*parser.SelectFieldExpression,
 				panic("OR on predicate is not supported now!")
 			}
 		} else if exp.GetType() == parser.Compare {
-			if isColumnName(exp.Left_) && isConstantValue(exp.Right_) {
+			if samehada_util.IsColumnName(exp.Left_) && samehada_util.IsConstantValue(exp.Right_) {
 				//const ColumnValue& cv = be.Left()->AsColumnValue();
 				//const int offset = sc.Offset(cv.GetColumnName());
 				//if (0 <= offset) {
@@ -180,7 +155,7 @@ func (so *SelingerOptimizer) bestScan(selection []*parser.SelectFieldExpression,
 						rng.Update(exp.ComparisonOperationType_, exp.Right_.(*types.Value), DIR_RIGHT)
 					}
 				}
-			} else if isColumnName(exp.Right_) && isConstantValue(exp.Left_) {
+			} else if samehada_util.IsColumnName(exp.Right_) && samehada_util.IsConstantValue(exp.Left_) {
 				//const ColumnValue& cv = be.Right()->AsColumnValue();
 				//const int offset = sc.Offset(cv.GetColumnName());
 				//if (0 <= offset) {
@@ -259,7 +234,7 @@ func (so *SelingerOptimizer) bestScan(selection []*parser.SelectFieldExpression,
 	return bestScan, nil
 }
 
-func findBestScans(query *parser.QueryInfo, exec_ctx *executors.ExecutorContext, c *catalog.Catalog, txn *access.Transaction) map[mapset.Set[string]]CostAndPlan {
+func (so *SelingerOptimizer) findBestScans(query *parser.QueryInfo, exec_ctx *executors.ExecutorContext, c *catalog.Catalog, txn *access.Transaction) map[mapset.Set[string]]CostAndPlan {
 	optimalPlans := make(map[mapset.Set[string]]CostAndPlan)
 
 	// 1. Initialize every single tables to start.
@@ -275,21 +250,21 @@ func findBestScans(query *parser.QueryInfo, exec_ctx *executors.ExecutorContext,
 		for ii := 0; ii < int(tbl.GetColumnNum()); ii++ {
 			for _, touchedCol := range touchedColumns.ToSlice() {
 				tableCol := tbl.Schema().GetColumn(uint32(ii))
-				// TODO: (SDB) GetColumnName() value should contain table name. if not,  rewrite of this comparison code is needed
+				// TODO: (SDB) [OPT] GetColumnName() value should contain table name. if not,  rewrite of this comparison code is needed (SelingerOptimizer::findBestScans)
 				if tableCol.GetColumnName() == touchedCol.GetColumnName() {
 					projectTarget = append(projectTarget, tableCol)
 				}
 			}
 		}
-		scan, _ := NewSelingerOptimizer().bestScan(query.SelectFields_, query.WhereExpression_, tbl, c, stats)
-		optimalPlans[makeSet([]*string{from})] = CostAndPlan{scan.AccessRowCount(), scan}
+		scan, _ := NewSelingerOptimizer().findBestScan(query.SelectFields_, query.WhereExpression_, tbl, c, stats)
+		optimalPlans[samehada_util.MakeSet([]*string{from})] = CostAndPlan{scan.AccessRowCount(), scan}
 	}
 
 	return optimalPlans
 }
 
-// TODO: (SDB) caller should pass *where* args which is deep copied
-func (so *SelingerOptimizer) bestJoin(where *parser.BinaryOpExpression, left plans.Plan, right plans.Plan) (plans.Plan, error) {
+// TODO: (SDB) [OPT] caller should pass *where* args which is deep copied (SelingerOptimizer::findBestJoinInner)
+func (so *SelingerOptimizer) findBestJoinInner(where *parser.BinaryOpExpression, left plans.Plan, right plans.Plan) (plans.Plan, error) {
 	// pair<ColumnName, ColumnName>
 	var equals []pair.Pair[*string, *string] = make([]pair.Pair[*string, *string], 0)
 	//stack<Expression> exp
@@ -300,7 +275,7 @@ func (so *SelingerOptimizer) bestJoin(where *parser.BinaryOpExpression, left pla
 	for exp.Len() > 0 {
 		here := exp.Pop().(*parser.BinaryOpExpression)
 		if here.GetType() == parser.Compare {
-			if here.ComparisonOperationType_ == expression.Equal && isColumnName(here.Left_) && isColumnName(here.Right_) {
+			if here.ComparisonOperationType_ == expression.Equal && samehada_util.IsColumnName(here.Left_) && samehada_util.IsColumnName(here.Right_) {
 				cvL := here.Left_.(*string)
 				cvR := here.Right_.(*string)
 				if left.OutputSchema().IsHaveColumn(cvL) && right.OutputSchema().IsHaveColumn(cvR) {
@@ -389,23 +364,22 @@ func (so *SelingerOptimizer) bestJoin(where *parser.BinaryOpExpression, left pla
 	return candidates[0], nil
 }
 
-func findBestJoin(optimalPlans map[mapset.Set[string]]CostAndPlan, query *parser.QueryInfo, exec_ctx *executors.ExecutorContext, c *catalog.Catalog, txn *access.Transaction) plans.Plan {
+func (so *SelingerOptimizer) findBestJoin(optimalPlans map[mapset.Set[string]]CostAndPlan, query *parser.QueryInfo, exec_ctx *executors.ExecutorContext, c *catalog.Catalog, txn *access.Transaction) plans.Plan {
 	for ii := 0; ii < len(query.JoinTables_); ii += 1 {
 		for baseTableFrom, baseTableCP := range optimalPlans {
 			for joinTableFrom, joinTableCP := range optimalPlans {
 				if containsAny(baseTableFrom, joinTableFrom) {
 					continue
 				}
-				// TODO: (SDB) (len(baseTable) + len(joinTable) == ii + 1) should be checked?
-				//             and (len(baseTable) == 1 or len(joinTable) == 1) should be checked?
-				bestJoinPlan, _ := NewSelingerOptimizer().bestJoin(query.WhereExpression_, baseTableCP.plan, joinTableCP.plan)
+				// TODO: (SDB) [OPT] (len(baseTable) + len(joinTable) == ii + 1) should be checked? and (len(baseTable) == 1 or len(joinTable) == 1) should be checked? (SelingerOptimizer::findBestJoin)
+				bestJoinPlan, _ := NewSelingerOptimizer().findBestJoinInner(query.WhereExpression_, baseTableCP.plan, joinTableCP.plan)
 				fmt.Println(bestJoinPlan)
 
 				joinedTables := baseTableFrom.Union(joinTableFrom)
 				common.SH_Assert(1 < joinedTables.Cardinality(), "joinedTables.Cardinality() is illegal!")
 				cost := bestJoinPlan.AccessRowCount()
 
-				// TODO: (SDB) update target should be changed to tempolal table?
+				// TODO: (SDB) [OPT] update target should be changed to tempolal table? (SelingerOptimizer::findBestJoin)
 				//             (its scope is same ii value loop and it is merged to optimalPlans at end of the ii loop)
 				if existedPlan, ok := optimalPlans[joinedTables]; ok {
 					optimalPlans[joinedTables] = CostAndPlan{cost, bestJoinPlan}
@@ -415,7 +389,7 @@ func findBestJoin(optimalPlans map[mapset.Set[string]]CostAndPlan, query *parser
 			}
 		}
 	}
-	optimalPlan, ok := optimalPlans[makeSet(query.JoinTables_)]
+	optimalPlan, ok := optimalPlans[samehada_util.MakeSet(query.JoinTables_)]
 	samehada_util.SHAssert(ok, "plan which includes all tables is not found")
 
 	// Attach final projection and emit the result
@@ -425,12 +399,11 @@ func findBestJoin(optimalPlans map[mapset.Set[string]]CostAndPlan, query *parser
 	return solution
 }
 
-// TODO: (SDB) caller should check predicate whether it is optimizable and
-//	           if not, caller can't call this function
+// TODO: (SDB) [OPT] caller should check predicate whether it is optimizable and if not, caller can't call this function (SelingerOptimizer::Optimize)
 //             (predicate including bracket or OR operation case is not supported now)
 
-// TODO: (SDB) adding support of ON clause (Optimize, bestJoin, bestScan)
+// TODO: (SDB) [OPT] adding support of ON clause (Optimize, findBestJoin, findBestJoinInner, findBestScans, findBestScan)
 func (so *SelingerOptimizer) Optimize(query *parser.QueryInfo, exec_ctx *executors.ExecutorContext, c *catalog.Catalog, txn *access.Transaction) (plans.Plan, error) {
-	optimalPlans := findBestScans(query, exec_ctx, c, txn)
-	return findBestJoin(optimalPlans, query, exec_ctx, c, txn), nil
+	optimalPlans := so.findBestScans(query, exec_ctx, c, txn)
+	return so.findBestJoin(optimalPlans, query, exec_ctx, c, txn), nil
 }

@@ -9,7 +9,7 @@ import (
 
 type SelectionPlanNode struct {
 	*AbstractPlanNode
-	// TODO: (SDB) [OPT] SelectionPlanNode::selectColumns should be removed
+	// TODO: (SDB) [OPT] SelectionPlanNode::selectColumns should be removed (SelectionPlanNode struct)
 	selectColumns *schema.Schema
 	predicate     expression.Expression
 }

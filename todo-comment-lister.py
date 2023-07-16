@@ -14,7 +14,7 @@ def listTodoComments():
                     lineNum = 1
                     for line in f:
                         try:
-                            if line.find('TODO') > -1 and line.find('(SDB)') > -1 and line.find('[OPT]') > -1:
+                            if line.find('TODO') > -1 and line.find('(SDB)') > -1:
                                 if additonalFilter and line.find(additonalFilter) == -1:
                                     continue
 

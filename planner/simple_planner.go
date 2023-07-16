@@ -203,8 +203,7 @@ func (pner *SimplePlanner) MakeSelectPlanWithJoin() (error, plans.Plan) {
 		whereExp := pner.ConstructPredicate([]*schema.Schema{outFinal})
 		// filter joined recoreds with predicate which is specified on WHERE clause if needed
 
-		// TODO: (SDB) need to use ProjectionPlan and SelectionPlan
-		//             current code does both
+		// TODO: (SDB) [OPT] need to use ProjectionPlan and SelectionPlan. current code does both. (SimplePlanner::MakeSelectPlanWithJoin)
 		filterPlan := plans.NewSelectionPlanNode(joinPlan, filterOut, whereExp)
 		return nil, filterPlan
 	} else {
@@ -230,9 +229,10 @@ func processPredicateTreeNode(node *parser.BinaryOpExpression, tgtTblSchemas []*
 		colName := *node.Left_.(*string)
 		specfiedVal := node.Right_.(*types.Value)
 
-		// TODO: (SDB) need to validate specified table name prefix, column name and literal (processPredicateTreeNode of SimplePlanner)
+		// TODO: (SDB) need to validate specified table name prefix, column name and literal (processPredicateTreeNode)
 		//             without use of panic function
 
+		// TODO: (SDB) [OPT] need to support table name prefix description on WHERE clause (processPredicateTreeNode)
 		//splited := strings.Split(colName, ".")
 		//
 		//var colNamePart *string = nil

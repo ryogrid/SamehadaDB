@@ -77,7 +77,7 @@ type SelectFieldExpression struct {
 }
 
 func (sf *SelectFieldExpression) TouchedColumns() mapset.Set[*column.Column] {
-	// TODO: (SDB) not implemented yet (SeelectFieldExpression::SelectFieldExpression)
+	// TODO: (SDB) [OPT] not implemented yet (SeelectFieldExpression::SelectFieldExpression)
 	return nil
 }
 
@@ -87,21 +87,21 @@ type OrderByExpression struct {
 }
 
 func ConvParsedSelectFieldExpToOutputSchema(selection []*SelectFieldExpression) *schema.Schema {
-	// TODO: (SDB) not implemented yet
+	// TODO: (SDB) [OPT] not implemented yet (ConvParsedSelectFieldExpToOutputSchema)
 	return nil
 }
 
 func ConvParsedBinaryOpExprToExpIFOne(convSrc *BinaryOpExpression) expression.Expression {
-	// TODO: (SDB) not implemented yet (ConvParsedBinaryOpExprToExpIFOne)
+	// TODO: (SDB) [OPT] not implemented yet (ConvParsedBinaryOpExprToExpIFOne)
 	return nil
 }
 
 func ConvParsedSelectionExprToExpIFOne(convSrc []*SelectFieldExpression) expression.Expression {
-	// TODO: (SDB) not implemented yet (ConvParsedSelectionExprToExpIFOne)
+	// TODO: (SDB) [OPT] not implemented yet (ConvParsedSelectionExprToExpIFOne)
 	return nil
 }
 
 func ConvColumnStrsToExpIfOnes(convSrc []*string) []expression.Expression {
-	// TODO: (SDB) not implemented yet (ConvColumnStrsToExpIfOnes)
+	// TODO: (SDB) [OPT] not implemented yet (ConvColumnStrsToExpIfOnes)
 	return nil
 }

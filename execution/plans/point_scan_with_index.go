@@ -34,6 +34,6 @@ func (p *PointScanWithIndexPlanNode) GetType() PlanType {
 }
 
 func (p *PointScanWithIndexPlanNode) AccessRowCount() uint64 {
-	// TODO: (SDB) [SDB] not implemented yet (PointScanWithIndexPlanNode::AccessRowCount)
+	// TODO: (SDB) [OPT] not implemented yet (PointScanWithIndexPlanNode::AccessRowCount)
 	return 0
 }
