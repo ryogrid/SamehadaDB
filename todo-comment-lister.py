@@ -1,7 +1,7 @@
 # coding: utf-8
 import os, sys, io
 
-def listUpTodoComments():
+def listTodoComments():
     for root, dirs, files in os.walk(top='./'):
         for file in files:
             filePath = os.path.join(root, file)
@@ -22,6 +22,6 @@ def listUpTodoComments():
 def main():
     sys.stdout = io.TextIOWrapper(sys.stdout.buffer, encoding='utf-8')
     sys.stderr = io.TextIOWrapper(sys.stderr.buffer, encoding='utf-8')
-    listUpTodoComments()
+    listTodoComments()
 
 main()

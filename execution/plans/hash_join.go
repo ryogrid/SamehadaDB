@@ -28,6 +28,10 @@ func NewHashJoinPlanNode(output_schema *schema.Schema, children []Plan,
 	return &HashJoinPlanNode{&AbstractPlanNode{output_schema, children}, onPredicate, left_hash_keys, right_hash_keys}
 }
 
+func NewHashJoinPlanNodeWithChilds(left_child Plan, left_hash_keys []expression.Expression, right_child Plan, right_hash_keys []expression.Expression) *HashJoinPlanNode {
+	// TODO: (SDB) not implemented yet (NewHashJoinPlanNodeWithChilds)
+	return nil
+}
 func (p *HashJoinPlanNode) GetType() PlanType { return HashJoin }
 
 /** @return the onPredicate to be used in the hash join */

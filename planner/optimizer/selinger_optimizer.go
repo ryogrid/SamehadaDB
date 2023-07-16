@@ -32,29 +32,29 @@ const (
 )
 
 type Range struct {
-	min           *types.Value
-	max           *types.Value
-	min_inclusive bool
-	max_inclusive bool
+	Min          *types.Value
+	Max          *types.Value
+	MinInclusive bool
+	MaxInclusive bool
 }
 
 func NewRange(valType types.TypeID) *Range {
 	retRange := new(Range)
 	switch valType {
 	case types.Integer:
-		retRange.min = samehada_util.GetPonterOfValue(types.NewInteger(math.MinInt32))
-		retRange.max = samehada_util.GetPonterOfValue(types.NewInteger(math.MaxInt32))
+		retRange.Min = samehada_util.GetPonterOfValue(types.NewInteger(math.MinInt32))
+		retRange.Max = samehada_util.GetPonterOfValue(types.NewInteger(math.MaxInt32))
 	case types.Float:
-		retRange.min = samehada_util.GetPonterOfValue(types.NewFloat(math.SmallestNonzeroFloat32))
-		retRange.max = samehada_util.GetPonterOfValue(types.NewFloat(math.MaxFloat32))
+		retRange.Min = samehada_util.GetPonterOfValue(types.NewFloat(math.SmallestNonzeroFloat32))
+		retRange.Max = samehada_util.GetPonterOfValue(types.NewFloat(math.MaxFloat32))
 	case types.Varchar:
-		retRange.min = samehada_util.GetPonterOfValue(types.NewVarchar("")).SetInfMin()
-		retRange.max = samehada_util.GetPonterOfValue(types.NewVarchar("")).SetInfMax()
+		retRange.Min = samehada_util.GetPonterOfValue(types.NewVarchar("")).SetInfMin()
+		retRange.Max = samehada_util.GetPonterOfValue(types.NewVarchar("")).SetInfMax()
 	default:
 		panic("invalid type")
 	}
-	retRange.min_inclusive = false
-	retRange.max_inclusive = false
+	retRange.MinInclusive = false
+	retRange.MaxInclusive = false
 	return retRange
 }
 
@@ -119,9 +119,7 @@ func touchOnly(where expression.Expression, colName string) bool {
 
 // TODO: (SDB) caller should pass *where* args which is deep copied
 func (so *SelingerOptimizer) bestScan(selection []*parser.SelectFieldExpression, where *parser.BinaryOpExpression, from *catalog.TableMetadata, c *catalog.Catalog, stats *catalog.TableStatistics) (plans.Plan, error) {
-	// TODO: (SDB) not implemented yet
-
-	AvailableKeyIndex := func() map[int]int {
+	availableKeyIndex := func() map[int]int {
 		retMap := make(map[int]int, 0)
 		idxArr := from.Indexes()
 		for idx, idxObj := range idxArr {
@@ -137,8 +135,8 @@ func (so *SelingerOptimizer) bestScan(selection []*parser.SelectFieldExpression,
 	var minimamCost uint64 = math.MaxUint64
 	var bestScan plans.Plan
 	// Get { index key column offset => index offset } map
-	//std::unordered_map<slot_t, size_t> candidates = from.AvailableKeyIndex();
-	candidates := AvailableKeyIndex()
+	//std::unordered_map<slot_t, size_t> candidates = from.availableKeyIndex();
+	candidates := availableKeyIndex()
 	// Prepare all range of candidates
 	ranges := make(map[int]*Range, 0)
 	for key, _ := range candidates {
@@ -225,8 +223,8 @@ func (so *SelingerOptimizer) bestScan(selection []*parser.SelectFieldExpression,
 			continue
 		}
 		//targetIndex := from.GetIndex(candidates[key])
-		// Plan new_plan = IndexScanSelect(from, target_idx, stat, *span.min,*span.max, scan_exp, select);
-		var newPlan plans.Plan = plans.NewRangeScanWithIndexPlanNode(parser.ConvParsedSelectFieldExpToOutputSchema(selection), from.OID(), int32(key), nil, span.min, span.max)
+		// Plan new_plan = IndexScanSelect(from, target_idx, stat, *span.Min,*span.Max, scan_exp, select);
+		var newPlan plans.Plan = plans.NewRangeScanWithIndexPlanNode(parser.ConvParsedSelectFieldExpToOutputSchema(selection), from.OID(), int32(key), nil, span.Min, span.Max)
 		// if (!TouchOnly(scan_exp, from.GetSchema().GetColumn(key).Name())) {
 		if !touchOnly(scanExp, sc.GetColumn(uint32(key)).GetColumnName()) {
 			//new_plan = std::make_shared<SelectionPlan>(new_plan, scan_exp, stat);
@@ -262,8 +260,6 @@ func (so *SelingerOptimizer) bestScan(selection []*parser.SelectFieldExpression,
 }
 
 func findBestScans(query *parser.QueryInfo, exec_ctx *executors.ExecutorContext, c *catalog.Catalog, txn *access.Transaction) map[mapset.Set[string]]CostAndPlan {
-	// TODO: (SDB) not implemented yet (findBestScans)
-
 	optimalPlans := make(map[mapset.Set[string]]CostAndPlan)
 
 	// 1. Initialize every single tables to start.
@@ -294,8 +290,6 @@ func findBestScans(query *parser.QueryInfo, exec_ctx *executors.ExecutorContext,
 
 // TODO: (SDB) caller should pass *where* args which is deep copied
 func (so *SelingerOptimizer) bestJoin(where *parser.BinaryOpExpression, left plans.Plan, right plans.Plan) (plans.Plan, error) {
-	// TODO: (SDB) not implemented yet
-
 	// pair<ColumnName, ColumnName>
 	var equals []pair.Pair[*string, *string] = make([]pair.Pair[*string, *string], 0)
 	//stack<Expression> exp
@@ -336,15 +330,12 @@ func (so *SelingerOptimizer) bestJoin(where *parser.BinaryOpExpression, left pla
 			right_cols = append(right_cols, cn.Second)
 		}
 
-		// TODO: (SDB) need finalize of setup Plan Nodes later
-
 		// HashJoin (note: appended plans are temporal (not completely setuped))
 		// candidates.push_back(std::make_shared<ProductPlan>(left, left_cols, right, right_cols));
-		var tmpPlan plans.Plan = plans.NewHashJoinPlanNode(nil, []plans.Plan{left, right}, nil, nil, nil)
+		var tmpPlan plans.Plan = plans.NewHashJoinPlanNodeWithChilds(left, parser.ConvColumnStrsToExpIfOnes(left_cols), right, parser.ConvColumnStrsToExpIfOnes(right_cols))
 		candidates = append(candidates, tmpPlan)
 		// candidates.push_back(std::make_shared<ProductPlan>(right, right_cols, left, left_cols));
-		// TODO: (SDB) finalize of setup Plan Nodes is needed later (HashJoinPlanNode)
-		tmpPlan = plans.NewHashJoinPlanNode(nil, []plans.Plan{right, left}, nil, nil, nil)
+		tmpPlan = plans.NewHashJoinPlanNodeWithChilds(right, parser.ConvColumnStrsToExpIfOnes(right_cols), left, parser.ConvColumnStrsToExpIfOnes(left_cols))
 		candidates = append(candidates, tmpPlan)
 
 		// IndexJoin
@@ -361,8 +352,7 @@ func (so *SelingerOptimizer) bestJoin(where *parser.BinaryOpExpression, left pla
 					if right_idx.GetTupleSchema().IsHaveColumn(rcol) {
 						// note: appended plans are temporal (not completely setuped)
 						// candidates.push_back(std::make_shared<ProductPlan>(left, left_cols, *right_tbl, right_idx, right_cols, *stat));
-						// TODO: (SDB) finalize of setup Plan Nodes is needed later (IndexJoinPlanNode)
-						candidates = append(candidates, plans.NewIndexJoinPlanNode(nil, []plans.Plan{left, right}, nil, nil, nil))
+						candidates = append(candidates, plans.NewIndexJoinPlanNodeWithChilds(left, parser.ConvColumnStrsToExpIfOnes(left_cols), right, parser.ConvColumnStrsToExpIfOnes(right_cols)))
 					}
 				}
 			}
@@ -372,26 +362,23 @@ func (so *SelingerOptimizer) bestJoin(where *parser.BinaryOpExpression, left pla
 	// when *where* hash no condition which matches records of *left* and *light*
 	if len(candidates) == 0 {
 		if 0 < len(relatedExp) {
-			// when *where* hash conditions related to columns of *left* and *light*
+			// when *where* has conditions related to columns of *left* and *light*
 
 			finalSelection := relatedExp[len(relatedExp)-1]
 			relatedExp = relatedExp[:len(relatedExp)-1]
 
 			// construct SelectionPlan which has a NestedLoopJoinPlan as child with usable predicate
 
-			for _, exp := range relatedExp {
-				finalSelection = &parser.BinaryOpExpression{expression.AND, -1, finalSelection, exp}
+			for _, exp_ := range relatedExp {
+				finalSelection = &parser.BinaryOpExpression{expression.AND, -1, finalSelection, exp_}
 			}
 
-			// TODO: (SDB) finalize of setup Plan Nodes is needed later (NestedLoopJoinPlanNode)
 			// Plan ans = std::make_shared<ProductPlan>(left, right);
-			ans := plans.NewNestedLoopJoinPlanNode(nil, []plans.Plan{left, right}, nil, nil, nil)
 			// candidates.push_back(std::make_shared<SelectionPlan>(ans, final_selection, ans->GetStats()));
-			candidates = append(candidates, plans.NewSelectionPlanNode(ans, ans.OutputSchema(), parser.ConvParsedBinaryOpExprToExpIFOne(finalSelection)))
+			candidates = append(candidates, plans.NewNestedLoopJoinPlanNodeWithPredicate(left, right, parser.ConvParsedBinaryOpExprToExpIFOne(finalSelection)))
 		} else {
 			// unfortunatelly, construction of NestedLoopJoinPlan with no optimization is needed
 
-			// TODO: (SDB) finalize of setup Plan Nodes is needed later (NestedLoopJoinPlanNode)
 			candidates = append(candidates, plans.NewNestedLoopJoinPlanNode(nil, []plans.Plan{left, right}, nil, nil, nil))
 		}
 	}
@@ -403,9 +390,6 @@ func (so *SelingerOptimizer) bestJoin(where *parser.BinaryOpExpression, left pla
 }
 
 func findBestJoin(optimalPlans map[mapset.Set[string]]CostAndPlan, query *parser.QueryInfo, exec_ctx *executors.ExecutorContext, c *catalog.Catalog, txn *access.Transaction) plans.Plan {
-	// TODO: (SDB) need to setup of optimalPlans which is needed at BestJoin
-	// TODO: (SDB) need to setup of statistics data of tables related to query
-
 	for ii := 0; ii < len(query.JoinTables_); ii += 1 {
 		for baseTableFrom, baseTableCP := range optimalPlans {
 			for joinTableFrom, joinTableCP := range optimalPlans {

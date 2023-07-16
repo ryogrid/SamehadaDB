@@ -25,6 +25,11 @@ func NewNestedLoopJoinPlanNode(output_schema *schema.Schema, children []Plan,
 	return &NestedLoopJoinPlanNode{&AbstractPlanNode{output_schema, children}, onPredicate, left_hash_keys, right_hash_keys}
 }
 
+func NewNestedLoopJoinPlanNodeWithPredicate(left_child Plan, right_child Plan, pred expression.Expression) *NestedLoopJoinPlanNode {
+	// TODO: (SDB) not implemented yet (NewNestedLoopJoinPlanNodeWithChilds)
+	return nil
+}
+
 func (p *NestedLoopJoinPlanNode) GetType() PlanType { return NestedLoopJoin }
 
 /** @return the onPredicate to be used in the hash join */

@@ -25,6 +25,11 @@ func NewIndexJoinPlanNode(output_schema *schema.Schema, children []Plan,
 	return &IndexJoinPlanNode{&AbstractPlanNode{output_schema, children}, onPredicate, left_hash_keys, right_hash_keys}
 }
 
+func NewIndexJoinPlanNodeWithChilds(left_child Plan, left_keys []expression.Expression, right_child Plan, right_keys []expression.Expression) *IndexJoinPlanNode {
+	// TODO: (SDB) not implemented yet (NewIndexJoinPlanNodeWithChilds)
+	return nil
+}
+
 func (p *IndexJoinPlanNode) GetType() PlanType { return IndexJoin }
 
 /** @return the onPredicate to be used in the hash join */

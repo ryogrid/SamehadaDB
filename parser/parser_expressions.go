@@ -100,3 +100,8 @@ func ConvParsedSelectionExprToExpIFOne(convSrc []*SelectFieldExpression) express
 	// TODO: (SDB) not implemented yet (ConvParsedSelectionExprToExpIFOne)
 	return nil
 }
+
+func ConvColumnStrsToExpIfOnes(convSrc []*string) []expression.Expression {
+	// TODO: (SDB) not implemented yet (ConvColumnStrsToExpIfOnes)
+	return nil
+}
