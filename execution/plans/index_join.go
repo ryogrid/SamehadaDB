@@ -7,7 +7,7 @@ import (
 	"math"
 )
 
-// TODO: (SDB) not implemented yet (index_join.go)
+// TODO: (SDB) [OPT] not implemented yet (index_join.go)
 
 type IndexJoinPlanNode struct {
 	*AbstractPlanNode
@@ -26,7 +26,7 @@ func NewIndexJoinPlanNode(output_schema *schema.Schema, children []Plan,
 }
 
 func NewIndexJoinPlanNodeWithChilds(left_child Plan, left_keys []expression.Expression, right_child Plan, right_keys []expression.Expression) *IndexJoinPlanNode {
-	// TODO: (SDB) not implemented yet (NewIndexJoinPlanNodeWithChilds)
+	// TODO: (SDB) [OPT] not implemented yet (NewIndexJoinPlanNodeWithChilds)
 	return nil
 }
 
@@ -69,6 +69,6 @@ func (p *IndexJoinPlanNode) GetTableOID() uint32 {
 }
 
 func (p *IndexJoinPlanNode) AccessRowCount() uint64 {
-	// TODO: (SDB) not implemented yet
+	// TODO: (SDB) [OPT] not implemented yet (IndexJoinPlanNode::AccessRowCount)
 	return 0
 }

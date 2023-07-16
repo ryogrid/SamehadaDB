@@ -7,7 +7,7 @@ import (
 	"math"
 )
 
-// TODO: (SDB) not implemented yet (nested_loop_join.go)
+// TODO: (SDB) [OPT] not implemented yet (nested_loop_join.go)
 
 type NestedLoopJoinPlanNode struct {
 	*AbstractPlanNode
@@ -26,7 +26,7 @@ func NewNestedLoopJoinPlanNode(output_schema *schema.Schema, children []Plan,
 }
 
 func NewNestedLoopJoinPlanNodeWithPredicate(left_child Plan, right_child Plan, pred expression.Expression) *NestedLoopJoinPlanNode {
-	// TODO: (SDB) not implemented yet (NewNestedLoopJoinPlanNodeWithChilds)
+	// TODO: (SDB) [OPT] not implemented yet (NewNestedLoopJoinPlanNodeWithChilds)
 	return nil
 }
 
@@ -69,6 +69,6 @@ func (p *NestedLoopJoinPlanNode) GetTableOID() uint32 {
 }
 
 func (p *NestedLoopJoinPlanNode) AccessRowCount() uint64 {
-	// TODO: (SDB) not implemented yet
+	// TODO: (SDB) [OPT] not implemented yet (NestedLoopJoinPlanNode::AccessRowCount)
 	return 0
 }

@@ -4,7 +4,7 @@ import (
 	"github.com/ryogrid/SamehadaDB/execution/expression"
 )
 
-// TODO: (SDB) not implemented yet (projection.go)
+// TODO: (SDB) [OPT] not implemented yet (projection.go)
 
 type ProjectionPlanNode struct {
 	*AbstractPlanNode
@@ -30,6 +30,6 @@ func (p *ProjectionPlanNode) GetTableOID() uint32 {
 }
 
 func (p *ProjectionPlanNode) AccessRowCount() uint64 {
-	// TODO: (SDB) not implemented yet
+	// TODO: (SDB) [OPT] not implemented yet (ProjectionPlanNode::AccessRowCount)
 	return 0
 }

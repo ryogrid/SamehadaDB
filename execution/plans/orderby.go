@@ -67,6 +67,6 @@ func (p *OrderbyPlanNode) GetTableOID() uint32 {
 }
 
 func (p *OrderbyPlanNode) AccessRowCount() uint64 {
-	// TODO: (SDB) not implemented yet
+	// TODO: (SDB) [OPT] not implemented yet (OrderbyPlanNode::AccessRowCount)
 	return 0
 }

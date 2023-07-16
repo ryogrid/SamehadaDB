@@ -11,7 +11,7 @@ import (
 	"github.com/ryogrid/SamehadaDB/types"
 )
 
-// TODO: (SDB) not implmented yet (nested_loop_join_executor.go)
+// TODO: (SDB) [OPT] not implmented yet (nested_loop_join_executor.go)
 
 type NestedLoopJoinExecutor struct {
 	context *ExecutorContext
@@ -201,6 +201,8 @@ func (e *NestedLoopJoinExecutor) GetTableMetaData() *catalog.TableMetadata { ret
 type SimpleNestedLoopJoinTable struct {
 	hash_table_ map[uint32][]hash.TmpTuple
 }
+
+// TODO: (SDB) [OPT] not implemented yet (SimpleNestedLoopJoinTable and its methods. these may be not needed...)
 
 func NewSimpleNestedLoopJoinTable() *SimpleNestedLoopJoinTable {
 	return &SimpleNestedLoopJoinTable{hash_table_: make(map[uint32][]hash.TmpTuple)}

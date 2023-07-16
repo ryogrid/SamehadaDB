@@ -11,7 +11,7 @@ def listTodoComments():
                 with open(filePath, mode='r', encoding='utf-8') as f:
                     lineNum = 1
                     for line in f:
-                        if line.find('TODO') > -1 and line.find('(SDB)') > -1:
+                        if line.find('TODO') > -1 and line.find('(SDB)') > -1 and line.find('[OPT]') > -1:
                             if not isPathPrinted:
                                 print(filePathToPrint)
                                 isPathPrinted = True

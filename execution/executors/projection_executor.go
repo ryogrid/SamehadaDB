@@ -11,7 +11,7 @@ import (
 	"github.com/ryogrid/SamehadaDB/types"
 )
 
-// TODO: (SDB) not implemented yet (projection_executor.go)
+// TODO: (SDB) [OPT] not implemented yet (projection_executor.go)
 
 type ProjectionExecutor struct {
 	context *ExecutorContext

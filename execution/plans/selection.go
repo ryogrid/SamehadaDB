@@ -9,7 +9,7 @@ import (
 
 type SelectionPlanNode struct {
 	*AbstractPlanNode
-	// TODO: (SDB) need to separate projection feature from SelectionPlanNode and SelectionExecutor
+	// TODO: (SDB) [OPT] SelectionPlanNode::selectColumns should be removed
 	selectColumns *schema.Schema
 	predicate     expression.Expression
 }
@@ -36,6 +36,6 @@ func (p *SelectionPlanNode) GetTableOID() uint32 {
 }
 
 func (p *SelectionPlanNode) AccessRowCount() uint64 {
-	// TODO: (SDB) not implemented yet
+	// TODO: (SDB) [OPT] not implemented yet (SelectionPlanNode::AccessRowCount)
 	return 0
 }

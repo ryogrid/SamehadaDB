@@ -17,17 +17,17 @@ type distinctCounter[T int32 | float32 | string] struct {
 }
 
 func NewDistinctCounter[T int32 | float32 | string](colType types.TypeID) *distinctCounter[T] {
-	// TODO: (SDB) not implemented yet
+	// TODO: (SDB) [OPT] not implemented yet (NewDistinctCounter)
 
 	return nil
 }
 
 func (dc *distinctCounter[T]) Add(value T) {
-	// TODO: (SDB) not implemented yet
+	// TODO: (SDB) [OPT] not implemented yet (distinctCounter::Add)
 }
 
 func (dc *distinctCounter[T]) ToColumnStats() *ColumnStats[T] {
-	// TODO: (SDB) not implemented yet
+	// TODO: (SDB) [OPT] not implemented yet (distinctCounter::ToColumnStats)
 	return nil
 }
 
@@ -41,21 +41,21 @@ type ColumnStats[T int32 | float32 | string] struct {
 }
 
 func NewColumnStats[T int32 | float32 | string](colType types.TypeID) *ColumnStats[T] {
-	// TODO: (SDB) not implemented yet
+	// TODO: (SDB) [OPT] not implemented yet (NewColumnStats)
 	return nil
 }
 
 func (cs *ColumnStats[T]) UpdateStatistics() {
-	// TODO: (SDB) not implemented yet
+	// TODO: (SDB) [OPT] not implemented yet (ColumnStats::UpdateStatistics)
 }
 
 func (cs *ColumnStats[T]) ReductionFactor(sc schema.Schema, planTree plans.Plan) float64 {
-	// TODO: (SDB) not implemented yet
+	// TODO: (SDB) [OPT] not implemented yet (ColumnStats::ReductionFactor)
 	return -1.0
 }
 
 func (cs *ColumnStats[T]) EstimateCount() float64 {
-	// TODO: (SDB) not implemented yet
+	// TODO: (SDB) [OPT] not implemented yet (ColumnStats::EstimateCount)
 	return -1.0
 }
 
@@ -65,7 +65,7 @@ type TableStatistics struct {
 }
 
 func NewTableStatistics(schema_ *schema.Schema) *TableStatistics {
-	// TODO: (SDB) not implemented yet
+	// TODO: (SDB) [OPT] not implemented yet (NewTableStatistics)
 	return nil
 }
 
@@ -74,15 +74,15 @@ func (ts *TableStatistics) ColumnNum() int32 {
 }
 
 func (ts *TableStatistics) EstimateCount(col_idx int32, from *types.Value, to *types.Value) float64 {
-	// TODO: (SDB) not implemented yet
+	// TODO: (SDB) [OPT] not implemented yet (TableStatistics::EstimateCount)
 	return -1.0
 }
 
 func (ts *TableStatistics) TransformBy(col_idx int32, from *types.Value, to *types.Value) float64 {
-	// TODO: (SDB) not implemented yet
+	// TODO: (SDB) [OPT] not implemented yet (TableStatistics::TransformBy)
 	return -1.0
 }
 
 func (ts *TableStatistics) Concat(rhs *TableStatistics) {
-	// TODO: (SDB) not implemented yet
+	// TODO: (SDB) [OPT] not implemented yet (TableStatistics::Concat)
 }

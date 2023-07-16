@@ -29,7 +29,7 @@ func NewHashJoinPlanNode(output_schema *schema.Schema, children []Plan,
 }
 
 func NewHashJoinPlanNodeWithChilds(left_child Plan, left_hash_keys []expression.Expression, right_child Plan, right_hash_keys []expression.Expression) *HashJoinPlanNode {
-	// TODO: (SDB) not implemented yet (NewHashJoinPlanNodeWithChilds)
+	// TODO: (SDB) [OPT] not implemented yet (NewHashJoinPlanNodeWithChilds)
 	return nil
 }
 func (p *HashJoinPlanNode) GetType() PlanType { return HashJoin }
@@ -71,6 +71,6 @@ func (p *HashJoinPlanNode) GetTableOID() uint32 {
 }
 
 func (p *HashJoinPlanNode) AccessRowCount() uint64 {
-	// TODO: (SDB) not implemented yet
+	// TODO: (SDB) [OPT] not implemented yet (HashJoinPlanNode::AccessRowCount)
 	return 0
 }

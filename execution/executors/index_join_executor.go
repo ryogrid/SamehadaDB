@@ -11,7 +11,7 @@ import (
 	"github.com/ryogrid/SamehadaDB/types"
 )
 
-// TODO: (SDB) not implmented yet (index_join_executor.go)
+// TODO: (SDB) [OPT] not implmented yet (index_join_executor.go)
 
 type IndexJoinExecutor struct {
 	context *ExecutorContext
@@ -197,6 +197,8 @@ func (e *IndexJoinExecutor) MakeOutputTuple(left_tuple *tuple.Tuple, right_tuple
 
 // can not be used
 func (e *IndexJoinExecutor) GetTableMetaData() *catalog.TableMetadata { return nil }
+
+// TODO: (SDB) [OPT] not implemented yet (SimpleIndexJoinTable and its methods. these may be not needed...)
 
 type SimpleIndexJoinTable struct {
 	hash_table_ map[uint32][]hash.TmpTuple
