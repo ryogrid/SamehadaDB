@@ -27,6 +27,7 @@ func NewIndexJoinPlanNode(output_schema *schema.Schema, children []Plan,
 
 func NewIndexJoinPlanNodeWithChilds(left_child Plan, left_keys []expression.Expression, right_child Plan, right_keys []expression.Expression) *IndexJoinPlanNode {
 	// TODO: (SDB) [OPT] not implemented yet (NewIndexJoinPlanNodeWithChilds)
+	// TODO: (SDB) [OPT] need to check length of left keys and right keys. if length is bigger than 1, print not supporting error message and do panic (NewIndexJoinPlanNodeWithChilds)
 	return nil
 }
 

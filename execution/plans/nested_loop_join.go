@@ -27,6 +27,7 @@ func NewNestedLoopJoinPlanNode(output_schema *schema.Schema, children []Plan,
 
 func NewNestedLoopJoinPlanNodeWithPredicate(left_child Plan, right_child Plan, pred expression.Expression) *NestedLoopJoinPlanNode {
 	// TODO: (SDB) [OPT] not implemented yet (NewNestedLoopJoinPlanNodeWithChilds)
+	// TODO: (SDB) [OPT] need to check length of left keys and right keys. if length is bigger than 1, print not supporting error message and do panic (NewNestedLoopJoinPlanNodeWithChilds)
 	return nil
 }
 
