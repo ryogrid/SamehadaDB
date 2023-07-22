@@ -23,7 +23,7 @@ func NewSchema(columns []*column.Column) *Schema {
 	var currentOffset uint32
 	currentOffset = 0
 	for i := uint32(0); i < uint32(len(columns)); i++ {
-		column := columns[i]
+		column := *columns[i]
 
 		if !column.IsInlined() {
 			schema.tupleIsInlined = false
@@ -33,7 +33,7 @@ func NewSchema(columns []*column.Column) *Schema {
 		column.SetOffset(currentOffset)
 		currentOffset += column.FixedLength()
 
-		schema.columns = append(schema.columns, column)
+		schema.columns = append(schema.columns, &column)
 	}
 	schema.length = currentOffset
 	return schema

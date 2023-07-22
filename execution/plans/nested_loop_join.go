@@ -2,65 +2,44 @@ package plans
 
 import (
 	"github.com/ryogrid/SamehadaDB/common"
-	"github.com/ryogrid/SamehadaDB/execution/expression"
+	"github.com/ryogrid/SamehadaDB/storage/table/column"
+	"github.com/ryogrid/SamehadaDB/storage/table/schema"
 	"math"
 )
 
-// TODO: (SDB) [OPT] not implemented yet (nested_loop_join.go)
-
 type NestedLoopJoinPlanNode struct {
 	*AbstractPlanNode
-	/** The hash join predicate. */
-	onPredicate expression.Expression
-	/** The left child's hash keys. */
-	left_hash_keys []expression.Expression
-	/** The right child's hash keys. */
-	right_hash_keys []expression.Expression
+}
+
+func makeOutputSchema(left_schema *schema.Schema, right_schema *schema.Schema) *schema.Schema {
+	var ret *schema.Schema
+	columns := make([]*column.Column, 0)
+	for _, col := range left_schema.GetColumns() {
+		columns = append(columns, col)
+	}
+	for _, col := range right_schema.GetColumns() {
+		columns = append(columns, col)
+	}
+	ret = schema.NewSchema(columns)
+	return ret
 }
 
 // used only for Cross Join
 func NewNestedLoopJoinPlanNode(children []Plan) *NestedLoopJoinPlanNode {
-	return &NestedLoopJoinPlanNode{&AbstractPlanNode{nil, children}, nil, nil, nil}
-}
-
-func NewNestedLoopJoinPlanNodeWithPredicate(left_child Plan, right_child Plan, pred expression.Expression) *NestedLoopJoinPlanNode {
-	// TODO: (SDB) [OPT] not implemented yet (NewNestedLoopJoinPlanNodeWithChilds)
-	// TODO: (SDB) [OPT] need to check length of left keys and right keys. if length is bigger than 1, print not supporting error message and do panic (NewNestedLoopJoinPlanNodeWithChilds)
-	return nil
+	return &NestedLoopJoinPlanNode{&AbstractPlanNode{makeOutputSchema(children[0].OutputSchema(), children[1].OutputSchema()), children}}
 }
 
 func (p *NestedLoopJoinPlanNode) GetType() PlanType { return NestedLoopJoin }
 
-/** @return the onPredicate to be used in the hash join */
-func (p *NestedLoopJoinPlanNode) OnPredicate() expression.Expression { return p.onPredicate }
-
-/** @return the left plan node of the hash join, by convention this is used to build the table */
 func (p *NestedLoopJoinPlanNode) GetLeftPlan() Plan {
-	common.SH_Assert(len(p.GetChildren()) == 2, "Hash joins should have exactly two children plans.")
+	common.SH_Assert(len(p.GetChildren()) == 2, "nested loop joins should have exactly two children plans.")
 	return p.GetChildAt(0)
 }
 
-/** @return the right plan node of the hash join */
 func (p *NestedLoopJoinPlanNode) GetRightPlan() Plan {
-	common.SH_Assert(len(p.GetChildren()) == 2, "Hash joins should have exactly two children plans.")
+	common.SH_Assert(len(p.GetChildren()) == 2, "nested loop joins should have exactly two children plans.")
 	return p.GetChildAt(1)
 }
-
-/** @return the left key at the given index */
-func (p *NestedLoopJoinPlanNode) GetLeftKeyAt(idx uint32) expression.Expression {
-	return p.left_hash_keys[idx]
-}
-
-/** @return the left keys */
-func (p *NestedLoopJoinPlanNode) GetLeftKeys() []expression.Expression { return p.left_hash_keys }
-
-/** @return the right key at the given index */
-func (p *NestedLoopJoinPlanNode) GetRightKeyAt(idx uint32) expression.Expression {
-	return p.right_hash_keys[idx]
-}
-
-/** @return the right keys */
-func (p *NestedLoopJoinPlanNode) GetRightKeys() []expression.Expression { return p.right_hash_keys }
 
 // can not be used
 func (p *NestedLoopJoinPlanNode) GetTableOID() uint32 {

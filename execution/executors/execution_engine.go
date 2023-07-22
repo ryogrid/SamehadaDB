@@ -59,6 +59,10 @@ func (e *ExecutionEngine) CreateExecutor(plan plans.Plan, context *ExecutorConte
 		return NewUpdateExecutor(context, p, e.CreateExecutor(plan.GetChildAt(0), context))
 	case *plans.HashJoinPlanNode:
 		return NewHashJoinExecutor(context, p, e.CreateExecutor(plan.GetChildAt(0), context), e.CreateExecutor(plan.GetChildAt(1), context))
+	case *plans.IndexJoinPlanNode:
+		return NewIndexJoinExecutor(context, p, e.CreateExecutor(plan.GetChildAt(0), context), e.CreateExecutor(plan.GetChildAt(1), context))
+	case *plans.NestedLoopJoinPlanNode:
+		return NewNestedLoopJoinExecutor(context, p, e.CreateExecutor(plan.GetChildAt(0), context), e.CreateExecutor(plan.GetChildAt(1), context))
 	case *plans.AggregationPlanNode:
 		return NewAggregationExecutor(context, p, e.CreateExecutor(plan.GetChildAt(0), context))
 	case *plans.OrderbyPlanNode:

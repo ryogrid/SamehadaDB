@@ -1351,6 +1351,85 @@ func TestSimpleHashJoin(t *testing.T) {
 	fmt.Printf("results length = %d\n", num_tuples)
 }
 
+func TestSimpleNestedLoopJoin(t *testing.T) {
+	diskManager := disk.NewDiskManagerTest()
+	defer diskManager.ShutDown()
+	log_mgr := recovery.NewLogManager(&diskManager)
+	bpm := buffer.NewBufferPoolManager(uint32(32), diskManager, log_mgr)
+	txn_mgr := access.NewTransactionManager(access.NewLockManager(access.REGULAR, access.DETECTION), log_mgr)
+	txn := txn_mgr.Begin(nil)
+	c := catalog.BootstrapCatalog(bpm, log_mgr, access.NewLockManager(access.REGULAR, access.PREVENTION), txn)
+	executorContext := executors.NewExecutorContext(c, bpm, txn)
+
+	columnA := column.NewColumn("colA", types.Integer, false, index_constants.INDEX_KIND_INVALID, types.PageID(-1), nil)
+	columnB := column.NewColumn("colB", types.Integer, false, index_constants.INDEX_KIND_INVALID, types.PageID(-1), nil)
+	columnC := column.NewColumn("colC", types.Integer, false, index_constants.INDEX_KIND_INVALID, types.PageID(-1), nil)
+	columnD := column.NewColumn("colD", types.Integer, false, index_constants.INDEX_KIND_INVALID, types.PageID(-1), nil)
+	schema_ := schema.NewSchema([]*column.Column{columnA, columnB, columnC, columnD})
+	tableMetadata1 := c.CreateTable("test_1", schema_, txn)
+
+	column1 := column.NewColumn("col1", types.Integer, false, index_constants.INDEX_KIND_INVALID, types.PageID(-1), nil)
+	column2 := column.NewColumn("col2", types.Integer, false, index_constants.INDEX_KIND_INVALID, types.PageID(-1), nil)
+	column3 := column.NewColumn("col3", types.Integer, false, index_constants.INDEX_KIND_INVALID, types.PageID(-1), nil)
+	column4 := column.NewColumn("col4", types.Integer, false, index_constants.INDEX_KIND_INVALID, types.PageID(-1), nil)
+	schema_ = schema.NewSchema([]*column.Column{column1, column2, column3, column4})
+	tableMetadata2 := c.CreateTable("test_2", schema_, txn)
+
+	tableMeta1 := &executors.TableInsertMeta{"test_1",
+		100,
+		[]*executors.ColumnInsertMeta{
+			{"colA", types.Integer, false, executors.DistSerial, 0, 0, 0},
+			{"colB", types.Integer, false, executors.DistUniform, 0, 9, 0},
+			{"colC", types.Integer, false, executors.DistUniform, 0, 9999, 0},
+			{"colD", types.Integer, false, executors.DistUniform, 0, 99999, 0},
+		}}
+	tableMeta2 := &executors.TableInsertMeta{"test_2",
+		1000,
+		[]*executors.ColumnInsertMeta{
+			{"col1", types.Integer, false, executors.DistSerial, 0, 0, 0},
+			{"col2", types.Integer, false, executors.DistUniform, 0, 9, 0},
+			{"col3", types.Integer, false, executors.DistUniform, 0, 1024, 0},
+			{"col4", types.Integer, false, executors.DistUniform, 0, 2048, 0},
+		}}
+	executors.FillTable(tableMetadata1, tableMeta1, txn)
+	executors.FillTable(tableMetadata2, tableMeta2, txn)
+
+	txn_mgr.Commit(nil, txn)
+
+	var scan_plan1 plans.Plan
+	var out_schema1 *schema.Schema
+	{
+		table_info := executorContext.GetCatalog().GetTableByName("test_1")
+		//&schema := table_info.schema_
+		colA := column.NewColumn("test_1.colA", types.Integer, false, index_constants.INDEX_KIND_INVALID, types.PageID(-1), nil)
+		colB := column.NewColumn("test_1.colB", types.Integer, false, index_constants.INDEX_KIND_INVALID, types.PageID(-1), nil)
+		out_schema1 = schema.NewSchema([]*column.Column{colA, colB})
+		scan_plan1 = plans.NewSeqScanPlanNode(out_schema1, nil, table_info.OID())
+	}
+	var scan_plan2 plans.Plan
+	var out_schema2 *schema.Schema
+	{
+		table_info := executorContext.GetCatalog().GetTableByName("test_2")
+		//schema := table_info.schema_
+		col1 := column.NewColumn("test_2.col1", types.Integer, false, index_constants.INDEX_KIND_INVALID, types.PageID(-1), nil)
+		col2 := column.NewColumn("test_2.col2", types.Integer, false, index_constants.INDEX_KIND_INVALID, types.PageID(-1), nil)
+		out_schema2 = schema.NewSchema([]*column.Column{col1, col2})
+		scan_plan2 = plans.NewSeqScanPlanNode(out_schema2, nil, table_info.OID())
+	}
+	join_plan := plans.NewNestedLoopJoinPlanNode([]plans.Plan{scan_plan1, scan_plan2})
+
+	executionEngine := &executors.ExecutionEngine{}
+	results := executionEngine.Execute(join_plan, executorContext)
+
+	num_tuples := len(results)
+	testingpkg.Assert(t, num_tuples == 100000, "")
+	for ii := 0; ii < 20; ii++ {
+		fmt.Println(results[ii])
+	}
+	fmt.Println("...")
+	fmt.Printf("results length = %d\n", num_tuples)
+}
+
 func TestInsertAndSeqScanWithComplexPredicateComparison(t *testing.T) {
 	diskManager := disk.NewDiskManagerTest()
 	defer diskManager.ShutDown()

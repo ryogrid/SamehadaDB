@@ -402,7 +402,6 @@ func (so *SelingerOptimizer) findBestJoin(optimalPlans map[mapset.Set[string]]Co
 
 // TODO: (SDB) [OPT] caller should check predicate whether it is optimizable and if not, caller can't call this function (SelingerOptimizer::Optimize)
 //                   (predicate including bracket or OR operation case is not supported now)
-//                   and should check tables whether these includes columns which has same name (ex: table A and B has column named 'id' is NG)
 
 // TODO: (SDB) [OPT] adding support of ON clause (Optimize, findBestJoin, findBestJoinInner, findBestScans, findBestScan)
 func (so *SelingerOptimizer) Optimize(query *parser.QueryInfo, exec_ctx *executors.ExecutorContext, c *catalog.Catalog, txn *access.Transaction) (plans.Plan, error) {
