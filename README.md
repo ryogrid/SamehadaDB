@@ -106,11 +106,11 @@
 ## About Skip List Index SamehadaDB has
 - [Implementation of On-Disk Concurrent Skip List as an Alternative to B-Tree Index](https://ryogrid.github.io/articles/skiplist_en)
 
-## Advisor
+# Advisor
 - [kumagi](https://github.com/kumagi) and more!
 
-## Acknowledgement
+# Acknowledgement
 - 2021 May - present: SamehadaDB project is assisted by OSS community support program of JetBrains s.r.o with offering development softwares 
 
-## Past work
+# Past work
 - [FunnelKVS: Rust implementation of autonomous distributed key-value store which has REST interfaces](https://github.com/ryogrid/rust_dkvs)
