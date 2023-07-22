@@ -3,7 +3,6 @@ package plans
 import (
 	"github.com/ryogrid/SamehadaDB/common"
 	"github.com/ryogrid/SamehadaDB/execution/expression"
-	"github.com/ryogrid/SamehadaDB/storage/table/schema"
 	"math"
 )
 
@@ -19,10 +18,9 @@ type NestedLoopJoinPlanNode struct {
 	right_hash_keys []expression.Expression
 }
 
-func NewNestedLoopJoinPlanNode(output_schema *schema.Schema, children []Plan,
-	onPredicate expression.Expression, left_hash_keys []expression.Expression,
-	right_hash_keys []expression.Expression) *NestedLoopJoinPlanNode {
-	return &NestedLoopJoinPlanNode{&AbstractPlanNode{output_schema, children}, onPredicate, left_hash_keys, right_hash_keys}
+// used only for Cross Join
+func NewNestedLoopJoinPlanNode(children []Plan) *NestedLoopJoinPlanNode {
+	return &NestedLoopJoinPlanNode{&AbstractPlanNode{nil, children}, nil, nil, nil}
 }
 
 func NewNestedLoopJoinPlanNodeWithPredicate(left_child Plan, right_child Plan, pred expression.Expression) *NestedLoopJoinPlanNode {

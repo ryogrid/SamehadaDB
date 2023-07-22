@@ -12,7 +12,6 @@ import (
 	"github.com/ryogrid/SamehadaDB/storage/table/schema"
 	"github.com/ryogrid/SamehadaDB/storage/tuple"
 	"github.com/ryogrid/SamehadaDB/types"
-	"strings"
 )
 
 /**
@@ -84,9 +83,9 @@ func (e *SeqScanExecutor) projects(tuple_ *tuple.Tuple) *tuple.Tuple {
 	values := []types.Value{}
 	for i := uint32(0); i < outputSchema.GetColumnCount(); i++ {
 		colName := outputSchema.GetColumns()[i].GetColumnName()
-		if strings.Contains(colName, ".") {
-			colName = strings.Split(colName, ".")[1]
-		}
+		//if strings.Contains(colName, ".") {
+		//	colName = strings.Split(colName, ".")[1]
+		//}
 
 		colIndex := e.tableMetadata.Schema().GetColIndex(colName)
 		values = append(values, tuple_.GetValue(e.tableMetadata.Schema(), colIndex))

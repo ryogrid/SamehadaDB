@@ -4,6 +4,8 @@
 package catalog
 
 import (
+	"strings"
+
 	"github.com/ryogrid/SamehadaDB/storage/index"
 	"github.com/ryogrid/SamehadaDB/storage/index/index_constants"
 	"sync/atomic"
@@ -131,13 +133,29 @@ func (c *Catalog) GetAllTables() []*TableMetadata {
 	return ret
 }
 
+func attachTableNameToColumnsName(schema_ *schema.Schema, tblName string) *schema.Schema {
+	for ii := 0; ii < int(schema_.GetColumnCount()); ii++ {
+		col := schema_.GetColumn(uint32(ii))
+		curName := col.GetColumnName()
+		if strings.Contains(curName, ".") {
+			continue
+		}
+		col.SetColumnName(tblName + "." + curName)
+	}
+	return schema_
+}
+
 // CreateTable creates a new table and return its metadata
-func (c *Catalog) CreateTable(name string, schema *schema.Schema, txn *access.Transaction) *TableMetadata {
+func (c *Catalog) CreateTable(name string, schema_ *schema.Schema, txn *access.Transaction) *TableMetadata {
 	oid := c.nextTableId
 	atomic.AddUint32(&c.nextTableId, 1)
 
 	tableHeap := access.NewTableHeap(c.bpm, c.Log_manager, c.Lock_manager, txn)
-	tableMetadata := NewTableMetadata(schema, name, tableHeap, oid)
+
+	// attach table name as prefix to all columns name
+	attachTableNameToColumnsName(schema_, name)
+
+	tableMetadata := NewTableMetadata(schema_, name, tableHeap, oid)
 
 	c.tableIds[oid] = tableMetadata
 	c.tableNames[name] = tableMetadata

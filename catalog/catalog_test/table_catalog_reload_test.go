@@ -52,7 +52,7 @@ func TestTableCatalogReload(t *testing.T) {
 
 	columnToCheck := catalog_recov.GetTableByOID(1).Schema().GetColumn(1)
 
-	testingpkg.Assert(t, columnToCheck.GetColumnName() == "b", "")
+	testingpkg.Assert(t, columnToCheck.GetColumnName() == "test_1.b", "")
 	testingpkg.Assert(t, columnToCheck.GetType() == 4, "")
 	testingpkg.Assert(t, columnToCheck.HasIndex() == true, "")
 

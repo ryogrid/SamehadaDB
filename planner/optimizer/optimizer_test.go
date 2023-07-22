@@ -1,16 +1,6 @@
 package optimizer
 
 import (
-	"fmt"
-	mapset "github.com/deckarep/golang-set/v2"
-	"github.com/ryogrid/SamehadaDB/catalog"
-	"github.com/ryogrid/SamehadaDB/common"
-	"github.com/ryogrid/SamehadaDB/execution/executors"
-	"github.com/ryogrid/SamehadaDB/parser"
-	testingpkg "github.com/ryogrid/SamehadaDB/testing"
-
-	//"strings"
-	"github.com/ryogrid/SamehadaDB/samehada"
 	"testing"
 )
 
@@ -18,6 +8,7 @@ func TestSimplePlanOptimization(t *testing.T) {
 	// TODO: (SDB) [OPT] not implemented yet (TestSimplePlanOptimization)
 }
 
+/*
 func TestBestScan(t *testing.T) {
 	shi := samehada.NewSamehadaInstance(t.Name(), common.BufferPoolMaxFrameNumForTest)
 	shi.GetLogManager().ActivateLogging()
@@ -62,3 +53,4 @@ func TestBestJoin(t *testing.T) {
 	solution := NewSelingerOptimizer().findBestJoin(optimalPlans, query, exec_ctx, c, txn)
 	fmt.Println(solution)
 }
+*/

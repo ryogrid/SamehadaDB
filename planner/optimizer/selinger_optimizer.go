@@ -336,7 +336,7 @@ func (so *SelingerOptimizer) findBestJoinInner(where *parser.BinaryOpExpression,
 
 	// when *where* hash no condition which matches records of *left* and *light*
 	if len(candidates) == 0 {
-		if 0 < len(relatedExp) {
+		if len(relatedExp) > 0 {
 			// when *where* has conditions related to columns of *left* and *light*
 
 			finalSelection := relatedExp[len(relatedExp)-1]
@@ -350,11 +350,12 @@ func (so *SelingerOptimizer) findBestJoinInner(where *parser.BinaryOpExpression,
 
 			// Plan ans = std::make_shared<ProductPlan>(left, right);
 			// candidates.push_back(std::make_shared<SelectionPlan>(ans, final_selection, ans->GetStats()));
-			candidates = append(candidates, plans.NewNestedLoopJoinPlanNodeWithPredicate(left, right, parser.ConvParsedBinaryOpExprToExpIFOne(finalSelection)))
+			var ans plans.Plan = plans.NewNestedLoopJoinPlanNode([]plans.Plan{left, right})
+			candidates = append(candidates, plans.NewProjectionPlanNode(ans, parser.ConvParsedBinaryOpExprToExpIFOne(finalSelection)))
 		} else {
 			// unfortunatelly, construction of NestedLoopJoinPlan with no optimization is needed
 
-			candidates = append(candidates, plans.NewNestedLoopJoinPlanNode(nil, []plans.Plan{left, right}, nil, nil, nil))
+			candidates = append(candidates, plans.NewNestedLoopJoinPlanNode([]plans.Plan{left, right}))
 		}
 	}
 
@@ -400,7 +401,8 @@ func (so *SelingerOptimizer) findBestJoin(optimalPlans map[mapset.Set[string]]Co
 }
 
 // TODO: (SDB) [OPT] caller should check predicate whether it is optimizable and if not, caller can't call this function (SelingerOptimizer::Optimize)
-//             (predicate including bracket or OR operation case is not supported now)
+//                   (predicate including bracket or OR operation case is not supported now)
+//                   and should check tables whether these includes columns which has same name (ex: table A and B has column named 'id' is NG)
 
 // TODO: (SDB) [OPT] adding support of ON clause (Optimize, findBestJoin, findBestJoinInner, findBestScans, findBestScan)
 func (so *SelingerOptimizer) Optimize(query *parser.QueryInfo, exec_ctx *executors.ExecutorContext, c *catalog.Catalog, txn *access.Transaction) (plans.Plan, error) {

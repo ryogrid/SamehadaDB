@@ -1297,8 +1297,8 @@ func TestSimpleHashJoin(t *testing.T) {
 	{
 		table_info := executorContext.GetCatalog().GetTableByName("test_1")
 		//&schema := table_info.schema_
-		colA := column.NewColumn("colA", types.Integer, false, index_constants.INDEX_KIND_INVALID, types.PageID(-1), nil)
-		colB := column.NewColumn("colB", types.Integer, false, index_constants.INDEX_KIND_INVALID, types.PageID(-1), nil)
+		colA := column.NewColumn("test_1.colA", types.Integer, false, index_constants.INDEX_KIND_INVALID, types.PageID(-1), nil)
+		colB := column.NewColumn("test_1.colB", types.Integer, false, index_constants.INDEX_KIND_INVALID, types.PageID(-1), nil)
 		out_schema1 = schema.NewSchema([]*column.Column{colA, colB})
 		scan_plan1 = plans.NewSeqScanPlanNode(out_schema1, nil, table_info.OID())
 	}
@@ -1307,8 +1307,8 @@ func TestSimpleHashJoin(t *testing.T) {
 	{
 		table_info := executorContext.GetCatalog().GetTableByName("test_2")
 		//schema := table_info.schema_
-		col1 := column.NewColumn("col1", types.Integer, false, index_constants.INDEX_KIND_INVALID, types.PageID(-1), nil)
-		col2 := column.NewColumn("col2", types.Integer, false, index_constants.INDEX_KIND_INVALID, types.PageID(-1), nil)
+		col1 := column.NewColumn("test_2.col1", types.Integer, false, index_constants.INDEX_KIND_INVALID, types.PageID(-1), nil)
+		col2 := column.NewColumn("test_2.col2", types.Integer, false, index_constants.INDEX_KIND_INVALID, types.PageID(-1), nil)
 		out_schema2 = schema.NewSchema([]*column.Column{col1, col2})
 		scan_plan2 = plans.NewSeqScanPlanNode(out_schema2, nil, table_info.OID())
 	}
@@ -1317,13 +1317,13 @@ func TestSimpleHashJoin(t *testing.T) {
 	{
 		// colA and colB have a tuple index of 0 because they are the left side of the join
 		//var allocated_exprs []*expression.ColumnValue
-		colA := executors.MakeColumnValueExpression(out_schema1, 0, "colA")
+		colA := executors.MakeColumnValueExpression(out_schema1, 0, "test_1.colA")
 		colA_c := column.NewColumn("colA", types.Integer, false, index_constants.INDEX_KIND_INVALID, types.PageID(-1), nil)
 		colA_c.SetIsLeft(true)
 		colB_c := column.NewColumn("colB", types.Integer, false, index_constants.INDEX_KIND_INVALID, types.PageID(-1), nil)
 		colB_c.SetIsLeft(true)
 		// col1 and col2 have a tuple index of 1 because they are the right side of the join
-		col1 := executors.MakeColumnValueExpression(out_schema2, 1, "col1")
+		col1 := executors.MakeColumnValueExpression(out_schema2, 1, "test_2.col1")
 		col1_c := column.NewColumn("col1", types.Integer, false, index_constants.INDEX_KIND_INVALID, types.PageID(-1), nil)
 		col1_c.SetIsLeft(false)
 		col2_c := column.NewColumn("col2", types.Integer, false, index_constants.INDEX_KIND_INVALID, types.PageID(-1), nil)
@@ -1730,15 +1730,15 @@ func TestSimpleAggregation(t *testing.T) {
 	{
 		//auto table_info = GetExecutorContext()->GetCatalog()->GetTable("test_1");
 		schema_ := table_info.Schema()
-		colA := executors.MakeColumnValueExpression(schema_, 0, "colA").(*expression.ColumnValue)
-		scan_schema = executors.MakeOutputSchema([]executors.MakeSchemaMeta{{"colA", *colA}})
+		colA := executors.MakeColumnValueExpression(schema_, 0, "test_1.colA").(*expression.ColumnValue)
+		scan_schema = executors.MakeOutputSchema([]executors.MakeSchemaMeta{{"test_1.colA", *colA}})
 		scan_plan = plans.NewSeqScanPlanNode(scan_schema, nil, table_info.OID()).(*plans.SeqScanPlanNode)
 	}
 
 	var agg_plan *plans.AggregationPlanNode
 	var agg_schema *schema.Schema
 	{
-		colA := executors.MakeColumnValueExpression(scan_schema, 0, "colA")
+		colA := executors.MakeColumnValueExpression(scan_schema, 0, "test_1.colA")
 		countA := *executors.MakeAggregateValueExpression(false, 0).(*expression.AggregateValueExpression)
 		sumA := *executors.MakeAggregateValueExpression(false, 1).(*expression.AggregateValueExpression)
 		minA := *executors.MakeAggregateValueExpression(false, 2).(*expression.AggregateValueExpression)

@@ -15,6 +15,7 @@ import (
 	"github.com/ryogrid/SamehadaDB/storage/table/schema"
 	"github.com/ryogrid/SamehadaDB/types"
 	"math"
+	"strings"
 )
 
 type SimplePlanner struct {
@@ -64,7 +65,7 @@ func (pner *SimplePlanner) MakeSelectPlanWithoutJoin() (error, plans.Plan) {
 			colName := sfield.ColName_
 			isOk := false
 			for _, existCol := range tgtTblColumns {
-				if existCol.GetColumnName() == *colName {
+				if strings.Split(existCol.GetColumnName(), ".")[1] == *colName {
 					isOk = true
 					outColDefs = append(outColDefs, column.NewColumn(*colName, existCol.GetType(), false, index_constants.INDEX_KIND_INVALID, types.PageID(-1), existCol.GetExpr()))
 					break
@@ -106,7 +107,8 @@ func (pner *SimplePlanner) MakeSelectPlanWithJoin() (error, plans.Plan) {
 	{
 		var columns []*column.Column = make([]*column.Column, 0)
 		for _, col := range tgtTblColumnsL {
-			columns = append(columns, column.NewColumn(tblNameL+"."+col.GetColumnName(), col.GetType(), false, index_constants.INDEX_KIND_INVALID, types.PageID(-1), col.GetExpr()))
+			//columns = append(columns, column.NewColumn(tblNameL+"."+col.GetColumnName(), col.GetType(), false, index_constants.INDEX_KIND_INVALID, types.PageID(-1), col.GetExpr()))
+			columns = append(columns, column.NewColumn(col.GetColumnName(), col.GetType(), false, index_constants.INDEX_KIND_INVALID, types.PageID(-1), col.GetExpr()))
 		}
 		outSchemaL = schema.NewSchema(columns)
 		scanPlanL = plans.NewSeqScanPlanNode(outSchemaL, nil, tableMetadataL.OID())
@@ -117,7 +119,8 @@ func (pner *SimplePlanner) MakeSelectPlanWithJoin() (error, plans.Plan) {
 	{
 		var columns []*column.Column = make([]*column.Column, 0)
 		for _, col := range tgtTblColumnsR {
-			columns = append(columns, column.NewColumn(tblNameR+"."+col.GetColumnName(), col.GetType(), false, index_constants.INDEX_KIND_INVALID, types.PageID(-1), col.GetExpr()))
+			//columns = append(columns, column.NewColumn(tblNameR+"."+col.GetColumnName(), col.GetType(), false, index_constants.INDEX_KIND_INVALID, types.PageID(-1), col.GetExpr()))
+			columns = append(columns, column.NewColumn(col.GetColumnName(), col.GetType(), false, index_constants.INDEX_KIND_INVALID, types.PageID(-1), col.GetExpr()))
 		}
 		outSchemaR = schema.NewSchema(columns)
 		scanPlanR = plans.NewSeqScanPlanNode(outSchemaR, nil, tableMetadataR.OID())
@@ -135,12 +138,14 @@ func (pner *SimplePlanner) MakeSelectPlanWithJoin() (error, plans.Plan) {
 		colValR := executors.MakeColumnValueExpression(outSchemaR, 1, *pner.qi.OnExpressions_.Right_.(*string))
 
 		for _, colDef := range tgtTblColumnsL {
-			col := column.NewColumn(tblNameL+"."+colDef.GetColumnName(), colDef.GetType(), false, index_constants.INDEX_KIND_INVALID, types.PageID(-1), colDef.GetExpr())
+			//col := column.NewColumn(tblNameL+"."+colDef.GetColumnName(), colDef.GetType(), false, index_constants.INDEX_KIND_INVALID, types.PageID(-1), colDef.GetExpr())
+			col := column.NewColumn(colDef.GetColumnName(), colDef.GetType(), false, index_constants.INDEX_KIND_INVALID, types.PageID(-1), colDef.GetExpr())
 			col.SetIsLeft(true)
 			finalOutCols = append(finalOutCols, col)
 		}
 		for _, colDef := range tgtTblColumnsR {
-			col := column.NewColumn(tblNameR+"."+colDef.GetColumnName(), colDef.GetType(), false, index_constants.INDEX_KIND_INVALID, types.PageID(-1), colDef.GetExpr())
+			//col := column.NewColumn(tblNameR+"."+colDef.GetColumnName(), colDef.GetType(), false, index_constants.INDEX_KIND_INVALID, types.PageID(-1), colDef.GetExpr())
+			col := column.NewColumn(colDef.GetColumnName(), colDef.GetType(), false, index_constants.INDEX_KIND_INVALID, types.PageID(-1), colDef.GetExpr())
 			col.SetIsLeft(false)
 			finalOutCols = append(finalOutCols, col)
 		}
