@@ -79,7 +79,7 @@
     - So, current transaction isolation level is **"REPEATABLE READ"**
   - Retry of txns aborted due to concurrency control protocol is not implemented yet
 - [ ] <del>Execution Planning from hard coded SQL like method call I/F (like some kind of embedded DB)</del>
-- [x] Execution Planning from Query Description text (SQL)
+- [x] Execution of Query with SQL string
 - [x] Frontend Impl as Embedded DB Library (like SQLite)
   - Currently, functions of the library are not thread safe and concurrent transaction is not supported
 - [ ] Deduplication of Result Records (Distinct)
