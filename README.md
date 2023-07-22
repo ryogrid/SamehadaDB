@@ -4,8 +4,7 @@
 
 # Overview
 - Simple Relational Database Implemented in Golang
-- This code tree is based on Golang ported [BusTub](https://github.com/cmu-db/bustub) RDBMS: go-bustub
-  - original code of go-bustub is [here](https://github.com/brunocalza/go-bustub)
+- Origin of SamehadaDB is Golang ported [BusTub](https://github.com/cmu-db/bustub) RDBMS: [go-bustub](https://github.com/brunocalza/go-bustub)
 
 # What is Samehada?
 - Samehada, which literally means shark skin, is a tool used to grate wasabi, usually for sushi, but also for other Japanese cuisines
@@ -110,5 +109,8 @@
 ## Advisor
 - [kumagi](https://github.com/kumagi) and more!
 
+## Acknowledgement
+- 2021 May - present: SamehadaDB project is assisted by OSS community support program of JetBrains s.r.o with offering development softwares 
+
 ## Past work
-[FunnelKVS: Rust implementation of autonomous distributed key-value store which has REST interfaces](https://github.com/ryogrid/rust_dkvs)
+- [FunnelKVS: Rust implementation of autonomous distributed key-value store which has REST interfaces](https://github.com/ryogrid/rust_dkvs)
