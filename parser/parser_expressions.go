@@ -96,8 +96,8 @@ func ConvParsedBinaryOpExprToExpIFOne(convSrc *BinaryOpExpression) expression.Ex
 	return nil
 }
 
-func ConvParsedSelectionExprToExpIFOne(convSrc []*SelectFieldExpression) expression.Expression {
-	// TODO: (SDB) [OPT] not implemented yet (ConvParsedSelectionExprToExpIFOne)
+func ConvParsedSelectionExprToSchema(convSrc []*SelectFieldExpression) *schema.Schema {
+	// TODO: (SDB) [OPT] not implemented yet (ConvParsedSelectionExprToSchema)
 	return nil
 }
 

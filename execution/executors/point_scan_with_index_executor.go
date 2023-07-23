@@ -34,36 +34,6 @@ func (e *PointScanWithIndexExecutor) Init() {
 	schema_ := e.tableMetadata.Schema()
 	colIdxOfPred := comparison.GetLeftSideColIdx()
 
-	//colNum := int(e.tableMetadata.GetColumnNum())
-	//
-	//var index_ index.Index = nil
-	//var indexColNum int = -1
-	//for {
-	//	index_ = nil
-	//	for ii := indexColNum + 1; ii < colNum; ii++ {
-	//		ret := e.tableMetadata.GetIndex(ii)
-	//		if ret == nil {
-	//			continue
-	//		} else {
-	//			index_ = ret
-	//			indexColNum = ii
-	//			break
-	//		}
-	//	}
-	//
-	//	if index_ == nil || indexColNum == -1 {
-	//		fmt.Printf("colIdxOfPred=%d,indexColNum=%d\n", colIdxOfPred, indexColNum)
-	//		panic("PointScanWithIndexExecutor assumes that table which has index are passed.")
-	//	}
-	//	if colIdxOfPred != uint32(indexColNum) {
-	//		// find next index having column
-	//		continue
-	//	}
-	//	break
-	//}
-	//
-	//dummyTuple := tuple.GenTupleForIndexSearch(schema_, uint32(indexColNum), samehada_util.GetPonterOfValue(comparison.GetRightSideValue(nil, schema_)))
-
 	index_ := e.tableMetadata.GetIndex(int(colIdxOfPred))
 	if index_ == nil {
 		panic("PointScanWithIndexExecutor assumed index does not exist!.")

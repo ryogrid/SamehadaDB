@@ -11,10 +11,14 @@ func makeMergedOutputSchema(left_schema *schema.Schema, right_schema *schema.Sch
 	var ret *schema.Schema
 	columns := make([]*column.Column, 0)
 	for _, col := range left_schema.GetColumns() {
-		columns = append(columns, col)
+		col_ := *col
+		col_.SetIsLeft(true)
+		columns = append(columns, &col_)
 	}
 	for _, col := range right_schema.GetColumns() {
-		columns = append(columns, col)
+		col_ := *col
+		col_.SetIsLeft(false)
+		columns = append(columns, &col_)
 	}
 	ret = schema.NewSchema(columns)
 	return ret

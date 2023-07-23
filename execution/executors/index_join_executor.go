@@ -42,6 +42,7 @@ func NewIndexJoinExecutor(exec_ctx *ExecutorContext, plan *plans.IndexJoinPlanNo
 func (e *IndexJoinExecutor) GetOutputSchema() *schema.Schema { return e.plan_.OutputSchema() }
 
 func (e *IndexJoinExecutor) Init() {
+
 	// get exprs to evaluate to output result
 	output_column_cnt := int(e.GetOutputSchema().GetColumnCount())
 	for i := 0; i < output_column_cnt; i++ {
@@ -95,12 +96,14 @@ func (e *IndexJoinExecutor) Init() {
 			e.jht_.Insert(hash.HashValue(&valueAsKey), &tmp_tuple)
 		}
 	}
+
 }
 
 // TODO: (SDB) need to refactor IndexJoinExecutor::Next method to use GetExpr method of Column class
 //
 //	current impl is avoiding the method because it does not exist when this code was wrote
 func (e *IndexJoinExecutor) Next() (*tuple.Tuple, Done, error) {
+
 	inner_next_cnt := 0
 	for {
 		for int(e.index_) == len(e.tmp_tuples_) {
@@ -150,6 +153,8 @@ func (e *IndexJoinExecutor) Next() (*tuple.Tuple, Done, error) {
 		}
 		// no valid combination, turn to the next right tuple by for loop
 	}
+
+	return nil, false, nil
 }
 
 /*

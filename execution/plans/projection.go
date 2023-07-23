@@ -1,7 +1,7 @@
 package plans
 
 import (
-	"github.com/ryogrid/SamehadaDB/execution/expression"
+	"github.com/ryogrid/SamehadaDB/storage/table/schema"
 )
 
 // TODO: (SDB) [OPT] not implemented yet (projection.go)
@@ -9,10 +9,10 @@ import (
 type ProjectionPlanNode struct {
 	*AbstractPlanNode
 	//projectionColumns []*parser.SelectFieldExpression
-	projectionColumns expression.Expression
+	projectionColumns *schema.Schema
 }
 
-func NewProjectionPlanNode(child Plan, selectColumns expression.Expression) Plan {
+func NewProjectionPlanNode(child Plan, selectColumns *schema.Schema) Plan {
 	childOutSchema := child.OutputSchema()
 	return &ProjectionPlanNode{&AbstractPlanNode{childOutSchema, []Plan{child}}, selectColumns}
 }
@@ -21,7 +21,7 @@ func (p *ProjectionPlanNode) GetType() PlanType {
 	return Projection
 }
 
-func (p *ProjectionPlanNode) GetProjectionColumns() expression.Expression {
+func (p *ProjectionPlanNode) GetProjectionColumns() *schema.Schema {
 	return p.projectionColumns
 }
 

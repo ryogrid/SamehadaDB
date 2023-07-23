@@ -14,6 +14,7 @@ import (
 	"github.com/ryogrid/SamehadaDB/samehada/samehada_util"
 	"github.com/ryogrid/SamehadaDB/storage/access"
 	"github.com/ryogrid/SamehadaDB/storage/table/column"
+	"github.com/ryogrid/SamehadaDB/storage/table/schema"
 	"github.com/ryogrid/SamehadaDB/types"
 	"math"
 	"sort"
@@ -93,7 +94,7 @@ func touchOnly(where expression.Expression, colName string) bool {
 }
 
 // TODO: (SDB) [OPT] caller should pass *where* args which is deep copied (SelingerOptimizer::findBestScan)
-func (so *SelingerOptimizer) findBestScan(selection []*parser.SelectFieldExpression, where *parser.BinaryOpExpression, from *catalog.TableMetadata, c *catalog.Catalog, stats *catalog.TableStatistics) (plans.Plan, error) {
+func (so *SelingerOptimizer) findBestScan(outNeededCols []*column.Column, where *parser.BinaryOpExpression, from *catalog.TableMetadata, c *catalog.Catalog, stats *catalog.TableStatistics) (plans.Plan, error) {
 	availableKeyIndex := func() map[int]int {
 		retMap := make(map[int]int, 0)
 		idxArr := from.Indexes()
@@ -199,15 +200,15 @@ func (so *SelingerOptimizer) findBestScan(selection []*parser.SelectFieldExpress
 		}
 		//targetIndex := from.GetIndex(candidates[key])
 		// Plan new_plan = IndexScanSelect(from, target_idx, stat, *span.Min,*span.Max, scan_exp, select);
-		var newPlan plans.Plan = plans.NewRangeScanWithIndexPlanNode(parser.ConvParsedSelectFieldExpToOutputSchema(selection), from.OID(), int32(key), nil, span.Min, span.Max)
+		var newPlan plans.Plan = plans.NewRangeScanWithIndexPlanNode(sc, from.OID(), int32(key), nil, span.Min, span.Max)
 		// if (!TouchOnly(scan_exp, from.GetSchema().GetColumn(key).Name())) {
 		if !touchOnly(scanExp, sc.GetColumn(uint32(key)).GetColumnName()) {
 			//new_plan = std::make_shared<SelectionPlan>(new_plan, scan_exp, stat);
-			newPlan = plans.NewSelectionPlanNode(newPlan, newPlan.OutputSchema(), scanExp)
+			newPlan = plans.NewSelectionPlanNode(newPlan, scanExp)
 		}
-		if len(selection) != int(newPlan.OutputSchema().GetColumnCount()) {
+		if len(outNeededCols) != int(newPlan.OutputSchema().GetColumnCount()) {
 			//new_plan = std::make_shared<ProjectionPlan>(new_plan, select);
-			newPlan = plans.NewProjectionPlanNode(newPlan, parser.ConvParsedSelectionExprToExpIFOne(selection))
+			newPlan = plans.NewProjectionPlanNode(newPlan, schema.NewSchema(outNeededCols))
 		}
 		if newPlan.AccessRowCount() < minimamCost {
 			bestScan = newPlan
@@ -222,9 +223,9 @@ func (so *SelingerOptimizer) findBestScan(selection []*parser.SelectFieldExpress
 		fullScanPlan = plans.NewSeqScanPlanNode(sc, scanExp, from.OID())
 	}
 
-	if len(selection) != int(sc.GetColumnCount()) {
+	if len(outNeededCols) != int(sc.GetColumnCount()) {
 		// full_scan_plan = std::make_shared<ProjectionPlan>(full_scan_plan, select);
-		fullScanPlan = plans.NewProjectionPlanNode(fullScanPlan, parser.ConvParsedSelectionExprToExpIFOne(selection))
+		fullScanPlan = plans.NewProjectionPlanNode(fullScanPlan, schema.NewSchema(outNeededCols))
 	}
 	if fullScanPlan.AccessRowCount() < minimamCost {
 		bestScan = fullScanPlan
@@ -256,7 +257,8 @@ func (so *SelingerOptimizer) findBestScans(query *parser.QueryInfo, exec_ctx *ex
 				}
 			}
 		}
-		scan, _ := NewSelingerOptimizer().findBestScan(query.SelectFields_, query.WhereExpression_, tbl, c, stats)
+		//scan, _ := NewSelingerOptimizer().findBestScan(query.SelectFields_, query.WhereExpression_, tbl, c, stats)
+		scan, _ := NewSelingerOptimizer().findBestScan(projectTarget, query.WhereExpression_, tbl, c, stats)
 		optimalPlans[samehada_util.MakeSet([]*string{from})] = CostAndPlan{scan.AccessRowCount(), scan}
 	}
 
@@ -351,7 +353,7 @@ func (so *SelingerOptimizer) findBestJoinInner(where *parser.BinaryOpExpression,
 			// Plan ans = std::make_shared<ProductPlan>(left, right);
 			// candidates.push_back(std::make_shared<SelectionPlan>(ans, final_selection, ans->GetStats()));
 			var ans plans.Plan = plans.NewNestedLoopJoinPlanNode([]plans.Plan{left, right})
-			candidates = append(candidates, plans.NewProjectionPlanNode(ans, parser.ConvParsedBinaryOpExprToExpIFOne(finalSelection)))
+			candidates = append(candidates, plans.NewSelectionPlanNode(ans, parser.ConvParsedBinaryOpExprToExpIFOne(finalSelection)))
 		} else {
 			// unfortunatelly, construction of NestedLoopJoinPlan with no optimization is needed
 
@@ -395,7 +397,7 @@ func (so *SelingerOptimizer) findBestJoin(optimalPlans map[mapset.Set[string]]Co
 
 	// Attach final projection and emit the result
 	solution := optimalPlan.plan
-	solution = plans.NewProjectionPlanNode(solution, parser.ConvParsedSelectionExprToExpIFOne(query.SelectFields_))
+	solution = plans.NewProjectionPlanNode(solution, parser.ConvParsedSelectionExprToSchema(query.SelectFields_))
 
 	return solution
 }
