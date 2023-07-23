@@ -4,12 +4,20 @@ import (
 	"github.com/ryogrid/SamehadaDB/catalog"
 	"github.com/ryogrid/SamehadaDB/execution/expression"
 	"github.com/ryogrid/SamehadaDB/execution/plans"
+	"github.com/ryogrid/SamehadaDB/storage/access"
 	"github.com/ryogrid/SamehadaDB/storage/table/schema"
 	"github.com/ryogrid/SamehadaDB/storage/tuple"
 	"github.com/ryogrid/SamehadaDB/types"
 )
 
 // TODO: (SDB) [OPT] not implmented yet (index_join_executor.go)
+
+func createPointScanPlanNode(getKeyVal *types.Value, scanTblSchema *schema.Schema, keyColIdx uint32, scanTblOID uint32) (createdPlan plans.Plan) {
+	tmpColVal := new(expression.ColumnValue)
+	tmpColVal.SetColIndex(keyColIdx)
+	expression_ := expression.NewComparison(tmpColVal, expression.NewConstantValue(*getKeyVal, getKeyVal.ValueType()), expression.Equal, types.Boolean)
+	return plans.NewPointScanWithIndexPlanNode(scanTblSchema, expression_.(*expression.Comparison), scanTblOID)
+}
 
 type IndexJoinExecutor struct {
 	context       *ExecutorContext
@@ -37,6 +45,14 @@ func NewIndexJoinExecutor(exec_ctx *ExecutorContext, plan *plans.IndexJoinPlanNo
 func (e *IndexJoinExecutor) GetOutputSchema() *schema.Schema { return e.plan_.OutputSchema() }
 
 func (e *IndexJoinExecutor) Init() {
+	rightTblOID := e.plan_.GetRightTableOID()
+	rightTblMetadata := e.context.catalog.GetTableByOID(rightTblOID)
+	rightTblSchema := rightTblMetadata.Schema()
+	rightTblColIdx := e.plan_.OnPredicate().GetChildAt(1).(*expression.ColumnValue).GetColIndex()
+
+	executionEngine := &ExecutionEngine{}
+	executorContext := NewExecutorContext(e.context.catalog, e.context.bpm, e.context.txn)
+
 	// get exprs to evaluate to output result
 	output_column_cnt := int(e.GetOutputSchema().GetColumnCount())
 	for i := 0; i < output_column_cnt; i++ {
@@ -48,7 +64,7 @@ func (e *IndexJoinExecutor) Init() {
 			colVal = expression.NewColumnValue(0, colIndex, types.Invalid)
 		} else {
 			colname := column_.GetColumnName()
-			colIndex := e.plan_.GetRightPlan().OutputSchema().GetColIndex(colname)
+			colIndex := rightTblSchema.GetColIndex(colname)
 			colVal = expression.NewColumnValue(1, colIndex, types.Invalid)
 		}
 
@@ -58,6 +74,7 @@ func (e *IndexJoinExecutor) Init() {
 	e.right_.Init()
 	e.left_expr_ = e.plan_.OnPredicate().GetChildAt(0)
 	e.right_expr_ = e.plan_.OnPredicate().GetChildAt(1)
+
 	// use value of Value::ToIFValue() as key
 	rightTuplesCache := make(map[interface{}]*[]*tuple.Tuple, 0)
 	for left_tuple, done, _ := e.left_.Next(); !done; left_tuple, done, _ = e.left_.Next() {
@@ -67,6 +84,31 @@ func (e *IndexJoinExecutor) Init() {
 		leftValueAsKey := e.left_expr_.Evaluate(left_tuple, e.left_.GetOutputSchema())
 
 		// TODO: (SDB) [OPT] need to create joined records using point scan of right table (IndexJoinExecutor::Init)
+
+		// find matching tuples from right table using point scan
+
+		var foundTuples []*tuple.Tuple
+		cachedTuples, ok := rightTuplesCache[leftValueAsKey.ToIFValue()]
+		if ok {
+			// already same key has been lookup
+			foundTuples = *cachedTuples
+		} else {
+			pointScanPlan := createPointScanPlanNode(&leftValueAsKey, rightTblSchema, rightTblColIdx, rightTblOID)
+			foundTuplesTmp := executionEngine.Execute(pointScanPlan, executorContext)
+			if e.context.txn.GetState() == access.ABORTED {
+				return
+			}
+			if foundTuplesTmp == nil {
+				return
+			}
+			if len(foundTuplesTmp) == 0 {
+				continue
+			}
+			// cache point scaned tuples
+			rightTuplesCache[leftValueAsKey.ToIFValue()] = &foundTuplesTmp
+			foundTuples = foundTuplesTmp
+		}
+
 	}
 }
 
