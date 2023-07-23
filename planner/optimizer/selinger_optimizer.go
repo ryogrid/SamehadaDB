@@ -325,9 +325,8 @@ func (so *SelingerOptimizer) findBestJoinInner(where *parser.BinaryOpExpression,
 				//	ctx.GetStats(right_tbl->GetSchema().Name()));
 				for _, rcol := range right_cols {
 					if right_idx.GetTupleSchema().IsHaveColumn(rcol) {
-						// note: appended plans are temporal (not completely setuped)
 						// candidates.push_back(std::make_shared<ProductPlan>(left, left_cols, *right_tbl, right_idx, right_cols, *stat));
-						candidates = append(candidates, plans.NewIndexJoinPlanNodeWithChilds(left, parser.ConvColumnStrsToExpIfOnes(left_cols), right, parser.ConvColumnStrsToExpIfOnes(right_cols)))
+						candidates = append(candidates, plans.NewIndexJoinPlan(left, parser.ConvColumnStrsToExpIfOnes(left_cols), right, parser.ConvColumnStrsToExpIfOnes(right_cols)))
 					}
 				}
 			}

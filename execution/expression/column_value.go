@@ -55,3 +55,11 @@ func (c *ColumnValue) GetReturnType() types.TypeID { return c.ret_type }
 func (c *ColumnValue) SetReturnType(valueType types.TypeID) {
 	c.ret_type = valueType
 }
+
+func MakeColumnValueExpression(schema_ *schema.Schema, tuple_idx_on_join uint32,
+	col_name string) Expression {
+	col_idx := schema_.GetColIndex(col_name)
+	col_type := schema_.GetColumn(col_idx).GetType()
+	col_val := NewColumnValue(tuple_idx_on_join, col_idx, col_type)
+	return col_val
+}

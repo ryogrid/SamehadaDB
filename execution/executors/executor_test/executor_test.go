@@ -1317,13 +1317,13 @@ func TestSimpleHashJoin(t *testing.T) {
 	{
 		// colA and colB have a tuple index of 0 because they are the left side of the join
 		//var allocated_exprs []*expression.ColumnValue
-		colA := executors.MakeColumnValueExpression(out_schema1, 0, "test_1.colA")
+		colA := expression.MakeColumnValueExpression(out_schema1, 0, "test_1.colA")
 		colA_c := column.NewColumn("colA", types.Integer, false, index_constants.INDEX_KIND_INVALID, types.PageID(-1), nil)
 		colA_c.SetIsLeft(true)
 		colB_c := column.NewColumn("colB", types.Integer, false, index_constants.INDEX_KIND_INVALID, types.PageID(-1), nil)
 		colB_c.SetIsLeft(true)
 		// col1 and col2 have a tuple index of 1 because they are the right side of the join
-		col1 := executors.MakeColumnValueExpression(out_schema2, 1, "test_2.col1")
+		col1 := expression.MakeColumnValueExpression(out_schema2, 1, "test_2.col1")
 		col1_c := column.NewColumn("col1", types.Integer, false, index_constants.INDEX_KIND_INVALID, types.PageID(-1), nil)
 		col1_c.SetIsLeft(false)
 		col2_c := column.NewColumn("col2", types.Integer, false, index_constants.INDEX_KIND_INVALID, types.PageID(-1), nil)
@@ -1809,7 +1809,7 @@ func TestSimpleAggregation(t *testing.T) {
 	{
 		//auto table_info = GetExecutorContext()->GetCatalog()->GetTable("test_1");
 		schema_ := table_info.Schema()
-		colA := executors.MakeColumnValueExpression(schema_, 0, "test_1.colA").(*expression.ColumnValue)
+		colA := expression.MakeColumnValueExpression(schema_, 0, "test_1.colA").(*expression.ColumnValue)
 		scan_schema = executors.MakeOutputSchema([]executors.MakeSchemaMeta{{"test_1.colA", *colA}})
 		scan_plan = plans.NewSeqScanPlanNode(scan_schema, nil, table_info.OID()).(*plans.SeqScanPlanNode)
 	}
@@ -1817,7 +1817,7 @@ func TestSimpleAggregation(t *testing.T) {
 	var agg_plan *plans.AggregationPlanNode
 	var agg_schema *schema.Schema
 	{
-		colA := executors.MakeColumnValueExpression(scan_schema, 0, "test_1.colA")
+		colA := expression.MakeColumnValueExpression(scan_schema, 0, "test_1.colA")
 		countA := *executors.MakeAggregateValueExpression(false, 0).(*expression.AggregateValueExpression)
 		sumA := *executors.MakeAggregateValueExpression(false, 1).(*expression.AggregateValueExpression)
 		minA := *executors.MakeAggregateValueExpression(false, 2).(*expression.AggregateValueExpression)
@@ -1882,9 +1882,9 @@ func TestSimpleGroupByAggregation(t *testing.T) {
 	{
 		//auto table_info = GetExecutorContext()->GetCatalog()->GetTable("test_1");
 		schema_ := table_info.Schema()
-		colA := executors.MakeColumnValueExpression(schema_, 0, "colA").(*expression.ColumnValue)
-		colB := executors.MakeColumnValueExpression(schema_, 0, "colB").(*expression.ColumnValue)
-		colC := executors.MakeColumnValueExpression(schema_, 0, "colC").(*expression.ColumnValue)
+		colA := expression.MakeColumnValueExpression(schema_, 0, "colA").(*expression.ColumnValue)
+		colB := expression.MakeColumnValueExpression(schema_, 0, "colB").(*expression.ColumnValue)
+		colC := expression.MakeColumnValueExpression(schema_, 0, "colC").(*expression.ColumnValue)
 		scan_schema = executors.MakeOutputSchema([]executors.MakeSchemaMeta{{"colA", *colA}, {"colB", *colB}, {"colC", *colC}})
 		scan_plan = plans.NewSeqScanPlanNode(scan_schema, nil, table_info.OID()).(*plans.SeqScanPlanNode)
 	}
@@ -1892,9 +1892,9 @@ func TestSimpleGroupByAggregation(t *testing.T) {
 	var agg_plan *plans.AggregationPlanNode
 	var agg_schema *schema.Schema
 	{
-		colA := executors.MakeColumnValueExpression(scan_schema, 0, "colA").(*expression.ColumnValue)
-		colB := executors.MakeColumnValueExpression(scan_schema, 0, "colB").(*expression.ColumnValue)
-		colC := executors.MakeColumnValueExpression(scan_schema, 0, "colC").(*expression.ColumnValue)
+		colA := expression.MakeColumnValueExpression(scan_schema, 0, "colA").(*expression.ColumnValue)
+		colB := expression.MakeColumnValueExpression(scan_schema, 0, "colB").(*expression.ColumnValue)
+		colC := expression.MakeColumnValueExpression(scan_schema, 0, "colC").(*expression.ColumnValue)
 		// Make group bye
 		groupbyB := *executors.MakeAggregateValueExpression(true, 0).(*expression.AggregateValueExpression)
 		// Make aggregates
@@ -1970,9 +1970,9 @@ func TestSeqScanWithMultiItemPredicate(t *testing.T) {
 	{
 		// setup predicates and a execution plan
 		schema_ := table_info.Schema()
-		colA_val := executors.MakeColumnValueExpression(schema_, 0, "colA").(*expression.ColumnValue)
-		colB_val := executors.MakeColumnValueExpression(schema_, 0, "colB").(*expression.ColumnValue)
-		colC_val := executors.MakeColumnValueExpression(schema_, 0, "colC").(*expression.ColumnValue)
+		colA_val := expression.MakeColumnValueExpression(schema_, 0, "colA").(*expression.ColumnValue)
+		colB_val := expression.MakeColumnValueExpression(schema_, 0, "colB").(*expression.ColumnValue)
+		colC_val := expression.MakeColumnValueExpression(schema_, 0, "colC").(*expression.ColumnValue)
 
 		pred_constA := types.NewInteger(int32(500))
 		comp_predA := executors.MakeComparisonExpression(colA_val, executors.MakeConstantValueExpression(&pred_constA), expression.GreaterThan)
@@ -2551,8 +2551,8 @@ func TestSimpleSeqScanAndOrderBy(t *testing.T) {
 	{
 		//auto table_info = GetExecutorContext()->GetCatalog()->GetTable("test_1");
 		schema_ := tableMetadata.Schema()
-		colA := executors.MakeColumnValueExpression(schema_, 0, "a").(*expression.ColumnValue)
-		colB := executors.MakeColumnValueExpression(schema_, 0, "b").(*expression.ColumnValue)
+		colA := expression.MakeColumnValueExpression(schema_, 0, "a").(*expression.ColumnValue)
+		colB := expression.MakeColumnValueExpression(schema_, 0, "b").(*expression.ColumnValue)
 		scan_schema = executors.MakeOutputSchema([]executors.MakeSchemaMeta{{"a", *colA}, {"b", *colB}})
 		scan_plan = plans.NewSeqScanPlanNode(scan_schema, nil, tableMetadata.OID()).(*plans.SeqScanPlanNode)
 	}
@@ -2662,8 +2662,8 @@ func TestSimpleSetNullToVarchar(t *testing.T) {
 	{
 		//auto table_info = GetExecutorContext()->GetCatalog()->GetTable("test_1");
 		schema_ := tableMetadata.Schema()
-		colA := executors.MakeColumnValueExpression(schema_, 0, "a").(*expression.ColumnValue)
-		colB := executors.MakeColumnValueExpression(schema_, 0, "b").(*expression.ColumnValue)
+		colA := expression.MakeColumnValueExpression(schema_, 0, "a").(*expression.ColumnValue)
+		colB := expression.MakeColumnValueExpression(schema_, 0, "b").(*expression.ColumnValue)
 		scan_schema = executors.MakeOutputSchema([]executors.MakeSchemaMeta{{"a", *colA}, {"b", *colB}})
 		scan_plan = plans.NewSeqScanPlanNode(scan_schema, nil, tableMetadata.OID()).(*plans.SeqScanPlanNode)
 	}

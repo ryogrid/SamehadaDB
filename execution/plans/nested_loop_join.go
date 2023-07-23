@@ -2,8 +2,6 @@ package plans
 
 import (
 	"github.com/ryogrid/SamehadaDB/common"
-	"github.com/ryogrid/SamehadaDB/storage/table/column"
-	"github.com/ryogrid/SamehadaDB/storage/table/schema"
 	"math"
 )
 
@@ -11,22 +9,9 @@ type NestedLoopJoinPlanNode struct {
 	*AbstractPlanNode
 }
 
-func makeOutputSchema(left_schema *schema.Schema, right_schema *schema.Schema) *schema.Schema {
-	var ret *schema.Schema
-	columns := make([]*column.Column, 0)
-	for _, col := range left_schema.GetColumns() {
-		columns = append(columns, col)
-	}
-	for _, col := range right_schema.GetColumns() {
-		columns = append(columns, col)
-	}
-	ret = schema.NewSchema(columns)
-	return ret
-}
-
 // used only for Cross Join
 func NewNestedLoopJoinPlanNode(children []Plan) *NestedLoopJoinPlanNode {
-	return &NestedLoopJoinPlanNode{&AbstractPlanNode{makeOutputSchema(children[0].OutputSchema(), children[1].OutputSchema()), children}}
+	return &NestedLoopJoinPlanNode{&AbstractPlanNode{makeMergedOutputSchema(children[0].OutputSchema(), children[1].OutputSchema()), children}}
 }
 
 func (p *NestedLoopJoinPlanNode) GetType() PlanType { return NestedLoopJoin }
