@@ -78,8 +78,6 @@ func (e *IndexJoinExecutor) Init() {
 		}
 		leftValueAsKey := e.left_expr_.Evaluate(left_tuple, e.left_.GetOutputSchema())
 
-		// TODO: (SDB) [OPT] need to create joined records using point scan of right table (IndexJoinExecutor::Init)
-
 		// find matching tuples from right table using point scan
 
 		var foundTuples []*tuple.Tuple
