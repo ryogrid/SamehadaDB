@@ -56,7 +56,6 @@ func (e *NestedLoopJoinExecutor) Init() {
 }
 
 // TODO: (SDB) need to refactor NestedLoopJoinExecutor::Next method to use GetExpr method of Column class
-
 func (e *NestedLoopJoinExecutor) Next() (*tuple.Tuple, Done, error) {
 	if e.curIdx >= int32(len(e.retTuples)) {
 		return nil, true, nil
