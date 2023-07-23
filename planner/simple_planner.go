@@ -208,9 +208,9 @@ func (pner *SimplePlanner) MakeSelectPlanWithJoin() (error, plans.Plan) {
 		whereExp := pner.ConstructPredicate([]*schema.Schema{outFinal})
 		// filter joined recoreds with predicate which is specified on WHERE clause if needed
 
-		// TODO: (SDB) [OPT] need to use ProjectionPlan and SelectionPlan. current code does both. (SimplePlanner::MakeSelectPlanWithJoin)
-		filterPlan := plans.NewSelectionPlanNode(joinPlan, filterOut, whereExp)
-		return nil, filterPlan
+		filterPlan := plans.NewSelectionPlanNode(joinPlan, whereExp)
+		finalPlan := plans.NewProjectionPlanNode(filterPlan, filterOut)
+		return nil, finalPlan
 	} else {
 		// has no WHERE clause
 		return nil, joinPlan
