@@ -109,10 +109,17 @@ func (e *IndexJoinExecutor) Init() {
 			foundTuples = foundTuplesTmp
 		}
 
+		// make joined tuples and store them
+		for _, right_tuple := range foundTuples {
+			// TODO: SDB [OPT] should be removed after debugging (on IndexJoinExecutor::Init)
+			if !e.IsValidCombination(left_tuple, right_tuple) {
+				panic("Invalid combination!")
+			}
+			e.retTuples = append(e.retTuples, e.MakeOutputTuple(left_tuple, right_tuple))
+		}
 	}
 }
 
-// TODO: (SDB) need to refactor IndexJoinExecutor::Next method to use GetExpr method of Column class
 func (e *IndexJoinExecutor) Next() (*tuple.Tuple, Done, error) {
 	if e.curIdx >= int32(len(e.retTuples)) {
 		return nil, true, nil
