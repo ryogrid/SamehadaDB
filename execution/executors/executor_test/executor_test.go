@@ -1448,7 +1448,7 @@ func TestSimpleIndexJoin(t *testing.T) {
 	tableMetadata1 := c.CreateTable("test_1", schema_, txn)
 
 	column1 := column.NewColumn("col1", types.Integer, true, index_constants.INDEX_KIND_SKIP_LIST, types.PageID(-1), nil)
-	column2 := column.NewColumn("col2", types.Integer, false, index_constants.INDEX_KIND_INVALID, types.PageID(-1), nil)
+	column2 := column.NewColumn("col2", types.Integer, true, index_constants.INDEX_KIND_SKIP_LIST, types.PageID(-1), nil)
 	column3 := column.NewColumn("col3", types.Integer, false, index_constants.INDEX_KIND_INVALID, types.PageID(-1), nil)
 	column4 := column.NewColumn("col4", types.Integer, false, index_constants.INDEX_KIND_INVALID, types.PageID(-1), nil)
 	schema_ = schema.NewSchema([]*column.Column{column1, column2, column3, column4})
@@ -1501,11 +1501,13 @@ func TestSimpleIndexJoin(t *testing.T) {
 		// colA and colB have a tuple index of 0 because they are the left side of the join
 		colA := expression.MakeColumnValueExpression(out_schema1, 0, "test_1.colA")
 		// col1 and col2 have a tuple index of 1 because they are the right side of the join
-		col1 := expression.MakeColumnValueExpression(out_schema2, 1, "test_2.col1")
+		//col1 := expression.MakeColumnValueExpression(out_schema2, 1, "test_2.col1")
+		col2 := expression.MakeColumnValueExpression(out_schema2, 1, "test_2.col2")
 		var left_keys []expression.Expression
 		left_keys = append(left_keys, colA)
 		var right_keys []expression.Expression
-		right_keys = append(right_keys, col1)
+		//right_keys = append(right_keys, col1)
+		right_keys = append(right_keys, col2)
 		join_plan = plans.NewIndexJoinPlanNode(scan_plan1, left_keys, scan_plan2.OutputSchema(), scan_plan2.GetTableOID(), right_keys)
 	}
 
@@ -1513,7 +1515,8 @@ func TestSimpleIndexJoin(t *testing.T) {
 	results := executionEngine.Execute(join_plan, executorContext)
 
 	num_tuples := len(results)
-	testingpkg.Assert(t, num_tuples == 100, "len(results) != 100. Got %d", num_tuples)
+	//testingpkg.Assert(t, num_tuples == 100, "len(results) != 100. Got %d", num_tuples)
+	testingpkg.Assert(t, num_tuples == 1000, "len(results) != 1000. Got %d", num_tuples)
 	for ii := 0; ii < 20; ii++ {
 		fmt.Println(results[ii])
 	}
