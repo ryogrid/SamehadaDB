@@ -10,9 +10,7 @@ import (
 	"github.com/ryogrid/SamehadaDB/types"
 )
 
-// TODO: (SDB) [OPT] not implmented yet (index_join_executor.go)
-
-func createPointScanPlanNode(getKeyVal *types.Value, scanTblSchema *schema.Schema, keyColIdx uint32, scanTblOID uint32) (createdPlan plans.Plan) {
+func makePointScanPlanNodeForJoin(getKeyVal *types.Value, scanTblSchema *schema.Schema, keyColIdx uint32, scanTblOID uint32) (createdPlan plans.Plan) {
 	tmpColVal := new(expression.ColumnValue)
 	tmpColVal.SetColIndex(keyColIdx)
 	expression_ := expression.NewComparison(tmpColVal, expression.NewConstantValue(*getKeyVal, getKeyVal.ValueType()), expression.Equal, types.Boolean)
@@ -23,7 +21,6 @@ type IndexJoinExecutor struct {
 	context       *ExecutorContext
 	plan_         *plans.IndexJoinPlanNode
 	left_         Executor
-	right_        Executor
 	left_expr_    expression.Expression
 	right_expr_   expression.Expression
 	retTuples     []*tuple.Tuple
@@ -31,13 +28,11 @@ type IndexJoinExecutor struct {
 	output_exprs_ []expression.Expression
 }
 
-func NewIndexJoinExecutor(exec_ctx *ExecutorContext, plan *plans.IndexJoinPlanNode, left Executor,
-	right Executor) *IndexJoinExecutor {
+func NewIndexJoinExecutor(exec_ctx *ExecutorContext, plan *plans.IndexJoinPlanNode, left Executor) *IndexJoinExecutor {
 	ret := new(IndexJoinExecutor)
 	ret.plan_ = plan
 	ret.context = exec_ctx
 	ret.left_ = left
-	ret.right_ = right
 	ret.retTuples = make([]*tuple.Tuple, 0)
 	return ret
 }
@@ -47,6 +42,7 @@ func (e *IndexJoinExecutor) GetOutputSchema() *schema.Schema { return e.plan_.Ou
 func (e *IndexJoinExecutor) Init() {
 	rightTblOID := e.plan_.GetRightTableOID()
 	rightTblMetadata := e.context.catalog.GetTableByOID(rightTblOID)
+	// this schema is from table definition. not from child plan's output schema.
 	rightTblSchema := rightTblMetadata.Schema()
 	rightTblColIdx := e.plan_.OnPredicate().GetChildAt(1).(*expression.ColumnValue).GetColIndex()
 
@@ -71,7 +67,6 @@ func (e *IndexJoinExecutor) Init() {
 		e.output_exprs_ = append(e.output_exprs_, colVal)
 	}
 	e.left_.Init()
-	e.right_.Init()
 	e.left_expr_ = e.plan_.OnPredicate().GetChildAt(0)
 	e.right_expr_ = e.plan_.OnPredicate().GetChildAt(1)
 
@@ -93,7 +88,7 @@ func (e *IndexJoinExecutor) Init() {
 			// already same key has been lookup
 			foundTuples = *cachedTuples
 		} else {
-			pointScanPlan := createPointScanPlanNode(&leftValueAsKey, rightTblSchema, rightTblColIdx, rightTblOID)
+			pointScanPlan := makePointScanPlanNodeForJoin(&leftValueAsKey, rightTblSchema, rightTblColIdx, rightTblOID)
 			foundTuplesTmp := executionEngine.Execute(pointScanPlan, executorContext)
 			if e.context.txn.GetState() == access.ABORTED {
 				return
@@ -112,10 +107,10 @@ func (e *IndexJoinExecutor) Init() {
 		// make joined tuples and store them
 		for _, right_tuple := range foundTuples {
 			// TODO: SDB [OPT] should be removed after debugging (on IndexJoinExecutor::Init)
-			if !e.IsValidCombination(left_tuple, right_tuple) {
+			if !e.IsValidCombination(left_tuple, right_tuple, rightTblSchema) {
 				panic("Invalid combination!")
 			}
-			e.retTuples = append(e.retTuples, e.MakeOutputTuple(left_tuple, right_tuple))
+			e.retTuples = append(e.retTuples, e.MakeOutputTuple(left_tuple, right_tuple, rightTblSchema))
 		}
 	}
 }
@@ -129,16 +124,16 @@ func (e *IndexJoinExecutor) Next() (*tuple.Tuple, Done, error) {
 	return ret, false, nil
 }
 
-func (e *IndexJoinExecutor) IsValidCombination(left_tuple *tuple.Tuple, right_tuple *tuple.Tuple) bool {
-	return e.plan_.OnPredicate().EvaluateJoin(left_tuple, e.left_.GetOutputSchema(), right_tuple, e.right_.GetOutputSchema()).ToBoolean()
+func (e *IndexJoinExecutor) IsValidCombination(left_tuple *tuple.Tuple, right_tuple *tuple.Tuple, right_org_schema *schema.Schema) bool {
+	return e.plan_.OnPredicate().EvaluateJoin(left_tuple, e.left_.GetOutputSchema(), right_tuple, right_org_schema).ToBoolean()
 }
 
-func (e *IndexJoinExecutor) MakeOutputTuple(left_tuple *tuple.Tuple, right_tuple *tuple.Tuple) *tuple.Tuple {
+func (e *IndexJoinExecutor) MakeOutputTuple(left_tuple *tuple.Tuple, right_tuple *tuple.Tuple, right_org_schema *schema.Schema) *tuple.Tuple {
 	output_column_cnt := int(e.GetOutputSchema().GetColumnCount())
 	values := make([]types.Value, output_column_cnt)
 	for i := 0; i < output_column_cnt; i++ {
 		values[i] =
-			e.output_exprs_[i].EvaluateJoin(left_tuple, e.left_.GetOutputSchema(), right_tuple, e.right_.GetOutputSchema())
+			e.output_exprs_[i].EvaluateJoin(left_tuple, e.left_.GetOutputSchema(), right_tuple, right_org_schema)
 	}
 	return tuple.NewTupleFromSchema(values, e.GetOutputSchema())
 }

@@ -14,12 +14,12 @@ type IndexJoinPlanNode struct {
 	rightOutSchema *schema.Schema
 }
 
-func NewIndexJoinPlan(leftChild Plan, leftKeys []expression.Expression, rightOutSchema *schema.Schema, rightTblOID uint32, rightKeys []expression.Expression) *IndexJoinPlanNode {
+func NewIndexJoinPlanNode(leftChild Plan, leftKeys []expression.Expression, rightOutSchema *schema.Schema, rightTblOID uint32, rightKeys []expression.Expression) *IndexJoinPlanNode {
 	if leftKeys == nil || rightKeys == nil {
-		panic("NewIndexJoinPlan needs keys info.")
+		panic("NewIndexJoinPlanNode needs keys info.")
 	}
 	if len(leftKeys) != 1 || len(rightKeys) != 1 {
-		panic("NewIndexJoinPlan supports only one key for left and right now.")
+		panic("NewIndexJoinPlanNode supports only one key for left and right now.")
 	}
 
 	outputSchema := makeMergedOutputSchema(leftChild.OutputSchema(), rightOutSchema)
@@ -34,8 +34,7 @@ func (p *IndexJoinPlanNode) GetLeftPlan() Plan {
 }
 
 func (p *IndexJoinPlanNode) GetRightPlan() Plan {
-	common.SH_Assert(len(p.GetChildren()) == 2, "Index joins should have exactly two children plans.")
-	return p.GetChildAt(1)
+	panic("IndexJoinPlanNode::GetRightPlan() should not be called.")
 }
 
 func (p *IndexJoinPlanNode) GetType() PlanType { return IndexJoin }
