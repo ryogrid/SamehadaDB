@@ -3,15 +3,18 @@ package plans
 import (
 	"github.com/ryogrid/SamehadaDB/common"
 	"github.com/ryogrid/SamehadaDB/execution/expression"
+	"github.com/ryogrid/SamehadaDB/storage/table/schema"
 	"math"
 )
 
 type IndexJoinPlanNode struct {
 	*AbstractPlanNode
-	onPredicate expression.Expression
+	onPredicate    expression.Expression
+	rigthTableOID  uint32
+	rightOutSchema *schema.Schema
 }
 
-func NewIndexJoinPlan(leftChild Plan, leftKeys []expression.Expression, rightChild Plan, rightKeys []expression.Expression) *IndexJoinPlanNode {
+func NewIndexJoinPlan(leftChild Plan, leftKeys []expression.Expression, rightOutSchema *schema.Schema, rightTblOID uint32, rightKeys []expression.Expression) *IndexJoinPlanNode {
 	if leftKeys == nil || rightKeys == nil {
 		panic("NewIndexJoinPlan needs keys info.")
 	}
@@ -19,10 +22,10 @@ func NewIndexJoinPlan(leftChild Plan, leftKeys []expression.Expression, rightChi
 		panic("NewIndexJoinPlan supports only one key for left and right now.")
 	}
 
-	outputSchema := makeMergedOutputSchema(leftChild.OutputSchema(), rightChild.OutputSchema())
+	outputSchema := makeMergedOutputSchema(leftChild.OutputSchema(), rightOutSchema)
 	onPredicate := constructOnExpressionFromKeysInfo(leftKeys, rightKeys)
 
-	return &IndexJoinPlanNode{&AbstractPlanNode{outputSchema, []Plan{leftChild, rightChild}}, onPredicate}
+	return &IndexJoinPlanNode{&AbstractPlanNode{outputSchema, []Plan{leftChild, nil}}, onPredicate, rightTblOID, rightOutSchema}
 }
 
 func (p *IndexJoinPlanNode) GetLeftPlan() Plan {
@@ -42,6 +45,10 @@ func (p *IndexJoinPlanNode) OnPredicate() expression.Expression { return p.onPre
 // can not be used
 func (p *IndexJoinPlanNode) GetTableOID() uint32 {
 	return math.MaxUint32
+}
+
+func (p *IndexJoinPlanNode) GetRightTableOID() uint32 {
+	return p.rigthTableOID
 }
 
 func (p *IndexJoinPlanNode) AccessRowCount() uint64 {

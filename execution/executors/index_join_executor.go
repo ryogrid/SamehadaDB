@@ -16,29 +16,18 @@ import (
 type IndexJoinExecutor struct {
 	context *ExecutorContext
 	/** The hash join plan node. */
-	plan_ *plans.IndexJoinPlanNode
-	/** The hash table that we are using. */
-	jht_ *SimpleIndexJoinTable //*hash.LinearProbeHashTable
-	/** The number of buckets in the hash table. */
-	jht_num_buckets_ uint32 //= 2
-	left_            Executor
-	right_           Executor
-	left_expr_       expression.Expression
-	right_expr_      expression.Expression
-	tmp_tuples_      []hash.TmpTuple
-	index_           int32
-	output_exprs_    []expression.Expression
-	tmp_page_ids_    []types.PageID
-	right_tuple_     tuple.Tuple
+	plan_         *plans.IndexJoinPlanNode
+	left_         Executor
+	right_        Executor
+	left_expr_    expression.Expression
+	right_expr_   expression.Expression
+	tmp_tuples_   []hash.TmpTuple
+	index_        int32
+	output_exprs_ []expression.Expression
+	//tmp_page_ids_ []types.PageID
+	right_tuple_ tuple.Tuple
 }
 
-/**
-* Creates a new hash join executor.
-* @param exec_ctx the context that the hash join should be performed in
-* @param plan the hash join plan node
-* @param left the left child, used by convention to build the hash table
-* @param right the right child, used by convention to probe the hash table
- */
 func NewIndexJoinExecutor(exec_ctx *ExecutorContext, plan *plans.IndexJoinPlanNode, left Executor,
 	right Executor) *IndexJoinExecutor {
 	//retun &IndexJoinExecutor{exec_ctx, plan, }
@@ -47,15 +36,8 @@ func NewIndexJoinExecutor(exec_ctx *ExecutorContext, plan *plans.IndexJoinPlanNo
 	ret.context = exec_ctx
 	ret.left_ = left
 	ret.right_ = right
-	// about 200k entry can be stored
-	ret.jht_num_buckets_ = 100
-	//ret.jht_ = hash.NewLinearProbeHashTable(exec_ctx.GetBufferPoolManager(), int(ret.jht_num_buckets_))
-	ret.jht_ = NewSimpleIndexJoinTable()
 	return ret
 }
-
-/** @return the JHT in use. Do not modify this function, otherwise you will get a zero. */
-func (e *IndexJoinExecutor) GetJHT() *SimpleIndexJoinTable { return e.jht_ }
 
 func (e *IndexJoinExecutor) GetOutputSchema() *schema.Schema { return e.plan_.OutputSchema() }
 
@@ -170,6 +152,7 @@ func (e *IndexJoinExecutor) Next() (*tuple.Tuple, Done, error) {
 	}
 }
 
+/*
 func (e *IndexJoinExecutor) FetchTupleFromTmpTuplePage(tuple_ *tuple.Tuple, tmp_tuple *hash.TmpTuple) {
 	tmp_page := hash.CastPageAsTmpTuplePage(e.context.GetBufferPoolManager().FetchPage(tmp_tuple.GetPageId()))
 	if tmp_page == nil {
@@ -180,6 +163,7 @@ func (e *IndexJoinExecutor) FetchTupleFromTmpTuplePage(tuple_ *tuple.Tuple, tmp_
 	tmp_page.Get(tuple_, tmp_tuple.GetOffset())
 	e.context.GetBufferPoolManager().UnpinPage(tmp_tuple.GetPageId(), false)
 }
+*/
 
 func (e *IndexJoinExecutor) IsValidCombination(left_tuple *tuple.Tuple, right_tuple *tuple.Tuple) bool {
 	return e.plan_.OnPredicate().EvaluateJoin(left_tuple, e.left_.GetOutputSchema(), right_tuple, e.right_.GetOutputSchema()).ToBoolean()
@@ -196,41 +180,6 @@ func (e *IndexJoinExecutor) MakeOutputTuple(left_tuple *tuple.Tuple, right_tuple
 }
 
 // can not be used
-func (e *IndexJoinExecutor) GetTableMetaData() *catalog.TableMetadata { return nil }
-
-// TODO: (SDB) [OPT] not implemented yet (SimpleIndexJoinTable and its methods. these may be not needed...)
-
-type SimpleIndexJoinTable struct {
-	hash_table_ map[uint32][]hash.TmpTuple
+func (e *IndexJoinExecutor) GetTableMetaData() *catalog.TableMetadata {
+	panic("IndexJoinExecutor::GetTableMetaData() should not be called")
 }
-
-func NewSimpleIndexJoinTable() *SimpleIndexJoinTable {
-	return &SimpleIndexJoinTable{hash_table_: make(map[uint32][]hash.TmpTuple)}
-}
-
-/**
- * Inserts a (hash key, tuple) pair into the hash table.
- * @param txn the transaction that we execute in
- * @param h the hash key
- * @param t the tuple to associate with the key
- * @return true if the insert succeeded
- */
-func (jht *SimpleIndexJoinTable) Insert(h uint32, t *hash.TmpTuple) bool {
-	if jht.hash_table_[h] == nil {
-		vals := make([]hash.TmpTuple, 0)
-		vals = append(vals, *t)
-		jht.hash_table_[h] = vals
-	} else {
-		jht.hash_table_[h] = append(jht.hash_table_[h], *t)
-	}
-
-	return true
-}
-
-/**
- * Gets the values in the hash table that match the given hash key.
- * @param txn the transaction that we execute in
- * @param h the hash key
- * @param[out] t the list of tuples that matched the key
- */
-func (jht *SimpleIndexJoinTable) GetValue(h uint32) []hash.TmpTuple { return jht.hash_table_[h] }

@@ -305,7 +305,7 @@ func (so *SelingerOptimizer) findBestJoinInner(where *parser.BinaryOpExpression,
 			right_cols = append(right_cols, cn.Second)
 		}
 
-		// HashJoin (note: appended plans are temporal (not completely setuped))
+		// HashJoin
 		// candidates.push_back(std::make_shared<ProductPlan>(left, left_cols, right, right_cols));
 		var tmpPlan plans.Plan = plans.NewHashJoinPlanNodeWithChilds(left, parser.ConvColumnStrsToExpIfOnes(left_cols), right, parser.ConvColumnStrsToExpIfOnes(right_cols))
 		candidates = append(candidates, tmpPlan)
@@ -326,7 +326,8 @@ func (so *SelingerOptimizer) findBestJoinInner(where *parser.BinaryOpExpression,
 				for _, rcol := range right_cols {
 					if right_idx.GetTupleSchema().IsHaveColumn(rcol) {
 						// candidates.push_back(std::make_shared<ProductPlan>(left, left_cols, *right_tbl, right_idx, right_cols, *stat));
-						candidates = append(candidates, plans.NewIndexJoinPlan(left, parser.ConvColumnStrsToExpIfOnes(left_cols), right, parser.ConvColumnStrsToExpIfOnes(right_cols)))
+						// right scan plan is not used because IndexJoinExecutor does point scans internally
+						candidates = append(candidates, plans.NewIndexJoinPlan(left, parser.ConvColumnStrsToExpIfOnes(left_cols), right.OutputSchema(), right.GetTableOID(), parser.ConvColumnStrsToExpIfOnes(right_cols)))
 					}
 				}
 			}
