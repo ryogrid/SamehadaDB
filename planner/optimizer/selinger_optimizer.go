@@ -199,7 +199,7 @@ func (so *SelingerOptimizer) findBestScan(outNeededCols []*column.Column, where 
 			continue
 		}
 		//targetIndex := from.GetIndex(candidates[key])
-		// Plan new_plan = IndexScanSelect(from, target_idx, stat, *span.Min,*span.Max, scan_exp, select);
+		// Plan new_plan = IndexScanSelect(from, target_idx, stat, *span.min,*span.max, scan_exp, select);
 		var newPlan plans.Plan = plans.NewRangeScanWithIndexPlanNode(sc, from.OID(), int32(key), nil, span.Min, span.Max)
 		// if (!TouchOnly(scan_exp, from.GetSchema().GetColumn(key).Name())) {
 		if !touchOnly(scanExp, sc.GetColumn(uint32(key)).GetColumnName()) {

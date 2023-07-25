@@ -2,7 +2,7 @@ package catalog
 
 import (
 	"github.com/ryogrid/SamehadaDB/common"
-	"github.com/ryogrid/SamehadaDB/execution/plans"
+	"github.com/ryogrid/SamehadaDB/execution/expression"
 	"github.com/ryogrid/SamehadaDB/storage/table/schema"
 	"github.com/ryogrid/SamehadaDB/types"
 )
@@ -19,32 +19,111 @@ type distinctCounter[T int32 | float32 | string] struct {
 func NewDistinctCounter[T int32 | float32 | string](colType types.TypeID) *distinctCounter[T] {
 	// TODO: (SDB) [OPT] not implemented yet (NewDistinctCounter)
 
+	/*
+	   max = std::numeric_limits<int64_t>::min();
+	   min = std::numeric_limits<int64_t>::max();
+	   count = 0;
+	   counter_.clear();
+	*/
 	return nil
 }
 
 func (dc *distinctCounter[T]) Add(value T) {
 	// TODO: (SDB) [OPT] not implemented yet (distinctCounter::Add)
+
+	/*
+	   max = max < v ? v : max;
+	   min = v < min ? v : min;
+	   counter_.insert(v);
+	   ++count;
+	*/
 }
 
+func (dc *distinctCounter[T]) Output(o *ColumnStats[T]) {
+	// TODO: (SDB) [OPT] not implemented yet (distinctCounter::Output)
+
+	/*
+	   	o.max = max;
+	    o.min = min;
+	    o.count = count;
+	    o.distinct = counter_.size();
+	*/
+}
+
+/*
 func (dc *distinctCounter[T]) ToColumnStats() *ColumnStats[T] {
 	// TODO: (SDB) [OPT] not implemented yet (distinctCounter::ToColumnStats)
 	return nil
 }
+*/
 
 type ColumnStats[T int32 | float32 | string] struct {
-	Max      T
-	Min      T
-	Count    int64
-	Distinct int64
-	ColType  types.TypeID
-	Latch    common.ReaderWriterLatch
+	max      T
+	min      T
+	count    int64
+	distinct int64
+	colType  types.TypeID
+	latch    common.ReaderWriterLatch
 }
 
 func NewColumnStats[T int32 | float32 | string](colType types.TypeID) *ColumnStats[T] {
 	// TODO: (SDB) [OPT] not implemented yet (NewColumnStats)
+	/*
+	   max = std::numeric_limits<typeof(max)>::min();
+	   min = std::numeric_limits<typeof(max)>::max();
+	   count = 0;
+	   distinct = 0;
+	*/
 	return nil
 }
 
+func (cs *ColumnStats[T]) Count(value T) int32 {
+	// TODO: (SDB) [OPT] not implemented yet (ColumnStats::Count)
+	/*
+	   	    switch (type) {
+	            case ValueType::kNull:
+	              assert(!"never reach here");
+	            case ValueType::kInt64:
+	              return stat.int_stats.count;
+	            case ValueType::kVarChar:
+	              return stat.varchar_stats.count;
+	            case ValueType::kDouble:
+	              return stat.double_stats.count;
+	          }
+	*/
+	panic("not implemented yet (ColumnStats::Count)")
+}
+
+func (cs *ColumnStats[T]) Distinct() int32 {
+	// TODO: (SDB) [OPT] not implemented yet (ColumnStats::Distinct)
+	/*
+	   	    switch (type) {
+	            case ValueType::kNull:
+	              assert(!"never reach here");
+	            case ValueType::kInt64:
+	              return stat.int_stats.distinct;
+	            case ValueType::kVarChar:
+	              return stat.varchar_stats.distinct;
+	            case ValueType::kDouble:
+	              return stat.double_stats.distinct;
+	          }
+	          abort();
+	          return 0;
+	*/
+	panic("not implemented yet (ColumnStats::Distinct)")
+}
+
+func (cs *ColumnStats[T]) Check(sample *types.Value) {
+	// TODO: (SDB) [OPT] not implemented yet (ColumnStats::Check)
+
+	/*
+	   max = std::max(max, sample.value.int_value);
+	   min = std::min(min, sample.value.int_value);
+	   ++count;
+	*/
+}
+
+/*
 func (cs *ColumnStats[T]) UpdateStatistics() {
 	// TODO: (SDB) [OPT] not implemented yet (ColumnStats::UpdateStatistics)
 }
@@ -53,9 +132,25 @@ func (cs *ColumnStats[T]) ReductionFactor(sc schema.Schema, planTree plans.Plan)
 	// TODO: (SDB) [OPT] not implemented yet (ColumnStats::ReductionFactor)
 	return -1.0
 }
+*/
 
 func (cs *ColumnStats[T]) EstimateCount() float64 {
 	// TODO: (SDB) [OPT] not implemented yet (ColumnStats::EstimateCount)
+
+	/*
+	   switch (type) {
+	     case ValueType::kNull:
+	       assert(!"never reach here");
+	     case ValueType::kInt64:
+	       return stat.int_stats.EstimateCount(from, to);
+	     case ValueType::kVarChar:
+	       assert(!"never reach here");
+	     case ValueType::kDouble:
+	       assert(!"never reach here");
+	   }
+	   abort();
+	   return 0.0;
+	*/
 	return -1.0
 }
 
@@ -66,7 +161,122 @@ type TableStatistics struct {
 
 func NewTableStatistics(schema_ *schema.Schema) *TableStatistics {
 	// TODO: (SDB) [OPT] not implemented yet (NewTableStatistics)
+	/*
+	  stats_.reserve(sc.ColumnCount());
+	  for (size_t i = 0; i < sc.ColumnCount(); ++i) {
+	    stats_.emplace_back(sc.GetColumn(i).Type());
+	  }
+	*/
 	return nil
+}
+
+func (ts *TableStatistics) Update() error {
+	// TODO: (SDB) [OPT] not implemented yet (TableStatistics::Update)
+
+	/*
+	  int rows = 0;
+	  const Schema& schema = target.GetSchema();
+	  Iterator it = target.BeginFullScan(txn);
+	  std::vector<std::unique_ptr<DistinctCounter>> dist_counters;
+	  dist_counters.reserve(schema.ColumnCount());
+	  for (size_t i = 0; i < schema.ColumnCount(); ++i) {
+	    const Column& col = schema.GetColumn(i);
+	    dist_counters.emplace_back(new DistinctCounter(col.Type()));
+	  }
+	  while (it.IsValid()) {
+	    const Row& row = *it;
+	    for (size_t i = 0; i < dist_counters.size(); ++i) {
+	      dist_counters[i]->Add(row[i]);
+	    }
+	    ++rows;
+	    ++it;
+	  }
+	  for (size_t i = 0; i < stats_.size(); ++i) {
+	    ColumnStats& cs = stats_[i];
+	    switch (cs.type) {
+	      case ValueType::kNull:
+	        assert(!"never reach here");
+	      case ValueType::kInt64:
+	        dist_counters[i]->Output(cs.stat.int_stats);
+	        break;
+	      case ValueType::kVarChar:
+	        dist_counters[i]->Output(cs.stat.varchar_stats);
+	        break;
+	      case ValueType::kDouble:
+	        dist_counters[i]->Output(cs.stat.double_stats);
+	        break;
+	    }
+	  }
+	  return Status::kSuccess;
+	*/
+
+	return nil
+}
+
+// Returns estimated inverted selection ratio if the `sc` is selected by
+// `predicate`. If the predicate selects rows to 1 / x, returns x.
+// Returning 1 means no selection (pass through).
+func (ts *TableStatistics) ReductionFactor(sc schema.Schema, predicate expression.Expression) float64 {
+	// TODO: (SDB) [OPT] not implemented yet (TableStatistics::ReductionFactor)
+
+	/*
+	   	  assert(0 < sc.ColumnCount());
+	        if (predicate->Type() == TypeTag::kBinaryExp) {
+	          const auto* bo = reinterpret_cast<const BinaryExpression*>(predicate.get());
+	          std::unordered_set<ColumnName> columns = sc.ColumnSet();
+	          if (bo->Op() == BinaryOperation::kEquals) {
+	            if (bo->Left()->Type() == TypeTag::kColumnValue &&
+	                bo->Right()->Type() == TypeTag::kColumnValue) {
+	              const auto* lcv =
+	                  reinterpret_cast<const ColumnValue*>(bo->Left().get());
+	              const auto* rcv =
+	                  reinterpret_cast<const ColumnValue*>(bo->Right().get());
+	              if (columns.find(lcv->GetColumnName()) != columns.end() &&
+	                  columns.find(rcv->GetColumnName()) != columns.end()) {
+	                int offset_left = sc.Offset(lcv->GetColumnName());
+	                assert(0 <= offset_left && offset_left < (int)stats_.size());
+	                int offset_right = sc.Offset(rcv->GetColumnName());
+	                assert(0 <= offset_right && offset_right < (int)stats_.size());
+	                return std::min(static_cast<double>(stats_[offset_left].distinct()),
+	                                static_cast<double>(stats_[offset_right].distinct()));
+	              }
+	            }
+	            if (bo->Left()->Type() == TypeTag::kColumnValue) {
+	              const auto* lcv =
+	                  reinterpret_cast<const ColumnValue*>(bo->Left().get());
+	              LOG(WARN) << lcv->GetColumnName() << " in " << sc;
+	              int offset_left = sc.Offset(lcv->GetColumnName());
+	              assert(0 <= offset_left && offset_left < (int)stats_.size());
+	              return static_cast<double>(stats_[offset_left].distinct());
+	            }
+	            if (bo->Right()->Type() == TypeTag::kColumnValue) {
+	              const auto* rcv =
+	                  reinterpret_cast<const ColumnValue*>(bo->Left().get());
+	              int offset_right = sc.Offset(rcv->GetColumnName());
+	              return static_cast<double>(stats_[offset_right].distinct());
+	            }
+	            if (bo->Left()->Type() == TypeTag::kConstantValue &&
+	                bo->Right()->Type() == TypeTag::kConstantValue) {
+	              Value left = reinterpret_cast<const ConstantValue*>(bo->Left().get())
+	                               ->GetValue();
+	              Value right = reinterpret_cast<const ConstantValue*>(bo->Right().get())
+	                                ->GetValue();
+	              if (left == right) {
+	                return 1;
+	              }
+	              return std::numeric_limits<double>::max();
+	            }
+	          }
+	          if (bo->Op() == BinaryOperation::kAnd) {
+	            return ReductionFactor(sc, bo->Left()) * ReductionFactor(sc, bo->Right());
+	          }
+	          if (bo->Op() == BinaryOperation::kOr) {
+	            // FIXME: what should I return?
+	            return ReductionFactor(sc, bo->Left()) + ReductionFactor(sc, bo->Right());
+	          }
+	          // TODO: kGreaterThan, kGreaterEqual, kLessThan, kLessEqual, kNotEqual, kXor
+	*/
+	panic("not implemented yet (TableStatistics::ReductionFactor)")
 }
 
 func (ts *TableStatistics) ColumnNum() int32 {
@@ -75,14 +285,40 @@ func (ts *TableStatistics) ColumnNum() int32 {
 
 func (ts *TableStatistics) EstimateCount(col_idx int32, from *types.Value, to *types.Value) float64 {
 	// TODO: (SDB) [OPT] not implemented yet (TableStatistics::EstimateCount)
+
+	/*
+	  if (to <= from) {
+	    std::swap(from, to);
+	  }
+	  assert(from <= to);
+	  from = std::max(min, from);
+	  to = std::min(max, to);
+	  return (from - to) * static_cast<double>(count) / distinct;
+	*/
 	return -1.0
 }
 
 func (ts *TableStatistics) TransformBy(col_idx int32, from *types.Value, to *types.Value) float64 {
 	// TODO: (SDB) [OPT] not implemented yet (TableStatistics::TransformBy)
+
+	/*
+	   TableStatistics ret(*this);
+	   double multiplier = EstimateCount(col_idx, from, to);
+	   for (auto& st : ret.stats_) {
+	     st *= multiplier / st.count();
+	   }
+	   return ret;
+	*/
 	return -1.0
 }
 
 func (ts *TableStatistics) Concat(rhs *TableStatistics) {
 	// TODO: (SDB) [OPT] not implemented yet (TableStatistics::Concat)
+
+	/*
+	   stats_.reserve(stats_.size() + rhs.stats_.size());
+	   for (const auto& s : rhs.stats_) {
+	     stats_.emplace_back(s);
+	   }
+	*/
 }

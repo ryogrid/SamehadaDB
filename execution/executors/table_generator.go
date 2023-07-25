@@ -34,11 +34,11 @@ type ColumnInsertMeta struct {
 	 */
 	Dist_ int32
 	/**
-	 * Min value of the column
+	 * min value of the column
 	 */
 	Min_ int32
 	/**
-	 * Max value of the column
+	 * max value of the column
 	 */
 	Max_ int32
 	/**

@@ -547,7 +547,7 @@ func (v Value) Max(other *Value) *Value {
 			return &ret
 		}
 	default:
-		panic("Max is implemented to Integer and Float only.")
+		panic("max is implemented to Integer and Float only.")
 	}
 }
 
@@ -574,6 +574,6 @@ func (v Value) Min(other *Value) *Value {
 			return &ret
 		}
 	default:
-		panic("Max is implemented to Integer and Float only.")
+		panic("max is implemented to Integer and Float only.")
 	}
 }
