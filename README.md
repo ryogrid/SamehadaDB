@@ -4,8 +4,7 @@
 
 # Overview
 - Simple Relational Database Implemented in Golang
-- This code tree is based on Golang ported [BusTub](https://github.com/cmu-db/bustub) RDBMS: go-bustub
-  - original code of go-bustub is [here](https://github.com/brunocalza/go-bustub)
+- Origin of SamehadaDB is Golang ported [BusTub](https://github.com/cmu-db/bustub) RDBMS: [go-bustub](https://github.com/brunocalza/go-bustub)
 
 # What is Samehada?
 - Samehada, which literally means shark skin, is a tool used to grate wasabi, usually for sushi, but also for other Japanese cuisines
@@ -80,7 +79,7 @@
     - So, current transaction isolation level is **"REPEATABLE READ"**
   - Retry of txns aborted due to concurrency control protocol is not implemented yet
 - [ ] <del>Execution Planning from hard coded SQL like method call I/F (like some kind of embedded DB)</del>
-- [x] Execution Planning from Query Description text (SQL)
+- [x] Execution of Query with SQL string
 - [x] Frontend Impl as Embedded DB Library (like SQLite)
   - Currently, functions of the library are not thread safe and concurrent transaction is not supported
 - [ ] Deduplication of Result Records (Distinct)
@@ -94,6 +93,8 @@
   - [ ] REST
 - [ ] Deallocate and Reuse Page
   - Need tracking page usage by BufferPoolManager or TableHeap and need bitmap in header page corresponding to the tracking
+- [ ] Optimization of INSERT
+  - Current implementation searches a free space which is enough for insert data with sequential scan from head (this is slow on exsisting large amount of records situation) 
 - [ ] UNION clause
 - [ ] Materialization (implementation of component for temporal teble management)
 - [ ] Communication over SSL/TLS
@@ -105,8 +106,11 @@
 ## About Skip List Index SamehadaDB has
 - [Implementation of On-Disk Concurrent Skip List as an Alternative to B-Tree Index](https://ryogrid.github.io/articles/skiplist_en)
 
-## Advisor
+# Advisor
 - [kumagi](https://github.com/kumagi) and more!
 
-## Past work
-[FunnelKVS: Rust implementation of autonomous distributed key-value store which has REST interfaces](https://github.com/ryogrid/rust_dkvs)
+# Acknowledgement
+- 2021 May - present: SamehadaDB project is assisted by OSS community support program of JetBrains s.r.o with offering development tools such as GoLand IDE
+
+# Past work
+- [FunnelKVS: Rust implementation of autonomous distributed key-value store which has REST interfaces](https://github.com/ryogrid/rust_dkvs)
