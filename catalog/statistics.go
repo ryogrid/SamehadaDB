@@ -3,32 +3,38 @@ package catalog
 import (
 	"github.com/ryogrid/SamehadaDB/common"
 	"github.com/ryogrid/SamehadaDB/execution/expression"
+	"github.com/ryogrid/SamehadaDB/samehada/samehada_util"
 	"github.com/ryogrid/SamehadaDB/storage/table/schema"
 	"github.com/ryogrid/SamehadaDB/types"
+	"math"
 )
 
-type distinctCounter[T int32 | float32 | string] struct {
-	max      T
-	min      T
+type distinctCounter struct {
+	max      *types.Value
+	min      *types.Value
 	count    int64
 	distinct int64
 	colType  types.TypeID
-	counter  map[T]bool
+	counter  map[interface{}]bool
 }
 
-func NewDistinctCounter[T int32 | float32 | string](colType types.TypeID) *distinctCounter[T] {
+func NewDistinctCounter(colType types.TypeID) *distinctCounter {
 	// TODO: (SDB) [OPT] not implemented yet (NewDistinctCounter)
+	switch colType {
+	case types.Integer:
+		return &distinctCounter{samehada_util.GetPonterOfValue(types.NewInteger(math.MaxInt32)), samehada_util.GetPonterOfValue(types.NewInteger(math.MinInt32)), 0, 0, colType, make(map[interface{}]bool, 0)}
+	case types.Float:
+		return &distinctCounter{samehada_util.GetPonterOfValue(types.NewFloat(math.MaxFloat32)), samehada_util.GetPonterOfValue(types.NewFloat(math.SmallestNonzeroFloat32)), 0, 0, colType, make(map[interface{}]bool, 0)}
+	case types.Varchar:
+		return &distinctCounter{samehada_util.GetPonterOfValue(types.NewVarchar("")).SetInfMax(), samehada_util.GetPonterOfValue(types.NewVarchar("")).SetInfMin(), 0, 0, colType, make(map[interface{}]bool, 0)}
+	default:
+		panic("unkown type")
+	}
 
-	/*
-	   max = std::numeric_limits<int64_t>::min();
-	   min = std::numeric_limits<int64_t>::max();
-	   count = 0;
-	   counter_.clear();
-	*/
 	return nil
 }
 
-func (dc *distinctCounter[T]) Add(value T) {
+func (dc *distinctCounter) Add(value *types.Value) {
 	// TODO: (SDB) [OPT] not implemented yet (distinctCounter::Add)
 
 	/*
@@ -39,7 +45,7 @@ func (dc *distinctCounter[T]) Add(value T) {
 	*/
 }
 
-func (dc *distinctCounter[T]) Output(o *ColumnStats[T]) {
+func (dc *distinctCounter) Output(o *columnStats) {
 	// TODO: (SDB) [OPT] not implemented yet (distinctCounter::Output)
 
 	/*
@@ -52,21 +58,20 @@ func (dc *distinctCounter[T]) Output(o *ColumnStats[T]) {
 
 /*
 func (dc *distinctCounter[T]) ToColumnStats() *ColumnStats[T] {
-	// TODO: (SDB) [OPT] not implemented yet (distinctCounter::ToColumnStats)
 	return nil
 }
 */
 
-type ColumnStats[T int32 | float32 | string] struct {
-	max      T
-	min      T
+type columnStats struct {
+	max      *types.Value
+	min      *types.Value
 	count    int64
 	distinct int64
 	colType  types.TypeID
 	latch    common.ReaderWriterLatch
 }
 
-func NewColumnStats[T int32 | float32 | string](colType types.TypeID) *ColumnStats[T] {
+func NewColumnStats(colType types.TypeID) *columnStats {
 	// TODO: (SDB) [OPT] not implemented yet (NewColumnStats)
 	/*
 	   max = std::numeric_limits<typeof(max)>::min();
@@ -77,7 +82,7 @@ func NewColumnStats[T int32 | float32 | string](colType types.TypeID) *ColumnSta
 	return nil
 }
 
-func (cs *ColumnStats[T]) Count(value T) int32 {
+func (cs *columnStats) Count() int32 {
 	// TODO: (SDB) [OPT] not implemented yet (ColumnStats::Count)
 	/*
 	   	    switch (type) {
@@ -94,7 +99,7 @@ func (cs *ColumnStats[T]) Count(value T) int32 {
 	panic("not implemented yet (ColumnStats::Count)")
 }
 
-func (cs *ColumnStats[T]) Distinct() int32 {
+func (cs *columnStats) Distinct() int32 {
 	// TODO: (SDB) [OPT] not implemented yet (ColumnStats::Distinct)
 	/*
 	   	    switch (type) {
@@ -113,7 +118,7 @@ func (cs *ColumnStats[T]) Distinct() int32 {
 	panic("not implemented yet (ColumnStats::Distinct)")
 }
 
-func (cs *ColumnStats[T]) Check(sample *types.Value) {
+func (cs *columnStats) Check(sample *types.Value) {
 	// TODO: (SDB) [OPT] not implemented yet (ColumnStats::Check)
 
 	/*
@@ -125,16 +130,14 @@ func (cs *ColumnStats[T]) Check(sample *types.Value) {
 
 /*
 func (cs *ColumnStats[T]) UpdateStatistics() {
-	// TODO: (SDB) [OPT] not implemented yet (ColumnStats::UpdateStatistics)
 }
 
 func (cs *ColumnStats[T]) ReductionFactor(sc schema.Schema, planTree plans.Plan) float64 {
-	// TODO: (SDB) [OPT] not implemented yet (ColumnStats::ReductionFactor)
 	return -1.0
 }
 */
 
-func (cs *ColumnStats[T]) EstimateCount() float64 {
+func (cs *columnStats) EstimateCount() float64 {
 	// TODO: (SDB) [OPT] not implemented yet (ColumnStats::EstimateCount)
 
 	/*
