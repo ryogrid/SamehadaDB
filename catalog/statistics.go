@@ -207,70 +207,85 @@ func (ts *TableStatistics) Update(target *TableMetadata, txn *access.Transaction
 	return nil
 }
 
+func isBinaryExp(exp expression.Expression) bool {
+	_, okCmp := exp.(*expression.Comparison)
+	_, okLogi := exp.(*expression.LogicalOp)
+	return okCmp || okLogi
+}
+
 // Returns estimated inverted selection ratio if the `sc` is selected by
 // `predicate`. If the predicate selects rows to 1 / x, returns x.
 // Returning 1 means no selection (pass through).
 func (ts *TableStatistics) ReductionFactor(sc schema.Schema, predicate expression.Expression) float64 {
 	// TODO: (SDB) [OPT] not implemented yet (TableStatistics::ReductionFactor)
 
-	/*
-	   	  assert(0 < sc.ColumnCount());
-	        if (predicate->Type() == TypeTag::kBinaryExp) {
-	          const auto* bo = reinterpret_cast<const BinaryExpression*>(predicate.get());
-	          std::unordered_set<ColumnName> columns = sc.ColumnSet();
-	          if (bo->Op() == BinaryOperation::kEquals) {
-	            if (bo->Left()->Type() == TypeTag::kColumnValue &&
-	                bo->Right()->Type() == TypeTag::kColumnValue) {
-	              const auto* lcv =
-	                  reinterpret_cast<const ColumnValue*>(bo->Left().get());
-	              const auto* rcv =
-	                  reinterpret_cast<const ColumnValue*>(bo->Right().get());
-	              if (columns.find(lcv->GetColumnName()) != columns.end() &&
-	                  columns.find(rcv->GetColumnName()) != columns.end()) {
-	                int offset_left = sc.Offset(lcv->GetColumnName());
-	                assert(0 <= offset_left && offset_left < (int)stats_.size());
-	                int offset_right = sc.Offset(rcv->GetColumnName());
-	                assert(0 <= offset_right && offset_right < (int)stats_.size());
-	                return std::min(static_cast<double>(stats_[offset_left].distinct()),
-	                                static_cast<double>(stats_[offset_right].distinct()));
-	              }
-	            }
-	            if (bo->Left()->Type() == TypeTag::kColumnValue) {
-	              const auto* lcv =
-	                  reinterpret_cast<const ColumnValue*>(bo->Left().get());
-	              LOG(WARN) << lcv->GetColumnName() << " in " << sc;
-	              int offset_left = sc.Offset(lcv->GetColumnName());
-	              assert(0 <= offset_left && offset_left < (int)stats_.size());
-	              return static_cast<double>(stats_[offset_left].distinct());
-	            }
-	            if (bo->Right()->Type() == TypeTag::kColumnValue) {
-	              const auto* rcv =
-	                  reinterpret_cast<const ColumnValue*>(bo->Left().get());
-	              int offset_right = sc.Offset(rcv->GetColumnName());
-	              return static_cast<double>(stats_[offset_right].distinct());
-	            }
-	            if (bo->Left()->Type() == TypeTag::kConstantValue &&
-	                bo->Right()->Type() == TypeTag::kConstantValue) {
-	              Value left = reinterpret_cast<const ConstantValue*>(bo->Left().get())
-	                               ->GetValue();
-	              Value right = reinterpret_cast<const ConstantValue*>(bo->Right().get())
-	                                ->GetValue();
-	              if (left == right) {
-	                return 1;
-	              }
-	              return std::numeric_limits<double>::max();
-	            }
-	          }
-	          if (bo->Op() == BinaryOperation::kAnd) {
-	            return ReductionFactor(sc, bo->Left()) * ReductionFactor(sc, bo->Right());
-	          }
-	          if (bo->Op() == BinaryOperation::kOr) {
-	            // FIXME: what should I return?
-	            return ReductionFactor(sc, bo->Left()) + ReductionFactor(sc, bo->Right());
-	          }
-	          // TODO: kGreaterThan, kGreaterEqual, kLessThan, kLessEqual, kNotEqual, kXor
-	*/
-	panic("not implemented yet (TableStatistics::ReductionFactor)")
+	samehada_util.SHAssert(sc.GetColumnCount() > 0, "no column in schema")
+	if isBinaryExp(predicate) {
+		boCmp, okCmp := predicate.(*expression.Comparison)
+		if okCmp && boCmp.GetComparisonType() == expression.Equal {
+			/*
+			   if (bo->Left()->Type() == TypeTag::kColumnValue &&
+			       bo->Right()->Type() == TypeTag::kColumnValue) {
+			     const auto* lcv =
+			         reinterpret_cast<const ColumnValue*>(bo->Left().get());
+			     const auto* rcv =
+			         reinterpret_cast<const ColumnValue*>(bo->Right().get());
+			     if (columns.find(lcv->GetColumnName()) != columns.end() &&
+			         columns.find(rcv->GetColumnName()) != columns.end()) {
+			       int offset_left = sc.Offset(lcv->GetColumnName());
+			       assert(0 <= offset_left && offset_left < (int)stats_.size());
+			       int offset_right = sc.Offset(rcv->GetColumnName());
+			       assert(0 <= offset_right && offset_right < (int)stats_.size());
+			       return std::min(static_cast<double>(stats_[offset_left].distinct()),
+			                       static_cast<double>(stats_[offset_right].distinct()));
+			     }
+			   }
+			   if (bo->Left()->Type() == TypeTag::kColumnValue) {
+			     const auto* lcv =
+			         reinterpret_cast<const ColumnValue*>(bo->Left().get());
+			     LOG(WARN) << lcv->GetColumnName() << " in " << sc;
+			     int offset_left = sc.Offset(lcv->GetColumnName());
+			     assert(0 <= offset_left && offset_left < (int)stats_.size());
+			     return static_cast<double>(stats_[offset_left].distinct());
+			   }
+			   if (bo->Right()->Type() == TypeTag::kColumnValue) {
+			     const auto* rcv =
+			         reinterpret_cast<const ColumnValue*>(bo->Left().get());
+			     int offset_right = sc.Offset(rcv->GetColumnName());
+			     return static_cast<double>(stats_[offset_right].distinct());
+			   }
+			   if (bo->Left()->Type() == TypeTag::kConstantValue &&
+			       bo->Right()->Type() == TypeTag::kConstantValue) {
+			     Value left = reinterpret_cast<const ConstantValue*>(bo->Left().get())
+			                      ->GetValue();
+			     Value right = reinterpret_cast<const ConstantValue*>(bo->Right().get())
+			                       ->GetValue();
+			     if (left == right) {
+			       return 1;
+			     }
+			     return std::numeric_limits<double>::max();
+			   }
+			*/
+		}
+		// TODO: kGreaterThan, kGreaterEqual, kLessThan, kLessEqual, kNotEqual, kXor
+
+		boLogi, okLogi := predicate.(*expression.LogicalOp)
+		if okLogi {
+			if boLogi.GetLogicalOpType() == expression.AND {
+				/*
+					return ReductionFactor(sc, bo->Left()) * ReductionFactor(sc, bo->Right());
+				*/
+			}
+			if boLogi.GetLogicalOpType() == expression.OR {
+				/*
+				   // FIXME: what should I return?
+				   return ReductionFactor(sc, bo->Left()) + ReductionFactor(sc, bo->Right());
+				*/
+			}
+		}
+	}
+
+	panic("predicate includes not supported expression")
 }
 
 func (ts *TableStatistics) ColumnNum() int32 {
