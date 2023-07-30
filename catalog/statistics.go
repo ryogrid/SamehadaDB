@@ -19,7 +19,6 @@ type distinctCounter struct {
 }
 
 func NewDistinctCounter(colType types.TypeID) *distinctCounter {
-	// TODO: (SDB) [OPT] not implemented yet (NewDistinctCounter)
 	switch colType {
 	case types.Integer:
 		return &distinctCounter{samehada_util.GetPonterOfValue(types.NewInteger(math.MaxInt32)), samehada_util.GetPonterOfValue(types.NewInteger(math.MinInt32)), 0, 0, colType, make(map[interface{}]bool, 0)}
@@ -30,8 +29,6 @@ func NewDistinctCounter(colType types.TypeID) *distinctCounter {
 	default:
 		panic("unkown type")
 	}
-
-	return nil
 }
 
 func (dc *distinctCounter) Add(value *types.Value) {
@@ -72,14 +69,16 @@ type columnStats struct {
 }
 
 func NewColumnStats(colType types.TypeID) *columnStats {
-	// TODO: (SDB) [OPT] not implemented yet (NewColumnStats)
-	/*
-	   max = std::numeric_limits<typeof(max)>::min();
-	   min = std::numeric_limits<typeof(max)>::max();
-	   count = 0;
-	   distinct = 0;
-	*/
-	return nil
+	switch colType {
+	case types.Integer:
+		return &columnStats{samehada_util.GetPonterOfValue(types.NewInteger(math.MaxInt32)), samehada_util.GetPonterOfValue(types.NewInteger(math.MinInt32)), 0, 0, colType, common.NewRWLatch()}
+	case types.Float:
+		return &columnStats{samehada_util.GetPonterOfValue(types.NewFloat(math.MaxFloat32)), samehada_util.GetPonterOfValue(types.NewFloat(math.SmallestNonzeroFloat32)), 0, 0, colType, common.NewRWLatch()}
+	case types.Varchar:
+		return &columnStats{samehada_util.GetPonterOfValue(types.NewVarchar("")).SetInfMax(), samehada_util.GetPonterOfValue(types.NewVarchar("")).SetInfMin(), 0, 0, colType, common.NewRWLatch()}
+	default:
+		panic("unkown type")
+	}
 }
 
 func (cs *columnStats) Count() int32 {
@@ -158,19 +157,15 @@ func (cs *columnStats) EstimateCount() float64 {
 }
 
 type TableStatistics struct {
-	// any => *ColumnStats[T]
-	colStats []any
+	colStats []*columnStats
 }
 
 func NewTableStatistics(schema_ *schema.Schema) *TableStatistics {
-	// TODO: (SDB) [OPT] not implemented yet (NewTableStatistics)
-	/*
-	  stats_.reserve(sc.ColumnCount());
-	  for (size_t i = 0; i < sc.ColumnCount(); ++i) {
-	    stats_.emplace_back(sc.GetColumn(i).Type());
-	  }
-	*/
-	return nil
+	colStats := make([]*columnStats, 0)
+	for ii := 0; ii < int(schema_.GetColumnCount()); ii++ {
+		colStats = append(colStats, NewColumnStats(schema_.GetColumn(uint32(ii)).GetType()))
+	}
+	return &TableStatistics{colStats}
 }
 
 func (ts *TableStatistics) Update() error {
