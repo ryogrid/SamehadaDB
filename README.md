@@ -46,20 +46,20 @@
 - [x] Delete Tuple
 - [x] Update Tuple
   - <del>RESTRICTION: a condition which update transaction aborts on exists</del>
-- [x] LIMIT / OFFSET
+- [x] LIMIT / OFFSET [^1]
 - [x] Varchar
 - [x] Persistent Catalog
 - [ ] Updating of Table Schema 
 - [ ] <del>LRU replacer</del>
 - [x] Latches
 - [x] Transactions
-- [x] Rollback When Abort Occurs
+- [x] Rollback When Abort Occurs [^1]
 - [x] Logging
 - [x] Checkpointing
   - [x] Simple Checkpointing (all transaction block until finish of checkpointing)
   - [ ] Fuzzy Checkpointing (ARIES)
 - [x] Recovery from Logs
-- [ ] Index
+- [ ] Index [^1]
   - [x] Hash Index
     - Hash index can be used only equal(==) operator is specified to index having columns
     - When the system exits in not graceful, reconstruction of index data is needed at reboot of system now
@@ -71,10 +71,10 @@
   - [x] INNER JOIN (Hash Join)
     - Currently, only two tables JOIN is implemented and condition specified at ON clause should be composed of single item  
   - [ ] CROSS JOIN
-- [x] Aggregations (COUNT, MAX, MIN, SUM on SELECT clause including Group by and Having)
-- [x] Sort (ORDER BY clause) 
+- [x] Aggregations (COUNT, MAX, MIN, SUM on SELECT clause including Group by and Having) [^1]
+- [x] Sort (ORDER BY clause) [^1]
 - [x] Tuple Level Locking With Strong Strict 2-Phase Locking (SS2PL) Protocol
-- [x] Concurrent Execution of Transactions
+- [x] Concurrent Execution of Transactions [^1]
   - Avoidance of phantom problem is not implemented yet
     - So, current transaction isolation level is **"REPEATABLE READ"**
   - Retry of txns aborted due to concurrency control protocol is not implemented yet
@@ -99,6 +99,8 @@
 - [ ] Materialization (implementation of component for temporal teble management)
 - [ ] Communication over SSL/TLS
 - [ ] Authentication
+  
+[^1]: Not supported on using from frontend now
 
 ## More Info
 - [Wiki on this repo](https://github.com/ryogrid/SamehadaDB/wiki)
