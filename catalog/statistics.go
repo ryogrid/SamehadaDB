@@ -4,6 +4,7 @@ import (
 	"github.com/ryogrid/SamehadaDB/common"
 	"github.com/ryogrid/SamehadaDB/execution/expression"
 	"github.com/ryogrid/SamehadaDB/samehada/samehada_util"
+	"github.com/ryogrid/SamehadaDB/storage/access"
 	"github.com/ryogrid/SamehadaDB/storage/table/schema"
 	"github.com/ryogrid/SamehadaDB/types"
 	"math"
@@ -168,45 +169,40 @@ func NewTableStatistics(schema_ *schema.Schema) *TableStatistics {
 	return &TableStatistics{colStats}
 }
 
-func (ts *TableStatistics) Update() error {
-	// TODO: (SDB) [OPT] not implemented yet (TableStatistics::Update)
+func (ts *TableStatistics) Update(target *TableMetadata, txn *access.Transaction) error {
+	rows := 0
+	schema_ := target.Schema()
+	//Iterator it = target.BeginFullScan(txn);
+	it := target.Table().Iterator(txn)
 
-	/*
-	  int rows = 0;
-	  const Schema& schema = target.GetSchema();
-	  Iterator it = target.BeginFullScan(txn);
-	  std::vector<std::unique_ptr<DistinctCounter>> dist_counters;
-	  dist_counters.reserve(schema.ColumnCount());
-	  for (size_t i = 0; i < schema.ColumnCount(); ++i) {
-	    const Column& col = schema.GetColumn(i);
-	    dist_counters.emplace_back(new DistinctCounter(col.Type()));
-	  }
-	  while (it.IsValid()) {
-	    const Row& row = *it;
-	    for (size_t i = 0; i < dist_counters.size(); ++i) {
-	      dist_counters[i]->Add(row[i]);
-	    }
-	    ++rows;
-	    ++it;
-	  }
-	  for (size_t i = 0; i < stats_.size(); ++i) {
-	    ColumnStats& cs = stats_[i];
-	    switch (cs.type) {
-	      case ValueType::kNull:
-	        assert(!"never reach here");
-	      case ValueType::kInt64:
-	        dist_counters[i]->Output(cs.stat.int_stats);
-	        break;
-	      case ValueType::kVarChar:
-	        dist_counters[i]->Output(cs.stat.varchar_stats);
-	        break;
-	      case ValueType::kDouble:
-	        dist_counters[i]->Output(cs.stat.double_stats);
-	        break;
-	    }
-	  }
-	  return Status::kSuccess;
-	*/
+	distCounters := make([]*distinctCounter, 0)
+	for ii := 0; ii < int(schema_.GetColumnCount()); ii++ {
+		distCounters = append(distCounters, NewDistinctCounter(schema_.GetColumn(uint32(ii)).GetType()))
+	}
+
+	for !it.End() {
+		//const Row& row = *it;
+		tuple_ := it.Next()
+		for ii := 0; ii < len(ts.colStats); ii++ {
+			distCounters[ii].Add(samehada_util.GetPonterOfValue(tuple_.GetValue(schema_, uint32(ii))))
+		}
+		rows++
+	}
+	for ii := 0; ii < len(ts.colStats); ii++ {
+		cs := ts.colStats[ii]
+		switch cs.colType {
+		case types.Null:
+			panic("never reach here")
+		case types.Integer:
+			distCounters[ii].Output(cs)
+		case types.Float:
+			distCounters[ii].Output(cs)
+		case types.Varchar:
+			distCounters[ii].Output(cs)
+		default:
+			panic("unkown or not supported type")
+		}
+	}
 
 	return nil
 }
