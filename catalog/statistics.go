@@ -32,15 +32,23 @@ func NewDistinctCounter(colType types.TypeID) *distinctCounter {
 	}
 }
 
-func (dc *distinctCounter) Add(value *types.Value) {
-	// TODO: (SDB) [OPT] not implemented yet (distinctCounter::Add)
+// ret shallow copied addr
+func retValAccordingToCompareResult(compReslt bool, trueVal *types.Value, falseVal *types.Value) *types.Value {
+	if compReslt {
+		return trueVal
+	} else {
+		return falseVal
+	}
+}
 
-	/*
-	   max = max < v ? v : max;
-	   min = v < min ? v : min;
-	   counter_.insert(v);
-	   ++count;
-	*/
+func (dc *distinctCounter) Add(value *types.Value) {
+	//max = max < v ? v : max;
+	//min = v < min ? v : min;
+	dc.max = retValAccordingToCompareResult(dc.max.CompareLessThan(*value), value, dc.max)
+	dc.min = retValAccordingToCompareResult(dc.min.CompareGreaterThan(*value), value, dc.min)
+	// counter_.insert(v);
+	dc.counter[value.ToIFValue()] = true
+	dc.count++
 }
 
 func (dc *distinctCounter) Output(o *columnStats) {
