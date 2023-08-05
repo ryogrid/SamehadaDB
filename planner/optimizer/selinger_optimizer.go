@@ -376,7 +376,7 @@ func (so *SelingerOptimizer) findBestJoin(optimalPlans map[mapset.Set[string]]Co
 				if containsAny(baseTableFrom, joinTableFrom) {
 					continue
 				}
-				// TODO: (SDB) [OPT] (len(baseTable) + len(joinTable) == ii + 1) should be checked? and (len(baseTable) == 1 or len(joinTable) == 1) should be checked? (SelingerOptimizer::findBestJoin)
+				// TODO: (SDB) [OPT] (len(baseTable) + len(joinTable) == ii + 1) should be checked? and (len(joinTable) == 1) should be checked? (SelingerOptimizer::findBestJoin)
 				bestJoinPlan, _ := NewSelingerOptimizer().findBestJoinInner(query.WhereExpression_, baseTableCP.plan, joinTableCP.plan)
 				fmt.Println(bestJoinPlan)
 

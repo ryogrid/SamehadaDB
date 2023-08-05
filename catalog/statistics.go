@@ -52,14 +52,11 @@ func (dc *distinctCounter) Add(value *types.Value) {
 }
 
 func (dc *distinctCounter) Output(o *columnStats) {
-	// TODO: (SDB) [OPT] not implemented yet (distinctCounter::Output)
-
-	/*
-	   	o.max = max;
-	    o.min = min;
-	    o.count = count;
-	    o.distinct = counter_.size();
-	*/
+	o.max = dc.max
+	o.min = dc.min
+	o.count = dc.count
+	// o.distinct = counter_.size();
+	o.distinct = int64(len(dc.counter))
 }
 
 /*
@@ -90,50 +87,47 @@ func NewColumnStats(colType types.TypeID) *columnStats {
 	}
 }
 
-func (cs *columnStats) Count() int32 {
-	// TODO: (SDB) [OPT] not implemented yet (ColumnStats::Count)
-	/*
-	   	    switch (type) {
-	            case ValueType::kNull:
-	              assert(!"never reach here");
-	            case ValueType::kInt64:
-	              return stat.int_stats.count;
-	            case ValueType::kVarChar:
-	              return stat.varchar_stats.count;
-	            case ValueType::kDouble:
-	              return stat.double_stats.count;
-	          }
-	*/
-	panic("not implemented yet (ColumnStats::Count)")
+func (cs *columnStats) Count() int64 {
+	cs.latch.RLock()
+	defer cs.latch.RUnlock()
+
+	switch cs.colType {
+	case types.Integer:
+		return cs.count
+	case types.Float:
+		return cs.count
+	case types.Varchar:
+		return cs.count
+	default:
+		panic("unkown or not supported type")
+	}
 }
 
-func (cs *columnStats) Distinct() int32 {
-	// TODO: (SDB) [OPT] not implemented yet (ColumnStats::Distinct)
-	/*
-	   	    switch (type) {
-	            case ValueType::kNull:
-	              assert(!"never reach here");
-	            case ValueType::kInt64:
-	              return stat.int_stats.distinct;
-	            case ValueType::kVarChar:
-	              return stat.varchar_stats.distinct;
-	            case ValueType::kDouble:
-	              return stat.double_stats.distinct;
-	          }
-	          abort();
-	          return 0;
-	*/
-	panic("not implemented yet (ColumnStats::Distinct)")
+func (cs *columnStats) Distinct() int64 {
+	cs.latch.RLock()
+	defer cs.latch.RUnlock()
+
+	switch cs.colType {
+	case types.Integer:
+		return cs.distinct
+	case types.Float:
+		return cs.distinct
+	case types.Varchar:
+		return cs.distinct
+	default:
+		panic("unkown or not supported type")
+	}
 }
 
 func (cs *columnStats) Check(sample *types.Value) {
-	// TODO: (SDB) [OPT] not implemented yet (ColumnStats::Check)
+	cs.latch.WLock()
+	defer cs.latch.WUnlock()
 
-	/*
-	   max = std::max(max, sample.value.int_value);
-	   min = std::min(min, sample.value.int_value);
-	   ++count;
-	*/
+	// max = std::max(max, sample.value.int_value);
+	// min = std::min(min, sample.value.int_value);
+	cs.max = retValAccordingToCompareResult(sample.CompareGreaterThan(*cs.max), sample, cs.max)
+	cs.min = retValAccordingToCompareResult(sample.CompareLessThan(*cs.min), sample, cs.min)
+	cs.count++
 }
 
 /*
@@ -145,24 +139,36 @@ func (cs *ColumnStats[T]) ReductionFactor(sc schema.Schema, planTree plans.Plan)
 }
 */
 
-func (cs *columnStats) EstimateCount() float64 {
+func (cs *columnStats) EstimateCount(from *types.Value, to *types.Value) float64 {
 	// TODO: (SDB) [OPT] not implemented yet (ColumnStats::EstimateCount)
 
-	/*
-	   switch (type) {
-	     case ValueType::kNull:
-	       assert(!"never reach here");
-	     case ValueType::kInt64:
-	       return stat.int_stats.EstimateCount(from, to);
-	     case ValueType::kVarChar:
-	       assert(!"never reach here");
-	     case ValueType::kDouble:
-	       assert(!"never reach here");
-	   }
-	   abort();
-	   return 0.0;
-	*/
-	return -1.0
+	panic("not implemented yet")
+
+	if cs.colType == types.Integer || cs.colType == types.Float {
+		/*
+		  if (to <= from) {
+		    std::swap(from, to);
+		  }
+		  assert(from <= to);
+		  from = std::max(min, from);
+		  to = std::min(max, to);
+		  return (from - to) * static_cast<double>(count) / distinct;
+		*/
+	} else if cs.colType == types.Varchar {
+		/*
+		  if (to <= from) {
+		    std::swap(from, to);
+		  }
+		  if (to <= min || max <= from) {
+		    return 1;
+		  }
+		  return 2;  // FIXME: there must be a better estimation!
+		*/
+	} else {
+		panic("unkown or not supported type")
+	}
+
+	return -1 // remove this after implementation
 }
 
 type TableStatistics struct {
