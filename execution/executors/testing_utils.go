@@ -54,7 +54,7 @@ type SeqScanTestCase struct {
 func ExecuteSeqScanTestCase(t *testing.T, testCase SeqScanTestCase) {
 	columns := []*column.Column{}
 	for _, c := range testCase.Columns {
-		columns = append(columns, column.NewColumn(c.Name, c.Kind, false, index_constants.INDEX_KIND_INVALID, types.PageID(-1), nil))
+		columns = append(columns, column.NewColumn(*testCase.TableMetadata.GetTableName()+"."+c.Name, c.Kind, false, index_constants.INDEX_KIND_INVALID, types.PageID(-1), nil))
 	}
 	outSchema := schema.NewSchema(columns)
 
@@ -101,14 +101,17 @@ func fillColumnsForIndexScanTestCase[T IndexPointScanTestCase | IndexRangeScanTe
 	columns := []*column.Column{}
 
 	var castedColumns []Column
+	var tableName *string
 	switch testCase.(type) {
 	case IndexPointScanTestCase:
 		castedColumns = testCase.(IndexPointScanTestCase).Columns
+		tableName = testCase.(IndexPointScanTestCase).TableMetadata.GetTableName()
 	case IndexRangeScanTestCase:
 		castedColumns = testCase.(IndexRangeScanTestCase).Columns
+		tableName = testCase.(IndexRangeScanTestCase).TableMetadata.GetTableName()
 	}
 	for _, c := range castedColumns {
-		columns = append(columns, column.NewColumn(c.Name, c.Kind, true, indexType, types.PageID(-1), nil))
+		columns = append(columns, column.NewColumn(*tableName+"."+c.Name, c.Kind, true, indexType, types.PageID(-1), nil))
 	}
 
 	return columns
@@ -165,7 +168,7 @@ func ExecuteDeleteTestCase(t *testing.T, testCase DeleteTestCase) {
 
 	columns := []*column.Column{}
 	for _, c := range testCase.Columns {
-		columns = append(columns, column.NewColumn(c.Name, c.Kind, false, index_constants.INDEX_KIND_INVALID, types.PageID(-1), nil))
+		columns = append(columns, column.NewColumn(*testCase.TableMetadata.GetTableName()+"."+c.Name, c.Kind, false, index_constants.INDEX_KIND_INVALID, types.PageID(-1), nil))
 	}
 	outSchema := schema.NewSchema(columns)
 

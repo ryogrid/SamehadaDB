@@ -9,6 +9,8 @@ import (
 )
 
 type Column struct {
+	// note: columnName field includes table name. e.g. "table1.column1"
+	//       and GetColumnName() returns it as it is.
 	columnName        string
 	columnType        types.TypeID
 	fixedLength       uint32 // For a non-inlined column, this is the size of a pointer. Otherwise, the size of the fixed length column
@@ -66,6 +68,10 @@ func (c *Column) SetVariableLength(variableLength uint32) {
 
 func (c *Column) GetColumnName() string {
 	return c.columnName
+}
+
+func (c *Column) SetColumnName(colName string) {
+	c.columnName = colName
 }
 
 func (c *Column) HasIndex() bool {

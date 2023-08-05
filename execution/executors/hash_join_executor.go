@@ -139,6 +139,7 @@ func (e *HashJoinExecutor) Next() (*tuple.Tuple, Done, error) {
 				for _, tmp_page_id := range e.tmp_page_ids_ {
 					e.context.GetBufferPoolManager().DeallocatePage(tmp_page_id)
 				}
+				// tmp_tuple should be nil
 				return tmp_tuple, true, nil
 			}
 			inner_next_cnt++
@@ -149,7 +150,7 @@ func (e *HashJoinExecutor) Next() (*tuple.Tuple, Done, error) {
 			}
 			e.tmp_tuples_ = e.jht_.GetValue(hash.HashValue(&value))
 		}
-		// traverse corresponding left tuples stored in the tmp pages util we find one satisfying the predicate with current right tuple
+		// traverse corresponding left tuples stored in the tmp pages until we find a tuple which satisfies the predicate with current right tuple
 		left_tmp_tuple := e.tmp_tuples_[e.index_]
 		var left_tuple tuple.Tuple
 		e.FetchTupleFromTmpTuplePage(&left_tuple, &left_tmp_tuple)

@@ -46,6 +46,6 @@ func (p *UpdatePlanNode) GetUpdateColIdxs() []int {
 }
 
 func (p *UpdatePlanNode) AccessRowCount() uint64 {
-	// TODO: (SDB) not implemented yet
+	// TODO: (SDB) [OPT] not implemented yet (UpdatePlanNode::AccessRowCount)
 	return 0
 }

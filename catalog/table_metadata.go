@@ -105,3 +105,7 @@ func (t *TableMetadata) Indexes() []index.Index {
 func (t *TableMetadata) GetStatistics() *TableStatistics {
 	return t.statiscs
 }
+
+func (t *TableMetadata) GetTableName() *string {
+	return &t.name
+}

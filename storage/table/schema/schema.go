@@ -6,6 +6,7 @@ package schema
 import (
 	"github.com/ryogrid/SamehadaDB/storage/table/column"
 	"math"
+	"strings"
 )
 
 type Schema struct {
@@ -22,7 +23,7 @@ func NewSchema(columns []*column.Column) *Schema {
 	var currentOffset uint32
 	currentOffset = 0
 	for i := uint32(0); i < uint32(len(columns)); i++ {
-		column := columns[i]
+		column := *columns[i]
 
 		if !column.IsInlined() {
 			schema.tupleIsInlined = false
@@ -32,7 +33,7 @@ func NewSchema(columns []*column.Column) *Schema {
 		column.SetOffset(currentOffset)
 		currentOffset += column.FixedLength()
 
-		schema.columns = append(schema.columns, column)
+		schema.columns = append(schema.columns, &column)
 	}
 	schema.length = currentOffset
 	return schema
@@ -56,8 +57,14 @@ func (s *Schema) Length() uint32 {
 
 func (s *Schema) GetColIndex(columnName string) uint32 {
 	for i := uint32(0); i < s.GetColumnCount(); i++ {
-		if s.columns[i].GetColumnName() == columnName {
+		if strings.Contains(columnName, ".") && s.columns[i].GetColumnName() == columnName {
 			return i
+		} else if !strings.Contains(columnName, ".") {
+			if s.columns[i].GetColumnName() == columnName {
+				return i
+			} else if strings.Contains(s.columns[i].GetColumnName(), ".") && strings.Split(s.columns[i].GetColumnName(), ".")[1] == columnName {
+				return i
+			}
 		}
 	}
 
@@ -70,7 +77,9 @@ func (s *Schema) GetColumns() []*column.Column {
 
 func (s *Schema) IsHaveColumn(columnName *string) bool {
 	for _, col := range s.columns {
-		if col.GetColumnName() == *columnName {
+		if strings.Contains(*columnName, ".") && col.GetColumnName() == *columnName {
+			return true
+		} else if !strings.Contains(*columnName, ".") && strings.Split(col.GetColumnName(), ".")[1] == *columnName {
 			return true
 		}
 	}

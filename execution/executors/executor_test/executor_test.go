@@ -1297,8 +1297,8 @@ func TestSimpleHashJoin(t *testing.T) {
 	{
 		table_info := executorContext.GetCatalog().GetTableByName("test_1")
 		//&schema := table_info.schema_
-		colA := column.NewColumn("colA", types.Integer, false, index_constants.INDEX_KIND_INVALID, types.PageID(-1), nil)
-		colB := column.NewColumn("colB", types.Integer, false, index_constants.INDEX_KIND_INVALID, types.PageID(-1), nil)
+		colA := column.NewColumn("test_1.colA", types.Integer, false, index_constants.INDEX_KIND_INVALID, types.PageID(-1), nil)
+		colB := column.NewColumn("test_1.colB", types.Integer, false, index_constants.INDEX_KIND_INVALID, types.PageID(-1), nil)
 		out_schema1 = schema.NewSchema([]*column.Column{colA, colB})
 		scan_plan1 = plans.NewSeqScanPlanNode(out_schema1, nil, table_info.OID())
 	}
@@ -1307,8 +1307,8 @@ func TestSimpleHashJoin(t *testing.T) {
 	{
 		table_info := executorContext.GetCatalog().GetTableByName("test_2")
 		//schema := table_info.schema_
-		col1 := column.NewColumn("col1", types.Integer, false, index_constants.INDEX_KIND_INVALID, types.PageID(-1), nil)
-		col2 := column.NewColumn("col2", types.Integer, false, index_constants.INDEX_KIND_INVALID, types.PageID(-1), nil)
+		col1 := column.NewColumn("test_2.col1", types.Integer, false, index_constants.INDEX_KIND_INVALID, types.PageID(-1), nil)
+		col2 := column.NewColumn("test_2.col2", types.Integer, false, index_constants.INDEX_KIND_INVALID, types.PageID(-1), nil)
 		out_schema2 = schema.NewSchema([]*column.Column{col1, col2})
 		scan_plan2 = plans.NewSeqScanPlanNode(out_schema2, nil, table_info.OID())
 	}
@@ -1317,13 +1317,13 @@ func TestSimpleHashJoin(t *testing.T) {
 	{
 		// colA and colB have a tuple index of 0 because they are the left side of the join
 		//var allocated_exprs []*expression.ColumnValue
-		colA := executors.MakeColumnValueExpression(out_schema1, 0, "colA")
+		colA := expression.MakeColumnValueExpression(out_schema1, 0, "test_1.colA")
 		colA_c := column.NewColumn("colA", types.Integer, false, index_constants.INDEX_KIND_INVALID, types.PageID(-1), nil)
 		colA_c.SetIsLeft(true)
 		colB_c := column.NewColumn("colB", types.Integer, false, index_constants.INDEX_KIND_INVALID, types.PageID(-1), nil)
 		colB_c.SetIsLeft(true)
 		// col1 and col2 have a tuple index of 1 because they are the right side of the join
-		col1 := executors.MakeColumnValueExpression(out_schema2, 1, "col1")
+		col1 := expression.MakeColumnValueExpression(out_schema2, 1, "test_2.col1")
 		col1_c := column.NewColumn("col1", types.Integer, false, index_constants.INDEX_KIND_INVALID, types.PageID(-1), nil)
 		col1_c.SetIsLeft(false)
 		col2_c := column.NewColumn("col2", types.Integer, false, index_constants.INDEX_KIND_INVALID, types.PageID(-1), nil)
@@ -1344,6 +1344,179 @@ func TestSimpleHashJoin(t *testing.T) {
 
 	num_tuples := len(results)
 	testingpkg.Assert(t, num_tuples == 100, "")
+	for ii := 0; ii < 20; ii++ {
+		fmt.Println(results[ii])
+	}
+	fmt.Println("...")
+	fmt.Printf("results length = %d\n", num_tuples)
+}
+
+func TestSimpleNestedLoopJoin(t *testing.T) {
+	diskManager := disk.NewDiskManagerTest()
+	defer diskManager.ShutDown()
+	log_mgr := recovery.NewLogManager(&diskManager)
+	bpm := buffer.NewBufferPoolManager(uint32(32), diskManager, log_mgr)
+	txn_mgr := access.NewTransactionManager(access.NewLockManager(access.REGULAR, access.DETECTION), log_mgr)
+	txn := txn_mgr.Begin(nil)
+	c := catalog.BootstrapCatalog(bpm, log_mgr, access.NewLockManager(access.REGULAR, access.PREVENTION), txn)
+	executorContext := executors.NewExecutorContext(c, bpm, txn)
+
+	columnA := column.NewColumn("colA", types.Integer, false, index_constants.INDEX_KIND_INVALID, types.PageID(-1), nil)
+	columnB := column.NewColumn("colB", types.Integer, false, index_constants.INDEX_KIND_INVALID, types.PageID(-1), nil)
+	columnC := column.NewColumn("colC", types.Integer, false, index_constants.INDEX_KIND_INVALID, types.PageID(-1), nil)
+	columnD := column.NewColumn("colD", types.Integer, false, index_constants.INDEX_KIND_INVALID, types.PageID(-1), nil)
+	schema_ := schema.NewSchema([]*column.Column{columnA, columnB, columnC, columnD})
+	tableMetadata1 := c.CreateTable("test_1", schema_, txn)
+
+	column1 := column.NewColumn("col1", types.Integer, false, index_constants.INDEX_KIND_INVALID, types.PageID(-1), nil)
+	column2 := column.NewColumn("col2", types.Integer, false, index_constants.INDEX_KIND_INVALID, types.PageID(-1), nil)
+	column3 := column.NewColumn("col3", types.Integer, false, index_constants.INDEX_KIND_INVALID, types.PageID(-1), nil)
+	column4 := column.NewColumn("col4", types.Integer, false, index_constants.INDEX_KIND_INVALID, types.PageID(-1), nil)
+	schema_ = schema.NewSchema([]*column.Column{column1, column2, column3, column4})
+	tableMetadata2 := c.CreateTable("test_2", schema_, txn)
+
+	tableMeta1 := &executors.TableInsertMeta{"test_1",
+		100,
+		[]*executors.ColumnInsertMeta{
+			{"colA", types.Integer, false, executors.DistSerial, 0, 0, 0},
+			{"colB", types.Integer, false, executors.DistUniform, 0, 9, 0},
+			{"colC", types.Integer, false, executors.DistUniform, 0, 9999, 0},
+			{"colD", types.Integer, false, executors.DistUniform, 0, 99999, 0},
+		}}
+	tableMeta2 := &executors.TableInsertMeta{"test_2",
+		1000,
+		[]*executors.ColumnInsertMeta{
+			{"col1", types.Integer, false, executors.DistSerial, 0, 0, 0},
+			{"col2", types.Integer, false, executors.DistUniform, 0, 9, 0},
+			{"col3", types.Integer, false, executors.DistUniform, 0, 1024, 0},
+			{"col4", types.Integer, false, executors.DistUniform, 0, 2048, 0},
+		}}
+	executors.FillTable(tableMetadata1, tableMeta1, txn)
+	executors.FillTable(tableMetadata2, tableMeta2, txn)
+
+	txn_mgr.Commit(nil, txn)
+
+	var scan_plan1 plans.Plan
+	var out_schema1 *schema.Schema
+	{
+		table_info := executorContext.GetCatalog().GetTableByName("test_1")
+		//&schema := table_info.schema_
+		colA := column.NewColumn("test_1.colA", types.Integer, false, index_constants.INDEX_KIND_INVALID, types.PageID(-1), nil)
+		colB := column.NewColumn("test_1.colB", types.Integer, false, index_constants.INDEX_KIND_INVALID, types.PageID(-1), nil)
+		out_schema1 = schema.NewSchema([]*column.Column{colA, colB})
+		scan_plan1 = plans.NewSeqScanPlanNode(out_schema1, nil, table_info.OID())
+	}
+	var scan_plan2 plans.Plan
+	var out_schema2 *schema.Schema
+	{
+		table_info := executorContext.GetCatalog().GetTableByName("test_2")
+		//schema := table_info.schema_
+		col1 := column.NewColumn("test_2.col1", types.Integer, false, index_constants.INDEX_KIND_INVALID, types.PageID(-1), nil)
+		col2 := column.NewColumn("test_2.col2", types.Integer, false, index_constants.INDEX_KIND_INVALID, types.PageID(-1), nil)
+		out_schema2 = schema.NewSchema([]*column.Column{col1, col2})
+		scan_plan2 = plans.NewSeqScanPlanNode(out_schema2, nil, table_info.OID())
+	}
+	join_plan := plans.NewNestedLoopJoinPlanNode([]plans.Plan{scan_plan1, scan_plan2})
+
+	executionEngine := &executors.ExecutionEngine{}
+	results := executionEngine.Execute(join_plan, executorContext)
+
+	num_tuples := len(results)
+	testingpkg.Assert(t, num_tuples == 100000, "")
+	for ii := 0; ii < 20; ii++ {
+		fmt.Println(results[ii])
+	}
+	fmt.Println("...")
+	fmt.Printf("results length = %d\n", num_tuples)
+}
+
+func TestSimpleIndexJoin(t *testing.T) {
+	diskManager := disk.NewDiskManagerTest()
+	defer diskManager.ShutDown()
+	log_mgr := recovery.NewLogManager(&diskManager)
+	bpm := buffer.NewBufferPoolManager(uint32(32), diskManager, log_mgr)
+	txn_mgr := access.NewTransactionManager(access.NewLockManager(access.REGULAR, access.DETECTION), log_mgr)
+	txn := txn_mgr.Begin(nil)
+	c := catalog.BootstrapCatalog(bpm, log_mgr, access.NewLockManager(access.REGULAR, access.PREVENTION), txn)
+	executorContext := executors.NewExecutorContext(c, bpm, txn)
+
+	columnA := column.NewColumn("colA", types.Integer, false, index_constants.INDEX_KIND_INVALID, types.PageID(-1), nil)
+	columnB := column.NewColumn("colB", types.Integer, false, index_constants.INDEX_KIND_INVALID, types.PageID(-1), nil)
+	columnC := column.NewColumn("colC", types.Integer, false, index_constants.INDEX_KIND_INVALID, types.PageID(-1), nil)
+	columnD := column.NewColumn("colD", types.Integer, false, index_constants.INDEX_KIND_INVALID, types.PageID(-1), nil)
+	schema_ := schema.NewSchema([]*column.Column{columnA, columnB, columnC, columnD})
+	tableMetadata1 := c.CreateTable("test_1", schema_, txn)
+
+	column1 := column.NewColumn("col1", types.Integer, true, index_constants.INDEX_KIND_SKIP_LIST, types.PageID(-1), nil)
+	column2 := column.NewColumn("col2", types.Integer, true, index_constants.INDEX_KIND_SKIP_LIST, types.PageID(-1), nil)
+	column3 := column.NewColumn("col3", types.Integer, false, index_constants.INDEX_KIND_INVALID, types.PageID(-1), nil)
+	column4 := column.NewColumn("col4", types.Integer, false, index_constants.INDEX_KIND_INVALID, types.PageID(-1), nil)
+	schema_ = schema.NewSchema([]*column.Column{column1, column2, column3, column4})
+	tableMetadata2 := c.CreateTable("test_2", schema_, txn)
+
+	tableMeta1 := &executors.TableInsertMeta{"test_1",
+		100,
+		[]*executors.ColumnInsertMeta{
+			{"colA", types.Integer, false, executors.DistSerial, 0, 0, 0},
+			{"colB", types.Integer, false, executors.DistUniform, 0, 9, 0},
+			{"colC", types.Integer, false, executors.DistUniform, 0, 9999, 0},
+			{"colD", types.Integer, false, executors.DistUniform, 0, 99999, 0},
+		}}
+	tableMeta2 := &executors.TableInsertMeta{"test_2",
+		1000,
+		[]*executors.ColumnInsertMeta{
+			{"col1", types.Integer, false, executors.DistSerial, 0, 0, 0},
+			{"col2", types.Integer, false, executors.DistUniform, 0, 9, 0},
+			{"col3", types.Integer, false, executors.DistUniform, 0, 1024, 0},
+			{"col4", types.Integer, false, executors.DistUniform, 0, 2048, 0},
+		}}
+	executors.FillTable(tableMetadata1, tableMeta1, txn)
+	executors.FillTable(tableMetadata2, tableMeta2, txn)
+
+	txn_mgr.Commit(nil, txn)
+
+	var scan_plan1 plans.Plan
+	var out_schema1 *schema.Schema
+	{
+		table_info := executorContext.GetCatalog().GetTableByName("test_1")
+		//&schema := table_info.schema_
+		colA := column.NewColumn("test_1.colA", types.Integer, false, index_constants.INDEX_KIND_INVALID, types.PageID(-1), nil)
+		colB := column.NewColumn("test_1.colB", types.Integer, false, index_constants.INDEX_KIND_INVALID, types.PageID(-1), nil)
+		out_schema1 = schema.NewSchema([]*column.Column{colA, colB})
+		scan_plan1 = plans.NewSeqScanPlanNode(out_schema1, nil, table_info.OID())
+	}
+	var scan_plan2 plans.Plan
+	var out_schema2 *schema.Schema
+	{
+		table_info := executorContext.GetCatalog().GetTableByName("test_2")
+		//schema := table_info.schema_
+		col1 := column.NewColumn("test_2.col1", types.Integer, false, index_constants.INDEX_KIND_INVALID, types.PageID(-1), nil)
+		col2 := column.NewColumn("test_2.col2", types.Integer, false, index_constants.INDEX_KIND_INVALID, types.PageID(-1), nil)
+		out_schema2 = schema.NewSchema([]*column.Column{col1, col2})
+		scan_plan2 = plans.NewSeqScanPlanNode(out_schema2, nil, table_info.OID())
+	}
+
+	var join_plan *plans.IndexJoinPlanNode
+	{
+		// colA and colB have a tuple index of 0 because they are the left side of the join
+		colA := expression.MakeColumnValueExpression(out_schema1, 0, "test_1.colA")
+		// col1 and col2 have a tuple index of 1 because they are the right side of the join
+		//col1 := expression.MakeColumnValueExpression(out_schema2, 1, "test_2.col1")
+		col2 := expression.MakeColumnValueExpression(out_schema2, 1, "test_2.col2")
+		var left_keys []expression.Expression
+		left_keys = append(left_keys, colA)
+		var right_keys []expression.Expression
+		//right_keys = append(right_keys, col1)
+		right_keys = append(right_keys, col2)
+		join_plan = plans.NewIndexJoinPlanNode(scan_plan1, left_keys, scan_plan2.OutputSchema(), scan_plan2.GetTableOID(), right_keys)
+	}
+
+	executionEngine := &executors.ExecutionEngine{}
+	results := executionEngine.Execute(join_plan, executorContext)
+
+	num_tuples := len(results)
+	//testingpkg.Assert(t, num_tuples == 100, "len(results) != 100. Got %d", num_tuples)
+	testingpkg.Assert(t, num_tuples == 1000, "len(results) != 1000. Got %d", num_tuples)
 	for ii := 0; ii < 20; ii++ {
 		fmt.Println(results[ii])
 	}
@@ -1730,15 +1903,15 @@ func TestSimpleAggregation(t *testing.T) {
 	{
 		//auto table_info = GetExecutorContext()->GetCatalog()->GetTable("test_1");
 		schema_ := table_info.Schema()
-		colA := executors.MakeColumnValueExpression(schema_, 0, "colA").(*expression.ColumnValue)
-		scan_schema = executors.MakeOutputSchema([]executors.MakeSchemaMeta{{"colA", *colA}})
+		colA := expression.MakeColumnValueExpression(schema_, 0, "test_1.colA").(*expression.ColumnValue)
+		scan_schema = executors.MakeOutputSchema([]executors.MakeSchemaMeta{{"test_1.colA", *colA}})
 		scan_plan = plans.NewSeqScanPlanNode(scan_schema, nil, table_info.OID()).(*plans.SeqScanPlanNode)
 	}
 
 	var agg_plan *plans.AggregationPlanNode
 	var agg_schema *schema.Schema
 	{
-		colA := executors.MakeColumnValueExpression(scan_schema, 0, "colA")
+		colA := expression.MakeColumnValueExpression(scan_schema, 0, "test_1.colA")
 		countA := *executors.MakeAggregateValueExpression(false, 0).(*expression.AggregateValueExpression)
 		sumA := *executors.MakeAggregateValueExpression(false, 1).(*expression.AggregateValueExpression)
 		minA := *executors.MakeAggregateValueExpression(false, 2).(*expression.AggregateValueExpression)
@@ -1803,9 +1976,9 @@ func TestSimpleGroupByAggregation(t *testing.T) {
 	{
 		//auto table_info = GetExecutorContext()->GetCatalog()->GetTable("test_1");
 		schema_ := table_info.Schema()
-		colA := executors.MakeColumnValueExpression(schema_, 0, "colA").(*expression.ColumnValue)
-		colB := executors.MakeColumnValueExpression(schema_, 0, "colB").(*expression.ColumnValue)
-		colC := executors.MakeColumnValueExpression(schema_, 0, "colC").(*expression.ColumnValue)
+		colA := expression.MakeColumnValueExpression(schema_, 0, "colA").(*expression.ColumnValue)
+		colB := expression.MakeColumnValueExpression(schema_, 0, "colB").(*expression.ColumnValue)
+		colC := expression.MakeColumnValueExpression(schema_, 0, "colC").(*expression.ColumnValue)
 		scan_schema = executors.MakeOutputSchema([]executors.MakeSchemaMeta{{"colA", *colA}, {"colB", *colB}, {"colC", *colC}})
 		scan_plan = plans.NewSeqScanPlanNode(scan_schema, nil, table_info.OID()).(*plans.SeqScanPlanNode)
 	}
@@ -1813,9 +1986,9 @@ func TestSimpleGroupByAggregation(t *testing.T) {
 	var agg_plan *plans.AggregationPlanNode
 	var agg_schema *schema.Schema
 	{
-		colA := executors.MakeColumnValueExpression(scan_schema, 0, "colA").(*expression.ColumnValue)
-		colB := executors.MakeColumnValueExpression(scan_schema, 0, "colB").(*expression.ColumnValue)
-		colC := executors.MakeColumnValueExpression(scan_schema, 0, "colC").(*expression.ColumnValue)
+		colA := expression.MakeColumnValueExpression(scan_schema, 0, "colA").(*expression.ColumnValue)
+		colB := expression.MakeColumnValueExpression(scan_schema, 0, "colB").(*expression.ColumnValue)
+		colC := expression.MakeColumnValueExpression(scan_schema, 0, "colC").(*expression.ColumnValue)
 		// Make group bye
 		groupbyB := *executors.MakeAggregateValueExpression(true, 0).(*expression.AggregateValueExpression)
 		// Make aggregates
@@ -1891,9 +2064,9 @@ func TestSeqScanWithMultiItemPredicate(t *testing.T) {
 	{
 		// setup predicates and a execution plan
 		schema_ := table_info.Schema()
-		colA_val := executors.MakeColumnValueExpression(schema_, 0, "colA").(*expression.ColumnValue)
-		colB_val := executors.MakeColumnValueExpression(schema_, 0, "colB").(*expression.ColumnValue)
-		colC_val := executors.MakeColumnValueExpression(schema_, 0, "colC").(*expression.ColumnValue)
+		colA_val := expression.MakeColumnValueExpression(schema_, 0, "colA").(*expression.ColumnValue)
+		colB_val := expression.MakeColumnValueExpression(schema_, 0, "colB").(*expression.ColumnValue)
+		colC_val := expression.MakeColumnValueExpression(schema_, 0, "colC").(*expression.ColumnValue)
 
 		pred_constA := types.NewInteger(int32(500))
 		comp_predA := executors.MakeComparisonExpression(colA_val, executors.MakeConstantValueExpression(&pred_constA), expression.GreaterThan)
@@ -2472,8 +2645,8 @@ func TestSimpleSeqScanAndOrderBy(t *testing.T) {
 	{
 		//auto table_info = GetExecutorContext()->GetCatalog()->GetTable("test_1");
 		schema_ := tableMetadata.Schema()
-		colA := executors.MakeColumnValueExpression(schema_, 0, "a").(*expression.ColumnValue)
-		colB := executors.MakeColumnValueExpression(schema_, 0, "b").(*expression.ColumnValue)
+		colA := expression.MakeColumnValueExpression(schema_, 0, "a").(*expression.ColumnValue)
+		colB := expression.MakeColumnValueExpression(schema_, 0, "b").(*expression.ColumnValue)
 		scan_schema = executors.MakeOutputSchema([]executors.MakeSchemaMeta{{"a", *colA}, {"b", *colB}})
 		scan_plan = plans.NewSeqScanPlanNode(scan_schema, nil, tableMetadata.OID()).(*plans.SeqScanPlanNode)
 	}
@@ -2583,8 +2756,8 @@ func TestSimpleSetNullToVarchar(t *testing.T) {
 	{
 		//auto table_info = GetExecutorContext()->GetCatalog()->GetTable("test_1");
 		schema_ := tableMetadata.Schema()
-		colA := executors.MakeColumnValueExpression(schema_, 0, "a").(*expression.ColumnValue)
-		colB := executors.MakeColumnValueExpression(schema_, 0, "b").(*expression.ColumnValue)
+		colA := expression.MakeColumnValueExpression(schema_, 0, "a").(*expression.ColumnValue)
+		colB := expression.MakeColumnValueExpression(schema_, 0, "b").(*expression.ColumnValue)
 		scan_schema = executors.MakeOutputSchema([]executors.MakeSchemaMeta{{"a", *colA}, {"b", *colB}})
 		scan_plan = plans.NewSeqScanPlanNode(scan_schema, nil, tableMetadata.OID()).(*plans.SeqScanPlanNode)
 	}

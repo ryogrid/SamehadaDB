@@ -3,6 +3,7 @@ package samehada_util
 import (
 	"bytes"
 	"encoding/binary"
+	"github.com/deckarep/golang-set/v2"
 	"github.com/ryogrid/SamehadaDB/common"
 	"github.com/ryogrid/SamehadaDB/storage/page"
 	"github.com/ryogrid/SamehadaDB/types"
@@ -387,4 +388,30 @@ func SetFlag(val uint32) uint32 {
 
 func UnsetFlag(val uint32) uint32 {
 	return val & (^uint32(flagMask))
+}
+
+func MakeSet[T comparable](from []*T) mapset.Set[T] {
+	joined := mapset.NewSet[T]()
+	for _, f := range from {
+		joined.Add(*f)
+	}
+	return joined
+}
+
+func IsColumnName(v interface{}) bool {
+	switch v.(type) {
+	case *string:
+		return true
+	default:
+		return false
+	}
+}
+
+func IsConstantValue(v interface{}) bool {
+	switch v.(type) {
+	case *types.Value:
+		return true
+	default:
+		return false
+	}
 }

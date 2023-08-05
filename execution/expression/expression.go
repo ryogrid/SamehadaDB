@@ -9,6 +9,17 @@ import (
 	"github.com/ryogrid/SamehadaDB/types"
 )
 
+type ExpressionType int
+
+const (
+	EXPRESSION_TYPE_INVALID ExpressionType = iota
+	EXPRESSION_TYPE_AGGREGATE_VALUE
+	EXPRESSION_TYPE_COMPARISON
+	EXPRESSION_TYPE_COLUMN_VALUE
+	EXPRESSION_TYPE_CONSTANT_VALUE
+	EXPRESSION_TYPE_LOGICAL_OP
+)
+
 /**
  * Expression interface is the base of all the expressions in the system.
  * Expressions are modeled as trees, i.e. every expression may have a variable number of children.
@@ -18,4 +29,5 @@ type Expression interface {
 	GetChildAt(uint32) Expression
 	EvaluateJoin(*tuple.Tuple, *schema.Schema, *tuple.Tuple, *schema.Schema) types.Value
 	EvaluateAggregate([]*types.Value, []*types.Value) types.Value
+	GetType() ExpressionType
 }

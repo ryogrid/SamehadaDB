@@ -38,6 +38,6 @@ func (p *InsertPlanNode) GetType() PlanType {
 }
 
 func (p *InsertPlanNode) AccessRowCount() uint64 {
-	// TODO: (SDB) not implemented yet
+	// TODO: (SDB) [OPT] not implemented yet (InsertPlanNode::AccessRowCount)
 	return 0
 }

@@ -34,6 +34,10 @@ func (c *ColumnValue) SetColIndex(colIndex uint32) {
 	c.colIndex = colIndex
 }
 
+func (c *ColumnValue) GetColIndex() uint32 {
+	return c.colIndex
+}
+
 func (c *ColumnValue) EvaluateJoin(left_tuple *tuple.Tuple, left_schema *schema.Schema, right_tuple *tuple.Tuple, right_schema *schema.Schema) types.Value {
 	if c.tupleIndexForJoin == 0 {
 		return left_tuple.GetValue(left_schema, c.colIndex)
@@ -54,4 +58,16 @@ func (c *ColumnValue) GetReturnType() types.TypeID { return c.ret_type }
 
 func (c *ColumnValue) SetReturnType(valueType types.TypeID) {
 	c.ret_type = valueType
+}
+
+func MakeColumnValueExpression(schema_ *schema.Schema, tuple_idx_on_join uint32,
+	col_name string) Expression {
+	col_idx := schema_.GetColIndex(col_name)
+	col_type := schema_.GetColumn(col_idx).GetType()
+	col_val := NewColumnValue(tuple_idx_on_join, col_idx, col_type)
+	return col_val
+}
+
+func (c *ColumnValue) GetType() ExpressionType {
+	return EXPRESSION_TYPE_COLUMN_VALUE
 }

@@ -89,7 +89,7 @@ func (p *AggregationPlanNode) GetTableOID() uint32 {
 }
 
 func (p *AggregationPlanNode) AccessRowCount() uint64 {
-	// TODO: (SDB) not implemented yet
+	// TODO: (SDB) [OPT] not implemented yet (AggregationPlanNode::AccessRowCount)
 	return 0
 }
 

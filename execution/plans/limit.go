@@ -30,6 +30,6 @@ func (p *LimitPlanNode) GetTableOID() uint32 {
 }
 
 func (p *LimitPlanNode) AccessRowCount() uint64 {
-	// TODO: (SDB) not implemented yet
+	// TODO: (SDB) [OPT] not implemented yet (LimitPlanNode::AccessRowCount)
 	return 0
 }

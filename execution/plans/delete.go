@@ -20,7 +20,7 @@ func (p *DeletePlanNode) GetTableOID() uint32 {
 }
 
 func (p *DeletePlanNode) AccessRowCount() uint64 {
-	// TODO: (SDB) not implemented yet
+	// TODO: (SDB) [OPT] not implemented yet (DeletePlanNode::AccessRowCount)
 	return 0
 }
 

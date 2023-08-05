@@ -50,6 +50,6 @@ func (p *RangeScanWithIndexPlanNode) GetType() PlanType {
 }
 
 func (p *RangeScanWithIndexPlanNode) AccessRowCount() uint64 {
-	// TODO: (SDB) not implemented yet
+	// TODO: (SDB) [OPT] not implemented yet (RangeScanWithIndexPlanNode::AccessRowCount)
 	return 0
 }

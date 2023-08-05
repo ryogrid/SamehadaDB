@@ -15,6 +15,7 @@ import (
 	"github.com/ryogrid/SamehadaDB/storage/table/schema"
 	"github.com/ryogrid/SamehadaDB/types"
 	"math"
+	"strings"
 )
 
 type SimplePlanner struct {
@@ -64,7 +65,7 @@ func (pner *SimplePlanner) MakeSelectPlanWithoutJoin() (error, plans.Plan) {
 			colName := sfield.ColName_
 			isOk := false
 			for _, existCol := range tgtTblColumns {
-				if existCol.GetColumnName() == *colName {
+				if strings.Split(existCol.GetColumnName(), ".")[1] == *colName {
 					isOk = true
 					outColDefs = append(outColDefs, column.NewColumn(*colName, existCol.GetType(), false, index_constants.INDEX_KIND_INVALID, types.PageID(-1), existCol.GetExpr()))
 					break
@@ -106,7 +107,8 @@ func (pner *SimplePlanner) MakeSelectPlanWithJoin() (error, plans.Plan) {
 	{
 		var columns []*column.Column = make([]*column.Column, 0)
 		for _, col := range tgtTblColumnsL {
-			columns = append(columns, column.NewColumn(tblNameL+"."+col.GetColumnName(), col.GetType(), false, index_constants.INDEX_KIND_INVALID, types.PageID(-1), col.GetExpr()))
+			//columns = append(columns, column.NewColumn(tblNameL+"."+col.GetColumnName(), col.GetType(), false, index_constants.INDEX_KIND_INVALID, types.PageID(-1), col.GetExpr()))
+			columns = append(columns, column.NewColumn(col.GetColumnName(), col.GetType(), false, index_constants.INDEX_KIND_INVALID, types.PageID(-1), col.GetExpr()))
 		}
 		outSchemaL = schema.NewSchema(columns)
 		scanPlanL = plans.NewSeqScanPlanNode(outSchemaL, nil, tableMetadataL.OID())
@@ -117,7 +119,8 @@ func (pner *SimplePlanner) MakeSelectPlanWithJoin() (error, plans.Plan) {
 	{
 		var columns []*column.Column = make([]*column.Column, 0)
 		for _, col := range tgtTblColumnsR {
-			columns = append(columns, column.NewColumn(tblNameR+"."+col.GetColumnName(), col.GetType(), false, index_constants.INDEX_KIND_INVALID, types.PageID(-1), col.GetExpr()))
+			//columns = append(columns, column.NewColumn(tblNameR+"."+col.GetColumnName(), col.GetType(), false, index_constants.INDEX_KIND_INVALID, types.PageID(-1), col.GetExpr()))
+			columns = append(columns, column.NewColumn(col.GetColumnName(), col.GetType(), false, index_constants.INDEX_KIND_INVALID, types.PageID(-1), col.GetExpr()))
 		}
 		outSchemaR = schema.NewSchema(columns)
 		scanPlanR = plans.NewSeqScanPlanNode(outSchemaR, nil, tableMetadataR.OID())
@@ -130,17 +133,19 @@ func (pner *SimplePlanner) MakeSelectPlanWithJoin() (error, plans.Plan) {
 		finalOutCols := make([]*column.Column, 0)
 
 		// new columns have tuple index of 0 because they are the left side of the join
-		colValL := executors.MakeColumnValueExpression(outSchemaL, 0, *pner.qi.OnExpressions_.Left_.(*string))
+		colValL := expression.MakeColumnValueExpression(outSchemaL, 0, *pner.qi.OnExpressions_.Left_.(*string))
 		// new columns have tuple index of 1 because they are the right side of the join
-		colValR := executors.MakeColumnValueExpression(outSchemaR, 1, *pner.qi.OnExpressions_.Right_.(*string))
+		colValR := expression.MakeColumnValueExpression(outSchemaR, 1, *pner.qi.OnExpressions_.Right_.(*string))
 
 		for _, colDef := range tgtTblColumnsL {
-			col := column.NewColumn(tblNameL+"."+colDef.GetColumnName(), colDef.GetType(), false, index_constants.INDEX_KIND_INVALID, types.PageID(-1), colDef.GetExpr())
+			//col := column.NewColumn(tblNameL+"."+colDef.GetColumnName(), colDef.GetType(), false, index_constants.INDEX_KIND_INVALID, types.PageID(-1), colDef.GetExpr())
+			col := column.NewColumn(colDef.GetColumnName(), colDef.GetType(), false, index_constants.INDEX_KIND_INVALID, types.PageID(-1), colDef.GetExpr())
 			col.SetIsLeft(true)
 			finalOutCols = append(finalOutCols, col)
 		}
 		for _, colDef := range tgtTblColumnsR {
-			col := column.NewColumn(tblNameR+"."+colDef.GetColumnName(), colDef.GetType(), false, index_constants.INDEX_KIND_INVALID, types.PageID(-1), colDef.GetExpr())
+			//col := column.NewColumn(tblNameR+"."+colDef.GetColumnName(), colDef.GetType(), false, index_constants.INDEX_KIND_INVALID, types.PageID(-1), colDef.GetExpr())
+			col := column.NewColumn(colDef.GetColumnName(), colDef.GetType(), false, index_constants.INDEX_KIND_INVALID, types.PageID(-1), colDef.GetExpr())
 			col.SetIsLeft(false)
 			finalOutCols = append(finalOutCols, col)
 		}
@@ -203,10 +208,9 @@ func (pner *SimplePlanner) MakeSelectPlanWithJoin() (error, plans.Plan) {
 		whereExp := pner.ConstructPredicate([]*schema.Schema{outFinal})
 		// filter joined recoreds with predicate which is specified on WHERE clause if needed
 
-		// TODO: (SDB) need to use ProjectionPlan and SelectionPlan
-		//             current code does both
-		filterPlan := plans.NewSelectionPlanNode(joinPlan, filterOut, whereExp)
-		return nil, filterPlan
+		filterPlan := plans.NewSelectionPlanNode(joinPlan, whereExp)
+		finalPlan := plans.NewProjectionPlanNode(filterPlan, filterOut)
+		return nil, finalPlan
 	} else {
 		// has no WHERE clause
 		return nil, joinPlan
@@ -230,9 +234,10 @@ func processPredicateTreeNode(node *parser.BinaryOpExpression, tgtTblSchemas []*
 		colName := *node.Left_.(*string)
 		specfiedVal := node.Right_.(*types.Value)
 
-		// TODO: (SDB) need to validate specified table name prefix, column name and literal (processPredicateTreeNode of SimplePlanner)
+		// TODO: (SDB) need to validate specified table name prefix, column name and literal (processPredicateTreeNode)
 		//             without use of panic function
 
+		// TODO: (SDB) [OPT] need to support table name prefix description on WHERE clause (processPredicateTreeNode)
 		//splited := strings.Split(colName, ".")
 		//
 		//var colNamePart *string = nil

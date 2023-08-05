@@ -31,7 +31,7 @@ type Plan interface {
 	GetChildAt(childIndex uint32) Plan
 	GetChildren() []Plan
 	GetType() PlanType
-	// TODO: (SDB) Plan which outputs all column data of only one table is permitted returning OID. If not, UINT32_MAX should be returned
+	// TODO: (SDB) [OPT] Plan which outputs all column data of only one table is permitted returning OID. If not, UINT32_MAX should be returned (Plan IF subtypes)
 	GetTableOID() uint32
 	AccessRowCount() uint64
 }

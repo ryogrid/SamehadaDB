@@ -3,15 +3,12 @@ package executors
 import (
 	"errors"
 	"github.com/ryogrid/SamehadaDB/catalog"
-	"github.com/ryogrid/SamehadaDB/execution/expression"
 	"github.com/ryogrid/SamehadaDB/execution/plans"
 	"github.com/ryogrid/SamehadaDB/storage/access"
 	"github.com/ryogrid/SamehadaDB/storage/table/schema"
 	"github.com/ryogrid/SamehadaDB/storage/tuple"
 	"github.com/ryogrid/SamehadaDB/types"
 )
-
-// TODO: (SDB) not implemented yet (projection_executor.go)
 
 type ProjectionExecutor struct {
 	context *ExecutorContext
@@ -46,11 +43,6 @@ func (e *ProjectionExecutor) Next() (*tuple.Tuple, Done, error) {
 
 func (e *ProjectionExecutor) GetOutputSchema() *schema.Schema {
 	return e.plan.OutputSchema()
-}
-
-// select evaluates an expression on the tuple
-func (e *ProjectionExecutor) selects(tuple *tuple.Tuple, predicate expression.Expression) bool {
-	return predicate == nil || predicate.Evaluate(tuple, e.GetOutputSchema()).ToBoolean()
 }
 
 // project applies the projection operator defined by the output schema

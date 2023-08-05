@@ -34,11 +34,11 @@ type ColumnInsertMeta struct {
 	 */
 	Dist_ int32
 	/**
-	 * Min value of the column
+	 * min value of the column
 	 */
 	Min_ int32
 	/**
-	 * Max value of the column
+	 * max value of the column
 	 */
 	Max_ int32
 	/**
@@ -142,23 +142,23 @@ func FillTable(info *catalog.TableMetadata, table_meta *TableInsertMeta, txn *ac
 			for idx := range table_meta.Col_meta_ {
 				entry = append(entry, values[idx][i])
 			}
-			rid, err := info.Table().InsertTuple(tuple.NewTupleFromSchema(entry, info.Schema()), false, txn, info.OID())
+			tuple_ := tuple.NewTupleFromSchema(entry, info.Schema())
+			rid, err := info.Table().InsertTuple(tuple_, false, txn, info.OID())
 			if rid == nil || err != nil {
 				fmt.Printf("InsertTuple failed on FillTable rid = %v, err = %v", rid, err)
 				panic("InsertTuple failed on FillTable!")
+			}
+			// insert entry to index
+			for idx := range table_meta.Col_meta_ {
+				index_ := info.GetIndex(idx)
+				if index_ != nil {
+					index_.InsertEntry(tuple_, *rid, txn)
+				}
 			}
 			num_inserted++
 		}
 	}
 	//fmt.Printf("num_inserted %d\n", num_inserted)
-}
-
-func MakeColumnValueExpression(schema_ *schema.Schema, tuple_idx_on_join uint32,
-	col_name string) expression.Expression {
-	col_idx := schema_.GetColIndex(col_name)
-	col_type := schema_.GetColumn(col_idx).GetType()
-	col_val := expression.NewColumnValue(tuple_idx_on_join, col_idx, col_type)
-	return col_val
 }
 
 func MakeComparisonExpression(lhs expression.Expression, rhs expression.Expression,

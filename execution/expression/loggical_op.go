@@ -95,6 +95,10 @@ func (c *LogicalOp) SetChildAt(child_idx uint32, child Expression) {
 }
 
 func AppendLogicalCondition(baseConds Expression, opType LogicalOpType, addCond Expression) Expression {
-	// TODO: (SDB) not implemented yet
+	// TODO: (SDB) [OPT] not implemented yet (AppendLogicalCondition)
 	return nil
+}
+
+func (c *LogicalOp) GetType() ExpressionType {
+	return EXPRESSION_TYPE_LOGICAL_OP
 }

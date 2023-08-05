@@ -8,7 +8,6 @@ import (
 	"github.com/ryogrid/SamehadaDB/storage/access"
 	"github.com/ryogrid/SamehadaDB/storage/table/schema"
 	"github.com/ryogrid/SamehadaDB/storage/tuple"
-	"github.com/ryogrid/SamehadaDB/types"
 )
 
 // do filtering according to WHERE clause for Plan(Executor) which has no filtering feature
@@ -42,7 +41,7 @@ func (e *SlectionExecutor) Next() (*tuple.Tuple, Done, error) {
 			continue
 		}
 
-		return e.projects(t), false, nil
+		return t, false, nil
 	}
 
 	return nil, true, nil
@@ -55,21 +54,6 @@ func (e *SlectionExecutor) GetOutputSchema() *schema.Schema {
 // select evaluates an expression on the tuple
 func (e *SlectionExecutor) selects(tuple *tuple.Tuple, predicate expression.Expression) bool {
 	return predicate == nil || predicate.Evaluate(tuple, e.GetOutputSchema()).ToBoolean()
-}
-
-// project applies the projection operator defined by the output schema
-// It transform the tuple into a new tuple that corresponds to the output schema
-func (e *SlectionExecutor) projects(tuple_ *tuple.Tuple) *tuple.Tuple {
-	srcOutSchema := e.plan.OutputSchema()
-	filterSchema := e.plan.GetSelectColumns()
-
-	values := []types.Value{}
-	for i := uint32(0); i < filterSchema.GetColumnCount(); i++ {
-		colIndex := srcOutSchema.GetColIndex(filterSchema.GetColumns()[i].GetColumnName())
-		values = append(values, tuple_.GetValue(srcOutSchema, colIndex))
-	}
-
-	return tuple.NewTupleFromSchema(values, filterSchema)
 }
 
 func (e *SlectionExecutor) GetTableMetaData() *catalog.TableMetadata {

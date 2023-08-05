@@ -104,7 +104,7 @@ func (ht *SimpleAggregationHashTable) GenerateInitialAggregateValue() *plans.Agg
 	for _, agg_type := range ht.agg_types_ {
 		switch agg_type {
 		case plans.COUNT_AGGREGATE:
-			// Count starts at zero.
+			// count starts at zero.
 			new_elem := types.NewInteger(0)
 			values = append(values, &new_elem)
 		case plans.SUM_AGGREGATE:
@@ -112,11 +112,11 @@ func (ht *SimpleAggregationHashTable) GenerateInitialAggregateValue() *plans.Agg
 			new_elem := types.NewInteger(0)
 			values = append(values, &new_elem)
 		case plans.MIN_AGGREGATE:
-			// Min starts at INT_MAX.
+			// min starts at INT_MAX.
 			new_elem := types.NewInteger(math.MaxInt32)
 			values = append(values, &new_elem)
 		case plans.MAX_AGGREGATE:
-			// Max starts at INT_MIN.
+			// max starts at INT_MIN.
 			new_elem := types.NewInteger(math.MinInt32)
 			values = append(values, &new_elem)
 		}
@@ -129,17 +129,17 @@ func (aht *SimpleAggregationHashTable) CombineAggregateValues(result *plans.Aggr
 	for i := 0; i < len(aht.agg_exprs_); i++ {
 		switch aht.agg_types_[i] {
 		case plans.COUNT_AGGREGATE:
-			// Count increases by one.
+			// count increases by one.
 			add_val := types.NewInteger(1)
 			result.Aggregates_[i] = result.Aggregates_[i].Add(&add_val)
 		case plans.SUM_AGGREGATE:
 			// Sum increases by addition.
 			result.Aggregates_[i] = result.Aggregates_[i].Add(input.Aggregates_[i])
 		case plans.MIN_AGGREGATE:
-			// Min is just the min.
+			// min is just the min.
 			result.Aggregates_[i] = result.Aggregates_[i].Min(input.Aggregates_[i])
 		case plans.MAX_AGGREGATE:
-			// Max is just the max.
+			// max is just the max.
 			result.Aggregates_[i] = result.Aggregates_[i].Max(input.Aggregates_[i])
 		}
 	}
