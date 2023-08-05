@@ -174,6 +174,12 @@ func (cs *columnStats) EstimateCount(from *types.Value, to *types.Value) float64
 	}
 }
 
+func (cs *columnStats) Multiply(multiplier float64) *columnStats {
+	cs.count = int64(math.Floor(float64(cs.count) * multiplier))
+	cs.distinct = int64(math.Floor(float64(cs.distinct) * multiplier))
+	return cs
+}
+
 type TableStatistics struct {
 	colStats []*columnStats
 }
@@ -309,46 +315,35 @@ func (ts *TableStatistics) ReductionFactor(sc schema.Schema, predicate expressio
 	return 1
 }
 
+func (ts *TableStatistics) Rows() int32 {
+	ans := int32(0)
+	for _, st := range ts.colStats {
+		ans = int32(math.Max(float64(ans), float64(st.Count())))
+	}
+	return ans
+}
+
 func (ts *TableStatistics) ColumnNum() int32 {
 	return int32(len(ts.colStats))
 }
 
 func (ts *TableStatistics) EstimateCount(col_idx int32, from *types.Value, to *types.Value) float64 {
-	// TODO: (SDB) [OPT] not implemented yet (TableStatistics::EstimateCount)
-
-	/*
-	  if (to <= from) {
-	    std::swap(from, to);
-	  }
-	  assert(from <= to);
-	  from = std::max(min, from);
-	  to = std::min(max, to);
-	  return (from - to) * static_cast<double>(count) / distinct;
-	*/
-	return -1.0
+	return ts.colStats[col_idx].EstimateCount(from, to)
 }
 
-func (ts *TableStatistics) TransformBy(col_idx int32, from *types.Value, to *types.Value) float64 {
-	// TODO: (SDB) [OPT] not implemented yet (TableStatistics::TransformBy)
+func (ts *TableStatistics) TransformBy(col_idx int32, from *types.Value, to *types.Value) *TableStatistics {
+	multiplier := ts.EstimateCount(col_idx, from, to)
+	for _, st := range ts.colStats {
+		st.Multiply(multiplier / float64(st.Count()))
+	}
 
-	/*
-	   TableStatistics ret(*this);
-	   double multiplier = EstimateCount(col_idx, from, to);
-	   for (auto& st : ret.stats_) {
-	     st *= multiplier / st.count();
-	   }
-	   return ret;
-	*/
-	return -1.0
+	return ts
 }
 
 func (ts *TableStatistics) Concat(rhs *TableStatistics) {
-	// TODO: (SDB) [OPT] not implemented yet (TableStatistics::Concat)
+	// stats_.reserve(stats_.size() + rhs.stats_.size());
+	for _, s := range rhs.colStats {
+		ts.colStats = append(ts.colStats, s)
+	}
 
-	/*
-	   stats_.reserve(stats_.size() + rhs.stats_.size());
-	   for (const auto& s : rhs.stats_) {
-	     stats_.emplace_back(s);
-	   }
-	*/
 }
