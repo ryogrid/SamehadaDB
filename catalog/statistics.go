@@ -140,35 +140,38 @@ func (cs *ColumnStats[T]) ReductionFactor(sc schema.Schema, planTree plans.Plan)
 */
 
 func (cs *columnStats) EstimateCount(from *types.Value, to *types.Value) float64 {
-	// TODO: (SDB) [OPT] not implemented yet (ColumnStats::EstimateCount)
-
-	panic("not implemented yet")
+	cs.latch.WLock()
+	defer cs.latch.WUnlock()
 
 	if cs.colType == types.Integer || cs.colType == types.Float {
-		/*
-		  if (to <= from) {
-		    std::swap(from, to);
-		  }
-		  assert(from <= to);
-		  from = std::max(min, from);
-		  to = std::min(max, to);
-		  return (from - to) * static_cast<double>(count) / distinct;
-		*/
+		if to.CompareLessThanOrEqual(*from) {
+			// std::swap(from, to);
+			to.Swap(from)
+		}
+		samehada_util.SHAssert(from.CompareLessThanOrEqual(*to), "from must be less than or equal to to")
+		// from = std::max(min, from);
+		from = retValAccordingToCompareResult(from.CompareLessThan(*cs.min), cs.min, from)
+		// to = std::min(max, to);
+		to = retValAccordingToCompareResult(to.CompareLessThan(*cs.max), to, cs.max)
+		// return (from - to) * static_cast<double>(count) / distinct;
+		tmpVal := from.Sub(to)
+		if cs.colType == types.Integer {
+			return float64(tmpVal.ToInteger()) * float64(cs.count) / float64(cs.distinct)
+		} else { // Float
+			return float64(tmpVal.ToFloat()) * float64(cs.count) / float64(cs.distinct)
+		}
 	} else if cs.colType == types.Varchar {
-		/*
-		  if (to <= from) {
-		    std::swap(from, to);
-		  }
-		  if (to <= min || max <= from) {
-		    return 1;
-		  }
-		  return 2;  // FIXME: there must be a better estimation!
-		*/
+		if to.CompareLessThanOrEqual(*from) {
+			// std::swap(from, to);
+			to.Swap(from)
+		}
+		if to.CompareLessThan(*cs.min) || cs.max.CompareLessThanOrEqual(*from) {
+			return 1
+		}
+		return 2 // FIXME: there must be a better estimation!
 	} else {
 		panic("unkown or not supported type")
 	}
-
-	return -1 // remove this after implementation
 }
 
 type TableStatistics struct {

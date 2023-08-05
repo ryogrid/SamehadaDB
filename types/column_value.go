@@ -7,6 +7,7 @@ import (
 	"bytes"
 	"encoding/binary"
 	"fmt"
+	"github.com/ryogrid/SamehadaDB/samehada/samehada_util"
 	"math"
 	"strconv"
 )
@@ -524,6 +525,23 @@ func (v Value) Add(other *Value) *Value {
 	}
 }
 
+func (v Value) Sub(other *Value) *Value {
+	if other.IsNull() {
+		return &v
+	}
+
+	switch v.valueType {
+	case Integer:
+		ret := NewInteger(*v.integer - *other.integer)
+		return &ret
+	case Float:
+		ret := NewFloat(*v.float - *other.float)
+		return &ret
+	default:
+		panic("Add is implemented to Integer and Float only.")
+	}
+}
+
 func (v Value) Max(other *Value) *Value {
 	if other.IsNull() {
 		return &v
@@ -575,5 +593,23 @@ func (v Value) Min(other *Value) *Value {
 		}
 	default:
 		panic("max is implemented to Integer and Float only.")
+	}
+}
+
+func (v Value) Swap(other *Value) {
+	if v.isNull != nil || other.isNull != nil {
+		panic("not implemented for NULL value")
+	}
+	samehada_util.SHAssert(v.valueType == other.valueType, "type mismatch")
+
+	switch v.valueType {
+	case Integer:
+		*v.integer, *other.integer = *other.integer, *v.integer
+	case Float:
+		*v.float, *other.float = *other.float, *v.float
+	case Varchar:
+		*v.varchar, *other.varchar = *other.varchar, *v.varchar
+	default:
+		panic("unkown or not supported type")
 	}
 }
