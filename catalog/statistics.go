@@ -42,11 +42,8 @@ func retValAccordingToCompareResult(compReslt bool, trueVal *types.Value, falseV
 }
 
 func (dc *distinctCounter) Add(value *types.Value) {
-	//max = max < v ? v : max;
-	//min = v < min ? v : min;
 	dc.max = retValAccordingToCompareResult(dc.max.CompareLessThan(*value), value, dc.max)
 	dc.min = retValAccordingToCompareResult(dc.min.CompareGreaterThan(*value), value, dc.min)
-	// counter_.insert(v);
 	dc.counter[value.ToIFValue()] = true
 	dc.count++
 }
@@ -244,31 +241,15 @@ func (ts *TableStatistics) ReductionFactor(sc schema.Schema, predicate expressio
 		if okCmp && boCmp.GetComparisonType() == expression.Equal {
 			if boCmp.GetChildAt(0).GetType() == expression.EXPRESSION_TYPE_COLUMN_VALUE &&
 				boCmp.GetChildAt(1).GetType() == expression.EXPRESSION_TYPE_COLUMN_VALUE {
-				// 			     const auto* lcv =
-				//			         reinterpret_cast<const ColumnValue*>(bo->Left().get());
-				//			     const auto* rcv =
-				//			         reinterpret_cast<const ColumnValue*>(bo->Right().get());
-				//			     if (columns.find(lcv->GetColumnName()) != columns.end() &&
-				//			         columns.find(rcv->GetColumnName()) != columns.end()) {
-				//			       int offset_left = sc.Offset(lcv->GetColumnName());
-				//			       assert(0 <= offset_left && offset_left < (int)stats_.size());
-				//			       int offset_right = sc.Offset(rcv->GetColumnName());
-				//			       assert(0 <= offset_right && offset_right < (int)stats_.size());
 				lcv := boCmp.GetChildAt(0).(*expression.ColumnValue)
 				rcv := boCmp.GetChildAt(1).(*expression.ColumnValue)
 				colIndexLeft := lcv.GetColIndex()
 				samehada_util.SHAssert(colIndexLeft >= 0 && int(colIndexLeft) < len(ts.colStats), "invalid column index (Left)")
 				colIndexRight := rcv.GetColIndex()
 				samehada_util.SHAssert(colIndexRight >= 0 && int(colIndexRight) < len(ts.colStats), "invalid column index (Right)")
-				// return std::min(static_cast<double>(stats_[offset_left].distinct()),static_cast<double>(stats_[offset_right].distinct()));
 				return math.Min(float64(ts.colStats[colIndexLeft].Distinct()), float64(ts.colStats[colIndexRight].Distinct()))
 			}
 			if boCmp.GetChildAt(0).GetType() == expression.EXPRESSION_TYPE_COLUMN_VALUE {
-				// 				   const auto* lcv =
-				//				       reinterpret_cast<const ColumnValue*>(bo->Left().get());
-				//				   LOG(WARN) << lcv->GetColumnName() << " in " << sc;
-				//				   int offset_left = sc.Offset(lcv->GetColumnName());
-				//				   assert(0 <= offset_left && offset_left < (int)stats_.size());
 				lcv := boCmp.GetChildAt(0).(*expression.ColumnValue)
 				colIndexLeft := lcv.GetColIndex()
 				samehada_util.SHAssert(colIndexLeft >= 0 && int(colIndexLeft) < len(ts.colStats), "invalid column index (Left)")
@@ -276,9 +257,6 @@ func (ts *TableStatistics) ReductionFactor(sc schema.Schema, predicate expressio
 				return float64(ts.colStats[colIndexLeft].Distinct())
 			}
 			if boCmp.GetChildAt(1).GetType() == expression.EXPRESSION_TYPE_COLUMN_VALUE {
-				// 				   const auto* rcv =
-				//				       reinterpret_cast<const ColumnValue*>(bo->Left().get());
-				//				   int offset_right = sc.Offset(rcv->GetColumnName());
 				rcv := boCmp.GetChildAt(1).(*expression.ColumnValue)
 				colIndexRight := rcv.GetColIndex()
 				samehada_util.SHAssert(colIndexRight >= 0 && int(colIndexRight) < len(ts.colStats), "invalid column index (Right)")
@@ -292,7 +270,6 @@ func (ts *TableStatistics) ReductionFactor(sc schema.Schema, predicate expressio
 				if left.CompareEquals(*right) {
 					return 1
 				}
-				// return std::numeric_limits<double>::max();
 				return math.MaxFloat64
 			}
 		}
@@ -301,12 +278,10 @@ func (ts *TableStatistics) ReductionFactor(sc schema.Schema, predicate expressio
 		boLogi, okLogi := predicate.(*expression.LogicalOp)
 		if okLogi {
 			if boLogi.GetLogicalOpType() == expression.AND {
-				// return ReductionFactor(sc, bo->Left()) * ReductionFactor(sc, bo->Right());
 				return ts.ReductionFactor(sc, boLogi.GetChildAt(0)) * ts.ReductionFactor(sc, boLogi.GetChildAt(1))
 			}
 			if boLogi.GetLogicalOpType() == expression.OR {
 				// TODO: what should be returned?
-				// return ReductionFactor(sc, bo->Left()) + ReductionFactor(sc, bo->Right());
 				return ts.ReductionFactor(sc, boLogi.GetChildAt(0)) * ts.ReductionFactor(sc, boLogi.GetChildAt(1))
 			}
 		}
@@ -341,9 +316,7 @@ func (ts *TableStatistics) TransformBy(col_idx int32, from *types.Value, to *typ
 }
 
 func (ts *TableStatistics) Concat(rhs *TableStatistics) {
-	// stats_.reserve(stats_.size() + rhs.stats_.size());
 	for _, s := range rhs.colStats {
 		ts.colStats = append(ts.colStats, s)
 	}
-
 }
