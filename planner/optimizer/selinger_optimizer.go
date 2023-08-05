@@ -361,6 +361,8 @@ func (so *SelingerOptimizer) findBestJoinInner(where *parser.BinaryOpExpression,
 		}
 	}
 
+	// TODO: (SDB) [OPT] when fixed to just Selinger, cost of Join should be estimated collectly (SelingerOptimizer::findBestJoin)
+	//                   ex: (A(BCD)) =>  join order is (((AB)C)D)
 	sort.Slice(candidates, func(i, j int) bool {
 		return candidates[i].AccessRowCount() < candidates[j].AccessRowCount()
 	})
