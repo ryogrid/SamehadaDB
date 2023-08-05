@@ -29,9 +29,16 @@ func NewHashJoinPlanNode(output_schema *schema.Schema, children []Plan,
 }
 
 func NewHashJoinPlanNodeWithChilds(left_child Plan, left_hash_keys []expression.Expression, right_child Plan, right_hash_keys []expression.Expression) *HashJoinPlanNode {
-	// TODO: (SDB) [OPT] not implemented yet (NewHashJoinPlanNodeWithChilds)
-	// TODO: (SDB) [OPT] need to check length of left keys and right keys. if length is bigger than 1, print not supporting error message and do panic (NewHashJoinPlanNodeWithChilds)
-	return nil
+	if left_hash_keys == nil || right_hash_keys == nil {
+		panic("NewIndexJoinPlanNodeWithChilds needs keys info.")
+	}
+	if len(left_hash_keys) != 1 || len(right_hash_keys) != 1 {
+		panic("NewIndexJoinPlanNodeWithChilds supports only one key for left and right now.")
+	}
+	onPredicate := constructOnExpressionFromKeysInfo(left_hash_keys, right_hash_keys)
+	output_schema := makeMergedOutputSchema(left_child.OutputSchema(), right_child.OutputSchema())
+
+	return &HashJoinPlanNode{&AbstractPlanNode{output_schema, []Plan{left_child, right_child}}, onPredicate, left_hash_keys, right_hash_keys}
 }
 func (p *HashJoinPlanNode) GetType() PlanType { return HashJoin }
 
