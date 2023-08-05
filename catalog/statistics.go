@@ -175,11 +175,14 @@ type TableStatistics struct {
 }
 
 func NewTableStatistics(schema_ *schema.Schema) *TableStatistics {
-	colStats := make([]*columnStats, 0)
-	for ii := 0; ii < int(schema_.GetColumnCount()); ii++ {
-		colStats = append(colStats, NewColumnStats(schema_.GetColumn(uint32(ii)).GetType()))
-	}
-	return &TableStatistics{colStats}
+	/*
+		colStats := make([]*columnStats, 0)
+		for ii := 0; ii < int(schema_.GetColumnCount()); ii++ {
+			colStats = append(colStats, NewColumnStats(schema_.GetColumn(uint32(ii)).GetType()))
+		}
+		return &TableStatistics{colStats}
+	*/
+	return new(TableStatistics)
 }
 
 func (ts *TableStatistics) Update(target *TableMetadata, txn *access.Transaction) error {

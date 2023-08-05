@@ -7,7 +7,6 @@ import (
 	"bytes"
 	"encoding/binary"
 	"fmt"
-	"github.com/ryogrid/SamehadaDB/samehada/samehada_util"
 	"math"
 	"strconv"
 )
@@ -600,7 +599,7 @@ func (v Value) Swap(other *Value) {
 	if v.isNull != nil || other.isNull != nil {
 		panic("not implemented for NULL value")
 	}
-	samehada_util.SHAssert(v.valueType == other.valueType, "type mismatch")
+	//samehada_util.SHAssert(v.valueType == other.valueType, "type mismatch")
 
 	switch v.valueType {
 	case Integer:
