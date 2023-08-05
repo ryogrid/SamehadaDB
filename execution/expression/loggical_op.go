@@ -98,3 +98,7 @@ func AppendLogicalCondition(baseConds Expression, opType LogicalOpType, addCond 
 	// TODO: (SDB) [OPT] not implemented yet (AppendLogicalCondition)
 	return nil
 }
+
+func (c *LogicalOp) GetType() ExpressionType {
+	return EXPRESSION_TYPE_LOGICAL_OP
+}

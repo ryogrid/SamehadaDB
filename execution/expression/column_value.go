@@ -67,3 +67,7 @@ func MakeColumnValueExpression(schema_ *schema.Schema, tuple_idx_on_join uint32,
 	col_val := NewColumnValue(tuple_idx_on_join, col_idx, col_type)
 	return col_val
 }
+
+func (c *ColumnValue) GetType() ExpressionType {
+	return EXPRESSION_TYPE_COLUMN_VALUE
+}

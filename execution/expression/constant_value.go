@@ -36,3 +36,7 @@ func (c *ConstantValue) EvaluateAggregate(group_bys []*types.Value, aggregates [
 func (c *ConstantValue) GetChildAt(child_idx uint32) Expression {
 	return c.children[child_idx]
 }
+
+func (c *ConstantValue) GetType() ExpressionType {
+	return EXPRESSION_TYPE_CONSTANT_VALUE
+}

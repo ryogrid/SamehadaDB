@@ -49,3 +49,7 @@ func (a *AggregateValueExpression) GetChildAt(child_idx uint32) Expression {
 func (a *AggregateValueExpression) GetReturnType() types.TypeID {
 	return a.ret_type
 }
+
+func (a *AggregateValueExpression) GetType() ExpressionType {
+	return EXPRESSION_TYPE_AGGREGATE_VALUE
+}

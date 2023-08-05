@@ -94,3 +94,7 @@ func (c *Comparison) GetChildAt(child_idx uint32) Expression {
 func (c *Comparison) SetChildAt(child_idx uint32, child Expression) {
 	c.children[child_idx] = child
 }
+
+func (c *Comparison) GetType() ExpressionType {
+	return EXPRESSION_TYPE_COMPARISON
+}

@@ -216,9 +216,7 @@ func (ts *TableStatistics) Update(target *TableMetadata, txn *access.Transaction
 }
 
 func isBinaryExp(exp expression.Expression) bool {
-	_, okCmp := exp.(*expression.Comparison)
-	_, okLogi := exp.(*expression.LogicalOp)
-	return okCmp || okLogi
+	return exp.GetType() == expression.EXPRESSION_TYPE_COMPARISON || exp.GetType() == expression.EXPRESSION_TYPE_LOGICAL_OP
 }
 
 // Returns estimated inverted selection ratio if the `sc` is selected by
@@ -231,49 +229,60 @@ func (ts *TableStatistics) ReductionFactor(sc schema.Schema, predicate expressio
 	if isBinaryExp(predicate) {
 		boCmp, okCmp := predicate.(*expression.Comparison)
 		if okCmp && boCmp.GetComparisonType() == expression.Equal {
-			/*
-			   if (bo->Left()->Type() == TypeTag::kColumnValue &&
-			       bo->Right()->Type() == TypeTag::kColumnValue) {
-			     const auto* lcv =
-			         reinterpret_cast<const ColumnValue*>(bo->Left().get());
-			     const auto* rcv =
-			         reinterpret_cast<const ColumnValue*>(bo->Right().get());
-			     if (columns.find(lcv->GetColumnName()) != columns.end() &&
-			         columns.find(rcv->GetColumnName()) != columns.end()) {
-			       int offset_left = sc.Offset(lcv->GetColumnName());
-			       assert(0 <= offset_left && offset_left < (int)stats_.size());
-			       int offset_right = sc.Offset(rcv->GetColumnName());
-			       assert(0 <= offset_right && offset_right < (int)stats_.size());
-			       return std::min(static_cast<double>(stats_[offset_left].distinct()),
-			                       static_cast<double>(stats_[offset_right].distinct()));
-			     }
-			   }
-			   if (bo->Left()->Type() == TypeTag::kColumnValue) {
-			     const auto* lcv =
-			         reinterpret_cast<const ColumnValue*>(bo->Left().get());
-			     LOG(WARN) << lcv->GetColumnName() << " in " << sc;
-			     int offset_left = sc.Offset(lcv->GetColumnName());
-			     assert(0 <= offset_left && offset_left < (int)stats_.size());
-			     return static_cast<double>(stats_[offset_left].distinct());
-			   }
-			   if (bo->Right()->Type() == TypeTag::kColumnValue) {
-			     const auto* rcv =
-			         reinterpret_cast<const ColumnValue*>(bo->Left().get());
-			     int offset_right = sc.Offset(rcv->GetColumnName());
-			     return static_cast<double>(stats_[offset_right].distinct());
-			   }
-			   if (bo->Left()->Type() == TypeTag::kConstantValue &&
-			       bo->Right()->Type() == TypeTag::kConstantValue) {
-			     Value left = reinterpret_cast<const ConstantValue*>(bo->Left().get())
-			                      ->GetValue();
-			     Value right = reinterpret_cast<const ConstantValue*>(bo->Right().get())
-			                       ->GetValue();
-			     if (left == right) {
-			       return 1;
-			     }
-			     return std::numeric_limits<double>::max();
-			   }
-			*/
+			if boCmp.GetChildAt(0).GetType() == expression.EXPRESSION_TYPE_COLUMN_VALUE &&
+				boCmp.GetChildAt(1).GetType() == expression.EXPRESSION_TYPE_COLUMN_VALUE {
+				// 			     const auto* lcv =
+				//			         reinterpret_cast<const ColumnValue*>(bo->Left().get());
+				//			     const auto* rcv =
+				//			         reinterpret_cast<const ColumnValue*>(bo->Right().get());
+				//			     if (columns.find(lcv->GetColumnName()) != columns.end() &&
+				//			         columns.find(rcv->GetColumnName()) != columns.end()) {
+				//			       int offset_left = sc.Offset(lcv->GetColumnName());
+				//			       assert(0 <= offset_left && offset_left < (int)stats_.size());
+				//			       int offset_right = sc.Offset(rcv->GetColumnName());
+				//			       assert(0 <= offset_right && offset_right < (int)stats_.size());
+				lcv := boCmp.GetChildAt(0).(*expression.ColumnValue)
+				rcv := boCmp.GetChildAt(1).(*expression.ColumnValue)
+				colIndexLeft := lcv.GetColIndex()
+				samehada_util.SHAssert(colIndexLeft >= 0 && int(colIndexLeft) < len(ts.colStats), "invalid column index (Left)")
+				colIndexRight := rcv.GetColIndex()
+				samehada_util.SHAssert(colIndexRight >= 0 && int(colIndexRight) < len(ts.colStats), "invalid column index (Right)")
+				/*
+				   return std::min(static_cast<double>(stats_[offset_left].distinct()),
+				                   static_cast<double>(stats_[offset_right].distinct()));
+				*/
+			}
+			if boCmp.GetChildAt(0).GetType() == expression.EXPRESSION_TYPE_COLUMN_VALUE {
+				/*
+				   const auto* lcv =
+				       reinterpret_cast<const ColumnValue*>(bo->Left().get());
+				   LOG(WARN) << lcv->GetColumnName() << " in " << sc;
+				   int offset_left = sc.Offset(lcv->GetColumnName());
+				   assert(0 <= offset_left && offset_left < (int)stats_.size());
+				   return static_cast<double>(stats_[offset_left].distinct());
+				*/
+			}
+			if boCmp.GetChildAt(1).GetType() == expression.EXPRESSION_TYPE_COLUMN_VALUE {
+				/*
+				   const auto* rcv =
+				       reinterpret_cast<const ColumnValue*>(bo->Left().get());
+				   int offset_right = sc.Offset(rcv->GetColumnName());
+				   return static_cast<double>(stats_[offset_right].distinct());
+				*/
+			}
+			if boCmp.GetChildAt(0).GetType() == expression.EXPRESSION_TYPE_CONSTANT_VALUE &&
+				boCmp.GetChildAt(1).GetType() == expression.EXPRESSION_TYPE_CONSTANT_VALUE {
+				/*
+				   Value left = reinterpret_cast<const ConstantValue*>(bo->Left().get())
+				                    ->GetValue();
+				   Value right = reinterpret_cast<const ConstantValue*>(bo->Right().get())
+				                     ->GetValue();
+				   if (left == right) {
+				     return 1;
+				   }
+				   return std::numeric_limits<double>::max();
+				*/
+			}
 		}
 		// TODO: kGreaterThan, kGreaterEqual, kLessThan, kLessEqual, kNotEqual, kXor
 
