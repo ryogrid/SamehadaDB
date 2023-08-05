@@ -40,3 +40,7 @@ func (c *ConstantValue) GetChildAt(child_idx uint32) Expression {
 func (c *ConstantValue) GetType() ExpressionType {
 	return EXPRESSION_TYPE_CONSTANT_VALUE
 }
+
+func (c *ConstantValue) GetValue() *types.Value {
+	return &c.value
+}

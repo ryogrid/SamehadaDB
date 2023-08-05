@@ -223,8 +223,6 @@ func isBinaryExp(exp expression.Expression) bool {
 // `predicate`. If the predicate selects rows to 1 / x, returns x.
 // Returning 1 means no selection (pass through).
 func (ts *TableStatistics) ReductionFactor(sc schema.Schema, predicate expression.Expression) float64 {
-	// TODO: (SDB) [OPT] not implemented yet (TableStatistics::ReductionFactor)
-
 	samehada_util.SHAssert(sc.GetColumnCount() > 0, "no column in schema")
 	if isBinaryExp(predicate) {
 		boCmp, okCmp := predicate.(*expression.Comparison)
@@ -247,62 +245,59 @@ func (ts *TableStatistics) ReductionFactor(sc schema.Schema, predicate expressio
 				samehada_util.SHAssert(colIndexLeft >= 0 && int(colIndexLeft) < len(ts.colStats), "invalid column index (Left)")
 				colIndexRight := rcv.GetColIndex()
 				samehada_util.SHAssert(colIndexRight >= 0 && int(colIndexRight) < len(ts.colStats), "invalid column index (Right)")
-				/*
-				   return std::min(static_cast<double>(stats_[offset_left].distinct()),
-				                   static_cast<double>(stats_[offset_right].distinct()));
-				*/
+				// return std::min(static_cast<double>(stats_[offset_left].distinct()),static_cast<double>(stats_[offset_right].distinct()));
+				return math.Min(float64(ts.colStats[colIndexLeft].Distinct()), float64(ts.colStats[colIndexRight].Distinct()))
 			}
 			if boCmp.GetChildAt(0).GetType() == expression.EXPRESSION_TYPE_COLUMN_VALUE {
-				/*
-				   const auto* lcv =
-				       reinterpret_cast<const ColumnValue*>(bo->Left().get());
-				   LOG(WARN) << lcv->GetColumnName() << " in " << sc;
-				   int offset_left = sc.Offset(lcv->GetColumnName());
-				   assert(0 <= offset_left && offset_left < (int)stats_.size());
-				   return static_cast<double>(stats_[offset_left].distinct());
-				*/
+				// 				   const auto* lcv =
+				//				       reinterpret_cast<const ColumnValue*>(bo->Left().get());
+				//				   LOG(WARN) << lcv->GetColumnName() << " in " << sc;
+				//				   int offset_left = sc.Offset(lcv->GetColumnName());
+				//				   assert(0 <= offset_left && offset_left < (int)stats_.size());
+				lcv := boCmp.GetChildAt(0).(*expression.ColumnValue)
+				colIndexLeft := lcv.GetColIndex()
+				samehada_util.SHAssert(colIndexLeft >= 0 && int(colIndexLeft) < len(ts.colStats), "invalid column index (Left)")
+				// return static_cast<double>(stats_[offset_left].distinct());
+				return float64(ts.colStats[colIndexLeft].Distinct())
 			}
 			if boCmp.GetChildAt(1).GetType() == expression.EXPRESSION_TYPE_COLUMN_VALUE {
-				/*
-				   const auto* rcv =
-				       reinterpret_cast<const ColumnValue*>(bo->Left().get());
-				   int offset_right = sc.Offset(rcv->GetColumnName());
-				   return static_cast<double>(stats_[offset_right].distinct());
-				*/
+				// 				   const auto* rcv =
+				//				       reinterpret_cast<const ColumnValue*>(bo->Left().get());
+				//				   int offset_right = sc.Offset(rcv->GetColumnName());
+				rcv := boCmp.GetChildAt(1).(*expression.ColumnValue)
+				colIndexRight := rcv.GetColIndex()
+				samehada_util.SHAssert(colIndexRight >= 0 && int(colIndexRight) < len(ts.colStats), "invalid column index (Right)")
+				// return static_cast<double>(stats_[offset_right].distinct());
+				return float64(ts.colStats[colIndexRight].Distinct())
 			}
 			if boCmp.GetChildAt(0).GetType() == expression.EXPRESSION_TYPE_CONSTANT_VALUE &&
 				boCmp.GetChildAt(1).GetType() == expression.EXPRESSION_TYPE_CONSTANT_VALUE {
-				/*
-				   Value left = reinterpret_cast<const ConstantValue*>(bo->Left().get())
-				                    ->GetValue();
-				   Value right = reinterpret_cast<const ConstantValue*>(bo->Right().get())
-				                     ->GetValue();
-				   if (left == right) {
-				     return 1;
-				   }
-				   return std::numeric_limits<double>::max();
-				*/
+				left := boCmp.GetChildAt(0).(*expression.ConstantValue).GetValue()
+				right := boCmp.GetChildAt(1).(*expression.ConstantValue).GetValue()
+				if left.CompareEquals(*right) {
+					return 1
+				}
+				// return std::numeric_limits<double>::max();
+				return math.MaxFloat64
 			}
 		}
-		// TODO: kGreaterThan, kGreaterEqual, kLessThan, kLessEqual, kNotEqual, kXor
+		// TODO: (SDB) [OPT] GreaterThan, GreaterEqual, LessThan, LessEqual, NotEqual
 
 		boLogi, okLogi := predicate.(*expression.LogicalOp)
 		if okLogi {
 			if boLogi.GetLogicalOpType() == expression.AND {
-				/*
-					return ReductionFactor(sc, bo->Left()) * ReductionFactor(sc, bo->Right());
-				*/
+				// return ReductionFactor(sc, bo->Left()) * ReductionFactor(sc, bo->Right());
+				return ts.ReductionFactor(sc, boLogi.GetChildAt(0)) * ts.ReductionFactor(sc, boLogi.GetChildAt(1))
 			}
 			if boLogi.GetLogicalOpType() == expression.OR {
-				/*
-				   // FIXME: what should I return?
-				   return ReductionFactor(sc, bo->Left()) + ReductionFactor(sc, bo->Right());
-				*/
+				// TODO: what should be returned?
+				// return ReductionFactor(sc, bo->Left()) + ReductionFactor(sc, bo->Right());
+				return ts.ReductionFactor(sc, boLogi.GetChildAt(0)) * ts.ReductionFactor(sc, boLogi.GetChildAt(1))
 			}
 		}
 	}
 
-	panic("predicate includes not supported expression")
+	return 1
 }
 
 func (ts *TableStatistics) ColumnNum() int32 {
