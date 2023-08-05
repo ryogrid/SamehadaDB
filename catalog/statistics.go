@@ -120,8 +120,6 @@ func (cs *columnStats) Check(sample *types.Value) {
 	cs.latch.WLock()
 	defer cs.latch.WUnlock()
 
-	// max = std::max(max, sample.value.int_value);
-	// min = std::min(min, sample.value.int_value);
 	cs.max = retValAccordingToCompareResult(sample.CompareGreaterThan(*cs.max), sample, cs.max)
 	cs.min = retValAccordingToCompareResult(sample.CompareLessThan(*cs.min), sample, cs.min)
 	cs.count++
@@ -142,15 +140,11 @@ func (cs *columnStats) EstimateCount(from *types.Value, to *types.Value) float64
 
 	if cs.colType == types.Integer || cs.colType == types.Float {
 		if to.CompareLessThanOrEqual(*from) {
-			// std::swap(from, to);
 			to.Swap(from)
 		}
 		samehada_util.SHAssert(from.CompareLessThanOrEqual(*to), "from must be less than or equal to to")
-		// from = std::max(min, from);
 		from = retValAccordingToCompareResult(from.CompareLessThan(*cs.min), cs.min, from)
-		// to = std::min(max, to);
 		to = retValAccordingToCompareResult(to.CompareLessThan(*cs.max), to, cs.max)
-		// return (from - to) * static_cast<double>(count) / distinct;
 		tmpVal := from.Sub(to)
 		if cs.colType == types.Integer {
 			return float64(tmpVal.ToInteger()) * float64(cs.count) / float64(cs.distinct)
@@ -159,7 +153,6 @@ func (cs *columnStats) EstimateCount(from *types.Value, to *types.Value) float64
 		}
 	} else if cs.colType == types.Varchar {
 		if to.CompareLessThanOrEqual(*from) {
-			// std::swap(from, to);
 			to.Swap(from)
 		}
 		if to.CompareLessThan(*cs.min) || cs.max.CompareLessThanOrEqual(*from) {
@@ -192,7 +185,6 @@ func NewTableStatistics(schema_ *schema.Schema) *TableStatistics {
 func (ts *TableStatistics) Update(target *TableMetadata, txn *access.Transaction) error {
 	rows := 0
 	schema_ := target.Schema()
-	//Iterator it = target.BeginFullScan(txn);
 	it := target.Table().Iterator(txn)
 
 	distCounters := make([]*distinctCounter, 0)
@@ -201,7 +193,6 @@ func (ts *TableStatistics) Update(target *TableMetadata, txn *access.Transaction
 	}
 
 	for !it.End() {
-		//const Row& row = *it;
 		tuple_ := it.Next()
 		for ii := 0; ii < len(ts.colStats); ii++ {
 			distCounters[ii].Add(samehada_util.GetPonterOfValue(tuple_.GetValue(schema_, uint32(ii))))
