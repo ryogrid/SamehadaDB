@@ -43,14 +43,17 @@ func NewRange(valType types.TypeID) *Range {
 	retRange := new(Range)
 	switch valType {
 	case types.Integer:
-		retRange.Min = samehada_util.GetPonterOfValue(types.NewInteger(math.MinInt32))
-		retRange.Max = samehada_util.GetPonterOfValue(types.NewInteger(math.MaxInt32))
+		retRange.Min = samehada_util.GetPonterOfValue(types.NewInteger(math.MinInt32)).SetInfMin()
+		retRange.Max = samehada_util.GetPonterOfValue(types.NewInteger(math.MaxInt32)).SetInfMax()
 	case types.Float:
-		retRange.Min = samehada_util.GetPonterOfValue(types.NewFloat(math.SmallestNonzeroFloat32))
-		retRange.Max = samehada_util.GetPonterOfValue(types.NewFloat(math.MaxFloat32))
+		retRange.Min = samehada_util.GetPonterOfValue(types.NewFloat(math.SmallestNonzeroFloat32)).SetInfMin()
+		retRange.Max = samehada_util.GetPonterOfValue(types.NewFloat(math.MaxFloat32)).SetInfMax()
 	case types.Varchar:
 		retRange.Min = samehada_util.GetPonterOfValue(types.NewVarchar("")).SetInfMin()
 		retRange.Max = samehada_util.GetPonterOfValue(types.NewVarchar("")).SetInfMax()
+	case types.Boolean:
+		retRange.Min = samehada_util.GetPonterOfValue(types.NewBoolean(false)).SetInfMin()
+		retRange.Max = samehada_util.GetPonterOfValue(types.NewBoolean(true)).SetInfMax()
 	default:
 		panic("invalid type")
 	}
@@ -60,67 +63,62 @@ func NewRange(valType types.TypeID) *Range {
 }
 
 func (r *Range) Empty() bool {
-	// TODO: (SDB) [OPT] not implemented yet (Range::Empty)
-	/*
-	   return !min.has_value() && !max.has_value();
-	*/
-	return false
+	// TODO: (SDB) [OPT] consideration of boolean type column (Range::Empty)
+	// check whether field is changed from initial value
+	return r.Min.IsInfMin() && r.Max.IsInfMax()
 }
 
 func (r *Range) Update(op expression.ComparisonType, rhs *types.Value, dir Direction) {
 	// TODO: (SDB) [OPT] not implemented yet (Range::Update)
-	/*
-	    switch (op) {
-	      case BinaryOperation::kEquals:
-	        // e.g. x == 10
-	        max = min = rhs;
-	        min_inclusive = max_inclusive = true;
-	        break;
-	      case BinaryOperation::kNotEquals:
-	        // e.g. x != 10
-	        // We have nothing to do here.
-	        break;
-	      case BinaryOperation::kLessThan:
-	      case BinaryOperation::kGreaterThan:
-	        if ((dir == Dir::kRight && op == BinaryOperation::kLessThan) ||
-	            (dir == Dir::kLeft && op == BinaryOperation::kGreaterThan)) {
-	          // e.g. x < 10
-	          // e.g. 10 > x
-	          if (!max.has_value() || (max.has_value() && rhs < *max)) {
-	            max = rhs;
-	            max_inclusive = false;
-	          }
-	        } else {
-	          // e.g. 10 < x
-	          // e.g. x > 10
-	          if (!min.has_value() || (min.has_value() && *min < rhs)) {
-	            min = rhs;
-	            min_inclusive = false;
-	          }
-	        }
-	        break;
-	      case BinaryOperation::kLessThanEquals:
-	      case BinaryOperation::kGreaterThanEquals:
-	        if ((dir == Dir::kRight && op == BinaryOperation::kLessThanEquals) ||
-	            (dir == Dir::kLeft && op == BinaryOperation::kGreaterThanEquals)) {
-	          // e.g. x <= 10
-	          // e.g. 10 >= x
-	          if (!max.has_value() || (max.has_value() && rhs <= *max)) {
-	            max = rhs;
-	            max_inclusive = true;
-	          }
-	        } else {
-	          // e.g. 10 <= x
-	          // e.g. x >= 10
-	          min = rhs;
-	          min_inclusive = true;
-	        }
-	        break;
-	      default:
-	        assert(!"invalid operator to update");
-	    }
-	  }
-	*/
+	switch op {
+	case expression.Equal:
+		// e.g. x == 10
+		r.Max = rhs.GetDeepCopy()
+		r.Min = rhs.GetDeepCopy()
+		r.MinInclusive = true
+		r.MinInclusive = true
+	case expression.NotEqual:
+		// e.g. x != 10
+		// We have nothing to do here.
+	case expression.LessThan, expression.GreaterThan:
+		/*
+		   if ((dir == Dir::kRight && op == BinaryOperation::kLessThan) ||
+		       (dir == Dir::kLeft && op == BinaryOperation::kGreaterThan)) {
+		     // e.g. x < 10
+		     // e.g. 10 > x
+		     if (!max.has_value() || (max.has_value() && rhs < *max)) {
+		       max = rhs;
+		       max_inclusive = false;
+		     }
+		   } else {
+		     // e.g. 10 < x
+		     // e.g. x > 10
+		     if (!min.has_value() || (min.has_value() && *min < rhs)) {
+		       min = rhs;
+		       min_inclusive = false;
+		     }
+		   }
+		*/
+	case expression.LessThanOrEqual, expression.GreaterThanOrEqual:
+		/*
+		   if ((dir == Dir::kRight && op == BinaryOperation::kLessThanEquals) ||
+		       (dir == Dir::kLeft && op == BinaryOperation::kGreaterThanEquals)) {
+		     // e.g. x <= 10
+		     // e.g. 10 >= x
+		     if (!max.has_value() || (max.has_value() && rhs <= *max)) {
+		       max = rhs;
+		       max_inclusive = true;
+		     }
+		   } else {
+		     // e.g. 10 <= x
+		     // e.g. x >= 10
+		     min = rhs;
+		     min_inclusive = true;
+		   }
+		*/
+	default:
+		panic("invalid operator to update")
+	}
 }
 
 type SelingerOptimizer struct {

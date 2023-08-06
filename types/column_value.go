@@ -632,3 +632,18 @@ func (v Value) Swap(other *Value) {
 		panic("unkown or not supported type")
 	}
 }
+
+func (v Value) GetDeepCopy() *Value {
+	switch v.valueType {
+	case Integer:
+		return NewValueFromBytes(v.Serialize(), Integer)
+	case Float:
+		return NewValueFromBytes(v.Serialize(), Float)
+	case Varchar:
+		return NewValueFromBytes(v.Serialize(), Varchar)
+	case Boolean:
+		return NewValueFromBytes(v.Serialize(), Boolean)
+	default:
+		panic("unkown or not supported type")
+	}
+}
