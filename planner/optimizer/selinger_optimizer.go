@@ -136,21 +136,19 @@ func containsAny(map1 mapset.Set[string], map2 mapset.Set[string]) bool {
 	}
 }
 
-func touchOnly(where expression.Expression, colName string) bool {
-	// TODO: (SDB) [OPT] not implemented yet (touchOnly)
-	/*
-	  if (where->Type() == TypeTag::kColumnValue) {
-	    const ColumnValue& cv = where->AsColumnValue();
-	    return cv.GetColumnName() == col_name;
-	  }
-	  if (where->Type() == TypeTag::kBinaryExp) {
-	    const BinaryExpression& be = where->AsBinaryExpression();
-	    return TouchOnly(be.Left(), col_name) && TouchOnly(be.Right(), col_name);
-	  }
-	  assert(where->Type() == TypeTag::kConstantValue);
-	  return true;
-	*/
-	return false
+func touchOnly(from *catalog.TableMetadata, where expression.Expression, colName string) bool {
+	if where.GetType() == expression.EXPRESSION_TYPE_COLUMN_VALUE {
+		// 		   const ColumnValue& cv = where->AsColumnValue();
+		//		   return cv.GetColumnName() == col_name;
+		cv := where.(*expression.ColumnValue)
+		return from.Schema().GetColumn(cv.GetColIndex()).GetColumnName() == colName
+	} else if where.GetType() == expression.EXPRESSION_TYPE_LOGICAL_OP || where.GetType() == expression.EXPRESSION_TYPE_COMPARISON {
+		//		   const BinaryExpression& be = where->AsBinaryExpression();
+		//		   return TouchOnly(be.Left(), col_name) && TouchOnly(be.Right(), col_name);
+		return touchOnly(from, where.GetChildAt(0), colName) && touchOnly(from, where.GetChildAt(1), colName)
+	}
+	samehada_util.SHAssert(where.GetType() == expression.EXPRESSION_TYPE_CONSTANT_VALUE, "invalid expression type")
+	return true
 }
 
 // TODO: (SDB) [OPT] caller should pass *where* args which is deep copied (SelingerOptimizer::findBestScan)
@@ -262,7 +260,7 @@ func (so *SelingerOptimizer) findBestScan(outNeededCols []*column.Column, where 
 		// Plan new_plan = IndexScanSelect(from, target_idx, stat, *span.min,*span.max, scan_exp, select);
 		var newPlan plans.Plan = plans.NewRangeScanWithIndexPlanNode(sc, from.OID(), int32(key), nil, span.Min, span.Max)
 		// if (!TouchOnly(scan_exp, from.GetSchema().GetColumn(key).Name())) {
-		if !touchOnly(scanExp, sc.GetColumn(uint32(key)).GetColumnName()) {
+		if !touchOnly(from, scanExp, sc.GetColumn(uint32(key)).GetColumnName()) {
 			//new_plan = std::make_shared<SelectionPlan>(new_plan, scan_exp, stat);
 			newPlan = plans.NewSelectionPlanNode(newPlan, scanExp)
 		}
