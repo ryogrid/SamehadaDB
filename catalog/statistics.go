@@ -79,6 +79,8 @@ func NewColumnStats(colType types.TypeID) *columnStats {
 		return &columnStats{samehada_util.GetPonterOfValue(types.NewFloat(math.MaxFloat32)), samehada_util.GetPonterOfValue(types.NewFloat(math.SmallestNonzeroFloat32)), 0, 0, colType, common.NewRWLatch()}
 	case types.Varchar:
 		return &columnStats{samehada_util.GetPonterOfValue(types.NewVarchar("")).SetInfMax(), samehada_util.GetPonterOfValue(types.NewVarchar("")).SetInfMin(), 0, 0, colType, common.NewRWLatch()}
+	case types.Boolean:
+		return &columnStats{samehada_util.GetPonterOfValue(types.NewBoolean(true)), samehada_util.GetPonterOfValue(types.NewBoolean(false)), 0, 0, colType, common.NewRWLatch()}
 	default:
 		panic("unkown type")
 	}
@@ -95,6 +97,8 @@ func (cs *columnStats) Count() int64 {
 		return cs.count
 	case types.Varchar:
 		return cs.count
+	case types.Boolean:
+		return cs.count
 	default:
 		panic("unkown or not supported type")
 	}
@@ -110,6 +114,8 @@ func (cs *columnStats) Distinct() int64 {
 	case types.Float:
 		return cs.distinct
 	case types.Varchar:
+		return cs.distinct
+	case types.Boolean:
 		return cs.distinct
 	default:
 		panic("unkown or not supported type")
@@ -159,6 +165,8 @@ func (cs *columnStats) EstimateCount(from *types.Value, to *types.Value) float64
 			return 1
 		}
 		return 2 // FIXME: there must be a better estimation!
+	} else if cs.colType == types.Boolean {
+		return 1 // FIXME: there must be a better estimation!
 	} else {
 		panic("unkown or not supported type")
 	}
@@ -175,14 +183,11 @@ type TableStatistics struct {
 }
 
 func NewTableStatistics(schema_ *schema.Schema) *TableStatistics {
-	/*
-		colStats := make([]*columnStats, 0)
-		for ii := 0; ii < int(schema_.GetColumnCount()); ii++ {
-			colStats = append(colStats, NewColumnStats(schema_.GetColumn(uint32(ii)).GetType()))
-		}
-		return &TableStatistics{colStats}
-	*/
-	return new(TableStatistics)
+	colStats := make([]*columnStats, 0)
+	for ii := 0; ii < int(schema_.GetColumnCount()); ii++ {
+		colStats = append(colStats, NewColumnStats(schema_.GetColumn(uint32(ii)).GetType()))
+	}
+	return &TableStatistics{colStats}
 }
 
 func (ts *TableStatistics) Update(target *TableMetadata, txn *access.Transaction) error {
@@ -212,6 +217,8 @@ func (ts *TableStatistics) Update(target *TableMetadata, txn *access.Transaction
 		case types.Float:
 			distCounters[ii].Output(cs)
 		case types.Varchar:
+			distCounters[ii].Output(cs)
+		case types.Boolean:
 			distCounters[ii].Output(cs)
 		default:
 			panic("unkown or not supported type")
