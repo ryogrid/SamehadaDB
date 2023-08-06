@@ -442,8 +442,7 @@ func (so *SelingerOptimizer) findBestJoin(optimalPlans map[mapset.Set[string]]Co
 				common.SH_Assert(1 < joinedTables.Cardinality(), "joinedTables.Cardinality() is illegal!")
 				cost := bestJoinPlan.AccessRowCount()
 
-				// TODO: (SDB) [OPT] update target should be changed to tempolal table? (SelingerOptimizer::findBestJoin)
-				//             (its scope is same ii value loop and it is merged to optimalPlans at end of the ii loop)
+				// TODO: (SDB) [OPT] update target should be changed to tempolal table or introduce other solution (SelingerOptimizer::findBestJoin)
 				if existedPlan, ok := optimalPlans[joinedTables]; ok {
 					optimalPlans[joinedTables] = CostAndPlan{cost, bestJoinPlan}
 				} else if cost < existedPlan.cost {
