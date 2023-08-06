@@ -626,6 +626,8 @@ func (v Value) Swap(other *Value) {
 		*v.float, *other.float = *other.float, *v.float
 	case Varchar:
 		*v.varchar, *other.varchar = *other.varchar, *v.varchar
+	case Boolean:
+		*v.boolean, *other.boolean = *other.boolean, *v.boolean
 	default:
 		panic("unkown or not supported type")
 	}
