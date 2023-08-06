@@ -69,7 +69,6 @@ func (r *Range) Empty() bool {
 }
 
 func (r *Range) Update(op expression.ComparisonType, rhs *types.Value, dir Direction) {
-	// TODO: (SDB) [OPT] not implemented yet (Range::Update)
 	switch op {
 	case expression.Equal:
 		// e.g. x == 10
@@ -81,41 +80,37 @@ func (r *Range) Update(op expression.ComparisonType, rhs *types.Value, dir Direc
 		// e.g. x != 10
 		// We have nothing to do here.
 	case expression.LessThan, expression.GreaterThan:
-		/*
-		   if ((dir == Dir::kRight && op == BinaryOperation::kLessThan) ||
-		       (dir == Dir::kLeft && op == BinaryOperation::kGreaterThan)) {
-		     // e.g. x < 10
-		     // e.g. 10 > x
-		     if (!max.has_value() || (max.has_value() && rhs < *max)) {
-		       max = rhs;
-		       max_inclusive = false;
-		     }
-		   } else {
-		     // e.g. 10 < x
-		     // e.g. x > 10
-		     if (!min.has_value() || (min.has_value() && *min < rhs)) {
-		       min = rhs;
-		       min_inclusive = false;
-		     }
-		   }
-		*/
+		if (dir == DIR_RIGHT && op == expression.LessThan) ||
+			(dir == DIR_LEFT && op == expression.GreaterThan) {
+			// e.g. x < 10
+			// e.g. 10 > x
+			if r.Max.IsInfMax() || ((!r.Max.IsInfMax()) && rhs.CompareLessThan(*r.Max)) {
+				r.Max = rhs.GetDeepCopy()
+				r.MaxInclusive = false
+			}
+		} else {
+			// e.g. 10 < x
+			// e.g. x > 10
+			if r.Min.IsInfMin() || ((!r.Min.IsInfMin()) && r.Min.CompareLessThan(*rhs)) {
+				r.Min = rhs.GetDeepCopy()
+				r.MinInclusive = false
+			}
+		}
 	case expression.LessThanOrEqual, expression.GreaterThanOrEqual:
-		/*
-		   if ((dir == Dir::kRight && op == BinaryOperation::kLessThanEquals) ||
-		       (dir == Dir::kLeft && op == BinaryOperation::kGreaterThanEquals)) {
-		     // e.g. x <= 10
-		     // e.g. 10 >= x
-		     if (!max.has_value() || (max.has_value() && rhs <= *max)) {
-		       max = rhs;
-		       max_inclusive = true;
-		     }
-		   } else {
-		     // e.g. 10 <= x
-		     // e.g. x >= 10
-		     min = rhs;
-		     min_inclusive = true;
-		   }
-		*/
+		if (dir == DIR_RIGHT && op == expression.LessThanOrEqual) ||
+			(dir == DIR_LEFT && op == expression.GreaterThanOrEqual) {
+			// e.g. x <= 10
+			// e.g. 10 >= x
+			if r.Max.IsInfMax() || ((!r.Max.IsInfMax()) && rhs.CompareLessThanOrEqual(*r.Max)) {
+				r.Max = rhs.GetDeepCopy()
+				r.MaxInclusive = true
+			}
+		} else {
+			// e.g. 10 <= x
+			// e.g. x >= 10
+			r.Min = rhs.GetDeepCopy()
+			r.MinInclusive = true
+		}
 	default:
 		panic("invalid operator to update")
 	}
