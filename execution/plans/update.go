@@ -49,3 +49,8 @@ func (p *UpdatePlanNode) AccessRowCount() uint64 {
 	// TODO: (SDB) [OPT] not implemented yet (UpdatePlanNode::AccessRowCount)
 	return 0
 }
+
+func (p *UpdatePlanNode) EmitRowCount() uint64 {
+	// TODO: (SDB) [OPT] not implemented yet (UpdatePlanNode::EmitRowCount)
+	return 0
+}

@@ -49,7 +49,17 @@ func (p *RangeScanWithIndexPlanNode) GetType() PlanType {
 	return IndexRangeScan
 }
 
+func (p *RangeScanWithIndexPlanNode) EmitRowCount() uint64 {
+	// TODO: (SDB) [OPT] not implemented yet (RangeScanWithIndexPlanNode::EmitRowCount)
+	/*
+	   	if (index_.IsUnique() && begin_ == end_) {
+	   return 1;
+	   }
+	   return std::ceil(stats_.EstimateCount(index_.sc_.key_[0], begin_, end_));
+	*/
+	return 1
+}
+
 func (p *RangeScanWithIndexPlanNode) AccessRowCount() uint64 {
-	// TODO: (SDB) [OPT] not implemented yet (RangeScanWithIndexPlanNode::AccessRowCount)
-	return 0
+	return p.EmitRowCount()
 }

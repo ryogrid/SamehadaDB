@@ -33,7 +33,13 @@ func (p *PointScanWithIndexPlanNode) GetType() PlanType {
 	return IndexPointScan
 }
 
+func (p *PointScanWithIndexPlanNode) EmitRowCount() uint64 {
+	// TODO: (SDB) [OPT] not implemented yet (RangeScanWithIndexPlanNode::EmitRowCount)
+	// TODO: (SDB) [OPT] need to design or decide estimation logic (PointScanWithIndexPlanNode::EmitRowCount)
+
+	return 1
+}
+
 func (p *PointScanWithIndexPlanNode) AccessRowCount() uint64 {
-	// TODO: (SDB) [OPT] not implemented yet (PointScanWithIndexPlanNode::AccessRowCount)
-	return 0
+	return p.EmitRowCount()
 }

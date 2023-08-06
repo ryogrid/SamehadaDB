@@ -61,11 +61,66 @@ func NewRange(valType types.TypeID) *Range {
 
 func (r *Range) Empty() bool {
 	// TODO: (SDB) [OPT] not implemented yet (Range::Empty)
+	/*
+	   return !min.has_value() && !max.has_value();
+	*/
 	return false
 }
 
 func (r *Range) Update(op expression.ComparisonType, rhs *types.Value, dir Direction) {
 	// TODO: (SDB) [OPT] not implemented yet (Range::Update)
+	/*
+	    switch (op) {
+	      case BinaryOperation::kEquals:
+	        // e.g. x == 10
+	        max = min = rhs;
+	        min_inclusive = max_inclusive = true;
+	        break;
+	      case BinaryOperation::kNotEquals:
+	        // e.g. x != 10
+	        // We have nothing to do here.
+	        break;
+	      case BinaryOperation::kLessThan:
+	      case BinaryOperation::kGreaterThan:
+	        if ((dir == Dir::kRight && op == BinaryOperation::kLessThan) ||
+	            (dir == Dir::kLeft && op == BinaryOperation::kGreaterThan)) {
+	          // e.g. x < 10
+	          // e.g. 10 > x
+	          if (!max.has_value() || (max.has_value() && rhs < *max)) {
+	            max = rhs;
+	            max_inclusive = false;
+	          }
+	        } else {
+	          // e.g. 10 < x
+	          // e.g. x > 10
+	          if (!min.has_value() || (min.has_value() && *min < rhs)) {
+	            min = rhs;
+	            min_inclusive = false;
+	          }
+	        }
+	        break;
+	      case BinaryOperation::kLessThanEquals:
+	      case BinaryOperation::kGreaterThanEquals:
+	        if ((dir == Dir::kRight && op == BinaryOperation::kLessThanEquals) ||
+	            (dir == Dir::kLeft && op == BinaryOperation::kGreaterThanEquals)) {
+	          // e.g. x <= 10
+	          // e.g. 10 >= x
+	          if (!max.has_value() || (max.has_value() && rhs <= *max)) {
+	            max = rhs;
+	            max_inclusive = true;
+	          }
+	        } else {
+	          // e.g. 10 <= x
+	          // e.g. x >= 10
+	          min = rhs;
+	          min_inclusive = true;
+	        }
+	        break;
+	      default:
+	        assert(!"invalid operator to update");
+	    }
+	  }
+	*/
 }
 
 type SelingerOptimizer struct {
@@ -90,6 +145,18 @@ func containsAny(map1 mapset.Set[string], map2 mapset.Set[string]) bool {
 
 func touchOnly(where expression.Expression, colName string) bool {
 	// TODO: (SDB) [OPT] not implemented yet (touchOnly)
+	/*
+	  if (where->Type() == TypeTag::kColumnValue) {
+	    const ColumnValue& cv = where->AsColumnValue();
+	    return cv.GetColumnName() == col_name;
+	  }
+	  if (where->Type() == TypeTag::kBinaryExp) {
+	    const BinaryExpression& be = where->AsBinaryExpression();
+	    return TouchOnly(be.Left(), col_name) && TouchOnly(be.Right(), col_name);
+	  }
+	  assert(where->Type() == TypeTag::kConstantValue);
+	  return true;
+	*/
 	return false
 }
 

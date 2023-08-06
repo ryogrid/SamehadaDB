@@ -93,6 +93,11 @@ func (p *AggregationPlanNode) AccessRowCount() uint64 {
 	return 0
 }
 
+func (p *AggregationPlanNode) EmitRowCount() uint64 {
+	// TODO: (SDB) [OPT] not implemented yet (AggregationPlanNode::EmitRowCount)
+	return 0
+}
+
 type AggregateKey struct {
 	Group_bys_ []*types.Value
 }

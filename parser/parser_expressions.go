@@ -78,6 +78,25 @@ type SelectFieldExpression struct {
 
 func (sf *SelectFieldExpression) TouchedColumns() mapset.Set[*column.Column] {
 	// TODO: (SDB) [OPT] not implemented yet (SeelectFieldExpression::TouchedColumns)
+	/*
+	  std::unordered_set<ColumnName> ret;
+	  switch (Type()) {
+	    case TypeTag::kBinaryExp: {
+	      const BinaryExpression& be = AsBinaryExpression();
+	      ret.merge(be.Left()->TouchedColumns());
+	      ret.merge(be.Right()->TouchedColumns());
+	      break;
+	    }
+	    case TypeTag::kColumnValue: {
+	      const ColumnValue& cv = AsColumnValue();
+	      ret.emplace(cv.GetColumnName());
+	      break;
+	    }
+	    case TypeTag::kConstantValue:
+	      break;
+	  }
+	  return ret;
+	*/
 	return nil
 }
 

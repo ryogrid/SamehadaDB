@@ -24,6 +24,11 @@ func (p *DeletePlanNode) AccessRowCount() uint64 {
 	return 0
 }
 
+func (p *DeletePlanNode) EmitRowCount() uint64 {
+	// TODO: (SDB) [OPT] not implemented yet (DeletePlanNode::EmitRowCount)
+	return 0
+}
+
 //func (p *DeletePlanNode) GetPredicate() expression.Expression {
 //	return p.predicate
 //}

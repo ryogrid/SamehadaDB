@@ -33,3 +33,8 @@ func (p *LimitPlanNode) AccessRowCount() uint64 {
 	// TODO: (SDB) [OPT] not implemented yet (LimitPlanNode::AccessRowCount)
 	return 0
 }
+
+func (p *LimitPlanNode) EmitRowCount() uint64 {
+	// TODO: (SDB) [OPT] not implemented yet (LimitPlanNode::EmitRowCount)
+	return 0
+}

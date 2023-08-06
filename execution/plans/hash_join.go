@@ -80,5 +80,31 @@ func (p *HashJoinPlanNode) GetTableOID() uint32 {
 
 func (p *HashJoinPlanNode) AccessRowCount() uint64 {
 	// TODO: (SDB) [OPT] not implemented yet (HashJoinPlanNode::AccessRowCount)
+	/*
+	  if (left_cols_.empty() && right_cols_.empty()) {
+	    return left_src_->AccessRowCount() +
+	           (1 + left_src_->EmitRowCount() * right_src_->AccessRowCount());
+	  }
+	  if (right_tbl_ != nullptr) {
+	    // IndexJoin.
+	    return left_src_->AccessRowCount() * 3;
+	  }
+	  // Cost of hash join.
+	  return left_src_->AccessRowCount() + right_src_->AccessRowCount();
+	*/
 	return 0
+}
+
+func (p *HashJoinPlanNode) EmitRowCount() uint64 {
+	// TODO: (SDB) [OPT] not implemented yet (HashJoinPlanNode::EmitRowCount)
+	/*
+	  if (left_cols_.empty() && right_cols_.empty()) {  // CrossJoin.
+	    return left_src_->EmitRowCount() * right_src_->EmitRowCount();
+	  }
+	  if (right_tbl_ != nullptr) {  // IndexJoin
+	    return std::min(left_src_->EmitRowCount(), right_ts_->Rows());
+	  }
+	  return std::min(left_src_->EmitRowCount(), right_src_->EmitRowCount());
+	*/
+	return 1
 }

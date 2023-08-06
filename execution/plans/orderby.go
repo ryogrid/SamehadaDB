@@ -70,3 +70,8 @@ func (p *OrderbyPlanNode) AccessRowCount() uint64 {
 	// TODO: (SDB) [OPT] not implemented yet (OrderbyPlanNode::AccessRowCount)
 	return 0
 }
+
+func (p *OrderbyPlanNode) EmitRowCount() uint64 {
+	// TODO: (SDB) [OPT] not implemented yet (OrderbyPlanNode::EmitRowCount)
+	return 0
+}

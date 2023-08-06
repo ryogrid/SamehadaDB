@@ -22,5 +22,16 @@ func (p *ProjectionPlanNode) GetTableOID() uint32 {
 
 func (p *ProjectionPlanNode) AccessRowCount() uint64 {
 	// TODO: (SDB) [OPT] not implemented yet (ProjectionPlanNode::AccessRowCount)
+	/*
+		return src_->AccessRowCount();
+	*/
+	return 0
+}
+
+func (p *ProjectionPlanNode) EmitRowCount() uint64 {
+	// TODO: (SDB) [OPT] not implemented yet (ProjectionPlanNode::EmitRowCount)
+	/*
+		return src_->EmitRowCount();
+	*/
 	return 0
 }

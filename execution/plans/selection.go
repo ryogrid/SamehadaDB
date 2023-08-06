@@ -37,5 +37,17 @@ func (p *SelectionPlanNode) GetTableOID() uint32 {
 
 func (p *SelectionPlanNode) AccessRowCount() uint64 {
 	// TODO: (SDB) [OPT] not implemented yet (SelectionPlanNode::AccessRowCount)
+	/*
+		return src_->EmitRowCount();
+	*/
 	return 0
+}
+
+func (p *SelectionPlanNode) EmitRowCount() uint64 {
+	// TODO: (SDB) [OPT] not implemented yet (SelectionPlanNode::EmitRowCount)
+	/*
+	  return std::ceil(static_cast<double>(src_->EmitRowCount()) /
+	                   stats_.ReductionFactor(GetSchema(), exp_));
+	*/
+	return 1
 }

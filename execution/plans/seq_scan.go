@@ -35,5 +35,13 @@ func (p *SeqScanPlanNode) GetType() PlanType {
 
 func (p *SeqScanPlanNode) AccessRowCount() uint64 {
 	// TODO: (SDB) [OPT] not implemented yet (SeqScanPlanNode::AccessRowCount)
+	/*
+		return stats_.Rows();
+	*/
+	return 0
+}
+
+func (p *SeqScanPlanNode) EmitRowCount() uint64 {
+	// TODO: (SDB) [OPT] not implemented yet (SeqScanPlanNode::EmitRowCount)
 	return 0
 }
