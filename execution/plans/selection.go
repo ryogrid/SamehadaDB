@@ -4,11 +4,10 @@ import (
 	"github.com/ryogrid/SamehadaDB/execution/expression"
 )
 
-// do selection according to WHERE clause for Plan(Executor) which has no selection feature
+// do selection according to WHERE clause for Plan(Executor) which has no selection functionality
 
 type SelectionPlanNode struct {
 	*AbstractPlanNode
-	// TODO: (SDB) [OPT] SelectionPlanNode::selectColumns should be removed (SelectionPlanNode struct)
 	predicate expression.Expression
 }
 
@@ -24,12 +23,6 @@ func (p *SelectionPlanNode) GetType() PlanType {
 func (p *SelectionPlanNode) GetPredicate() expression.Expression {
 	return p.predicate
 }
-
-/*
-func (p *SelectionPlanNode) GetSelectColumns() *schema.Schema {
-	return p.selectColumns
-}
-*/
 
 func (p *SelectionPlanNode) GetTableOID() uint32 {
 	return p.children[0].GetTableOID()

@@ -428,13 +428,17 @@ func (so *SelingerOptimizer) findBestJoinInner(where *parser.BinaryOpExpression,
 }
 
 func (so *SelingerOptimizer) findBestJoin(optimalPlans map[mapset.Set[string]]CostAndPlan, query *parser.QueryInfo, exec_ctx *executors.ExecutorContext, c *catalog.Catalog, txn *access.Transaction) plans.Plan {
-	for ii := 0; ii < len(query.JoinTables_); ii += 1 {
+	for ii := 1; ii < len(query.JoinTables_); ii += 1 {
 		for baseTableFrom, baseTableCP := range optimalPlans {
 			for joinTableFrom, joinTableCP := range optimalPlans {
-				if containsAny(baseTableFrom, joinTableFrom) {
+				// Note: checking num of tables joined table includes avoids occurring problem
+				//       related to adding element into optimalPlans on this range loop
+				if containsAny(baseTableFrom, joinTableFrom) || (baseTableFrom.Cardinality()+joinTableFrom.Cardinality() != ii+1) {
 					continue
 				}
-				// TODO: (SDB) [OPT] (len(baseTable) + len(joinTable) == ii + 1) should be checked? and (len(joinTable) == 1) should be checked? (SelingerOptimizer::findBestJoin)
+
+				// for making left-deep Selinger, checking joinTableFrom.Cardinality() == 1 is needed
+
 				bestJoinPlan, _ := NewSelingerOptimizer().findBestJoinInner(query.WhereExpression_, baseTableCP.plan, joinTableCP.plan)
 				fmt.Println(bestJoinPlan)
 
@@ -442,7 +446,6 @@ func (so *SelingerOptimizer) findBestJoin(optimalPlans map[mapset.Set[string]]Co
 				common.SH_Assert(1 < joinedTables.Cardinality(), "joinedTables.Cardinality() is illegal!")
 				cost := bestJoinPlan.AccessRowCount()
 
-				// TODO: (SDB) [OPT] update target should be changed to tempolal table or introduce other solution (SelingerOptimizer::findBestJoin)
 				if existedPlan, ok := optimalPlans[joinedTables]; ok {
 					optimalPlans[joinedTables] = CostAndPlan{cost, bestJoinPlan}
 				} else if cost < existedPlan.cost {
