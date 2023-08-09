@@ -268,9 +268,9 @@ func (so *SelingerOptimizer) findBestScan(outNeededCols []*column.Column, where 
 			//new_plan = std::make_shared<ProjectionPlan>(new_plan, select);
 			newPlan = plans.NewProjectionPlanNode(newPlan, schema.NewSchema(outNeededCols))
 		}
-		if newPlan.AccessRowCount() < minimamCost {
+		if newPlan.AccessRowCount(c) < minimamCost {
 			bestScan = newPlan
-			minimamCost = newPlan.AccessRowCount()
+			minimamCost = newPlan.AccessRowCount(c)
 		}
 	}
 
@@ -285,9 +285,9 @@ func (so *SelingerOptimizer) findBestScan(outNeededCols []*column.Column, where 
 		// full_scan_plan = std::make_shared<ProjectionPlan>(full_scan_plan, select);
 		fullScanPlan = plans.NewProjectionPlanNode(fullScanPlan, schema.NewSchema(outNeededCols))
 	}
-	if fullScanPlan.AccessRowCount() < minimamCost {
+	if fullScanPlan.AccessRowCount(c) < minimamCost {
 		bestScan = fullScanPlan
-		minimamCost = fullScanPlan.AccessRowCount()
+		minimamCost = fullScanPlan.AccessRowCount(c)
 	}
 
 	return bestScan, nil
@@ -317,14 +317,14 @@ func (so *SelingerOptimizer) findBestScans(query *parser.QueryInfo, exec_ctx *ex
 		}
 		//scan, _ := NewSelingerOptimizer().findBestScan(query.SelectFields_, query.WhereExpression_, tbl, c, stats)
 		scan, _ := NewSelingerOptimizer().findBestScan(projectTarget, query.WhereExpression_, tbl, c, stats)
-		optimalPlans[samehada_util.MakeSet([]*string{from})] = CostAndPlan{scan.AccessRowCount(), scan}
+		optimalPlans[samehada_util.MakeSet([]*string{from})] = CostAndPlan{scan.AccessRowCount(c), scan}
 	}
 
 	return optimalPlans
 }
 
 // TODO: (SDB) [OPT] caller should pass *where* args which is deep copied (SelingerOptimizer::findBestJoinInner)
-func (so *SelingerOptimizer) findBestJoinInner(where *parser.BinaryOpExpression, left plans.Plan, right plans.Plan) (plans.Plan, error) {
+func (so *SelingerOptimizer) findBestJoinInner(where *parser.BinaryOpExpression, left plans.Plan, right plans.Plan, c *catalog.Catalog) (plans.Plan, error) {
 	// pair<ColumnName, ColumnName>
 	var equals []pair.Pair[*string, *string] = make([]pair.Pair[*string, *string], 0)
 	//stack<Expression> exp
@@ -422,7 +422,7 @@ func (so *SelingerOptimizer) findBestJoinInner(where *parser.BinaryOpExpression,
 	// TODO: (SDB) [OPT] need to review that cost of join is estimated collectly (SelingerOptimizer::findBestJoin)
 	//                   ex: (A(BCD)) =>  join order is (((AB)C)D)
 	sort.Slice(candidates, func(i, j int) bool {
-		return candidates[i].AccessRowCount() < candidates[j].AccessRowCount()
+		return candidates[i].AccessRowCount(c) < candidates[j].AccessRowCount(c)
 	})
 	return candidates[0], nil
 }
@@ -439,12 +439,12 @@ func (so *SelingerOptimizer) findBestJoin(optimalPlans map[mapset.Set[string]]Co
 
 				// for making left-deep Selinger, checking joinTableFrom.Cardinality() == 1 is needed
 
-				bestJoinPlan, _ := NewSelingerOptimizer().findBestJoinInner(query.WhereExpression_, baseTableCP.plan, joinTableCP.plan)
+				bestJoinPlan, _ := NewSelingerOptimizer().findBestJoinInner(query.WhereExpression_, baseTableCP.plan, joinTableCP.plan, c)
 				fmt.Println(bestJoinPlan)
 
 				joinedTables := baseTableFrom.Union(joinTableFrom)
 				common.SH_Assert(1 < joinedTables.Cardinality(), "joinedTables.Cardinality() is illegal!")
-				cost := bestJoinPlan.AccessRowCount()
+				cost := bestJoinPlan.AccessRowCount(c)
 
 				if existedPlan, ok := optimalPlans[joinedTables]; ok {
 					optimalPlans[joinedTables] = CostAndPlan{cost, bestJoinPlan}

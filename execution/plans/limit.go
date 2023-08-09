@@ -3,6 +3,8 @@
 
 package plans
 
+import "github.com/ryogrid/SamehadaDB/catalog"
+
 type LimitPlanNode struct {
 	*AbstractPlanNode
 	limit  uint32
@@ -29,12 +31,12 @@ func (p *LimitPlanNode) GetTableOID() uint32 {
 	return p.children[0].GetTableOID()
 }
 
-func (p *LimitPlanNode) AccessRowCount() uint64 {
+func (p *LimitPlanNode) AccessRowCount(c *catalog.Catalog) uint64 {
 	// TODO: (SDB) [OPT] not implemented yet (LimitPlanNode::AccessRowCount)
 	return 0
 }
 
-func (p *LimitPlanNode) EmitRowCount() uint64 {
+func (p *LimitPlanNode) EmitRowCount(c *catalog.Catalog) uint64 {
 	// TODO: (SDB) [OPT] not implemented yet (LimitPlanNode::EmitRowCount)
 	return 0
 }

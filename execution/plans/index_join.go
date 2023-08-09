@@ -1,6 +1,7 @@
 package plans
 
 import (
+	"github.com/ryogrid/SamehadaDB/catalog"
 	"github.com/ryogrid/SamehadaDB/common"
 	"github.com/ryogrid/SamehadaDB/execution/expression"
 	"github.com/ryogrid/SamehadaDB/storage/table/schema"
@@ -50,7 +51,7 @@ func (p *IndexJoinPlanNode) GetRightTableOID() uint32 {
 	return p.rigthTableOID
 }
 
-func (p *IndexJoinPlanNode) AccessRowCount() uint64 {
+func (p *IndexJoinPlanNode) AccessRowCount(c *catalog.Catalog) uint64 {
 	// TODO: (SDB) [OPT] not implemented yet (IndexJoinPlanNode::AccessRowCount)
 	/*
 	  if (left_cols_.empty() && right_cols_.empty()) {
@@ -67,7 +68,7 @@ func (p *IndexJoinPlanNode) AccessRowCount() uint64 {
 	return 0
 }
 
-func (p *IndexJoinPlanNode) EmitRowCount() uint64 {
+func (p *IndexJoinPlanNode) EmitRowCount(c *catalog.Catalog) uint64 {
 	// TODO: (SDB) [OPT] not implemented yet (IndexJoinPlanNode::EmitRowCount)
 	/*
 	  if (left_cols_.empty() && right_cols_.empty()) {  // CrossJoin.

@@ -1,6 +1,7 @@
 package plans
 
 import (
+	"github.com/ryogrid/SamehadaDB/catalog"
 	"github.com/ryogrid/SamehadaDB/execution/expression"
 )
 
@@ -28,7 +29,7 @@ func (p *SelectionPlanNode) GetTableOID() uint32 {
 	return p.children[0].GetTableOID()
 }
 
-func (p *SelectionPlanNode) AccessRowCount() uint64 {
+func (p *SelectionPlanNode) AccessRowCount(c *catalog.Catalog) uint64 {
 	// TODO: (SDB) [OPT] not implemented yet (SelectionPlanNode::AccessRowCount)
 	/*
 		return src_->EmitRowCount();
@@ -36,7 +37,7 @@ func (p *SelectionPlanNode) AccessRowCount() uint64 {
 	return 0
 }
 
-func (p *SelectionPlanNode) EmitRowCount() uint64 {
+func (p *SelectionPlanNode) EmitRowCount(c *catalog.Catalog) uint64 {
 	// TODO: (SDB) [OPT] not implemented yet (SelectionPlanNode::EmitRowCount)
 	/*
 	  return std::ceil(static_cast<double>(src_->EmitRowCount()) /

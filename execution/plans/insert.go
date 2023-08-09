@@ -4,6 +4,7 @@
 package plans
 
 import (
+	"github.com/ryogrid/SamehadaDB/catalog"
 	"github.com/ryogrid/SamehadaDB/types"
 )
 
@@ -37,12 +38,12 @@ func (p *InsertPlanNode) GetType() PlanType {
 	return Insert
 }
 
-func (p *InsertPlanNode) AccessRowCount() uint64 {
+func (p *InsertPlanNode) AccessRowCount(c *catalog.Catalog) uint64 {
 	// TODO: (SDB) [OPT] not implemented yet (InsertPlanNode::AccessRowCount)
 	return 0
 }
 
-func (p *InsertPlanNode) EmitRowCount() uint64 {
+func (p *InsertPlanNode) EmitRowCount(c *catalog.Catalog) uint64 {
 	// TODO: (SDB) [OPT] not implemented yet (InsertPlanNode::EmitRowCount)
 	return 0
 }

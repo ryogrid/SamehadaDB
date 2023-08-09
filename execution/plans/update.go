@@ -1,6 +1,7 @@
 package plans
 
 import (
+	"github.com/ryogrid/SamehadaDB/catalog"
 	"github.com/ryogrid/SamehadaDB/types"
 )
 
@@ -45,12 +46,12 @@ func (p *UpdatePlanNode) GetUpdateColIdxs() []int {
 	return p.update_col_idxs
 }
 
-func (p *UpdatePlanNode) AccessRowCount() uint64 {
+func (p *UpdatePlanNode) AccessRowCount(c *catalog.Catalog) uint64 {
 	// TODO: (SDB) [OPT] not implemented yet (UpdatePlanNode::AccessRowCount)
 	return 0
 }
 
-func (p *UpdatePlanNode) EmitRowCount() uint64 {
+func (p *UpdatePlanNode) EmitRowCount(c *catalog.Catalog) uint64 {
 	// TODO: (SDB) [OPT] not implemented yet (UpdatePlanNode::EmitRowCount)
 	return 0
 }
