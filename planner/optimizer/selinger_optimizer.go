@@ -396,26 +396,27 @@ func (so *SelingerOptimizer) findBestJoinInner(where *parser.BinaryOpExpression,
 
 	// when *where* hash no condition which matches records of *left* and *light*
 	if len(candidates) == 0 {
-		if len(relatedExp) > 0 {
-			// when *where* has conditions related to columns of *left* and *light*
+		// append NestedLoopJoinPlan without table concatinating predicate
+		// for avoiding no condidate situation
+		candidates = append(candidates, plans.NewNestedLoopJoinPlanNode([]plans.Plan{left, right}))
+	}
 
-			finalSelection := relatedExp[len(relatedExp)-1]
-			relatedExp = relatedExp[:len(relatedExp)-1]
+	// attach more selection if we can
+	if len(relatedExp) > 0 {
+		finalSelection := relatedExp[len(relatedExp)-1]
+		relatedExp = relatedExp[:len(relatedExp)-1]
 
-			// construct SelectionPlan which has a NestedLoopJoinPlan as child with usable predicate
+		for _, exp_ := range relatedExp {
+			finalSelection = &parser.BinaryOpExpression{expression.AND, -1, finalSelection, exp_}
+		}
 
-			for _, exp_ := range relatedExp {
-				finalSelection = &parser.BinaryOpExpression{expression.AND, -1, finalSelection, exp_}
-			}
-
-			// Plan ans = std::make_shared<ProductPlan>(left, right);
-			// candidates.push_back(std::make_shared<SelectionPlan>(ans, final_selection, ans->GetStats()));
-			var ans plans.Plan = plans.NewNestedLoopJoinPlanNode([]plans.Plan{left, right})
-			candidates = append(candidates, plans.NewSelectionPlanNode(ans, parser.ConvParsedBinaryOpExprToExpIFOne(finalSelection)))
-		} else {
-			// unfortunatelly, construction of NestedLoopJoinPlan with no optimization is needed
-
-			candidates = append(candidates, plans.NewNestedLoopJoinPlanNode([]plans.Plan{left, right}))
+		attachExp := parser.ConvParsedBinaryOpExprToExpIFOne(finalSelection)
+		orgLen := len(candidates)
+		for ii := 0; ii < orgLen; ii++ {
+			// Note:
+			// when candidates[ii] is HashJoinPlanNode or IndexJoinPlanNode, predicate items which
+			// are already applied on join process are attached. but ignore the duplication here...
+			candidates = append(candidates, plans.NewSelectionPlanNode(candidates[ii], attachExp))
 		}
 	}
 
