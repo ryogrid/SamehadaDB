@@ -34,13 +34,13 @@ func (p *PointScanWithIndexPlanNode) GetType() PlanType {
 	return IndexPointScan
 }
 
+func (p *PointScanWithIndexPlanNode) AccessRowCount(c *catalog.Catalog) uint64 {
+	return p.EmitRowCount(c)
+}
+
 func (p *PointScanWithIndexPlanNode) EmitRowCount(c *catalog.Catalog) uint64 {
 	// TODO: (SDB) [OPT] not implemented yet (RangeScanWithIndexPlanNode::EmitRowCount)
 	// TODO: (SDB) [OPT] need to design or decide estimation logic (PointScanWithIndexPlanNode::EmitRowCount)
 
 	return 1
-}
-
-func (p *PointScanWithIndexPlanNode) AccessRowCount(c *catalog.Catalog) uint64 {
-	return p.EmitRowCount(c)
 }

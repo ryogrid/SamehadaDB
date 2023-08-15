@@ -3,6 +3,7 @@ package plans
 import (
 	"github.com/ryogrid/SamehadaDB/catalog"
 	"github.com/ryogrid/SamehadaDB/execution/expression"
+	"math"
 )
 
 // do selection according to WHERE clause for Plan(Executor) which has no selection functionality
@@ -30,18 +31,13 @@ func (p *SelectionPlanNode) GetTableOID() uint32 {
 }
 
 func (p *SelectionPlanNode) AccessRowCount(c *catalog.Catalog) uint64 {
-	// TODO: (SDB) [OPT] not implemented yet (SelectionPlanNode::AccessRowCount)
-	/*
-		return src_->EmitRowCount();
-	*/
-	return 0
+	return p.children[0].AccessRowCount(c)
 }
 
 func (p *SelectionPlanNode) EmitRowCount(c *catalog.Catalog) uint64 {
-	// TODO: (SDB) [OPT] not implemented yet (SelectionPlanNode::EmitRowCount)
-	/*
-	  return std::ceil(static_cast<double>(src_->EmitRowCount()) /
-	                   stats_.ReductionFactor(GetSchema(), exp_));
-	*/
-	return 1
+	// 	  return std::ceil(static_cast<double>(src_->EmitRowCount()) /
+	//	                   stats_.ReductionFactor(GetSchema(), exp_));
+	return uint64(math.Ceil(float64(
+		p.children[0].EmitRowCount(c)) /
+		c.GetTableByOID(p.GetTableOID()).GetStatistics().ReductionFactor(*p.children[0].OutputSchema(), p.predicate)))
 }

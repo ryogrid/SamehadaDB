@@ -32,11 +32,9 @@ func (p *LimitPlanNode) GetTableOID() uint32 {
 }
 
 func (p *LimitPlanNode) AccessRowCount(c *catalog.Catalog) uint64 {
-	// TODO: (SDB) [OPT] not implemented yet (LimitPlanNode::AccessRowCount)
-	return 0
+	return p.children[0].AccessRowCount(c)
 }
 
 func (p *LimitPlanNode) EmitRowCount(c *catalog.Catalog) uint64 {
-	// TODO: (SDB) [OPT] not implemented yet (LimitPlanNode::EmitRowCount)
-	return 0
+	return uint64(p.limit)
 }

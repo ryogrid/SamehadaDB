@@ -35,14 +35,11 @@ func (p *SeqScanPlanNode) GetType() PlanType {
 }
 
 func (p *SeqScanPlanNode) AccessRowCount(c *catalog.Catalog) uint64 {
-	// TODO: (SDB) [OPT] not implemented yet (SeqScanPlanNode::AccessRowCount)
-	/*
-		return stats_.Rows();
-	*/
-	return 0
+	// return stats_.Rows();
+	return c.GetTableByOID(p.GetTableOID()).GetStatistics().Rows()
 }
 
 func (p *SeqScanPlanNode) EmitRowCount(c *catalog.Catalog) uint64 {
-	// TODO: (SDB) [OPT] not implemented yet (SeqScanPlanNode::EmitRowCount)
-	return 0
+	// assumption: selection with predicate is not used
+	return p.AccessRowCount(c)
 }

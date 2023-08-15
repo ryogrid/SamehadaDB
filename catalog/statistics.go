@@ -291,10 +291,10 @@ func (ts *TableStatistics) ReductionFactor(sc schema.Schema, predicate expressio
 	return 1
 }
 
-func (ts *TableStatistics) Rows() int32 {
-	ans := int32(0)
+func (ts *TableStatistics) Rows() uint64 {
+	ans := uint64(0)
 	for _, st := range ts.colStats {
-		ans = int32(math.Max(float64(ans), float64(st.Count())))
+		ans = uint64(math.Max(float64(ans), float64(st.Count())))
 	}
 	return ans
 }

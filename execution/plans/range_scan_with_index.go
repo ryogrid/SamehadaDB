@@ -50,6 +50,10 @@ func (p *RangeScanWithIndexPlanNode) GetType() PlanType {
 	return IndexRangeScan
 }
 
+func (p *RangeScanWithIndexPlanNode) AccessRowCount(c *catalog.Catalog) uint64 {
+	return p.EmitRowCount(c)
+}
+
 func (p *RangeScanWithIndexPlanNode) EmitRowCount(c *catalog.Catalog) uint64 {
 	// TODO: (SDB) [OPT] not implemented yet (RangeScanWithIndexPlanNode::EmitRowCount)
 	/*
@@ -59,8 +63,4 @@ func (p *RangeScanWithIndexPlanNode) EmitRowCount(c *catalog.Catalog) uint64 {
 	   return std::ceil(stats_.EstimateCount(index_.sc_.key_[0], begin_, end_));
 	*/
 	return 1
-}
-
-func (p *RangeScanWithIndexPlanNode) AccessRowCount(c *catalog.Catalog) uint64 {
-	return p.EmitRowCount(c)
 }

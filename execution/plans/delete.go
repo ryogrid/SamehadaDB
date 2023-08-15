@@ -22,13 +22,11 @@ func (p *DeletePlanNode) GetTableOID() uint32 {
 }
 
 func (p *DeletePlanNode) AccessRowCount(c *catalog.Catalog) uint64 {
-	// TODO: (SDB) [OPT] not implemented yet (DeletePlanNode::AccessRowCount)
-	return 0
+	return p.children[0].EmitRowCount(c)
 }
 
 func (p *DeletePlanNode) EmitRowCount(c *catalog.Catalog) uint64 {
-	// TODO: (SDB) [OPT] not implemented yet (DeletePlanNode::EmitRowCount)
-	return 0
+	return p.children[0].EmitRowCount(c)
 }
 
 //func (p *DeletePlanNode) GetPredicate() expression.Expression {

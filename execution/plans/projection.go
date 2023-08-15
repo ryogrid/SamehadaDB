@@ -22,17 +22,9 @@ func (p *ProjectionPlanNode) GetTableOID() uint32 {
 }
 
 func (p *ProjectionPlanNode) AccessRowCount(c *catalog.Catalog) uint64 {
-	// TODO: (SDB) [OPT] not implemented yet (ProjectionPlanNode::AccessRowCount)
-	/*
-		return src_->AccessRowCount();
-	*/
-	return 0
+	return p.children[0].AccessRowCount(c)
 }
 
 func (p *ProjectionPlanNode) EmitRowCount(c *catalog.Catalog) uint64 {
-	// TODO: (SDB) [OPT] not implemented yet (ProjectionPlanNode::EmitRowCount)
-	/*
-		return src_->EmitRowCount();
-	*/
-	return 0
+	return p.children[0].EmitRowCount(c)
 }

@@ -90,13 +90,11 @@ func (p *AggregationPlanNode) GetTableOID() uint32 {
 }
 
 func (p *AggregationPlanNode) AccessRowCount(c *catalog.Catalog) uint64 {
-	// TODO: (SDB) [OPT] not implemented yet (AggregationPlanNode::AccessRowCount)
-	return 0
+	return p.children[0].AccessRowCount(c)
 }
 
 func (p *AggregationPlanNode) EmitRowCount(c *catalog.Catalog) uint64 {
-	// TODO: (SDB) [OPT] not implemented yet (AggregationPlanNode::EmitRowCount)
-	return 0
+	return 1
 }
 
 type AggregateKey struct {
