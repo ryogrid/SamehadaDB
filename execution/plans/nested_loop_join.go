@@ -33,32 +33,10 @@ func (p *NestedLoopJoinPlanNode) GetTableOID() uint32 {
 }
 
 func (p *NestedLoopJoinPlanNode) AccessRowCount(c *catalog.Catalog) uint64 {
-	// TODO: (SDB) [OPT] not implemented yet (NestedLoopJoinPlanNode::AccessRowCount)
-	/*
-	  if (left_cols_.empty() && right_cols_.empty()) {
-	    return left_src_->AccessRowCount() +
-	           (1 + left_src_->EmitRowCount() * right_src_->AccessRowCount());
-	  }
-	  if (right_tbl_ != nullptr) {
-	    // IndexJoin.
-	    return left_src_->AccessRowCount() * 3;
-	  }
-	  // Cost of hash join.
-	  return left_src_->AccessRowCount() + right_src_->AccessRowCount();
-	*/
-	return 0
+	return p.GetLeftPlan().AccessRowCount(c) +
+		(1 + p.GetLeftPlan().EmitRowCount(c)*p.GetRightPlan().AccessRowCount(c))
 }
 
 func (p *NestedLoopJoinPlanNode) EmitRowCount(c *catalog.Catalog) uint64 {
-	// TODO: (SDB) [OPT] not implemented yet (NestedLoopJoinPlanNode::EmitRowCount)
-	/*
-	  if (left_cols_.empty() && right_cols_.empty()) {  // CrossJoin.
-	    return left_src_->EmitRowCount() * right_src_->EmitRowCount();
-	  }
-	  if (right_tbl_ != nullptr) {  // IndexJoin
-	    return std::min(left_src_->EmitRowCount(), right_ts_->Rows());
-	  }
-	  return std::min(left_src_->EmitRowCount(), right_src_->EmitRowCount());
-	*/
-	return 1
+	return p.GetLeftPlan().EmitRowCount(c) * p.GetRightPlan().EmitRowCount(c)
 }
