@@ -67,9 +67,9 @@
     - Alternative of B-tree Index 
   - <del>B-tree Index</del>
   - [ ] Logging/Recovery of Index Data (Redo/Undo)
-- [ ] JOIN
+- [ ] JOIN [^2]
   - [x] INNER JOIN (Hash Join, Index Join, Nested Loop Join)
-    - Condition specified at ON clause should be composed of single item
+    - Condition specified at ON clause should be composed of single item and can use equal(==) operator only
   - [ ] OUTER JOIN
   - [x] CROSS JOIN
 - [x] Aggregations (COUNT, MAX, MIN, SUM on SELECT clause including Group by and Having) [^1]
@@ -86,7 +86,6 @@
 - [ ] Deduplication of Result Records (Distinct)
 - [ ] Query Optimization
 - [ ] AS clause
-- [ ] JOIN (more than two tables)
 - [ ] Nested Query
 - [ ] DB Connector (Driver) or Other Kind Access Interface
   - [ ] Original Protocol
@@ -101,7 +100,8 @@
 - [ ] Communication over SSL/TLS
 - [ ] Authentication
   
-[^1]: Not supported on using from frontend now
+[^1]: Not supported on using from frontend now  
+[^2]: More than two tables join is not supported on using from frontend now
 
 ## More Info
 - [Wiki on this repo](https://github.com/ryogrid/SamehadaDB/wiki)
