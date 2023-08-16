@@ -1,6 +1,7 @@
 package plans
 
 import (
+	"github.com/ryogrid/SamehadaDB/catalog"
 	"github.com/ryogrid/SamehadaDB/common"
 	"github.com/ryogrid/SamehadaDB/execution/expression"
 	"github.com/ryogrid/SamehadaDB/storage/table/schema"
@@ -78,7 +79,11 @@ func (p *HashJoinPlanNode) GetTableOID() uint32 {
 	return math.MaxUint32
 }
 
-func (p *HashJoinPlanNode) AccessRowCount() uint64 {
-	// TODO: (SDB) [OPT] not implemented yet (HashJoinPlanNode::AccessRowCount)
-	return 0
+func (p *HashJoinPlanNode) AccessRowCount(c *catalog.Catalog) uint64 {
+	return p.GetLeftPlan().AccessRowCount(c) + p.GetRightPlan().AccessRowCount(c)
+
+}
+
+func (p *HashJoinPlanNode) EmitRowCount(c *catalog.Catalog) uint64 {
+	return uint64(math.Min(float64(p.GetLeftPlan().EmitRowCount(c)), float64(p.GetRightPlan().EmitRowCount(c))))
 }

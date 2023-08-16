@@ -1,5 +1,7 @@
 package plans
 
+import "github.com/ryogrid/SamehadaDB/catalog"
+
 /**
  * DeletePlanNode identifies a table and conditions specify record to be deleted.
  */
@@ -19,9 +21,12 @@ func (p *DeletePlanNode) GetTableOID() uint32 {
 	return p.children[0].GetTableOID()
 }
 
-func (p *DeletePlanNode) AccessRowCount() uint64 {
-	// TODO: (SDB) [OPT] not implemented yet (DeletePlanNode::AccessRowCount)
-	return 0
+func (p *DeletePlanNode) AccessRowCount(c *catalog.Catalog) uint64 {
+	return p.children[0].EmitRowCount(c)
+}
+
+func (p *DeletePlanNode) EmitRowCount(c *catalog.Catalog) uint64 {
+	return p.children[0].EmitRowCount(c)
 }
 
 //func (p *DeletePlanNode) GetPredicate() expression.Expression {

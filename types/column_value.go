@@ -503,8 +503,10 @@ func (v Value) IsInfMin() bool {
 		return *v.varchar == "SamehadaDBInfMinValue"
 	case Boolean:
 		return *v.boolean == false
+	default:
+		panic("not implemented")
 	}
-	panic("not implemented")
+
 }
 
 func (v Value) Add(other *Value) *Value {
@@ -537,7 +539,7 @@ func (v Value) Sub(other *Value) *Value {
 		ret := NewFloat(*v.float - *other.float)
 		return &ret
 	default:
-		panic("Add is implemented to Integer and Float only.")
+		panic("Sub is implemented to Integer and Float only.")
 	}
 }
 
@@ -563,8 +565,16 @@ func (v Value) Max(other *Value) *Value {
 			ret := NewFloat(other.ToFloat())
 			return &ret
 		}
+	case Varchar:
+		if *v.varchar >= *other.varchar {
+			ret := NewVarchar(*v.varchar)
+			return &ret
+		} else {
+			ret := NewVarchar(other.ToVarchar())
+			return &ret
+		}
 	default:
-		panic("max is implemented to Integer and Float only.")
+		panic("max is implemented to Integer, Float and Varchar only.")
 	}
 }
 
@@ -590,8 +600,16 @@ func (v Value) Min(other *Value) *Value {
 			ret := NewFloat(other.ToFloat())
 			return &ret
 		}
+	case Varchar:
+		if *v.varchar <= *other.varchar {
+			ret := NewVarchar(*v.varchar)
+			return &ret
+		} else {
+			ret := NewVarchar(other.ToVarchar())
+			return &ret
+		}
 	default:
-		panic("max is implemented to Integer and Float only.")
+		panic("max is implemented to Integer, Float and Varchar only.")
 	}
 }
 
@@ -608,6 +626,23 @@ func (v Value) Swap(other *Value) {
 		*v.float, *other.float = *other.float, *v.float
 	case Varchar:
 		*v.varchar, *other.varchar = *other.varchar, *v.varchar
+	case Boolean:
+		*v.boolean, *other.boolean = *other.boolean, *v.boolean
+	default:
+		panic("unkown or not supported type")
+	}
+}
+
+func (v Value) GetDeepCopy() *Value {
+	switch v.valueType {
+	case Integer:
+		return NewValueFromBytes(v.Serialize(), Integer)
+	case Float:
+		return NewValueFromBytes(v.Serialize(), Float)
+	case Varchar:
+		return NewValueFromBytes(v.Serialize(), Varchar)
+	case Boolean:
+		return NewValueFromBytes(v.Serialize(), Boolean)
 	default:
 		panic("unkown or not supported type")
 	}

@@ -1,6 +1,7 @@
 package plans
 
 import (
+	"github.com/ryogrid/SamehadaDB/catalog"
 	"github.com/ryogrid/SamehadaDB/common"
 	"github.com/ryogrid/SamehadaDB/execution/expression"
 	"github.com/ryogrid/SamehadaDB/storage/table/schema"
@@ -88,9 +89,12 @@ func (p *AggregationPlanNode) GetTableOID() uint32 {
 	return p.children[0].GetTableOID()
 }
 
-func (p *AggregationPlanNode) AccessRowCount() uint64 {
-	// TODO: (SDB) [OPT] not implemented yet (AggregationPlanNode::AccessRowCount)
-	return 0
+func (p *AggregationPlanNode) AccessRowCount(c *catalog.Catalog) uint64 {
+	return p.children[0].AccessRowCount(c)
+}
+
+func (p *AggregationPlanNode) EmitRowCount(c *catalog.Catalog) uint64 {
+	return 1
 }
 
 type AggregateKey struct {

@@ -1,6 +1,7 @@
 package plans
 
 import (
+	"github.com/ryogrid/SamehadaDB/catalog"
 	"github.com/ryogrid/SamehadaDB/common"
 	"github.com/ryogrid/SamehadaDB/execution/expression"
 	"github.com/ryogrid/SamehadaDB/storage/table/schema"
@@ -50,7 +51,15 @@ func (p *IndexJoinPlanNode) GetRightTableOID() uint32 {
 	return p.rigthTableOID
 }
 
-func (p *IndexJoinPlanNode) AccessRowCount() uint64 {
-	// TODO: (SDB) [OPT] not implemented yet (IndexJoinPlanNode::AccessRowCount)
-	return 0
+func (p *IndexJoinPlanNode) getRightTableRows(c *catalog.Catalog) uint64 {
+	tm := c.GetTableByOID(p.rigthTableOID)
+	return tm.GetStatistics().Rows()
+}
+
+func (p *IndexJoinPlanNode) AccessRowCount(c *catalog.Catalog) uint64 {
+	return p.getRightTableRows(c) * 3
+}
+
+func (p *IndexJoinPlanNode) EmitRowCount(c *catalog.Catalog) uint64 {
+	return uint64(math.Min(float64(p.GetLeftPlan().EmitRowCount(c)), float64(p.getRightTableRows(c))))
 }

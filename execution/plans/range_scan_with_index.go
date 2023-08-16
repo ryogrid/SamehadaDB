@@ -4,9 +4,11 @@
 package plans
 
 import (
+	"github.com/ryogrid/SamehadaDB/catalog"
 	"github.com/ryogrid/SamehadaDB/execution/expression"
 	"github.com/ryogrid/SamehadaDB/storage/table/schema"
 	"github.com/ryogrid/SamehadaDB/types"
+	"math"
 )
 
 /**
@@ -49,7 +51,11 @@ func (p *RangeScanWithIndexPlanNode) GetType() PlanType {
 	return IndexRangeScan
 }
 
-func (p *RangeScanWithIndexPlanNode) AccessRowCount() uint64 {
-	// TODO: (SDB) [OPT] not implemented yet (RangeScanWithIndexPlanNode::AccessRowCount)
-	return 0
+func (p *RangeScanWithIndexPlanNode) AccessRowCount(c *catalog.Catalog) uint64 {
+	return p.EmitRowCount(c)
+}
+
+func (p *RangeScanWithIndexPlanNode) EmitRowCount(c *catalog.Catalog) uint64 {
+	// 	TODO: (SDB) if (index_.IsUnique() && begin_ == end_) { return 1; } (RangeScanWithIndexPlanNode::EmitRowCount)
+	return uint64(math.Ceil(c.GetTableByOID(p.tableOID).GetStatistics().EstimateCount(p.colIdx, p.startRange, p.endRange)))
 }

@@ -1,14 +1,15 @@
 package plans
 
 import (
+	"github.com/ryogrid/SamehadaDB/catalog"
 	"github.com/ryogrid/SamehadaDB/execution/expression"
+	"math"
 )
 
-// do selection according to WHERE clause for Plan(Executor) which has no selection feature
+// do selection according to WHERE clause for Plan(Executor) which has no selection functionality
 
 type SelectionPlanNode struct {
 	*AbstractPlanNode
-	// TODO: (SDB) [OPT] SelectionPlanNode::selectColumns should be removed (SelectionPlanNode struct)
 	predicate expression.Expression
 }
 
@@ -25,17 +26,18 @@ func (p *SelectionPlanNode) GetPredicate() expression.Expression {
 	return p.predicate
 }
 
-/*
-func (p *SelectionPlanNode) GetSelectColumns() *schema.Schema {
-	return p.selectColumns
-}
-*/
-
 func (p *SelectionPlanNode) GetTableOID() uint32 {
 	return p.children[0].GetTableOID()
 }
 
-func (p *SelectionPlanNode) AccessRowCount() uint64 {
-	// TODO: (SDB) [OPT] not implemented yet (SelectionPlanNode::AccessRowCount)
-	return 0
+func (p *SelectionPlanNode) AccessRowCount(c *catalog.Catalog) uint64 {
+	return p.children[0].AccessRowCount(c)
+}
+
+func (p *SelectionPlanNode) EmitRowCount(c *catalog.Catalog) uint64 {
+	// 	  return std::ceil(static_cast<double>(src_->EmitRowCount()) /
+	//	                   stats_.ReductionFactor(GetSchema(), exp_));
+	return uint64(math.Ceil(float64(
+		p.children[0].EmitRowCount(c)) /
+		c.GetTableByOID(p.GetTableOID()).GetStatistics().ReductionFactor(*p.children[0].OutputSchema(), p.predicate)))
 }

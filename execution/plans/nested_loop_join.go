@@ -1,6 +1,7 @@
 package plans
 
 import (
+	"github.com/ryogrid/SamehadaDB/catalog"
 	"github.com/ryogrid/SamehadaDB/common"
 	"math"
 )
@@ -31,7 +32,11 @@ func (p *NestedLoopJoinPlanNode) GetTableOID() uint32 {
 	return math.MaxUint32
 }
 
-func (p *NestedLoopJoinPlanNode) AccessRowCount() uint64 {
-	// TODO: (SDB) [OPT] not implemented yet (NestedLoopJoinPlanNode::AccessRowCount)
-	return 0
+func (p *NestedLoopJoinPlanNode) AccessRowCount(c *catalog.Catalog) uint64 {
+	return p.GetLeftPlan().AccessRowCount(c) +
+		(1 + p.GetLeftPlan().EmitRowCount(c)*p.GetRightPlan().AccessRowCount(c))
+}
+
+func (p *NestedLoopJoinPlanNode) EmitRowCount(c *catalog.Catalog) uint64 {
+	return p.GetLeftPlan().EmitRowCount(c) * p.GetRightPlan().EmitRowCount(c)
 }

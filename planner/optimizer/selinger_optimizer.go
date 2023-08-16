@@ -43,14 +43,17 @@ func NewRange(valType types.TypeID) *Range {
 	retRange := new(Range)
 	switch valType {
 	case types.Integer:
-		retRange.Min = samehada_util.GetPonterOfValue(types.NewInteger(math.MinInt32))
-		retRange.Max = samehada_util.GetPonterOfValue(types.NewInteger(math.MaxInt32))
+		retRange.Min = samehada_util.GetPonterOfValue(types.NewInteger(math.MinInt32)).SetInfMin()
+		retRange.Max = samehada_util.GetPonterOfValue(types.NewInteger(math.MaxInt32)).SetInfMax()
 	case types.Float:
-		retRange.Min = samehada_util.GetPonterOfValue(types.NewFloat(math.SmallestNonzeroFloat32))
-		retRange.Max = samehada_util.GetPonterOfValue(types.NewFloat(math.MaxFloat32))
+		retRange.Min = samehada_util.GetPonterOfValue(types.NewFloat(math.SmallestNonzeroFloat32)).SetInfMin()
+		retRange.Max = samehada_util.GetPonterOfValue(types.NewFloat(math.MaxFloat32)).SetInfMax()
 	case types.Varchar:
 		retRange.Min = samehada_util.GetPonterOfValue(types.NewVarchar("")).SetInfMin()
 		retRange.Max = samehada_util.GetPonterOfValue(types.NewVarchar("")).SetInfMax()
+	case types.Boolean:
+		retRange.Min = samehada_util.GetPonterOfValue(types.NewBoolean(false)).SetInfMin()
+		retRange.Max = samehada_util.GetPonterOfValue(types.NewBoolean(true)).SetInfMax()
 	default:
 		panic("invalid type")
 	}
@@ -60,12 +63,57 @@ func NewRange(valType types.TypeID) *Range {
 }
 
 func (r *Range) Empty() bool {
-	// TODO: (SDB) [OPT] not implemented yet (Range::Empty)
-	return false
+	// TODO: (SDB) [OPT] consideration of boolean type column (Range::Empty)
+	// check whether field is changed from initial value
+	return r.Min.IsInfMin() && r.Max.IsInfMax()
 }
 
 func (r *Range) Update(op expression.ComparisonType, rhs *types.Value, dir Direction) {
-	// TODO: (SDB) [OPT] not implemented yet (Range::Update)
+	switch op {
+	case expression.Equal:
+		// e.g. x == 10
+		r.Max = rhs.GetDeepCopy()
+		r.Min = rhs.GetDeepCopy()
+		r.MinInclusive = true
+		r.MinInclusive = true
+	case expression.NotEqual:
+		// e.g. x != 10
+		// We have nothing to do here.
+	case expression.LessThan, expression.GreaterThan:
+		if (dir == DIR_RIGHT && op == expression.LessThan) ||
+			(dir == DIR_LEFT && op == expression.GreaterThan) {
+			// e.g. x < 10
+			// e.g. 10 > x
+			if r.Max.IsInfMax() || ((!r.Max.IsInfMax()) && rhs.CompareLessThan(*r.Max)) {
+				r.Max = rhs.GetDeepCopy()
+				r.MaxInclusive = false
+			}
+		} else {
+			// e.g. 10 < x
+			// e.g. x > 10
+			if r.Min.IsInfMin() || ((!r.Min.IsInfMin()) && r.Min.CompareLessThan(*rhs)) {
+				r.Min = rhs.GetDeepCopy()
+				r.MinInclusive = false
+			}
+		}
+	case expression.LessThanOrEqual, expression.GreaterThanOrEqual:
+		if (dir == DIR_RIGHT && op == expression.LessThanOrEqual) ||
+			(dir == DIR_LEFT && op == expression.GreaterThanOrEqual) {
+			// e.g. x <= 10
+			// e.g. 10 >= x
+			if r.Max.IsInfMax() || ((!r.Max.IsInfMax()) && rhs.CompareLessThanOrEqual(*r.Max)) {
+				r.Max = rhs.GetDeepCopy()
+				r.MaxInclusive = true
+			}
+		} else {
+			// e.g. 10 <= x
+			// e.g. x >= 10
+			r.Min = rhs.GetDeepCopy()
+			r.MinInclusive = true
+		}
+	default:
+		panic("invalid operator to update")
+	}
 }
 
 type SelingerOptimizer struct {
@@ -88,9 +136,19 @@ func containsAny(map1 mapset.Set[string], map2 mapset.Set[string]) bool {
 	}
 }
 
-func touchOnly(where expression.Expression, colName string) bool {
-	// TODO: (SDB) [OPT] not implemented yet (touchOnly)
-	return false
+func touchOnly(from *catalog.TableMetadata, where expression.Expression, colName string) bool {
+	if where.GetType() == expression.EXPRESSION_TYPE_COLUMN_VALUE {
+		// 		   const ColumnValue& cv = where->AsColumnValue();
+		//		   return cv.GetColumnName() == col_name;
+		cv := where.(*expression.ColumnValue)
+		return from.Schema().GetColumn(cv.GetColIndex()).GetColumnName() == colName
+	} else if where.GetType() == expression.EXPRESSION_TYPE_LOGICAL_OP || where.GetType() == expression.EXPRESSION_TYPE_COMPARISON {
+		//		   const BinaryExpression& be = where->AsBinaryExpression();
+		//		   return TouchOnly(be.Left(), col_name) && TouchOnly(be.Right(), col_name);
+		return touchOnly(from, where.GetChildAt(0), colName) && touchOnly(from, where.GetChildAt(1), colName)
+	}
+	samehada_util.SHAssert(where.GetType() == expression.EXPRESSION_TYPE_CONSTANT_VALUE, "invalid expression type")
+	return true
 }
 
 // TODO: (SDB) [OPT] caller should pass *where* args which is deep copied (SelingerOptimizer::findBestScan)
@@ -202,7 +260,7 @@ func (so *SelingerOptimizer) findBestScan(outNeededCols []*column.Column, where 
 		// Plan new_plan = IndexScanSelect(from, target_idx, stat, *span.min,*span.max, scan_exp, select);
 		var newPlan plans.Plan = plans.NewRangeScanWithIndexPlanNode(sc, from.OID(), int32(key), nil, span.Min, span.Max)
 		// if (!TouchOnly(scan_exp, from.GetSchema().GetColumn(key).Name())) {
-		if !touchOnly(scanExp, sc.GetColumn(uint32(key)).GetColumnName()) {
+		if !touchOnly(from, scanExp, sc.GetColumn(uint32(key)).GetColumnName()) {
 			//new_plan = std::make_shared<SelectionPlan>(new_plan, scan_exp, stat);
 			newPlan = plans.NewSelectionPlanNode(newPlan, scanExp)
 		}
@@ -210,9 +268,9 @@ func (so *SelingerOptimizer) findBestScan(outNeededCols []*column.Column, where 
 			//new_plan = std::make_shared<ProjectionPlan>(new_plan, select);
 			newPlan = plans.NewProjectionPlanNode(newPlan, schema.NewSchema(outNeededCols))
 		}
-		if newPlan.AccessRowCount() < minimamCost {
+		if newPlan.AccessRowCount(c) < minimamCost {
 			bestScan = newPlan
-			minimamCost = newPlan.AccessRowCount()
+			minimamCost = newPlan.AccessRowCount(c)
 		}
 	}
 
@@ -227,9 +285,9 @@ func (so *SelingerOptimizer) findBestScan(outNeededCols []*column.Column, where 
 		// full_scan_plan = std::make_shared<ProjectionPlan>(full_scan_plan, select);
 		fullScanPlan = plans.NewProjectionPlanNode(fullScanPlan, schema.NewSchema(outNeededCols))
 	}
-	if fullScanPlan.AccessRowCount() < minimamCost {
+	if fullScanPlan.AccessRowCount(c) < minimamCost {
 		bestScan = fullScanPlan
-		minimamCost = fullScanPlan.AccessRowCount()
+		minimamCost = fullScanPlan.AccessRowCount(c)
 	}
 
 	return bestScan, nil
@@ -259,14 +317,14 @@ func (so *SelingerOptimizer) findBestScans(query *parser.QueryInfo, exec_ctx *ex
 		}
 		//scan, _ := NewSelingerOptimizer().findBestScan(query.SelectFields_, query.WhereExpression_, tbl, c, stats)
 		scan, _ := NewSelingerOptimizer().findBestScan(projectTarget, query.WhereExpression_, tbl, c, stats)
-		optimalPlans[samehada_util.MakeSet([]*string{from})] = CostAndPlan{scan.AccessRowCount(), scan}
+		optimalPlans[samehada_util.MakeSet([]*string{from})] = CostAndPlan{scan.AccessRowCount(c), scan}
 	}
 
 	return optimalPlans
 }
 
 // TODO: (SDB) [OPT] caller should pass *where* args which is deep copied (SelingerOptimizer::findBestJoinInner)
-func (so *SelingerOptimizer) findBestJoinInner(where *parser.BinaryOpExpression, left plans.Plan, right plans.Plan) (plans.Plan, error) {
+func (so *SelingerOptimizer) findBestJoinInner(where *parser.BinaryOpExpression, left plans.Plan, right plans.Plan, c *catalog.Catalog) (plans.Plan, error) {
 	// pair<ColumnName, ColumnName>
 	var equals []pair.Pair[*string, *string] = make([]pair.Pair[*string, *string], 0)
 	//stack<Expression> exp
@@ -338,54 +396,57 @@ func (so *SelingerOptimizer) findBestJoinInner(where *parser.BinaryOpExpression,
 
 	// when *where* hash no condition which matches records of *left* and *light*
 	if len(candidates) == 0 {
-		if len(relatedExp) > 0 {
-			// when *where* has conditions related to columns of *left* and *light*
+		// append NestedLoopJoinPlan without table concatinating predicate
+		// for avoiding no condidate situation
+		candidates = append(candidates, plans.NewNestedLoopJoinPlanNode([]plans.Plan{left, right}))
+	}
 
-			finalSelection := relatedExp[len(relatedExp)-1]
-			relatedExp = relatedExp[:len(relatedExp)-1]
+	// attach more selection if we can
+	if len(relatedExp) > 0 {
+		finalSelection := relatedExp[len(relatedExp)-1]
+		relatedExp = relatedExp[:len(relatedExp)-1]
 
-			// construct SelectionPlan which has a NestedLoopJoinPlan as child with usable predicate
+		for _, exp_ := range relatedExp {
+			finalSelection = &parser.BinaryOpExpression{expression.AND, -1, finalSelection, exp_}
+		}
 
-			for _, exp_ := range relatedExp {
-				finalSelection = &parser.BinaryOpExpression{expression.AND, -1, finalSelection, exp_}
-			}
-
-			// Plan ans = std::make_shared<ProductPlan>(left, right);
-			// candidates.push_back(std::make_shared<SelectionPlan>(ans, final_selection, ans->GetStats()));
-			var ans plans.Plan = plans.NewNestedLoopJoinPlanNode([]plans.Plan{left, right})
-			candidates = append(candidates, plans.NewSelectionPlanNode(ans, parser.ConvParsedBinaryOpExprToExpIFOne(finalSelection)))
-		} else {
-			// unfortunatelly, construction of NestedLoopJoinPlan with no optimization is needed
-
-			candidates = append(candidates, plans.NewNestedLoopJoinPlanNode([]plans.Plan{left, right}))
+		attachExp := parser.ConvParsedBinaryOpExprToExpIFOne(finalSelection)
+		orgLen := len(candidates)
+		for ii := 0; ii < orgLen; ii++ {
+			// Note:
+			// when candidates[ii] is HashJoinPlanNode or IndexJoinPlanNode, predicate items which
+			// are already applied on join process are attached. but ignore the duplication here...
+			candidates = append(candidates, plans.NewSelectionPlanNode(candidates[ii], attachExp))
 		}
 	}
 
 	// TODO: (SDB) [OPT] need to review that cost of join is estimated collectly (SelingerOptimizer::findBestJoin)
 	//                   ex: (A(BCD)) =>  join order is (((AB)C)D)
 	sort.Slice(candidates, func(i, j int) bool {
-		return candidates[i].AccessRowCount() < candidates[j].AccessRowCount()
+		return candidates[i].AccessRowCount(c) < candidates[j].AccessRowCount(c)
 	})
 	return candidates[0], nil
 }
 
 func (so *SelingerOptimizer) findBestJoin(optimalPlans map[mapset.Set[string]]CostAndPlan, query *parser.QueryInfo, exec_ctx *executors.ExecutorContext, c *catalog.Catalog, txn *access.Transaction) plans.Plan {
-	for ii := 0; ii < len(query.JoinTables_); ii += 1 {
+	for ii := 1; ii < len(query.JoinTables_); ii += 1 {
 		for baseTableFrom, baseTableCP := range optimalPlans {
 			for joinTableFrom, joinTableCP := range optimalPlans {
-				if containsAny(baseTableFrom, joinTableFrom) {
+				// Note: checking num of tables joined table includes avoids occurring problem
+				//       related to adding element into optimalPlans on this range loop
+				if containsAny(baseTableFrom, joinTableFrom) || (baseTableFrom.Cardinality()+joinTableFrom.Cardinality() != ii+1) {
 					continue
 				}
-				// TODO: (SDB) [OPT] (len(baseTable) + len(joinTable) == ii + 1) should be checked? and (len(joinTable) == 1) should be checked? (SelingerOptimizer::findBestJoin)
-				bestJoinPlan, _ := NewSelingerOptimizer().findBestJoinInner(query.WhereExpression_, baseTableCP.plan, joinTableCP.plan)
+
+				// for making left-deep Selinger, checking joinTableFrom.Cardinality() == 1 is needed
+
+				bestJoinPlan, _ := NewSelingerOptimizer().findBestJoinInner(query.WhereExpression_, baseTableCP.plan, joinTableCP.plan, c)
 				fmt.Println(bestJoinPlan)
 
 				joinedTables := baseTableFrom.Union(joinTableFrom)
 				common.SH_Assert(1 < joinedTables.Cardinality(), "joinedTables.Cardinality() is illegal!")
-				cost := bestJoinPlan.AccessRowCount()
+				cost := bestJoinPlan.AccessRowCount(c)
 
-				// TODO: (SDB) [OPT] update target should be changed to tempolal table? (SelingerOptimizer::findBestJoin)
-				//             (its scope is same ii value loop and it is merged to optimalPlans at end of the ii loop)
 				if existedPlan, ok := optimalPlans[joinedTables]; ok {
 					optimalPlans[joinedTables] = CostAndPlan{cost, bestJoinPlan}
 				} else if cost < existedPlan.cost {

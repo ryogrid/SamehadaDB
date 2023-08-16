@@ -4,8 +4,10 @@
 package plans
 
 import (
+	"github.com/ryogrid/SamehadaDB/catalog"
 	"github.com/ryogrid/SamehadaDB/execution/expression"
 	"github.com/ryogrid/SamehadaDB/storage/table/schema"
+	"math"
 )
 
 /**
@@ -33,7 +35,13 @@ func (p *PointScanWithIndexPlanNode) GetType() PlanType {
 	return IndexPointScan
 }
 
-func (p *PointScanWithIndexPlanNode) AccessRowCount() uint64 {
-	// TODO: (SDB) [OPT] not implemented yet (PointScanWithIndexPlanNode::AccessRowCount)
-	return 0
+func (p *PointScanWithIndexPlanNode) AccessRowCount(c *catalog.Catalog) uint64 {
+	return p.EmitRowCount(c)
+}
+
+func (p *PointScanWithIndexPlanNode) EmitRowCount(c *catalog.Catalog) uint64 {
+	tm := c.GetTableByOID(p.tableOID)
+	return uint64(math.Ceil(
+		float64(tm.GetStatistics().Rows()) /
+			tm.GetStatistics().ReductionFactor(*tm.Schema(), p.predicate)))
 }

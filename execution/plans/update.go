@@ -1,6 +1,7 @@
 package plans
 
 import (
+	"github.com/ryogrid/SamehadaDB/catalog"
 	"github.com/ryogrid/SamehadaDB/types"
 )
 
@@ -36,7 +37,7 @@ func (p *UpdatePlanNode) GetType() PlanType {
 	return Delete
 }
 
-// GetRawValues returns the raw values to be overwrite data
+// GetRawValues returns the raw values to be overwritten data
 func (p *UpdatePlanNode) GetRawValues() []types.Value {
 	return p.rawValues
 }
@@ -45,7 +46,10 @@ func (p *UpdatePlanNode) GetUpdateColIdxs() []int {
 	return p.update_col_idxs
 }
 
-func (p *UpdatePlanNode) AccessRowCount() uint64 {
-	// TODO: (SDB) [OPT] not implemented yet (UpdatePlanNode::AccessRowCount)
-	return 0
+func (p *UpdatePlanNode) AccessRowCount(c *catalog.Catalog) uint64 {
+	return p.children[0].AccessRowCount(c)
+}
+
+func (p *UpdatePlanNode) EmitRowCount(c *catalog.Catalog) uint64 {
+	return p.children[0].EmitRowCount(c)
 }

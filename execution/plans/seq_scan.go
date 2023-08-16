@@ -4,6 +4,7 @@
 package plans
 
 import (
+	"github.com/ryogrid/SamehadaDB/catalog"
 	"github.com/ryogrid/SamehadaDB/execution/expression"
 	"github.com/ryogrid/SamehadaDB/storage/table/schema"
 )
@@ -33,7 +34,12 @@ func (p *SeqScanPlanNode) GetType() PlanType {
 	return SeqScan
 }
 
-func (p *SeqScanPlanNode) AccessRowCount() uint64 {
-	// TODO: (SDB) [OPT] not implemented yet (SeqScanPlanNode::AccessRowCount)
-	return 0
+func (p *SeqScanPlanNode) AccessRowCount(c *catalog.Catalog) uint64 {
+	// return stats_.Rows();
+	return c.GetTableByOID(p.GetTableOID()).GetStatistics().Rows()
+}
+
+func (p *SeqScanPlanNode) EmitRowCount(c *catalog.Catalog) uint64 {
+	// assumption: selection with predicate is not used
+	return p.AccessRowCount(c)
 }

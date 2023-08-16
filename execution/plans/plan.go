@@ -4,6 +4,7 @@
 package plans
 
 import (
+	"github.com/ryogrid/SamehadaDB/catalog"
 	"github.com/ryogrid/SamehadaDB/storage/table/schema"
 )
 
@@ -33,7 +34,8 @@ type Plan interface {
 	GetType() PlanType
 	// TODO: (SDB) [OPT] Plan which outputs all column data of only one table is permitted returning OID. If not, UINT32_MAX should be returned (Plan IF subtypes)
 	GetTableOID() uint32
-	AccessRowCount() uint64
+	AccessRowCount(*catalog.Catalog) uint64
+	EmitRowCount(*catalog.Catalog) uint64
 }
 
 /**

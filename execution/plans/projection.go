@@ -1,6 +1,7 @@
 package plans
 
 import (
+	"github.com/ryogrid/SamehadaDB/catalog"
 	"github.com/ryogrid/SamehadaDB/storage/table/schema"
 )
 
@@ -20,7 +21,10 @@ func (p *ProjectionPlanNode) GetTableOID() uint32 {
 	return p.children[0].GetTableOID()
 }
 
-func (p *ProjectionPlanNode) AccessRowCount() uint64 {
-	// TODO: (SDB) [OPT] not implemented yet (ProjectionPlanNode::AccessRowCount)
-	return 0
+func (p *ProjectionPlanNode) AccessRowCount(c *catalog.Catalog) uint64 {
+	return p.children[0].AccessRowCount(c)
+}
+
+func (p *ProjectionPlanNode) EmitRowCount(c *catalog.Catalog) uint64 {
+	return p.children[0].EmitRowCount(c)
 }
