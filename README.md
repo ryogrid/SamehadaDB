@@ -87,7 +87,7 @@
 - [ ] Query Optimization
 - [ ] AS clause
 - [ ] Nested Query
-- [ ] DB Connector (Driver) or Other Kind Access Interface
+- [ ] DB Connector (Driver) or Other Kind of Network Access Interface
   - [ ] Original Protocol
   - [ ] MySQL or PostgreSQL Compatible Protocol
   - [ ] REST
