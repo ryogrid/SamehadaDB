@@ -7,6 +7,7 @@ import (
 	"github.com/ryogrid/SamehadaDB/catalog"
 	"github.com/ryogrid/SamehadaDB/execution/expression"
 	"github.com/ryogrid/SamehadaDB/storage/table/schema"
+	"math"
 )
 
 /**
@@ -39,8 +40,8 @@ func (p *PointScanWithIndexPlanNode) AccessRowCount(c *catalog.Catalog) uint64 {
 }
 
 func (p *PointScanWithIndexPlanNode) EmitRowCount(c *catalog.Catalog) uint64 {
-	// TODO: (SDB) [OPT] not implemented yet (RangeScanWithIndexPlanNode::EmitRowCount)
-	// TODO: (SDB) [OPT] need to design or decide estimation logic (PointScanWithIndexPlanNode::EmitRowCount)
-
-	return 1
+	tm := c.GetTableByOID(p.tableOID)
+	return uint64(math.Ceil(
+		float64(tm.GetStatistics().Rows()) /
+			tm.GetStatistics().ReductionFactor(*tm.Schema(), p.predicate)))
 }
