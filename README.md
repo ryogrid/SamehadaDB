@@ -68,9 +68,10 @@
   - <del>B-tree Index</del>
   - [ ] Logging/Recovery of Index Data (Redo/Undo)
 - [ ] JOIN
-  - [x] INNER JOIN (Hash Join)
-    - Currently, only two tables JOIN is implemented and condition specified at ON clause should be composed of single item  
-  - [ ] CROSS JOIN
+  - [x] INNER JOIN (Hash Join, Index Join, Nested Loop Join)
+    - Condition specified at ON clause should be composed of single item
+  - [ ] OUTER JOIN
+  - [x] CROSS JOIN
 - [x] Aggregations (COUNT, MAX, MIN, SUM on SELECT clause including Group by and Having) [^1]
 - [x] Sort (ORDER BY clause) [^1]
 - [x] Tuple Level Locking With Strong Strict 2-Phase Locking (SS2PL) Protocol
