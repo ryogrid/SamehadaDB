@@ -4,7 +4,7 @@ import (
 	mapset "github.com/deckarep/golang-set/v2"
 	"github.com/ryogrid/SamehadaDB/execution/expression"
 	"github.com/ryogrid/SamehadaDB/execution/plans"
-	"github.com/ryogrid/SamehadaDB/storage/table/column"
+	"github.com/ryogrid/SamehadaDB/samehada/samehada_util"
 	"github.com/ryogrid/SamehadaDB/storage/table/schema"
 	"github.com/ryogrid/SamehadaDB/types"
 )
@@ -45,13 +45,33 @@ func (expr *BinaryOpExpression) GetType() BinaryOpExpType {
 	} else if expr.LogicalOperationType_ != -1 {
 		return Logical
 	} else {
-		return ColumnName
+		panic("BinaryOpExpression tree is broken")
+		//return ColumnNameOrConstant
 	}
 }
 
-func (expr *BinaryOpExpression) TouchedColumns() mapset.Set[*column.Column] {
-	// TODO: (SDB) not implemented yet (BinaryOpExpression::TouchedColumns)
-	return nil
+func (expr *BinaryOpExpression) TouchedColumns() mapset.Set[string] {
+	// TODO: (SDB) [OPT] not implemented yet (BinaryOpExpression::TouchedColumns)
+	ret := mapset.NewSet[string]()
+	switch expr.GetType() {
+	case Compare:
+		if samehada_util.IsColumnName(expr.Left_) {
+			ret.Add(*expr.Left_.(*string))
+		}
+		if samehada_util.IsColumnName(expr.Right_) {
+			ret.Add(*expr.Right_.(*string))
+		}
+	case Logical:
+		ret = ret.Union(expr.Left_.(*BinaryOpExpression).TouchedColumns())
+		ret = ret.Union(expr.Right_.(*BinaryOpExpression).TouchedColumns())
+	case IsNull:
+		if samehada_util.IsColumnName(expr.Left_) {
+			ret.Add(*expr.Left_.(*string))
+		}
+	default:
+		panic("BinaryOpExpression tree is broken")
+	}
+	return ret
 }
 
 type SetExpression struct {
@@ -76,28 +96,15 @@ type SelectFieldExpression struct {
 	ColName_   *string
 }
 
-func (sf *SelectFieldExpression) TouchedColumns() mapset.Set[*column.Column] {
-	// TODO: (SDB) [OPT] not implemented yet (SeelectFieldExpression::TouchedColumns)
-	/*
-	  std::unordered_set<ColumnName> ret;
-	  switch (Type()) {
-	    case TypeTag::kBinaryExp: {
-	      const BinaryExpression& be = AsBinaryExpression();
-	      ret.merge(be.Left()->TouchedColumns());
-	      ret.merge(be.Right()->TouchedColumns());
-	      break;
-	    }
-	    case TypeTag::kColumnValue: {
-	      const ColumnValue& cv = AsColumnValue();
-	      ret.emplace(cv.GetColumnName());
-	      break;
-	    }
-	    case TypeTag::kConstantValue:
-	      break;
-	  }
-	  return ret;
-	*/
-	return nil
+func (sf *SelectFieldExpression) TouchedColumns() mapset.Set[string] {
+	// TODO: (SDB) need to support aggregation function
+	ret := mapset.NewSet[string]()
+	colName := *sf.ColName_
+	if sf.TableName_ != nil {
+		colName = *sf.TableName_ + "." + *sf.ColName_
+	}
+	ret.Add(colName)
+	return ret
 }
 
 type OrderByExpression struct {

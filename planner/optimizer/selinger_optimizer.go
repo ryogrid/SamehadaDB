@@ -309,8 +309,7 @@ func (so *SelingerOptimizer) findBestScans(query *parser.QueryInfo, exec_ctx *ex
 		for ii := 0; ii < int(tbl.GetColumnNum()); ii++ {
 			for _, touchedCol := range touchedColumns.ToSlice() {
 				tableCol := tbl.Schema().GetColumn(uint32(ii))
-				// TODO: (SDB) [OPT] GetColumnName() value should contain table name. if not,  rewrite of this comparison code is needed (SelingerOptimizer::findBestScans)
-				if tableCol.GetColumnName() == touchedCol.GetColumnName() {
+				if tableCol.GetColumnName() == touchedCol {
 					projectTarget = append(projectTarget, tableCol)
 				}
 			}
