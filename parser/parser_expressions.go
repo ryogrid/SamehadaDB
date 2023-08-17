@@ -51,7 +51,6 @@ func (expr *BinaryOpExpression) GetType() BinaryOpExpType {
 }
 
 func (expr *BinaryOpExpression) TouchedColumns() mapset.Set[string] {
-	// TODO: (SDB) [OPT] not implemented yet (BinaryOpExpression::TouchedColumns)
 	ret := mapset.NewSet[string]()
 	switch expr.GetType() {
 	case Compare:
