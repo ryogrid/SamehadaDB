@@ -237,41 +237,6 @@ func processPredicateTreeNode(node *parser.BinaryOpExpression, tgtTblSchemas []*
 		// TODO: (SDB) need to validate specified table name prefix, column name and literal (processPredicateTreeNode)
 		//             without use of panic function
 
-		// TODO: (SDB) [OPT] need to support table name prefix description on WHERE clause (processPredicateTreeNode)
-		//splited := strings.Split(colName, ".")
-		//
-		//var colNamePart *string = nil
-		//if len(splited) > 1 {
-		//	colNamePart = &splited[1]
-		//} else {
-		//	// has no table name prefix
-		//	colNamePart = &colName
-		//}
-		//
-		//var tmpColIdx uint32 = math.MaxUint32
-		//for _, schema_ := range tgtTblSchemas {
-		//	idx := schema_.GetColIndex(*colNamePart)
-		//	if idx != math.MaxUint32 {
-		//		tmpColIdx = idx
-		//		break
-		//	}
-		//}
-		//if tmpColIdx == math.MaxUint32 {
-		//	panic("in WHERE clause, column name part of " + colName + " is invalid.")
-		//}
-		//
-
-		//var tmpColIdx uint32
-		//if len(tgtTblSchemas) > 1 {
-		//	// with JOIN case
-		//	// because SlectionExecutor is used, refer outSchema
-		//	tmpColIdx = outSchema.GetColIndex(colName)
-		//} else {
-		//	// without JOIN case
-		//	// because SeqScanExecute is used, refer schema of data source table
-		//	tmpColIdx = tgtTblSchemas[0].GetColIndex(colName)
-		//}
-
 		tmpColIdx := tgtTblSchemas[0].GetColIndex(colName)
 
 		tmpColVal := expression.NewColumnValue(0, tmpColIdx, specfiedVal.ValueType())
