@@ -7,12 +7,10 @@ import (
 	pair "github.com/notEpsilon/go-pair"
 	"github.com/ryogrid/SamehadaDB/catalog"
 	"github.com/ryogrid/SamehadaDB/common"
-	"github.com/ryogrid/SamehadaDB/execution/executors"
 	"github.com/ryogrid/SamehadaDB/execution/expression"
 	"github.com/ryogrid/SamehadaDB/execution/plans"
 	"github.com/ryogrid/SamehadaDB/parser"
 	"github.com/ryogrid/SamehadaDB/samehada/samehada_util"
-	"github.com/ryogrid/SamehadaDB/storage/access"
 	"github.com/ryogrid/SamehadaDB/storage/table/column"
 	"github.com/ryogrid/SamehadaDB/storage/table/schema"
 	"github.com/ryogrid/SamehadaDB/types"
@@ -63,7 +61,11 @@ func NewRange(valType types.TypeID) *Range {
 }
 
 func (r *Range) Empty() bool {
-	// TODO: (SDB) [OPT] consideration of boolean type column (Range::Empty)
+	if r.Max.ValueType() == types.Boolean {
+		// can't check whether empty or not on current internal design of Value and Range type
+		return false
+	}
+
 	// check whether field is changed from initial value
 	return r.Min.IsInfMin() && r.Max.IsInfMax()
 }
@@ -117,13 +119,14 @@ func (r *Range) Update(op expression.ComparisonType, rhs *types.Value, dir Direc
 }
 
 type SelingerOptimizer struct {
-	c *catalog.Catalog
-	// TODO: (SDB) [OPT] not implemented yet (SelingerOptimizer struct)
+	qi *parser.QueryInfo
+	c  *catalog.Catalog
 }
 
-func NewSelingerOptimizer() *SelingerOptimizer {
+func NewSelingerOptimizer(qi *parser.QueryInfo, c *catalog.Catalog) *SelingerOptimizer {
 	ret := new(SelingerOptimizer)
-	// TODO: (SDB) [OPT] not implemented yet (NewSelingerOptimizer)
+	ret.qi = qi
+	ret.c = c
 	return ret
 }
 
@@ -293,17 +296,17 @@ func (so *SelingerOptimizer) findBestScan(outNeededCols []*column.Column, where 
 	return bestScan, nil
 }
 
-func (so *SelingerOptimizer) findBestScans(query *parser.QueryInfo, exec_ctx *executors.ExecutorContext, c *catalog.Catalog, txn *access.Transaction) map[mapset.Set[string]]CostAndPlan {
+func (so *SelingerOptimizer) findBestScans() map[mapset.Set[string]]CostAndPlan {
 	optimalPlans := make(map[mapset.Set[string]]CostAndPlan)
 
 	// 1. Initialize every single tables to start.
-	touchedColumns := query.WhereExpression_.TouchedColumns()
-	for _, item := range query.SelectFields_ {
+	touchedColumns := so.qi.WhereExpression_.TouchedColumns()
+	for _, item := range so.qi.SelectFields_ {
 		touchedColumns = touchedColumns.Union(item.TouchedColumns())
 	}
-	for _, from := range query.JoinTables_ {
-		tbl := c.GetTableByName(*from)
-		stats := c.GetTableByName(*from).GetStatistics()
+	for _, from := range so.qi.JoinTables_ {
+		tbl := so.c.GetTableByName(*from)
+		stats := so.c.GetTableByName(*from).GetStatistics()
 		projectTarget := make([]*column.Column, 0)
 		// Push down all selection & projection.
 		for ii := 0; ii < int(tbl.GetColumnNum()); ii++ {
@@ -314,9 +317,9 @@ func (so *SelingerOptimizer) findBestScans(query *parser.QueryInfo, exec_ctx *ex
 				}
 			}
 		}
-		//scan, _ := NewSelingerOptimizer().findBestScan(query.SelectFields_, query.WhereExpression_, tbl, c, stats)
-		scan, _ := NewSelingerOptimizer().findBestScan(projectTarget, query.WhereExpression_.GetDeepCopy(), tbl, c, stats)
-		optimalPlans[samehada_util.MakeSet([]*string{from})] = CostAndPlan{scan.AccessRowCount(c), scan}
+		//scan, _ := NewSelingerOptimizer().findBestScan(qi.SelectFields_, qi.WhereExpression_, tbl, c, stats)
+		scan, _ := so.findBestScan(projectTarget, so.qi.WhereExpression_.GetDeepCopy(), tbl, so.c, stats)
+		optimalPlans[samehada_util.MakeSet([]*string{from})] = CostAndPlan{scan.AccessRowCount(so.c), scan}
 	}
 
 	return optimalPlans
@@ -436,8 +439,8 @@ func (so *SelingerOptimizer) findBestJoinInner(where *parser.BinaryOpExpression,
 	return candidates[0], nil
 }
 
-func (so *SelingerOptimizer) findBestJoin(optimalPlans map[mapset.Set[string]]CostAndPlan, query *parser.QueryInfo, exec_ctx *executors.ExecutorContext, c *catalog.Catalog, txn *access.Transaction) plans.Plan {
-	for ii := 1; ii < len(query.JoinTables_); ii += 1 {
+func (so *SelingerOptimizer) findBestJoin(optimalPlans map[mapset.Set[string]]CostAndPlan) plans.Plan {
+	for ii := 1; ii < len(so.qi.JoinTables_); ii += 1 {
 		for baseTableFrom, baseTableCP := range optimalPlans {
 			for joinTableFrom, joinTableCP := range optimalPlans {
 				// Note: checking num of tables joined table includes avoids occurring problem
@@ -447,12 +450,12 @@ func (so *SelingerOptimizer) findBestJoin(optimalPlans map[mapset.Set[string]]Co
 				}
 
 				// for making left-deep Selinger, checking joinTableFrom.Cardinality() == 1 is needed
-				bestJoinPlan, _ := NewSelingerOptimizer().findBestJoinInner(query.WhereExpression_.GetDeepCopy(), baseTableCP.plan, joinTableCP.plan, c)
+				bestJoinPlan, _ := so.findBestJoinInner(so.qi.WhereExpression_.GetDeepCopy(), baseTableCP.plan, joinTableCP.plan, so.c)
 				fmt.Println(bestJoinPlan)
 
 				joinedTables := baseTableFrom.Union(joinTableFrom)
 				common.SH_Assert(1 < joinedTables.Cardinality(), "joinedTables.Cardinality() is illegal!")
-				cost := bestJoinPlan.AccessRowCount(c)
+				cost := bestJoinPlan.AccessRowCount(so.c)
 
 				if existedPlan, ok := optimalPlans[joinedTables]; ok {
 					optimalPlans[joinedTables] = CostAndPlan{cost, bestJoinPlan}
@@ -462,12 +465,12 @@ func (so *SelingerOptimizer) findBestJoin(optimalPlans map[mapset.Set[string]]Co
 			}
 		}
 	}
-	optimalPlan, ok := optimalPlans[samehada_util.MakeSet(query.JoinTables_)]
+	optimalPlan, ok := optimalPlans[samehada_util.MakeSet(so.qi.JoinTables_)]
 	samehada_util.SHAssert(ok, "plan which includes all tables is not found")
 
 	// Attach final projection and emit the result
 	solution := optimalPlan.plan
-	solution = plans.NewProjectionPlanNode(solution, parser.ConvParsedSelectionExprToSchema(query.SelectFields_))
+	solution = plans.NewProjectionPlanNode(solution, parser.ConvParsedSelectionExprToSchema(so.qi.SelectFields_))
 
 	return solution
 }
@@ -476,7 +479,7 @@ func (so *SelingerOptimizer) findBestJoin(optimalPlans map[mapset.Set[string]]Co
 //                   (predicate including bracket or OR operation case is not supported now)
 
 // TODO: (SDB) [OPT] adding support of ON clause (Optimize, findBestJoin, findBestJoinInner, findBestScans, findBestScan)
-func (so *SelingerOptimizer) Optimize(query *parser.QueryInfo, exec_ctx *executors.ExecutorContext, c *catalog.Catalog, txn *access.Transaction) (plans.Plan, error) {
-	optimalPlans := so.findBestScans(query, exec_ctx, c, txn)
-	return so.findBestJoin(optimalPlans, query, exec_ctx, c, txn), nil
+func (so *SelingerOptimizer) Optimize() (plans.Plan, error) {
+	optimalPlans := so.findBestScans()
+	return so.findBestJoin(optimalPlans), nil
 }

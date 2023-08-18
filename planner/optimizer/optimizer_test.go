@@ -38,8 +38,12 @@ func TestSimplePlanOptimization(t *testing.T) {
 	queryStr := "TO BE WRITTEN"
 	queryInfo := parser.ProcessSQLStr(&queryStr)
 
-	optimalPlans := NewSelingerOptimizer().findBestScans(queryInfo, exec_ctx, c, txn)
-	solution := NewSelingerOptimizer().findBestJoin(optimalPlans, queryInfo, exec_ctx, c, txn)
+	optimizer := NewSelingerOptimizer(queryInfo, c)
+	solution, err := optimizer.Optimize()
+	if err != nil {
+		fmt.Println(err)
+	}
+	testingpkg.Assert(t, err == nil, "err != nil")
 	fmt.Println(solution)
 }
 
@@ -63,6 +67,6 @@ func TestFindBestScans(t *testing.T) {
 	queryStr := "TO BE WRITTEN"
 	queryInfo := parser.ProcessSQLStr(&queryStr)
 
-	optimalPlans := NewSelingerOptimizer().findBestScans(queryInfo, exec_ctx, c, txn)
+	optimalPlans := NewSelingerOptimizer(queryInfo, c).findBestScans()
 	testingpkg.Assert(t, len(optimalPlans) == len(queryInfo.JoinTables_), "len(optimalPlans) != len(query.JoinTables_)")
 }
