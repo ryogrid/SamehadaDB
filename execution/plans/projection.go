@@ -3,6 +3,7 @@ package plans
 import (
 	"github.com/ryogrid/SamehadaDB/catalog"
 	"github.com/ryogrid/SamehadaDB/storage/table/schema"
+	"math"
 )
 
 type ProjectionPlanNode struct {
@@ -18,7 +19,7 @@ func (p *ProjectionPlanNode) GetType() PlanType {
 }
 
 func (p *ProjectionPlanNode) GetTableOID() uint32 {
-	return p.children[0].GetTableOID()
+	return math.MaxInt32
 }
 
 func (p *ProjectionPlanNode) AccessRowCount(c *catalog.Catalog) uint64 {

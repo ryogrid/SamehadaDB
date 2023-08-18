@@ -258,7 +258,7 @@ func (so *SelingerOptimizer) findBestScan(outNeededCols []*column.Column, where 
 		}
 		//targetIndex := from.GetIndex(candidates[key])
 		// Plan new_plan = IndexScanSelect(from, target_idx, stat, *span.min,*span.max, scan_exp, select);
-		var newPlan plans.Plan = plans.NewRangeScanWithIndexPlanNode(sc, from.OID(), int32(key), nil, span.Min, span.Max)
+		var newPlan = plans.NewRangeScanWithIndexPlanNode(sc, from.OID(), int32(key), nil, span.Min, span.Max)
 		// if (!TouchOnly(scan_exp, from.GetSchema().GetColumn(key).Name())) {
 		if !touchOnly(from, scanExp, sc.GetColumn(uint32(key)).GetColumnName()) {
 			//new_plan = std::make_shared<SelectionPlan>(new_plan, scan_exp, stat);
@@ -375,18 +375,27 @@ func (so *SelingerOptimizer) findBestJoinInner(where *parser.BinaryOpExpression,
 		// IndexJoin
 
 		// if (const Table* right_tbl = right->ScanSource()) {
-		// first item on condition below checks whether right Plan deal only one table
-		if right.GetTableOID() != math.MaxUint32 && len(so.c.GetTableByOID(right.GetTableOID()).Indexes()) > 0 {
-			// for (size_t i = 0; i < right_tbl->IndexCount(); ++i) {
-			// const Index& right_idx = right_tbl->GetIndex(i);
-			for _, right_idx := range so.c.GetTableByOID(right.GetTableOID()).Indexes() {
-				//ASSIGN_OR_CRASH(std::shared_ptr<TableStatistics>, stat,
-				//	ctx.GetStats(right_tbl->GetSchema().Name()));
-				for _, rcol := range right_cols {
-					if right_idx.GetTupleSchema().IsHaveColumn(rcol) {
-						// candidates.push_back(std::make_shared<ProductPlan>(left, left_cols, *right_tbl, right_idx, right_cols, *stat));
-						// right scan plan is not used because IndexJoinExecutor does point scans internally
-						candidates = append(candidates, plans.NewIndexJoinPlanNode(left, parser.ConvColumnStrsToExpIfOnes(left_cols), right.OutputSchema(), right.GetTableOID(), parser.ConvColumnStrsToExpIfOnes(right_cols)))
+		// checks whether right Plan deal only one table (join or aggregation on tree is NG)
+		if right.GetTableOID() != math.MaxUint32 || right.GetType() == plans.Projection {
+			rightSchema := right.OutputSchema()
+			rightOID := right.GetTableOID()
+			if right.GetType() == plans.Projection {
+				// when right plan is ProjectionPlan, using child plan's schema and OID is needed to get target table info
+				rightSchema = right.GetChildAt(0).OutputSchema()
+				rightOID = right.GetChildAt(0).GetTableOID()
+			}
+			if len(so.c.GetTableByOID(rightOID).Indexes()) > 0 {
+				// for (size_t i = 0; i < right_tbl->IndexCount(); ++i) {
+				// const Index& right_idx = right_tbl->GetIndex(i);
+				for _, right_idx := range so.c.GetTableByOID(rightOID).Indexes() {
+					//ASSIGN_OR_CRASH(std::shared_ptr<TableStatistics>, stat,
+					//	ctx.GetStats(right_tbl->GetSchema().Name()));
+					for _, rcol := range right_cols {
+						if right_idx.GetTupleSchema().IsHaveColumn(rcol) {
+							// candidates.push_back(std::make_shared<ProductPlan>(left, left_cols, *right_tbl, right_idx, right_cols, *stat));
+							// right scan plan is not used because IndexJoinExecutor does point scans internally
+							candidates = append(candidates, plans.NewIndexJoinPlanNode(left, parser.ConvColumnStrsToExpIfOnes(left_cols), rightSchema, rightOID, parser.ConvColumnStrsToExpIfOnes(right_cols)))
+						}
 					}
 				}
 			}
