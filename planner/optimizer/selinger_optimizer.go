@@ -151,7 +151,7 @@ func touchOnly(from *catalog.TableMetadata, where expression.Expression, colName
 	return true
 }
 
-// TODO: (SDB) [OPT] caller should pass *where* args which is deep copied (SelingerOptimizer::findBestScan)
+// attention: caller should pass *where* args which is deep copied
 func (so *SelingerOptimizer) findBestScan(outNeededCols []*column.Column, where *parser.BinaryOpExpression, from *catalog.TableMetadata, c *catalog.Catalog, stats *catalog.TableStatistics) (plans.Plan, error) {
 	availableKeyIndex := func() map[int]int {
 		retMap := make(map[int]int, 0)
@@ -315,14 +315,14 @@ func (so *SelingerOptimizer) findBestScans(query *parser.QueryInfo, exec_ctx *ex
 			}
 		}
 		//scan, _ := NewSelingerOptimizer().findBestScan(query.SelectFields_, query.WhereExpression_, tbl, c, stats)
-		scan, _ := NewSelingerOptimizer().findBestScan(projectTarget, query.WhereExpression_, tbl, c, stats)
+		scan, _ := NewSelingerOptimizer().findBestScan(projectTarget, query.WhereExpression_.GetDeepCopy(), tbl, c, stats)
 		optimalPlans[samehada_util.MakeSet([]*string{from})] = CostAndPlan{scan.AccessRowCount(c), scan}
 	}
 
 	return optimalPlans
 }
 
-// TODO: (SDB) [OPT] caller should pass *where* args which is deep copied (SelingerOptimizer::findBestJoinInner)
+// attention: caller should pass *where* args which is deep copied
 func (so *SelingerOptimizer) findBestJoinInner(where *parser.BinaryOpExpression, left plans.Plan, right plans.Plan, c *catalog.Catalog) (plans.Plan, error) {
 	// pair<ColumnName, ColumnName>
 	var equals []pair.Pair[*string, *string] = make([]pair.Pair[*string, *string], 0)
@@ -447,8 +447,7 @@ func (so *SelingerOptimizer) findBestJoin(optimalPlans map[mapset.Set[string]]Co
 				}
 
 				// for making left-deep Selinger, checking joinTableFrom.Cardinality() == 1 is needed
-
-				bestJoinPlan, _ := NewSelingerOptimizer().findBestJoinInner(query.WhereExpression_, baseTableCP.plan, joinTableCP.plan, c)
+				bestJoinPlan, _ := NewSelingerOptimizer().findBestJoinInner(query.WhereExpression_.GetDeepCopy(), baseTableCP.plan, joinTableCP.plan, c)
 				fmt.Println(bestJoinPlan)
 
 				joinedTables := baseTableFrom.Union(joinTableFrom)

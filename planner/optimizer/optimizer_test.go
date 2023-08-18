@@ -43,7 +43,7 @@ func TestSimplePlanOptimization(t *testing.T) {
 	fmt.Println(solution)
 }
 
-func TestBestScan(t *testing.T) {
+func TestFindBestScans(t *testing.T) {
 	diskManager := disk.NewDiskManagerTest()
 	defer diskManager.ShutDown()
 	log_mgr := recovery.NewLogManager(&diskManager)
@@ -59,7 +59,7 @@ func TestBestScan(t *testing.T) {
 
 	setupTablesAndStatisticsDataForTesting(c, exec_ctx, txn)
 
-	// TODO: (SDB) [OPT] need to write query for testing BestJoin func (TestSimplePlanOptimization)
+	// TODO: (SDB) [OPT] need to write query for testing BestJoin func (TestFindBestScans)
 	queryStr := "TO BE WRITTEN"
 	queryInfo := parser.ProcessSQLStr(&queryStr)
 

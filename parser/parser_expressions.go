@@ -73,6 +73,43 @@ func (expr *BinaryOpExpression) TouchedColumns() mapset.Set[string] {
 	return ret
 }
 
+func (expr *BinaryOpExpression) GetDeepCopy() *BinaryOpExpression {
+	ret := &BinaryOpExpression{}
+	ret.LogicalOperationType_ = expr.LogicalOperationType_
+	ret.ComparisonOperationType_ = expr.ComparisonOperationType_
+	if expr.Left_ == nil {
+		ret.Left_ = nil
+	} else {
+		switch expr.Left_.(type) {
+		case *string:
+			tmpStr := *expr.Left_.(*string)
+			ret.Left_ = &tmpStr
+		case *types.Value:
+			ret.Left_ = expr.Left_.(*types.Value).GetDeepCopy()
+		case *BinaryOpExpression:
+			ret.Left_ = expr.Left_.(*BinaryOpExpression).GetDeepCopy()
+		default:
+			panic("BinaryOpExpression tree is broken")
+		}
+	}
+	if expr.Right_ == nil {
+		ret.Right_ = nil
+	} else {
+		switch expr.Right_.(type) {
+		case *string:
+			tmpStr := *expr.Right_.(*string)
+			ret.Right_ = &tmpStr
+		case *types.Value:
+			ret.Right_ = expr.Right_.(*types.Value).GetDeepCopy()
+		case *BinaryOpExpression:
+			ret.Right_ = expr.Right_.(*BinaryOpExpression).GetDeepCopy()
+		default:
+			panic("BinaryOpExpression tree is broken")
+		}
+	}
+	return ret
+}
+
 type SetExpression struct {
 	ColName_     *string
 	UpdateValue_ *types.Value

@@ -3,6 +3,7 @@ package samehada_util
 import (
 	"bytes"
 	"encoding/binary"
+	"encoding/json"
 	"github.com/deckarep/golang-set/v2"
 	"github.com/ryogrid/SamehadaDB/common"
 	"github.com/ryogrid/SamehadaDB/storage/page"
@@ -414,4 +415,22 @@ func IsConstantValue(v interface{}) bool {
 	default:
 		return false
 	}
+}
+
+// make deep copied object and set its address to dst pointer type arg
+// ex:
+// DeepCopy(&dst, &src)
+// *src* and *dst* shoud be same type
+// attention: must not call this for struct which has private members and interface{} type members
+func DeepCopy(dst interface{}, src interface{}) (err error) {
+	b, err := json.Marshal(src)
+	if err != nil {
+		return err
+	}
+
+	err = json.Unmarshal(b, dst)
+	if err != nil {
+		return err
+	}
+	return nil
 }
