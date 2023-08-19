@@ -2,11 +2,13 @@ package parser
 
 import (
 	mapset "github.com/deckarep/golang-set/v2"
+	"github.com/ryogrid/SamehadaDB/catalog"
 	"github.com/ryogrid/SamehadaDB/execution/expression"
 	"github.com/ryogrid/SamehadaDB/execution/plans"
 	"github.com/ryogrid/SamehadaDB/samehada/samehada_util"
 	"github.com/ryogrid/SamehadaDB/storage/table/schema"
 	"github.com/ryogrid/SamehadaDB/types"
+	"strings"
 )
 
 type BinaryOpExpType int
@@ -158,7 +160,23 @@ func ConvParsedSelectionExprToSchema(convSrc []*SelectFieldExpression) *schema.S
 	return nil
 }
 
-func ConvColumnStrsToExpIfOnes(convSrc []*string) []expression.Expression {
-	// TODO: (SDB) [OPT] not implemented yet (ConvColumnStrsToExpIfOnes)
-	return nil
+func ConvColumnStrsToExpIfOnes(c *catalog.Catalog, convSrc []*string, isLeftOnJoin bool) []expression.Expression {
+	ret := make([]expression.Expression, 0)
+	for _, colStr := range convSrc {
+		samehada_util.SHAssert(strings.Contains(*colStr, "."), "column name must includes table name as prefix!")
+		splited := strings.Split(*colStr, ".")
+		tableName := splited[0]
+		colName := splited[1]
+		sc := c.GetTableByName(tableName).Schema()
+		colIdx := sc.GetColIndex(colName)
+		colType := sc.GetColumn(colIdx).GetType()
+
+		if isLeftOnJoin {
+			ret = append(ret, expression.NewColumnValue(0, colIdx, colType))
+		} else {
+			ret = append(ret, expression.NewColumnValue(1, colIdx, colType))
+		}
+	}
+
+	return ret
 }

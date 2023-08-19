@@ -369,10 +369,10 @@ func (so *SelingerOptimizer) findBestJoinInner(where *parser.BinaryOpExpression,
 
 		// HashJoin
 		// candidates.push_back(std::make_shared<ProductPlan>(left, left_cols, right, right_cols));
-		var tmpPlan plans.Plan = plans.NewHashJoinPlanNodeWithChilds(left, parser.ConvColumnStrsToExpIfOnes(left_cols), right, parser.ConvColumnStrsToExpIfOnes(right_cols))
+		var tmpPlan plans.Plan = plans.NewHashJoinPlanNodeWithChilds(left, parser.ConvColumnStrsToExpIfOnes(so.c, left_cols, true), right, parser.ConvColumnStrsToExpIfOnes(so.c, right_cols, false))
 		candidates = append(candidates, tmpPlan)
 		// candidates.push_back(std::make_shared<ProductPlan>(right, right_cols, left, left_cols));
-		tmpPlan = plans.NewHashJoinPlanNodeWithChilds(right, parser.ConvColumnStrsToExpIfOnes(right_cols), left, parser.ConvColumnStrsToExpIfOnes(left_cols))
+		tmpPlan = plans.NewHashJoinPlanNodeWithChilds(right, parser.ConvColumnStrsToExpIfOnes(so.c, right_cols, true), left, parser.ConvColumnStrsToExpIfOnes(so.c, left_cols, false))
 		candidates = append(candidates, tmpPlan)
 
 		// IndexJoin
@@ -397,7 +397,7 @@ func (so *SelingerOptimizer) findBestJoinInner(where *parser.BinaryOpExpression,
 						if right_idx.GetTupleSchema().IsHaveColumn(rcol) {
 							// candidates.push_back(std::make_shared<ProductPlan>(left, left_cols, *right_tbl, right_idx, right_cols, *stat));
 							// right scan plan is not used because IndexJoinExecutor does point scans internally
-							candidates = append(candidates, plans.NewIndexJoinPlanNode(left, parser.ConvColumnStrsToExpIfOnes(left_cols), rightSchema, rightOID, parser.ConvColumnStrsToExpIfOnes(right_cols)))
+							candidates = append(candidates, plans.NewIndexJoinPlanNode(left, parser.ConvColumnStrsToExpIfOnes(so.c, left_cols, true), rightSchema, rightOID, parser.ConvColumnStrsToExpIfOnes(so.c, right_cols, false)))
 						}
 					}
 				}
