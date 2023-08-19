@@ -242,12 +242,12 @@ func (so *SelingerOptimizer) findBestScan(outNeededCols []*column.Column, where 
 	//var scanExp *parser.BinaryOpExpression
 	var scanExp expression.Expression = nil
 	if len(relatedOps) > 0 {
-		scanExp = parser.ConvParsedBinaryOpExprToExpIFOne(relatedOps[0])
+		scanExp = parser.ConvParsedBinaryOpExprToExpIFOne(sc, relatedOps[0])
 		for ii := 1; ii < len(relatedOps); ii++ {
 			// append addiitional condition with AND operator
 
 			//scan_exp = BinaryExpressionExp(scan_exp, BinaryOperation::kAnd, related_ops[i]);
-			scanExp = expression.AppendLogicalCondition(scanExp, expression.AND, parser.ConvParsedBinaryOpExprToExpIFOne(relatedOps[ii]))
+			scanExp = expression.AppendLogicalCondition(scanExp, expression.AND, parser.ConvParsedBinaryOpExprToExpIFOne(sc, relatedOps[ii]))
 		}
 	}
 
@@ -281,9 +281,8 @@ func (so *SelingerOptimizer) findBestScan(outNeededCols []*column.Column, where 
 	fullScanPlan := plans.NewSeqScanPlanNode(sc, nil, from.OID())
 	if scanExp != nil {
 		// full_scan_plan = std::make_shared<SelectionPlan>(full_scan_plan, scan_exp, stat);
-		fullScanPlan = plans.NewSeqScanPlanNode(sc, scanExp, from.OID())
+		fullScanPlan = plans.NewSelectionPlanNode(fullScanPlan, scanExp)
 	}
-
 	if len(outNeededCols) != int(sc.GetColumnCount()) {
 		// full_scan_plan = std::make_shared<ProjectionPlan>(full_scan_plan, select);
 		fullScanPlan = plans.NewProjectionPlanNode(fullScanPlan, schema.NewSchema(outNeededCols))
@@ -421,9 +420,9 @@ func (so *SelingerOptimizer) findBestJoinInner(where *parser.BinaryOpExpression,
 			finalSelection = &parser.BinaryOpExpression{expression.AND, -1, finalSelection, exp_}
 		}
 
-		attachExp := parser.ConvParsedBinaryOpExprToExpIFOne(finalSelection)
 		orgLen := len(candidates)
 		for ii := 0; ii < orgLen; ii++ {
+			attachExp := parser.ConvParsedBinaryOpExprToExpIFOne(candidates[ii].OutputSchema(), finalSelection)
 			// Note:
 			// when candidates[ii] is HashJoinPlanNode or IndexJoinPlanNode, predicate items which
 			// are already applied on join process are attached. but ignore the duplication here...

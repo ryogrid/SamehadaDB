@@ -152,9 +152,41 @@ type OrderByExpression struct {
 	ColName_ *string
 }
 
-func ConvParsedBinaryOpExprToExpIFOne(convSrc *BinaryOpExpression) expression.Expression {
-	// TODO: (SDB) [OPT] not implemented yet (ConvParsedBinaryOpExprToExpIFOne)
-	return nil
+// attiontion: this func can be used only for predicate of SelectionPlanNode
+func ConvBinaryOpExpReafToExpIFOne(sc *schema.Schema, convSrc interface{}) expression.Expression {
+	switch convSrc.(type) {
+	case *string:
+		return expression.NewColumnValue(0, sc.GetColIndex(*convSrc.(*string)), sc.GetColumn(sc.GetColIndex(*convSrc.(*string))).GetType())
+	case *types.Value:
+		return expression.NewConstantValue(*convSrc.(*types.Value), convSrc.(*types.Value).ValueType())
+	default:
+		panic("BinaryOpExpression tree is broken")
+	}
+}
+
+// attiontion: this func can be used only for predicate of SelectionPlanNode
+func ConvParsedBinaryOpExprToExpIFOne(sc *schema.Schema, convSrc *BinaryOpExpression) expression.Expression {
+	switch convSrc.GetType() {
+	case Logical: // node of logical operation
+		left_side_pred := ConvParsedBinaryOpExprToExpIFOne(sc, convSrc.Left_.(*BinaryOpExpression))
+		right_side_pred := ConvParsedBinaryOpExprToExpIFOne(sc, convSrc.Right_.(*BinaryOpExpression))
+		return expression.NewLogicalOp(left_side_pred, right_side_pred, convSrc.LogicalOperationType_, types.Boolean)
+	case Compare: // node of compare operation
+		leftExp := ConvBinaryOpExpReafToExpIFOne(sc, convSrc.Left_)
+		rightExp := ConvBinaryOpExpReafToExpIFOne(sc, convSrc.Right_)
+
+		return expression.NewComparison(leftExp, rightExp, convSrc.ComparisonOperationType_, types.Boolean)
+	case IsNull: // node of is null operation
+		tmpColIdx := sc.GetColIndex(*convSrc.Left_.(*string))
+		return expression.NewComparison(
+			expression.NewColumnValue(0, tmpColIdx, sc.GetColumn(tmpColIdx).GetType()),
+			expression.NewConstantValue(*convSrc.Right_.(*types.Value).GetDeepCopy(), convSrc.Right_.(*types.Value).ValueType()),
+			convSrc.ComparisonOperationType_,
+			types.Boolean)
+	default:
+		panic("BinaryOpExpression tree is " +
+			"broken")
+	}
 }
 
 // TODO: (SDB) need to support aggregation function on select field

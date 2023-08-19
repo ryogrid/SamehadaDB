@@ -230,7 +230,7 @@ func processPredicateTreeNode(node *parser.BinaryOpExpression, tgtTblSchemas []*
 		left_side_pred := processPredicateTreeNode(node.Left_.(*parser.BinaryOpExpression), tgtTblSchemas)
 		right_side_pred := processPredicateTreeNode(node.Right_.(*parser.BinaryOpExpression), tgtTblSchemas)
 		return expression.NewLogicalOp(left_side_pred, right_side_pred, node.LogicalOperationType_, types.Boolean)
-	} else { // node of conpare operation
+	} else { // node of compare operation
 		colName := *node.Left_.(*string)
 		specfiedVal := node.Right_.(*types.Value)
 
