@@ -470,7 +470,7 @@ func (so *SelingerOptimizer) findBestJoin(optimalPlans map[mapset.Set[string]]Co
 
 	// Attach final projection and emit the result
 	solution := optimalPlan.plan
-	solution = plans.NewProjectionPlanNode(solution, parser.ConvParsedSelectionExprToSchema(so.qi.SelectFields_))
+	solution = plans.NewProjectionPlanNode(solution, parser.ConvParsedSelectionExprToSchema(so.c, so.qi.SelectFields_))
 
 	return solution
 }
