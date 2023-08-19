@@ -6,6 +6,8 @@ import (
 	"github.com/ryogrid/SamehadaDB/execution/expression"
 	"github.com/ryogrid/SamehadaDB/execution/plans"
 	"github.com/ryogrid/SamehadaDB/samehada/samehada_util"
+	"github.com/ryogrid/SamehadaDB/storage/index/index_constants"
+	"github.com/ryogrid/SamehadaDB/storage/table/column"
 	"github.com/ryogrid/SamehadaDB/storage/table/schema"
 	"github.com/ryogrid/SamehadaDB/types"
 	"strings"
@@ -155,9 +157,26 @@ func ConvParsedBinaryOpExprToExpIFOne(convSrc *BinaryOpExpression) expression.Ex
 	return nil
 }
 
-func ConvParsedSelectionExprToSchema(convSrc []*SelectFieldExpression) *schema.Schema {
-	// TODO: (SDB) [OPT] not implemented yet (ConvParsedSelectionExprToSchema)
-	return nil
+// TODO: (SDB) need to support aggregation function on select field
+func ConvParsedSelectionExprToSchema(c *catalog.Catalog, convSrc []*SelectFieldExpression) *schema.Schema {
+	outColDefs := make([]*column.Column, 0)
+	for _, sfield := range convSrc {
+		tableName := sfield.TableName_
+		colName := sfield.ColName_
+		sc := c.GetTableByName(*tableName).Schema()
+		colIdx := sc.GetColIndex(*colName)
+		colType := sc.GetColumn(colIdx).GetType()
+		hasIndex := sc.GetColumn(colIdx).HasIndex()
+		indexKind := index_constants.INDEX_KIND_INVALID
+		indexHeaderPageID := types.PageID(-1)
+		if hasIndex {
+			indexKind = sc.GetColumn(colIdx).IndexKind()
+			indexHeaderPageID = sc.GetColumn(colIdx).IndexHeaderPageId()
+		}
+
+		outColDefs = append(outColDefs, column.NewColumn(*colName, colType, hasIndex, indexKind, indexHeaderPageID, nil))
+	}
+	return schema.NewSchema(outColDefs)
 }
 
 func ConvColumnStrsToExpIfOnes(c *catalog.Catalog, convSrc []*string, isLeftOnJoin bool) []expression.Expression {
