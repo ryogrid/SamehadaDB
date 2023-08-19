@@ -274,7 +274,7 @@ func (ts *TableStatistics) ReductionFactor(sc schema.Schema, predicate expressio
 				return math.MaxFloat64
 			}
 		}
-		// TODO: (SDB) [OPT] GreaterThan, GreaterEqual, LessThan, LessEqual, NotEqual
+		// TODO: (SDB) GreaterThan, GreaterEqual, LessThan, LessEqual, NotEqual (TableStatistics::ReductionFactor)
 
 		boLogi, okLogi := predicate.(*expression.LogicalOp)
 		if okLogi {
