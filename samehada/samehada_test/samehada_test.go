@@ -4,7 +4,7 @@ import (
 	"fmt"
 	"github.com/ryogrid/SamehadaDB/common"
 	"github.com/ryogrid/SamehadaDB/samehada"
-	testingpkg "github.com/ryogrid/SamehadaDB/testing"
+	testingpkg "github.com/ryogrid/SamehadaDB/testing/testing_assert"
 	"os"
 	"testing"
 	"time"

@@ -5,12 +5,12 @@ package buffer
 
 import (
 	"crypto/rand"
+	testingpkg "github.com/ryogrid/SamehadaDB/testing/testing_assert"
 	"testing"
 
 	"github.com/ryogrid/SamehadaDB/common"
 	"github.com/ryogrid/SamehadaDB/recovery"
 	"github.com/ryogrid/SamehadaDB/storage/disk"
-	testingpkg "github.com/ryogrid/SamehadaDB/testing"
 	"github.com/ryogrid/SamehadaDB/types"
 )
 

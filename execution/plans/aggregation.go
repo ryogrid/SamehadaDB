@@ -6,6 +6,7 @@ import (
 	"github.com/ryogrid/SamehadaDB/execution/expression"
 	"github.com/ryogrid/SamehadaDB/storage/table/schema"
 	"github.com/ryogrid/SamehadaDB/types"
+	"math"
 )
 
 // /** AggregationType enumerates all the possible aggregation functions in our system. */
@@ -86,7 +87,7 @@ func (p *AggregationPlanNode) GetAggregates() []expression.Expression { return p
 func (p *AggregationPlanNode) GetAggregateTypes() []AggregationType { return p.agg_types_ }
 
 func (p *AggregationPlanNode) GetTableOID() uint32 {
-	return p.children[0].GetTableOID()
+	return math.MaxInt32
 }
 
 func (p *AggregationPlanNode) AccessRowCount(c *catalog.Catalog) uint64 {

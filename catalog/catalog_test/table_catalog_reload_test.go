@@ -12,7 +12,7 @@ import (
 	"github.com/ryogrid/SamehadaDB/storage/index/index_constants"
 	"github.com/ryogrid/SamehadaDB/storage/table/column"
 	"github.com/ryogrid/SamehadaDB/storage/table/schema"
-	testingpkg "github.com/ryogrid/SamehadaDB/testing"
+	testingpkg "github.com/ryogrid/SamehadaDB/testing/testing_assert"
 	"github.com/ryogrid/SamehadaDB/types"
 	"os"
 	"testing"

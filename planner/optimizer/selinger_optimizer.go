@@ -7,12 +7,10 @@ import (
 	pair "github.com/notEpsilon/go-pair"
 	"github.com/ryogrid/SamehadaDB/catalog"
 	"github.com/ryogrid/SamehadaDB/common"
-	"github.com/ryogrid/SamehadaDB/execution/executors"
 	"github.com/ryogrid/SamehadaDB/execution/expression"
 	"github.com/ryogrid/SamehadaDB/execution/plans"
 	"github.com/ryogrid/SamehadaDB/parser"
 	"github.com/ryogrid/SamehadaDB/samehada/samehada_util"
-	"github.com/ryogrid/SamehadaDB/storage/access"
 	"github.com/ryogrid/SamehadaDB/storage/table/column"
 	"github.com/ryogrid/SamehadaDB/storage/table/schema"
 	"github.com/ryogrid/SamehadaDB/types"
@@ -63,7 +61,11 @@ func NewRange(valType types.TypeID) *Range {
 }
 
 func (r *Range) Empty() bool {
-	// TODO: (SDB) [OPT] consideration of boolean type column (Range::Empty)
+	if r.Max.ValueType() == types.Boolean {
+		// can't check whether empty or not on current internal design of Value and Range type
+		return false
+	}
+
 	// check whether field is changed from initial value
 	return r.Min.IsInfMin() && r.Max.IsInfMax()
 }
@@ -117,13 +119,14 @@ func (r *Range) Update(op expression.ComparisonType, rhs *types.Value, dir Direc
 }
 
 type SelingerOptimizer struct {
-	c *catalog.Catalog
-	// TODO: (SDB) [OPT] not implemented yet (SelingerOptimizer struct)
+	qi *parser.QueryInfo
+	c  *catalog.Catalog
 }
 
-func NewSelingerOptimizer() *SelingerOptimizer {
+func NewSelingerOptimizer(qi *parser.QueryInfo, c *catalog.Catalog) *SelingerOptimizer {
 	ret := new(SelingerOptimizer)
-	// TODO: (SDB) [OPT] not implemented yet (NewSelingerOptimizer)
+	ret.qi = qi
+	ret.c = c
 	return ret
 }
 
@@ -151,7 +154,7 @@ func touchOnly(from *catalog.TableMetadata, where expression.Expression, colName
 	return true
 }
 
-// TODO: (SDB) [OPT] caller should pass *where* args which is deep copied (SelingerOptimizer::findBestScan)
+// attention: caller should pass *where* args which is deep copied
 func (so *SelingerOptimizer) findBestScan(outNeededCols []*column.Column, where *parser.BinaryOpExpression, from *catalog.TableMetadata, c *catalog.Catalog, stats *catalog.TableStatistics) (plans.Plan, error) {
 	availableKeyIndex := func() map[int]int {
 		retMap := make(map[int]int, 0)
@@ -239,12 +242,12 @@ func (so *SelingerOptimizer) findBestScan(outNeededCols []*column.Column, where 
 	//var scanExp *parser.BinaryOpExpression
 	var scanExp expression.Expression = nil
 	if len(relatedOps) > 0 {
-		scanExp = parser.ConvParsedBinaryOpExprToExpIFOne(relatedOps[0])
+		scanExp = parser.ConvParsedBinaryOpExprToExpIFOne(sc, relatedOps[0])
 		for ii := 1; ii < len(relatedOps); ii++ {
 			// append addiitional condition with AND operator
 
 			//scan_exp = BinaryExpressionExp(scan_exp, BinaryOperation::kAnd, related_ops[i]);
-			scanExp = expression.AppendLogicalCondition(scanExp, expression.AND, parser.ConvParsedBinaryOpExprToExpIFOne(relatedOps[ii]))
+			scanExp = expression.AppendLogicalCondition(scanExp, expression.AND, parser.ConvParsedBinaryOpExprToExpIFOne(sc, relatedOps[ii]))
 		}
 	}
 
@@ -258,7 +261,7 @@ func (so *SelingerOptimizer) findBestScan(outNeededCols []*column.Column, where 
 		}
 		//targetIndex := from.GetIndex(candidates[key])
 		// Plan new_plan = IndexScanSelect(from, target_idx, stat, *span.min,*span.max, scan_exp, select);
-		var newPlan plans.Plan = plans.NewRangeScanWithIndexPlanNode(sc, from.OID(), int32(key), nil, span.Min, span.Max)
+		var newPlan = plans.NewRangeScanWithIndexPlanNode(sc, from.OID(), int32(key), nil, span.Min, span.Max)
 		// if (!TouchOnly(scan_exp, from.GetSchema().GetColumn(key).Name())) {
 		if !touchOnly(from, scanExp, sc.GetColumn(uint32(key)).GetColumnName()) {
 			//new_plan = std::make_shared<SelectionPlan>(new_plan, scan_exp, stat);
@@ -278,9 +281,8 @@ func (so *SelingerOptimizer) findBestScan(outNeededCols []*column.Column, where 
 	fullScanPlan := plans.NewSeqScanPlanNode(sc, nil, from.OID())
 	if scanExp != nil {
 		// full_scan_plan = std::make_shared<SelectionPlan>(full_scan_plan, scan_exp, stat);
-		fullScanPlan = plans.NewSeqScanPlanNode(sc, scanExp, from.OID())
+		fullScanPlan = plans.NewSelectionPlanNode(fullScanPlan, scanExp)
 	}
-
 	if len(outNeededCols) != int(sc.GetColumnCount()) {
 		// full_scan_plan = std::make_shared<ProjectionPlan>(full_scan_plan, select);
 		fullScanPlan = plans.NewProjectionPlanNode(fullScanPlan, schema.NewSchema(outNeededCols))
@@ -293,37 +295,36 @@ func (so *SelingerOptimizer) findBestScan(outNeededCols []*column.Column, where 
 	return bestScan, nil
 }
 
-func (so *SelingerOptimizer) findBestScans(query *parser.QueryInfo, exec_ctx *executors.ExecutorContext, c *catalog.Catalog, txn *access.Transaction) map[mapset.Set[string]]CostAndPlan {
+func (so *SelingerOptimizer) findBestScans() map[mapset.Set[string]]CostAndPlan {
 	optimalPlans := make(map[mapset.Set[string]]CostAndPlan)
 
 	// 1. Initialize every single tables to start.
-	touchedColumns := query.WhereExpression_.TouchedColumns()
-	for _, item := range query.SelectFields_ {
+	touchedColumns := so.qi.WhereExpression_.TouchedColumns()
+	for _, item := range so.qi.SelectFields_ {
 		touchedColumns = touchedColumns.Union(item.TouchedColumns())
 	}
-	for _, from := range query.JoinTables_ {
-		tbl := c.GetTableByName(*from)
-		stats := c.GetTableByName(*from).GetStatistics()
+	for _, from := range so.qi.JoinTables_ {
+		tbl := so.c.GetTableByName(*from)
+		stats := so.c.GetTableByName(*from).GetStatistics()
 		projectTarget := make([]*column.Column, 0)
 		// Push down all selection & projection.
 		for ii := 0; ii < int(tbl.GetColumnNum()); ii++ {
 			for _, touchedCol := range touchedColumns.ToSlice() {
 				tableCol := tbl.Schema().GetColumn(uint32(ii))
-				// TODO: (SDB) [OPT] GetColumnName() value should contain table name. if not,  rewrite of this comparison code is needed (SelingerOptimizer::findBestScans)
-				if tableCol.GetColumnName() == touchedCol.GetColumnName() {
+				if tableCol.GetColumnName() == touchedCol {
 					projectTarget = append(projectTarget, tableCol)
 				}
 			}
 		}
-		//scan, _ := NewSelingerOptimizer().findBestScan(query.SelectFields_, query.WhereExpression_, tbl, c, stats)
-		scan, _ := NewSelingerOptimizer().findBestScan(projectTarget, query.WhereExpression_, tbl, c, stats)
-		optimalPlans[samehada_util.MakeSet([]*string{from})] = CostAndPlan{scan.AccessRowCount(c), scan}
+		//scan, _ := NewSelingerOptimizer().findBestScan(qi.SelectFields_, qi.WhereExpression_, tbl, c, stats)
+		scan, _ := so.findBestScan(projectTarget, so.qi.WhereExpression_.GetDeepCopy(), tbl, so.c, stats)
+		optimalPlans[samehada_util.MakeSet([]*string{from})] = CostAndPlan{scan.AccessRowCount(so.c), scan}
 	}
 
 	return optimalPlans
 }
 
-// TODO: (SDB) [OPT] caller should pass *where* args which is deep copied (SelingerOptimizer::findBestJoinInner)
+// attention: caller should pass *where* args which is deep copied
 func (so *SelingerOptimizer) findBestJoinInner(where *parser.BinaryOpExpression, left plans.Plan, right plans.Plan, c *catalog.Catalog) (plans.Plan, error) {
 	// pair<ColumnName, ColumnName>
 	var equals []pair.Pair[*string, *string] = make([]pair.Pair[*string, *string], 0)
@@ -367,27 +368,36 @@ func (so *SelingerOptimizer) findBestJoinInner(where *parser.BinaryOpExpression,
 
 		// HashJoin
 		// candidates.push_back(std::make_shared<ProductPlan>(left, left_cols, right, right_cols));
-		var tmpPlan plans.Plan = plans.NewHashJoinPlanNodeWithChilds(left, parser.ConvColumnStrsToExpIfOnes(left_cols), right, parser.ConvColumnStrsToExpIfOnes(right_cols))
+		var tmpPlan plans.Plan = plans.NewHashJoinPlanNodeWithChilds(left, parser.ConvColumnStrsToExpIfOnes(so.c, left_cols, true), right, parser.ConvColumnStrsToExpIfOnes(so.c, right_cols, false))
 		candidates = append(candidates, tmpPlan)
 		// candidates.push_back(std::make_shared<ProductPlan>(right, right_cols, left, left_cols));
-		tmpPlan = plans.NewHashJoinPlanNodeWithChilds(right, parser.ConvColumnStrsToExpIfOnes(right_cols), left, parser.ConvColumnStrsToExpIfOnes(left_cols))
+		tmpPlan = plans.NewHashJoinPlanNodeWithChilds(right, parser.ConvColumnStrsToExpIfOnes(so.c, right_cols, true), left, parser.ConvColumnStrsToExpIfOnes(so.c, left_cols, false))
 		candidates = append(candidates, tmpPlan)
 
 		// IndexJoin
 
 		// if (const Table* right_tbl = right->ScanSource()) {
-		// first item on condition below checks whether right Plan deal only one table
-		if right.GetTableOID() != math.MaxUint32 && len(so.c.GetTableByOID(right.GetTableOID()).Indexes()) > 0 {
-			// for (size_t i = 0; i < right_tbl->IndexCount(); ++i) {
-			// const Index& right_idx = right_tbl->GetIndex(i);
-			for _, right_idx := range so.c.GetTableByOID(right.GetTableOID()).Indexes() {
-				//ASSIGN_OR_CRASH(std::shared_ptr<TableStatistics>, stat,
-				//	ctx.GetStats(right_tbl->GetSchema().Name()));
-				for _, rcol := range right_cols {
-					if right_idx.GetTupleSchema().IsHaveColumn(rcol) {
-						// candidates.push_back(std::make_shared<ProductPlan>(left, left_cols, *right_tbl, right_idx, right_cols, *stat));
-						// right scan plan is not used because IndexJoinExecutor does point scans internally
-						candidates = append(candidates, plans.NewIndexJoinPlanNode(left, parser.ConvColumnStrsToExpIfOnes(left_cols), right.OutputSchema(), right.GetTableOID(), parser.ConvColumnStrsToExpIfOnes(right_cols)))
+		// checks whether right Plan deal only one table (join or aggregation on tree is NG)
+		if right.GetTableOID() != math.MaxUint32 || right.GetType() == plans.Projection {
+			rightSchema := right.OutputSchema()
+			rightOID := right.GetTableOID()
+			if right.GetType() == plans.Projection {
+				// when right plan is ProjectionPlan, using child plan's schema and OID is needed to get target table info
+				rightSchema = right.GetChildAt(0).OutputSchema()
+				rightOID = right.GetChildAt(0).GetTableOID()
+			}
+			if len(so.c.GetTableByOID(rightOID).Indexes()) > 0 {
+				// for (size_t i = 0; i < right_tbl->IndexCount(); ++i) {
+				// const Index& right_idx = right_tbl->GetIndex(i);
+				for _, right_idx := range so.c.GetTableByOID(rightOID).Indexes() {
+					//ASSIGN_OR_CRASH(std::shared_ptr<TableStatistics>, stat,
+					//	ctx.GetStats(right_tbl->GetSchema().Name()));
+					for _, rcol := range right_cols {
+						if right_idx.GetTupleSchema().IsHaveColumn(rcol) {
+							// candidates.push_back(std::make_shared<ProductPlan>(left, left_cols, *right_tbl, right_idx, right_cols, *stat));
+							// right scan plan is not used because IndexJoinExecutor does point scans internally
+							candidates = append(candidates, plans.NewIndexJoinPlanNode(left, parser.ConvColumnStrsToExpIfOnes(so.c, left_cols, true), rightSchema, rightOID, parser.ConvColumnStrsToExpIfOnes(so.c, right_cols, false)))
+						}
 					}
 				}
 			}
@@ -410,9 +420,9 @@ func (so *SelingerOptimizer) findBestJoinInner(where *parser.BinaryOpExpression,
 			finalSelection = &parser.BinaryOpExpression{expression.AND, -1, finalSelection, exp_}
 		}
 
-		attachExp := parser.ConvParsedBinaryOpExprToExpIFOne(finalSelection)
 		orgLen := len(candidates)
 		for ii := 0; ii < orgLen; ii++ {
+			attachExp := parser.ConvParsedBinaryOpExprToExpIFOne(candidates[ii].OutputSchema(), finalSelection)
 			// Note:
 			// when candidates[ii] is HashJoinPlanNode or IndexJoinPlanNode, predicate items which
 			// are already applied on join process are attached. but ignore the duplication here...
@@ -428,8 +438,8 @@ func (so *SelingerOptimizer) findBestJoinInner(where *parser.BinaryOpExpression,
 	return candidates[0], nil
 }
 
-func (so *SelingerOptimizer) findBestJoin(optimalPlans map[mapset.Set[string]]CostAndPlan, query *parser.QueryInfo, exec_ctx *executors.ExecutorContext, c *catalog.Catalog, txn *access.Transaction) plans.Plan {
-	for ii := 1; ii < len(query.JoinTables_); ii += 1 {
+func (so *SelingerOptimizer) findBestJoin(optimalPlans map[mapset.Set[string]]CostAndPlan) plans.Plan {
+	for ii := 1; ii < len(so.qi.JoinTables_); ii += 1 {
 		for baseTableFrom, baseTableCP := range optimalPlans {
 			for joinTableFrom, joinTableCP := range optimalPlans {
 				// Note: checking num of tables joined table includes avoids occurring problem
@@ -439,13 +449,12 @@ func (so *SelingerOptimizer) findBestJoin(optimalPlans map[mapset.Set[string]]Co
 				}
 
 				// for making left-deep Selinger, checking joinTableFrom.Cardinality() == 1 is needed
-
-				bestJoinPlan, _ := NewSelingerOptimizer().findBestJoinInner(query.WhereExpression_, baseTableCP.plan, joinTableCP.plan, c)
+				bestJoinPlan, _ := so.findBestJoinInner(so.qi.WhereExpression_.GetDeepCopy(), baseTableCP.plan, joinTableCP.plan, so.c)
 				fmt.Println(bestJoinPlan)
 
 				joinedTables := baseTableFrom.Union(joinTableFrom)
 				common.SH_Assert(1 < joinedTables.Cardinality(), "joinedTables.Cardinality() is illegal!")
-				cost := bestJoinPlan.AccessRowCount(c)
+				cost := bestJoinPlan.AccessRowCount(so.c)
 
 				if existedPlan, ok := optimalPlans[joinedTables]; ok {
 					optimalPlans[joinedTables] = CostAndPlan{cost, bestJoinPlan}
@@ -455,12 +464,12 @@ func (so *SelingerOptimizer) findBestJoin(optimalPlans map[mapset.Set[string]]Co
 			}
 		}
 	}
-	optimalPlan, ok := optimalPlans[samehada_util.MakeSet(query.JoinTables_)]
+	optimalPlan, ok := optimalPlans[samehada_util.MakeSet(so.qi.JoinTables_)]
 	samehada_util.SHAssert(ok, "plan which includes all tables is not found")
 
 	// Attach final projection and emit the result
 	solution := optimalPlan.plan
-	solution = plans.NewProjectionPlanNode(solution, parser.ConvParsedSelectionExprToSchema(query.SelectFields_))
+	solution = plans.NewProjectionPlanNode(solution, parser.ConvParsedSelectionExprToSchema(so.c, so.qi.SelectFields_))
 
 	return solution
 }
@@ -469,7 +478,7 @@ func (so *SelingerOptimizer) findBestJoin(optimalPlans map[mapset.Set[string]]Co
 //                   (predicate including bracket or OR operation case is not supported now)
 
 // TODO: (SDB) [OPT] adding support of ON clause (Optimize, findBestJoin, findBestJoinInner, findBestScans, findBestScan)
-func (so *SelingerOptimizer) Optimize(query *parser.QueryInfo, exec_ctx *executors.ExecutorContext, c *catalog.Catalog, txn *access.Transaction) (plans.Plan, error) {
-	optimalPlans := so.findBestScans(query, exec_ctx, c, txn)
-	return so.findBestJoin(optimalPlans, query, exec_ctx, c, txn), nil
+func (so *SelingerOptimizer) Optimize() (plans.Plan, error) {
+	optimalPlans := so.findBestScans()
+	return so.findBestJoin(optimalPlans), nil
 }

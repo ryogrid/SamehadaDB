@@ -1,21 +1,18 @@
-// this code is from https://github.com/brunocalza/go-bustub
-// there is license and copyright notice in licenses/go-bustub dir
-
-package executors
+package testing_pattern_fw
 
 import (
-	"github.com/ryogrid/SamehadaDB/storage/index/index_constants"
-	"testing"
-
 	"github.com/ryogrid/SamehadaDB/catalog"
+	"github.com/ryogrid/SamehadaDB/execution/executors"
 	"github.com/ryogrid/SamehadaDB/execution/expression"
 	"github.com/ryogrid/SamehadaDB/execution/plans"
 	"github.com/ryogrid/SamehadaDB/storage/access"
+	"github.com/ryogrid/SamehadaDB/storage/index/index_constants"
 	"github.com/ryogrid/SamehadaDB/storage/table/column"
 	"github.com/ryogrid/SamehadaDB/storage/table/schema"
+	"github.com/ryogrid/SamehadaDB/testing/testing_assert"
+	"github.com/ryogrid/SamehadaDB/testing/testing_util"
 	"github.com/ryogrid/SamehadaDB/types"
-
-	testingpkg "github.com/ryogrid/SamehadaDB/testing"
+	"testing"
 )
 
 type Column struct {
@@ -42,8 +39,8 @@ type Assertion struct {
 
 type SeqScanTestCase struct {
 	Description     string
-	ExecutionEngine *ExecutionEngine
-	ExecutorContext *ExecutorContext
+	ExecutionEngine *executors.ExecutionEngine
+	ExecutorContext *executors.ExecutorContext
 	TableMetadata   *catalog.TableMetadata
 	Columns         []Column
 	Predicate       Predicate
@@ -58,26 +55,26 @@ func ExecuteSeqScanTestCase(t *testing.T, testCase SeqScanTestCase) {
 	}
 	outSchema := schema.NewSchema(columns)
 
-	tmpColVal_ := expression.NewColumnValue(0, testCase.TableMetadata.Schema().GetColIndex(testCase.Predicate.LeftColumn), GetValueType(testCase.Predicate.RightColumn))
+	tmpColVal_ := expression.NewColumnValue(0, testCase.TableMetadata.Schema().GetColIndex(testCase.Predicate.LeftColumn), testing_util.GetValueType(testCase.Predicate.RightColumn))
 	tmpColVal := tmpColVal_.(*expression.ColumnValue)
-	expression := expression.NewComparison(tmpColVal, expression.NewConstantValue(GetValue(testCase.Predicate.RightColumn), GetValueType(testCase.Predicate.RightColumn)), testCase.Predicate.Operator, types.Boolean)
+	expression := expression.NewComparison(tmpColVal, expression.NewConstantValue(testing_util.GetValue(testCase.Predicate.RightColumn), testing_util.GetValueType(testCase.Predicate.RightColumn)), testCase.Predicate.Operator, types.Boolean)
 	seqScanPlan := plans.NewSeqScanPlanNode(outSchema, expression, testCase.TableMetadata.OID())
 
 	results := testCase.ExecutionEngine.Execute(seqScanPlan, testCase.ExecutorContext)
 
-	testingpkg.Equals(t, testCase.TotalHits, uint32(len(results)))
+	testing_assert.Equals(t, testCase.TotalHits, uint32(len(results)))
 	if len(results) > 0 {
 		for _, assert := range testCase.Asserts {
 			colIndex := outSchema.GetColIndex(assert.Column)
-			testingpkg.Assert(t, GetValue(assert.Exp).CompareEquals(results[0].GetValue(outSchema, colIndex)), "value should be %v but was %v", assert.Exp, results[0].GetValue(outSchema, colIndex))
+			testing_assert.Assert(t, testing_util.GetValue(assert.Exp).CompareEquals(results[0].GetValue(outSchema, colIndex)), "value should be %v but was %v", assert.Exp, results[0].GetValue(outSchema, colIndex))
 		}
 	}
 }
 
 type IndexPointScanTestCase struct {
 	Description     string
-	ExecutionEngine *ExecutionEngine
-	ExecutorContext *ExecutorContext
+	ExecutionEngine *executors.ExecutionEngine
+	ExecutorContext *executors.ExecutorContext
 	TableMetadata   *catalog.TableMetadata
 	Columns         []Column
 	Predicate       Predicate
@@ -87,8 +84,8 @@ type IndexPointScanTestCase struct {
 
 type IndexRangeScanTestCase struct {
 	Description     string
-	ExecutionEngine *ExecutionEngine
-	ExecutorContext *ExecutorContext
+	ExecutionEngine *executors.ExecutionEngine
+	ExecutorContext *executors.ExecutorContext
 	TableMetadata   *catalog.TableMetadata
 	Columns         []Column
 	Predicate       Predicate
@@ -121,18 +118,18 @@ func ExecuteIndexPointScanTestCase(t *testing.T, testCase IndexPointScanTestCase
 	columns := fillColumnsForIndexScanTestCase[IndexPointScanTestCase](testCase, indexType)
 	outSchema := schema.NewSchema(columns)
 
-	tmpColVal_ := expression.NewColumnValue(0, testCase.TableMetadata.Schema().GetColIndex(testCase.Predicate.LeftColumn), GetValueType(testCase.Predicate.RightColumn))
+	tmpColVal_ := expression.NewColumnValue(0, testCase.TableMetadata.Schema().GetColIndex(testCase.Predicate.LeftColumn), testing_util.GetValueType(testCase.Predicate.RightColumn))
 	tmpColVal := tmpColVal_.(*expression.ColumnValue)
 
-	expression_ := expression.NewComparison(tmpColVal, expression.NewConstantValue(GetValue(testCase.Predicate.RightColumn), GetValueType(testCase.Predicate.RightColumn)), testCase.Predicate.Operator, types.Boolean)
+	expression_ := expression.NewComparison(tmpColVal, expression.NewConstantValue(testing_util.GetValue(testCase.Predicate.RightColumn), testing_util.GetValueType(testCase.Predicate.RightColumn)), testCase.Predicate.Operator, types.Boolean)
 	hashIndexScanPlan := plans.NewPointScanWithIndexPlanNode(outSchema, expression_.(*expression.Comparison), testCase.TableMetadata.OID())
 
 	results := testCase.ExecutionEngine.Execute(hashIndexScanPlan, testCase.ExecutorContext)
 
-	testingpkg.Equals(t, testCase.TotalHits, uint32(len(results)))
+	testing_assert.Equals(t, testCase.TotalHits, uint32(len(results)))
 	for _, assert := range testCase.Asserts {
 		colIndex := outSchema.GetColIndex(assert.Column)
-		testingpkg.Assert(t, GetValue(assert.Exp).CompareEquals(results[0].GetValue(outSchema, colIndex)), "value should be %v but was %v", assert.Exp, results[0].GetValue(outSchema, colIndex))
+		testing_assert.Assert(t, testing_util.GetValue(assert.Exp).CompareEquals(results[0].GetValue(outSchema, colIndex)), "value should be %v but was %v", assert.Exp, results[0].GetValue(outSchema, colIndex))
 	}
 }
 
@@ -140,22 +137,22 @@ func ExecuteIndexRangeScanTestCase(t *testing.T, testCase IndexRangeScanTestCase
 	columns := fillColumnsForIndexScanTestCase[IndexRangeScanTestCase](testCase, indexType)
 	outSchema := schema.NewSchema(columns)
 
-	tmpColVal_ := expression.NewColumnValue(0, testCase.TableMetadata.Schema().GetColIndex(testCase.Predicate.LeftColumn), GetValueType(testCase.Predicate.RightColumn))
+	tmpColVal_ := expression.NewColumnValue(0, testCase.TableMetadata.Schema().GetColIndex(testCase.Predicate.LeftColumn), testing_util.GetValueType(testCase.Predicate.RightColumn))
 	tmpColVal := tmpColVal_.(*expression.ColumnValue)
 
-	expression_ := expression.NewComparison(tmpColVal, expression.NewConstantValue(GetValue(testCase.Predicate.RightColumn), GetValueType(testCase.Predicate.RightColumn)), testCase.Predicate.Operator, types.Boolean)
+	expression_ := expression.NewComparison(tmpColVal, expression.NewConstantValue(testing_util.GetValue(testCase.Predicate.RightColumn), testing_util.GetValueType(testCase.Predicate.RightColumn)), testCase.Predicate.Operator, types.Boolean)
 	IndexRangeScanPlan := plans.NewRangeScanWithIndexPlanNode(outSchema, testCase.TableMetadata.OID(), testCase.ColIdx, expression_.(*expression.Comparison), testCase.ScanRange[0], testCase.ScanRange[1])
 
 	results := testCase.ExecutionEngine.Execute(IndexRangeScanPlan, testCase.ExecutorContext)
 
-	testingpkg.Equals(t, testCase.TotalHits, uint32(len(results)))
+	testing_assert.Equals(t, testCase.TotalHits, uint32(len(results)))
 }
 
 type DeleteTestCase struct {
 	Description        string
 	TransactionManager *access.TransactionManager
-	ExecutionEngine    *ExecutionEngine
-	ExecutorContext    *ExecutorContext
+	ExecutionEngine    *executors.ExecutionEngine
+	ExecutorContext    *executors.ExecutorContext
 	TableMetadata      *catalog.TableMetadata
 	Columns            []Column
 	Predicate          Predicate
@@ -172,9 +169,9 @@ func ExecuteDeleteTestCase(t *testing.T, testCase DeleteTestCase) {
 	}
 	outSchema := schema.NewSchema(columns)
 
-	tmpColVal_ := expression.NewColumnValue(0, testCase.TableMetadata.Schema().GetColIndex(testCase.Predicate.LeftColumn), GetValueType(testCase.Predicate.RightColumn))
+	tmpColVal_ := expression.NewColumnValue(0, testCase.TableMetadata.Schema().GetColIndex(testCase.Predicate.LeftColumn), testing_util.GetValueType(testCase.Predicate.RightColumn))
 	tmpColVal := tmpColVal_.(*expression.ColumnValue)
-	expression := expression.NewComparison(tmpColVal, expression.NewConstantValue(GetValue(testCase.Predicate.RightColumn), GetValueType(testCase.Predicate.RightColumn)), testCase.Predicate.Operator, types.Boolean)
+	expression := expression.NewComparison(tmpColVal, expression.NewConstantValue(testing_util.GetValue(testCase.Predicate.RightColumn), testing_util.GetValueType(testCase.Predicate.RightColumn)), testCase.Predicate.Operator, types.Boolean)
 	childSeqScanP := plans.NewSeqScanPlanNode(outSchema, expression, testCase.TableMetadata.OID())
 	deletePlan := plans.NewDeletePlanNode(childSeqScanP)
 
@@ -183,45 +180,9 @@ func ExecuteDeleteTestCase(t *testing.T, testCase DeleteTestCase) {
 
 	testCase.TransactionManager.Commit(nil, txn)
 
-	testingpkg.Equals(t, testCase.TotalHits, uint32(len(results)))
+	testing_assert.Equals(t, testCase.TotalHits, uint32(len(results)))
 	for _, assert := range testCase.Asserts {
 		colIndex := outSchema.GetColIndex(assert.Column)
-		testingpkg.Assert(t, GetValue(assert.Exp).CompareEquals(results[0].GetValue(outSchema, colIndex)), "value should be %v but was %v", assert.Exp, results[0].GetValue(outSchema, colIndex))
+		testing_assert.Assert(t, testing_util.GetValue(assert.Exp).CompareEquals(results[0].GetValue(outSchema, colIndex)), "value should be %v but was %v", assert.Exp, results[0].GetValue(outSchema, colIndex))
 	}
-}
-
-func GetValue(data interface{}) (value types.Value) {
-	switch v := data.(type) {
-	case int:
-		value = types.NewInteger(int32(v))
-	case int32:
-		value = types.NewInteger(v)
-	case float32:
-		value = types.NewFloat(float32(v))
-	case string:
-		value = types.NewVarchar(v)
-	case bool:
-		value = types.NewBoolean(v)
-	case *types.Value:
-		val := data.(*types.Value)
-		return *val
-	}
-	return
-}
-
-func GetValueType(data interface{}) (value types.TypeID) {
-	switch data.(type) {
-	case int, int32:
-		return types.Integer
-	case float32:
-		return types.Float
-	case string:
-		return types.Varchar
-	case bool:
-		return types.Boolean
-	case *types.Value:
-		val := data.(*types.Value)
-		return val.ValueType()
-	}
-	panic("not implemented")
 }

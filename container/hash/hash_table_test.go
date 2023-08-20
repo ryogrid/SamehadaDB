@@ -6,13 +6,13 @@ package hash
 import (
 	"bytes"
 	"encoding/binary"
+	testingpkg "github.com/ryogrid/SamehadaDB/testing/testing_assert"
 	"github.com/ryogrid/SamehadaDB/types"
 	"testing"
 
 	"github.com/ryogrid/SamehadaDB/recovery"
 	"github.com/ryogrid/SamehadaDB/storage/buffer"
 	"github.com/ryogrid/SamehadaDB/storage/disk"
-	testingpkg "github.com/ryogrid/SamehadaDB/testing"
 )
 
 func IntToBytes(val int) []byte {

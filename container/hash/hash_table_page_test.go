@@ -6,6 +6,7 @@ package hash
 import (
 	"github.com/ryogrid/SamehadaDB/common"
 	"github.com/ryogrid/SamehadaDB/storage/page"
+	testingpkg "github.com/ryogrid/SamehadaDB/testing/testing_assert"
 	"os"
 	"testing"
 	"unsafe"
@@ -13,7 +14,6 @@ import (
 	"github.com/ryogrid/SamehadaDB/recovery"
 	"github.com/ryogrid/SamehadaDB/storage/buffer"
 	"github.com/ryogrid/SamehadaDB/storage/disk"
-	testingpkg "github.com/ryogrid/SamehadaDB/testing"
 	"github.com/ryogrid/SamehadaDB/types"
 )
 

@@ -4,7 +4,6 @@ import (
 	"errors"
 	"fmt"
 	"github.com/ryogrid/SamehadaDB/catalog"
-	"github.com/ryogrid/SamehadaDB/execution/executors"
 	"github.com/ryogrid/SamehadaDB/execution/expression"
 	"github.com/ryogrid/SamehadaDB/execution/plans"
 	"github.com/ryogrid/SamehadaDB/parser"
@@ -13,6 +12,7 @@ import (
 	"github.com/ryogrid/SamehadaDB/storage/index/index_constants"
 	"github.com/ryogrid/SamehadaDB/storage/table/column"
 	"github.com/ryogrid/SamehadaDB/storage/table/schema"
+	"github.com/ryogrid/SamehadaDB/testing/testing_tbl_gen"
 	"github.com/ryogrid/SamehadaDB/types"
 	"math"
 	"strings"
@@ -192,7 +192,7 @@ func (pner *SimplePlanner) MakeSelectPlanWithJoin() (error, plans.Plan) {
 			}
 		}
 
-		onPredicate := executors.MakeComparisonExpression(colValL, colValR, expression.Equal)
+		onPredicate := testing_tbl_gen.MakeComparisonExpression(colValL, colValR, expression.Equal)
 
 		var left_keys []expression.Expression
 		left_keys = append(left_keys, colValL)
@@ -230,47 +230,12 @@ func processPredicateTreeNode(node *parser.BinaryOpExpression, tgtTblSchemas []*
 		left_side_pred := processPredicateTreeNode(node.Left_.(*parser.BinaryOpExpression), tgtTblSchemas)
 		right_side_pred := processPredicateTreeNode(node.Right_.(*parser.BinaryOpExpression), tgtTblSchemas)
 		return expression.NewLogicalOp(left_side_pred, right_side_pred, node.LogicalOperationType_, types.Boolean)
-	} else { // node of conpare operation
+	} else { // node of compare operation
 		colName := *node.Left_.(*string)
 		specfiedVal := node.Right_.(*types.Value)
 
 		// TODO: (SDB) need to validate specified table name prefix, column name and literal (processPredicateTreeNode)
 		//             without use of panic function
-
-		// TODO: (SDB) [OPT] need to support table name prefix description on WHERE clause (processPredicateTreeNode)
-		//splited := strings.Split(colName, ".")
-		//
-		//var colNamePart *string = nil
-		//if len(splited) > 1 {
-		//	colNamePart = &splited[1]
-		//} else {
-		//	// has no table name prefix
-		//	colNamePart = &colName
-		//}
-		//
-		//var tmpColIdx uint32 = math.MaxUint32
-		//for _, schema_ := range tgtTblSchemas {
-		//	idx := schema_.GetColIndex(*colNamePart)
-		//	if idx != math.MaxUint32 {
-		//		tmpColIdx = idx
-		//		break
-		//	}
-		//}
-		//if tmpColIdx == math.MaxUint32 {
-		//	panic("in WHERE clause, column name part of " + colName + " is invalid.")
-		//}
-		//
-
-		//var tmpColIdx uint32
-		//if len(tgtTblSchemas) > 1 {
-		//	// with JOIN case
-		//	// because SlectionExecutor is used, refer outSchema
-		//	tmpColIdx = outSchema.GetColIndex(colName)
-		//} else {
-		//	// without JOIN case
-		//	// because SeqScanExecute is used, refer schema of data source table
-		//	tmpColIdx = tgtTblSchemas[0].GetColIndex(colName)
-		//}
 
 		tmpColIdx := tgtTblSchemas[0].GetColIndex(colName)
 

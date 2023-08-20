@@ -1,7 +1,7 @@
 // this code is from https://github.com/brunocalza/go-bustub
 // there is license and copyright notice in licenses/go-bustub dir
 
-package testing
+package testing_assert
 
 import (
 	"path/filepath"

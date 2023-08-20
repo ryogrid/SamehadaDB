@@ -18,7 +18,9 @@ import (
 	"github.com/ryogrid/SamehadaDB/storage/table/column"
 	"github.com/ryogrid/SamehadaDB/storage/table/schema"
 	"github.com/ryogrid/SamehadaDB/storage/tuple"
-	testingpkg "github.com/ryogrid/SamehadaDB/testing"
+	testingpkg "github.com/ryogrid/SamehadaDB/testing/testing_assert"
+	"github.com/ryogrid/SamehadaDB/testing/testing_pattern_fw"
+	"github.com/ryogrid/SamehadaDB/testing/testing_util"
 	"github.com/ryogrid/SamehadaDB/types"
 	"math"
 	"math/rand"
@@ -84,83 +86,83 @@ func TestUniqSkipListIndexPointScan(t *testing.T) {
 
 	txn_mgr.Commit(nil, txn)
 
-	cases := []executors.IndexPointScanTestCase{{
+	cases := []testing_pattern_fw.IndexPointScanTestCase{{
 		"select a ... WHERE b = 55",
 		executionEngine,
 		executorContext,
 		tableMetadata,
-		[]executors.Column{{"a", types.Integer}},
-		executors.Predicate{"b", expression.Equal, 55},
-		[]executors.Assertion{{"a", 99}},
+		[]testing_pattern_fw.Column{{"a", types.Integer}},
+		testing_pattern_fw.Predicate{"b", expression.Equal, 55},
+		[]testing_pattern_fw.Assertion{{"a", 99}},
 		1,
 	}, {
 		"select b ... WHERE b = 55",
 		executionEngine,
 		executorContext,
 		tableMetadata,
-		[]executors.Column{{"b", types.Integer}},
-		executors.Predicate{"b", expression.Equal, 55},
-		[]executors.Assertion{{"b", 55}},
+		[]testing_pattern_fw.Column{{"b", types.Integer}},
+		testing_pattern_fw.Predicate{"b", expression.Equal, 55},
+		[]testing_pattern_fw.Assertion{{"b", 55}},
 		1,
 	}, {
 		"select a, b ... WHERE a = 20",
 		executionEngine,
 		executorContext,
 		tableMetadata,
-		[]executors.Column{{"a", types.Integer}, {"b", types.Integer}},
-		executors.Predicate{"a", expression.Equal, 20},
-		[]executors.Assertion{{"a", 20}, {"b", 22}},
+		[]testing_pattern_fw.Column{{"a", types.Integer}, {"b", types.Integer}},
+		testing_pattern_fw.Predicate{"a", expression.Equal, 20},
+		[]testing_pattern_fw.Assertion{{"a", 20}, {"b", 22}},
 		1,
 	}, {
 		"select a, b ... WHERE a = 99",
 		executionEngine,
 		executorContext,
 		tableMetadata,
-		[]executors.Column{{"a", types.Integer}, {"b", types.Integer}},
-		executors.Predicate{"a", expression.Equal, 99},
-		[]executors.Assertion{{"a", 99}, {"b", 55}},
+		[]testing_pattern_fw.Column{{"a", types.Integer}, {"b", types.Integer}},
+		testing_pattern_fw.Predicate{"a", expression.Equal, 99},
+		[]testing_pattern_fw.Assertion{{"a", 99}, {"b", 55}},
 		1,
 	}, {
 		"select a, b ... WHERE a = 100",
 		executionEngine,
 		executorContext,
 		tableMetadata,
-		[]executors.Column{{"a", types.Integer}, {"b", types.Integer}},
-		executors.Predicate{"a", expression.Equal, 100},
-		[]executors.Assertion{},
+		[]testing_pattern_fw.Column{{"a", types.Integer}, {"b", types.Integer}},
+		testing_pattern_fw.Predicate{"a", expression.Equal, 100},
+		[]testing_pattern_fw.Assertion{},
 		0,
 	}, {
 		"select a, b ... WHERE b = 55",
 		executionEngine,
 		executorContext,
 		tableMetadata,
-		[]executors.Column{{"a", types.Integer}, {"b", types.Integer}},
-		executors.Predicate{"b", expression.Equal, 55},
-		[]executors.Assertion{{"a", 99}, {"b", 55}},
+		[]testing_pattern_fw.Column{{"a", types.Integer}, {"b", types.Integer}},
+		testing_pattern_fw.Predicate{"b", expression.Equal, 55},
+		[]testing_pattern_fw.Assertion{{"a", 99}, {"b", 55}},
 		1,
 	}, {
 		"select a, b, c ... WHERE c = 'foo'",
 		executionEngine,
 		executorContext,
 		tableMetadata,
-		[]executors.Column{{"a", types.Integer}, {"b", types.Integer}, {"c", types.Varchar}},
-		executors.Predicate{"c", expression.Equal, "foo"},
-		[]executors.Assertion{{"a", 20}, {"b", 22}, {"c", "foo"}},
+		[]testing_pattern_fw.Column{{"a", types.Integer}, {"b", types.Integer}, {"c", types.Varchar}},
+		testing_pattern_fw.Predicate{"c", expression.Equal, "foo"},
+		[]testing_pattern_fw.Assertion{{"a", 20}, {"b", 22}, {"c", "foo"}},
 		1,
 	}, {
 		"select a, b ... WHERE c = 'baz'",
 		executionEngine,
 		executorContext,
 		tableMetadata,
-		[]executors.Column{{"a", types.Integer}, {"b", types.Integer}},
-		executors.Predicate{"c", expression.Equal, "baz"},
-		[]executors.Assertion{{"a", 1225}, {"b", 712}},
+		[]testing_pattern_fw.Column{{"a", types.Integer}, {"b", types.Integer}},
+		testing_pattern_fw.Predicate{"c", expression.Equal, "baz"},
+		[]testing_pattern_fw.Assertion{{"a", 1225}, {"b", 712}},
 		1,
 	}}
 
 	for _, test := range cases {
 		t.Run(test.Description, func(t *testing.T) {
-			executors.ExecuteIndexPointScanTestCase(t, test, index_constants.INDEX_KIND_UNIQ_SKIP_LIST)
+			testing_pattern_fw.ExecuteIndexPointScanTestCase(t, test, index_constants.INDEX_KIND_UNIQ_SKIP_LIST)
 		})
 	}
 
@@ -225,13 +227,13 @@ func TestUniqSkipListSerialIndexRangeScan(t *testing.T) {
 
 	txn_mgr.Commit(nil, txn)
 
-	cases := []executors.IndexRangeScanTestCase{{
+	cases := []testing_pattern_fw.IndexRangeScanTestCase{{
 		"select a ... WHERE a >= 20 and a <= 1225",
 		executionEngine,
 		executorContext,
 		tableMetadata,
-		[]executors.Column{{"a", types.Integer}},
-		executors.Predicate{"a", expression.GreaterThanOrEqual, 20},
+		[]testing_pattern_fw.Column{{"a", types.Integer}},
+		testing_pattern_fw.Predicate{"a", expression.GreaterThanOrEqual, 20},
 		int32(tableMetadata.Schema().GetColIndex("a")),
 		[]*types.Value{samehada_util.GetPonterOfValue(types.NewInteger(20)), samehada_util.GetPonterOfValue(types.NewInteger(1225))},
 		3,
@@ -240,8 +242,8 @@ func TestUniqSkipListSerialIndexRangeScan(t *testing.T) {
 		executionEngine,
 		executorContext,
 		tableMetadata,
-		[]executors.Column{{"a", types.Integer}},
-		executors.Predicate{"a", expression.GreaterThanOrEqual, 20},
+		[]testing_pattern_fw.Column{{"a", types.Integer}},
+		testing_pattern_fw.Predicate{"a", expression.GreaterThanOrEqual, 20},
 		int32(tableMetadata.Schema().GetColIndex("a")),
 		[]*types.Value{samehada_util.GetPonterOfValue(types.NewInteger(20)), samehada_util.GetPonterOfValue(types.NewInteger(math.MaxInt32))},
 		4,
@@ -250,8 +252,8 @@ func TestUniqSkipListSerialIndexRangeScan(t *testing.T) {
 		executionEngine,
 		executorContext,
 		tableMetadata,
-		[]executors.Column{{"a", types.Integer}},
-		executors.Predicate{"a", expression.GreaterThanOrEqual, 20},
+		[]testing_pattern_fw.Column{{"a", types.Integer}},
+		testing_pattern_fw.Predicate{"a", expression.GreaterThanOrEqual, 20},
 		int32(tableMetadata.Schema().GetColIndex("a")),
 		[]*types.Value{samehada_util.GetPonterOfValue(types.NewInteger(math.MinInt32 + 1)), samehada_util.GetPonterOfValue(types.NewInteger(1225))},
 		3,
@@ -260,8 +262,8 @@ func TestUniqSkipListSerialIndexRangeScan(t *testing.T) {
 		executionEngine,
 		executorContext,
 		tableMetadata,
-		[]executors.Column{{"a", types.Integer}},
-		executors.Predicate{"a", expression.GreaterThanOrEqual, 20},
+		[]testing_pattern_fw.Column{{"a", types.Integer}},
+		testing_pattern_fw.Predicate{"a", expression.GreaterThanOrEqual, 20},
 		int32(tableMetadata.Schema().GetColIndex("a")),
 		[]*types.Value{samehada_util.GetPonterOfValue(types.NewInteger(math.MinInt32 + 1)), nil},
 		4,
@@ -270,8 +272,8 @@ func TestUniqSkipListSerialIndexRangeScan(t *testing.T) {
 		executionEngine,
 		executorContext,
 		tableMetadata,
-		[]executors.Column{{"a", types.Integer}},
-		executors.Predicate{"a", expression.GreaterThanOrEqual, 20},
+		[]testing_pattern_fw.Column{{"a", types.Integer}},
+		testing_pattern_fw.Predicate{"a", expression.GreaterThanOrEqual, 20},
 		int32(tableMetadata.Schema().GetColIndex("a")),
 		[]*types.Value{nil, samehada_util.GetPonterOfValue(types.NewInteger(1225))},
 		3,
@@ -280,8 +282,8 @@ func TestUniqSkipListSerialIndexRangeScan(t *testing.T) {
 		executionEngine,
 		executorContext,
 		tableMetadata,
-		[]executors.Column{{"a", types.Integer}},
-		executors.Predicate{"a", expression.GreaterThanOrEqual, 20},
+		[]testing_pattern_fw.Column{{"a", types.Integer}},
+		testing_pattern_fw.Predicate{"a", expression.GreaterThanOrEqual, 20},
 		int32(tableMetadata.Schema().GetColIndex("a")),
 		[]*types.Value{nil, nil},
 		4,
@@ -289,7 +291,7 @@ func TestUniqSkipListSerialIndexRangeScan(t *testing.T) {
 
 	for _, test := range cases {
 		t.Run(test.Description, func(t *testing.T) {
-			executors.ExecuteIndexRangeScanTestCase(t, test, index_constants.INDEX_KIND_UNIQ_SKIP_LIST)
+			testing_pattern_fw.ExecuteIndexRangeScanTestCase(t, test, index_constants.INDEX_KIND_UNIQ_SKIP_LIST)
 		})
 	}
 
@@ -348,11 +350,11 @@ func TestAbortWthDeleteUpdateUniqSkipListIndexCasePointScan(t *testing.T) {
 	row1 = append(row1, types.NewInteger(99))
 	row1 = append(row1, types.NewVarchar("updated"))
 
-	pred := executors.Predicate{"b", expression.Equal, "foo"}
+	pred := testing_pattern_fw.Predicate{"b", expression.Equal, "foo"}
 	tmpColVal := new(expression.ColumnValue)
 	tmpColVal.SetTupleIndex(0)
 	tmpColVal.SetColIndex(tableMetadata.Schema().GetColIndex(pred.LeftColumn))
-	expression_ := expression.NewComparison(tmpColVal, expression.NewConstantValue(executors.GetValue(pred.RightColumn), executors.GetValueType(pred.RightColumn)), pred.Operator, types.Boolean)
+	expression_ := expression.NewComparison(tmpColVal, expression.NewConstantValue(testing_util.GetValue(pred.RightColumn), testing_util.GetValueType(pred.RightColumn)), pred.Operator, types.Boolean)
 
 	//seqScanPlan := plans.NewSeqScanPlanNode(tableMetadata.Schema(), expression_, tableMetadata.OID())
 	skipListPointScanP := plans.NewPointScanWithIndexPlanNode(tableMetadata.Schema(), expression_.(*expression.Comparison), tableMetadata.OID())
@@ -360,11 +362,11 @@ func TestAbortWthDeleteUpdateUniqSkipListIndexCasePointScan(t *testing.T) {
 	executionEngine.Execute(updatePlanNode, executorContext)
 
 	// delete
-	pred = executors.Predicate{"b", expression.Equal, "bar"}
+	pred = testing_pattern_fw.Predicate{"b", expression.Equal, "bar"}
 	tmpColVal = new(expression.ColumnValue)
 	tmpColVal.SetTupleIndex(0)
 	tmpColVal.SetColIndex(tableMetadata.Schema().GetColIndex(pred.LeftColumn))
-	expression_ = expression.NewComparison(tmpColVal, expression.NewConstantValue(executors.GetValue(pred.RightColumn), executors.GetValueType(pred.RightColumn)), pred.Operator, types.Boolean)
+	expression_ = expression.NewComparison(tmpColVal, expression.NewConstantValue(testing_util.GetValue(pred.RightColumn), testing_util.GetValueType(pred.RightColumn)), pred.Operator, types.Boolean)
 
 	//childSeqScanPlan := plans.NewSeqScanPlanNode(tableMetadata.Schema(), expression_, tableMetadata.OID())
 	skipListPointScanP = plans.NewPointScanWithIndexPlanNode(tableMetadata.Schema(), expression_.(*expression.Comparison), tableMetadata.OID())
@@ -379,11 +381,11 @@ func TestAbortWthDeleteUpdateUniqSkipListIndexCasePointScan(t *testing.T) {
 	outColumnB := column.NewColumn("b", types.Varchar, false, index_constants.INDEX_KIND_INVALID, types.PageID(-1), nil)
 	outSchema := schema.NewSchema([]*column.Column{outColumnB})
 
-	pred = executors.Predicate{"a", expression.Equal, 99}
+	pred = testing_pattern_fw.Predicate{"a", expression.Equal, 99}
 	tmpColVal = new(expression.ColumnValue)
 	tmpColVal.SetTupleIndex(0)
 	tmpColVal.SetColIndex(tableMetadata.Schema().GetColIndex(pred.LeftColumn))
-	expression_ = expression.NewComparison(tmpColVal, expression.NewConstantValue(executors.GetValue(pred.RightColumn), executors.GetValueType(pred.RightColumn)), pred.Operator, types.Boolean)
+	expression_ = expression.NewComparison(tmpColVal, expression.NewConstantValue(testing_util.GetValue(pred.RightColumn), testing_util.GetValueType(pred.RightColumn)), pred.Operator, types.Boolean)
 
 	//seqPlan := plans.NewSeqScanPlanNode(outSchema, expression_, tableMetadata.OID())
 	skipListPointScanP = plans.NewPointScanWithIndexPlanNode(outSchema, expression_.(*expression.Comparison), tableMetadata.OID())
@@ -395,11 +397,11 @@ func TestAbortWthDeleteUpdateUniqSkipListIndexCasePointScan(t *testing.T) {
 	outColumnB = column.NewColumn("b", types.Integer, false, index_constants.INDEX_KIND_INVALID, types.PageID(-1), nil)
 	outSchema = schema.NewSchema([]*column.Column{outColumnB})
 
-	pred = executors.Predicate{"b", expression.Equal, "bar"}
+	pred = testing_pattern_fw.Predicate{"b", expression.Equal, "bar"}
 	tmpColVal = new(expression.ColumnValue)
 	tmpColVal.SetTupleIndex(0)
 	tmpColVal.SetColIndex(tableMetadata.Schema().GetColIndex(pred.LeftColumn))
-	expression_ = expression.NewComparison(tmpColVal, expression.NewConstantValue(executors.GetValue(pred.RightColumn), executors.GetValueType(pred.RightColumn)), pred.Operator, types.Boolean)
+	expression_ = expression.NewComparison(tmpColVal, expression.NewConstantValue(testing_util.GetValue(pred.RightColumn), testing_util.GetValueType(pred.RightColumn)), pred.Operator, types.Boolean)
 
 	//seqPlan = plans.NewSeqScanPlanNode(outSchema, expression_, tableMetadata.OID())
 	skipListPointScanP = plans.NewPointScanWithIndexPlanNode(outSchema, expression_.(*expression.Comparison), tableMetadata.OID())
@@ -418,11 +420,11 @@ func TestAbortWthDeleteUpdateUniqSkipListIndexCasePointScan(t *testing.T) {
 	outColumnB = column.NewColumn("b", types.Varchar, false, index_constants.INDEX_KIND_INVALID, types.PageID(-1), nil)
 	outSchema = schema.NewSchema([]*column.Column{outColumnB})
 
-	pred = executors.Predicate{"a", expression.Equal, 99}
+	pred = testing_pattern_fw.Predicate{"a", expression.Equal, 99}
 	tmpColVal = new(expression.ColumnValue)
 	tmpColVal.SetTupleIndex(0)
 	tmpColVal.SetColIndex(tableMetadata.Schema().GetColIndex(pred.LeftColumn))
-	expression_ = expression.NewComparison(tmpColVal, expression.NewConstantValue(executors.GetValue(pred.RightColumn), executors.GetValueType(pred.RightColumn)), pred.Operator, types.Boolean)
+	expression_ = expression.NewComparison(tmpColVal, expression.NewConstantValue(testing_util.GetValue(pred.RightColumn), testing_util.GetValueType(pred.RightColumn)), pred.Operator, types.Boolean)
 
 	//seqPlan = plans.NewSeqScanPlanNode(outSchema, expression_, tableMetadata.OID())
 	skipListPointScanP = plans.NewPointScanWithIndexPlanNode(outSchema, expression_.(*expression.Comparison), tableMetadata.OID())
@@ -434,11 +436,11 @@ func TestAbortWthDeleteUpdateUniqSkipListIndexCasePointScan(t *testing.T) {
 	outColumnB = column.NewColumn("b", types.Integer, false, index_constants.INDEX_KIND_INVALID, types.PageID(-1), nil)
 	outSchema = schema.NewSchema([]*column.Column{outColumnB})
 
-	pred = executors.Predicate{"b", expression.Equal, "bar"}
+	pred = testing_pattern_fw.Predicate{"b", expression.Equal, "bar"}
 	tmpColVal = new(expression.ColumnValue)
 	tmpColVal.SetTupleIndex(0)
 	tmpColVal.SetColIndex(tableMetadata.Schema().GetColIndex(pred.LeftColumn))
-	expression_ = expression.NewComparison(tmpColVal, expression.NewConstantValue(executors.GetValue(pred.RightColumn), executors.GetValueType(pred.RightColumn)), pred.Operator, types.Boolean)
+	expression_ = expression.NewComparison(tmpColVal, expression.NewConstantValue(testing_util.GetValue(pred.RightColumn), testing_util.GetValueType(pred.RightColumn)), pred.Operator, types.Boolean)
 
 	//seqPlan = plans.NewSeqScanPlanNode(outSchema, expression_, tableMetadata.OID())
 	skipListPointScanP = plans.NewPointScanWithIndexPlanNode(outSchema, expression_.(*expression.Comparison), tableMetadata.OID())
@@ -505,11 +507,11 @@ func TestAbortWthDeleteUpdateUniqSkipListIndexCaseRangeScan(t *testing.T) {
 	testingpkg.Assert(t, len(results) == 1, "update row count should be 1.")
 
 	// ------- Delete ---------
-	pred := executors.Predicate{"b", expression.Equal, "bar"}
+	pred := testing_pattern_fw.Predicate{"b", expression.Equal, "bar"}
 	tmpColVal := new(expression.ColumnValue)
 	tmpColVal.SetTupleIndex(0)
 	tmpColVal.SetColIndex(tableMetadata.Schema().GetColIndex(pred.LeftColumn))
-	expression_ := expression.NewComparison(tmpColVal, expression.NewConstantValue(executors.GetValue(pred.RightColumn), executors.GetValueType(pred.RightColumn)), pred.Operator, types.Boolean)
+	expression_ := expression.NewComparison(tmpColVal, expression.NewConstantValue(testing_util.GetValue(pred.RightColumn), testing_util.GetValueType(pred.RightColumn)), pred.Operator, types.Boolean)
 
 	skipListRangeScanP = plans.NewRangeScanWithIndexPlanNode(tableMetadata.Schema(), tableMetadata.OID(), int32(tableMetadata.Schema().GetColIndex("b")), expression_.(*expression.Comparison), samehada_util.GetPonterOfValue(types.NewVarchar("bar")), samehada_util.GetPonterOfValue(types.NewVarchar("bar")))
 
@@ -592,11 +594,11 @@ func createBalanceUpdatePlanNode[T int32 | float32 | string](keyColumnVal T, new
 	row = append(row, types.NewValue(keyColumnVal))
 	row = append(row, types.NewInteger(newBalance))
 
-	pred := executors.Predicate{"account_id", expression.Equal, keyColumnVal}
+	pred := testing_pattern_fw.Predicate{"account_id", expression.Equal, keyColumnVal}
 	tmpColVal := new(expression.ColumnValue)
 	//tmpColVal.SetTupleIndex(0)
 	tmpColVal.SetColIndex(tm.Schema().GetColIndex(pred.LeftColumn))
-	expression_ := expression.NewComparison(tmpColVal, expression.NewConstantValue(executors.GetValue(pred.RightColumn), executors.GetValueType(pred.RightColumn)), pred.Operator, types.Boolean)
+	expression_ := expression.NewComparison(tmpColVal, expression.NewConstantValue(testing_util.GetValue(pred.RightColumn), testing_util.GetValueType(pred.RightColumn)), pred.Operator, types.Boolean)
 
 	var skipListPointScanP plans.Plan
 	switch indexKind {
@@ -627,11 +629,11 @@ func createSpecifiedValInsertPlanNode[T int32 | float32 | string](keyColumnVal T
 }
 
 func createSpecifiedValDeletePlanNode[T int32 | float32 | string](keyColumnVal T, c *catalog.Catalog, tm *catalog.TableMetadata, keyType types.TypeID, indexKind index_constants.IndexKind) (createdPlan plans.Plan) {
-	pred := executors.Predicate{"account_id", expression.Equal, keyColumnVal}
+	pred := testing_pattern_fw.Predicate{"account_id", expression.Equal, keyColumnVal}
 	tmpColVal := new(expression.ColumnValue)
 	//tmpColVal.SetTupleIndex(0)
 	tmpColVal.SetColIndex(tm.Schema().GetColIndex(pred.LeftColumn))
-	expression_ := expression.NewComparison(tmpColVal, expression.NewConstantValue(executors.GetValue(pred.RightColumn), executors.GetValueType(pred.RightColumn)), pred.Operator, types.Boolean)
+	expression_ := expression.NewComparison(tmpColVal, expression.NewConstantValue(testing_util.GetValue(pred.RightColumn), testing_util.GetValueType(pred.RightColumn)), pred.Operator, types.Boolean)
 
 	var skipListPointScanP plans.Plan
 	switch indexKind {
@@ -651,11 +653,11 @@ func createAccountIdUpdatePlanNode[T int32 | float32 | string](keyColumnVal T, n
 	row = append(row, types.NewValue(newKeyColumnVal))
 	row = append(row, types.NewInteger(-1))
 
-	pred := executors.Predicate{"account_id", expression.Equal, keyColumnVal}
+	pred := testing_pattern_fw.Predicate{"account_id", expression.Equal, keyColumnVal}
 	tmpColVal := new(expression.ColumnValue)
 	//tmpColVal.SetTupleIndex(0)
 	tmpColVal.SetColIndex(tm.Schema().GetColIndex(pred.LeftColumn))
-	expression_ := expression.NewComparison(tmpColVal, expression.NewConstantValue(executors.GetValue(pred.RightColumn), executors.GetValueType(pred.RightColumn)), pred.Operator, types.Boolean)
+	expression_ := expression.NewComparison(tmpColVal, expression.NewConstantValue(testing_util.GetValue(pred.RightColumn), testing_util.GetValueType(pred.RightColumn)), pred.Operator, types.Boolean)
 
 	var skipListPointScanP plans.Plan
 	switch indexKind {
@@ -672,11 +674,11 @@ func createAccountIdUpdatePlanNode[T int32 | float32 | string](keyColumnVal T, n
 }
 
 func createSpecifiedPointScanPlanNode[T int32 | float32 | string](getKeyVal T, c *catalog.Catalog, tm *catalog.TableMetadata, keyType types.TypeID, indexKind index_constants.IndexKind) (createdPlan plans.Plan) {
-	pred := executors.Predicate{"account_id", expression.Equal, getKeyVal}
+	pred := testing_pattern_fw.Predicate{"account_id", expression.Equal, getKeyVal}
 	tmpColVal := new(expression.ColumnValue)
 	//tmpColVal.SetTupleIndex(0)
 	tmpColVal.SetColIndex(tm.Schema().GetColIndex(pred.LeftColumn))
-	expression_ := expression.NewComparison(tmpColVal, expression.NewConstantValue(executors.GetValue(pred.RightColumn), executors.GetValueType(pred.RightColumn)), pred.Operator, types.Boolean)
+	expression_ := expression.NewComparison(tmpColVal, expression.NewConstantValue(testing_util.GetValue(pred.RightColumn), testing_util.GetValueType(pred.RightColumn)), pred.Operator, types.Boolean)
 
 	var skipListPointScanP plans.Plan
 	switch indexKind {

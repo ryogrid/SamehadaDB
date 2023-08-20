@@ -4,9 +4,9 @@
 package page
 
 import (
+	testingpkg "github.com/ryogrid/SamehadaDB/testing/testing_assert"
 	"testing"
 
-	testingpkg "github.com/ryogrid/SamehadaDB/testing"
 	"github.com/ryogrid/SamehadaDB/types"
 )
 

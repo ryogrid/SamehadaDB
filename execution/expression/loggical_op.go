@@ -2,6 +2,7 @@ package expression
 
 import (
 	"fmt"
+	"github.com/ryogrid/SamehadaDB/samehada/samehada_util"
 	"github.com/ryogrid/SamehadaDB/storage/table/schema"
 	"github.com/ryogrid/SamehadaDB/storage/tuple"
 	"github.com/ryogrid/SamehadaDB/types"
@@ -95,8 +96,8 @@ func (c *LogicalOp) SetChildAt(child_idx uint32, child Expression) {
 }
 
 func AppendLogicalCondition(baseConds Expression, opType LogicalOpType, addCond Expression) Expression {
-	// TODO: (SDB) [OPT] not implemented yet (AppendLogicalCondition)
-	return nil
+	samehada_util.SHAssert(opType == AND, "only AND is supported")
+	return NewLogicalOp(baseConds, addCond, opType, types.Boolean)
 }
 
 func (c *LogicalOp) GetType() ExpressionType {
