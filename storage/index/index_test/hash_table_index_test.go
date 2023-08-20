@@ -13,12 +13,13 @@ import (
 	"github.com/ryogrid/SamehadaDB/storage/index/index_constants"
 	"github.com/ryogrid/SamehadaDB/storage/table/column"
 	"github.com/ryogrid/SamehadaDB/storage/table/schema"
+	testingpkg "github.com/ryogrid/SamehadaDB/testing/testing_assert"
+	"github.com/ryogrid/SamehadaDB/testing/testing_pattern_fw"
 	"github.com/ryogrid/SamehadaDB/types"
 	"os"
 	"testing"
 
 	"github.com/ryogrid/SamehadaDB/storage/page"
-	testingpkg "github.com/ryogrid/SamehadaDB/testing"
 )
 
 func TestPackAndUnpackRID32(t *testing.T) {
@@ -108,47 +109,47 @@ func TestRecounstructionOfHashIndex(t *testing.T) {
 
 	txn = shi.GetTransactionManager().Begin(nil)
 
-	cases := []executors.IndexPointScanTestCase{{
+	cases := []testing_pattern_fw.IndexPointScanTestCase{{
 		"select a ... WHERE b = 55",
 		executionEngine,
 		executorContext,
 		tableMetadata,
-		[]executors.Column{{"a", types.Integer}},
-		executors.Predicate{"b", expression.Equal, 55},
-		[]executors.Assertion{{"a", 99}},
+		[]testing_pattern_fw.Column{{"a", types.Integer}},
+		testing_pattern_fw.Predicate{"b", expression.Equal, 55},
+		[]testing_pattern_fw.Assertion{{"a", 99}},
 		1,
 	}, {
 		"select b ... WHERE b = 55",
 		executionEngine,
 		executorContext,
 		tableMetadata,
-		[]executors.Column{{"b", types.Integer}},
-		executors.Predicate{"b", expression.Equal, 55},
-		[]executors.Assertion{{"b", 55}},
+		[]testing_pattern_fw.Column{{"b", types.Integer}},
+		testing_pattern_fw.Predicate{"b", expression.Equal, 55},
+		[]testing_pattern_fw.Assertion{{"b", 55}},
 		1,
 	}, {
 		"select a, b ... WHERE a = 20",
 		executionEngine,
 		executorContext,
 		tableMetadata,
-		[]executors.Column{{"a", types.Integer}, {"b", types.Integer}},
-		executors.Predicate{"a", expression.Equal, 20},
-		[]executors.Assertion{{"a", 20}, {"b", 22}},
+		[]testing_pattern_fw.Column{{"a", types.Integer}, {"b", types.Integer}},
+		testing_pattern_fw.Predicate{"a", expression.Equal, 20},
+		[]testing_pattern_fw.Assertion{{"a", 20}, {"b", 22}},
 		1,
 	}, {
 		"select a, b ... WHERE a = 99",
 		executionEngine,
 		executorContext,
 		tableMetadata,
-		[]executors.Column{{"a", types.Integer}, {"b", types.Integer}},
-		executors.Predicate{"a", expression.Equal, 99},
-		[]executors.Assertion{{"a", 99}, {"b", 55}},
+		[]testing_pattern_fw.Column{{"a", types.Integer}, {"b", types.Integer}},
+		testing_pattern_fw.Predicate{"a", expression.Equal, 99},
+		[]testing_pattern_fw.Assertion{{"a", 99}, {"b", 55}},
 		1,
 	}}
 
 	for _, test := range cases {
 		t.Run(test.Description, func(t *testing.T) {
-			executors.ExecuteIndexPointScanTestCase(t, test, index_constants.INDEX_KIND_HASH)
+			testing_pattern_fw.ExecuteIndexPointScanTestCase(t, test, index_constants.INDEX_KIND_HASH)
 		})
 	}
 
@@ -189,47 +190,47 @@ func TestRecounstructionOfHashIndex(t *testing.T) {
 	executionEngine = &executors.ExecutionEngine{}
 	executorContext = executors.NewExecutorContext(c, shi.GetBufferPoolManager(), txn)
 
-	cases = []executors.IndexPointScanTestCase{{
+	cases = []testing_pattern_fw.IndexPointScanTestCase{{
 		"select a ... WHERE b = 55",
 		executionEngine,
 		executorContext,
 		tableMetadata,
-		[]executors.Column{{"a", types.Integer}},
-		executors.Predicate{"b", expression.Equal, 55},
-		[]executors.Assertion{{"a", 99}},
+		[]testing_pattern_fw.Column{{"a", types.Integer}},
+		testing_pattern_fw.Predicate{"b", expression.Equal, 55},
+		[]testing_pattern_fw.Assertion{{"a", 99}},
 		1,
 	}, {
 		"select b ... WHERE b = 55",
 		executionEngine,
 		executorContext,
 		tableMetadata,
-		[]executors.Column{{"b", types.Integer}},
-		executors.Predicate{"b", expression.Equal, 55},
-		[]executors.Assertion{{"b", 55}},
+		[]testing_pattern_fw.Column{{"b", types.Integer}},
+		testing_pattern_fw.Predicate{"b", expression.Equal, 55},
+		[]testing_pattern_fw.Assertion{{"b", 55}},
 		1,
 	}, {
 		"select a, b ... WHERE a = 20",
 		executionEngine,
 		executorContext,
 		tableMetadata,
-		[]executors.Column{{"a", types.Integer}, {"b", types.Integer}},
-		executors.Predicate{"a", expression.Equal, 20},
-		[]executors.Assertion{{"a", 20}, {"b", 22}},
+		[]testing_pattern_fw.Column{{"a", types.Integer}, {"b", types.Integer}},
+		testing_pattern_fw.Predicate{"a", expression.Equal, 20},
+		[]testing_pattern_fw.Assertion{{"a", 20}, {"b", 22}},
 		1,
 	}, {
 		"select a, b ... WHERE a = 99",
 		executionEngine,
 		executorContext,
 		tableMetadata,
-		[]executors.Column{{"a", types.Integer}, {"b", types.Integer}},
-		executors.Predicate{"a", expression.Equal, 99},
-		[]executors.Assertion{{"a", 99}, {"b", 55}},
+		[]testing_pattern_fw.Column{{"a", types.Integer}, {"b", types.Integer}},
+		testing_pattern_fw.Predicate{"a", expression.Equal, 99},
+		[]testing_pattern_fw.Assertion{{"a", 99}, {"b", 55}},
 		1,
 	}}
 
 	for _, test := range cases {
 		t.Run(test.Description, func(t *testing.T) {
-			executors.ExecuteIndexPointScanTestCase(t, test, index_constants.INDEX_KIND_HASH)
+			testing_pattern_fw.ExecuteIndexPointScanTestCase(t, test, index_constants.INDEX_KIND_HASH)
 		})
 	}
 

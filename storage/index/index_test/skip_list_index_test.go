@@ -11,7 +11,7 @@ import (
 	"github.com/ryogrid/SamehadaDB/storage/table/column"
 	"github.com/ryogrid/SamehadaDB/storage/table/schema"
 	"github.com/ryogrid/SamehadaDB/storage/tuple"
-	testingpkg "github.com/ryogrid/SamehadaDB/testing"
+	testingpkg "github.com/ryogrid/SamehadaDB/testing/testing_assert"
 	"github.com/ryogrid/SamehadaDB/types"
 	"math/rand"
 	"os"

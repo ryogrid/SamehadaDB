@@ -10,7 +10,7 @@ import (
 	"github.com/ryogrid/SamehadaDB/storage/access"
 	"github.com/ryogrid/SamehadaDB/storage/buffer"
 	"github.com/ryogrid/SamehadaDB/storage/disk"
-	testingpkg "github.com/ryogrid/SamehadaDB/testing"
+	testingpkg "github.com/ryogrid/SamehadaDB/testing/testing_assert"
 	"testing"
 )
 

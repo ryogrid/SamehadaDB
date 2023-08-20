@@ -7,6 +7,7 @@ import (
 	"fmt"
 	"github.com/ryogrid/SamehadaDB/common"
 	"github.com/ryogrid/SamehadaDB/storage/index/index_constants"
+	testingpkg "github.com/ryogrid/SamehadaDB/testing/testing_assert"
 	"math"
 	"testing"
 
@@ -17,7 +18,6 @@ import (
 	"github.com/ryogrid/SamehadaDB/storage/table/column"
 	"github.com/ryogrid/SamehadaDB/storage/table/schema"
 	"github.com/ryogrid/SamehadaDB/storage/tuple"
-	testingpkg "github.com/ryogrid/SamehadaDB/testing"
 	"github.com/ryogrid/SamehadaDB/types"
 )
 

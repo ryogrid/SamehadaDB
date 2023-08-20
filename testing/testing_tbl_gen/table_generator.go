@@ -1,7 +1,8 @@
-package executors
+package testing_tbl_gen
 
 import (
 	"fmt"
+	"github.com/ryogrid/SamehadaDB/execution/executors"
 	"github.com/ryogrid/SamehadaDB/storage/index/index_constants"
 	"math"
 	"math/rand"
@@ -199,7 +200,7 @@ func MakeOutputSchemaAgg(exprs []MakeSchemaMetaAgg) *schema.Schema {
 	return schema.NewSchema(cols)
 }
 
-func GenerateTestTabls(c *catalog.Catalog, exec_ctx *ExecutorContext,
+func GenerateTestTabls(c *catalog.Catalog, exec_ctx *executors.ExecutorContext,
 	txn *access.Transaction) (*catalog.TableMetadata, *catalog.TableMetadata) {
 	columnA := column.NewColumn("colA", types.Integer, false, index_constants.INDEX_KIND_INVALID, types.PageID(-1), nil)
 	columnB := column.NewColumn("colB", types.Integer, false, index_constants.INDEX_KIND_INVALID, types.PageID(-1), nil)

@@ -4,10 +4,10 @@
 package disk
 
 import (
+	testingpkg "github.com/ryogrid/SamehadaDB/testing/testing_assert"
 	"testing"
 
 	"github.com/ryogrid/SamehadaDB/common"
-	testingpkg "github.com/ryogrid/SamehadaDB/testing"
 )
 
 func zeroClear(buffer []byte) {

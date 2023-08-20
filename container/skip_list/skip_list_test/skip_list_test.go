@@ -7,7 +7,7 @@ import (
 	"github.com/ryogrid/SamehadaDB/samehada"
 	"github.com/ryogrid/SamehadaDB/samehada/samehada_util"
 	"github.com/ryogrid/SamehadaDB/storage/page/skip_list_page"
-	testingpkg "github.com/ryogrid/SamehadaDB/testing"
+	testingpkg "github.com/ryogrid/SamehadaDB/testing/testing_assert"
 	"github.com/ryogrid/SamehadaDB/types"
 	"math"
 	"math/rand"

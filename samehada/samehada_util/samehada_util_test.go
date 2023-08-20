@@ -2,7 +2,7 @@ package samehada_util
 
 import (
 	"github.com/ryogrid/SamehadaDB/storage/page"
-	testing2 "github.com/ryogrid/SamehadaDB/testing"
+	testing2 "github.com/ryogrid/SamehadaDB/testing/testing_assert"
 	"github.com/ryogrid/SamehadaDB/types"
 	"math"
 	"testing"

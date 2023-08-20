@@ -4,7 +4,6 @@ import (
 	"errors"
 	"fmt"
 	"github.com/ryogrid/SamehadaDB/catalog"
-	"github.com/ryogrid/SamehadaDB/execution/executors"
 	"github.com/ryogrid/SamehadaDB/execution/expression"
 	"github.com/ryogrid/SamehadaDB/execution/plans"
 	"github.com/ryogrid/SamehadaDB/parser"
@@ -13,6 +12,7 @@ import (
 	"github.com/ryogrid/SamehadaDB/storage/index/index_constants"
 	"github.com/ryogrid/SamehadaDB/storage/table/column"
 	"github.com/ryogrid/SamehadaDB/storage/table/schema"
+	"github.com/ryogrid/SamehadaDB/testing/testing_tbl_gen"
 	"github.com/ryogrid/SamehadaDB/types"
 	"math"
 	"strings"
@@ -192,7 +192,7 @@ func (pner *SimplePlanner) MakeSelectPlanWithJoin() (error, plans.Plan) {
 			}
 		}
 
-		onPredicate := executors.MakeComparisonExpression(colValL, colValR, expression.Equal)
+		onPredicate := testing_tbl_gen.MakeComparisonExpression(colValL, colValR, expression.Equal)
 
 		var left_keys []expression.Expression
 		left_keys = append(left_keys, colValL)

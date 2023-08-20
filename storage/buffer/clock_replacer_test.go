@@ -4,9 +4,8 @@
 package buffer
 
 import (
+	testingpkg "github.com/ryogrid/SamehadaDB/testing/testing_assert"
 	"testing"
-
-	testingpkg "github.com/ryogrid/SamehadaDB/testing"
 )
 
 func TestClockReplacer(t *testing.T) {
