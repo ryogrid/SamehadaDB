@@ -14,7 +14,11 @@ import (
 	"testing"
 )
 
-func setupTablesAndStatisticsDataForTesting(c *catalog.Catalog, exec_ctx *executors.ExecutorContext, txn *access.Transaction) {
+func setupTablesAndStatisticsDataForTesting(exec_ctx *executors.ExecutorContext) {
+	c := exec_ctx.GetCatalog()
+	txn := exec_ctx.GetTransaction()
+	//bpm := exec_ctx.GetBufferPoolManager()
+
 	// TODO: (SDB) [OPT] not implemented yet (setupTablesAndStatisticsDataForTesting)
 	/*
 		     prefix_ = "optimizer_test-" + RandomString();
@@ -103,7 +107,7 @@ func TestSimplePlanOptimization(t *testing.T) {
 	c := catalog.BootstrapCatalog(bpm, log_mgr, access.NewLockManager(access.REGULAR, access.PREVENTION), txn)
 	exec_ctx := executors.NewExecutorContext(c, bpm, txn)
 
-	setupTablesAndStatisticsDataForTesting(c, exec_ctx, txn)
+	setupTablesAndStatisticsDataForTesting(exec_ctx)
 	txn_mgr.Commit(c, txn)
 
 	// TODO: (SDB) [OPT] need to write query for testing BestJoin func (TestSimplePlanOptimization)
@@ -133,7 +137,7 @@ func TestFindBestScans(t *testing.T) {
 	c := catalog.BootstrapCatalog(bpm, log_mgr, access.NewLockManager(access.REGULAR, access.PREVENTION), txn)
 	exec_ctx := executors.NewExecutorContext(c, bpm, txn)
 
-	setupTablesAndStatisticsDataForTesting(c, exec_ctx, txn)
+	setupTablesAndStatisticsDataForTesting(exec_ctx)
 	txn_mgr.Commit(c, txn)
 
 	// TODO: (SDB) [OPT] need to write query for testing BestJoin func (TestFindBestScans)
