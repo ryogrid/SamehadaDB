@@ -69,6 +69,24 @@ func setupTablesAndStatisticsDataForTesting(c *catalog.Catalog, exec_ctx *execut
 		     rs_->RefreshStatistics(stat_tx, "Sc4");
 		     stat_tx.PreCommit();
 	*/
+
+	// dummy code
+	tm1 := c.GetTableByName("Sc1")
+	stat1 := tm1.GetStatistics()
+	stat1.Update(tm1, txn)
+
+	tm2 := c.GetTableByName("Sc2")
+	stat2 := tm2.GetStatistics()
+	stat2.Update(tm2, txn)
+
+	tm3 := c.GetTableByName("Sc1")
+	stat3 := tm3.GetStatistics()
+	stat3.Update(tm3, txn)
+
+	tm4 := c.GetTableByName("Sc1")
+	stat4 := tm4.GetStatistics()
+	stat4.Update(tm4, txn)
+
 }
 
 func TestSimplePlanOptimization(t *testing.T) {
@@ -86,6 +104,7 @@ func TestSimplePlanOptimization(t *testing.T) {
 	exec_ctx := executors.NewExecutorContext(c, bpm, txn)
 
 	setupTablesAndStatisticsDataForTesting(c, exec_ctx, txn)
+	txn_mgr.Commit(c, txn)
 
 	// TODO: (SDB) [OPT] need to write query for testing BestJoin func (TestSimplePlanOptimization)
 	queryStr := "TO BE WRITTEN"
@@ -115,6 +134,7 @@ func TestFindBestScans(t *testing.T) {
 	exec_ctx := executors.NewExecutorContext(c, bpm, txn)
 
 	setupTablesAndStatisticsDataForTesting(c, exec_ctx, txn)
+	txn_mgr.Commit(c, txn)
 
 	// TODO: (SDB) [OPT] need to write query for testing BestJoin func (TestFindBestScans)
 	queryStr := "TO BE WRITTEN"
