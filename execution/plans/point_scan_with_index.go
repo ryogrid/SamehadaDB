@@ -45,3 +45,8 @@ func (p *PointScanWithIndexPlanNode) EmitRowCount(c *catalog.Catalog) uint64 {
 		float64(tm.GetStatistics().Rows()) /
 			tm.GetStatistics().ReductionFactor(*tm.Schema(), p.predicate)))
 }
+
+func (p *PointScanWithIndexPlanNode) GetTreeInfoStr() string {
+	// TODO: (SDB) [OPT] not implemented yet (PointScanWithIndexPlanNode::GetTreeInfoStr)
+	panic("not implemented yet")
+}

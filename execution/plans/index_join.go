@@ -60,6 +60,11 @@ func (p *IndexJoinPlanNode) AccessRowCount(c *catalog.Catalog) uint64 {
 	return p.getRightTableRows(c) * 3
 }
 
+func (p *IndexJoinPlanNode) GetTreeInfoStr() string {
+	// TODO: (SDB) [OPT] not implemented yet (IndexJoinPlanNode::GetTreeInfoStr)
+	panic("not implemented yet")
+}
+
 func (p *IndexJoinPlanNode) EmitRowCount(c *catalog.Catalog) uint64 {
 	return uint64(math.Min(float64(p.GetLeftPlan().EmitRowCount(c)), float64(p.getRightTableRows(c))))
 }

@@ -43,3 +43,8 @@ func (p *SeqScanPlanNode) EmitRowCount(c *catalog.Catalog) uint64 {
 	// assumption: selection with predicate is not used
 	return p.AccessRowCount(c)
 }
+
+func (p *SeqScanPlanNode) GetTreeInfoStr() string {
+	// TODO: (SDB) [OPT] not implemented yet (SeqScanPlanNode::GetTreeInfoStr)
+	panic("not implemented yet")
+}

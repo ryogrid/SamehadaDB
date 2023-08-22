@@ -38,3 +38,8 @@ func (p *LimitPlanNode) AccessRowCount(c *catalog.Catalog) uint64 {
 func (p *LimitPlanNode) EmitRowCount(c *catalog.Catalog) uint64 {
 	return uint64(p.limit)
 }
+
+func (p *LimitPlanNode) GetTreeInfoStr() string {
+	// TODO: (SDB) [OPT] not implemented yet (LimitPlanNode::GetTreeInfoStr)
+	panic("not implemented yet")
+}

@@ -53,3 +53,8 @@ func (p *UpdatePlanNode) AccessRowCount(c *catalog.Catalog) uint64 {
 func (p *UpdatePlanNode) EmitRowCount(c *catalog.Catalog) uint64 {
 	return p.children[0].EmitRowCount(c)
 }
+
+func (p *UpdatePlanNode) GetTreeInfoStr() string {
+	// TODO: (SDB) [OPT] not implemented yet (UpdatePlanNode::GetTreeInfoStr)
+	panic("not implemented yet")
+}

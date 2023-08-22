@@ -29,3 +29,8 @@ func (p *ProjectionPlanNode) AccessRowCount(c *catalog.Catalog) uint64 {
 func (p *ProjectionPlanNode) EmitRowCount(c *catalog.Catalog) uint64 {
 	return p.children[0].EmitRowCount(c)
 }
+
+func (p *ProjectionPlanNode) GetTreeInfoStr() string {
+	// TODO: (SDB) [OPT] not implemented yet (ProjectionPlanNode::GetTreeInfoStr)
+	panic("not implemented yet")
+}

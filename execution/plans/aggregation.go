@@ -98,6 +98,11 @@ func (p *AggregationPlanNode) EmitRowCount(c *catalog.Catalog) uint64 {
 	return 1
 }
 
+func (p *AggregationPlanNode) GetTreeInfoStr() string {
+	// TODO: (SDB) [OPT] not implemented yet (AggregationPlanNode::GetTreeInfoStr)
+	panic("not implemented yet")
+}
+
 type AggregateKey struct {
 	Group_bys_ []*types.Value
 }

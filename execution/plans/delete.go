@@ -29,6 +29,11 @@ func (p *DeletePlanNode) EmitRowCount(c *catalog.Catalog) uint64 {
 	return p.children[0].EmitRowCount(c)
 }
 
+func (p *DeletePlanNode) GetTreeInfoStr() string {
+	// TODO: (SDB) [OPT] not implemented yet (DeletePlanNode::GetTreeInfoStr)
+	panic("not implemented yet")
+}
+
 //func (p *DeletePlanNode) GetPredicate() expression.Expression {
 //	return p.predicate
 //}

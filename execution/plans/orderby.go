@@ -74,3 +74,8 @@ func (p *OrderbyPlanNode) AccessRowCount(c *catalog.Catalog) uint64 {
 func (p *OrderbyPlanNode) EmitRowCount(c *catalog.Catalog) uint64 {
 	return p.children[0].EmitRowCount(c)
 }
+
+func (p *OrderbyPlanNode) GetTreeInfoStr() string {
+	// TODO: (SDB) [OPT] not implemented yet (OrderbyPlanNode::GetTreeInfoStr)
+	panic("not implemented yet")
+}

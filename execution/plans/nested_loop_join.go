@@ -40,3 +40,8 @@ func (p *NestedLoopJoinPlanNode) AccessRowCount(c *catalog.Catalog) uint64 {
 func (p *NestedLoopJoinPlanNode) EmitRowCount(c *catalog.Catalog) uint64 {
 	return p.GetLeftPlan().EmitRowCount(c) * p.GetRightPlan().EmitRowCount(c)
 }
+
+func (p *NestedLoopJoinPlanNode) GetTreeInfoStr() string {
+	// TODO: (SDB) [OPT] not implemented yet (NestedLoopJoinPlanNode::GetTreeInfoStr)
+	panic("not implemented yet")
+}

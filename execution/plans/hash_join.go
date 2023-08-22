@@ -84,6 +84,11 @@ func (p *HashJoinPlanNode) AccessRowCount(c *catalog.Catalog) uint64 {
 
 }
 
+func (p *HashJoinPlanNode) GetTreeInfoStr() string {
+	// TODO: (SDB) [OPT] not implemented yet (HashJoinPlanNode::GetTreeInfoStr)
+	panic("not implemented yet")
+}
+
 func (p *HashJoinPlanNode) EmitRowCount(c *catalog.Catalog) uint64 {
 	return uint64(math.Min(float64(p.GetLeftPlan().EmitRowCount(c)), float64(p.GetRightPlan().EmitRowCount(c))))
 }
