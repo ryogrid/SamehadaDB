@@ -76,13 +76,13 @@ type columnStats struct {
 func NewColumnStats(colType types.TypeID) *columnStats {
 	switch colType {
 	case types.Integer:
-		return &columnStats{samehada_util.GetPonterOfValue(types.NewInteger(math.MaxInt32)), samehada_util.GetPonterOfValue(types.NewInteger(math.MinInt32)), 0, 0, colType, common.NewRWLatch()}
+		return &columnStats{samehada_util.GetPonterOfValue(types.NewInteger(math.MinInt32)), samehada_util.GetPonterOfValue(types.NewInteger(math.MaxInt32)), 0, 0, colType, common.NewRWLatch()}
 	case types.Float:
-		return &columnStats{samehada_util.GetPonterOfValue(types.NewFloat(math.MaxFloat32)), samehada_util.GetPonterOfValue(types.NewFloat(math.SmallestNonzeroFloat32)), 0, 0, colType, common.NewRWLatch()}
+		return &columnStats{samehada_util.GetPonterOfValue(types.NewFloat(math.SmallestNonzeroFloat32)), samehada_util.GetPonterOfValue(types.NewFloat(math.MaxFloat32)), 0, 0, colType, common.NewRWLatch()}
 	case types.Varchar:
-		return &columnStats{samehada_util.GetPonterOfValue(types.NewVarchar("")).SetInfMax(), samehada_util.GetPonterOfValue(types.NewVarchar("")).SetInfMin(), 0, 0, colType, common.NewRWLatch()}
+		return &columnStats{samehada_util.GetPonterOfValue(types.NewVarchar("")).SetInfMin(), samehada_util.GetPonterOfValue(types.NewVarchar("")).SetInfMax(), 0, 0, colType, common.NewRWLatch()}
 	case types.Boolean:
-		return &columnStats{samehada_util.GetPonterOfValue(types.NewBoolean(true)), samehada_util.GetPonterOfValue(types.NewBoolean(false)), 0, 0, colType, common.NewRWLatch()}
+		return &columnStats{samehada_util.GetPonterOfValue(types.NewBoolean(true)).SetInfMin(), samehada_util.GetPonterOfValue(types.NewBoolean(false)).SetInfMax(), 0, 0, colType, common.NewRWLatch()}
 	default:
 		panic("unkown type")
 	}
@@ -151,9 +151,9 @@ func (cs *columnStats) EstimateCount(from *types.Value, to *types.Value) float64
 			to.Swap(from)
 		}
 		samehada_util.SHAssert(from.CompareLessThanOrEqual(*to), "from must be less than or equal to to")
-		from = retValAccordingToCompareResult(from.CompareLessThan(*cs.min), cs.min, from)
+		from = retValAccordingToCompareResult(from.CompareLessThan(*cs.min), from, cs.min)
 		to = retValAccordingToCompareResult(to.CompareLessThan(*cs.max), to, cs.max)
-		tmpVal := from.Sub(to)
+		tmpVal := to.Sub(from)
 		if cs.colType == types.Integer {
 			return float64(tmpVal.ToInteger()) * float64(cs.count) / float64(cs.distinct)
 		} else { // Float

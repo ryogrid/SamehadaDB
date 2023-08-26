@@ -447,8 +447,9 @@ func (so *SelingerOptimizer) findBestJoin(optimalPlans map[mapset.Set[string]]Co
 				if containsAny(baseTableFrom, joinTableFrom) || (baseTableFrom.Cardinality()+joinTableFrom.Cardinality() != ii+1) {
 					continue
 				}
+				// Note: for making left-deep Selinger, checking joinTableFrom.Cardinality() == 1 is needed here
+				//       current impl can construct bushy plan tree, but it searches more candidates than left-deep Selinger
 
-				// for making left-deep Selinger, checking joinTableFrom.Cardinality() == 1 is needed
 				bestJoinPlan, _ := so.findBestJoinInner(so.qi.WhereExpression_.GetDeepCopy(), baseTableCP.plan, joinTableCP.plan, so.c)
 				fmt.Println(bestJoinPlan)
 

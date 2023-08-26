@@ -55,21 +55,22 @@ func (expr *BinaryOpExpression) GetType() BinaryOpExpType {
 }
 
 func (expr *BinaryOpExpression) TouchedColumns() mapset.Set[string] {
+	// note: alphabets on column and table name is stored in lowercase
 	ret := mapset.NewSet[string]()
 	switch expr.GetType() {
 	case Compare:
 		if samehada_util.IsColumnName(expr.Left_) {
-			ret.Add(*expr.Left_.(*string))
+			ret.Add(strings.ToLower(*expr.Left_.(*string)))
 		}
 		if samehada_util.IsColumnName(expr.Right_) {
-			ret.Add(*expr.Right_.(*string))
+			ret.Add(strings.ToLower(*expr.Right_.(*string)))
 		}
 	case Logical:
 		ret = ret.Union(expr.Left_.(*BinaryOpExpression).TouchedColumns())
 		ret = ret.Union(expr.Right_.(*BinaryOpExpression).TouchedColumns())
 	case IsNull:
 		if samehada_util.IsColumnName(expr.Left_) {
-			ret.Add(*expr.Left_.(*string))
+			ret.Add(strings.ToLower(*expr.Left_.(*string)))
 		}
 	default:
 		panic("BinaryOpExpression tree is broken")
@@ -137,13 +138,15 @@ type SelectFieldExpression struct {
 }
 
 func (sf *SelectFieldExpression) TouchedColumns() mapset.Set[string] {
+	// note: alphabets on table and column name is stored in lowercase
+
 	// TODO: (SDB) need to support aggregation function
 	ret := mapset.NewSet[string]()
 	colName := *sf.ColName_
 	if sf.TableName_ != nil {
 		colName = *sf.TableName_ + "." + *sf.ColName_
 	}
-	ret.Add(colName)
+	ret.Add(strings.ToLower(colName))
 	return ret
 }
 
