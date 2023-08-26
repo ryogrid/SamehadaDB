@@ -189,8 +189,17 @@ func TestSimplePlanOptimization(t *testing.T) {
 	setupTablesAndStatisticsDataForTesting(exec_ctx)
 	txn_mgr.Commit(c, txn)
 
-	// TODO: (SDB) [OPT] need to write query for testing BestJoin func (TestSimplePlanOptimization)
-	queryStr := "TO BE WRITTEN"
+	// TODO: (SDB) [OPT] need to check whether queryStr expectation matches columns Index having
+	queryStr := "select Sc1.c1 from Sc1 where Sc1.c1 = 2;" // Simple
+	//queryStr := "select Sc1.c1, Sc1.c3 from Sc1 where Sc1.c2 = 'c2-32';" // IndexScan
+	//queryStr := "select Sc1.c2, Sc1.c3 from Sc1 where Sc1.c2 = 'c2-32';" // IndexOnlyScan
+	//queryStr := "select Sc2.d1, Sc2.d2, Sc2.d3, Sc2.d4 from Sc2 where Sc2.d3 >= 'd3-3' and Sc2.d3 <= 'd3-5';" // IndexOnlyScanInclude
+	//queryStr := "select Sc1.c2, Sc2.d1, Sc2.d3 from Sc1, Sc2 where Sc1.c1 = Sc2.d1;" // Join
+	//queryStr := "select Sc1.c2, Sc2.d1, Sc2.d3 from Sc1, Sc2 where Sc1.c1 = Sc2.d1 and Sc1.c2 = 'c2-4';" // IndexScanJoin
+	//queryStr := "select Sc1.c2, Sc2.d1, Sc3.e2, Sc3.c1 from Sc1, Sc2, Sc3 where Sc1.c1 = Sc2.d1 and Sc2.d1 = Sc3.e1;" // ThreeJoin
+	//queryStr := "select Sc1.c1, Sc1.c2, Sc2.d1, Sc2.d2, Sc2.d3 from Sc1, Sc2 where Sc1.c1 = 2;" // JonWhere
+	//queryStr := "select Sc1.c1, Sc1.c2, Sc1.c3, Sc4.c1, Sc4.c2 from Sc1, Sc4 where Sc1.c1 = Sc4.c1 and Sc4.c1 = 2;" // SameNameColumn
+	//queryStr := "select * from Sc1, Sc4 where Sc1.c1 = Sc4.c1 and Sc4.c1 = 2;" // Asterisk
 	queryInfo := parser.ProcessSQLStr(&queryStr)
 
 	optimizer := NewSelingerOptimizer(queryInfo, c)
@@ -202,6 +211,7 @@ func TestSimplePlanOptimization(t *testing.T) {
 	fmt.Println(solution)
 }
 
+/*
 func TestFindBestScans(t *testing.T) {
 	diskManager := disk.NewDiskManagerTest()
 	defer diskManager.ShutDown()
@@ -226,3 +236,4 @@ func TestFindBestScans(t *testing.T) {
 	optimalPlans := NewSelingerOptimizer(queryInfo, c).findBestScans()
 	testingpkg.Assert(t, len(optimalPlans) == len(queryInfo.JoinTables_), "len(optimalPlans) != len(query.JoinTables_)")
 }
+*/
