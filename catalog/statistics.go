@@ -151,7 +151,7 @@ func (cs *columnStats) EstimateCount(from *types.Value, to *types.Value) float64
 			to.Swap(from)
 		}
 		samehada_util.SHAssert(from.CompareLessThanOrEqual(*to), "from must be less than or equal to to")
-		from = retValAccordingToCompareResult(from.CompareLessThan(*cs.min), from, cs.min)
+		from = retValAccordingToCompareResult(from.CompareLessThan(*cs.min), cs.min, from)
 		to = retValAccordingToCompareResult(to.CompareLessThan(*cs.max), to, cs.max)
 		tmpVal := to.Sub(from)
 		if cs.colType == types.Integer {
