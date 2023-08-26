@@ -22,11 +22,13 @@ type distinctCounter struct {
 func NewDistinctCounter(colType types.TypeID) *distinctCounter {
 	switch colType {
 	case types.Integer:
-		return &distinctCounter{samehada_util.GetPonterOfValue(types.NewInteger(math.MaxInt32)), samehada_util.GetPonterOfValue(types.NewInteger(math.MinInt32)), 0, 0, colType, make(map[interface{}]bool, 0)}
+		return &distinctCounter{samehada_util.GetPonterOfValue(types.NewInteger(math.MinInt32)), samehada_util.GetPonterOfValue(types.NewInteger(math.MaxInt32)), 0, 0, colType, make(map[interface{}]bool, 0)}
 	case types.Float:
-		return &distinctCounter{samehada_util.GetPonterOfValue(types.NewFloat(math.MaxFloat32)), samehada_util.GetPonterOfValue(types.NewFloat(math.SmallestNonzeroFloat32)), 0, 0, colType, make(map[interface{}]bool, 0)}
+		return &distinctCounter{samehada_util.GetPonterOfValue(types.NewFloat(math.SmallestNonzeroFloat32)), samehada_util.GetPonterOfValue(types.NewFloat(math.MaxFloat32)), 0, 0, colType, make(map[interface{}]bool, 0)}
 	case types.Varchar:
-		return &distinctCounter{samehada_util.GetPonterOfValue(types.NewVarchar("")).SetInfMax(), samehada_util.GetPonterOfValue(types.NewVarchar("")).SetInfMin(), 0, 0, colType, make(map[interface{}]bool, 0)}
+		return &distinctCounter{samehada_util.GetPonterOfValue(types.NewVarchar("")).SetInfMin(), samehada_util.GetPonterOfValue(types.NewVarchar("")).SetInfMax(), 0, 0, colType, make(map[interface{}]bool, 0)}
+	case types.Boolean:
+		return &distinctCounter{samehada_util.GetPonterOfValue(types.NewBoolean(false)).SetInfMin(), samehada_util.GetPonterOfValue(types.NewBoolean(true)).SetInfMax(), 0, 0, colType, make(map[interface{}]bool, 0)}
 	default:
 		panic("unkown type")
 	}
@@ -200,10 +202,9 @@ func (ts *TableStatistics) Update(target *TableMetadata, txn *access.Transaction
 		distCounters = append(distCounters, NewDistinctCounter(schema_.GetColumn(uint32(ii)).GetType()))
 	}
 
-	for !it.End() {
-		tuple_ := it.Next()
+	for t := it.Current(); !it.End(); t = it.Next() {
 		for ii := 0; ii < len(ts.colStats); ii++ {
-			distCounters[ii].Add(samehada_util.GetPonterOfValue(tuple_.GetValue(schema_, uint32(ii))))
+			distCounters[ii].Add(samehada_util.GetPonterOfValue(t.GetValue(schema_, uint32(ii))))
 		}
 		rows++
 	}
