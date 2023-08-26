@@ -2,6 +2,7 @@ package optimizer
 
 import (
 	"fmt"
+	mapset "github.com/deckarep/golang-set/v2"
 	"github.com/ryogrid/SamehadaDB/catalog"
 	"github.com/ryogrid/SamehadaDB/common"
 	"github.com/ryogrid/SamehadaDB/execution/executors"
@@ -220,8 +221,20 @@ func TestFindBestScans(t *testing.T) {
 	setupTablesAndStatisticsDataForTesting(exec_ctx)
 	txn_mgr.Commit(c, txn)
 
-	queryStr := "select Sc1.c1 from Sc1 where Sc1.c1 = 2;" // Simple(SequentialScan)
-	//queryStr := "select Sc1.c1, Sc1.c3 from Sc1 where Sc1.c2 = 'c2-32';" // IndexScan
+	var queryStr string
+	var queryInfo *parser.QueryInfo
+	var optimalPlans map[mapset.Set[string]]CostAndPlan
+
+	//queryStr = "select Sc1.c1 from Sc1 where Sc1.c1 = 2;" // Simple(SequentialScan)
+	//queryInfo = parser.ProcessSQLStr(&queryStr)
+	//optimalPlans = NewSelingerOptimizer(queryInfo, c).findBestScans()
+	//testingpkg.Assert(t, len(optimalPlans) == len(queryInfo.JoinTables_), "len(optimalPlans) != len(query.JoinTables_)")
+
+	queryStr = "select Sc1.c1, Sc1.c3 from Sc1 where Sc1.c2 = 'c2-32';" // IndexScan
+	queryInfo = parser.ProcessSQLStr(&queryStr)
+	optimalPlans = NewSelingerOptimizer(queryInfo, c).findBestScans()
+	testingpkg.Assert(t, len(optimalPlans) == len(queryInfo.JoinTables_), "len(optimalPlans) != len(query.JoinTables_)")
+
 	//queryStr := "select Sc2.d1, Sc2.d2, Sc2.d3, Sc2.d4 from Sc2 where Sc2.d3 >= 'd3-3' and Sc2.d3 <= 'd3-5';" // IndexScanInclude
 	//queryStr := "select Sc1.c2, Sc2.d1, Sc2.d3 from Sc1, Sc2 where Sc1.c1 = Sc2.d1;" // Join(HashJoin)
 	//queryStr := "select Sc1.c2, Sc4.c1, Sc4.c2 from Sc1, Sc2 where Sc1.c1 = Sc4.c2 and Sc4.c2 = '1';" // Join(IndexJoin)
@@ -229,8 +242,5 @@ func TestFindBestScans(t *testing.T) {
 	//queryStr := "select Sc1.c1, Sc1.c2, Sc2.d1, Sc2.d2, Sc2.d3 from Sc1, Sc2 where Sc1.c1 = 2;" // JonWhere(NestedLoopJoin)
 	//queryStr := "select Sc1.c1, Sc1.c2, Sc1.c3, Sc4.c1, Sc4.c2 from Sc1, Sc4 where Sc1.c1 = Sc4.c1 and Sc4.c1 = 2;" // SameNameColumn
 	//queryStr := "select * from Sc1, Sc4 where Sc1.c1 = Sc4.c1 and Sc4.c1 = 2;" // Asterisk
-	queryInfo := parser.ProcessSQLStr(&queryStr)
 
-	optimalPlans := NewSelingerOptimizer(queryInfo, c).findBestScans()
-	testingpkg.Assert(t, len(optimalPlans) == len(queryInfo.JoinTables_), "len(optimalPlans) != len(query.JoinTables_)")
 }

@@ -112,8 +112,10 @@ func RecoveryCatalogFromCatalogPage(bpm *buffer.BufferPoolManager, log_manager *
 }
 
 func (c *Catalog) GetTableByName(table string) *TableMetadata {
-	if table, ok := c.tableNames[table]; ok {
-		return table
+	// note: alphabets on table name is stored in lowercase
+	tableName := strings.ToLower(table)
+	if table_, ok := c.tableNames[tableName]; ok {
+		return table_
 	}
 	return nil
 }
