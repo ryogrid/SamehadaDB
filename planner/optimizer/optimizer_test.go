@@ -35,7 +35,7 @@ type SetupTableMeta struct {
 	ColValGenFuncs []ColValGenFunc
 }
 
-func SetupTableWithMetadata(exec_ctx *executors.ExecutorContext, tableMeta *SetupTableMeta) {
+func SetupTableWithMetadata(exec_ctx *executors.ExecutorContext, tableMeta *SetupTableMeta) *catalog.TableMetadata {
 	c := exec_ctx.GetCatalog()
 	txn := exec_ctx.GetTransaction()
 
@@ -65,6 +65,8 @@ func SetupTableWithMetadata(exec_ctx *executors.ExecutorContext, tableMeta *Setu
 			}
 		}
 	}
+
+	return tm
 }
 
 func setupTablesAndStatisticsDataForTesting(exec_ctx *executors.ExecutorContext) {
@@ -98,8 +100,8 @@ func setupTablesAndStatisticsDataForTesting(exec_ctx *executors.ExecutorContext)
 		100,
 		[]*ColumnMeta{
 			{"c1", types.Integer, index_constants.INDEX_KIND_SKIP_LIST},
-			{"c2", types.Varchar, index_constants.INDEX_KIND_SKIP_LIST},
-			{"c3", types.Float, index_constants.INDEX_KIND_SKIP_LIST},
+			{"c2", types.Varchar, index_constants.INDEX_KIND_INVALID},
+			{"c3", types.Float, index_constants.INDEX_KIND_INVALID},
 		},
 		[]ColValGenFunc{
 			func(idx int) interface{} { return int32(idx) },
@@ -107,80 +109,67 @@ func setupTablesAndStatisticsDataForTesting(exec_ctx *executors.ExecutorContext)
 			func(idx int) interface{} { return float32(idx) + 9.9 },
 		},
 	}
-	SetupTableWithMetadata(exec_ctx, Sc1Meta)
+	tm1 := SetupTableWithMetadata(exec_ctx, Sc1Meta)
 
-	// TODO: (SDB) [OPT] not implemented yet (setupTablesAndStatisticsDataForTesting)
-	/*
-		     prefix_ = "optimizer_test-" + RandomString();
-			 rs_->CreateTable(ctx,
-							  Schema("Sc1", {Column("c1", ValueType::kInt64),
-											 Column("c2", ValueType::kVarChar),
-											 Column("c3", ValueType::kDouble)}));
-		     for (int i = 0; i < 100; ++i) {
-		           tbl.Insert(ctx.txn_,
-		                      Row({Value(i), Value("c2-" + std::to_string(i)),
-		                           Value(i + 9.9)}));
-		     }
+	Sc2Meta := &SetupTableMeta{
+		"Sc2",
+		200,
+		[]*ColumnMeta{
+			{"d1", types.Integer, index_constants.INDEX_KIND_SKIP_LIST},
+			{"d2", types.Float, index_constants.INDEX_KIND_INVALID},
+			{"d3", types.Varchar, index_constants.INDEX_KIND_INVALID},
+			{"d4", types.Integer, index_constants.INDEX_KIND_INVALID},
+		},
+		[]ColValGenFunc{
+			func(idx int) interface{} { return int32(idx) },
+			func(idx int) interface{} { return float32(idx) + 0.2 },
+			func(idx int) interface{} { return "d3-" + strconv.Itoa(idx%10) },
+			func(idx int) interface{} { return int32(16) },
+		},
+	}
+	tm2 := SetupTableWithMetadata(exec_ctx, Sc2Meta)
 
-			 rs_->CreateTable(ctx,
-							  Schema("Sc2", {Column("d1", ValueType::kInt64),
-											 Column("d2", ValueType::kDouble),
-											 Column("d3", ValueType::kVarChar),
-											 Column("d4", ValueType::kInt64)}));
-		     for (int i = 0; i < 200; ++i) {
-		           tbl.Insert(ctx.txn_,
-		                      Row({Value(i), Value(i + 0.2),
-		                           Value("d3-" + std::to_string(i % 10)), Value(16)}));
-		     }
+	Sc3Meta := &SetupTableMeta{
+		"Sc3",
+		20,
+		[]*ColumnMeta{
+			{"e1", types.Integer, index_constants.INDEX_KIND_INVALID},
+			{"e2", types.Float, index_constants.INDEX_KIND_INVALID},
+		},
+		[]ColValGenFunc{
+			func(idx int) interface{} { return int32(idx + 1) },
+			func(idx int) interface{} { return float32(idx+1) + 53.4 },
+		},
+	}
+	tm3 := SetupTableWithMetadata(exec_ctx, Sc3Meta)
 
+	Sc4Meta := &SetupTableMeta{
+		"Sc4",
+		100,
+		[]*ColumnMeta{
+			{"c1", types.Integer, index_constants.INDEX_KIND_INVALID},
+			{"c2", types.Varchar, index_constants.INDEX_KIND_SKIP_LIST},
+		},
+		[]ColValGenFunc{
+			func(idx int) interface{} { return int32(idx + 1) },
+			func(idx int) interface{} { return strconv.Itoa((idx + 1) % 4) },
+		},
+	}
+	tm4 := SetupTableWithMetadata(exec_ctx, Sc4Meta)
 
-			 rs_->CreateTable(ctx,
-							  Schema("Sc3", {Column("e1", ValueType::kInt64),
-											 Column("e2", ValueType::kDouble)}));
-		     for (int i = 20; 0 < i; --i) {
-		           tbl.Insert(ctx.txn_, Row({Value(i), Value(i + 53.4)}));
-		     }
+	txn := exec_ctx.GetTransaction()
 
-			 rs_->CreateTable(ctx,
-							  Schema("Sc4", {Column("c1", ValueType::kInt64),
-											 Column("c2", ValueType::kVarChar)}));
-		     for (int i = 100; 0 < i; --i) {
-		           tbl.Insert(ctx.txn_, Row({Value(i), Value(std::to_string(i % 4))}));
-		     }
-
-		     IndexSchema idx_sc("SampleIndex", {1, 2});
-		     rs_->CreateIndex(ctx, "Sc1", IndexSchema("KeyIdx", {1, 2}));
-		     rs_->CreateIndex(ctx, "Sc1", IndexSchema("Sc1PK", {0}));
-		     rs_->CreateIndex(ctx, "Sc2", IndexSchema("Sc2PK", {0}));
-		     rs_->CreateIndex(ctx, "Sc2",IndexSchema("NameIdx", {2, 3}, {0, 1}, IndexMode::kNonUnique));
-		     rs_->CreateIndex(ctx, "Sc4", IndexSchema("Sc4_IDX", {1}, {}, IndexMode::kNonUnique));
-		     ctx.txn_.PreCommit();
-
-		     auto stat_tx = rs_->BeginContext();
-		     rs_->RefreshStatistics(stat_tx, "Sc1");
-		     rs_->RefreshStatistics(stat_tx, "Sc2");
-		     rs_->RefreshStatistics(stat_tx, "Sc3");
-		     rs_->RefreshStatistics(stat_tx, "Sc4");
-		     stat_tx.PreCommit();
-	*/
-
-	// dummy code
-	tm1 := c.GetTableByName("Sc1")
 	stat1 := tm1.GetStatistics()
 	stat1.Update(tm1, txn)
 
-	tm2 := c.GetTableByName("Sc2")
 	stat2 := tm2.GetStatistics()
 	stat2.Update(tm2, txn)
 
-	tm3 := c.GetTableByName("Sc1")
 	stat3 := tm3.GetStatistics()
 	stat3.Update(tm3, txn)
 
-	tm4 := c.GetTableByName("Sc1")
 	stat4 := tm4.GetStatistics()
 	stat4.Update(tm4, txn)
-
 }
 
 func TestSimplePlanOptimization(t *testing.T) {
