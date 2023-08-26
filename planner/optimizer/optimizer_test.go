@@ -10,14 +10,104 @@ import (
 	"github.com/ryogrid/SamehadaDB/storage/access"
 	"github.com/ryogrid/SamehadaDB/storage/buffer"
 	"github.com/ryogrid/SamehadaDB/storage/disk"
+	"github.com/ryogrid/SamehadaDB/storage/index/index_constants"
+	"github.com/ryogrid/SamehadaDB/storage/table/column"
+	"github.com/ryogrid/SamehadaDB/storage/table/schema"
+	"github.com/ryogrid/SamehadaDB/storage/tuple"
 	testingpkg "github.com/ryogrid/SamehadaDB/testing/testing_assert"
+	"github.com/ryogrid/SamehadaDB/types"
+	"strconv"
 	"testing"
 )
 
-func setupTablesAndStatisticsDataForTesting(exec_ctx *executors.ExecutorContext) {
+type ColumnMeta struct {
+	Name       string
+	ColumnType types.TypeID
+	IdxKind    index_constants.IndexKind
+}
+
+type ColValGenFunc func(idx int) interface{}
+
+type SetupTableMeta struct {
+	TableName      string
+	EntriesNum     int64
+	Columns        []*ColumnMeta
+	ColValGenFuncs []ColValGenFunc
+}
+
+func SetupTableWithMetadata(exec_ctx *executors.ExecutorContext, tableMeta *SetupTableMeta) {
 	c := exec_ctx.GetCatalog()
 	txn := exec_ctx.GetTransaction()
-	//bpm := exec_ctx.GetBufferPoolManager()
+
+	cols := make([]*column.Column, 0)
+	for _, colMeta := range tableMeta.Columns {
+		if colMeta.IdxKind != index_constants.INDEX_KIND_INVALID {
+			col := column.NewColumn(colMeta.Name, colMeta.ColumnType, true, colMeta.IdxKind, types.PageID(-1), nil)
+			cols = append(cols, col)
+		} else {
+			col := column.NewColumn(colMeta.Name, colMeta.ColumnType, false, colMeta.IdxKind, types.PageID(-1), nil)
+			cols = append(cols, col)
+		}
+	}
+	schema_ := schema.NewSchema(cols)
+	tm := c.CreateTable(tableMeta.TableName, schema_, txn)
+
+	for ii := 0; ii < int(tableMeta.EntriesNum); ii++ {
+		vals := make([]types.Value, 0)
+		for jj, genFunc := range tableMeta.ColValGenFuncs {
+			vals = append(vals, types.NewValue(genFunc(jj)))
+		}
+		tuple_ := tuple.NewTupleFromSchema(vals, schema_)
+		rid, _ := tm.Table().InsertTuple(tuple_, false, txn, tm.OID())
+		for jj, colMeta := range tableMeta.Columns {
+			if colMeta.IdxKind != index_constants.INDEX_KIND_INVALID {
+				tm.GetIndex(jj).InsertEntry(tuple_, *rid, txn)
+			}
+		}
+	}
+}
+
+func setupTablesAndStatisticsDataForTesting(exec_ctx *executors.ExecutorContext) {
+	/*	c := exec_ctx.GetCatalog()
+		txn := exec_ctx.GetTransaction()
+		//bpm := exec_ctx.GetBufferPoolManager()
+
+		colC1 := column.NewColumn("c1", types.Integer, true, index_constants.INDEX_KIND_SKIP_LIST, types.PageID(-1), nil)
+		colC2 := column.NewColumn("c2", types.Varchar, true, index_constants.INDEX_KIND_SKIP_LIST, types.PageID(-1), nil)
+		colC3 := column.NewColumn("c3", types.Float, true, index_constants.INDEX_KIND_SKIP_LIST, types.PageID(-1), nil)
+		schemaSc1 := schema.NewSchema([]*column.Column{colC1, colC2, colC3})
+		tmSc1 := c.CreateTable("Sc1", schemaSc1, txn)
+
+		idxC1 := tmSc1.GetIndex(0)
+		idxC2 := tmSc1.GetIndex(1)
+		idxC3 := tmSc1.GetIndex(2)
+		for ii := 0; ii < 100; ii++ {
+			valCol1 := types.NewInteger(int32(ii))
+			valCol2 := types.NewVarchar("c2-" + strconv.Itoa(ii))
+			valCol3 := types.NewFloat(float32(ii) + 9.9)
+			tuple_ := tuple.NewTupleFromSchema([]types.Value{valCol1, valCol2, valCol3}, schemaSc1)
+			rid, _ := tmSc1.Table().InsertTuple(tuple_, false, txn, tmSc1.OID())
+
+			idxC1.InsertEntry(tuple_, *rid, txn)
+			idxC2.InsertEntry(tuple_, *rid, txn)
+			idxC3.InsertEntry(tuple_, *rid, txn)
+		}*/
+
+	Sc1Meta := &SetupTableMeta{
+		"Sc1",
+		100,
+		[]*ColumnMeta{
+			{"c1", types.Integer, index_constants.INDEX_KIND_SKIP_LIST},
+			{"c2", types.Varchar, index_constants.INDEX_KIND_SKIP_LIST},
+			{"c3", types.Float, index_constants.INDEX_KIND_SKIP_LIST},
+		},
+		[]ColValGenFunc{
+			func(idx int) interface{} { return int32(idx) },
+			func(idx int) interface{} { return "c2-" + strconv.Itoa(idx) },
+			func(idx int) interface{} { return float32(idx) + 9.9 },
+		},
+	}
+	SetupTableWithMetadata(exec_ctx, Sc1Meta)
 
 	// TODO: (SDB) [OPT] not implemented yet (setupTablesAndStatisticsDataForTesting)
 	/*

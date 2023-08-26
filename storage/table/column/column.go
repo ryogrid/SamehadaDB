@@ -25,6 +25,8 @@ type Column struct {
 	expr_ interface{}
 }
 
+// indexHeaderPageID should be types.PageID(-1) if there is special reason
+// the ID is set when CreateTable is called
 // expr argument should be pointer of subtype of expression.Expression
 func NewColumn(name string, columnType types.TypeID, hasIndex bool, indexKind index_constants.IndexKind, indexHeaderPageID types.PageID, expr interface{}) *Column {
 	if columnType != types.Varchar {
