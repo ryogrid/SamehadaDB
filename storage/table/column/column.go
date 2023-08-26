@@ -6,6 +6,7 @@ package column
 import (
 	"github.com/ryogrid/SamehadaDB/storage/index/index_constants"
 	"github.com/ryogrid/SamehadaDB/types"
+	"strings"
 )
 
 type Column struct {
@@ -29,11 +30,13 @@ type Column struct {
 // the ID is set when CreateTable is called
 // expr argument should be pointer of subtype of expression.Expression
 func NewColumn(name string, columnType types.TypeID, hasIndex bool, indexKind index_constants.IndexKind, indexHeaderPageID types.PageID, expr interface{}) *Column {
+	// note: alphabets on column name is stored in lowercase
+
 	if columnType != types.Varchar {
-		return &Column{name, columnType, columnType.Size(), 0, 0, hasIndex, indexKind, indexHeaderPageID, true, expr}
+		return &Column{strings.ToLower(name), columnType, columnType.Size(), 0, 0, hasIndex, indexKind, indexHeaderPageID, true, expr}
 	}
 
-	return &Column{name, types.Varchar, 4, 255, 0, hasIndex, indexKind, indexHeaderPageID, true, expr}
+	return &Column{strings.ToLower(name), types.Varchar, 4, 255, 0, hasIndex, indexKind, indexHeaderPageID, true, expr}
 }
 
 func (c *Column) IsInlined() bool {

@@ -41,7 +41,7 @@ func (expr *BinaryOpExpression) GetType() BinaryOpExpType {
 	}
 
 	if expr.ComparisonOperationType_ != -1 {
-		if expr.Right_ != nil && isValue(expr.Right_) && expr.Right_.(types.Value).IsNull() {
+		if expr.Right_ != nil && isValue(expr.Right_) && expr.Right_.(*types.Value).IsNull() {
 			return IsNull
 		} else {
 			return Compare
