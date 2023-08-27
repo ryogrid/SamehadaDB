@@ -2,11 +2,9 @@ package optimizer
 
 import (
 	"fmt"
-	mapset "github.com/deckarep/golang-set/v2"
 	"github.com/ryogrid/SamehadaDB/catalog"
 	"github.com/ryogrid/SamehadaDB/common"
 	"github.com/ryogrid/SamehadaDB/execution/executors"
-	"github.com/ryogrid/SamehadaDB/parser"
 	"github.com/ryogrid/SamehadaDB/recovery"
 	"github.com/ryogrid/SamehadaDB/storage/access"
 	"github.com/ryogrid/SamehadaDB/storage/buffer"
@@ -70,32 +68,7 @@ func SetupTableWithMetadata(exec_ctx *executors.ExecutorContext, tableMeta *Setu
 	return tm
 }
 
-func setupTablesAndStatisticsDataForTesting(exec_ctx *executors.ExecutorContext) {
-	/*	c := exec_ctx.GetCatalog()
-		txn := exec_ctx.GetTransaction()
-		//bpm := exec_ctx.GetBufferPoolManager()
-
-		colC1 := column.NewColumn("c1", types.Integer, true, index_constants.INDEX_KIND_SKIP_LIST, types.PageID(-1), nil)
-		colC2 := column.NewColumn("c2", types.Varchar, true, index_constants.INDEX_KIND_SKIP_LIST, types.PageID(-1), nil)
-		colC3 := column.NewColumn("c3", types.Float, true, index_constants.INDEX_KIND_SKIP_LIST, types.PageID(-1), nil)
-		schemaSc1 := schema.NewSchema([]*column.Column{colC1, colC2, colC3})
-		tmSc1 := c.CreateTable("Sc1", schemaSc1, txn)
-
-		idxC1 := tmSc1.GetIndex(0)
-		idxC2 := tmSc1.GetIndex(1)
-		idxC3 := tmSc1.GetIndex(2)
-		for ii := 0; ii < 100; ii++ {
-			valCol1 := types.NewInteger(int32(ii))
-			valCol2 := types.NewVarchar("c2-" + strconv.Itoa(ii))
-			valCol3 := types.NewFloat(float32(ii) + 9.9)
-			tuple_ := tuple.NewTupleFromSchema([]types.Value{valCol1, valCol2, valCol3}, schemaSc1)
-			rid, _ := tmSc1.Table().InsertTuple(tuple_, false, txn, tmSc1.OID())
-
-			idxC1.InsertEntry(tuple_, *rid, txn)
-			idxC2.InsertEntry(tuple_, *rid, txn)
-			idxC3.InsertEntry(tuple_, *rid, txn)
-		}*/
-
+func setupTablesAndStatisticsDataForTesting(exec_ctx *executors.ExecutorContext) (*catalog.TableMetadata, *catalog.TableMetadata, *catalog.TableMetadata, *catalog.TableMetadata) {
 	Sc1Meta := &SetupTableMeta{
 		"Sc1",
 		100,
@@ -171,10 +144,11 @@ func setupTablesAndStatisticsDataForTesting(exec_ctx *executors.ExecutorContext)
 
 	stat4 := tm4.GetStatistics()
 	stat4.Update(tm4, txn)
+
+	return tm1, tm2, tm3, tm4
 }
 
-/*
-func TestSimplePlanOptimization(t *testing.T) {
+func TestSetupedTableAndStatistcsContents(t *testing.T) {
 	diskManager := disk.NewDiskManagerTest()
 	defer diskManager.ShutDown()
 	log_mgr := recovery.NewLogManager(&diskManager)
@@ -188,22 +162,95 @@ func TestSimplePlanOptimization(t *testing.T) {
 	c := catalog.BootstrapCatalog(bpm, log_mgr, access.NewLockManager(access.REGULAR, access.PREVENTION), txn)
 	exec_ctx := executors.NewExecutorContext(c, bpm, txn)
 
-	setupTablesAndStatisticsDataForTesting(exec_ctx)
+	tm1, tm2, tm3, tm4 := setupTablesAndStatisticsDataForTesting(exec_ctx)
 	txn_mgr.Commit(c, txn)
 
-	queryStr := "TO BE WRITTEN"
-	queryInfo := parser.ProcessSQLStr(&queryStr)
+	txn = txn_mgr.Begin(nil)
 
-	optimizer := NewSelingerOptimizer(queryInfo, c)
-	solution, err := optimizer.Optimize()
-	if err != nil {
-		fmt.Println(err)
+	// Sc1
+	it := tm1.Table().Iterator(txn)
+	rows := 0
+	schema_ := tm1.Schema()
+	for tuple_ := it.Current(); !it.End(); tuple_ = it.Next() {
+		colVal1 := tuple_.GetValue(schema_, uint32(0))
+		testingpkg.Assert(t, colVal1.ToInteger() == int32(rows), "colVal1.ToInteger() != int32(rows)")
+		colVal2 := tuple_.GetValue(schema_, uint32(1))
+		testingpkg.Assert(t, colVal2.ToVarchar() == "c2-"+strconv.Itoa(rows), "colVal2.ToVarchar() != 'c2-' + strconv.Itoa(rows)")
+		colVal3 := tuple_.GetValue(schema_, uint32(2))
+		testingpkg.Assert(t, colVal3.ToFloat() == float32(rows)+9.9, "colVal3.ToFloat() != float32(rows) + 9.9")
+		rows++
 	}
-	testingpkg.Assert(t, err == nil, "err != nil")
-	fmt.Println(solution)
-}
-*/
+	testingpkg.Assert(t, rows == 100, "rows != 100")
 
+	idx1 := tm1.GetIndex(1)
+	idxIt1 := idx1.GetRangeScanIterator(nil, nil, txn)
+	rows = 0
+	for done, _, _, _ := idxIt1.Next(); !done; done, _, _, _ = idxIt1.Next() {
+		rows++
+	}
+	testingpkg.Assert(t, rows == 200, "rows != 200")
+
+	// Sc2
+	it = tm2.Table().Iterator(txn)
+	rows = 0
+	schema_ = tm2.Schema()
+	for tuple_ := it.Current(); !it.End(); tuple_ = it.Next() {
+		colVal1 := tuple_.GetValue(schema_, uint32(0))
+		testingpkg.Assert(t, colVal1.ToInteger() == int32(rows), "colVal1.ToInteger() != int32(rows)")
+		colVal2 := tuple_.GetValue(schema_, uint32(1))
+		testingpkg.Assert(t, colVal2.ToFloat() == float32(rows)+0.2, "colVal2.ToFloat() != float32(rows) + 0.2")
+		colVal3 := tuple_.GetValue(schema_, uint32(2))
+		testingpkg.Assert(t, colVal3.ToVarchar() == strconv.Itoa(rows%10), "colVal3.ToVarchar() != strconv.Itoa(rows%10)")
+		colVal4 := tuple_.GetValue(schema_, uint32(3))
+		testingpkg.Assert(t, colVal4.ToInteger() == int32(16), "colVal4.ToInteger() != int32(16)")
+		rows++
+	}
+	testingpkg.Assert(t, rows == 200, "rows != 200")
+
+	idx2 := tm1.GetIndex(2)
+	idxIt2 := idx2.GetRangeScanIterator(nil, nil, txn)
+	rows = 0
+	for done, _, _, _ := idxIt2.Next(); !done; done, _, _, _ = idxIt2.Next() {
+		rows++
+	}
+	testingpkg.Assert(t, rows == 200, "rows != 200")
+
+	// Sc3
+	it = tm3.Table().Iterator(txn)
+	rows = 0
+	schema_ = tm3.Schema()
+	for tuple_ := it.Current(); !it.End(); tuple_ = it.Next() {
+		colVal1 := tuple_.GetValue(schema_, uint32(0))
+		testingpkg.Assert(t, colVal1.ToInteger() == int32(rows+1), "colVal1.ToInteger() != int32(rows) + 1")
+		colVal2 := tuple_.GetValue(schema_, uint32(1))
+		testingpkg.Assert(t, colVal2.ToFloat() == float32(rows+1)+53.4, "colVal2.ToFloat() != float32(rows) + 53.4")
+		rows++
+	}
+	testingpkg.Assert(t, rows == 20, "rows != 20")
+
+	// Sc4
+	it = tm4.Table().Iterator(txn)
+	rows = 0
+	schema_ = tm4.Schema()
+	for tuple_ := it.Current(); !it.End(); tuple_ = it.Next() {
+		colVal1 := tuple_.GetValue(schema_, uint32(0))
+		testingpkg.Assert(t, colVal1.ToInteger() == int32(rows+1), "colVal1.ToInteger() != int32(rows) + 1")
+		colVal2 := tuple_.GetValue(schema_, uint32(1))
+		testingpkg.Assert(t, colVal2.ToVarchar() == strconv.Itoa((rows+1)%4), "colVal2.ToVarchar() != strconv.Itoa((rows + 1) % 4)")
+		rows++
+	}
+	testingpkg.Assert(t, rows == 100, "rows != 100")
+
+	idx4 := tm4.GetIndex(1)
+	idxIt4 := idx4.GetRangeScanIterator(nil, nil, txn)
+	rows = 0
+	for done, _, _, _ := idxIt4.Next(); !done; done, _, _, _ = idxIt4.Next() {
+		rows++
+	}
+	testingpkg.Assert(t, rows == 100, "rows != 100")
+}
+
+/*
 func TestFindBestScans(t *testing.T) {
 	diskManager := disk.NewDiskManagerTest()
 	defer diskManager.ShutDown()
@@ -242,5 +289,36 @@ func TestFindBestScans(t *testing.T) {
 	//queryStr := "select Sc1.c1, Sc1.c2, Sc2.d1, Sc2.d2, Sc2.d3 from Sc1, Sc2 where Sc1.c1 = 2;" // JonWhere(NestedLoopJoin)
 	//queryStr := "select Sc1.c1, Sc1.c2, Sc1.c3, Sc4.c1, Sc4.c2 from Sc1, Sc4 where Sc1.c1 = Sc4.c1 and Sc4.c1 = 2;" // SameNameColumn
 	//queryStr := "select * from Sc1, Sc4 where Sc1.c1 = Sc4.c1 and Sc4.c1 = 2;" // Asterisk
-
 }
+*/
+
+/*
+func TestSimplePlanOptimization(t *testing.T) {
+	diskManager := disk.NewDiskManagerTest()
+	defer diskManager.ShutDown()
+	log_mgr := recovery.NewLogManager(&diskManager)
+	log_mgr.ActivateLogging()
+	testingpkg.Assert(t, log_mgr.IsEnabledLogging(), "")
+	fmt.Println("System logging is active.")
+	bpm := buffer.NewBufferPoolManager(common.BufferPoolMaxFrameNumForTest, diskManager, log_mgr) //, recovery.NewLogManager(diskManager), access.NewLockManager(access.REGULAR, access.PREVENTION))
+	txn_mgr := access.NewTransactionManager(access.NewLockManager(access.REGULAR, access.DETECTION), log_mgr)
+
+	txn := txn_mgr.Begin(nil)
+	c := catalog.BootstrapCatalog(bpm, log_mgr, access.NewLockManager(access.REGULAR, access.PREVENTION), txn)
+	exec_ctx := executors.NewExecutorContext(c, bpm, txn)
+
+	setupTablesAndStatisticsDataForTesting(exec_ctx)
+	txn_mgr.Commit(c, txn)
+
+	queryStr := "TO BE WRITTEN"
+	queryInfo := parser.ProcessSQLStr(&queryStr)
+
+	optimizer := NewSelingerOptimizer(queryInfo, c)
+	solution, err := optimizer.Optimize()
+	if err != nil {
+		fmt.Println(err)
+	}
+	testingpkg.Assert(t, err == nil, "err != nil")
+	fmt.Println(solution)
+}
+*/
