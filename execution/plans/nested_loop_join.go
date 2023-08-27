@@ -3,6 +3,7 @@ package plans
 import (
 	"github.com/ryogrid/SamehadaDB/catalog"
 	"github.com/ryogrid/SamehadaDB/common"
+	"github.com/ryogrid/SamehadaDB/samehada/samehada_util"
 	"math"
 )
 
@@ -11,17 +12,22 @@ type NestedLoopJoinPlanNode struct {
 	stats_ *catalog.TableStatistics
 }
 
-func NestedLoopJoinStats(leftPlan Plan, rightPlan Plan) *catalog.TableStatistics {
-	// TODO: (SDB) [OPT] not implemented yet (NestedLoopJoinStats)
-	return nil
+func GenNestedLoopJoinStats(leftPlan Plan, rightPlan Plan) *catalog.TableStatistics {
+	leftStats := new(catalog.TableStatistics)
+	samehada_util.DeepCopy(leftStats, leftPlan.GetStatistics())
+	leftStats.Multiply(float64(leftStats.Rows()))
+	rightStats := new(catalog.TableStatistics)
+	samehada_util.DeepCopy(rightStats, rightPlan.GetStatistics())
+	rightStats.Multiply(float64(rightStats.Rows()))
+	leftStats.Concat(rightStats)
+	return leftStats
 }
 
 // used only for Cross Join
 func NewNestedLoopJoinPlanNode(children []Plan) *NestedLoopJoinPlanNode {
-	// TODO: (SDB) [OPT] not implemented yet (NewNestedLoopJoinPlanNode)
 	return &NestedLoopJoinPlanNode{
 		&AbstractPlanNode{makeMergedOutputSchema(children[0].OutputSchema(), children[1].OutputSchema()), children},
-		NestedLoopJoinStats(children[0], children[1])}
+		GenNestedLoopJoinStats(children[0], children[1])}
 }
 
 func (p *NestedLoopJoinPlanNode) GetType() PlanType { return NestedLoopJoin }

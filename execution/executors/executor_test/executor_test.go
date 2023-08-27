@@ -1511,7 +1511,7 @@ func TestSimpleIndexJoin(t *testing.T) {
 		var right_keys []expression.Expression
 		//right_keys = append(right_keys, col1)
 		right_keys = append(right_keys, col2)
-		join_plan = plans.NewIndexJoinPlanNode(scan_plan1, left_keys, scan_plan2.OutputSchema(), scan_plan2.GetTableOID(), right_keys)
+		join_plan = plans.NewIndexJoinPlanNode(c, scan_plan1, left_keys, scan_plan2.OutputSchema(), scan_plan2.GetTableOID(), right_keys)
 	}
 
 	executionEngine := &executors.ExecutionEngine{}

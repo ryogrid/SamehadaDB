@@ -4,6 +4,7 @@ import (
 	"github.com/ryogrid/SamehadaDB/catalog"
 	"github.com/ryogrid/SamehadaDB/common"
 	"github.com/ryogrid/SamehadaDB/execution/expression"
+	"github.com/ryogrid/SamehadaDB/samehada/samehada_util"
 	"github.com/ryogrid/SamehadaDB/storage/table/schema"
 	"math"
 )
@@ -16,7 +17,17 @@ type IndexJoinPlanNode struct {
 	stats_         *catalog.TableStatistics
 }
 
-func NewIndexJoinPlanNode(leftChild Plan, leftKeys []expression.Expression, rightOutSchema *schema.Schema, rightTblOID uint32, rightKeys []expression.Expression) *IndexJoinPlanNode {
+func GenIndexJoinStats(c *catalog.Catalog, leftPlan Plan, rightTableOID uint32) *catalog.TableStatistics {
+	leftStats := new(catalog.TableStatistics)
+	samehada_util.DeepCopy(leftStats, leftPlan.GetStatistics())
+	rightStats := new(catalog.TableStatistics)
+	tm := c.GetTableByOID(rightTableOID)
+	samehada_util.DeepCopy(rightStats, tm.GetStatistics())
+	leftStats.Concat(rightStats)
+	return leftStats
+}
+
+func NewIndexJoinPlanNode(c *catalog.Catalog, leftChild Plan, leftKeys []expression.Expression, rightOutSchema *schema.Schema, rightTblOID uint32, rightKeys []expression.Expression) *IndexJoinPlanNode {
 	if leftKeys == nil || rightKeys == nil {
 		panic("NewIndexJoinPlanNode needs keys info.")
 	}
@@ -26,9 +37,7 @@ func NewIndexJoinPlanNode(leftChild Plan, leftKeys []expression.Expression, righ
 
 	outputSchema := makeMergedOutputSchema(leftChild.OutputSchema(), rightOutSchema)
 	onPredicate := constructOnExpressionFromKeysInfo(leftKeys, rightKeys)
-	var tmpStats *catalog.TableStatistics
-	// TODO: (SDB) [OPT] not implemented yet (NewIndexJoinPlanNode)
-	return &IndexJoinPlanNode{&AbstractPlanNode{outputSchema, []Plan{leftChild, nil}}, onPredicate, rightTblOID, rightOutSchema, tmpStats}
+	return &IndexJoinPlanNode{&AbstractPlanNode{outputSchema, []Plan{leftChild, nil}}, onPredicate, rightTblOID, rightOutSchema, GenIndexJoinStats(c, leftChild, rightTblOID)}
 }
 
 func (p *IndexJoinPlanNode) GetLeftPlan() Plan {

@@ -4,6 +4,7 @@ import (
 	"github.com/ryogrid/SamehadaDB/catalog"
 	"github.com/ryogrid/SamehadaDB/common"
 	"github.com/ryogrid/SamehadaDB/execution/expression"
+	"github.com/ryogrid/SamehadaDB/samehada/samehada_util"
 	"github.com/ryogrid/SamehadaDB/storage/table/schema"
 	"math"
 )
@@ -24,12 +25,19 @@ type HashJoinPlanNode struct {
 	stats_          *catalog.TableStatistics
 }
 
+func GenHashJoinStats(leftPlan Plan, rightPlan Plan) *catalog.TableStatistics {
+	leftStats := new(catalog.TableStatistics)
+	samehada_util.DeepCopy(leftStats, leftPlan.GetStatistics())
+	rightStats := new(catalog.TableStatistics)
+	samehada_util.DeepCopy(rightStats, rightPlan.GetStatistics())
+	leftStats.Concat(rightStats)
+	return leftStats
+}
+
 func NewHashJoinPlanNode(output_schema *schema.Schema, children []Plan,
 	onPredicate expression.Expression, left_hash_keys []expression.Expression,
 	right_hash_keys []expression.Expression) *HashJoinPlanNode {
-	var tmpStats *catalog.TableStatistics
-	// TODO: (SDB) [OPT] not implemented yet (NewHashJoinPlanNode)
-	return &HashJoinPlanNode{&AbstractPlanNode{output_schema, children}, onPredicate, left_hash_keys, right_hash_keys, tmpStats}
+	return &HashJoinPlanNode{&AbstractPlanNode{output_schema, children}, onPredicate, left_hash_keys, right_hash_keys, GenHashJoinStats(children[0], children[1])}
 }
 
 func NewHashJoinPlanNodeWithChilds(left_child Plan, left_hash_keys []expression.Expression, right_child Plan, right_hash_keys []expression.Expression) *HashJoinPlanNode {
