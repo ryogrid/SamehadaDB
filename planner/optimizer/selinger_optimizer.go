@@ -261,6 +261,7 @@ func (so *SelingerOptimizer) findBestScan(outNeededCols []*column.Column, where 
 		}
 		//targetIndex := from.GetIndex(candidates[key])
 		// Plan new_plan = IndexScanSelect(from, target_idx, stat, *span.min,*span.max, scan_exp, select);
+		// TODO: (SDB) [OPT] when span.Min == span.Max, PointScanWithIndexPlanNode should be used insted of Range one ? (SelingerOptimizer::findBestScan)
 		var newPlan = plans.NewRangeScanWithIndexPlanNode(c, sc, from.OID(), int32(key), nil, span.Min, span.Max)
 		// if (!TouchOnly(scan_exp, from.GetSchema().GetColumn(key).Name())) {
 		if !touchOnly(from, scanExp, sc.GetColumn(uint32(key)).GetColumnName()) {

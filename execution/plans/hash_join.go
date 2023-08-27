@@ -50,10 +50,7 @@ func NewHashJoinPlanNodeWithChilds(left_child Plan, left_hash_keys []expression.
 	onPredicate := constructOnExpressionFromKeysInfo(left_hash_keys, right_hash_keys)
 	output_schema := makeMergedOutputSchema(left_child.OutputSchema(), right_child.OutputSchema())
 
-	var tmpStats *catalog.TableStatistics
-	// TODO: (SDB) [OPT] not implemented yet (NewHashJoinPlanNodeWithChilds)
-
-	return &HashJoinPlanNode{&AbstractPlanNode{output_schema, []Plan{left_child, right_child}}, onPredicate, left_hash_keys, right_hash_keys, tmpStats}
+	return &HashJoinPlanNode{&AbstractPlanNode{output_schema, []Plan{left_child, right_child}}, onPredicate, left_hash_keys, right_hash_keys, GenHashJoinStats(left_child, right_child)}
 }
 func (p *HashJoinPlanNode) GetType() PlanType { return HashJoin }
 
