@@ -21,12 +21,15 @@ type HashJoinPlanNode struct {
 	left_hash_keys []expression.Expression
 	/** The right child's hash keys. */
 	right_hash_keys []expression.Expression
+	stats_          *catalog.TableStatistics
 }
 
 func NewHashJoinPlanNode(output_schema *schema.Schema, children []Plan,
 	onPredicate expression.Expression, left_hash_keys []expression.Expression,
 	right_hash_keys []expression.Expression) *HashJoinPlanNode {
-	return &HashJoinPlanNode{&AbstractPlanNode{output_schema, children}, onPredicate, left_hash_keys, right_hash_keys}
+	var tmpStats *catalog.TableStatistics
+	// TODO: (SDB) [OPT] not implemented yet (NewHashJoinPlanNode)
+	return &HashJoinPlanNode{&AbstractPlanNode{output_schema, children}, onPredicate, left_hash_keys, right_hash_keys, tmpStats}
 }
 
 func NewHashJoinPlanNodeWithChilds(left_child Plan, left_hash_keys []expression.Expression, right_child Plan, right_hash_keys []expression.Expression) *HashJoinPlanNode {
@@ -39,7 +42,10 @@ func NewHashJoinPlanNodeWithChilds(left_child Plan, left_hash_keys []expression.
 	onPredicate := constructOnExpressionFromKeysInfo(left_hash_keys, right_hash_keys)
 	output_schema := makeMergedOutputSchema(left_child.OutputSchema(), right_child.OutputSchema())
 
-	return &HashJoinPlanNode{&AbstractPlanNode{output_schema, []Plan{left_child, right_child}}, onPredicate, left_hash_keys, right_hash_keys}
+	var tmpStats *catalog.TableStatistics
+	// TODO: (SDB) [OPT] not implemented yet (NewHashJoinPlanNodeWithChilds)
+
+	return &HashJoinPlanNode{&AbstractPlanNode{output_schema, []Plan{left_child, right_child}}, onPredicate, left_hash_keys, right_hash_keys, tmpStats}
 }
 func (p *HashJoinPlanNode) GetType() PlanType { return HashJoin }
 
@@ -87,6 +93,10 @@ func (p *HashJoinPlanNode) AccessRowCount(c *catalog.Catalog) uint64 {
 func (p *HashJoinPlanNode) GetTreeInfoStr() string {
 	// TODO: (SDB) [OPT] not implemented yet (HashJoinPlanNode::GetTreeInfoStr)
 	panic("not implemented yet")
+}
+
+func (p *HashJoinPlanNode) GetStatistics() *catalog.TableStatistics {
+	return p.stats_
 }
 
 func (p *HashJoinPlanNode) EmitRowCount(c *catalog.Catalog) uint64 {

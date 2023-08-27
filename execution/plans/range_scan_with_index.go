@@ -6,6 +6,7 @@ package plans
 import (
 	"github.com/ryogrid/SamehadaDB/catalog"
 	"github.com/ryogrid/SamehadaDB/execution/expression"
+	"github.com/ryogrid/SamehadaDB/samehada/samehada_util"
 	"github.com/ryogrid/SamehadaDB/storage/table/schema"
 	"github.com/ryogrid/SamehadaDB/types"
 	"math"
@@ -21,10 +22,14 @@ type RangeScanWithIndexPlanNode struct {
 	colIdx     int32 // column idx which has index to be used
 	startRange *types.Value
 	endRange   *types.Value
+	stats_     *catalog.TableStatistics
 }
 
-func NewRangeScanWithIndexPlanNode(schema *schema.Schema, tableOID uint32, colIdx int32, predicate expression.Expression, startRange *types.Value, endRange *types.Value) Plan {
-	return &RangeScanWithIndexPlanNode{&AbstractPlanNode{schema, nil}, predicate, tableOID, colIdx, startRange, endRange}
+func NewRangeScanWithIndexPlanNode(c *catalog.Catalog, schema *schema.Schema, tableOID uint32, colIdx int32, predicate expression.Expression, startRange *types.Value, endRange *types.Value) Plan {
+	var tmpStats *catalog.TableStatistics
+	tm := c.GetTableByOID(tableOID)
+	samehada_util.DeepCopy(tmpStats, tm.GetStatistics())
+	return &RangeScanWithIndexPlanNode{&AbstractPlanNode{schema, nil}, predicate, tableOID, colIdx, startRange, endRange, tmpStats}
 }
 
 func (p *RangeScanWithIndexPlanNode) GetPredicate() expression.Expression {
@@ -63,4 +68,8 @@ func (p *RangeScanWithIndexPlanNode) EmitRowCount(c *catalog.Catalog) uint64 {
 func (p *RangeScanWithIndexPlanNode) GetTreeInfoStr() string {
 	// TODO: (SDB) [OPT] not implemented yet (RangeScanWithIndexPlanNode::GetTreeInfoStr)
 	panic("not implemented yet")
+}
+
+func (p *RangeScanWithIndexPlanNode) GetStatistics() *catalog.TableStatistics {
+	return p.stats_
 }

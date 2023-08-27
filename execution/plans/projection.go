@@ -2,16 +2,20 @@ package plans
 
 import (
 	"github.com/ryogrid/SamehadaDB/catalog"
+	"github.com/ryogrid/SamehadaDB/samehada/samehada_util"
 	"github.com/ryogrid/SamehadaDB/storage/table/schema"
 	"math"
 )
 
 type ProjectionPlanNode struct {
 	*AbstractPlanNode
+	stats_ *catalog.TableStatistics
 }
 
 func NewProjectionPlanNode(child Plan, projectColumns *schema.Schema) Plan {
-	return &ProjectionPlanNode{&AbstractPlanNode{projectColumns, []Plan{child}}}
+	var tmpStats *catalog.TableStatistics
+	samehada_util.DeepCopy(tmpStats, child.GetStatistics())
+	return &ProjectionPlanNode{&AbstractPlanNode{projectColumns, []Plan{child}}, tmpStats}
 }
 
 func (p *ProjectionPlanNode) GetType() PlanType {
@@ -33,4 +37,8 @@ func (p *ProjectionPlanNode) EmitRowCount(c *catalog.Catalog) uint64 {
 func (p *ProjectionPlanNode) GetTreeInfoStr() string {
 	// TODO: (SDB) [OPT] not implemented yet (ProjectionPlanNode::GetTreeInfoStr)
 	panic("not implemented yet")
+}
+
+func (p *ProjectionPlanNode) GetStatistics() *catalog.TableStatistics {
+	return p.stats_
 }

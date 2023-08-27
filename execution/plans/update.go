@@ -2,6 +2,7 @@ package plans
 
 import (
 	"github.com/ryogrid/SamehadaDB/catalog"
+	"github.com/ryogrid/SamehadaDB/samehada/samehada_util"
 	"github.com/ryogrid/SamehadaDB/types"
 )
 
@@ -12,6 +13,7 @@ type UpdatePlanNode struct {
 	*AbstractPlanNode
 	rawValues       []types.Value
 	update_col_idxs []int
+	stats_          *catalog.TableStatistics
 	//predicate       expression.Expression
 	//tableOID        uint32
 }
@@ -22,7 +24,9 @@ type UpdatePlanNode struct {
 // func NewUpdatePlanNode(rawValues []types.Value, update_col_idxs []int, predicate expression.Expression, oid uint32) Plan {
 func NewUpdatePlanNode(rawValues []types.Value, update_col_idxs []int, child Plan) Plan {
 	//return &UpdatePlanNode{&AbstractPlanNode{nil, nil}, rawValues, update_col_idxs, predicate, oid}
-	return &UpdatePlanNode{&AbstractPlanNode{nil, []Plan{child}}, rawValues, update_col_idxs}
+	var tmpStats *catalog.TableStatistics
+	samehada_util.DeepCopy(tmpStats, child.GetStatistics())
+	return &UpdatePlanNode{&AbstractPlanNode{nil, []Plan{child}}, rawValues, update_col_idxs, tmpStats}
 }
 
 func (p *UpdatePlanNode) GetTableOID() uint32 {
@@ -57,4 +61,8 @@ func (p *UpdatePlanNode) EmitRowCount(c *catalog.Catalog) uint64 {
 func (p *UpdatePlanNode) GetTreeInfoStr() string {
 	// TODO: (SDB) [OPT] not implemented yet (UpdatePlanNode::GetTreeInfoStr)
 	panic("not implemented yet")
+}
+
+func (p *UpdatePlanNode) GetStatistics() *catalog.TableStatistics {
+	return p.stats_
 }

@@ -322,3 +322,9 @@ func (ts *TableStatistics) Concat(rhs *TableStatistics) {
 		ts.colStats = append(ts.colStats, s)
 	}
 }
+
+func (ts *TableStatistics) Multiply(multiplier float64) {
+	for _, st := range ts.colStats {
+		st.Multiply(multiplier)
+	}
+}

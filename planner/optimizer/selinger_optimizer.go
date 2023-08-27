@@ -261,7 +261,7 @@ func (so *SelingerOptimizer) findBestScan(outNeededCols []*column.Column, where 
 		}
 		//targetIndex := from.GetIndex(candidates[key])
 		// Plan new_plan = IndexScanSelect(from, target_idx, stat, *span.min,*span.max, scan_exp, select);
-		var newPlan = plans.NewRangeScanWithIndexPlanNode(sc, from.OID(), int32(key), nil, span.Min, span.Max)
+		var newPlan = plans.NewRangeScanWithIndexPlanNode(c, sc, from.OID(), int32(key), nil, span.Min, span.Max)
 		// if (!TouchOnly(scan_exp, from.GetSchema().GetColumn(key).Name())) {
 		if !touchOnly(from, scanExp, sc.GetColumn(uint32(key)).GetColumnName()) {
 			//new_plan = std::make_shared<SelectionPlan>(new_plan, scan_exp, stat);
@@ -278,7 +278,7 @@ func (so *SelingerOptimizer) findBestScan(outNeededCols []*column.Column, where 
 	}
 
 	// Plan full_scan_plan(new FullScanPlan(from, stat));
-	fullScanPlan := plans.NewSeqScanPlanNode(sc, nil, from.OID())
+	fullScanPlan := plans.NewSeqScanPlanNode(c, sc, nil, from.OID())
 	if scanExp != nil {
 		// full_scan_plan = std::make_shared<SelectionPlan>(full_scan_plan, scan_exp, stat);
 		fullScanPlan = plans.NewSelectionPlanNode(fullScanPlan, scanExp)

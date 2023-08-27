@@ -48,6 +48,10 @@ func (p *InsertPlanNode) EmitRowCount(c *catalog.Catalog) uint64 {
 	return uint64(len(p.rawValues))
 }
 
+func (p *InsertPlanNode) GetStatistics() *catalog.TableStatistics {
+	panic("not collable!")
+}
+
 func (p *InsertPlanNode) GetTreeInfoStr() string {
 	// TODO: (SDB) [OPT] not implemented yet (InsertPlanNode::GetTreeInfoStr)
 	panic("not implemented yet")

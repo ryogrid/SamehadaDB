@@ -8,11 +8,20 @@ import (
 
 type NestedLoopJoinPlanNode struct {
 	*AbstractPlanNode
+	stats_ *catalog.TableStatistics
+}
+
+func NestedLoopJoinStats(leftPlan Plan, rightPlan Plan) *catalog.TableStatistics {
+	// TODO: (SDB) [OPT] not implemented yet (NestedLoopJoinStats)
+	return nil
 }
 
 // used only for Cross Join
 func NewNestedLoopJoinPlanNode(children []Plan) *NestedLoopJoinPlanNode {
-	return &NestedLoopJoinPlanNode{&AbstractPlanNode{makeMergedOutputSchema(children[0].OutputSchema(), children[1].OutputSchema()), children}}
+	// TODO: (SDB) [OPT] not implemented yet (NewNestedLoopJoinPlanNode)
+	return &NestedLoopJoinPlanNode{
+		&AbstractPlanNode{makeMergedOutputSchema(children[0].OutputSchema(), children[1].OutputSchema()), children},
+		NestedLoopJoinStats(children[0], children[1])}
 }
 
 func (p *NestedLoopJoinPlanNode) GetType() PlanType { return NestedLoopJoin }
@@ -39,6 +48,10 @@ func (p *NestedLoopJoinPlanNode) AccessRowCount(c *catalog.Catalog) uint64 {
 
 func (p *NestedLoopJoinPlanNode) EmitRowCount(c *catalog.Catalog) uint64 {
 	return p.GetLeftPlan().EmitRowCount(c) * p.GetRightPlan().EmitRowCount(c)
+}
+
+func (p *NestedLoopJoinPlanNode) GetStatistics() *catalog.TableStatistics {
+	return p.stats_
 }
 
 func (p *NestedLoopJoinPlanNode) GetTreeInfoStr() string {

@@ -6,6 +6,7 @@ package plans
 import (
 	"github.com/ryogrid/SamehadaDB/catalog"
 	"github.com/ryogrid/SamehadaDB/execution/expression"
+	"github.com/ryogrid/SamehadaDB/samehada/samehada_util"
 	"github.com/ryogrid/SamehadaDB/storage/table/schema"
 )
 
@@ -16,10 +17,14 @@ type SeqScanPlanNode struct {
 	*AbstractPlanNode
 	predicate expression.Expression
 	tableOID  uint32
+	stats_    *catalog.TableStatistics
 }
 
-func NewSeqScanPlanNode(schema *schema.Schema, predicate expression.Expression, tableOID uint32) Plan {
-	return &SeqScanPlanNode{&AbstractPlanNode{schema, nil}, predicate, tableOID}
+func NewSeqScanPlanNode(c *catalog.Catalog, schema *schema.Schema, predicate expression.Expression, tableOID uint32) Plan {
+	var tmpStats *catalog.TableStatistics
+	tm := c.GetTableByOID(tableOID)
+	samehada_util.DeepCopy(tmpStats, tm.GetStatistics())
+	return &SeqScanPlanNode{&AbstractPlanNode{schema, nil}, predicate, tableOID, tmpStats}
 }
 
 func (p *SeqScanPlanNode) GetPredicate() expression.Expression {
@@ -47,4 +52,8 @@ func (p *SeqScanPlanNode) EmitRowCount(c *catalog.Catalog) uint64 {
 func (p *SeqScanPlanNode) GetTreeInfoStr() string {
 	// TODO: (SDB) [OPT] not implemented yet (SeqScanPlanNode::GetTreeInfoStr)
 	panic("not implemented yet")
+}
+
+func (p *SeqScanPlanNode) GetStatistics() *catalog.TableStatistics {
+	return p.stats_
 }

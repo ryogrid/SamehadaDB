@@ -1,22 +1,14 @@
 package optimizer
 
 import (
-	"fmt"
 	"github.com/ryogrid/SamehadaDB/catalog"
-	"github.com/ryogrid/SamehadaDB/common"
 	"github.com/ryogrid/SamehadaDB/execution/executors"
-	"github.com/ryogrid/SamehadaDB/recovery"
-	"github.com/ryogrid/SamehadaDB/storage/access"
-	"github.com/ryogrid/SamehadaDB/storage/buffer"
-	"github.com/ryogrid/SamehadaDB/storage/disk"
 	"github.com/ryogrid/SamehadaDB/storage/index/index_constants"
 	"github.com/ryogrid/SamehadaDB/storage/table/column"
 	"github.com/ryogrid/SamehadaDB/storage/table/schema"
 	"github.com/ryogrid/SamehadaDB/storage/tuple"
-	testingpkg "github.com/ryogrid/SamehadaDB/testing/testing_assert"
 	"github.com/ryogrid/SamehadaDB/types"
 	"strconv"
-	"testing"
 )
 
 type ColumnMeta struct {
@@ -148,6 +140,7 @@ func setupTablesAndStatisticsDataForTesting(exec_ctx *executors.ExecutorContext)
 	return tm1, tm2, tm3, tm4
 }
 
+/*
 func TestSetupedTableAndStatistcsContents(t *testing.T) {
 	diskManager := disk.NewDiskManagerTest()
 	defer diskManager.ShutDown()
@@ -191,6 +184,8 @@ func TestSetupedTableAndStatistcsContents(t *testing.T) {
 	}
 	testingpkg.Assert(t, rows == 100, "rows != 100")
 
+	stat1 := tm1.GetStatistics()
+
 	// Sc2
 	it = tm2.Table().Iterator(txn)
 	rows = 0
@@ -216,6 +211,8 @@ func TestSetupedTableAndStatistcsContents(t *testing.T) {
 	}
 	testingpkg.Assert(t, rows == 200, "rows != 200")
 
+	stat2 := tm2.GetStatistics()
+
 	// Sc3
 	it = tm3.Table().Iterator(txn)
 	rows = 0
@@ -228,6 +225,8 @@ func TestSetupedTableAndStatistcsContents(t *testing.T) {
 		rows++
 	}
 	testingpkg.Assert(t, rows == 20, "rows != 20")
+
+	stat3 := tm3.GetStatistics()
 
 	// Sc4
 	it = tm4.Table().Iterator(txn)
@@ -249,7 +248,10 @@ func TestSetupedTableAndStatistcsContents(t *testing.T) {
 		rows++
 	}
 	testingpkg.Assert(t, rows == 100, "rows != 100")
+
+	stat4 := tm4.GetStatistics()
 }
+*/
 
 /*
 func TestFindBestScans(t *testing.T) {

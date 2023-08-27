@@ -73,7 +73,7 @@ func reconstructIndexDataOfATbl(t *catalog.TableMetadata, c *catalog.Catalog, dm
 			if allTuples == nil {
 				// get all tuples once
 				outSchema := t.Schema()
-				seqPlan := plans.NewSeqScanPlanNode(outSchema, nil, t.OID())
+				seqPlan := plans.NewSeqScanPlanNode(c, outSchema, nil, t.OID())
 				allTuples = executionEngine.Execute(seqPlan, executorContext)
 			}
 			for _, tuple_ := range allTuples {

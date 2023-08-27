@@ -4,6 +4,7 @@ import (
 	"github.com/ryogrid/SamehadaDB/catalog"
 	"github.com/ryogrid/SamehadaDB/common"
 	"github.com/ryogrid/SamehadaDB/execution/expression"
+	"github.com/ryogrid/SamehadaDB/samehada/samehada_util"
 	"github.com/ryogrid/SamehadaDB/storage/table/schema"
 	"github.com/ryogrid/SamehadaDB/types"
 	"math"
@@ -31,6 +32,7 @@ type AggregationPlanNode struct {
 	group_bys_  []expression.Expression
 	aggregates_ []expression.Expression
 	agg_types_  []AggregationType
+	stats_      *catalog.TableStatistics
 }
 
 /**
@@ -45,7 +47,9 @@ type AggregationPlanNode struct {
 func NewAggregationPlanNode(output_schema *schema.Schema, child Plan, having expression.Expression,
 	group_bys []expression.Expression,
 	aggregates []expression.Expression, agg_types []AggregationType) *AggregationPlanNode {
-	return &AggregationPlanNode{&AbstractPlanNode{output_schema, []Plan{child}}, having, group_bys, aggregates, agg_types}
+	var tmpStats *catalog.TableStatistics
+	samehada_util.DeepCopy(tmpStats, child.GetStatistics())
+	return &AggregationPlanNode{&AbstractPlanNode{output_schema, []Plan{child}}, having, group_bys, aggregates, agg_types, tmpStats}
 }
 
 func (p *AggregationPlanNode) GetType() PlanType { return Aggregation }
@@ -101,6 +105,10 @@ func (p *AggregationPlanNode) EmitRowCount(c *catalog.Catalog) uint64 {
 func (p *AggregationPlanNode) GetTreeInfoStr() string {
 	// TODO: (SDB) [OPT] not implemented yet (AggregationPlanNode::GetTreeInfoStr)
 	panic("not implemented yet")
+}
+
+func (p *AggregationPlanNode) GetStatistics() *catalog.TableStatistics {
+	return p.stats_
 }
 
 type AggregateKey struct {

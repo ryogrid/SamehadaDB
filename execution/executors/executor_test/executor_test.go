@@ -68,7 +68,7 @@ func TestSimpleInsertAndSeqScan(t *testing.T) {
 	outColumnA := column.NewColumn("a", types.Integer, false, index_constants.INDEX_KIND_INVALID, types.PageID(-1), nil)
 	outSchema := schema.NewSchema([]*column.Column{outColumnA})
 
-	seqPlan := plans.NewSeqScanPlanNode(outSchema, nil, tableMetadata.OID())
+	seqPlan := plans.NewSeqScanPlanNode(c, outSchema, nil, tableMetadata.OID())
 
 	results := executionEngine.Execute(seqPlan, executorContext)
 
@@ -117,7 +117,7 @@ func TestSimpleInsertAndSeqScanFloat(t *testing.T) {
 	outColumnA := column.NewColumn("a", types.Float, false, index_constants.INDEX_KIND_INVALID, types.PageID(-1), nil)
 	outSchema := schema.NewSchema([]*column.Column{outColumnA})
 
-	seqPlan := plans.NewSeqScanPlanNode(outSchema, nil, tableMetadata.OID())
+	seqPlan := plans.NewSeqScanPlanNode(c, outSchema, nil, tableMetadata.OID())
 
 	results := executionEngine.Execute(seqPlan, executorContext)
 
@@ -370,7 +370,7 @@ func TestSimpleInsertAndLimitExecution(t *testing.T) {
 		a := column.NewColumn("a", types.Integer, false, index_constants.INDEX_KIND_INVALID, types.PageID(-1), nil)
 		b := column.NewColumn("b", types.Integer, false, index_constants.INDEX_KIND_INVALID, types.PageID(-1), nil)
 		outSchema := schema.NewSchema([]*column.Column{a, b})
-		seqPlan := plans.NewSeqScanPlanNode(outSchema, nil, tableMetadata.OID())
+		seqPlan := plans.NewSeqScanPlanNode(c, outSchema, nil, tableMetadata.OID())
 		limitPlan := plans.NewLimitPlanNode(seqPlan, 1, 1)
 
 		results := executionEngine.Execute(limitPlan, executorContext)
@@ -385,7 +385,7 @@ func TestSimpleInsertAndLimitExecution(t *testing.T) {
 		a := column.NewColumn("a", types.Integer, false, index_constants.INDEX_KIND_INVALID, types.PageID(-1), nil)
 		b := column.NewColumn("b", types.Integer, false, index_constants.INDEX_KIND_INVALID, types.PageID(-1), nil)
 		outSchema := schema.NewSchema([]*column.Column{a, b})
-		seqPlan := plans.NewSeqScanPlanNode(outSchema, nil, tableMetadata.OID())
+		seqPlan := plans.NewSeqScanPlanNode(c, outSchema, nil, tableMetadata.OID())
 		limitPlan := plans.NewLimitPlanNode(seqPlan, 2, 0)
 
 		results := executionEngine.Execute(limitPlan, executorContext)
@@ -398,7 +398,7 @@ func TestSimpleInsertAndLimitExecution(t *testing.T) {
 		a := column.NewColumn("a", types.Integer, false, index_constants.INDEX_KIND_INVALID, types.PageID(-1), nil)
 		b := column.NewColumn("b", types.Integer, false, index_constants.INDEX_KIND_INVALID, types.PageID(-1), nil)
 		outSchema := schema.NewSchema([]*column.Column{a, b})
-		seqPlan := plans.NewSeqScanPlanNode(outSchema, nil, tableMetadata.OID())
+		seqPlan := plans.NewSeqScanPlanNode(c, outSchema, nil, tableMetadata.OID())
 		limitPlan := plans.NewLimitPlanNode(seqPlan, 3, 0)
 
 		results := executionEngine.Execute(limitPlan, executorContext)
@@ -496,7 +496,7 @@ func TestSimpleInsertAndLimitExecutionMultiTable(t *testing.T) {
 		a := column.NewColumn("a", types.Integer, false, index_constants.INDEX_KIND_INVALID, types.PageID(-1), nil)
 		b := column.NewColumn("b", types.Integer, false, index_constants.INDEX_KIND_INVALID, types.PageID(-1), nil)
 		outSchema := schema.NewSchema([]*column.Column{a, b})
-		seqPlan := plans.NewSeqScanPlanNode(outSchema, nil, tableMetadata.OID())
+		seqPlan := plans.NewSeqScanPlanNode(c, outSchema, nil, tableMetadata.OID())
 		limitPlan := plans.NewLimitPlanNode(seqPlan, 1, 1)
 
 		results := executionEngine.Execute(limitPlan, executorContext)
@@ -511,7 +511,7 @@ func TestSimpleInsertAndLimitExecutionMultiTable(t *testing.T) {
 		a := column.NewColumn("a", types.Integer, false, index_constants.INDEX_KIND_INVALID, types.PageID(-1), nil)
 		b := column.NewColumn("b", types.Integer, false, index_constants.INDEX_KIND_INVALID, types.PageID(-1), nil)
 		outSchema := schema.NewSchema([]*column.Column{a, b})
-		seqPlan := plans.NewSeqScanPlanNode(outSchema, nil, tableMetadata.OID())
+		seqPlan := plans.NewSeqScanPlanNode(c, outSchema, nil, tableMetadata.OID())
 		limitPlan := plans.NewLimitPlanNode(seqPlan, 2, 0)
 
 		results := executionEngine.Execute(limitPlan, executorContext)
@@ -524,7 +524,7 @@ func TestSimpleInsertAndLimitExecutionMultiTable(t *testing.T) {
 		a := column.NewColumn("a", types.Integer, false, index_constants.INDEX_KIND_INVALID, types.PageID(-1), nil)
 		b := column.NewColumn("b", types.Integer, false, index_constants.INDEX_KIND_INVALID, types.PageID(-1), nil)
 		outSchema := schema.NewSchema([]*column.Column{a, b})
-		seqPlan := plans.NewSeqScanPlanNode(outSchema, nil, tableMetadata2.OID())
+		seqPlan := plans.NewSeqScanPlanNode(c, outSchema, nil, tableMetadata2.OID())
 		limitPlan := plans.NewLimitPlanNode(seqPlan, 1, 1)
 
 		results := executionEngine.Execute(limitPlan, executorContext)
@@ -539,7 +539,7 @@ func TestSimpleInsertAndLimitExecutionMultiTable(t *testing.T) {
 		a := column.NewColumn("a", types.Integer, false, index_constants.INDEX_KIND_INVALID, types.PageID(-1), nil)
 		b := column.NewColumn("b", types.Integer, false, index_constants.INDEX_KIND_INVALID, types.PageID(-1), nil)
 		outSchema := schema.NewSchema([]*column.Column{a, b})
-		seqPlan := plans.NewSeqScanPlanNode(outSchema, nil, tableMetadata2.OID())
+		seqPlan := plans.NewSeqScanPlanNode(c, outSchema, nil, tableMetadata2.OID())
 		limitPlan := plans.NewLimitPlanNode(seqPlan, 3, 0)
 
 		results := executionEngine.Execute(limitPlan, executorContext)
@@ -962,7 +962,7 @@ func TestSimpleInsertAndUpdate(t *testing.T) {
 	tmpColVal.SetColIndex(tableMetadata.Schema().GetColIndex(pred.LeftColumn))
 	expression_ := expression.NewComparison(tmpColVal, expression.NewConstantValue(testing_util.GetValue(pred.RightColumn), testing_util.GetValueType(pred.LeftColumn)), pred.Operator, types.Boolean)
 
-	seqScanPlan := plans.NewSeqScanPlanNode(tableMetadata.Schema(), expression_, tableMetadata.OID())
+	seqScanPlan := plans.NewSeqScanPlanNode(c, tableMetadata.Schema(), expression_, tableMetadata.OID())
 	updatePlanNode := plans.NewUpdatePlanNode(row1, []int{0, 1}, seqScanPlan)
 	executionEngine.Execute(updatePlanNode, executorContext)
 
@@ -980,7 +980,7 @@ func TestSimpleInsertAndUpdate(t *testing.T) {
 	tmpColVal.SetColIndex(tableMetadata.Schema().GetColIndex(pred.LeftColumn))
 	expression_ = expression.NewComparison(tmpColVal, expression.NewConstantValue(testing_util.GetValue(pred.RightColumn), testing_util.GetValueType(pred.RightColumn)), pred.Operator, types.Boolean)
 
-	seqPlan := plans.NewSeqScanPlanNode(outSchema, expression_, tableMetadata.OID())
+	seqPlan := plans.NewSeqScanPlanNode(c, outSchema, expression_, tableMetadata.OID())
 	results := executionEngine.Execute(seqPlan, executorContext)
 
 	txn_mgr.Commit(nil, txn)
@@ -1038,7 +1038,7 @@ func TestInsertUpdateMix(t *testing.T) {
 	tmpColVal.SetColIndex(tableMetadata.Schema().GetColIndex(pred.LeftColumn))
 	expression_ := expression.NewComparison(tmpColVal, expression.NewConstantValue(testing_util.GetValue(pred.RightColumn), testing_util.GetValueType(pred.RightColumn)), pred.Operator, types.Boolean)
 
-	seqScanPlan := plans.NewSeqScanPlanNode(tableMetadata.Schema(), expression_, tableMetadata.OID())
+	seqScanPlan := plans.NewSeqScanPlanNode(c, tableMetadata.Schema(), expression_, tableMetadata.OID())
 	updatePlanNode := plans.NewUpdatePlanNode(row1, []int{0, 1}, seqScanPlan)
 	executionEngine.Execute(updatePlanNode, executorContext)
 
@@ -1056,7 +1056,7 @@ func TestInsertUpdateMix(t *testing.T) {
 	tmpColVal.SetColIndex(tableMetadata.Schema().GetColIndex(pred.LeftColumn))
 	expression_ = expression.NewComparison(tmpColVal, expression.NewConstantValue(testing_util.GetValue(pred.RightColumn), testing_util.GetValueType(pred.RightColumn)), pred.Operator, types.Boolean)
 
-	seqPlan := plans.NewSeqScanPlanNode(outSchema, expression_, tableMetadata.OID())
+	seqPlan := plans.NewSeqScanPlanNode(c, outSchema, expression_, tableMetadata.OID())
 	results := executionEngine.Execute(seqPlan, executorContext)
 
 	txn_mgr.Commit(nil, txn)
@@ -1097,7 +1097,7 @@ func TestInsertUpdateMix(t *testing.T) {
 	tmpColVal.SetColIndex(tableMetadata.Schema().GetColIndex(pred.LeftColumn))
 	expression_ = expression.NewComparison(tmpColVal, expression.NewConstantValue(testing_util.GetValue(pred.RightColumn), testing_util.GetValueType(pred.RightColumn)), pred.Operator, types.Boolean)
 
-	seqPlan = plans.NewSeqScanPlanNode(outSchema, expression_, tableMetadata.OID())
+	seqPlan = plans.NewSeqScanPlanNode(c, outSchema, expression_, tableMetadata.OID())
 	results = executionEngine.Execute(seqPlan, executorContext)
 
 	txn_mgr.Commit(nil, txn)
@@ -1161,7 +1161,7 @@ func TestAbortWIthDeleteUpdate(t *testing.T) {
 	tmpColVal.SetColIndex(tableMetadata.Schema().GetColIndex(pred.LeftColumn))
 	expression_ := expression.NewComparison(tmpColVal, expression.NewConstantValue(testing_util.GetValue(pred.RightColumn), testing_util.GetValueType(pred.RightColumn)), pred.Operator, types.Boolean)
 
-	seqScanPlan := plans.NewSeqScanPlanNode(tableMetadata.Schema(), expression_, tableMetadata.OID())
+	seqScanPlan := plans.NewSeqScanPlanNode(c, tableMetadata.Schema(), expression_, tableMetadata.OID())
 	updatePlanNode := plans.NewUpdatePlanNode(row1, []int{0, 1}, seqScanPlan)
 	executionEngine.Execute(updatePlanNode, executorContext)
 
@@ -1172,7 +1172,7 @@ func TestAbortWIthDeleteUpdate(t *testing.T) {
 	tmpColVal.SetColIndex(tableMetadata.Schema().GetColIndex(pred.LeftColumn))
 	expression_ = expression.NewComparison(tmpColVal, expression.NewConstantValue(testing_util.GetValue(pred.RightColumn), testing_util.GetValueType(pred.RightColumn)), pred.Operator, types.Boolean)
 
-	childSeqScanP := plans.NewSeqScanPlanNode(tableMetadata.Schema(), expression_, tableMetadata.OID())
+	childSeqScanP := plans.NewSeqScanPlanNode(c, tableMetadata.Schema(), expression_, tableMetadata.OID())
 	deletePlanNode := plans.NewDeletePlanNode(childSeqScanP)
 	executionEngine.Execute(deletePlanNode, executorContext)
 
@@ -1190,7 +1190,7 @@ func TestAbortWIthDeleteUpdate(t *testing.T) {
 	tmpColVal.SetColIndex(tableMetadata.Schema().GetColIndex(pred.LeftColumn))
 	expression_ = expression.NewComparison(tmpColVal, expression.NewConstantValue(testing_util.GetValue(pred.RightColumn), testing_util.GetValueType(pred.RightColumn)), pred.Operator, types.Boolean)
 
-	seqPlan := plans.NewSeqScanPlanNode(outSchema, expression_, tableMetadata.OID())
+	seqPlan := plans.NewSeqScanPlanNode(c, outSchema, expression_, tableMetadata.OID())
 	results := executionEngine.Execute(seqPlan, executorContext)
 
 	testingpkg.Assert(t, types.NewVarchar("updated").CompareEquals(results[0].GetValue(outSchema, 0)), "value should be 'updated'")
@@ -1205,7 +1205,7 @@ func TestAbortWIthDeleteUpdate(t *testing.T) {
 	tmpColVal.SetColIndex(tableMetadata.Schema().GetColIndex(pred.LeftColumn))
 	expression_ = expression.NewComparison(tmpColVal, expression.NewConstantValue(testing_util.GetValue(pred.RightColumn), testing_util.GetValueType(pred.RightColumn)), pred.Operator, types.Boolean)
 
-	seqPlan = plans.NewSeqScanPlanNode(outSchema, expression_, tableMetadata.OID())
+	seqPlan = plans.NewSeqScanPlanNode(c, outSchema, expression_, tableMetadata.OID())
 	results = executionEngine.Execute(seqPlan, executorContext)
 
 	// TODO: this assertion is comment-outed due to temporal modification of testee for passing TestUniqSkipListPrallelTxnStrideInteger
@@ -1229,7 +1229,7 @@ func TestAbortWIthDeleteUpdate(t *testing.T) {
 	tmpColVal.SetColIndex(tableMetadata.Schema().GetColIndex(pred.LeftColumn))
 	expression_ = expression.NewComparison(tmpColVal, expression.NewConstantValue(testing_util.GetValue(pred.RightColumn), testing_util.GetValueType(pred.RightColumn)), pred.Operator, types.Boolean)
 
-	seqPlan = plans.NewSeqScanPlanNode(outSchema, expression_, tableMetadata.OID())
+	seqPlan = plans.NewSeqScanPlanNode(c, outSchema, expression_, tableMetadata.OID())
 	results = executionEngine.Execute(seqPlan, executorContext)
 
 	testingpkg.Assert(t, types.NewVarchar("foo").CompareEquals(results[0].GetValue(outSchema, 0)), "value should be 'foo'")
@@ -1244,7 +1244,7 @@ func TestAbortWIthDeleteUpdate(t *testing.T) {
 	tmpColVal.SetColIndex(tableMetadata.Schema().GetColIndex(pred.LeftColumn))
 	expression_ = expression.NewComparison(tmpColVal, expression.NewConstantValue(testing_util.GetValue(pred.RightColumn), testing_util.GetValueType(pred.RightColumn)), pred.Operator, types.Boolean)
 
-	seqPlan = plans.NewSeqScanPlanNode(outSchema, expression_, tableMetadata.OID())
+	seqPlan = plans.NewSeqScanPlanNode(c, outSchema, expression_, tableMetadata.OID())
 	results = executionEngine.Execute(seqPlan, executorContext)
 
 	testingpkg.Assert(t, len(results) == 1, "")
@@ -1303,7 +1303,7 @@ func TestSimpleHashJoin(t *testing.T) {
 		colA := column.NewColumn("test_1.colA", types.Integer, false, index_constants.INDEX_KIND_INVALID, types.PageID(-1), nil)
 		colB := column.NewColumn("test_1.colB", types.Integer, false, index_constants.INDEX_KIND_INVALID, types.PageID(-1), nil)
 		out_schema1 = schema.NewSchema([]*column.Column{colA, colB})
-		scan_plan1 = plans.NewSeqScanPlanNode(out_schema1, nil, table_info.OID())
+		scan_plan1 = plans.NewSeqScanPlanNode(c, out_schema1, nil, table_info.OID())
 	}
 	var scan_plan2 plans.Plan
 	var out_schema2 *schema.Schema
@@ -1313,7 +1313,7 @@ func TestSimpleHashJoin(t *testing.T) {
 		col1 := column.NewColumn("test_2.col1", types.Integer, false, index_constants.INDEX_KIND_INVALID, types.PageID(-1), nil)
 		col2 := column.NewColumn("test_2.col2", types.Integer, false, index_constants.INDEX_KIND_INVALID, types.PageID(-1), nil)
 		out_schema2 = schema.NewSchema([]*column.Column{col1, col2})
-		scan_plan2 = plans.NewSeqScanPlanNode(out_schema2, nil, table_info.OID())
+		scan_plan2 = plans.NewSeqScanPlanNode(c, out_schema2, nil, table_info.OID())
 	}
 	var join_plan *plans.HashJoinPlanNode
 	var out_final *schema.Schema
@@ -1407,7 +1407,7 @@ func TestSimpleNestedLoopJoin(t *testing.T) {
 		colA := column.NewColumn("test_1.colA", types.Integer, false, index_constants.INDEX_KIND_INVALID, types.PageID(-1), nil)
 		colB := column.NewColumn("test_1.colB", types.Integer, false, index_constants.INDEX_KIND_INVALID, types.PageID(-1), nil)
 		out_schema1 = schema.NewSchema([]*column.Column{colA, colB})
-		scan_plan1 = plans.NewSeqScanPlanNode(out_schema1, nil, table_info.OID())
+		scan_plan1 = plans.NewSeqScanPlanNode(c, out_schema1, nil, table_info.OID())
 	}
 	var scan_plan2 plans.Plan
 	var out_schema2 *schema.Schema
@@ -1417,7 +1417,7 @@ func TestSimpleNestedLoopJoin(t *testing.T) {
 		col1 := column.NewColumn("test_2.col1", types.Integer, false, index_constants.INDEX_KIND_INVALID, types.PageID(-1), nil)
 		col2 := column.NewColumn("test_2.col2", types.Integer, false, index_constants.INDEX_KIND_INVALID, types.PageID(-1), nil)
 		out_schema2 = schema.NewSchema([]*column.Column{col1, col2})
-		scan_plan2 = plans.NewSeqScanPlanNode(out_schema2, nil, table_info.OID())
+		scan_plan2 = plans.NewSeqScanPlanNode(c, out_schema2, nil, table_info.OID())
 	}
 	join_plan := plans.NewNestedLoopJoinPlanNode([]plans.Plan{scan_plan1, scan_plan2})
 
@@ -1486,7 +1486,7 @@ func TestSimpleIndexJoin(t *testing.T) {
 		colA := column.NewColumn("test_1.colA", types.Integer, false, index_constants.INDEX_KIND_INVALID, types.PageID(-1), nil)
 		colB := column.NewColumn("test_1.colB", types.Integer, false, index_constants.INDEX_KIND_INVALID, types.PageID(-1), nil)
 		out_schema1 = schema.NewSchema([]*column.Column{colA, colB})
-		scan_plan1 = plans.NewSeqScanPlanNode(out_schema1, nil, table_info.OID())
+		scan_plan1 = plans.NewSeqScanPlanNode(c, out_schema1, nil, table_info.OID())
 	}
 	var scan_plan2 plans.Plan
 	var out_schema2 *schema.Schema
@@ -1496,7 +1496,7 @@ func TestSimpleIndexJoin(t *testing.T) {
 		col1 := column.NewColumn("test_2.col1", types.Integer, false, index_constants.INDEX_KIND_INVALID, types.PageID(-1), nil)
 		col2 := column.NewColumn("test_2.col2", types.Integer, false, index_constants.INDEX_KIND_INVALID, types.PageID(-1), nil)
 		out_schema2 = schema.NewSchema([]*column.Column{col1, col2})
-		scan_plan2 = plans.NewSeqScanPlanNode(out_schema2, nil, table_info.OID())
+		scan_plan2 = plans.NewSeqScanPlanNode(c, out_schema2, nil, table_info.OID())
 	}
 
 	var join_plan *plans.IndexJoinPlanNode
@@ -1703,7 +1703,7 @@ func rowInsertTransaction(t *testing.T, shi *samehada.SamehadaInstance, c *catal
 
 func deleteAllRowTransaction(t *testing.T, shi *samehada.SamehadaInstance, c *catalog.Catalog, tm *catalog.TableMetadata, master_ch chan int32) {
 	txn := shi.GetTransactionManager().Begin(nil)
-	childSeqScanPlan := plans.NewSeqScanPlanNode(tm.Schema(), nil, tm.OID())
+	childSeqScanPlan := plans.NewSeqScanPlanNode(c, tm.Schema(), nil, tm.OID())
 	deletePlan := plans.NewDeletePlanNode(childSeqScanPlan)
 
 	executionEngine := &executors.ExecutionEngine{}
@@ -1720,7 +1720,7 @@ func selectAllRowTransaction(t *testing.T, shi *samehada.SamehadaInstance, c *ca
 	outColumnA := column.NewColumn("a", types.Integer, false, index_constants.INDEX_KIND_INVALID, types.PageID(-1), nil)
 	outSchema := schema.NewSchema([]*column.Column{outColumnA})
 
-	seqPlan := plans.NewSeqScanPlanNode(outSchema, nil, tm.OID())
+	seqPlan := plans.NewSeqScanPlanNode(c, outSchema, nil, tm.OID())
 	executionEngine := &executors.ExecutionEngine{}
 	executorContext := executors.NewExecutorContext(c, shi.GetBufferPoolManager(), txn)
 
@@ -1908,7 +1908,7 @@ func TestSimpleAggregation(t *testing.T) {
 		schema_ := table_info.Schema()
 		colA := expression.MakeColumnValueExpression(schema_, 0, "test_1.colA").(*expression.ColumnValue)
 		scan_schema = testing_tbl_gen.MakeOutputSchema([]testing_tbl_gen.MakeSchemaMeta{{"test_1.colA", *colA}})
-		scan_plan = plans.NewSeqScanPlanNode(scan_schema, nil, table_info.OID()).(*plans.SeqScanPlanNode)
+		scan_plan = plans.NewSeqScanPlanNode(c, scan_schema, nil, table_info.OID()).(*plans.SeqScanPlanNode)
 	}
 
 	var agg_plan *plans.AggregationPlanNode
@@ -1983,7 +1983,7 @@ func TestSimpleGroupByAggregation(t *testing.T) {
 		colB := expression.MakeColumnValueExpression(schema_, 0, "colB").(*expression.ColumnValue)
 		colC := expression.MakeColumnValueExpression(schema_, 0, "colC").(*expression.ColumnValue)
 		scan_schema = testing_tbl_gen.MakeOutputSchema([]testing_tbl_gen.MakeSchemaMeta{{"colA", *colA}, {"colB", *colB}, {"colC", *colC}})
-		scan_plan = plans.NewSeqScanPlanNode(scan_schema, nil, table_info.OID()).(*plans.SeqScanPlanNode)
+		scan_plan = plans.NewSeqScanPlanNode(c, scan_schema, nil, table_info.OID()).(*plans.SeqScanPlanNode)
 	}
 
 	var agg_plan *plans.AggregationPlanNode
@@ -2090,7 +2090,7 @@ func TestSeqScanWithMultiItemPredicate(t *testing.T) {
 		root_pred := expression.NewLogicalOp(left_side_pred, right_side_pred, expression.OR, types.Boolean)
 
 		scan_schema = testing_tbl_gen.MakeOutputSchema([]testing_tbl_gen.MakeSchemaMeta{{"colA", *colA_val}, {"colB", *colB_val}, {"colC", *colC_val}})
-		scan_plan = plans.NewSeqScanPlanNode(scan_schema, root_pred, table_info.OID()).(*plans.SeqScanPlanNode)
+		scan_plan = plans.NewSeqScanPlanNode(c, scan_schema, root_pred, table_info.OID()).(*plans.SeqScanPlanNode)
 	}
 
 	executionEngine := &executors.ExecutionEngine{}
@@ -2167,7 +2167,7 @@ func TestInsertAndSpecifiedColumnUpdate(t *testing.T) {
 	tmpColVal.SetColIndex(tableMetadata.Schema().GetColIndex(pred.LeftColumn))
 	expression_ := expression.NewComparison(tmpColVal, expression.NewConstantValue(testing_util.GetValue(pred.RightColumn), testing_util.GetValueType(pred.LeftColumn)), pred.Operator, types.Boolean)
 
-	seqScanPlan := plans.NewSeqScanPlanNode(tableMetadata.Schema(), expression_, tableMetadata.OID())
+	seqScanPlan := plans.NewSeqScanPlanNode(c, tableMetadata.Schema(), expression_, tableMetadata.OID())
 	updatePlanNode := plans.NewUpdatePlanNode(row1, []int{1}, seqScanPlan)
 	executionEngine.Execute(updatePlanNode, executorContext)
 
@@ -2187,7 +2187,7 @@ func TestInsertAndSpecifiedColumnUpdate(t *testing.T) {
 	tmpColVal.SetColIndex(tableMetadata.Schema().GetColIndex(pred.LeftColumn))
 	expression_ = expression.NewComparison(tmpColVal, expression.NewConstantValue(testing_util.GetValue(pred.RightColumn), testing_util.GetValueType(pred.RightColumn)), pred.Operator, types.Boolean)
 
-	seqPlan := plans.NewSeqScanPlanNode(outSchema, expression_, tableMetadata.OID())
+	seqPlan := plans.NewSeqScanPlanNode(c, outSchema, expression_, tableMetadata.OID())
 	results := executionEngine.Execute(seqPlan, executorContext)
 
 	//lock_mgr.PrintLockTables()
@@ -2254,7 +2254,7 @@ func TestInsertAndSpecifiedColumnUpdatePageMoveCase(t *testing.T) {
 	tmpColVal.SetColIndex(tableMetadata.Schema().GetColIndex(pred.LeftColumn))
 	expression_ := expression.NewComparison(tmpColVal, expression.NewConstantValue(testing_util.GetValue(pred.RightColumn), testing_util.GetValueType(pred.LeftColumn)), pred.Operator, types.Boolean)
 
-	seqScanPlan := plans.NewSeqScanPlanNode(tableMetadata.Schema(), expression_, tableMetadata.OID())
+	seqScanPlan := plans.NewSeqScanPlanNode(c, tableMetadata.Schema(), expression_, tableMetadata.OID())
 	updatePlanNode := plans.NewUpdatePlanNode(row, []int{1}, seqScanPlan)
 	executionEngine.Execute(updatePlanNode, executorContext)
 
@@ -2274,7 +2274,7 @@ func TestInsertAndSpecifiedColumnUpdatePageMoveCase(t *testing.T) {
 	tmpColVal.SetColIndex(tableMetadata.Schema().GetColIndex(pred.LeftColumn))
 	expression_ = expression.NewComparison(tmpColVal, expression.NewConstantValue(testing_util.GetValue(pred.RightColumn), testing_util.GetValueType(pred.RightColumn)), pred.Operator, types.Boolean)
 
-	seqPlan := plans.NewSeqScanPlanNode(outSchema, expression_, tableMetadata.OID())
+	seqPlan := plans.NewSeqScanPlanNode(c, outSchema, expression_, tableMetadata.OID())
 	results := executionEngine.Execute(seqPlan, executorContext)
 
 	txn_mgr.Commit(nil, txn)
@@ -2347,7 +2347,7 @@ func TestInsertAndSpecifiedColumnUpdatePageMoveRecovery(t *testing.T) {
 	tmpColVal.SetColIndex(tableMetadata.Schema().GetColIndex(pred.LeftColumn))
 	expression_ := expression.NewComparison(tmpColVal, expression.NewConstantValue(testing_util.GetValue(pred.RightColumn), testing_util.GetValueType(pred.LeftColumn)), pred.Operator, types.Boolean)
 
-	seqScanPlan := plans.NewSeqScanPlanNode(tableMetadata.Schema(), expression_, tableMetadata.OID())
+	seqScanPlan := plans.NewSeqScanPlanNode(c, tableMetadata.Schema(), expression_, tableMetadata.OID())
 	updatePlanNode := plans.NewUpdatePlanNode(row, []int{0, 1}, seqScanPlan)
 	executionEngine.Execute(updatePlanNode, executorContext)
 
@@ -2395,7 +2395,7 @@ func TestInsertAndSpecifiedColumnUpdatePageMoveRecovery(t *testing.T) {
 	tmpColVal.SetColIndex(tableMetadata.Schema().GetColIndex(pred.LeftColumn))
 	expression_ = expression.NewComparison(tmpColVal, expression.NewConstantValue(testing_util.GetValue(pred.RightColumn), testing_util.GetValueType(pred.LeftColumn)), pred.Operator, types.Boolean)
 
-	seqPlan := plans.NewSeqScanPlanNode(outSchema, expression_, tableMetadata.OID())
+	seqPlan := plans.NewSeqScanPlanNode(c, outSchema, expression_, tableMetadata.OID())
 	results := executionEngine.Execute(seqPlan, executorContext)
 	testingpkg.Assert(t, len(results) == 0, "updated value should not be exist")
 
@@ -2407,7 +2407,7 @@ func TestInsertAndSpecifiedColumnUpdatePageMoveRecovery(t *testing.T) {
 	tmpColVal.SetColIndex(tableMetadata.Schema().GetColIndex(pred.LeftColumn))
 	expression_ = expression.NewComparison(tmpColVal, expression.NewConstantValue(testing_util.GetValue(pred.RightColumn), testing_util.GetValueType(pred.RightColumn)), pred.Operator, types.Boolean)
 
-	seqPlan = plans.NewSeqScanPlanNode(outSchema, expression_, tableMetadata.OID())
+	seqPlan = plans.NewSeqScanPlanNode(c, outSchema, expression_, tableMetadata.OID())
 	results = executionEngine.Execute(seqPlan, executorContext)
 
 	testingpkg.Assert(t, types.NewInteger(99).CompareEquals(results[0].GetValue(outSchema, 0)), "value should be 99")
@@ -2484,7 +2484,7 @@ func TestInsertAndSpecifiedColumnUpdatePageMoveOccurOnRecovery(t *testing.T) {
 	row = append(row, types.NewInteger(180))
 	row = append(row, types.NewVarchar("kkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkka")) //target column
 
-	seqScanPlan := plans.NewSeqScanPlanNode(tableMetadata.Schema(), expression_, tableMetadata.OID())
+	seqScanPlan := plans.NewSeqScanPlanNode(c, tableMetadata.Schema(), expression_, tableMetadata.OID())
 	updatePlanNode := plans.NewUpdatePlanNode(row, []int{0, 1}, seqScanPlan)
 	executionEngine.Execute(updatePlanNode, executorContext)
 
@@ -2498,7 +2498,7 @@ func TestInsertAndSpecifiedColumnUpdatePageMoveOccurOnRecovery(t *testing.T) {
 	row = append(row, types.NewInteger(300))
 	row = append(row, types.NewVarchar("k")) //target column
 
-	seqScanPlan = plans.NewSeqScanPlanNode(tableMetadata.Schema(), expression_, tableMetadata.OID())
+	seqScanPlan = plans.NewSeqScanPlanNode(c, tableMetadata.Schema(), expression_, tableMetadata.OID())
 	updatePlanNode = plans.NewUpdatePlanNode(row, []int{0, 1}, seqScanPlan)
 	executionEngine.Execute(updatePlanNode, executorContext)
 
@@ -2568,7 +2568,7 @@ func TestInsertAndSpecifiedColumnUpdatePageMoveOccurOnRecovery(t *testing.T) {
 	tmpColVal.SetColIndex(tableMetadata.Schema().GetColIndex(pred.LeftColumn))
 	expression_ = expression.NewComparison(tmpColVal, expression.NewConstantValue(testing_util.GetValue(pred.RightColumn), testing_util.GetValueType(pred.LeftColumn)), pred.Operator, types.Boolean)
 
-	seqPlan := plans.NewSeqScanPlanNode(outSchema, expression_, tableMetadata.OID())
+	seqPlan := plans.NewSeqScanPlanNode(c, outSchema, expression_, tableMetadata.OID())
 	results := executionEngine.Execute(seqPlan, executorContext)
 	testingpkg.Assert(t, len(results) == 0, "updated value should not be exist")
 
@@ -2580,7 +2580,7 @@ func TestInsertAndSpecifiedColumnUpdatePageMoveOccurOnRecovery(t *testing.T) {
 	tmpColVal.SetColIndex(tableMetadata.Schema().GetColIndex(pred.LeftColumn))
 	expression_ = expression.NewComparison(tmpColVal, expression.NewConstantValue(testing_util.GetValue(pred.RightColumn), testing_util.GetValueType(pred.RightColumn)), pred.Operator, types.Boolean)
 
-	seqPlan = plans.NewSeqScanPlanNode(outSchema, expression_, tableMetadata.OID())
+	seqPlan = plans.NewSeqScanPlanNode(c, outSchema, expression_, tableMetadata.OID())
 	results = executionEngine.Execute(seqPlan, executorContext)
 
 	testingpkg.Assert(t, types.NewInteger(180).CompareEquals(results[0].GetValue(outSchema, 0)), "value should be 180")
@@ -2651,7 +2651,7 @@ func TestSimpleSeqScanAndOrderBy(t *testing.T) {
 		colA := expression.MakeColumnValueExpression(schema_, 0, "a").(*expression.ColumnValue)
 		colB := expression.MakeColumnValueExpression(schema_, 0, "b").(*expression.ColumnValue)
 		scan_schema = testing_tbl_gen.MakeOutputSchema([]testing_tbl_gen.MakeSchemaMeta{{"a", *colA}, {"b", *colB}})
-		scan_plan = plans.NewSeqScanPlanNode(scan_schema, nil, tableMetadata.OID()).(*plans.SeqScanPlanNode)
+		scan_plan = plans.NewSeqScanPlanNode(c, scan_schema, nil, tableMetadata.OID()).(*plans.SeqScanPlanNode)
 	}
 
 	orderby_plan := plans.NewOrderbyPlanNode(
@@ -2762,7 +2762,7 @@ func TestSimpleSetNullToVarchar(t *testing.T) {
 		colA := expression.MakeColumnValueExpression(schema_, 0, "a").(*expression.ColumnValue)
 		colB := expression.MakeColumnValueExpression(schema_, 0, "b").(*expression.ColumnValue)
 		scan_schema = testing_tbl_gen.MakeOutputSchema([]testing_tbl_gen.MakeSchemaMeta{{"a", *colA}, {"b", *colB}})
-		scan_plan = plans.NewSeqScanPlanNode(scan_schema, nil, tableMetadata.OID()).(*plans.SeqScanPlanNode)
+		scan_plan = plans.NewSeqScanPlanNode(c, scan_schema, nil, tableMetadata.OID()).(*plans.SeqScanPlanNode)
 	}
 
 	results := executionEngine.Execute(scan_plan, exec_ctx)

@@ -13,6 +13,7 @@ type IndexJoinPlanNode struct {
 	onPredicate    expression.Expression
 	rigthTableOID  uint32
 	rightOutSchema *schema.Schema
+	stats_         *catalog.TableStatistics
 }
 
 func NewIndexJoinPlanNode(leftChild Plan, leftKeys []expression.Expression, rightOutSchema *schema.Schema, rightTblOID uint32, rightKeys []expression.Expression) *IndexJoinPlanNode {
@@ -25,8 +26,9 @@ func NewIndexJoinPlanNode(leftChild Plan, leftKeys []expression.Expression, righ
 
 	outputSchema := makeMergedOutputSchema(leftChild.OutputSchema(), rightOutSchema)
 	onPredicate := constructOnExpressionFromKeysInfo(leftKeys, rightKeys)
-
-	return &IndexJoinPlanNode{&AbstractPlanNode{outputSchema, []Plan{leftChild, nil}}, onPredicate, rightTblOID, rightOutSchema}
+	var tmpStats *catalog.TableStatistics
+	// TODO: (SDB) [OPT] not implemented yet (NewIndexJoinPlanNode)
+	return &IndexJoinPlanNode{&AbstractPlanNode{outputSchema, []Plan{leftChild, nil}}, onPredicate, rightTblOID, rightOutSchema, tmpStats}
 }
 
 func (p *IndexJoinPlanNode) GetLeftPlan() Plan {
@@ -63,6 +65,10 @@ func (p *IndexJoinPlanNode) AccessRowCount(c *catalog.Catalog) uint64 {
 func (p *IndexJoinPlanNode) GetTreeInfoStr() string {
 	// TODO: (SDB) [OPT] not implemented yet (IndexJoinPlanNode::GetTreeInfoStr)
 	panic("not implemented yet")
+}
+
+func (p *IndexJoinPlanNode) GetStatistics() *catalog.TableStatistics {
+	return p.stats_
 }
 
 func (p *IndexJoinPlanNode) EmitRowCount(c *catalog.Catalog) uint64 {

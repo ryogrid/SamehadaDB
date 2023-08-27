@@ -3,6 +3,7 @@ package plans
 import (
 	"github.com/ryogrid/SamehadaDB/catalog"
 	"github.com/ryogrid/SamehadaDB/common"
+	"github.com/ryogrid/SamehadaDB/samehada/samehada_util"
 	"github.com/ryogrid/SamehadaDB/storage/table/schema"
 )
 
@@ -22,6 +23,7 @@ type OrderbyPlanNode struct {
 	*AbstractPlanNode
 	col_idxs_      []int
 	orderby_types_ []OrderbyType
+	stats_         *catalog.TableStatistics
 }
 
 /**
@@ -33,7 +35,9 @@ type OrderbyPlanNode struct {
  */
 func NewOrderbyPlanNode(child_schema *schema.Schema, child Plan, col_idxs []int,
 	order_types []OrderbyType) *OrderbyPlanNode {
-	return &OrderbyPlanNode{&AbstractPlanNode{child_schema, []Plan{child}}, col_idxs, order_types}
+	var tmpStats *catalog.TableStatistics
+	samehada_util.DeepCopy(tmpStats, child.GetStatistics())
+	return &OrderbyPlanNode{&AbstractPlanNode{child_schema, []Plan{child}}, col_idxs, order_types, tmpStats}
 }
 
 func (p *OrderbyPlanNode) GetType() PlanType { return Orderby }
@@ -78,4 +82,8 @@ func (p *OrderbyPlanNode) EmitRowCount(c *catalog.Catalog) uint64 {
 func (p *OrderbyPlanNode) GetTreeInfoStr() string {
 	// TODO: (SDB) [OPT] not implemented yet (OrderbyPlanNode::GetTreeInfoStr)
 	panic("not implemented yet")
+}
+
+func (p *OrderbyPlanNode) GetStatistics() *catalog.TableStatistics {
+	return p.stats_
 }
