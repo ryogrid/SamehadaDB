@@ -53,8 +53,8 @@ func SetupTableWithMetadata(exec_ctx *executors.ExecutorContext, tableMeta *Setu
 
 	for ii := 0; ii < int(tableMeta.EntriesNum); ii++ {
 		vals := make([]types.Value, 0)
-		for jj, genFunc := range tableMeta.ColValGenFuncs {
-			vals = append(vals, types.NewValue(genFunc(jj)))
+		for _, genFunc := range tableMeta.ColValGenFuncs {
+			vals = append(vals, types.NewValue(genFunc(ii)))
 		}
 		tuple_ := tuple.NewTupleFromSchema(vals, schema_)
 		rid, _ := tm.Table().InsertTuple(tuple_, false, txn, tm.OID())
@@ -156,10 +156,11 @@ func TestSetupedTableAndStatistcsContents(t *testing.T) {
 	testingpkg.Assert(t, log_mgr.IsEnabledLogging(), "")
 	fmt.Println("System logging is active.")
 	bpm := buffer.NewBufferPoolManager(common.BufferPoolMaxFrameNumForTest, diskManager, log_mgr) //, recovery.NewLogManager(diskManager), access.NewLockManager(access.REGULAR, access.PREVENTION))
-	txn_mgr := access.NewTransactionManager(access.NewLockManager(access.REGULAR, access.DETECTION), log_mgr)
+	lock_mgr := access.NewLockManager(access.REGULAR, access.DETECTION)
+	txn_mgr := access.NewTransactionManager(lock_mgr, log_mgr)
 
 	txn := txn_mgr.Begin(nil)
-	c := catalog.BootstrapCatalog(bpm, log_mgr, access.NewLockManager(access.REGULAR, access.PREVENTION), txn)
+	c := catalog.BootstrapCatalog(bpm, log_mgr, lock_mgr, txn)
 	exec_ctx := executors.NewExecutorContext(c, bpm, txn)
 
 	tm1, tm2, tm3, tm4 := setupTablesAndStatisticsDataForTesting(exec_ctx)
@@ -188,7 +189,7 @@ func TestSetupedTableAndStatistcsContents(t *testing.T) {
 	for done, _, _, _ := idxIt1.Next(); !done; done, _, _, _ = idxIt1.Next() {
 		rows++
 	}
-	testingpkg.Assert(t, rows == 200, "rows != 200")
+	testingpkg.Assert(t, rows == 100, "rows != 100")
 
 	// Sc2
 	it = tm2.Table().Iterator(txn)
@@ -200,14 +201,14 @@ func TestSetupedTableAndStatistcsContents(t *testing.T) {
 		colVal2 := tuple_.GetValue(schema_, uint32(1))
 		testingpkg.Assert(t, colVal2.ToFloat() == float32(rows)+0.2, "colVal2.ToFloat() != float32(rows) + 0.2")
 		colVal3 := tuple_.GetValue(schema_, uint32(2))
-		testingpkg.Assert(t, colVal3.ToVarchar() == strconv.Itoa(rows%10), "colVal3.ToVarchar() != strconv.Itoa(rows%10)")
+		testingpkg.Assert(t, colVal3.ToVarchar() == "d3-"+strconv.Itoa(rows%10), "colVal3.ToVarchar() != 'd3-' + strconv.Itoa(rows%10)")
 		colVal4 := tuple_.GetValue(schema_, uint32(3))
 		testingpkg.Assert(t, colVal4.ToInteger() == int32(16), "colVal4.ToInteger() != int32(16)")
 		rows++
 	}
 	testingpkg.Assert(t, rows == 200, "rows != 200")
 
-	idx2 := tm1.GetIndex(2)
+	idx2 := tm2.GetIndex(2)
 	idxIt2 := idx2.GetRangeScanIterator(nil, nil, txn)
 	rows = 0
 	for done, _, _, _ := idxIt2.Next(); !done; done, _, _, _ = idxIt2.Next() {
@@ -259,10 +260,11 @@ func TestFindBestScans(t *testing.T) {
 	testingpkg.Assert(t, log_mgr.IsEnabledLogging(), "")
 	fmt.Println("System logging is active.")
 	bpm := buffer.NewBufferPoolManager(common.BufferPoolMaxFrameNumForTest, diskManager, log_mgr) //, recovery.NewLogManager(diskManager), access.NewLockManager(access.REGULAR, access.PREVENTION))
-	txn_mgr := access.NewTransactionManager(access.NewLockManager(access.REGULAR, access.DETECTION), log_mgr)
+	lock_mgr := access.NewLockManager(access.REGULAR, access.DETECTION)
+    txn_mgr := access.NewTransactionManager(lock_mgr, log_mgr)
 
 	txn := txn_mgr.Begin(nil)
-	c := catalog.BootstrapCatalog(bpm, log_mgr, access.NewLockManager(access.REGULAR, access.PREVENTION), txn)
+	c := catalog.BootstrapCatalog(bpm, log_mgr, lock_mgr, txn)
 	exec_ctx := executors.NewExecutorContext(c, bpm, txn)
 
 	setupTablesAndStatisticsDataForTesting(exec_ctx)
@@ -301,10 +303,11 @@ func TestSimplePlanOptimization(t *testing.T) {
 	testingpkg.Assert(t, log_mgr.IsEnabledLogging(), "")
 	fmt.Println("System logging is active.")
 	bpm := buffer.NewBufferPoolManager(common.BufferPoolMaxFrameNumForTest, diskManager, log_mgr) //, recovery.NewLogManager(diskManager), access.NewLockManager(access.REGULAR, access.PREVENTION))
-	txn_mgr := access.NewTransactionManager(access.NewLockManager(access.REGULAR, access.DETECTION), log_mgr)
+	lock_mgr := access.NewLockManager(access.REGULAR, access.DETECTION)
+	txn_mgr := access.NewTransactionManager(lock_mgr, log_mgr)
 
 	txn := txn_mgr.Begin(nil)
-	c := catalog.BootstrapCatalog(bpm, log_mgr, access.NewLockManager(access.REGULAR, access.PREVENTION), txn)
+	c := catalog.BootstrapCatalog(bpm, log_mgr, lock_mgr, txn)
 	exec_ctx := executors.NewExecutorContext(c, bpm, txn)
 
 	setupTablesAndStatisticsDataForTesting(exec_ctx)
