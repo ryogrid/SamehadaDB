@@ -198,6 +198,9 @@ func TestSetupedTableAndStatistcsContents(t *testing.T) {
 	testingpkg.Assert(t, stat1.EstimateCount(1, types.NewVarchar("").SetInfMin(), types.NewVarchar("").SetInfMax()) == 2, "EstimateCount should be 2.")
 	testingpkg.Assert(t, stat1.EstimateCount(2, types.NewFloat(0).SetInfMin(), types.NewFloat(0).SetInfMax()) == 99, "EstimateCount should be 99.")
 
+	// TODO: (SDB) [OPT] need to implement test of TableStatistics::ReductionFactor method
+	stat1.ReductionFactor(schema_, nil)
+
 	// Sc2
 	it = tm2.Table().Iterator(txn)
 	rows = 0
@@ -231,6 +234,9 @@ func TestSetupedTableAndStatistcsContents(t *testing.T) {
 	testingpkg.Assert(t, stat2.EstimateCount(2, types.NewVarchar("").SetInfMin(), types.NewVarchar("").SetInfMax()) == 2, "EstimateCount should be 2.")
 	testingpkg.Assert(t, stat2.EstimateCount(3, types.NewInteger(0).SetInfMin(), types.NewInteger(0).SetInfMax()) == 0, "EstimateCount should be 0.")
 
+	// TODO: (SDB) [OPT] need to implement test of TableStatistics::ReductionFactor method
+	stat2.ReductionFactor(schema_, nil)
+
 	// Sc3
 	it = tm3.Table().Iterator(txn)
 	rows = 0
@@ -249,6 +255,9 @@ func TestSetupedTableAndStatistcsContents(t *testing.T) {
 	testingpkg.Assert(t, stat3.ColumnNum() == 2, "stat3.ColumnNum() != 2")
 	testingpkg.Assert(t, stat3.EstimateCount(0, types.NewInteger(0).SetInfMin(), types.NewInteger(0).SetInfMax()) == 19, "EstimateCount should be 19.")
 	testingpkg.Assert(t, stat3.EstimateCount(1, types.NewFloat(0).SetInfMin(), types.NewFloat(0).SetInfMax()) == 19, "EstimateCount should be 19.")
+
+	// TODO: (SDB) [OPT] need to implement test of TableStatistics::ReductionFactor method
+	stat3.ReductionFactor(schema_, nil)
 
 	// Sc4
 	it = tm4.Table().Iterator(txn)
@@ -276,7 +285,12 @@ func TestSetupedTableAndStatistcsContents(t *testing.T) {
 	testingpkg.Assert(t, stat4.ColumnNum() == 2, "stat3.ColumnNum() != 2")
 	testingpkg.Assert(t, stat4.EstimateCount(0, types.NewInteger(0).SetInfMin(), types.NewInteger(0).SetInfMax()) == 99, "EstimateCount should be 99.")
 	testingpkg.Assert(t, stat4.EstimateCount(1, types.NewVarchar("").SetInfMin(), types.NewVarchar("").SetInfMax()) == 2, "EstimateCount should be 2.")
+
+	// TODO: (SDB) [OPT] need to implement test of TableStatistics::ReductionFactor method
+	stat4.ReductionFactor(schema_, nil)
 }
+
+// TODO: (SDB) [OPT] need to implement test of SamehadaUtil::DeepCopy method
 
 /*
 func TestFindBestScans(t *testing.T) {

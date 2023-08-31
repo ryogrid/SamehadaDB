@@ -236,7 +236,7 @@ func isBinaryExp(exp expression.Expression) bool {
 // Returns estimated inverted selection ratio if the `sc` is selected by
 // `predicate`. If the predicate selects rows to 1 / x, returns x.
 // Returning 1 means no selection (pass through).
-func (ts *TableStatistics) ReductionFactor(sc schema.Schema, predicate expression.Expression) float64 {
+func (ts *TableStatistics) ReductionFactor(sc *schema.Schema, predicate expression.Expression) float64 {
 	samehada_util.SHAssert(sc.GetColumnCount() > 0, "no column in schema")
 	if isBinaryExp(predicate) {
 		boCmp, okCmp := predicate.(*expression.Comparison)
