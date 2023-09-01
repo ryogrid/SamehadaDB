@@ -5,6 +5,7 @@ import (
 	"github.com/ryogrid/SamehadaDB/catalog"
 	"github.com/ryogrid/SamehadaDB/common"
 	"github.com/ryogrid/SamehadaDB/execution/executors"
+	"github.com/ryogrid/SamehadaDB/parser"
 	"github.com/ryogrid/SamehadaDB/recovery"
 	"github.com/ryogrid/SamehadaDB/storage/access"
 	"github.com/ryogrid/SamehadaDB/storage/buffer"
@@ -199,7 +200,8 @@ func TestSetupedTableAndStatistcsContents(t *testing.T) {
 	testingpkg.Assert(t, stat1.EstimateCount(2, types.NewFloat(0).SetInfMin(), types.NewFloat(0).SetInfMax()) == 99, "EstimateCount should be 99.")
 
 	// TODO: (SDB) [OPT] need to implement test of TableStatistics::ReductionFactor method
-	stat1.ReductionFactor(schema_, nil)
+	predStr1 := "Sc1.c1 = 1"
+	testingpkg.Assert(t, stat1.ReductionFactor(schema_, parser.GetPredicateExprFromStr(schema_, &predStr1)) == 100, "stat1.ReductionFactor(schema_, parser.GetPredicateExprFromStr(schema_, &predStr1)) != 100")
 
 	// Sc2
 	it = tm2.Table().Iterator(txn)

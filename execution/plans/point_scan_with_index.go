@@ -48,7 +48,7 @@ func (p *PointScanWithIndexPlanNode) EmitRowCount(c *catalog.Catalog) uint64 {
 	tm := c.GetTableByOID(p.tableOID)
 	return uint64(math.Ceil(
 		float64(tm.GetStatistics().Rows()) /
-			tm.GetStatistics().ReductionFactor(*tm.Schema(), p.predicate)))
+			tm.GetStatistics().ReductionFactor(tm.Schema(), p.predicate)))
 }
 
 func (p *PointScanWithIndexPlanNode) GetTreeInfoStr() string {
