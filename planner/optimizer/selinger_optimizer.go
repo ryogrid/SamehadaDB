@@ -148,7 +148,7 @@ func touchOnly(from *catalog.TableMetadata, where expression.Expression, colName
 	} else if where.GetType() == expression.EXPRESSION_TYPE_LOGICAL_OP || where.GetType() == expression.EXPRESSION_TYPE_COMPARISON {
 		//		   const BinaryExpression& be = where->AsBinaryExpression();
 		//		   return TouchOnly(be.Left(), col_name) && TouchOnly(be.Right(), col_name);
-		return touchOnly(from, where.GetChildAt(0), colName) || touchOnly(from, where.GetChildAt(1), colName)
+		return touchOnly(from, where.GetChildAt(0), colName) && touchOnly(from, where.GetChildAt(1), colName)
 	}
 	//samehada_util.SHAssert(where.GetType() == expression.EXPRESSION_TYPE_CONSTANT_VALUE, "invalid expression type")
 	return true
@@ -259,13 +259,14 @@ func (so *SelingerOptimizer) findBestScan(outNeededCols []*column.Column, where 
 		if span.Empty() {
 			continue
 		}
-		//targetIndex := from.GetIndex(candidates[key])
-		// Plan new_plan = IndexScanSelect(from, target_idx, stat, *span.min,*span.max, scan_exp, select);
-		// TODO: (SDB) [OPT] when span.Min == span.Max, PointScanWithIndexPlanNode should be used insted of Range one ? (SelingerOptimizer::findBestScan)
+
+		// TODO: (SDB) when span.Min == span.Max, PointScanWithIndexPlanNode is better (SelingerOptimizer::findBestScan)
 		var newPlan = plans.NewRangeScanWithIndexPlanNode(c, sc, from.OID(), int32(key), nil, span.Min, span.Max)
 		// if (!TouchOnly(scan_exp, from.GetSchema().GetColumn(key).Name())) {
-		if touchOnly(from, scanExp, sc.GetColumn(uint32(key)).GetColumnName()) {
-			//new_plan = std::make_shared<SelectionPlan>(new_plan, scan_exp, stat);
+		if !touchOnly(from, scanExp, sc.GetColumn(uint32(key)).GetColumnName()) {
+			// when scanExp includes item which is not related to current index key, add selection about these
+			// e.g. index key is a and scanExp is (1 <= a AND a <= 10 AND c = 2), then add selection (1 <= a AND a <= 10 AND c = 2) to newPlan
+			//      currently, though selection relatad column a is needless, but it is incuded...
 			newPlan = plans.NewSelectionPlanNode(newPlan, scanExp)
 		}
 		if len(outNeededCols) != int(newPlan.OutputSchema().GetColumnCount()) {
