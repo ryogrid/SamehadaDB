@@ -4,7 +4,6 @@ import (
 	"github.com/ryogrid/SamehadaDB/catalog"
 	"github.com/ryogrid/SamehadaDB/common"
 	"github.com/ryogrid/SamehadaDB/execution/expression"
-	"github.com/ryogrid/SamehadaDB/samehada/samehada_util"
 	"github.com/ryogrid/SamehadaDB/storage/table/schema"
 	"math"
 )
@@ -26,11 +25,8 @@ type HashJoinPlanNode struct {
 }
 
 func GenHashJoinStats(leftPlan Plan, rightPlan Plan) *catalog.TableStatistics {
-	leftStats := new(catalog.TableStatistics)
-	samehada_util.DeepCopy(leftStats, leftPlan.GetStatistics())
-	rightStats := new(catalog.TableStatistics)
-	samehada_util.DeepCopy(rightStats, rightPlan.GetStatistics())
-	leftStats.Concat(rightStats)
+	leftStats := leftPlan.GetStatistics().GetDeepCopy()
+	leftStats.Concat(rightPlan.GetStatistics().GetDeepCopy())
 	return leftStats
 }
 

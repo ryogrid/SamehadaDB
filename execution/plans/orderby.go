@@ -3,7 +3,6 @@ package plans
 import (
 	"github.com/ryogrid/SamehadaDB/catalog"
 	"github.com/ryogrid/SamehadaDB/common"
-	"github.com/ryogrid/SamehadaDB/samehada/samehada_util"
 	"github.com/ryogrid/SamehadaDB/storage/table/schema"
 )
 
@@ -35,9 +34,7 @@ type OrderbyPlanNode struct {
  */
 func NewOrderbyPlanNode(child_schema *schema.Schema, child Plan, col_idxs []int,
 	order_types []OrderbyType) *OrderbyPlanNode {
-	var tmpStats *catalog.TableStatistics
-	samehada_util.DeepCopy(tmpStats, child.GetStatistics())
-	return &OrderbyPlanNode{&AbstractPlanNode{child_schema, []Plan{child}}, col_idxs, order_types, tmpStats}
+	return &OrderbyPlanNode{&AbstractPlanNode{child_schema, []Plan{child}}, col_idxs, order_types, child.GetStatistics().GetDeepCopy()}
 }
 
 func (p *OrderbyPlanNode) GetType() PlanType { return Orderby }

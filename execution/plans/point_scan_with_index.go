@@ -6,7 +6,6 @@ package plans
 import (
 	"github.com/ryogrid/SamehadaDB/catalog"
 	"github.com/ryogrid/SamehadaDB/execution/expression"
-	"github.com/ryogrid/SamehadaDB/samehada/samehada_util"
 	"github.com/ryogrid/SamehadaDB/storage/table/schema"
 	"math"
 )
@@ -22,10 +21,8 @@ type PointScanWithIndexPlanNode struct {
 }
 
 func NewPointScanWithIndexPlanNode(c *catalog.Catalog, schema *schema.Schema, predicate *expression.Comparison, tableOID uint32) Plan {
-	var tmpStats *catalog.TableStatistics
 	tm := c.GetTableByOID(tableOID)
-	samehada_util.DeepCopy(tmpStats, tm.GetStatistics())
-	return &PointScanWithIndexPlanNode{&AbstractPlanNode{schema, nil}, predicate, tableOID, tmpStats}
+	return &PointScanWithIndexPlanNode{&AbstractPlanNode{schema, nil}, predicate, tableOID, tm.GetStatistics().GetDeepCopy()}
 }
 
 func (p *PointScanWithIndexPlanNode) GetPredicate() *expression.Comparison {

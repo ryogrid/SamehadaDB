@@ -2,7 +2,6 @@ package plans
 
 import (
 	"github.com/ryogrid/SamehadaDB/catalog"
-	"github.com/ryogrid/SamehadaDB/samehada/samehada_util"
 )
 
 /**
@@ -17,9 +16,7 @@ type DeletePlanNode struct {
 
 // func NewDeletePlanNode(predicate expression.Expression, oid uint32) Plan {
 func NewDeletePlanNode(child Plan) Plan {
-	var tmpStats *catalog.TableStatistics
-	samehada_util.DeepCopy(tmpStats, child.GetStatistics())
-	return &DeletePlanNode{&AbstractPlanNode{nil, []Plan{child}}, tmpStats}
+	return &DeletePlanNode{&AbstractPlanNode{nil, []Plan{child}}, child.GetStatistics().GetDeepCopy()}
 }
 
 func (p *DeletePlanNode) GetTableOID() uint32 {

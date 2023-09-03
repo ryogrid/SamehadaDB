@@ -2,7 +2,6 @@ package plans
 
 import (
 	"github.com/ryogrid/SamehadaDB/catalog"
-	"github.com/ryogrid/SamehadaDB/samehada/samehada_util"
 	"github.com/ryogrid/SamehadaDB/storage/table/schema"
 	"math"
 )
@@ -13,9 +12,7 @@ type ProjectionPlanNode struct {
 }
 
 func NewProjectionPlanNode(child Plan, projectColumns *schema.Schema) Plan {
-	var tmpStats *catalog.TableStatistics
-	samehada_util.DeepCopy(tmpStats, child.GetStatistics())
-	return &ProjectionPlanNode{&AbstractPlanNode{projectColumns, []Plan{child}}, tmpStats}
+	return &ProjectionPlanNode{&AbstractPlanNode{projectColumns, []Plan{child}}, child.GetStatistics().GetDeepCopy()}
 }
 
 func (p *ProjectionPlanNode) GetType() PlanType {

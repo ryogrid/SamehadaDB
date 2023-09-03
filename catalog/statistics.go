@@ -133,6 +133,10 @@ func (cs *columnStats) Check(sample *types.Value) {
 	cs.count++
 }
 
+func (cs *columnStats) GetDeepCopy() *columnStats {
+	return &columnStats{cs.max.GetDeepCopy(), cs.min.GetDeepCopy(), cs.count, cs.distinct, cs.colType, common.NewRWLatch()}
+}
+
 /*
 func (cs *ColumnStats[T]) UpdateStatistics() {
 }
@@ -330,7 +334,13 @@ func (ts *TableStatistics) Multiply(multiplier float64) {
 }
 
 func (ts *TableStatistics) GetDeepCopy() *TableStatistics {
-	// TODO: (SDB) [OPT] need to implement TableStatistics::GetDeepCopy method and its testing
-	// TODO: (SDB) [OPT] need to changed calls of SamehadaUtil::DeepCopy for TableStatistics object to TableStatistics::GetDeepCopy method
-	panic("not implemented yet")
+	if ts == nil {
+		panic("TableStatistics::GetDeepCopy: receiver is nil")
+	}
+	copiedTs := new(TableStatistics)
+	copiedTs.colStats = make([]*columnStats, 0)
+	for _, colSt := range ts.colStats {
+		copiedTs.colStats = append(copiedTs.colStats, colSt.GetDeepCopy())
+	}
+	return copiedTs
 }

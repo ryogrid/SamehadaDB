@@ -2,7 +2,6 @@ package plans
 
 import (
 	"github.com/ryogrid/SamehadaDB/catalog"
-	"github.com/ryogrid/SamehadaDB/samehada/samehada_util"
 	"github.com/ryogrid/SamehadaDB/types"
 )
 
@@ -23,10 +22,7 @@ type UpdatePlanNode struct {
 // but not update target column value can be dummy value!
 // func NewUpdatePlanNode(rawValues []types.Value, update_col_idxs []int, predicate expression.Expression, oid uint32) Plan {
 func NewUpdatePlanNode(rawValues []types.Value, update_col_idxs []int, child Plan) Plan {
-	//return &UpdatePlanNode{&AbstractPlanNode{nil, nil}, rawValues, update_col_idxs, predicate, oid}
-	var tmpStats *catalog.TableStatistics
-	samehada_util.DeepCopy(tmpStats, child.GetStatistics())
-	return &UpdatePlanNode{&AbstractPlanNode{nil, []Plan{child}}, rawValues, update_col_idxs, tmpStats}
+	return &UpdatePlanNode{&AbstractPlanNode{nil, []Plan{child}}, rawValues, update_col_idxs, child.GetStatistics().GetDeepCopy()}
 }
 
 func (p *UpdatePlanNode) GetTableOID() uint32 {

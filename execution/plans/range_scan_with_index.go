@@ -6,7 +6,6 @@ package plans
 import (
 	"github.com/ryogrid/SamehadaDB/catalog"
 	"github.com/ryogrid/SamehadaDB/execution/expression"
-	"github.com/ryogrid/SamehadaDB/samehada/samehada_util"
 	"github.com/ryogrid/SamehadaDB/storage/table/schema"
 	"github.com/ryogrid/SamehadaDB/types"
 	"math"
@@ -26,10 +25,8 @@ type RangeScanWithIndexPlanNode struct {
 }
 
 func NewRangeScanWithIndexPlanNode(c *catalog.Catalog, schema *schema.Schema, tableOID uint32, colIdx int32, predicate expression.Expression, startRange *types.Value, endRange *types.Value) Plan {
-	var tmpStats *catalog.TableStatistics
 	tm := c.GetTableByOID(tableOID)
-	samehada_util.DeepCopy(tmpStats, tm.GetStatistics())
-	return &RangeScanWithIndexPlanNode{&AbstractPlanNode{schema, nil}, predicate, tableOID, colIdx, startRange, endRange, tmpStats}
+	return &RangeScanWithIndexPlanNode{&AbstractPlanNode{schema, nil}, predicate, tableOID, colIdx, startRange, endRange, tm.GetStatistics().GetDeepCopy()}
 }
 
 func (p *RangeScanWithIndexPlanNode) GetPredicate() expression.Expression {

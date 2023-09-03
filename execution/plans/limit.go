@@ -5,7 +5,6 @@ package plans
 
 import (
 	"github.com/ryogrid/SamehadaDB/catalog"
-	"github.com/ryogrid/SamehadaDB/samehada/samehada_util"
 )
 
 type LimitPlanNode struct {
@@ -16,9 +15,7 @@ type LimitPlanNode struct {
 }
 
 func NewLimitPlanNode(child Plan, limit uint32, offset uint32) Plan {
-	var tmpStats *catalog.TableStatistics
-	samehada_util.DeepCopy(tmpStats, child.GetStatistics())
-	return &LimitPlanNode{&AbstractPlanNode{nil, []Plan{child}}, limit, offset, tmpStats}
+	return &LimitPlanNode{&AbstractPlanNode{nil, []Plan{child}}, limit, offset, child.GetStatistics().GetDeepCopy()}
 }
 
 func (p *LimitPlanNode) GetLimit() uint32 {

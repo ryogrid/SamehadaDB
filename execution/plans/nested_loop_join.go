@@ -3,7 +3,6 @@ package plans
 import (
 	"github.com/ryogrid/SamehadaDB/catalog"
 	"github.com/ryogrid/SamehadaDB/common"
-	"github.com/ryogrid/SamehadaDB/samehada/samehada_util"
 	"math"
 )
 
@@ -13,11 +12,9 @@ type NestedLoopJoinPlanNode struct {
 }
 
 func GenNestedLoopJoinStats(leftPlan Plan, rightPlan Plan) *catalog.TableStatistics {
-	leftStats := new(catalog.TableStatistics)
-	samehada_util.DeepCopy(leftStats, leftPlan.GetStatistics())
+	leftStats := leftPlan.GetStatistics().GetDeepCopy()
 	leftStats.Multiply(float64(leftStats.Rows()))
-	rightStats := new(catalog.TableStatistics)
-	samehada_util.DeepCopy(rightStats, rightPlan.GetStatistics())
+	rightStats := rightPlan.GetStatistics().GetDeepCopy()
 	rightStats.Multiply(float64(rightStats.Rows()))
 	leftStats.Concat(rightStats)
 	return leftStats

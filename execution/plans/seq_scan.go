@@ -6,7 +6,6 @@ package plans
 import (
 	"github.com/ryogrid/SamehadaDB/catalog"
 	"github.com/ryogrid/SamehadaDB/execution/expression"
-	"github.com/ryogrid/SamehadaDB/samehada/samehada_util"
 	"github.com/ryogrid/SamehadaDB/storage/table/schema"
 )
 
@@ -21,10 +20,8 @@ type SeqScanPlanNode struct {
 }
 
 func NewSeqScanPlanNode(c *catalog.Catalog, schema *schema.Schema, predicate expression.Expression, tableOID uint32) Plan {
-	var tmpStats *catalog.TableStatistics
 	tm := c.GetTableByOID(tableOID)
-	samehada_util.DeepCopy(tmpStats, tm.GetStatistics())
-	return &SeqScanPlanNode{&AbstractPlanNode{schema, nil}, predicate, tableOID, tmpStats}
+	return &SeqScanPlanNode{&AbstractPlanNode{schema, nil}, predicate, tableOID, tm.GetStatistics().GetDeepCopy()}
 }
 
 func (p *SeqScanPlanNode) GetPredicate() expression.Expression {

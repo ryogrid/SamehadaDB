@@ -3,7 +3,6 @@ package plans
 import (
 	"github.com/ryogrid/SamehadaDB/catalog"
 	"github.com/ryogrid/SamehadaDB/execution/expression"
-	"github.com/ryogrid/SamehadaDB/samehada/samehada_util"
 	"math"
 )
 
@@ -17,9 +16,7 @@ type SelectionPlanNode struct {
 
 func NewSelectionPlanNode(child Plan, predicate expression.Expression) Plan {
 	childOutSchema := child.OutputSchema()
-	var tmpStats *catalog.TableStatistics
-	samehada_util.DeepCopy(tmpStats, child.GetStatistics())
-	return &SelectionPlanNode{&AbstractPlanNode{childOutSchema, []Plan{child}}, predicate, tmpStats}
+	return &SelectionPlanNode{&AbstractPlanNode{childOutSchema, []Plan{child}}, predicate, child.GetStatistics().GetDeepCopy()}
 }
 
 func (p *SelectionPlanNode) GetType() PlanType {

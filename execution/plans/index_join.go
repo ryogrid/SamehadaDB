@@ -4,7 +4,6 @@ import (
 	"github.com/ryogrid/SamehadaDB/catalog"
 	"github.com/ryogrid/SamehadaDB/common"
 	"github.com/ryogrid/SamehadaDB/execution/expression"
-	"github.com/ryogrid/SamehadaDB/samehada/samehada_util"
 	"github.com/ryogrid/SamehadaDB/storage/table/schema"
 	"math"
 )
@@ -18,12 +17,9 @@ type IndexJoinPlanNode struct {
 }
 
 func GenIndexJoinStats(c *catalog.Catalog, leftPlan Plan, rightTableOID uint32) *catalog.TableStatistics {
-	leftStats := new(catalog.TableStatistics)
-	samehada_util.DeepCopy(leftStats, leftPlan.GetStatistics())
-	rightStats := new(catalog.TableStatistics)
+	leftStats := leftPlan.GetStatistics().GetDeepCopy()
 	tm := c.GetTableByOID(rightTableOID)
-	samehada_util.DeepCopy(rightStats, tm.GetStatistics())
-	leftStats.Concat(rightStats)
+	leftStats.Concat(tm.GetStatistics().GetDeepCopy())
 	return leftStats
 }
 

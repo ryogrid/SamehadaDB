@@ -4,7 +4,6 @@ import (
 	"github.com/ryogrid/SamehadaDB/catalog"
 	"github.com/ryogrid/SamehadaDB/common"
 	"github.com/ryogrid/SamehadaDB/execution/expression"
-	"github.com/ryogrid/SamehadaDB/samehada/samehada_util"
 	"github.com/ryogrid/SamehadaDB/storage/table/schema"
 	"github.com/ryogrid/SamehadaDB/types"
 	"math"
@@ -47,9 +46,7 @@ type AggregationPlanNode struct {
 func NewAggregationPlanNode(output_schema *schema.Schema, child Plan, having expression.Expression,
 	group_bys []expression.Expression,
 	aggregates []expression.Expression, agg_types []AggregationType) *AggregationPlanNode {
-	var tmpStats *catalog.TableStatistics
-	samehada_util.DeepCopy(tmpStats, child.GetStatistics())
-	return &AggregationPlanNode{&AbstractPlanNode{output_schema, []Plan{child}}, having, group_bys, aggregates, agg_types, tmpStats}
+	return &AggregationPlanNode{&AbstractPlanNode{output_schema, []Plan{child}}, having, group_bys, aggregates, agg_types, child.GetStatistics().GetDeepCopy()}
 }
 
 func (p *AggregationPlanNode) GetType() PlanType { return Aggregation }
