@@ -2,6 +2,7 @@ package optimizer
 
 import (
 	"fmt"
+	mapset "github.com/deckarep/golang-set/v2"
 	"github.com/ryogrid/SamehadaDB/catalog"
 	"github.com/ryogrid/SamehadaDB/common"
 	"github.com/ryogrid/SamehadaDB/execution/executors"
@@ -305,7 +306,6 @@ func TestSetupedTableAndStatistcsContents(t *testing.T) {
 	testingpkg.Assert(t, stat4.EstimateCount(1, types.NewVarchar("").SetInfMin(), types.NewVarchar("").SetInfMax()) == 2, "EstimateCount should be 2.")
 }
 
-/*
 func TestFindBestScans(t *testing.T) {
 	diskManager := disk.NewDiskManagerTest()
 	defer diskManager.ShutDown()
@@ -315,7 +315,7 @@ func TestFindBestScans(t *testing.T) {
 	fmt.Println("System logging is active.")
 	bpm := buffer.NewBufferPoolManager(common.BufferPoolMaxFrameNumForTest, diskManager, log_mgr) //, recovery.NewLogManager(diskManager), access.NewLockManager(access.REGULAR, access.PREVENTION))
 	lock_mgr := access.NewLockManager(access.REGULAR, access.DETECTION)
-    txn_mgr := access.NewTransactionManager(lock_mgr, log_mgr)
+	txn_mgr := access.NewTransactionManager(lock_mgr, log_mgr)
 
 	txn := txn_mgr.Begin(nil)
 	c := catalog.BootstrapCatalog(bpm, log_mgr, lock_mgr, txn)
@@ -346,7 +346,6 @@ func TestFindBestScans(t *testing.T) {
 	//queryStr := "select Sc1.c1, Sc1.c2, Sc1.c3, Sc4.c1, Sc4.c2 from Sc1, Sc4 where Sc1.c1 = Sc4.c1 and Sc4.c1 = 2;" // SameNameColumn
 	//queryStr := "select * from Sc1, Sc4 where Sc1.c1 = Sc4.c1 and Sc4.c1 = 2;" // Asterisk
 }
-*/
 
 /*
 func TestSimplePlanOptimization(t *testing.T) {

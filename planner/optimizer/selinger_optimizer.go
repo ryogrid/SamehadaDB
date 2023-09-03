@@ -148,9 +148,9 @@ func touchOnly(from *catalog.TableMetadata, where expression.Expression, colName
 	} else if where.GetType() == expression.EXPRESSION_TYPE_LOGICAL_OP || where.GetType() == expression.EXPRESSION_TYPE_COMPARISON {
 		//		   const BinaryExpression& be = where->AsBinaryExpression();
 		//		   return TouchOnly(be.Left(), col_name) && TouchOnly(be.Right(), col_name);
-		return touchOnly(from, where.GetChildAt(0), colName) && touchOnly(from, where.GetChildAt(1), colName)
+		return touchOnly(from, where.GetChildAt(0), colName) || touchOnly(from, where.GetChildAt(1), colName)
 	}
-	samehada_util.SHAssert(where.GetType() == expression.EXPRESSION_TYPE_CONSTANT_VALUE, "invalid expression type")
+	//samehada_util.SHAssert(where.GetType() == expression.EXPRESSION_TYPE_CONSTANT_VALUE, "invalid expression type")
 	return true
 }
 
@@ -264,7 +264,7 @@ func (so *SelingerOptimizer) findBestScan(outNeededCols []*column.Column, where 
 		// TODO: (SDB) [OPT] when span.Min == span.Max, PointScanWithIndexPlanNode should be used insted of Range one ? (SelingerOptimizer::findBestScan)
 		var newPlan = plans.NewRangeScanWithIndexPlanNode(c, sc, from.OID(), int32(key), nil, span.Min, span.Max)
 		// if (!TouchOnly(scan_exp, from.GetSchema().GetColumn(key).Name())) {
-		if !touchOnly(from, scanExp, sc.GetColumn(uint32(key)).GetColumnName()) {
+		if touchOnly(from, scanExp, sc.GetColumn(uint32(key)).GetColumnName()) {
 			//new_plan = std::make_shared<SelectionPlan>(new_plan, scan_exp, stat);
 			newPlan = plans.NewSelectionPlanNode(newPlan, scanExp)
 		}
