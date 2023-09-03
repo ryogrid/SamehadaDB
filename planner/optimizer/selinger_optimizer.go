@@ -76,7 +76,7 @@ func (r *Range) Update(op expression.ComparisonType, rhs *types.Value, dir Direc
 		// e.g. x == 10
 		r.Max = rhs.GetDeepCopy()
 		r.Min = rhs.GetDeepCopy()
-		r.MinInclusive = true
+		r.MaxInclusive = true
 		r.MinInclusive = true
 	case expression.NotEqual:
 		// e.g. x != 10
@@ -260,13 +260,16 @@ func (so *SelingerOptimizer) findBestScan(outNeededCols []*column.Column, where 
 			continue
 		}
 
-		// TODO: (SDB) when span.Min == span.Max, PointScanWithIndexPlanNode is better (SelingerOptimizer::findBestScan)
-		var newPlan = plans.NewRangeScanWithIndexPlanNode(c, sc, from.OID(), int32(key), nil, span.Min, span.Max)
-		// if (!TouchOnly(scan_exp, from.GetSchema().GetColumn(key).Name())) {
-		if !touchOnly(from, scanExp, sc.GetColumn(uint32(key)).GetColumnName()) {
+		isPredicateCheckNeeded := false
+		newPlan := plans.NewRangeScanWithIndexPlanNode(c, sc, from.OID(), int32(key), nil, span.Min, span.Max)
+		if !span.MinInclusive || !span.MaxInclusive {
+			// Range scan is not inclusive, so we need to check predicate
+			isPredicateCheckNeeded = true
+		}
+		if !touchOnly(from, scanExp, sc.GetColumn(uint32(key)).GetColumnName()) || isPredicateCheckNeeded {
 			// when scanExp includes item which is not related to current index key, add selection about these
 			// e.g. index key is a and scanExp is (1 <= a AND a <= 10 AND c = 2), then add selection (1 <= a AND a <= 10 AND c = 2) to newPlan
-			//      currently, though selection relatad column a is needless, but it is incuded...
+			//      currently, though selection related column a is needless, but it is included...
 			newPlan = plans.NewSelectionPlanNode(newPlan, scanExp)
 		}
 		if len(outNeededCols) != int(newPlan.OutputSchema().GetColumnCount()) {
