@@ -209,6 +209,22 @@ func TestSetupedTableAndStatistcsContents(t *testing.T) {
 	predStr = "Sc1.c1 = 1 and Sc1.c2 = 'a' and Sc1.c3 = 1.1"
 	testingpkg.Assert(t, stat1.ReductionFactor(schema_, parser.GetPredicateExprFromStr(schema_, &predStr)) == 100*100*100, "stat1.ReductionFactor(schema_, parser.GetPredicateExprFromStr(schema_, &predStr)) != 100*100*100")
 
+	// test TableStatistics::GetDeepCopy method here
+	stat1_2 := stat1.GetDeepCopy()
+	testingpkg.Assert(t, stat1_2.Rows() == 100, "stat1_2.Rows() != 100")
+	testingpkg.Assert(t, stat1_2.ColumnNum() == 3, "stat1_2.ColumnNum() != 3")
+	testingpkg.Assert(t, stat1_2.EstimateCount(0, types.NewInteger(0).SetInfMin(), types.NewInteger(0).SetInfMax()) == 99, "EstimateCount should be 99.")
+	testingpkg.Assert(t, stat1_2.EstimateCount(1, types.NewVarchar("").SetInfMin(), types.NewVarchar("").SetInfMax()) == 2, "EstimateCount should be 2.")
+	testingpkg.Assert(t, stat1_2.EstimateCount(2, types.NewFloat(0).SetInfMin(), types.NewFloat(0).SetInfMax()) == 99, "EstimateCount should be 99.")
+	predStr = "Sc1.c1 = 1"
+	testingpkg.Assert(t, stat1_2.ReductionFactor(schema_, parser.GetPredicateExprFromStr(schema_, &predStr)) == 100, "stat1_2.ReductionFactor(schema_, parser.GetPredicateExprFromStr(schema_, &predStr)) != 100")
+	predStr = "'a' = Sc1.c2"
+	testingpkg.Assert(t, stat1_2.ReductionFactor(schema_, parser.GetPredicateExprFromStr(schema_, &predStr)) == 100, "stat1_2.ReductionFactor(schema_, parser.GetPredicateExprFromStr(schema_, &predStr)) != 100")
+	predStr = "Sc1.c3 = 1.1"
+	testingpkg.Assert(t, stat1_2.ReductionFactor(schema_, parser.GetPredicateExprFromStr(schema_, &predStr)) == 100, "stat1_2.ReductionFactor(schema_, parser.GetPredicateExprFromStr(schema_, &predStr)) != 100")
+	predStr = "Sc1.c1 = 1 and Sc1.c2 = 'a' and Sc1.c3 = 1.1"
+	testingpkg.Assert(t, stat1_2.ReductionFactor(schema_, parser.GetPredicateExprFromStr(schema_, &predStr)) == 100*100*100, "stat1_2.ReductionFactor(schema_, parser.GetPredicateExprFromStr(schema_, &predStr)) != 100*100*100")
+
 	// Sc2
 	it = tm2.Table().Iterator(txn)
 	rows = 0
