@@ -343,12 +343,16 @@ func TestFindBestScans(t *testing.T) {
 	//optimalPlans = NewSelingerOptimizer(queryInfo, c).findBestScans()
 	//testingpkg.Assert(t, len(optimalPlans) == len(queryInfo.JoinTables_), "len(optimalPlans) != len(query.JoinTables_) (3)")
 
-	queryStr = "select Sc2.d1, Sc2.d2, Sc2.d3, Sc2.d4 from Sc2 where Sc2.d3 >= 'd3-3' and Sc2.d3 < 'd3-5';" // IndexScanInclude(2)
+	//queryStr = "select Sc2.d1, Sc2.d2, Sc2.d3, Sc2.d4 from Sc2 where Sc2.d3 >= 'd3-3' and Sc2.d3 < 'd3-5';" // IndexScanInclude(2)
+	//queryInfo = parser.ProcessSQLStr(&queryStr)
+	//optimalPlans = NewSelingerOptimizer(queryInfo, c).findBestScans()
+	//testingpkg.Assert(t, len(optimalPlans) == len(queryInfo.JoinTables_), "len(optimalPlans) != len(query.JoinTables_) (4)")
+
+	queryStr = "select Sc1.c2, Sc2.d1, Sc2.d3 from Sc1, Sc2 where Sc1.c1 = Sc2.d1;" // Join(HashJoin)
 	queryInfo = parser.ProcessSQLStr(&queryStr)
 	optimalPlans = NewSelingerOptimizer(queryInfo, c).findBestScans()
-	testingpkg.Assert(t, len(optimalPlans) == len(queryInfo.JoinTables_), "len(optimalPlans) != len(query.JoinTables_) (4)")
+	testingpkg.Assert(t, len(optimalPlans) == len(queryInfo.JoinTables_), "len(optimalPlans) != len(query.JoinTables_) (5)")
 
-	//queryStr := "select Sc1.c2, Sc2.d1, Sc2.d3 from Sc1, Sc2 where Sc1.c1 = Sc2.d1;" // Join(HashJoin)
 	//queryStr := "select Sc1.c2, Sc4.c1, Sc4.c2 from Sc1, Sc2 where Sc1.c1 = Sc4.c2 and Sc4.c2 = '1';" // Join(IndexJoin)
 	//queryStr := "select Sc1.c2, Sc2.d1, Sc3.e2, Sc3.c1 from Sc1, Sc2, Sc3 where Sc1.c1 = Sc2.d1 and Sc2.d1 = Sc3.e1;" // ThreeJoin(HashJoin)
 	//queryStr := "select Sc1.c1, Sc1.c2, Sc2.d1, Sc2.d2, Sc2.d3 from Sc1, Sc2 where Sc1.c1 = 2;" // JonWhere(NestedLoopJoin)
