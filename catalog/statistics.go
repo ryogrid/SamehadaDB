@@ -328,3 +328,9 @@ func (ts *TableStatistics) Multiply(multiplier float64) {
 		st.Multiply(multiplier)
 	}
 }
+
+func (ts *TableStatistics) GetDeepCopy() *TableStatistics {
+	// TODO: (SDB) [OPT] need to implement TableStatistics::GetDeepCopy method and its testing
+	// TODO: (SDB) [OPT] need to changed calls of SamehadaUtil::DeepCopy for TableStatistics object to TableStatistics::GetDeepCopy method
+	panic("not implemented yet")
+}

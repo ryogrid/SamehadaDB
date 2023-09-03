@@ -289,8 +289,6 @@ func TestSetupedTableAndStatistcsContents(t *testing.T) {
 	testingpkg.Assert(t, stat4.EstimateCount(1, types.NewVarchar("").SetInfMin(), types.NewVarchar("").SetInfMax()) == 2, "EstimateCount should be 2.")
 }
 
-// TODO: (SDB) [OPT] need to implement test of SamehadaUtil::DeepCopy method
-
 /*
 func TestFindBestScans(t *testing.T) {
 	diskManager := disk.NewDiskManagerTest()
