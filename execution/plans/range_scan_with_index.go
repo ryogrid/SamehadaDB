@@ -62,9 +62,9 @@ func (p *RangeScanWithIndexPlanNode) EmitRowCount(c *catalog.Catalog) uint64 {
 	return uint64(math.Ceil(c.GetTableByOID(p.tableOID).GetStatistics().EstimateCount(p.colIdx, p.startRange, p.endRange)))
 }
 
-func (p *RangeScanWithIndexPlanNode) GetTreeInfoStr() string {
-	// TODO: (SDB) [OPT] not implemented yet (RangeScanWithIndexPlanNode::GetTreeInfoStr)
-	panic("not implemented yet")
+func (p *RangeScanWithIndexPlanNode) GetDebugStr() string {
+	// TODO: (SDB) [OPT] not implemented yet (RangeScanWithIndexPlanNode::GetDebugStr)
+	return "RangeScanWithIndexPlanNode"
 }
 
 func (p *RangeScanWithIndexPlanNode) GetStatistics() *catalog.TableStatistics {

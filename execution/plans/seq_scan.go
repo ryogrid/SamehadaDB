@@ -46,9 +46,9 @@ func (p *SeqScanPlanNode) EmitRowCount(c *catalog.Catalog) uint64 {
 	return p.AccessRowCount(c)
 }
 
-func (p *SeqScanPlanNode) GetTreeInfoStr() string {
-	// TODO: (SDB) [OPT] not implemented yet (SeqScanPlanNode::GetTreeInfoStr)
-	panic("not implemented yet")
+func (p *SeqScanPlanNode) GetDebugStr() string {
+	// TODO: (SDB) [OPT] not implemented yet (SeqScanPlanNode::GetDebugStr)
+	return "SeqScanPlanNode"
 }
 
 func (p *SeqScanPlanNode) GetStatistics() *catalog.TableStatistics {

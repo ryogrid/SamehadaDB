@@ -6,6 +6,7 @@ import (
 	"github.com/ryogrid/SamehadaDB/catalog"
 	"github.com/ryogrid/SamehadaDB/common"
 	"github.com/ryogrid/SamehadaDB/execution/executors"
+	"github.com/ryogrid/SamehadaDB/execution/plans"
 	"github.com/ryogrid/SamehadaDB/parser"
 	"github.com/ryogrid/SamehadaDB/recovery"
 	"github.com/ryogrid/SamehadaDB/storage/access"
@@ -352,12 +353,37 @@ func TestFindBestScans(t *testing.T) {
 	queryInfo = parser.ProcessSQLStr(&queryStr)
 	optimalPlans = NewSelingerOptimizer(queryInfo, c).findBestScans()
 	testingpkg.Assert(t, len(optimalPlans) == len(queryInfo.JoinTables_), "len(optimalPlans) != len(query.JoinTables_) (5)")
+	PrintOptimalPlans("Join(HashJoin)", optimalPlans)
 
-	//queryStr := "select Sc1.c2, Sc4.c1, Sc4.c2 from Sc1, Sc2 where Sc1.c1 = Sc4.c2 and Sc4.c2 = '1';" // Join(IndexJoin)
+	queryStr = "select Sc1.c2, Sc4.c1, Sc4.c2 from Sc1, Sc2 where Sc1.c1 = Sc4.c2 and Sc4.c2 = '1';" // Join(IndexJoin)
+	queryInfo = parser.ProcessSQLStr(&queryStr)
+	optimalPlans = NewSelingerOptimizer(queryInfo, c).findBestScans()
+	testingpkg.Assert(t, len(optimalPlans) == len(queryInfo.JoinTables_), "len(optimalPlans) != len(query.JoinTables_) (6)")
+	PrintOptimalPlans("Join(IndexJoin)", optimalPlans)
+
 	//queryStr := "select Sc1.c2, Sc2.d1, Sc3.e2, Sc3.c1 from Sc1, Sc2, Sc3 where Sc1.c1 = Sc2.d1 and Sc2.d1 = Sc3.e1;" // ThreeJoin(HashJoin)
 	//queryStr := "select Sc1.c1, Sc1.c2, Sc2.d1, Sc2.d2, Sc2.d3 from Sc1, Sc2 where Sc1.c1 = 2;" // JonWhere(NestedLoopJoin)
 	//queryStr := "select Sc1.c1, Sc1.c2, Sc1.c3, Sc4.c1, Sc4.c2 from Sc1, Sc4 where Sc1.c1 = Sc4.c1 and Sc4.c1 = 2;" // SameNameColumn
 	//queryStr := "select * from Sc1, Sc4 where Sc1.c1 = Sc4.c1 and Sc4.c1 = 2;" // Asterisk
+}
+
+func PrintOptimalPlans(title string, optimalPlans map[mapset.Set[string]]CostAndPlan) {
+	fmt.Println("")
+	fmt.Println("Pattern: " + title)
+	fmt.Println("==================================================")
+	isFirst := true
+	for _, costPlan := range optimalPlans {
+		if isFirst {
+			isFirst = false
+		} else {
+			fmt.Println("--------------------------------------------------")
+		}
+		plan_ := costPlan.plan
+		fmt.Println("Cost: " + strconv.Itoa(int(costPlan.cost)))
+		plans.PrintPlanTree(plan_, 0)
+
+	}
+	fmt.Println("==================================================")
 }
 
 /*

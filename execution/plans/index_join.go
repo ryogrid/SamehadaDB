@@ -67,8 +67,8 @@ func (p *IndexJoinPlanNode) AccessRowCount(c *catalog.Catalog) uint64 {
 	return p.getRightTableRows(c) * 3
 }
 
-func (p *IndexJoinPlanNode) GetTreeInfoStr() string {
-	// TODO: (SDB) [OPT] not implemented yet (IndexJoinPlanNode::GetTreeInfoStr)
+func (p *IndexJoinPlanNode) GetDebugStr() string {
+	// TODO: (SDB) [OPT] not implemented yet (IndexJoinPlanNode::GetDebugStr)
 	panic("not implemented yet")
 }
 

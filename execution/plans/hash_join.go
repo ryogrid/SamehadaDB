@@ -91,8 +91,8 @@ func (p *HashJoinPlanNode) AccessRowCount(c *catalog.Catalog) uint64 {
 
 }
 
-func (p *HashJoinPlanNode) GetTreeInfoStr() string {
-	// TODO: (SDB) [OPT] not implemented yet (HashJoinPlanNode::GetTreeInfoStr)
+func (p *HashJoinPlanNode) GetDebugStr() string {
+	// TODO: (SDB) [OPT] not implemented yet (HashJoinPlanNode::GetDebugStr)
 	panic("not implemented yet")
 }
 

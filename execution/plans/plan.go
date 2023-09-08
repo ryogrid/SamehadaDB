@@ -36,10 +36,9 @@ type Plan interface {
 	AccessRowCount(*catalog.Catalog) uint64
 	EmitRowCount(*catalog.Catalog) uint64
 	GetStatistics() *catalog.TableStatistics
-	// TODO: (SDB) [OPT] not implemented yet (Plan::GetTreeInfoStr)
 	// debugging utility func
 	// returns a string representation of the plan tree rooted at this node
-	GetTreeInfoStr() string
+	GetDebugStr() string
 }
 
 /**

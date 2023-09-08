@@ -32,8 +32,8 @@ func (p *DeletePlanNode) EmitRowCount(c *catalog.Catalog) uint64 {
 	return p.children[0].EmitRowCount(c)
 }
 
-func (p *DeletePlanNode) GetTreeInfoStr() string {
-	// TODO: (SDB) [OPT] not implemented yet (DeletePlanNode::GetTreeInfoStr)
+func (p *DeletePlanNode) GetDebugStr() string {
+	// TODO: (SDB) [OPT] not implemented yet (DeletePlanNode::GetDebugStr)
 	panic("not implemented yet")
 }
 

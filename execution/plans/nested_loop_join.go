@@ -57,7 +57,7 @@ func (p *NestedLoopJoinPlanNode) GetStatistics() *catalog.TableStatistics {
 	return p.stats_
 }
 
-func (p *NestedLoopJoinPlanNode) GetTreeInfoStr() string {
-	// TODO: (SDB) [OPT] not implemented yet (NestedLoopJoinPlanNode::GetTreeInfoStr)
+func (p *NestedLoopJoinPlanNode) GetDebugStr() string {
+	// TODO: (SDB) [OPT] not implemented yet (NestedLoopJoinPlanNode::GetDebugStr)
 	panic("not implemented yet")
 }

@@ -52,7 +52,7 @@ func (p *InsertPlanNode) GetStatistics() *catalog.TableStatistics {
 	panic("not collable!")
 }
 
-func (p *InsertPlanNode) GetTreeInfoStr() string {
-	// TODO: (SDB) [OPT] not implemented yet (InsertPlanNode::GetTreeInfoStr)
+func (p *InsertPlanNode) GetDebugStr() string {
+	// TODO: (SDB) [OPT] not implemented yet (InsertPlanNode::GetDebugStr)
 	panic("not implemented yet")
 }

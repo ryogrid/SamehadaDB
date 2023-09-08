@@ -31,9 +31,9 @@ func (p *ProjectionPlanNode) EmitRowCount(c *catalog.Catalog) uint64 {
 	return p.children[0].EmitRowCount(c)
 }
 
-func (p *ProjectionPlanNode) GetTreeInfoStr() string {
-	// TODO: (SDB) [OPT] not implemented yet (ProjectionPlanNode::GetTreeInfoStr)
-	panic("not implemented yet")
+func (p *ProjectionPlanNode) GetDebugStr() string {
+	// TODO: (SDB) [OPT] not implemented yet (ProjectionPlanNode::GetDebugStr)
+	return "ProjectionPlanNode"
 }
 
 func (p *ProjectionPlanNode) GetStatistics() *catalog.TableStatistics {

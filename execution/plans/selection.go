@@ -44,9 +44,9 @@ func (p *SelectionPlanNode) EmitRowCount(c *catalog.Catalog) uint64 {
 	//c.GetTableByOID(p.GetTableOID()).GetStatistics().ReductionFactor(*p.children[0].OutputSchema(), p.predicate)))
 }
 
-func (p *SelectionPlanNode) GetTreeInfoStr() string {
-	// TODO: (SDB) [OPT] not implemented yet (SelectionPlanNode::GetTreeInfoStr)
-	panic("not implemented yet")
+func (p *SelectionPlanNode) GetDebugStr() string {
+	// TODO: (SDB) [OPT] not implemented yet (SelectionPlanNode::GetDebugStr)
+	return "SelectionPlanNode"
 }
 
 func (p *SelectionPlanNode) GetStatistics() *catalog.TableStatistics {

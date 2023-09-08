@@ -42,8 +42,8 @@ func (p *LimitPlanNode) EmitRowCount(c *catalog.Catalog) uint64 {
 	return uint64(p.limit)
 }
 
-func (p *LimitPlanNode) GetTreeInfoStr() string {
-	// TODO: (SDB) [OPT] not implemented yet (LimitPlanNode::GetTreeInfoStr)
+func (p *LimitPlanNode) GetDebugStr() string {
+	// TODO: (SDB) [OPT] not implemented yet (LimitPlanNode::GetDebugStr)
 	panic("not implemented yet")
 }
 

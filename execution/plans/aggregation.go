@@ -99,8 +99,8 @@ func (p *AggregationPlanNode) EmitRowCount(c *catalog.Catalog) uint64 {
 	return 1
 }
 
-func (p *AggregationPlanNode) GetTreeInfoStr() string {
-	// TODO: (SDB) [OPT] not implemented yet (AggregationPlanNode::GetTreeInfoStr)
+func (p *AggregationPlanNode) GetDebugStr() string {
+	// TODO: (SDB) [OPT] not implemented yet (AggregationPlanNode::GetDebugStr)
 	panic("not implemented yet")
 }
 
