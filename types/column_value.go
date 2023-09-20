@@ -352,7 +352,7 @@ func (v Value) Size() uint32 {
 }
 
 func (v Value) ToString() string {
-	// all type occupies the whether NULL or not + 1 byte for the info storage
+	// all type occupies whether NULL or not + 1 byte for the info storage
 	switch v.valueType {
 	case Integer:
 		return strconv.Itoa(int(*v.integer))

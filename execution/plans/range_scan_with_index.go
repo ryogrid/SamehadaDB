@@ -9,6 +9,7 @@ import (
 	"github.com/ryogrid/SamehadaDB/storage/table/schema"
 	"github.com/ryogrid/SamehadaDB/types"
 	"math"
+	"strconv"
 )
 
 /**
@@ -63,12 +64,11 @@ func (p *RangeScanWithIndexPlanNode) EmitRowCount(c *catalog.Catalog) uint64 {
 }
 
 func (p *RangeScanWithIndexPlanNode) GetDebugStr() string {
-	// TODO: (SDB) [OPT] not implemented yet (RangeScanWithIndexPlanNode::GetDebugStr)
 	outColNames := "["
 	for _, col := range p.OutputSchema().GetColumns() {
 		outColNames += col.GetColumnName() + ", "
 	}
-	return "RangeScanWithIndexPlanNode " + outColNames + "]"
+	return "RangeScanWithIndexPlanNode " + outColNames + "] " + "type:" + strconv.Itoa(int(p.startRange.ValueType())) + " start:" + p.startRange.ToString() + " end:" + p.endRange.ToString()
 }
 
 func (p *RangeScanWithIndexPlanNode) GetStatistics() *catalog.TableStatistics {

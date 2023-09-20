@@ -355,7 +355,6 @@ func TestFindBestScans(t *testing.T) {
 	//testingpkg.Assert(t, len(optimalPlans) == len(queryInfo.JoinTables_), "len(optimalPlans) != len(query.JoinTables_) (5)")
 	//PrintOptimalPlans("Join(HashJoin)", optimalPlans)
 
-	// TODO: (SDB) [OPT] need to check range on RangeScanWithIndexPlanNode
 	//queryStr = "select Sc1.c2, Sc4.c1, Sc4.c2 from Sc1, Sc4 where Sc1.c2 = Sc4.c2 and Sc4.c2 = '1';" // Join(IndexJoin)
 	//queryInfo = parser.ProcessSQLStr(&queryStr)
 	//optimalPlans = NewSelingerOptimizer(queryInfo, c).findBestScans()
