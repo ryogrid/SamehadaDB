@@ -50,7 +50,12 @@ func (p *PointScanWithIndexPlanNode) EmitRowCount(c *catalog.Catalog) uint64 {
 
 func (p *PointScanWithIndexPlanNode) GetDebugStr() string {
 	// TODO: (SDB) [OPT] not implemented yet (PointScanWithIndexPlanNode::GetDebugStr)
-	return "PointScanWithIndexPlanNode"
+
+	outColNames := "["
+	for _, col := range p.OutputSchema().GetColumns() {
+		outColNames += col.GetColumnName() + ", "
+	}
+	return "PointScanWithIndexPlanNode " + outColNames + "]"
 }
 
 func (p *PointScanWithIndexPlanNode) GetStatistics() *catalog.TableStatistics {

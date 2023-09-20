@@ -64,7 +64,11 @@ func (p *RangeScanWithIndexPlanNode) EmitRowCount(c *catalog.Catalog) uint64 {
 
 func (p *RangeScanWithIndexPlanNode) GetDebugStr() string {
 	// TODO: (SDB) [OPT] not implemented yet (RangeScanWithIndexPlanNode::GetDebugStr)
-	return "RangeScanWithIndexPlanNode"
+	outColNames := "["
+	for _, col := range p.OutputSchema().GetColumns() {
+		outColNames += col.GetColumnName() + ", "
+	}
+	return "RangeScanWithIndexPlanNode " + outColNames + "]"
 }
 
 func (p *RangeScanWithIndexPlanNode) GetStatistics() *catalog.TableStatistics {

@@ -32,8 +32,11 @@ func (p *ProjectionPlanNode) EmitRowCount(c *catalog.Catalog) uint64 {
 }
 
 func (p *ProjectionPlanNode) GetDebugStr() string {
-	// TODO: (SDB) [OPT] not implemented yet (ProjectionPlanNode::GetDebugStr)
-	return "ProjectionPlanNode"
+	projColNames := "["
+	for _, col := range p.outputSchema.GetColumns() {
+		projColNames += col.GetColumnName() + ", "
+	}
+	return "ProjectionPlanNode " + projColNames + "]"
 }
 
 func (p *ProjectionPlanNode) GetStatistics() *catalog.TableStatistics {

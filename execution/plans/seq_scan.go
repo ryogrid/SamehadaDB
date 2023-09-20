@@ -47,8 +47,12 @@ func (p *SeqScanPlanNode) EmitRowCount(c *catalog.Catalog) uint64 {
 }
 
 func (p *SeqScanPlanNode) GetDebugStr() string {
-	// TODO: (SDB) [OPT] not implemented yet (SeqScanPlanNode::GetDebugStr)
-	return "SeqScanPlanNode"
+	outColNames := "["
+	for _, col := range p.OutputSchema().GetColumns() {
+		outColNames += col.GetColumnName() + ", "
+	}
+
+	return "SeqScanPlanNode " + outColNames + "]"
 }
 
 func (p *SeqScanPlanNode) GetStatistics() *catalog.TableStatistics {
