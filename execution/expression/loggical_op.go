@@ -23,8 +23,8 @@ const (
 type LogicalOp struct {
 	*AbstractExpression
 	logicalOpType  LogicalOpType
-	children_left  Expression
-	children_right Expression
+	children_left  Expression // referenced as children[0] after struct init...
+	children_right Expression // referenced as children[1] after struct init...
 }
 
 // if logicalOpType is "NOT", right value must be nil
