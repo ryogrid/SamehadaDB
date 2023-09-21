@@ -43,6 +43,9 @@ func (a *AggregateValueExpression) EvaluateAggregate(group_bys []*types.Value, a
 }
 
 func (a *AggregateValueExpression) GetChildAt(child_idx uint32) Expression {
+	if int(child_idx) >= len(a.children) {
+		return nil
+	}
 	return a.children[child_idx]
 }
 

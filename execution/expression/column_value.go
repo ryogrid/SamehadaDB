@@ -52,6 +52,9 @@ func (c *ColumnValue) EvaluateAggregate(group_bys []*types.Value, aggregates []*
 }
 
 func (c *ColumnValue) GetChildAt(child_idx uint32) Expression {
+	if int(child_idx) >= len(c.children) {
+		return nil
+	}
 	return c.children[child_idx]
 }
 
