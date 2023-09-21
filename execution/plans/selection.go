@@ -45,8 +45,7 @@ func (p *SelectionPlanNode) EmitRowCount(c *catalog.Catalog) uint64 {
 }
 
 func (p *SelectionPlanNode) GetDebugStr() string {
-	// TODO: (SDB) [OPT] not implemented yet (SelectionPlanNode::GetDebugStr)
-	return "SelectionPlanNode"
+	return "SelectionPlanNode [ " + expression.PrintExpTree(p.predicate) + "]"
 }
 
 func (p *SelectionPlanNode) GetStatistics() *catalog.TableStatistics {

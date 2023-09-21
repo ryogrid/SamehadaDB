@@ -1,35 +1,68 @@
 package expression
 
-import "math"
+import (
+	"github.com/ryogrid/SamehadaDB/types"
+	"math"
+	"strconv"
+)
 
-// TODO: (SDB) [OPT] not implemented yet (PrintExpTree at expression_util.go)
-func PrintExpTree(exp Expression, inputStr string) string {
-	retStr := inputStr
+// get string of "Reverse Polish Notation" style
+func PrintExpTree(node interface{}) string {
+	retStr := ""
 
 	childTraverse := func(exp Expression) string {
 		var idx uint32 = 0
 		var tmpStr string = ""
 		for exp.GetChildAt(idx) != nil && idx < math.MaxInt32 {
 			child := exp.GetChildAt(idx)
-			tmpStr += PrintExpTree(child, retStr)
+			tmpStr += PrintExpTree(child)
 			idx++
 		}
 		return tmpStr
 	}
 
-	switch exp.(type) {
+	switch typedNode := node.(type) {
 	case *Comparison:
-		return retStr + childTraverse(exp)
-	case *ConstantValue:
-		return retStr + childTraverse(exp)
+		retStr += childTraverse(typedNode)
+		switch typedNode.comparisonType {
+		case Equal:
+			retStr += "= "
+		case NotEqual:
+			retStr += "!= "
+		case GreaterThan: // A > B
+			retStr += "> "
+		case GreaterThanOrEqual: // A >= B
+			retStr += ">= "
+		case LessThan: // A < B
+			retStr += "< "
+		case LessThanOrEqual: // A <= B
+			retStr += "<= "
+		default:
+			panic("illegal comparisonType!")
+		}
+		return retStr
+	case *LogicalOp:
+		retStr += childTraverse(typedNode)
+		switch typedNode.logicalOpType {
+		case AND:
+			retStr += "AND "
+		case OR:
+			retStr += "OR "
+		case NOT:
+			retStr += "NOT "
+		default:
+			panic("illegal logicalOpType!")
+		}
+		return retStr
 	case *AggregateValueExpression:
-		return retStr + childTraverse(exp)
+		panic("AggregateValueExpression is not implemented yet!")
+	case *ConstantValue:
+		return typedNode.value.ToString() + " "
 	case *ColumnValue:
-		return retStr + childTraverse(exp)
+		return "colIndex:" + strconv.Itoa(int(typedNode.GetColIndex())) + " "
+	case *types.Value:
+		return typedNode.ToString() + ""
 	default:
 		panic("illegal type expression object is passed!")
 	}
-	//print(exp.GetDebugStr())
-	//println()
-
 }
