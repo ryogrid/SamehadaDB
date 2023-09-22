@@ -481,7 +481,9 @@ func (so *SelingerOptimizer) findBestJoin(optimalPlans map[mapset.Set[string]]Co
 }
 
 // TODO: (SDB) [OPT] caller should check predicate whether it is optimizable and if not, caller can't call this function (SelingerOptimizer::Optimize)
-//                   (predicate including bracket or OR operation case and projection including asterisk or aggregate operation case are not supported now)
+//                   cases below are not supported now.
+//                   - predicate including bracket or OR operation or column name without table name prefix
+//                   - projection including asterisk or aggregate operation
 
 // TODO: (SDB) [OPT] adding support of ON clause (Optimize, findBestJoin, findBestJoinInner, findBestScans, findBestScan)
 func (so *SelingerOptimizer) Optimize() (plans.Plan, error) {
