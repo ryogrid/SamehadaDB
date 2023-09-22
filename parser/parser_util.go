@@ -3,6 +3,8 @@ package parser
 import (
 	ptypes "github.com/pingcap/tidb/types"
 	driver "github.com/pingcap/tidb/types/parser_driver"
+	"github.com/ryogrid/SamehadaDB/execution/expression"
+	"github.com/ryogrid/SamehadaDB/storage/table/schema"
 	"github.com/ryogrid/SamehadaDB/types"
 	"strconv"
 	"strings"
@@ -38,4 +40,10 @@ func ValueExprToValue(expr *driver.ValueExpr) *types.Value {
 		ret := types.NewVarchar(target_str)
 		return &ret
 	}
+}
+
+func GetPredicateExprFromStr(schema_ *schema.Schema, pred *string) expression.Expression {
+	sqlStr := "SELECT * FROM dummy WHERE " + *pred + ";"
+	qi := ProcessSQLStr(&sqlStr)
+	return ConvParsedBinaryOpExprToExpIFOne(schema_, qi.WhereExpression_)
 }

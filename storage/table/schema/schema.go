@@ -56,13 +56,16 @@ func (s *Schema) Length() uint32 {
 }
 
 func (s *Schema) GetColIndex(columnName string) uint32 {
+	// note: alphabets on column name is stored in lowercase
+	columnName_ := strings.ToLower(columnName)
+
 	for i := uint32(0); i < s.GetColumnCount(); i++ {
-		if strings.Contains(columnName, ".") && s.columns[i].GetColumnName() == columnName {
+		if strings.Contains(columnName_, ".") && s.columns[i].GetColumnName() == columnName_ {
 			return i
-		} else if !strings.Contains(columnName, ".") {
-			if s.columns[i].GetColumnName() == columnName {
+		} else if !strings.Contains(columnName_, ".") {
+			if s.columns[i].GetColumnName() == columnName_ {
 				return i
-			} else if strings.Contains(s.columns[i].GetColumnName(), ".") && strings.Split(s.columns[i].GetColumnName(), ".")[1] == columnName {
+			} else if strings.Contains(s.columns[i].GetColumnName(), ".") && strings.Split(s.columns[i].GetColumnName(), ".")[1] == columnName_ {
 				return i
 			}
 		}

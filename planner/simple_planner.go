@@ -86,7 +86,7 @@ func (pner *SimplePlanner) MakeSelectPlanWithoutJoin() (error, plans.Plan) {
 		predicate = pner.ConstructPredicate([]*schema.Schema{tgtTblSchema})
 	}
 
-	return nil, plans.NewSeqScanPlanNode(outSchema, predicate, tableMetadata.OID())
+	return nil, plans.NewSeqScanPlanNode(pner.catalog_, outSchema, predicate, tableMetadata.OID())
 }
 
 func (pner *SimplePlanner) MakeSelectPlanWithJoin() (error, plans.Plan) {
@@ -111,7 +111,7 @@ func (pner *SimplePlanner) MakeSelectPlanWithJoin() (error, plans.Plan) {
 			columns = append(columns, column.NewColumn(col.GetColumnName(), col.GetType(), false, index_constants.INDEX_KIND_INVALID, types.PageID(-1), col.GetExpr()))
 		}
 		outSchemaL = schema.NewSchema(columns)
-		scanPlanL = plans.NewSeqScanPlanNode(outSchemaL, nil, tableMetadataL.OID())
+		scanPlanL = plans.NewSeqScanPlanNode(pner.catalog_, outSchemaL, nil, tableMetadataL.OID())
 	}
 
 	var outSchemaR *schema.Schema
@@ -123,7 +123,7 @@ func (pner *SimplePlanner) MakeSelectPlanWithJoin() (error, plans.Plan) {
 			columns = append(columns, column.NewColumn(col.GetColumnName(), col.GetType(), false, index_constants.INDEX_KIND_INVALID, types.PageID(-1), col.GetExpr()))
 		}
 		outSchemaR = schema.NewSchema(columns)
-		scanPlanR = plans.NewSeqScanPlanNode(outSchemaR, nil, tableMetadataR.OID())
+		scanPlanR = plans.NewSeqScanPlanNode(pner.catalog_, outSchemaR, nil, tableMetadataR.OID())
 	}
 
 	var joinPlan *plans.HashJoinPlanNode
@@ -316,7 +316,7 @@ func (pner *SimplePlanner) MakeDeletePlan() (error, plans.Plan) {
 
 	expression_ := pner.ConstructPredicate([]*schema.Schema{tgtTblSchema})
 	//deletePlan := plans.NewDeletePlanNode(expression_, tableMetadata.OID())
-	seqScanPlanP := plans.NewSeqScanPlanNode(tgtTblSchema, expression_, tableMetadata.OID())
+	seqScanPlanP := plans.NewSeqScanPlanNode(pner.catalog_, tgtTblSchema, expression_, tableMetadata.OID())
 	deletePlan := plans.NewDeletePlanNode(seqScanPlanP)
 
 	return nil, deletePlan
@@ -357,6 +357,6 @@ func (pner *SimplePlanner) MakeUpdatePlan() (error, plans.Plan) {
 		predicate = pner.ConstructPredicate([]*schema.Schema{tgtTblSchema})
 	}
 
-	seqScanPlan := plans.NewSeqScanPlanNode(tgtTblSchema, predicate, tableMetadata.OID())
+	seqScanPlan := plans.NewSeqScanPlanNode(pner.catalog_, tgtTblSchema, predicate, tableMetadata.OID())
 	return nil, plans.NewUpdatePlanNode(updateVals, updateColIdxs, seqScanPlan)
 }

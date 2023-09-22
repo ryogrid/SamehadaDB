@@ -22,6 +22,7 @@ type OrderbyPlanNode struct {
 	*AbstractPlanNode
 	col_idxs_      []int
 	orderby_types_ []OrderbyType
+	stats_         *catalog.TableStatistics
 }
 
 /**
@@ -33,7 +34,7 @@ type OrderbyPlanNode struct {
  */
 func NewOrderbyPlanNode(child_schema *schema.Schema, child Plan, col_idxs []int,
 	order_types []OrderbyType) *OrderbyPlanNode {
-	return &OrderbyPlanNode{&AbstractPlanNode{child_schema, []Plan{child}}, col_idxs, order_types}
+	return &OrderbyPlanNode{&AbstractPlanNode{child_schema, []Plan{child}}, col_idxs, order_types, child.GetStatistics().GetDeepCopy()}
 }
 
 func (p *OrderbyPlanNode) GetType() PlanType { return Orderby }
@@ -73,4 +74,13 @@ func (p *OrderbyPlanNode) AccessRowCount(c *catalog.Catalog) uint64 {
 
 func (p *OrderbyPlanNode) EmitRowCount(c *catalog.Catalog) uint64 {
 	return p.children[0].EmitRowCount(c)
+}
+
+func (p *OrderbyPlanNode) GetDebugStr() string {
+	// TODO: (SDB) [OPT] not implemented yet (OrderbyPlanNode::GetDebugStr)
+	panic("not implemented yet")
+}
+
+func (p *OrderbyPlanNode) GetStatistics() *catalog.TableStatistics {
+	return p.stats_
 }

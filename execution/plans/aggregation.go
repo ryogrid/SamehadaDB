@@ -31,6 +31,7 @@ type AggregationPlanNode struct {
 	group_bys_  []expression.Expression
 	aggregates_ []expression.Expression
 	agg_types_  []AggregationType
+	stats_      *catalog.TableStatistics
 }
 
 /**
@@ -45,7 +46,7 @@ type AggregationPlanNode struct {
 func NewAggregationPlanNode(output_schema *schema.Schema, child Plan, having expression.Expression,
 	group_bys []expression.Expression,
 	aggregates []expression.Expression, agg_types []AggregationType) *AggregationPlanNode {
-	return &AggregationPlanNode{&AbstractPlanNode{output_schema, []Plan{child}}, having, group_bys, aggregates, agg_types}
+	return &AggregationPlanNode{&AbstractPlanNode{output_schema, []Plan{child}}, having, group_bys, aggregates, agg_types, child.GetStatistics().GetDeepCopy()}
 }
 
 func (p *AggregationPlanNode) GetType() PlanType { return Aggregation }
@@ -96,6 +97,15 @@ func (p *AggregationPlanNode) AccessRowCount(c *catalog.Catalog) uint64 {
 
 func (p *AggregationPlanNode) EmitRowCount(c *catalog.Catalog) uint64 {
 	return 1
+}
+
+func (p *AggregationPlanNode) GetDebugStr() string {
+	// TODO: (SDB) [OPT] not implemented yet (AggregationPlanNode::GetDebugStr)
+	panic("not implemented yet")
+}
+
+func (p *AggregationPlanNode) GetStatistics() *catalog.TableStatistics {
+	return p.stats_
 }
 
 type AggregateKey struct {

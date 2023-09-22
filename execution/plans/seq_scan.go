@@ -16,10 +16,12 @@ type SeqScanPlanNode struct {
 	*AbstractPlanNode
 	predicate expression.Expression
 	tableOID  uint32
+	stats_    *catalog.TableStatistics
 }
 
-func NewSeqScanPlanNode(schema *schema.Schema, predicate expression.Expression, tableOID uint32) Plan {
-	return &SeqScanPlanNode{&AbstractPlanNode{schema, nil}, predicate, tableOID}
+func NewSeqScanPlanNode(c *catalog.Catalog, schema *schema.Schema, predicate expression.Expression, tableOID uint32) Plan {
+	tm := c.GetTableByOID(tableOID)
+	return &SeqScanPlanNode{&AbstractPlanNode{schema, nil}, predicate, tableOID, tm.GetStatistics().GetDeepCopy()}
 }
 
 func (p *SeqScanPlanNode) GetPredicate() expression.Expression {
@@ -42,4 +44,17 @@ func (p *SeqScanPlanNode) AccessRowCount(c *catalog.Catalog) uint64 {
 func (p *SeqScanPlanNode) EmitRowCount(c *catalog.Catalog) uint64 {
 	// assumption: selection with predicate is not used
 	return p.AccessRowCount(c)
+}
+
+func (p *SeqScanPlanNode) GetDebugStr() string {
+	outColNames := "["
+	for _, col := range p.OutputSchema().GetColumns() {
+		outColNames += col.GetColumnName() + ", "
+	}
+
+	return "SeqScanPlanNode " + outColNames + "]"
+}
+
+func (p *SeqScanPlanNode) GetStatistics() *catalog.TableStatistics {
+	return p.stats_
 }

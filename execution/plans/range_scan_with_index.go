@@ -9,6 +9,7 @@ import (
 	"github.com/ryogrid/SamehadaDB/storage/table/schema"
 	"github.com/ryogrid/SamehadaDB/types"
 	"math"
+	"strconv"
 )
 
 /**
@@ -21,10 +22,12 @@ type RangeScanWithIndexPlanNode struct {
 	colIdx     int32 // column idx which has index to be used
 	startRange *types.Value
 	endRange   *types.Value
+	stats_     *catalog.TableStatistics
 }
 
-func NewRangeScanWithIndexPlanNode(schema *schema.Schema, tableOID uint32, colIdx int32, predicate expression.Expression, startRange *types.Value, endRange *types.Value) Plan {
-	return &RangeScanWithIndexPlanNode{&AbstractPlanNode{schema, nil}, predicate, tableOID, colIdx, startRange, endRange}
+func NewRangeScanWithIndexPlanNode(c *catalog.Catalog, schema *schema.Schema, tableOID uint32, colIdx int32, predicate expression.Expression, startRange *types.Value, endRange *types.Value) Plan {
+	tm := c.GetTableByOID(tableOID)
+	return &RangeScanWithIndexPlanNode{&AbstractPlanNode{schema, nil}, predicate, tableOID, colIdx, startRange, endRange, tm.GetStatistics().GetDeepCopy()}
 }
 
 func (p *RangeScanWithIndexPlanNode) GetPredicate() expression.Expression {
@@ -58,4 +61,16 @@ func (p *RangeScanWithIndexPlanNode) AccessRowCount(c *catalog.Catalog) uint64 {
 func (p *RangeScanWithIndexPlanNode) EmitRowCount(c *catalog.Catalog) uint64 {
 	// 	TODO: (SDB) if (index_.IsUnique() && begin_ == end_) { return 1; } (RangeScanWithIndexPlanNode::EmitRowCount)
 	return uint64(math.Ceil(c.GetTableByOID(p.tableOID).GetStatistics().EstimateCount(p.colIdx, p.startRange, p.endRange)))
+}
+
+func (p *RangeScanWithIndexPlanNode) GetDebugStr() string {
+	outColNames := "["
+	for _, col := range p.OutputSchema().GetColumns() {
+		outColNames += col.GetColumnName() + ", "
+	}
+	return "RangeScanWithIndexPlanNode " + outColNames + "] " + "type:" + strconv.Itoa(int(p.startRange.ValueType())) + " start:" + p.startRange.ToString() + " end:" + p.endRange.ToString()
+}
+
+func (p *RangeScanWithIndexPlanNode) GetStatistics() *catalog.TableStatistics {
+	return p.stats_
 }

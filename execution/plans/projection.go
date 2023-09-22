@@ -8,10 +8,11 @@ import (
 
 type ProjectionPlanNode struct {
 	*AbstractPlanNode
+	stats_ *catalog.TableStatistics
 }
 
 func NewProjectionPlanNode(child Plan, projectColumns *schema.Schema) Plan {
-	return &ProjectionPlanNode{&AbstractPlanNode{projectColumns, []Plan{child}}}
+	return &ProjectionPlanNode{&AbstractPlanNode{projectColumns, []Plan{child}}, child.GetStatistics().GetDeepCopy()}
 }
 
 func (p *ProjectionPlanNode) GetType() PlanType {
@@ -28,4 +29,16 @@ func (p *ProjectionPlanNode) AccessRowCount(c *catalog.Catalog) uint64 {
 
 func (p *ProjectionPlanNode) EmitRowCount(c *catalog.Catalog) uint64 {
 	return p.children[0].EmitRowCount(c)
+}
+
+func (p *ProjectionPlanNode) GetDebugStr() string {
+	projColNames := "["
+	for _, col := range p.outputSchema.GetColumns() {
+		projColNames += col.GetColumnName() + ", "
+	}
+	return "ProjectionPlanNode " + projColNames + "]"
+}
+
+func (p *ProjectionPlanNode) GetStatistics() *catalog.TableStatistics {
+	return p.stats_
 }

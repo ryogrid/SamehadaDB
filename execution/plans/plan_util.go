@@ -31,3 +31,15 @@ func constructOnExpressionFromKeysInfo(leftKeys []expression.Expression, rightKe
 
 	return expression.NewComparison(leftKeys[0], rightKeys[0], expression.Equal, types.Boolean)
 }
+
+func PrintPlanTree(plan Plan, indent int) {
+	for ii := 0; ii < indent; ii++ {
+		print(" ")
+	}
+	print(plan.GetDebugStr())
+	println()
+
+	for _, child := range plan.GetChildren() {
+		PrintPlanTree(child, indent+2)
+	}
+}

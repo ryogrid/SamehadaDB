@@ -17,10 +17,12 @@ type PointScanWithIndexPlanNode struct {
 	*AbstractPlanNode
 	predicate *expression.Comparison
 	tableOID  uint32
+	stats_    *catalog.TableStatistics
 }
 
-func NewPointScanWithIndexPlanNode(schema *schema.Schema, predicate *expression.Comparison, tableOID uint32) Plan {
-	return &PointScanWithIndexPlanNode{&AbstractPlanNode{schema, nil}, predicate, tableOID}
+func NewPointScanWithIndexPlanNode(c *catalog.Catalog, schema *schema.Schema, predicate *expression.Comparison, tableOID uint32) Plan {
+	tm := c.GetTableByOID(tableOID)
+	return &PointScanWithIndexPlanNode{&AbstractPlanNode{schema, nil}, predicate, tableOID, tm.GetStatistics().GetDeepCopy()}
 }
 
 func (p *PointScanWithIndexPlanNode) GetPredicate() *expression.Comparison {
@@ -43,5 +45,19 @@ func (p *PointScanWithIndexPlanNode) EmitRowCount(c *catalog.Catalog) uint64 {
 	tm := c.GetTableByOID(p.tableOID)
 	return uint64(math.Ceil(
 		float64(tm.GetStatistics().Rows()) /
-			tm.GetStatistics().ReductionFactor(*tm.Schema(), p.predicate)))
+			tm.GetStatistics().ReductionFactor(tm.Schema(), p.predicate)))
+}
+
+func (p *PointScanWithIndexPlanNode) GetDebugStr() string {
+	// TODO: (SDB) [OPT] not implemented yet (PointScanWithIndexPlanNode::GetDebugStr)
+
+	outColNames := "["
+	for _, col := range p.OutputSchema().GetColumns() {
+		outColNames += col.GetColumnName() + ", "
+	}
+	return "PointScanWithIndexPlanNode " + outColNames + "]"
+}
+
+func (p *PointScanWithIndexPlanNode) GetStatistics() *catalog.TableStatistics {
+	return p.stats_
 }

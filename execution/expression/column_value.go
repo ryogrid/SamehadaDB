@@ -7,6 +7,7 @@ import (
 	"github.com/ryogrid/SamehadaDB/storage/table/schema"
 	"github.com/ryogrid/SamehadaDB/storage/tuple"
 	"github.com/ryogrid/SamehadaDB/types"
+	"strings"
 )
 
 /**
@@ -51,6 +52,9 @@ func (c *ColumnValue) EvaluateAggregate(group_bys []*types.Value, aggregates []*
 }
 
 func (c *ColumnValue) GetChildAt(child_idx uint32) Expression {
+	if int(child_idx) >= len(c.children) {
+		return nil
+	}
 	return c.children[child_idx]
 }
 
@@ -62,7 +66,9 @@ func (c *ColumnValue) SetReturnType(valueType types.TypeID) {
 
 func MakeColumnValueExpression(schema_ *schema.Schema, tuple_idx_on_join uint32,
 	col_name string) Expression {
-	col_idx := schema_.GetColIndex(col_name)
+	// note: alphabets on column name is stored in lowercase
+
+	col_idx := schema_.GetColIndex(strings.ToLower(col_name))
 	col_type := schema_.GetColumn(col_idx).GetType()
 	col_val := NewColumnValue(tuple_idx_on_join, col_idx, col_type)
 	return col_val

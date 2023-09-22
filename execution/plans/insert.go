@@ -47,3 +47,12 @@ func (p *InsertPlanNode) EmitRowCount(c *catalog.Catalog) uint64 {
 	// TODO: (SDB) temporal impl
 	return uint64(len(p.rawValues))
 }
+
+func (p *InsertPlanNode) GetStatistics() *catalog.TableStatistics {
+	panic("not collable!")
+}
+
+func (p *InsertPlanNode) GetDebugStr() string {
+	// TODO: (SDB) [OPT] not implemented yet (InsertPlanNode::GetDebugStr)
+	panic("not implemented yet")
+}

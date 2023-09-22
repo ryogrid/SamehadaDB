@@ -12,6 +12,7 @@ type UpdatePlanNode struct {
 	*AbstractPlanNode
 	rawValues       []types.Value
 	update_col_idxs []int
+	stats_          *catalog.TableStatistics
 	//predicate       expression.Expression
 	//tableOID        uint32
 }
@@ -21,8 +22,7 @@ type UpdatePlanNode struct {
 // but not update target column value can be dummy value!
 // func NewUpdatePlanNode(rawValues []types.Value, update_col_idxs []int, predicate expression.Expression, oid uint32) Plan {
 func NewUpdatePlanNode(rawValues []types.Value, update_col_idxs []int, child Plan) Plan {
-	//return &UpdatePlanNode{&AbstractPlanNode{nil, nil}, rawValues, update_col_idxs, predicate, oid}
-	return &UpdatePlanNode{&AbstractPlanNode{nil, []Plan{child}}, rawValues, update_col_idxs}
+	return &UpdatePlanNode{&AbstractPlanNode{nil, []Plan{child}}, rawValues, update_col_idxs, child.GetStatistics().GetDeepCopy()}
 }
 
 func (p *UpdatePlanNode) GetTableOID() uint32 {
@@ -52,4 +52,13 @@ func (p *UpdatePlanNode) AccessRowCount(c *catalog.Catalog) uint64 {
 
 func (p *UpdatePlanNode) EmitRowCount(c *catalog.Catalog) uint64 {
 	return p.children[0].EmitRowCount(c)
+}
+
+func (p *UpdatePlanNode) GetDebugStr() string {
+	// TODO: (SDB) [OPT] not implemented yet (UpdatePlanNode::GetDebugStr)
+	panic("not implemented yet")
+}
+
+func (p *UpdatePlanNode) GetStatistics() *catalog.TableStatistics {
+	return p.stats_
 }

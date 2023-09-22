@@ -112,8 +112,10 @@ func RecoveryCatalogFromCatalogPage(bpm *buffer.BufferPoolManager, log_manager *
 }
 
 func (c *Catalog) GetTableByName(table string) *TableMetadata {
-	if table, ok := c.tableNames[table]; ok {
-		return table
+	// note: alphabets on table name is stored in lowercase
+	tableName := strings.ToLower(table)
+	if table_, ok := c.tableNames[tableName]; ok {
+		return table_
 	}
 	return nil
 }
@@ -148,18 +150,21 @@ func attachTableNameToColumnsName(schema_ *schema.Schema, tblName string) *schem
 // CreateTable creates a new table and return its metadata
 // ATTENTION: this function modifies column name filed of Column objects on *schema_* argument if needed
 func (c *Catalog) CreateTable(name string, schema_ *schema.Schema, txn *access.Transaction) *TableMetadata {
+	// note: alphabets on table name is stored in lowercase
+	name_ := strings.ToLower(name)
+
 	oid := c.nextTableId
 	atomic.AddUint32(&c.nextTableId, 1)
 
 	tableHeap := access.NewTableHeap(c.bpm, c.Log_manager, c.Lock_manager, txn)
 
 	// attach table name as prefix to all columns name
-	attachTableNameToColumnsName(schema_, name)
+	attachTableNameToColumnsName(schema_, name_)
 
-	tableMetadata := NewTableMetadata(schema_, name, tableHeap, oid)
+	tableMetadata := NewTableMetadata(schema_, name_, tableHeap, oid)
 
 	c.tableIds[oid] = tableMetadata
-	c.tableNames[name] = tableMetadata
+	c.tableNames[name_] = tableMetadata
 	c.insertTable(tableMetadata, txn)
 
 	return tableMetadata

@@ -76,7 +76,7 @@ func (r *Range) Update(op expression.ComparisonType, rhs *types.Value, dir Direc
 		// e.g. x == 10
 		r.Max = rhs.GetDeepCopy()
 		r.Min = rhs.GetDeepCopy()
-		r.MinInclusive = true
+		r.MaxInclusive = true
 		r.MinInclusive = true
 	case expression.NotEqual:
 		// e.g. x != 10
@@ -150,7 +150,7 @@ func touchOnly(from *catalog.TableMetadata, where expression.Expression, colName
 		//		   return TouchOnly(be.Left(), col_name) && TouchOnly(be.Right(), col_name);
 		return touchOnly(from, where.GetChildAt(0), colName) && touchOnly(from, where.GetChildAt(1), colName)
 	}
-	samehada_util.SHAssert(where.GetType() == expression.EXPRESSION_TYPE_CONSTANT_VALUE, "invalid expression type")
+	//samehada_util.SHAssert(where.GetType() == expression.EXPRESSION_TYPE_CONSTANT_VALUE, "invalid expression type")
 	return true
 }
 
@@ -259,12 +259,17 @@ func (so *SelingerOptimizer) findBestScan(outNeededCols []*column.Column, where 
 		if span.Empty() {
 			continue
 		}
-		//targetIndex := from.GetIndex(candidates[key])
-		// Plan new_plan = IndexScanSelect(from, target_idx, stat, *span.min,*span.max, scan_exp, select);
-		var newPlan = plans.NewRangeScanWithIndexPlanNode(sc, from.OID(), int32(key), nil, span.Min, span.Max)
-		// if (!TouchOnly(scan_exp, from.GetSchema().GetColumn(key).Name())) {
-		if !touchOnly(from, scanExp, sc.GetColumn(uint32(key)).GetColumnName()) {
-			//new_plan = std::make_shared<SelectionPlan>(new_plan, scan_exp, stat);
+
+		isPredicateCheckNeeded := false
+		newPlan := plans.NewRangeScanWithIndexPlanNode(c, sc, from.OID(), int32(key), nil, span.Min, span.Max)
+		if !span.MinInclusive || !span.MaxInclusive {
+			// Range scan is not inclusive, so we need to check predicate
+			isPredicateCheckNeeded = true
+		}
+		if !touchOnly(from, scanExp, sc.GetColumn(uint32(key)).GetColumnName()) || isPredicateCheckNeeded {
+			// when scanExp includes item which is not related to current index key, add selection about these
+			// e.g. index key is a and scanExp is (1 <= a AND a <= 10 AND c = 2), then add selection (1 <= a AND a <= 10 AND c = 2) to newPlan
+			//      currently, though selection related column a is needless, but it is included...
 			newPlan = plans.NewSelectionPlanNode(newPlan, scanExp)
 		}
 		if len(outNeededCols) != int(newPlan.OutputSchema().GetColumnCount()) {
@@ -278,7 +283,7 @@ func (so *SelingerOptimizer) findBestScan(outNeededCols []*column.Column, where 
 	}
 
 	// Plan full_scan_plan(new FullScanPlan(from, stat));
-	fullScanPlan := plans.NewSeqScanPlanNode(sc, nil, from.OID())
+	fullScanPlan := plans.NewSeqScanPlanNode(c, sc, nil, from.OID())
 	if scanExp != nil {
 		// full_scan_plan = std::make_shared<SelectionPlan>(full_scan_plan, scan_exp, stat);
 		fullScanPlan = plans.NewSelectionPlanNode(fullScanPlan, scanExp)
@@ -396,7 +401,7 @@ func (so *SelingerOptimizer) findBestJoinInner(where *parser.BinaryOpExpression,
 						if right_idx.GetTupleSchema().IsHaveColumn(rcol) {
 							// candidates.push_back(std::make_shared<ProductPlan>(left, left_cols, *right_tbl, right_idx, right_cols, *stat));
 							// right scan plan is not used because IndexJoinExecutor does point scans internally
-							candidates = append(candidates, plans.NewIndexJoinPlanNode(left, parser.ConvColumnStrsToExpIfOnes(so.c, left_cols, true), rightSchema, rightOID, parser.ConvColumnStrsToExpIfOnes(so.c, right_cols, false)))
+							candidates = append(candidates, plans.NewIndexJoinPlanNode(so.c, left, parser.ConvColumnStrsToExpIfOnes(so.c, left_cols, true), rightSchema, rightOID, parser.ConvColumnStrsToExpIfOnes(so.c, right_cols, false)))
 						}
 					}
 				}
@@ -447,8 +452,9 @@ func (so *SelingerOptimizer) findBestJoin(optimalPlans map[mapset.Set[string]]Co
 				if containsAny(baseTableFrom, joinTableFrom) || (baseTableFrom.Cardinality()+joinTableFrom.Cardinality() != ii+1) {
 					continue
 				}
+				// Note: for making left-deep Selinger, checking joinTableFrom.Cardinality() == 1 is needed here
+				//       current impl can construct bushy plan tree, but it searches more candidates than left-deep Selinger
 
-				// for making left-deep Selinger, checking joinTableFrom.Cardinality() == 1 is needed
 				bestJoinPlan, _ := so.findBestJoinInner(so.qi.WhereExpression_.GetDeepCopy(), baseTableCP.plan, joinTableCP.plan, so.c)
 				fmt.Println(bestJoinPlan)
 
@@ -475,7 +481,9 @@ func (so *SelingerOptimizer) findBestJoin(optimalPlans map[mapset.Set[string]]Co
 }
 
 // TODO: (SDB) [OPT] caller should check predicate whether it is optimizable and if not, caller can't call this function (SelingerOptimizer::Optimize)
-//                   (predicate including bracket or OR operation case is not supported now)
+//                   cases below are not supported now.
+//                   - predicate including bracket or OR operation or column name without table name prefix
+//                   - projection including asterisk or aggregate operation
 
 // TODO: (SDB) [OPT] adding support of ON clause (Optimize, findBestJoin, findBestJoinInner, findBestScans, findBestScan)
 func (so *SelingerOptimizer) Optimize() (plans.Plan, error) {

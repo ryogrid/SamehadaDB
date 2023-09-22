@@ -352,7 +352,7 @@ func (v Value) Size() uint32 {
 }
 
 func (v Value) ToString() string {
-	// all type occupies the whether NULL or not + 1 byte for the info storage
+	// all type occupies whether NULL or not + 1 byte for the info storage
 	switch v.valueType {
 	case Integer:
 		return strconv.Itoa(int(*v.integer))
@@ -614,7 +614,7 @@ func (v Value) Min(other *Value) *Value {
 }
 
 func (v Value) Swap(other *Value) {
-	if v.isNull != nil || other.isNull != nil {
+	if (v.isNull != nil && *v.isNull == true) || (other.isNull != nil && *other.isNull == true) {
 		panic("not implemented for NULL value")
 	}
 	//samehada_util.SHAssert(v.valueType == other.valueType, "type mismatch")

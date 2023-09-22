@@ -357,7 +357,7 @@ func TestAbortWthDeleteUpdateUniqSkipListIndexCasePointScan(t *testing.T) {
 	expression_ := expression.NewComparison(tmpColVal, expression.NewConstantValue(testing_util.GetValue(pred.RightColumn), testing_util.GetValueType(pred.RightColumn)), pred.Operator, types.Boolean)
 
 	//seqScanPlan := plans.NewSeqScanPlanNode(tableMetadata.Schema(), expression_, tableMetadata.OID())
-	skipListPointScanP := plans.NewPointScanWithIndexPlanNode(tableMetadata.Schema(), expression_.(*expression.Comparison), tableMetadata.OID())
+	skipListPointScanP := plans.NewPointScanWithIndexPlanNode(c, tableMetadata.Schema(), expression_.(*expression.Comparison), tableMetadata.OID())
 	updatePlanNode := plans.NewUpdatePlanNode(row1, []int{0, 1}, skipListPointScanP)
 	executionEngine.Execute(updatePlanNode, executorContext)
 
@@ -369,7 +369,7 @@ func TestAbortWthDeleteUpdateUniqSkipListIndexCasePointScan(t *testing.T) {
 	expression_ = expression.NewComparison(tmpColVal, expression.NewConstantValue(testing_util.GetValue(pred.RightColumn), testing_util.GetValueType(pred.RightColumn)), pred.Operator, types.Boolean)
 
 	//childSeqScanPlan := plans.NewSeqScanPlanNode(tableMetadata.Schema(), expression_, tableMetadata.OID())
-	skipListPointScanP = plans.NewPointScanWithIndexPlanNode(tableMetadata.Schema(), expression_.(*expression.Comparison), tableMetadata.OID())
+	skipListPointScanP = plans.NewPointScanWithIndexPlanNode(c, tableMetadata.Schema(), expression_.(*expression.Comparison), tableMetadata.OID())
 	deletePlanNode := plans.NewDeletePlanNode(skipListPointScanP)
 	executionEngine.Execute(deletePlanNode, executorContext)
 
@@ -388,7 +388,7 @@ func TestAbortWthDeleteUpdateUniqSkipListIndexCasePointScan(t *testing.T) {
 	expression_ = expression.NewComparison(tmpColVal, expression.NewConstantValue(testing_util.GetValue(pred.RightColumn), testing_util.GetValueType(pred.RightColumn)), pred.Operator, types.Boolean)
 
 	//seqPlan := plans.NewSeqScanPlanNode(outSchema, expression_, tableMetadata.OID())
-	skipListPointScanP = plans.NewPointScanWithIndexPlanNode(outSchema, expression_.(*expression.Comparison), tableMetadata.OID())
+	skipListPointScanP = plans.NewPointScanWithIndexPlanNode(c, outSchema, expression_.(*expression.Comparison), tableMetadata.OID())
 	results := executionEngine.Execute(skipListPointScanP, executorContext)
 
 	testingpkg.Assert(t, types.NewVarchar("updated").CompareEquals(results[0].GetValue(outSchema, 0)), "value should be 'updated'")
@@ -404,7 +404,7 @@ func TestAbortWthDeleteUpdateUniqSkipListIndexCasePointScan(t *testing.T) {
 	expression_ = expression.NewComparison(tmpColVal, expression.NewConstantValue(testing_util.GetValue(pred.RightColumn), testing_util.GetValueType(pred.RightColumn)), pred.Operator, types.Boolean)
 
 	//seqPlan = plans.NewSeqScanPlanNode(outSchema, expression_, tableMetadata.OID())
-	skipListPointScanP = plans.NewPointScanWithIndexPlanNode(outSchema, expression_.(*expression.Comparison), tableMetadata.OID())
+	skipListPointScanP = plans.NewPointScanWithIndexPlanNode(c, outSchema, expression_.(*expression.Comparison), tableMetadata.OID())
 	results = executionEngine.Execute(skipListPointScanP, executorContext)
 
 	testingpkg.Assert(t, len(results) == 0, "")
@@ -427,7 +427,7 @@ func TestAbortWthDeleteUpdateUniqSkipListIndexCasePointScan(t *testing.T) {
 	expression_ = expression.NewComparison(tmpColVal, expression.NewConstantValue(testing_util.GetValue(pred.RightColumn), testing_util.GetValueType(pred.RightColumn)), pred.Operator, types.Boolean)
 
 	//seqPlan = plans.NewSeqScanPlanNode(outSchema, expression_, tableMetadata.OID())
-	skipListPointScanP = plans.NewPointScanWithIndexPlanNode(outSchema, expression_.(*expression.Comparison), tableMetadata.OID())
+	skipListPointScanP = plans.NewPointScanWithIndexPlanNode(c, outSchema, expression_.(*expression.Comparison), tableMetadata.OID())
 	results = executionEngine.Execute(skipListPointScanP, executorContext)
 
 	testingpkg.Assert(t, types.NewVarchar("foo").CompareEquals(results[0].GetValue(outSchema, 0)), "value should be 'foo'")
@@ -443,7 +443,7 @@ func TestAbortWthDeleteUpdateUniqSkipListIndexCasePointScan(t *testing.T) {
 	expression_ = expression.NewComparison(tmpColVal, expression.NewConstantValue(testing_util.GetValue(pred.RightColumn), testing_util.GetValueType(pred.RightColumn)), pred.Operator, types.Boolean)
 
 	//seqPlan = plans.NewSeqScanPlanNode(outSchema, expression_, tableMetadata.OID())
-	skipListPointScanP = plans.NewPointScanWithIndexPlanNode(outSchema, expression_.(*expression.Comparison), tableMetadata.OID())
+	skipListPointScanP = plans.NewPointScanWithIndexPlanNode(c, outSchema, expression_.(*expression.Comparison), tableMetadata.OID())
 	results = executionEngine.Execute(skipListPointScanP, executorContext)
 
 	testingpkg.Assert(t, len(results) == 1, "")
@@ -500,7 +500,7 @@ func TestAbortWthDeleteUpdateUniqSkipListIndexCaseRangeScan(t *testing.T) {
 	row1 = append(row1, types.NewInteger(-1)) //dummy
 	row1 = append(row1, types.NewVarchar("updated"))
 
-	skipListRangeScanP := plans.NewRangeScanWithIndexPlanNode(tableMetadata.Schema(), tableMetadata.OID(), int32(tableMetadata.Schema().GetColIndex("b")), nil, samehada_util.GetPonterOfValue(types.NewVarchar("foo")), samehada_util.GetPonterOfValue(types.NewVarchar("foo")))
+	skipListRangeScanP := plans.NewRangeScanWithIndexPlanNode(c, tableMetadata.Schema(), tableMetadata.OID(), int32(tableMetadata.Schema().GetColIndex("b")), nil, samehada_util.GetPonterOfValue(types.NewVarchar("foo")), samehada_util.GetPonterOfValue(types.NewVarchar("foo")))
 	updatePlanNode := plans.NewUpdatePlanNode(row1, []int{1}, skipListRangeScanP)
 	results := executionEngine.Execute(updatePlanNode, executorContext)
 
@@ -513,7 +513,7 @@ func TestAbortWthDeleteUpdateUniqSkipListIndexCaseRangeScan(t *testing.T) {
 	tmpColVal.SetColIndex(tableMetadata.Schema().GetColIndex(pred.LeftColumn))
 	expression_ := expression.NewComparison(tmpColVal, expression.NewConstantValue(testing_util.GetValue(pred.RightColumn), testing_util.GetValueType(pred.RightColumn)), pred.Operator, types.Boolean)
 
-	skipListRangeScanP = plans.NewRangeScanWithIndexPlanNode(tableMetadata.Schema(), tableMetadata.OID(), int32(tableMetadata.Schema().GetColIndex("b")), expression_.(*expression.Comparison), samehada_util.GetPonterOfValue(types.NewVarchar("bar")), samehada_util.GetPonterOfValue(types.NewVarchar("bar")))
+	skipListRangeScanP = plans.NewRangeScanWithIndexPlanNode(c, tableMetadata.Schema(), tableMetadata.OID(), int32(tableMetadata.Schema().GetColIndex("b")), expression_.(*expression.Comparison), samehada_util.GetPonterOfValue(types.NewVarchar("bar")), samehada_util.GetPonterOfValue(types.NewVarchar("bar")))
 
 	deletePlanNode := plans.NewDeletePlanNode(skipListRangeScanP)
 	results = executionEngine.Execute(deletePlanNode, executorContext)
@@ -528,7 +528,7 @@ func TestAbortWthDeleteUpdateUniqSkipListIndexCaseRangeScan(t *testing.T) {
 	outColumnB := column.NewColumn("b", types.Varchar, false, index_constants.INDEX_KIND_INVALID, types.PageID(-1), nil)
 	outSchema := schema.NewSchema([]*column.Column{outColumnB})
 
-	skipListRangeScanP = plans.NewRangeScanWithIndexPlanNode(outSchema, tableMetadata.OID(), int32(tableMetadata.Schema().GetColIndex("a")), nil, samehada_util.GetPonterOfValue(types.NewInteger(99)), samehada_util.GetPonterOfValue(types.NewInteger(99)))
+	skipListRangeScanP = plans.NewRangeScanWithIndexPlanNode(c, outSchema, tableMetadata.OID(), int32(tableMetadata.Schema().GetColIndex("a")), nil, samehada_util.GetPonterOfValue(types.NewInteger(99)), samehada_util.GetPonterOfValue(types.NewInteger(99)))
 	results = executionEngine.Execute(skipListRangeScanP, executorContext)
 
 	testingpkg.Assert(t, len(results) == 1, "got row count should be 1.")
@@ -538,7 +538,7 @@ func TestAbortWthDeleteUpdateUniqSkipListIndexCaseRangeScan(t *testing.T) {
 	outColumnB = column.NewColumn("b", types.Integer, false, index_constants.INDEX_KIND_INVALID, types.PageID(-1), nil)
 	outSchema = schema.NewSchema([]*column.Column{outColumnB})
 
-	skipListRangeScanP = plans.NewRangeScanWithIndexPlanNode(outSchema, tableMetadata.OID(), int32(tableMetadata.Schema().GetColIndex("a")), nil, samehada_util.GetPonterOfValue(types.NewInteger(200)), nil)
+	skipListRangeScanP = plans.NewRangeScanWithIndexPlanNode(c, outSchema, tableMetadata.OID(), int32(tableMetadata.Schema().GetColIndex("a")), nil, samehada_util.GetPonterOfValue(types.NewInteger(200)), nil)
 	results = executionEngine.Execute(skipListRangeScanP, executorContext)
 
 	testingpkg.Assert(t, len(results) == 0, "")
@@ -555,7 +555,7 @@ func TestAbortWthDeleteUpdateUniqSkipListIndexCaseRangeScan(t *testing.T) {
 	outColumnB = column.NewColumn("b", types.Varchar, false, index_constants.INDEX_KIND_INVALID, types.PageID(-1), nil)
 	outSchema = schema.NewSchema([]*column.Column{outColumnB})
 
-	skipListRangeScanP = plans.NewRangeScanWithIndexPlanNode(outSchema, tableMetadata.OID(), int32(tableMetadata.Schema().GetColIndex("b")), nil, samehada_util.GetPonterOfValue(types.NewVarchar("foo")), samehada_util.GetPonterOfValue(types.NewVarchar("foo")))
+	skipListRangeScanP = plans.NewRangeScanWithIndexPlanNode(c, outSchema, tableMetadata.OID(), int32(tableMetadata.Schema().GetColIndex("b")), nil, samehada_util.GetPonterOfValue(types.NewVarchar("foo")), samehada_util.GetPonterOfValue(types.NewVarchar("foo")))
 	results = executionEngine.Execute(skipListRangeScanP, executorContext)
 
 	testingpkg.Assert(t, types.NewVarchar("foo").CompareEquals(results[0].GetValue(outSchema, 0)), "value should be 'foo'")
@@ -564,7 +564,7 @@ func TestAbortWthDeleteUpdateUniqSkipListIndexCaseRangeScan(t *testing.T) {
 	//outColumnB = column.NewColumn("b", types.Integer, false, index_constants.INDEX_KIND_INVALID, types.PageID(-1), nil)
 	//outSchema = schema.NewSchema([]*column.Column{outColumnB})
 
-	skipListRangeScanP = plans.NewRangeScanWithIndexPlanNode(tableMetadata.Schema(), tableMetadata.OID(), int32(tableMetadata.Schema().GetColIndex("b")), expression_.(*expression.Comparison), samehada_util.GetPonterOfValue(types.NewVarchar("bar")), samehada_util.GetPonterOfValue(types.NewVarchar("bar")))
+	skipListRangeScanP = plans.NewRangeScanWithIndexPlanNode(c, tableMetadata.Schema(), tableMetadata.OID(), int32(tableMetadata.Schema().GetColIndex("b")), expression_.(*expression.Comparison), samehada_util.GetPonterOfValue(types.NewVarchar("bar")), samehada_util.GetPonterOfValue(types.NewVarchar("bar")))
 	results = executionEngine.Execute(skipListRangeScanP, executorContext)
 
 	testingpkg.Assert(t, len(results) == 1, "")
@@ -603,9 +603,9 @@ func createBalanceUpdatePlanNode[T int32 | float32 | string](keyColumnVal T, new
 	var skipListPointScanP plans.Plan
 	switch indexKind {
 	case index_constants.INDEX_KIND_INVALID:
-		skipListPointScanP = plans.NewSeqScanPlanNode(tm.Schema(), expression_.(*expression.Comparison), tm.OID())
+		skipListPointScanP = plans.NewSeqScanPlanNode(c, tm.Schema(), expression_.(*expression.Comparison), tm.OID())
 	case index_constants.INDEX_KIND_UNIQ_SKIP_LIST, index_constants.INDEX_KIND_SKIP_LIST:
-		skipListPointScanP = plans.NewPointScanWithIndexPlanNode(tm.Schema(), expression_.(*expression.Comparison), tm.OID())
+		skipListPointScanP = plans.NewPointScanWithIndexPlanNode(c, tm.Schema(), expression_.(*expression.Comparison), tm.OID())
 	default:
 		panic("not implemented!")
 	}
@@ -638,9 +638,9 @@ func createSpecifiedValDeletePlanNode[T int32 | float32 | string](keyColumnVal T
 	var skipListPointScanP plans.Plan
 	switch indexKind {
 	case index_constants.INDEX_KIND_INVALID:
-		skipListPointScanP = plans.NewSeqScanPlanNode(tm.Schema(), expression_.(*expression.Comparison), tm.OID())
+		skipListPointScanP = plans.NewSeqScanPlanNode(c, tm.Schema(), expression_.(*expression.Comparison), tm.OID())
 	case index_constants.INDEX_KIND_UNIQ_SKIP_LIST, index_constants.INDEX_KIND_SKIP_LIST:
-		skipListPointScanP = plans.NewPointScanWithIndexPlanNode(tm.Schema(), expression_.(*expression.Comparison), tm.OID())
+		skipListPointScanP = plans.NewPointScanWithIndexPlanNode(c, tm.Schema(), expression_.(*expression.Comparison), tm.OID())
 	default:
 		panic("not implemented!")
 	}
@@ -662,9 +662,9 @@ func createAccountIdUpdatePlanNode[T int32 | float32 | string](keyColumnVal T, n
 	var skipListPointScanP plans.Plan
 	switch indexKind {
 	case index_constants.INDEX_KIND_INVALID:
-		skipListPointScanP = plans.NewSeqScanPlanNode(tm.Schema(), expression_.(*expression.Comparison), tm.OID())
+		skipListPointScanP = plans.NewSeqScanPlanNode(c, tm.Schema(), expression_.(*expression.Comparison), tm.OID())
 	case index_constants.INDEX_KIND_UNIQ_SKIP_LIST, index_constants.INDEX_KIND_SKIP_LIST:
-		skipListPointScanP = plans.NewPointScanWithIndexPlanNode(tm.Schema(), expression_.(*expression.Comparison), tm.OID())
+		skipListPointScanP = plans.NewPointScanWithIndexPlanNode(c, tm.Schema(), expression_.(*expression.Comparison), tm.OID())
 	default:
 		panic("not implemented!")
 	}
@@ -683,9 +683,9 @@ func createSpecifiedPointScanPlanNode[T int32 | float32 | string](getKeyVal T, c
 	var skipListPointScanP plans.Plan
 	switch indexKind {
 	case index_constants.INDEX_KIND_INVALID:
-		skipListPointScanP = plans.NewSeqScanPlanNode(tm.Schema(), expression_.(*expression.Comparison), tm.OID())
+		skipListPointScanP = plans.NewSeqScanPlanNode(c, tm.Schema(), expression_.(*expression.Comparison), tm.OID())
 	case index_constants.INDEX_KIND_UNIQ_SKIP_LIST, index_constants.INDEX_KIND_SKIP_LIST:
-		skipListPointScanP = plans.NewPointScanWithIndexPlanNode(tm.Schema(), expression_.(*expression.Comparison), tm.OID())
+		skipListPointScanP = plans.NewPointScanWithIndexPlanNode(c, tm.Schema(), expression_.(*expression.Comparison), tm.OID())
 	default:
 		panic("not implemented!")
 	}
@@ -699,7 +699,7 @@ func createSpecifiedRangeScanPlanNode[T int32 | float32 | string](c *catalog.Cat
 	var skipListRangeScanP plans.Plan
 	switch indexKind {
 	case index_constants.INDEX_KIND_INVALID:
-		skipListRangeScanP = plans.NewSeqScanPlanNode(tm.Schema(), nil, tm.OID())
+		skipListRangeScanP = plans.NewSeqScanPlanNode(c, tm.Schema(), nil, tm.OID())
 	case index_constants.INDEX_KIND_UNIQ_SKIP_LIST, index_constants.INDEX_KIND_SKIP_LIST:
 		if rangeStartKey != nil {
 			startVal = samehada_util.GetPonterOfValue(types.NewValue(*rangeStartKey))
@@ -707,7 +707,7 @@ func createSpecifiedRangeScanPlanNode[T int32 | float32 | string](c *catalog.Cat
 		if rangeEndKey != nil {
 			endVal = samehada_util.GetPonterOfValue(types.NewValue(*rangeEndKey))
 		}
-		skipListRangeScanP = plans.NewRangeScanWithIndexPlanNode(tm.Schema(), tm.OID(), colIdx, nil, startVal, endVal)
+		skipListRangeScanP = plans.NewRangeScanWithIndexPlanNode(c, tm.Schema(), tm.OID(), colIdx, nil, startVal, endVal)
 	default:
 		panic("not implemented!")
 	}

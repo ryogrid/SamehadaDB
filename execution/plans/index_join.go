@@ -13,9 +13,17 @@ type IndexJoinPlanNode struct {
 	onPredicate    expression.Expression
 	rigthTableOID  uint32
 	rightOutSchema *schema.Schema
+	stats_         *catalog.TableStatistics
 }
 
-func NewIndexJoinPlanNode(leftChild Plan, leftKeys []expression.Expression, rightOutSchema *schema.Schema, rightTblOID uint32, rightKeys []expression.Expression) *IndexJoinPlanNode {
+func GenIndexJoinStats(c *catalog.Catalog, leftPlan Plan, rightTableOID uint32) *catalog.TableStatistics {
+	leftStats := leftPlan.GetStatistics().GetDeepCopy()
+	tm := c.GetTableByOID(rightTableOID)
+	leftStats.Concat(tm.GetStatistics().GetDeepCopy())
+	return leftStats
+}
+
+func NewIndexJoinPlanNode(c *catalog.Catalog, leftChild Plan, leftKeys []expression.Expression, rightOutSchema *schema.Schema, rightTblOID uint32, rightKeys []expression.Expression) *IndexJoinPlanNode {
 	if leftKeys == nil || rightKeys == nil {
 		panic("NewIndexJoinPlanNode needs keys info.")
 	}
@@ -25,8 +33,7 @@ func NewIndexJoinPlanNode(leftChild Plan, leftKeys []expression.Expression, righ
 
 	outputSchema := makeMergedOutputSchema(leftChild.OutputSchema(), rightOutSchema)
 	onPredicate := constructOnExpressionFromKeysInfo(leftKeys, rightKeys)
-
-	return &IndexJoinPlanNode{&AbstractPlanNode{outputSchema, []Plan{leftChild, nil}}, onPredicate, rightTblOID, rightOutSchema}
+	return &IndexJoinPlanNode{&AbstractPlanNode{outputSchema, []Plan{leftChild, nil}}, onPredicate, rightTblOID, rightOutSchema, GenIndexJoinStats(c, leftChild, rightTblOID)}
 }
 
 func (p *IndexJoinPlanNode) GetLeftPlan() Plan {
@@ -58,6 +65,15 @@ func (p *IndexJoinPlanNode) getRightTableRows(c *catalog.Catalog) uint64 {
 
 func (p *IndexJoinPlanNode) AccessRowCount(c *catalog.Catalog) uint64 {
 	return p.getRightTableRows(c) * 3
+}
+
+func (p *IndexJoinPlanNode) GetDebugStr() string {
+	// TODO: (SDB) [OPT] not implemented yet (IndexJoinPlanNode::GetDebugStr)
+	panic("not implemented yet")
+}
+
+func (p *IndexJoinPlanNode) GetStatistics() *catalog.TableStatistics {
+	return p.stats_
 }
 
 func (p *IndexJoinPlanNode) EmitRowCount(c *catalog.Catalog) uint64 {

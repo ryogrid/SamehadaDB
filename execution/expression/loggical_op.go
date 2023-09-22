@@ -23,8 +23,8 @@ const (
 type LogicalOp struct {
 	*AbstractExpression
 	logicalOpType  LogicalOpType
-	children_left  Expression
-	children_right Expression
+	children_left  Expression // referenced as children[0] after struct init...
+	children_right Expression // referenced as children[1] after struct init...
 }
 
 // if logicalOpType is "NOT", right value must be nil
@@ -88,6 +88,9 @@ func (c *LogicalOp) EvaluateAggregate(group_bys []*types.Value, aggregates []*ty
 }
 
 func (c *LogicalOp) GetChildAt(child_idx uint32) Expression {
+	if int(child_idx) >= len(c.children) {
+		return nil
+	}
 	return c.children[child_idx]
 }
 

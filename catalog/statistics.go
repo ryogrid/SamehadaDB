@@ -22,11 +22,13 @@ type distinctCounter struct {
 func NewDistinctCounter(colType types.TypeID) *distinctCounter {
 	switch colType {
 	case types.Integer:
-		return &distinctCounter{samehada_util.GetPonterOfValue(types.NewInteger(math.MaxInt32)), samehada_util.GetPonterOfValue(types.NewInteger(math.MinInt32)), 0, 0, colType, make(map[interface{}]bool, 0)}
+		return &distinctCounter{samehada_util.GetPonterOfValue(types.NewInteger(math.MinInt32)), samehada_util.GetPonterOfValue(types.NewInteger(math.MaxInt32)), 0, 0, colType, make(map[interface{}]bool, 0)}
 	case types.Float:
-		return &distinctCounter{samehada_util.GetPonterOfValue(types.NewFloat(math.MaxFloat32)), samehada_util.GetPonterOfValue(types.NewFloat(math.SmallestNonzeroFloat32)), 0, 0, colType, make(map[interface{}]bool, 0)}
+		return &distinctCounter{samehada_util.GetPonterOfValue(types.NewFloat(math.SmallestNonzeroFloat32)), samehada_util.GetPonterOfValue(types.NewFloat(math.MaxFloat32)), 0, 0, colType, make(map[interface{}]bool, 0)}
 	case types.Varchar:
-		return &distinctCounter{samehada_util.GetPonterOfValue(types.NewVarchar("")).SetInfMax(), samehada_util.GetPonterOfValue(types.NewVarchar("")).SetInfMin(), 0, 0, colType, make(map[interface{}]bool, 0)}
+		return &distinctCounter{samehada_util.GetPonterOfValue(types.NewVarchar("")).SetInfMin(), samehada_util.GetPonterOfValue(types.NewVarchar("")).SetInfMax(), 0, 0, colType, make(map[interface{}]bool, 0)}
+	case types.Boolean:
+		return &distinctCounter{samehada_util.GetPonterOfValue(types.NewBoolean(false)).SetInfMin(), samehada_util.GetPonterOfValue(types.NewBoolean(true)).SetInfMax(), 0, 0, colType, make(map[interface{}]bool, 0)}
 	default:
 		panic("unkown type")
 	}
@@ -74,13 +76,13 @@ type columnStats struct {
 func NewColumnStats(colType types.TypeID) *columnStats {
 	switch colType {
 	case types.Integer:
-		return &columnStats{samehada_util.GetPonterOfValue(types.NewInteger(math.MaxInt32)), samehada_util.GetPonterOfValue(types.NewInteger(math.MinInt32)), 0, 0, colType, common.NewRWLatch()}
+		return &columnStats{samehada_util.GetPonterOfValue(types.NewInteger(math.MinInt32)), samehada_util.GetPonterOfValue(types.NewInteger(math.MaxInt32)), 0, 0, colType, common.NewRWLatch()}
 	case types.Float:
-		return &columnStats{samehada_util.GetPonterOfValue(types.NewFloat(math.MaxFloat32)), samehada_util.GetPonterOfValue(types.NewFloat(math.SmallestNonzeroFloat32)), 0, 0, colType, common.NewRWLatch()}
+		return &columnStats{samehada_util.GetPonterOfValue(types.NewFloat(math.SmallestNonzeroFloat32)), samehada_util.GetPonterOfValue(types.NewFloat(math.MaxFloat32)), 0, 0, colType, common.NewRWLatch()}
 	case types.Varchar:
-		return &columnStats{samehada_util.GetPonterOfValue(types.NewVarchar("")).SetInfMax(), samehada_util.GetPonterOfValue(types.NewVarchar("")).SetInfMin(), 0, 0, colType, common.NewRWLatch()}
+		return &columnStats{samehada_util.GetPonterOfValue(types.NewVarchar("")).SetInfMin(), samehada_util.GetPonterOfValue(types.NewVarchar("")).SetInfMax(), 0, 0, colType, common.NewRWLatch()}
 	case types.Boolean:
-		return &columnStats{samehada_util.GetPonterOfValue(types.NewBoolean(true)), samehada_util.GetPonterOfValue(types.NewBoolean(false)), 0, 0, colType, common.NewRWLatch()}
+		return &columnStats{samehada_util.GetPonterOfValue(types.NewBoolean(true)).SetInfMin(), samehada_util.GetPonterOfValue(types.NewBoolean(false)).SetInfMax(), 0, 0, colType, common.NewRWLatch()}
 	default:
 		panic("unkown type")
 	}
@@ -131,6 +133,10 @@ func (cs *columnStats) Check(sample *types.Value) {
 	cs.count++
 }
 
+func (cs *columnStats) GetDeepCopy() *columnStats {
+	return &columnStats{cs.max.GetDeepCopy(), cs.min.GetDeepCopy(), cs.count, cs.distinct, cs.colType, common.NewRWLatch()}
+}
+
 /*
 func (cs *ColumnStats[T]) UpdateStatistics() {
 }
@@ -151,7 +157,7 @@ func (cs *columnStats) EstimateCount(from *types.Value, to *types.Value) float64
 		samehada_util.SHAssert(from.CompareLessThanOrEqual(*to), "from must be less than or equal to to")
 		from = retValAccordingToCompareResult(from.CompareLessThan(*cs.min), cs.min, from)
 		to = retValAccordingToCompareResult(to.CompareLessThan(*cs.max), to, cs.max)
-		tmpVal := from.Sub(to)
+		tmpVal := to.Sub(from)
 		if cs.colType == types.Integer {
 			return float64(tmpVal.ToInteger()) * float64(cs.count) / float64(cs.distinct)
 		} else { // Float
@@ -200,10 +206,9 @@ func (ts *TableStatistics) Update(target *TableMetadata, txn *access.Transaction
 		distCounters = append(distCounters, NewDistinctCounter(schema_.GetColumn(uint32(ii)).GetType()))
 	}
 
-	for !it.End() {
-		tuple_ := it.Next()
+	for t := it.Current(); !it.End(); t = it.Next() {
 		for ii := 0; ii < len(ts.colStats); ii++ {
-			distCounters[ii].Add(samehada_util.GetPonterOfValue(tuple_.GetValue(schema_, uint32(ii))))
+			distCounters[ii].Add(samehada_util.GetPonterOfValue(t.GetValue(schema_, uint32(ii))))
 		}
 		rows++
 	}
@@ -235,7 +240,7 @@ func isBinaryExp(exp expression.Expression) bool {
 // Returns estimated inverted selection ratio if the `sc` is selected by
 // `predicate`. If the predicate selects rows to 1 / x, returns x.
 // Returning 1 means no selection (pass through).
-func (ts *TableStatistics) ReductionFactor(sc schema.Schema, predicate expression.Expression) float64 {
+func (ts *TableStatistics) ReductionFactor(sc *schema.Schema, predicate expression.Expression) float64 {
 	samehada_util.SHAssert(sc.GetColumnCount() > 0, "no column in schema")
 	if isBinaryExp(predicate) {
 		boCmp, okCmp := predicate.(*expression.Comparison)
@@ -320,4 +325,22 @@ func (ts *TableStatistics) Concat(rhs *TableStatistics) {
 	for _, s := range rhs.colStats {
 		ts.colStats = append(ts.colStats, s)
 	}
+}
+
+func (ts *TableStatistics) Multiply(multiplier float64) {
+	for _, st := range ts.colStats {
+		st.Multiply(multiplier)
+	}
+}
+
+func (ts *TableStatistics) GetDeepCopy() *TableStatistics {
+	if ts == nil {
+		panic("TableStatistics::GetDeepCopy: receiver is nil")
+	}
+	copiedTs := new(TableStatistics)
+	copiedTs.colStats = make([]*columnStats, 0)
+	for _, colSt := range ts.colStats {
+		copiedTs.colStats = append(copiedTs.colStats, colSt.GetDeepCopy())
+	}
+	return copiedTs
 }

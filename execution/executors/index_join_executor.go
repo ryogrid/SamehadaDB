@@ -10,11 +10,11 @@ import (
 	"github.com/ryogrid/SamehadaDB/types"
 )
 
-func makePointScanPlanNodeForJoin(getKeyVal *types.Value, scanTblSchema *schema.Schema, keyColIdx uint32, scanTblOID uint32) (createdPlan plans.Plan) {
+func makePointScanPlanNodeForJoin(c *catalog.Catalog, getKeyVal *types.Value, scanTblSchema *schema.Schema, keyColIdx uint32, scanTblOID uint32) (createdPlan plans.Plan) {
 	tmpColVal := new(expression.ColumnValue)
 	tmpColVal.SetColIndex(keyColIdx)
 	expression_ := expression.NewComparison(tmpColVal, expression.NewConstantValue(*getKeyVal, getKeyVal.ValueType()), expression.Equal, types.Boolean)
-	return plans.NewPointScanWithIndexPlanNode(scanTblSchema, expression_.(*expression.Comparison), scanTblOID)
+	return plans.NewPointScanWithIndexPlanNode(c, scanTblSchema, expression_.(*expression.Comparison), scanTblOID)
 }
 
 type IndexJoinExecutor struct {
@@ -86,7 +86,7 @@ func (e *IndexJoinExecutor) Init() {
 			// already same key has been lookup
 			foundTuples = *cachedTuples
 		} else {
-			pointScanPlan := makePointScanPlanNodeForJoin(&leftValueAsKey, rightTblSchema, rightTblColIdx, rightTblOID)
+			pointScanPlan := makePointScanPlanNodeForJoin(e.context.catalog, &leftValueAsKey, rightTblSchema, rightTblColIdx, rightTblOID)
 			foundTuplesTmp := executionEngine.Execute(pointScanPlan, executorContext)
 			if e.context.txn.GetState() == access.ABORTED {
 				return

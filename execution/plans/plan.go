@@ -35,6 +35,10 @@ type Plan interface {
 	GetTableOID() uint32
 	AccessRowCount(*catalog.Catalog) uint64
 	EmitRowCount(*catalog.Catalog) uint64
+	GetStatistics() *catalog.TableStatistics
+	// debugging utility func
+	// returns a string representation of the plan tree rooted at this node
+	GetDebugStr() string
 }
 
 /**
