@@ -348,6 +348,15 @@ func TestFindBestScans(t *testing.T) {
 	// "select * from Sc1, Sc4 where Sc1.c1 = Sc4.c1 and Sc4.c1 = 2;" // Asterisk (Not supported now...)
 }
 
+func PrintBestPlan(title string, queryStr string, bestPlan plans.Plan) {
+	fmt.Println("")
+	fmt.Println("Pattern Name: " + title)
+	fmt.Println(" [ " + queryStr + " ]")
+	fmt.Println("==================================================")
+	plans.PrintPlanTree(bestPlan, 0)
+	fmt.Println("==================================================")
+}
+
 func PrintOptimalPlans(title string, queryStr string, optimalPlans map[mapset.Set[string]]CostAndPlan) {
 	fmt.Println("")
 	fmt.Println("Pattern Name: " + title)
@@ -363,12 +372,10 @@ func PrintOptimalPlans(title string, queryStr string, optimalPlans map[mapset.Se
 		plan_ := costPlan.plan
 		fmt.Println("Cost: " + strconv.Itoa(int(costPlan.cost)))
 		plans.PrintPlanTree(plan_, 0)
-
 	}
 	fmt.Println("==================================================")
 }
 
-/*
 func TestSimplePlanOptimization(t *testing.T) {
 	diskManager := disk.NewDiskManagerTest()
 	defer diskManager.ShutDown()
@@ -387,15 +394,27 @@ func TestSimplePlanOptimization(t *testing.T) {
 	setupTablesAndStatisticsDataForTesting(exec_ctx)
 	txn_mgr.Commit(c, txn)
 
-	queryStr := "TO BE WRITTEN"
-	queryInfo := parser.ProcessSQLStr(&queryStr)
+	testAQuery := func(queryStr string, patternName string) {
+		queryInfo := parser.ProcessSQLStr(&queryStr)
 
-	optimizer := NewSelingerOptimizer(queryInfo, c)
-	solution, err := optimizer.Optimize()
-	if err != nil {
-		fmt.Println(err)
+		optimizer := NewSelingerOptimizer(queryInfo, c)
+		solution, err := optimizer.Optimize()
+		if err != nil {
+			fmt.Println(err)
+		}
+		testingpkg.Assert(t, err == nil, "err != nil")
+		PrintBestPlan(patternName, queryStr, solution)
 	}
-	testingpkg.Assert(t, err == nil, "err != nil")
-	fmt.Println(solution)
+
+	testAQuery("select Sc1.c1 from Sc1 where Sc1.c1 = 2;", "Simple(SequentialScan)")
+	testAQuery("select Sc1.c1, Sc1.c3 from Sc1 where Sc1.c2 = 'c2-32';", "IndexScan")
+	testAQuery("select Sc2.d1, Sc2.d2, Sc2.d3, Sc2.d4 from Sc2 where Sc2.d3 >= 'd3-3' and Sc2.d3 <= 'd3-5';", "IndexScanInclude(1)")
+	testAQuery("select Sc2.d1, Sc2.d2, Sc2.d3, Sc2.d4 from Sc2 where Sc2.d3 >= 'd3-3' and Sc2.d3 < 'd3-5';", "IndexScanInclude(2)")
+	testAQuery("select Sc1.c2, Sc2.d1, Sc2.d3 from Sc1, Sc2 where Sc1.c1 = Sc2.d1;", "Join(HashJoin)")
+	testAQuery("select Sc1.c2, Sc4.c1, Sc4.c2 from Sc1, Sc4 where Sc1.c2 = Sc4.c2 and Sc4.c2 = '1';", "Join(IndexJoin)")
+	testAQuery("select Sc1.c2, Sc2.d1, Sc3.e2, Sc3.c1 from Sc1, Sc2, Sc3 where Sc1.c1 = Sc2.d1 and Sc2.d1 = Sc3.e1;", "ThreeJoin(HashJoin)")
+	testAQuery("select Sc1.c1, Sc1.c2, Sc2.d1, Sc2.d2, Sc2.d3 from Sc1, Sc2 where Sc1.c1 = 2;", "JoinWhere(NestedLoopJoin)")
+	testAQuery("select Sc1.c1, Sc1.c2, Sc1.c3, Sc4.c1, Sc4.c2 from Sc1, Sc4 where Sc1.c1 = Sc4.c1 and Sc4.c1 = 2;", "SameNameColumn")
+
+	// "select * from Sc1, Sc4 where Sc1.c1 = Sc4.c1 and Sc4.c1 = 2;" // Asterisk (Not supported now...)
 }
-*/
