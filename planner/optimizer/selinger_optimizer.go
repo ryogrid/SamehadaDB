@@ -392,16 +392,16 @@ func (so *SelingerOptimizer) findBestJoinInner(where *parser.BinaryOpExpression,
 			}
 			if len(so.c.GetTableByOID(rightOID).Indexes()) > 0 {
 				// for (size_t i = 0; i < right_tbl->IndexCount(); ++i) {
-				// const Index& right_idx = right_tbl->GetIndex(i);
-				for _, right_idx := range so.c.GetTableByOID(rightOID).Indexes() {
-					if right_idx == nil {
+				// const Index& right_index = right_tbl->GetIndex(i);
+				for index_idx, right_index := range so.c.GetTableByOID(rightOID).Indexes() {
+					if right_index == nil {
 						continue
 					}
 					//ASSIGN_OR_CRASH(std::shared_ptr<TableStatistics>, stat,
 					//	ctx.GetStats(right_tbl->GetSchema().Name()));
 					for idx, rcol := range right_cols {
-						if right_idx.GetTupleSchema().IsHaveColumn(rcol) {
-							// candidates.push_back(std::make_shared<ProductPlan>(left, left_cols, *right_tbl, right_idx, right_cols, *stat));
+						if right_index.GetTupleSchema().GetColumn(uint32(index_idx)).GetColumnName() == *rcol {
+							// candidates.push_back(std::make_shared<ProductPlan>(left, left_cols, *right_tbl, right_index, right_cols, *stat));
 							// right scan plan is not used because IndexJoinExecutor does point scans internally
 							candidates = append(candidates, plans.NewIndexJoinPlanNode(so.c, left, parser.ConvColumnStrsToExpIfOnes(so.c, []*string{left_cols[idx]}, true), rightSchema, rightOID, parser.ConvColumnStrsToExpIfOnes(so.c, []*string{rcol}, false)))
 						}
