@@ -94,11 +94,12 @@ func (p *HashJoinPlanNode) AccessRowCount(c *catalog.Catalog) uint64 {
 }
 
 func (p *HashJoinPlanNode) GetDebugStr() string {
-	leftColIdx := p.onPredicate.GetChildAt(0).(*expression.ColumnValue).GetColIndex()
-	leftColName := p.GetChildAt(0).OutputSchema().GetColumn(leftColIdx).GetColumnName()
-	rightColIdx := p.onPredicate.GetChildAt(1).(*expression.ColumnValue).GetColIndex()
-	rightColName := p.GetChildAt(1).OutputSchema().GetColumn(rightColIdx).GetColumnName()
-	return "HashJoinPlanNode [" + leftColName + " = " + rightColName + "]"
+	//leftColIdx := p.onPredicate.GetChildAt(0).(*expression.ColumnValue).GetColIndex()
+	//leftColName := p.GetChildAt(0).OutputSchema().GetColumn(leftColIdx).GetColumnName()
+	//rightColIdx := p.onPredicate.GetChildAt(1).(*expression.ColumnValue).GetColIndex()
+	//rightColName := p.GetChildAt(1).OutputSchema().GetColumn(rightColIdx).GetColumnName()
+	//return "HashJoinPlanNode [" + leftColName + " = " + rightColName + "]"
+	return "HashJoinPlanNode"
 }
 
 func (p *HashJoinPlanNode) GetStatistics() *catalog.TableStatistics {

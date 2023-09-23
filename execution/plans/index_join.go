@@ -68,8 +68,11 @@ func (p *IndexJoinPlanNode) AccessRowCount(c *catalog.Catalog) uint64 {
 }
 
 func (p *IndexJoinPlanNode) GetDebugStr() string {
-	// TODO: (SDB) [OPT] not implemented yet (IndexJoinPlanNode::GetDebugStr)
-	return "IndexJoinPlanNode"
+	leftColIdx := p.onPredicate.GetChildAt(0).(*expression.ColumnValue).GetColIndex()
+	leftColName := p.GetChildAt(0).OutputSchema().GetColumn(leftColIdx).GetColumnName()
+	rightColIdx := p.onPredicate.GetChildAt(1).(*expression.ColumnValue).GetColIndex()
+	rightColName := p.rightOutSchema.GetColumn(rightColIdx).GetColumnName()
+	return "IndexJoinPlanNode [" + leftColName + " = " + rightColName + "]"
 }
 
 func (p *IndexJoinPlanNode) GetStatistics() *catalog.TableStatistics {

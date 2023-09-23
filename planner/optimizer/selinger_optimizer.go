@@ -372,10 +372,10 @@ func (so *SelingerOptimizer) findBestJoinInner(where *parser.BinaryOpExpression,
 
 		// HashJoin
 		// candidates.push_back(std::make_shared<ProductPlan>(left, left_cols, right, right_cols));
-		var tmpPlan plans.Plan = plans.NewHashJoinPlanNodeWithChilds(left, parser.ConvColumnStrsToExpIfOnes(so.c, left_cols, true), right, parser.ConvColumnStrsToExpIfOnes(so.c, right_cols, false))
+		var tmpPlan plans.Plan = plans.NewHashJoinPlanNodeWithChilds(left, parser.ConvColumnStrsToExpIfOnes(so.c, left, left_cols, true), right, parser.ConvColumnStrsToExpIfOnes(so.c, right, right_cols, false))
 		candidates = append(candidates, tmpPlan)
 		// candidates.push_back(std::make_shared<ProductPlan>(right, right_cols, left, left_cols));
-		tmpPlan = plans.NewHashJoinPlanNodeWithChilds(right, parser.ConvColumnStrsToExpIfOnes(so.c, right_cols, true), left, parser.ConvColumnStrsToExpIfOnes(so.c, left_cols, false))
+		tmpPlan = plans.NewHashJoinPlanNodeWithChilds(right, parser.ConvColumnStrsToExpIfOnes(so.c, right, right_cols, true), left, parser.ConvColumnStrsToExpIfOnes(so.c, left, left_cols, false))
 		candidates = append(candidates, tmpPlan)
 
 		// IndexJoin
@@ -403,7 +403,7 @@ func (so *SelingerOptimizer) findBestJoinInner(where *parser.BinaryOpExpression,
 						if right_index.GetTupleSchema().GetColumn(uint32(index_idx)).GetColumnName() == *rcol {
 							// candidates.push_back(std::make_shared<ProductPlan>(left, left_cols, *right_tbl, right_index, right_cols, *stat));
 							// right scan plan is not used because IndexJoinExecutor does point scans internally
-							candidates = append(candidates, plans.NewIndexJoinPlanNode(so.c, left, parser.ConvColumnStrsToExpIfOnes(so.c, []*string{left_cols[idx]}, true), rightSchema, rightOID, parser.ConvColumnStrsToExpIfOnes(so.c, []*string{rcol}, false)))
+							candidates = append(candidates, plans.NewIndexJoinPlanNode(so.c, left, parser.ConvColumnStrsToExpIfOnes(so.c, left, []*string{left_cols[idx]}, true), rightSchema, rightOID, parser.ConvColumnStrsToExpIfOnes(so.c, nil, []*string{rcol}, false)))
 						}
 					}
 				}
