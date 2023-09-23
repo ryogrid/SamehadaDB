@@ -417,7 +417,7 @@ func TestSimplePlanOptimization(t *testing.T) {
 	//testAQuery("select Sc1.c2, Sc2.d1, Sc2.d3 from Sc1, Sc2 where Sc1.c1 = Sc2.d1;", "Join(HashJoin)")
 
 	testAQuery("select Sc1.c2, Sc4.c1, Sc4.c2 from Sc1, Sc4 where Sc1.c2 = Sc4.c2;", "Join(IndexJoin)")
-	testAQuery("select Sc1.c2, Sc4.c1, Sc4.c2 from Sc1, Sc4 where Sc1.c2 = Sc4.c2 and Sc4.c2 = '1';", "Join(IndexJoin)")
+	testAQuery("select Sc1.c2, Sc4.c1, Sc4.c2 from Sc1, Sc4 where Sc1.c2 = Sc4.c2 and Sc4.c2 = '1';", "Join(HashJoin?)")
 
 	//testAQuery("select Sc1.c2, Sc2.d1, Sc3.e2 from Sc1, Sc2, Sc3 where Sc1.c1 = Sc2.d1 and Sc2.d1 = Sc3.e1;", "ThreeJoin(HashJoin)")
 	//testAQuery("select Sc1.c1, Sc1.c2, Sc2.d1, Sc2.d2, Sc2.d3 from Sc1, Sc2 where Sc1.c1 = 2;", "JoinWhere(NestedLoopJoin)")
