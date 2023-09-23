@@ -224,9 +224,9 @@ func ConvColumnStrsToExpIfOnes(c *catalog.Catalog, childPlan plans.Plan, convSrc
 		//colName := splited[1]
 		var sc *schema.Schema
 		if childPlan != nil {
-			sc = c.GetTableByName(tableName).Schema()
-		} else {
 			sc = childPlan.OutputSchema()
+		} else {
+			sc = c.GetTableByName(tableName).Schema()
 		}
 		colIdx := sc.GetColIndex(*colStr)
 		colType := sc.GetColumn(colIdx).GetType()
