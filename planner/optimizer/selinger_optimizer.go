@@ -364,8 +364,8 @@ func (so *SelingerOptimizer) findBestJoinInner(where *parser.BinaryOpExpression,
 
 	candidates := make([]plans.Plan, 0)
 	if len(equals) > 0 {
-		left_cols := make([]*string, len(equals))
-		right_cols := make([]*string, len(equals))
+		left_cols := make([]*string, 0)
+		right_cols := make([]*string, 0)
 		for _, cn := range equals {
 			left_cols = append(left_cols, cn.First)
 			right_cols = append(right_cols, cn.Second)
