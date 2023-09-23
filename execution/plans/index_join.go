@@ -33,11 +33,11 @@ func NewIndexJoinPlanNode(c *catalog.Catalog, leftChild Plan, leftKeys []express
 
 	outputSchema := makeMergedOutputSchema(leftChild.OutputSchema(), rightOutSchema)
 	onPredicate := constructOnExpressionFromKeysInfo(leftKeys, rightKeys)
-	return &IndexJoinPlanNode{&AbstractPlanNode{outputSchema, []Plan{leftChild, nil}}, onPredicate, rightTblOID, rightOutSchema, GenIndexJoinStats(c, leftChild, rightTblOID)}
+	return &IndexJoinPlanNode{&AbstractPlanNode{outputSchema, []Plan{leftChild}}, onPredicate, rightTblOID, rightOutSchema, GenIndexJoinStats(c, leftChild, rightTblOID)}
 }
 
 func (p *IndexJoinPlanNode) GetLeftPlan() Plan {
-	common.SH_Assert(len(p.GetChildren()) == 2, "Index joins should have exactly two children plans.")
+	common.SH_Assert(len(p.GetChildren()) == 1, "Index joins should have exactly one children plans.")
 	return p.GetChildAt(0)
 }
 
