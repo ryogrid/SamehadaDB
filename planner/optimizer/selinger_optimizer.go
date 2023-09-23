@@ -1,7 +1,6 @@
 package optimizer
 
 import (
-	"fmt"
 	mapset "github.com/deckarep/golang-set/v2"
 	stack "github.com/golang-collections/collections/stack"
 	pair "github.com/notEpsilon/go-pair"
@@ -461,7 +460,6 @@ func (so *SelingerOptimizer) findBestJoin(optimalPlans map[string]CostAndPlan) p
 				//       current impl can construct bushy plan tree, but it searches more candidates than left-deep Selinger
 
 				bestJoinPlan, _ := so.findBestJoinInner(so.qi.WhereExpression_.GetDeepCopy(), baseTableCP.plan, joinTableCP.plan, so.c)
-				fmt.Println(bestJoinPlan)
 
 				joinedTables := baseTableFrom.Union(joinTableFrom)
 				common.SH_Assert(1 < joinedTables.Cardinality(), "joinedTables.Cardinality() is illegal!")
