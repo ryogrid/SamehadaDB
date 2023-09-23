@@ -69,7 +69,7 @@ func (p *IndexJoinPlanNode) AccessRowCount(c *catalog.Catalog) uint64 {
 
 func (p *IndexJoinPlanNode) GetDebugStr() string {
 	// TODO: (SDB) [OPT] not implemented yet (IndexJoinPlanNode::GetDebugStr)
-	panic("not implemented yet")
+	return "IndexJoinPlanNode"
 }
 
 func (p *IndexJoinPlanNode) GetStatistics() *catalog.TableStatistics {

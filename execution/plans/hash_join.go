@@ -93,7 +93,7 @@ func (p *HashJoinPlanNode) AccessRowCount(c *catalog.Catalog) uint64 {
 
 func (p *HashJoinPlanNode) GetDebugStr() string {
 	// TODO: (SDB) [OPT] not implemented yet (HashJoinPlanNode::GetDebugStr)
-	panic("not implemented yet")
+	return "HashJoinPlanNode"
 }
 
 func (p *HashJoinPlanNode) GetStatistics() *catalog.TableStatistics {
