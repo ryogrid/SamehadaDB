@@ -395,6 +395,9 @@ func (so *SelingerOptimizer) findBestJoinInner(where *parser.BinaryOpExpression,
 				// for (size_t i = 0; i < right_tbl->IndexCount(); ++i) {
 				// const Index& right_idx = right_tbl->GetIndex(i);
 				for _, right_idx := range so.c.GetTableByOID(rightOID).Indexes() {
+					if right_idx == nil {
+						continue
+					}
 					//ASSIGN_OR_CRASH(std::shared_ptr<TableStatistics>, stat,
 					//	ctx.GetStats(right_tbl->GetSchema().Name()));
 					for _, rcol := range right_cols {
