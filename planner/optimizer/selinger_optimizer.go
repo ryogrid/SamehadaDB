@@ -332,7 +332,7 @@ func (so *SelingerOptimizer) findBestScans() map[string]CostAndPlan {
 // attention: caller should pass *where* args which is deep copied
 func (so *SelingerOptimizer) findBestJoinInner(where *parser.BinaryOpExpression, left plans.Plan, right plans.Plan, c *catalog.Catalog) (plans.Plan, error) {
 	// pair<ColumnName, ColumnName>
-	var equals []pair.Pair[*string, *string] = make([]pair.Pair[*string, *string], 0)
+	equals := make([]pair.Pair[*string, *string], 0)
 	//stack<Expression> exp
 	exp := stack.New()
 	exp.Push(where)
@@ -467,7 +467,7 @@ func (so *SelingerOptimizer) findBestJoin(optimalPlans map[string]CostAndPlan) p
 				common.SH_Assert(1 < joinedTables.Cardinality(), "joinedTables.Cardinality() is illegal!")
 				cost := bestJoinPlan.AccessRowCount(so.c)
 
-				if existedPlan, ok := optimalPlans[samehada_util.StrSetToString(joinedTables)]; ok {
+				if existedPlan, ok := optimalPlans[samehada_util.StrSetToString(joinedTables)]; !ok {
 					optimalPlans[samehada_util.StrSetToString(joinedTables)] = CostAndPlan{cost, bestJoinPlan}
 				} else if cost < existedPlan.cost {
 					optimalPlans[samehada_util.StrSetToString(joinedTables)] = CostAndPlan{cost, bestJoinPlan}
