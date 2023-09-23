@@ -11,7 +11,9 @@ import (
 	"math"
 	"math/rand"
 	"os"
+	"sort"
 	"strconv"
+	"strings"
 	"unsafe"
 )
 
@@ -397,6 +399,22 @@ func MakeSet[T comparable](from []*T) mapset.Set[T] {
 		joined.Add(*f)
 	}
 	return joined
+}
+
+func StrSetToString(convSet mapset.Set[string]) string {
+	tmpList := convSet.ToSlice()
+	sort.Slice(tmpList, func(i, j int) bool {
+		return tmpList[i] < tmpList[j]
+	})
+	return strings.Join(tmpList, ",")
+}
+
+func StringToMapset(str string) mapset.Set[string] {
+	ret := mapset.NewSet[string]()
+	for _, s := range strings.Split(str, ",") {
+		ret.Add(s)
+	}
+	return ret
 }
 
 func IsColumnName(v interface{}) bool {

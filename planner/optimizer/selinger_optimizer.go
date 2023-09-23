@@ -300,8 +300,8 @@ func (so *SelingerOptimizer) findBestScan(outNeededCols []*column.Column, where 
 	return bestScan, nil
 }
 
-func (so *SelingerOptimizer) findBestScans() map[mapset.Set[string]]CostAndPlan {
-	optimalPlans := make(map[mapset.Set[string]]CostAndPlan)
+func (so *SelingerOptimizer) findBestScans() map[string]CostAndPlan {
+	optimalPlans := make(map[string]CostAndPlan)
 
 	// 1. Initialize every single tables to start.
 	touchedColumns := so.qi.WhereExpression_.TouchedColumns()
@@ -323,7 +323,7 @@ func (so *SelingerOptimizer) findBestScans() map[mapset.Set[string]]CostAndPlan 
 		}
 		//scan, _ := NewSelingerOptimizer().findBestScan(qi.SelectFields_, qi.WhereExpression_, tbl, c, stats)
 		scan, _ := so.findBestScan(projectTarget, so.qi.WhereExpression_.GetDeepCopy(), tbl, so.c, stats)
-		optimalPlans[samehada_util.MakeSet([]*string{from})] = CostAndPlan{scan.AccessRowCount(so.c), scan}
+		optimalPlans[samehada_util.StrSetToString(samehada_util.MakeSet([]*string{from}))] = CostAndPlan{scan.AccessRowCount(so.c), scan}
 	}
 
 	return optimalPlans
@@ -443,10 +443,12 @@ func (so *SelingerOptimizer) findBestJoinInner(where *parser.BinaryOpExpression,
 	return candidates[0], nil
 }
 
-func (so *SelingerOptimizer) findBestJoin(optimalPlans map[mapset.Set[string]]CostAndPlan) plans.Plan {
+func (so *SelingerOptimizer) findBestJoin(optimalPlans map[string]CostAndPlan) plans.Plan {
 	for ii := 1; ii < len(so.qi.JoinTables_); ii += 1 {
-		for baseTableFrom, baseTableCP := range optimalPlans {
-			for joinTableFrom, joinTableCP := range optimalPlans {
+		for baseTableFromOrg, baseTableCP := range optimalPlans {
+			baseTableFrom := samehada_util.StringToMapset(baseTableFromOrg)
+			for joinTableFromOrg, joinTableCP := range optimalPlans {
+				joinTableFrom := samehada_util.StringToMapset(joinTableFromOrg)
 				// Note: checking num of tables joined table includes avoids occurring problem
 				//       related to adding element into optimalPlans on this range loop
 				if containsAny(baseTableFrom, joinTableFrom) || (baseTableFrom.Cardinality()+joinTableFrom.Cardinality() != ii+1) {
@@ -462,15 +464,15 @@ func (so *SelingerOptimizer) findBestJoin(optimalPlans map[mapset.Set[string]]Co
 				common.SH_Assert(1 < joinedTables.Cardinality(), "joinedTables.Cardinality() is illegal!")
 				cost := bestJoinPlan.AccessRowCount(so.c)
 
-				if existedPlan, ok := optimalPlans[joinedTables]; ok {
-					optimalPlans[joinedTables] = CostAndPlan{cost, bestJoinPlan}
+				if existedPlan, ok := optimalPlans[samehada_util.StrSetToString(joinedTables)]; ok {
+					optimalPlans[samehada_util.StrSetToString(joinedTables)] = CostAndPlan{cost, bestJoinPlan}
 				} else if cost < existedPlan.cost {
-					optimalPlans[joinedTables] = CostAndPlan{cost, bestJoinPlan}
+					optimalPlans[samehada_util.StrSetToString(joinedTables)] = CostAndPlan{cost, bestJoinPlan}
 				}
 			}
 		}
 	}
-	optimalPlan, ok := optimalPlans[samehada_util.MakeSet(so.qi.JoinTables_)]
+	optimalPlan, ok := optimalPlans[samehada_util.StrSetToString(samehada_util.MakeSet(so.qi.JoinTables_))]
 	samehada_util.SHAssert(ok, "plan which includes all tables is not found")
 
 	// Attach final projection and emit the result

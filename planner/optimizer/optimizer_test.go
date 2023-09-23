@@ -2,7 +2,6 @@ package optimizer
 
 import (
 	"fmt"
-	mapset "github.com/deckarep/golang-set/v2"
 	"github.com/ryogrid/SamehadaDB/catalog"
 	"github.com/ryogrid/SamehadaDB/common"
 	"github.com/ryogrid/SamehadaDB/execution/executors"
@@ -354,7 +353,7 @@ func PrintBestPlan(title string, queryStr string, bestPlan plans.Plan) {
 	fmt.Println("==================================================")
 }
 
-func PrintOptimalPlans(title string, queryStr string, optimalPlans map[mapset.Set[string]]CostAndPlan) {
+func PrintOptimalPlans(title string, queryStr string, optimalPlans map[string]CostAndPlan) {
 	fmt.Println("")
 	fmt.Println("Pattern Name: " + title)
 	fmt.Println(" [ " + queryStr + " ]")
