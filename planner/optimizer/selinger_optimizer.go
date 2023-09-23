@@ -400,11 +400,11 @@ func (so *SelingerOptimizer) findBestJoinInner(where *parser.BinaryOpExpression,
 					}
 					//ASSIGN_OR_CRASH(std::shared_ptr<TableStatistics>, stat,
 					//	ctx.GetStats(right_tbl->GetSchema().Name()));
-					for _, rcol := range right_cols {
+					for idx, rcol := range right_cols {
 						if right_idx.GetTupleSchema().IsHaveColumn(rcol) {
 							// candidates.push_back(std::make_shared<ProductPlan>(left, left_cols, *right_tbl, right_idx, right_cols, *stat));
 							// right scan plan is not used because IndexJoinExecutor does point scans internally
-							candidates = append(candidates, plans.NewIndexJoinPlanNode(so.c, left, parser.ConvColumnStrsToExpIfOnes(so.c, left_cols, true), rightSchema, rightOID, parser.ConvColumnStrsToExpIfOnes(so.c, right_cols, false)))
+							candidates = append(candidates, plans.NewIndexJoinPlanNode(so.c, left, parser.ConvColumnStrsToExpIfOnes(so.c, []*string{left_cols[idx]}, true), rightSchema, rightOID, parser.ConvColumnStrsToExpIfOnes(so.c, []*string{rcol}, false)))
 						}
 					}
 				}

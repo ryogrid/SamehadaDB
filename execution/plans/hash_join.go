@@ -1,6 +1,7 @@
 package plans
 
 import (
+	"fmt"
 	"github.com/ryogrid/SamehadaDB/catalog"
 	"github.com/ryogrid/SamehadaDB/common"
 	"github.com/ryogrid/SamehadaDB/execution/expression"
@@ -41,9 +42,10 @@ func NewHashJoinPlanNodeWithChilds(left_child Plan, left_hash_keys []expression.
 		panic("NewIndexJoinPlanNodeWithChilds needs keys info.")
 	}
 	if len(left_hash_keys) != 1 || len(right_hash_keys) != 1 {
-		panic("NewIndexJoinPlanNodeWithChilds supports only one key for left and right now.")
+		fmt.Println("NewIndexJoinPlanNodeWithChilds supports only one key for left and right now.")
 	}
-	onPredicate := constructOnExpressionFromKeysInfo(left_hash_keys, right_hash_keys)
+	// TODO: (SDB) one key pair only used on join even if multiple key pairs are passed
+	onPredicate := constructOnExpressionFromKeysInfo(left_hash_keys[0:1], right_hash_keys[0:1])
 	output_schema := makeMergedOutputSchema(left_child.OutputSchema(), right_child.OutputSchema())
 
 	return &HashJoinPlanNode{&AbstractPlanNode{output_schema, []Plan{left_child, right_child}}, onPredicate, left_hash_keys, right_hash_keys, GenHashJoinStats(left_child, right_child)}
