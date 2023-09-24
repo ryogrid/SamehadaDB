@@ -84,7 +84,11 @@
 - [x] Frontend Impl as Embedded DB Library (like SQLite)
   - Currently, functions of the library are not thread safe and concurrent transaction is not supported
 - [ ] Deduplication of Result Records (Distinct)
-- [ ] Query Optimization
+- [x] Query Optimization (Selinger) [^1]
+  - cases below are not supported now
+    - predicate including bracket, OR operation, NOT, column name without table name prefix
+    - projection including asterisk or aggregation
+    - LIMIT, ORDER BY, GROUP BY
 - [ ] AS clause
 - [ ] Nested Query
 - [ ] DB Connector (Driver) or Other Kind of Network Access Interface
