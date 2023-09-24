@@ -198,9 +198,9 @@ func TestSetupedTableAndStatistcsContents(t *testing.T) {
 	stat1 := tm1.GetStatistics()
 	testingpkg.Assert(t, stat1.Rows() == 100, "stat1.Rows() != 100")
 	testingpkg.Assert(t, stat1.ColumnNum() == 3, "stat1.ColumnNum() != 3")
-	testingpkg.Assert(t, stat1.EstimateCount(0, types.NewInteger(0).SetInfMin(), types.NewInteger(0).SetInfMax()) == 99, "EstimateCount should be 99.")
+	testingpkg.Assert(t, stat1.EstimateCount(0, types.NewInteger(0).SetInfMin(), types.NewInteger(0).SetInfMax()) == 100, "EstimateCount should be 100.")
 	testingpkg.Assert(t, stat1.EstimateCount(1, types.NewVarchar("").SetInfMin(), types.NewVarchar("").SetInfMax()) == 2, "EstimateCount should be 2.")
-	testingpkg.Assert(t, stat1.EstimateCount(2, types.NewFloat(0).SetInfMin(), types.NewFloat(0).SetInfMax()) == 99, "EstimateCount should be 99.")
+	testingpkg.Assert(t, stat1.EstimateCount(2, types.NewFloat(0).SetInfMin(), types.NewFloat(0).SetInfMax()) == 100, "EstimateCount should be 100.")
 
 	// Sc1 table only check ReductionFactor
 	predStr := "Sc1.c1 = 1"
@@ -216,9 +216,9 @@ func TestSetupedTableAndStatistcsContents(t *testing.T) {
 	stat1_2 := stat1.GetDeepCopy()
 	testingpkg.Assert(t, stat1_2.Rows() == 100, "stat1_2.Rows() != 100")
 	testingpkg.Assert(t, stat1_2.ColumnNum() == 3, "stat1_2.ColumnNum() != 3")
-	testingpkg.Assert(t, stat1_2.EstimateCount(0, types.NewInteger(0).SetInfMin(), types.NewInteger(0).SetInfMax()) == 99, "EstimateCount should be 99.")
+	testingpkg.Assert(t, stat1_2.EstimateCount(0, types.NewInteger(0).SetInfMin(), types.NewInteger(0).SetInfMax()) == 100, "EstimateCount should be 99.")
 	testingpkg.Assert(t, stat1_2.EstimateCount(1, types.NewVarchar("").SetInfMin(), types.NewVarchar("").SetInfMax()) == 2, "EstimateCount should be 2.")
-	testingpkg.Assert(t, stat1_2.EstimateCount(2, types.NewFloat(0).SetInfMin(), types.NewFloat(0).SetInfMax()) == 99, "EstimateCount should be 99.")
+	testingpkg.Assert(t, stat1_2.EstimateCount(2, types.NewFloat(0).SetInfMin(), types.NewFloat(0).SetInfMax()) == 100, "EstimateCount should be 99.")
 	predStr = "Sc1.c1 = 1"
 	testingpkg.Assert(t, stat1_2.ReductionFactor(schema_, parser.GetPredicateExprFromStr(schema_, &predStr)) == 100, "stat1_2.ReductionFactor(schema_, parser.GetPredicateExprFromStr(schema_, &predStr)) != 100")
 	predStr = "'a' = Sc1.c2"
@@ -256,10 +256,10 @@ func TestSetupedTableAndStatistcsContents(t *testing.T) {
 	stat2 := tm2.GetStatistics()
 	testingpkg.Assert(t, stat2.Rows() == 200, "stat2.Rows() != 200")
 	testingpkg.Assert(t, stat2.ColumnNum() == 4, "stat2.ColumnNum() != 4")
-	testingpkg.Assert(t, stat2.EstimateCount(0, types.NewInteger(0).SetInfMin(), types.NewInteger(0).SetInfMax()) == 199, "EstimateCount should be 199.")
-	testingpkg.Assert(t, stat2.EstimateCount(1, types.NewFloat(0).SetInfMin(), types.NewFloat(0).SetInfMax()) == 199, "EstimateCount should be 199.")
+	testingpkg.Assert(t, stat2.EstimateCount(0, types.NewInteger(0).SetInfMin(), types.NewInteger(0).SetInfMax()) == 200, "EstimateCount should be 200.")
+	testingpkg.Assert(t, stat2.EstimateCount(1, types.NewFloat(0).SetInfMin(), types.NewFloat(0).SetInfMax()) == 200, "EstimateCount should be 200.")
 	testingpkg.Assert(t, stat2.EstimateCount(2, types.NewVarchar("").SetInfMin(), types.NewVarchar("").SetInfMax()) == 2, "EstimateCount should be 2.")
-	testingpkg.Assert(t, stat2.EstimateCount(3, types.NewInteger(0).SetInfMin(), types.NewInteger(0).SetInfMax()) == 0, "EstimateCount should be 0.")
+	testingpkg.Assert(t, stat2.EstimateCount(3, types.NewInteger(0).SetInfMin(), types.NewInteger(0).SetInfMax()) == 200, "EstimateCount should be 200.")
 
 	// Sc3
 	it = tm3.Table().Iterator(txn)
@@ -277,8 +277,8 @@ func TestSetupedTableAndStatistcsContents(t *testing.T) {
 	stat3 := tm3.GetStatistics()
 	testingpkg.Assert(t, stat3.Rows() == 20, "stat3.Rows() != 20")
 	testingpkg.Assert(t, stat3.ColumnNum() == 2, "stat3.ColumnNum() != 2")
-	testingpkg.Assert(t, stat3.EstimateCount(0, types.NewInteger(0).SetInfMin(), types.NewInteger(0).SetInfMax()) == 19, "EstimateCount should be 19.")
-	testingpkg.Assert(t, stat3.EstimateCount(1, types.NewFloat(0).SetInfMin(), types.NewFloat(0).SetInfMax()) == 19, "EstimateCount should be 19.")
+	testingpkg.Assert(t, stat3.EstimateCount(0, types.NewInteger(0).SetInfMin(), types.NewInteger(0).SetInfMax()) == 20, "EstimateCount should be 19.")
+	testingpkg.Assert(t, stat3.EstimateCount(1, types.NewFloat(0).SetInfMin(), types.NewFloat(0).SetInfMax()) == 20, "EstimateCount should be 19.")
 
 	// Sc4
 	it = tm4.Table().Iterator(txn)
@@ -303,8 +303,8 @@ func TestSetupedTableAndStatistcsContents(t *testing.T) {
 
 	stat4 := tm4.GetStatistics()
 	testingpkg.Assert(t, stat4.Rows() == 100, "stat4.Rows() != 100")
-	testingpkg.Assert(t, stat4.ColumnNum() == 2, "stat3.ColumnNum() != 2")
-	testingpkg.Assert(t, stat4.EstimateCount(0, types.NewInteger(0).SetInfMin(), types.NewInteger(0).SetInfMax()) == 99, "EstimateCount should be 99.")
+	testingpkg.Assert(t, stat4.ColumnNum() == 3, "stat3.ColumnNum() != 3")
+	testingpkg.Assert(t, stat4.EstimateCount(0, types.NewInteger(0).SetInfMin(), types.NewInteger(0).SetInfMax()) == 100, "EstimateCount should be 99.")
 	testingpkg.Assert(t, stat4.EstimateCount(1, types.NewVarchar("").SetInfMin(), types.NewVarchar("").SetInfMax()) == 2, "EstimateCount should be 2.")
 }
 
