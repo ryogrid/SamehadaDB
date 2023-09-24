@@ -362,7 +362,8 @@ func (so *SelingerOptimizer) findBestJoinInner(where *parser.BinaryOpExpression,
 	}
 
 	candidates := make([]plans.Plan, 0)
-	if len(equals) > 0 {
+	// equols is bigger than 1 case is not supported now
+	if len(equals) == 1 {
 		left_cols := make([]*string, 0)
 		right_cols := make([]*string, 0)
 		for _, cn := range equals {
