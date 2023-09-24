@@ -38,11 +38,12 @@ func NewHashJoinPlanNode(output_schema *schema.Schema, children []Plan,
 
 func NewHashJoinPlanNodeWithChilds(left_child Plan, left_hash_keys []expression.Expression, right_child Plan, right_hash_keys []expression.Expression) *HashJoinPlanNode {
 	if left_hash_keys == nil || right_hash_keys == nil {
-		panic("NewIndexJoinPlanNodeWithChilds needs keys info.")
+		panic("NewHashJoinPlanNodeWithChilds needs keys info.")
 	}
 	if len(left_hash_keys) != 1 || len(right_hash_keys) != 1 {
-		panic("NewIndexJoinPlanNodeWithChilds supports only one key for left and right now.")
+		panic("NewHashJoinPlanNodeWithChilds supports only one key for left and right now.")
 	}
+	// TODO: (SDB) one key pair only used on join even if multiple key pairs are passed
 	onPredicate := constructOnExpressionFromKeysInfo(left_hash_keys, right_hash_keys)
 	output_schema := makeMergedOutputSchema(left_child.OutputSchema(), right_child.OutputSchema())
 
@@ -92,8 +93,12 @@ func (p *HashJoinPlanNode) AccessRowCount(c *catalog.Catalog) uint64 {
 }
 
 func (p *HashJoinPlanNode) GetDebugStr() string {
-	// TODO: (SDB) [OPT] not implemented yet (HashJoinPlanNode::GetDebugStr)
-	panic("not implemented yet")
+	leftColIdx := p.onPredicate.GetChildAt(0).(*expression.ColumnValue).GetColIndex()
+	leftColName := p.GetChildAt(0).OutputSchema().GetColumn(leftColIdx).GetColumnName()
+	rightColIdx := p.onPredicate.GetChildAt(1).(*expression.ColumnValue).GetColIndex()
+	rightColName := p.GetChildAt(1).OutputSchema().GetColumn(rightColIdx).GetColumnName()
+	return "HashJoinPlanNode [" + leftColName + " = " + rightColName + "]"
+	//return "HashJoinPlanNode"
 }
 
 func (p *HashJoinPlanNode) GetStatistics() *catalog.TableStatistics {

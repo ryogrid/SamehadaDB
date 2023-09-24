@@ -33,11 +33,11 @@ func NewIndexJoinPlanNode(c *catalog.Catalog, leftChild Plan, leftKeys []express
 
 	outputSchema := makeMergedOutputSchema(leftChild.OutputSchema(), rightOutSchema)
 	onPredicate := constructOnExpressionFromKeysInfo(leftKeys, rightKeys)
-	return &IndexJoinPlanNode{&AbstractPlanNode{outputSchema, []Plan{leftChild, nil}}, onPredicate, rightTblOID, rightOutSchema, GenIndexJoinStats(c, leftChild, rightTblOID)}
+	return &IndexJoinPlanNode{&AbstractPlanNode{outputSchema, []Plan{leftChild}}, onPredicate, rightTblOID, rightOutSchema, GenIndexJoinStats(c, leftChild, rightTblOID)}
 }
 
 func (p *IndexJoinPlanNode) GetLeftPlan() Plan {
-	common.SH_Assert(len(p.GetChildren()) == 2, "Index joins should have exactly two children plans.")
+	common.SH_Assert(len(p.GetChildren()) == 1, "Index joins should have exactly one children plans.")
 	return p.GetChildAt(0)
 }
 
@@ -64,12 +64,15 @@ func (p *IndexJoinPlanNode) getRightTableRows(c *catalog.Catalog) uint64 {
 }
 
 func (p *IndexJoinPlanNode) AccessRowCount(c *catalog.Catalog) uint64 {
-	return p.getRightTableRows(c) * 3
+	return p.GetLeftPlan().AccessRowCount(c) * 3
 }
 
 func (p *IndexJoinPlanNode) GetDebugStr() string {
-	// TODO: (SDB) [OPT] not implemented yet (IndexJoinPlanNode::GetDebugStr)
-	panic("not implemented yet")
+	leftColIdx := p.onPredicate.GetChildAt(0).(*expression.ColumnValue).GetColIndex()
+	leftColName := p.GetChildAt(0).OutputSchema().GetColumn(leftColIdx).GetColumnName()
+	rightColIdx := p.onPredicate.GetChildAt(1).(*expression.ColumnValue).GetColIndex()
+	rightColName := p.rightOutSchema.GetColumn(rightColIdx).GetColumnName()
+	return "IndexJoinPlanNode [" + leftColName + " = " + rightColName + "]"
 }
 
 func (p *IndexJoinPlanNode) GetStatistics() *catalog.TableStatistics {

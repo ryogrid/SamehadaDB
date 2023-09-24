@@ -1,6 +1,7 @@
 package plans
 
 import (
+	"fmt"
 	"github.com/ryogrid/SamehadaDB/execution/expression"
 	"github.com/ryogrid/SamehadaDB/storage/table/column"
 	"github.com/ryogrid/SamehadaDB/storage/table/schema"
@@ -34,10 +35,10 @@ func constructOnExpressionFromKeysInfo(leftKeys []expression.Expression, rightKe
 
 func PrintPlanTree(plan Plan, indent int) {
 	for ii := 0; ii < indent; ii++ {
-		print(" ")
+		fmt.Print(" ")
 	}
-	print(plan.GetDebugStr())
-	println()
+	fmt.Print(plan.GetDebugStr())
+	fmt.Println("")
 
 	for _, child := range plan.GetChildren() {
 		PrintPlanTree(child, indent+2)

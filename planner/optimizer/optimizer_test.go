@@ -2,7 +2,6 @@ package optimizer
 
 import (
 	"fmt"
-	mapset "github.com/deckarep/golang-set/v2"
 	"github.com/ryogrid/SamehadaDB/catalog"
 	"github.com/ryogrid/SamehadaDB/common"
 	"github.com/ryogrid/SamehadaDB/execution/executors"
@@ -71,7 +70,7 @@ func SetupTableWithMetadata(exec_ctx *executors.ExecutorContext, tableMeta *Setu
 	return tm
 }
 
-func setupTablesAndStatisticsDataForTesting(exec_ctx *executors.ExecutorContext) (*catalog.TableMetadata, *catalog.TableMetadata, *catalog.TableMetadata, *catalog.TableMetadata) {
+func setupTablesAndStatisticsData(exec_ctx *executors.ExecutorContext) (*catalog.TableMetadata, *catalog.TableMetadata, *catalog.TableMetadata, *catalog.TableMetadata) {
 	Sc1Meta := &SetupTableMeta{
 		"Sc1",
 		100,
@@ -126,10 +125,12 @@ func setupTablesAndStatisticsDataForTesting(exec_ctx *executors.ExecutorContext)
 		[]*ColumnMeta{
 			{"c1", types.Integer, index_constants.INDEX_KIND_INVALID},
 			{"c2", types.Varchar, index_constants.INDEX_KIND_SKIP_LIST},
+			{"c3", types.Integer, index_constants.INDEX_KIND_SKIP_LIST},
 		},
 		[]ColValGenFunc{
 			func(idx int) interface{} { return int32(idx + 1) },
 			func(idx int) interface{} { return strconv.Itoa((idx + 1) % 4) },
+			func(idx int) interface{} { return int32(idx) },
 		},
 	}
 	tm4 := SetupTableWithMetadata(exec_ctx, Sc4Meta)
@@ -166,7 +167,7 @@ func TestSetupedTableAndStatistcsContents(t *testing.T) {
 	c := catalog.BootstrapCatalog(bpm, log_mgr, lock_mgr, txn)
 	exec_ctx := executors.NewExecutorContext(c, bpm, txn)
 
-	tm1, tm2, tm3, tm4 := setupTablesAndStatisticsDataForTesting(exec_ctx)
+	tm1, tm2, tm3, tm4 := setupTablesAndStatisticsData(exec_ctx)
 	txn_mgr.Commit(c, txn)
 
 	txn = txn_mgr.Begin(nil)
@@ -197,9 +198,9 @@ func TestSetupedTableAndStatistcsContents(t *testing.T) {
 	stat1 := tm1.GetStatistics()
 	testingpkg.Assert(t, stat1.Rows() == 100, "stat1.Rows() != 100")
 	testingpkg.Assert(t, stat1.ColumnNum() == 3, "stat1.ColumnNum() != 3")
-	testingpkg.Assert(t, stat1.EstimateCount(0, types.NewInteger(0).SetInfMin(), types.NewInteger(0).SetInfMax()) == 99, "EstimateCount should be 99.")
+	testingpkg.Assert(t, stat1.EstimateCount(0, types.NewInteger(0).SetInfMin(), types.NewInteger(0).SetInfMax()) == 100, "EstimateCount should be 100.")
 	testingpkg.Assert(t, stat1.EstimateCount(1, types.NewVarchar("").SetInfMin(), types.NewVarchar("").SetInfMax()) == 2, "EstimateCount should be 2.")
-	testingpkg.Assert(t, stat1.EstimateCount(2, types.NewFloat(0).SetInfMin(), types.NewFloat(0).SetInfMax()) == 99, "EstimateCount should be 99.")
+	testingpkg.Assert(t, stat1.EstimateCount(2, types.NewFloat(0).SetInfMin(), types.NewFloat(0).SetInfMax()) == 100, "EstimateCount should be 100.")
 
 	// Sc1 table only check ReductionFactor
 	predStr := "Sc1.c1 = 1"
@@ -215,9 +216,9 @@ func TestSetupedTableAndStatistcsContents(t *testing.T) {
 	stat1_2 := stat1.GetDeepCopy()
 	testingpkg.Assert(t, stat1_2.Rows() == 100, "stat1_2.Rows() != 100")
 	testingpkg.Assert(t, stat1_2.ColumnNum() == 3, "stat1_2.ColumnNum() != 3")
-	testingpkg.Assert(t, stat1_2.EstimateCount(0, types.NewInteger(0).SetInfMin(), types.NewInteger(0).SetInfMax()) == 99, "EstimateCount should be 99.")
+	testingpkg.Assert(t, stat1_2.EstimateCount(0, types.NewInteger(0).SetInfMin(), types.NewInteger(0).SetInfMax()) == 100, "EstimateCount should be 99.")
 	testingpkg.Assert(t, stat1_2.EstimateCount(1, types.NewVarchar("").SetInfMin(), types.NewVarchar("").SetInfMax()) == 2, "EstimateCount should be 2.")
-	testingpkg.Assert(t, stat1_2.EstimateCount(2, types.NewFloat(0).SetInfMin(), types.NewFloat(0).SetInfMax()) == 99, "EstimateCount should be 99.")
+	testingpkg.Assert(t, stat1_2.EstimateCount(2, types.NewFloat(0).SetInfMin(), types.NewFloat(0).SetInfMax()) == 100, "EstimateCount should be 99.")
 	predStr = "Sc1.c1 = 1"
 	testingpkg.Assert(t, stat1_2.ReductionFactor(schema_, parser.GetPredicateExprFromStr(schema_, &predStr)) == 100, "stat1_2.ReductionFactor(schema_, parser.GetPredicateExprFromStr(schema_, &predStr)) != 100")
 	predStr = "'a' = Sc1.c2"
@@ -255,10 +256,10 @@ func TestSetupedTableAndStatistcsContents(t *testing.T) {
 	stat2 := tm2.GetStatistics()
 	testingpkg.Assert(t, stat2.Rows() == 200, "stat2.Rows() != 200")
 	testingpkg.Assert(t, stat2.ColumnNum() == 4, "stat2.ColumnNum() != 4")
-	testingpkg.Assert(t, stat2.EstimateCount(0, types.NewInteger(0).SetInfMin(), types.NewInteger(0).SetInfMax()) == 199, "EstimateCount should be 199.")
-	testingpkg.Assert(t, stat2.EstimateCount(1, types.NewFloat(0).SetInfMin(), types.NewFloat(0).SetInfMax()) == 199, "EstimateCount should be 199.")
+	testingpkg.Assert(t, stat2.EstimateCount(0, types.NewInteger(0).SetInfMin(), types.NewInteger(0).SetInfMax()) == 200, "EstimateCount should be 200.")
+	testingpkg.Assert(t, stat2.EstimateCount(1, types.NewFloat(0).SetInfMin(), types.NewFloat(0).SetInfMax()) == 200, "EstimateCount should be 200.")
 	testingpkg.Assert(t, stat2.EstimateCount(2, types.NewVarchar("").SetInfMin(), types.NewVarchar("").SetInfMax()) == 2, "EstimateCount should be 2.")
-	testingpkg.Assert(t, stat2.EstimateCount(3, types.NewInteger(0).SetInfMin(), types.NewInteger(0).SetInfMax()) == 0, "EstimateCount should be 0.")
+	testingpkg.Assert(t, stat2.EstimateCount(3, types.NewInteger(0).SetInfMin(), types.NewInteger(0).SetInfMax()) == 200, "EstimateCount should be 200.")
 
 	// Sc3
 	it = tm3.Table().Iterator(txn)
@@ -276,8 +277,8 @@ func TestSetupedTableAndStatistcsContents(t *testing.T) {
 	stat3 := tm3.GetStatistics()
 	testingpkg.Assert(t, stat3.Rows() == 20, "stat3.Rows() != 20")
 	testingpkg.Assert(t, stat3.ColumnNum() == 2, "stat3.ColumnNum() != 2")
-	testingpkg.Assert(t, stat3.EstimateCount(0, types.NewInteger(0).SetInfMin(), types.NewInteger(0).SetInfMax()) == 19, "EstimateCount should be 19.")
-	testingpkg.Assert(t, stat3.EstimateCount(1, types.NewFloat(0).SetInfMin(), types.NewFloat(0).SetInfMax()) == 19, "EstimateCount should be 19.")
+	testingpkg.Assert(t, stat3.EstimateCount(0, types.NewInteger(0).SetInfMin(), types.NewInteger(0).SetInfMax()) == 20, "EstimateCount should be 19.")
+	testingpkg.Assert(t, stat3.EstimateCount(1, types.NewFloat(0).SetInfMin(), types.NewFloat(0).SetInfMax()) == 20, "EstimateCount should be 19.")
 
 	// Sc4
 	it = tm4.Table().Iterator(txn)
@@ -302,8 +303,8 @@ func TestSetupedTableAndStatistcsContents(t *testing.T) {
 
 	stat4 := tm4.GetStatistics()
 	testingpkg.Assert(t, stat4.Rows() == 100, "stat4.Rows() != 100")
-	testingpkg.Assert(t, stat4.ColumnNum() == 2, "stat3.ColumnNum() != 2")
-	testingpkg.Assert(t, stat4.EstimateCount(0, types.NewInteger(0).SetInfMin(), types.NewInteger(0).SetInfMax()) == 99, "EstimateCount should be 99.")
+	testingpkg.Assert(t, stat4.ColumnNum() == 3, "stat3.ColumnNum() != 3")
+	testingpkg.Assert(t, stat4.EstimateCount(0, types.NewInteger(0).SetInfMin(), types.NewInteger(0).SetInfMax()) == 100, "EstimateCount should be 99.")
 	testingpkg.Assert(t, stat4.EstimateCount(1, types.NewVarchar("").SetInfMin(), types.NewVarchar("").SetInfMax()) == 2, "EstimateCount should be 2.")
 }
 
@@ -322,17 +323,14 @@ func TestFindBestScans(t *testing.T) {
 	c := catalog.BootstrapCatalog(bpm, log_mgr, lock_mgr, txn)
 	exec_ctx := executors.NewExecutorContext(c, bpm, txn)
 
-	setupTablesAndStatisticsDataForTesting(exec_ctx)
+	setupTablesAndStatisticsData(exec_ctx)
 	txn_mgr.Commit(c, txn)
 
-	var queryInfo *parser.QueryInfo
-	var optimalPlans map[mapset.Set[string]]CostAndPlan
-
 	testAQuery := func(queryStr string, patternName string) {
-		queryInfo = parser.ProcessSQLStr(&queryStr)
-		optimalPlans = NewSelingerOptimizer(queryInfo, c).findBestScans()
+		queryInfo := parser.ProcessSQLStr(&queryStr)
+		optimalPlans := NewSelingerOptimizer(queryInfo, c).findBestScans()
 		testingpkg.Assert(t, len(optimalPlans) == len(queryInfo.JoinTables_), "len(optimalPlans) != len(query.JoinTables_) ["+patternName+"]")
-		PrintOptimalPlans(patternName, queryStr, optimalPlans)
+		printOptimalPlans(patternName, queryStr, optimalPlans)
 	}
 
 	testAQuery("select Sc1.c1 from Sc1 where Sc1.c1 = 2;", "Simple(SequentialScan)")
@@ -340,15 +338,25 @@ func TestFindBestScans(t *testing.T) {
 	testAQuery("select Sc2.d1, Sc2.d2, Sc2.d3, Sc2.d4 from Sc2 where Sc2.d3 >= 'd3-3' and Sc2.d3 <= 'd3-5';", "IndexScanInclude(1)")
 	testAQuery("select Sc2.d1, Sc2.d2, Sc2.d3, Sc2.d4 from Sc2 where Sc2.d3 >= 'd3-3' and Sc2.d3 < 'd3-5';", "IndexScanInclude(2)")
 	testAQuery("select Sc1.c2, Sc2.d1, Sc2.d3 from Sc1, Sc2 where Sc1.c1 = Sc2.d1;", "Join(HashJoin)")
-	testAQuery("select Sc1.c2, Sc4.c1, Sc4.c2 from Sc1, Sc4 where Sc1.c2 = Sc4.c2 and Sc4.c2 = '1';", "Join(IndexJoin)")
-	testAQuery("select Sc1.c2, Sc2.d1, Sc3.e2, Sc3.c1 from Sc1, Sc2, Sc3 where Sc1.c1 = Sc2.d1 and Sc2.d1 = Sc3.e1;", "ThreeJoin(HashJoin)")
+	testAQuery("select Sc3.e2, Sc4.c1, Sc4.c2 from Sc3, Sc4 where Sc3.e1 = Sc4.c3;", "Join(IndexJoin)")
+	testAQuery("select Sc3.e2, Sc4.c1, Sc4.c2 from Sc3, Sc4 where Sc3.e1 = Sc4.c3 and Sc4.c3 = 5;", "JoinAndIndexScan(HashJoin)")
+	testAQuery("select Sc1.c2, Sc2.d1, Sc3.e2 from Sc1, Sc2, Sc3 where Sc1.c1 = Sc2.d1 and Sc2.d1 = Sc3.e1;", "ThreeJoin(HashJoin)")
 	testAQuery("select Sc1.c1, Sc1.c2, Sc2.d1, Sc2.d2, Sc2.d3 from Sc1, Sc2 where Sc1.c1 = 2;", "JoinWhere(NestedLoopJoin)")
 	testAQuery("select Sc1.c1, Sc1.c2, Sc1.c3, Sc4.c1, Sc4.c2 from Sc1, Sc4 where Sc1.c1 = Sc4.c1 and Sc4.c1 = 2;", "SameNameColumn")
 
 	// "select * from Sc1, Sc4 where Sc1.c1 = Sc4.c1 and Sc4.c1 = 2;" // Asterisk (Not supported now...)
 }
 
-func PrintOptimalPlans(title string, queryStr string, optimalPlans map[mapset.Set[string]]CostAndPlan) {
+func printBestPlan(title string, queryStr string, bestPlan plans.Plan) {
+	fmt.Println("")
+	fmt.Println("Pattern Name: " + title)
+	fmt.Println(" [ " + queryStr + " ]")
+	fmt.Println("==================================================")
+	plans.PrintPlanTree(bestPlan, 0)
+	fmt.Println("==================================================")
+}
+
+func printOptimalPlans(title string, queryStr string, optimalPlans map[string]CostAndPlan) {
 	fmt.Println("")
 	fmt.Println("Pattern Name: " + title)
 	fmt.Println(" [ " + queryStr + " ]")
@@ -363,12 +371,10 @@ func PrintOptimalPlans(title string, queryStr string, optimalPlans map[mapset.Se
 		plan_ := costPlan.plan
 		fmt.Println("Cost: " + strconv.Itoa(int(costPlan.cost)))
 		plans.PrintPlanTree(plan_, 0)
-
 	}
 	fmt.Println("==================================================")
 }
 
-/*
 func TestSimplePlanOptimization(t *testing.T) {
 	diskManager := disk.NewDiskManagerTest()
 	defer diskManager.ShutDown()
@@ -384,18 +390,46 @@ func TestSimplePlanOptimization(t *testing.T) {
 	c := catalog.BootstrapCatalog(bpm, log_mgr, lock_mgr, txn)
 	exec_ctx := executors.NewExecutorContext(c, bpm, txn)
 
-	setupTablesAndStatisticsDataForTesting(exec_ctx)
+	setupTablesAndStatisticsData(exec_ctx)
 	txn_mgr.Commit(c, txn)
 
-	queryStr := "TO BE WRITTEN"
-	queryInfo := parser.ProcessSQLStr(&queryStr)
+	testAQuery := func(queryStr string, patternName string) {
+		queryInfo := parser.ProcessSQLStr(&queryStr)
 
-	optimizer := NewSelingerOptimizer(queryInfo, c)
-	solution, err := optimizer.Optimize()
-	if err != nil {
-		fmt.Println(err)
+		optimizer := NewSelingerOptimizer(queryInfo, c)
+		solution, err := optimizer.Optimize()
+		if err != nil {
+			fmt.Println(err)
+		}
+		testingpkg.Assert(t, err == nil, "err != nil")
+
+		executionEngine := &executors.ExecutionEngine{}
+		txn_ := txn_mgr.Begin(nil)
+		execCtx := executors.NewExecutorContext(c, bpm, txn_)
+		execRslt := executionEngine.Execute(solution, execCtx)
+		testingpkg.Assert(t, execRslt != nil, "execRslt == nil")
+		printBestPlan(patternName, queryStr, solution)
+		fmt.Print("values of first row: ")
+		for idx, _ := range queryInfo.SelectFields_ {
+			val := execRslt[0].GetValue(solution.OutputSchema(), uint32(idx))
+			fmt.Printf("%s(%d), ", val.ToString(), val.ValueType())
+		}
+		fmt.Println("")
+		fmt.Printf("row num of execution result: %d\n", len(execRslt))
 	}
-	testingpkg.Assert(t, err == nil, "err != nil")
-	fmt.Println(solution)
+
+	testAQuery("select Sc1.c1 from Sc1 where Sc1.c1 = 2;", "Simple(SequentialScan)")
+	testAQuery("select Sc1.c1, Sc1.c3 from Sc1 where Sc1.c2 = 'c2-32';", "IndexScan")
+	testAQuery("select Sc2.d1, Sc2.d2, Sc2.d3, Sc2.d4 from Sc2 where Sc2.d3 >= 'd3-3' and Sc2.d3 <= 'd3-5';", "IndexScanInclude(1)")
+	testAQuery("select Sc2.d1, Sc2.d2, Sc2.d3, Sc2.d4 from Sc2 where Sc2.d3 >= 'd3-3' and Sc2.d3 < 'd3-5';", "IndexScanInclude(2)")
+	testAQuery("select Sc1.c2, Sc2.d1, Sc2.d3 from Sc1, Sc2 where Sc1.c1 = Sc2.d1;", "Join(HashJoin)")
+
+	testAQuery("select Sc3.e2, Sc4.c1, Sc4.c2 from Sc3, Sc4 where Sc3.e1 = Sc4.c3;", "Join(IndexJoin)")
+	testAQuery("select Sc3.e2, Sc4.c1, Sc4.c2 from Sc3, Sc4 where Sc3.e1 = Sc4.c3 and Sc4.c3 = 5;", "JoinAndIndexScan(HashJoin)")
+
+	testAQuery("select Sc1.c2, Sc2.d1, Sc3.e2 from Sc1, Sc2, Sc3 where Sc1.c1 = Sc2.d1 and Sc2.d1 = Sc3.e1;", "ThreeJoin(HashJoin)")
+	testAQuery("select Sc1.c1, Sc1.c2, Sc2.d1, Sc2.d2, Sc2.d3 from Sc1, Sc2 where Sc1.c1 = 2;", "JoinWhere(NestedLoopJoin)")
+	testAQuery("select Sc1.c1, Sc1.c2, Sc1.c3, Sc4.c1, Sc4.c2 from Sc1, Sc4 where Sc1.c1 = Sc4.c1 and Sc4.c1 = 2;", "SameNameColumn")
+
+	// "select * from Sc1, Sc4 where Sc1.c1 = Sc4.c1 and Sc4.c1 = 2;" // Asterisk (Not supported now...)
 }
-*/

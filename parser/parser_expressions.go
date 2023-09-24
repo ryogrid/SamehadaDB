@@ -209,20 +209,26 @@ func ConvParsedSelectionExprToSchema(c *catalog.Catalog, convSrc []*SelectFieldE
 			indexHeaderPageID = sc.GetColumn(colIdx).IndexHeaderPageId()
 		}
 
-		outColDefs = append(outColDefs, column.NewColumn(*colName, colType, hasIndex, indexKind, indexHeaderPageID, nil))
+		outColDefs = append(outColDefs, column.NewColumn(*tableName+"."+*colName, colType, hasIndex, indexKind, indexHeaderPageID, nil))
 	}
 	return schema.NewSchema(outColDefs)
 }
 
-func ConvColumnStrsToExpIfOnes(c *catalog.Catalog, convSrc []*string, isLeftOnJoin bool) []expression.Expression {
+// childPlan can be nil
+func ConvColumnStrsToExpIfOnes(c *catalog.Catalog, childPlan plans.Plan, convSrc []*string, isLeftOnJoin bool) []expression.Expression {
 	ret := make([]expression.Expression, 0)
 	for _, colStr := range convSrc {
 		samehada_util.SHAssert(strings.Contains(*colStr, "."), "column name must includes table name as prefix!")
 		splited := strings.Split(*colStr, ".")
 		tableName := splited[0]
-		colName := splited[1]
-		sc := c.GetTableByName(tableName).Schema()
-		colIdx := sc.GetColIndex(colName)
+		//colName := splited[1]
+		var sc *schema.Schema
+		if childPlan != nil {
+			sc = childPlan.OutputSchema()
+		} else {
+			sc = c.GetTableByName(tableName).Schema()
+		}
+		colIdx := sc.GetColIndex(*colStr)
 		colType := sc.GetColumn(colIdx).GetType()
 
 		if isLeftOnJoin {

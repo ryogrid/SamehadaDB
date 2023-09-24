@@ -1,7 +1,6 @@
 package optimizer
 
 import (
-	"fmt"
 	mapset "github.com/deckarep/golang-set/v2"
 	stack "github.com/golang-collections/collections/stack"
 	pair "github.com/notEpsilon/go-pair"
@@ -300,8 +299,8 @@ func (so *SelingerOptimizer) findBestScan(outNeededCols []*column.Column, where 
 	return bestScan, nil
 }
 
-func (so *SelingerOptimizer) findBestScans() map[mapset.Set[string]]CostAndPlan {
-	optimalPlans := make(map[mapset.Set[string]]CostAndPlan)
+func (so *SelingerOptimizer) findBestScans() map[string]CostAndPlan {
+	optimalPlans := make(map[string]CostAndPlan)
 
 	// 1. Initialize every single tables to start.
 	touchedColumns := so.qi.WhereExpression_.TouchedColumns()
@@ -323,7 +322,7 @@ func (so *SelingerOptimizer) findBestScans() map[mapset.Set[string]]CostAndPlan 
 		}
 		//scan, _ := NewSelingerOptimizer().findBestScan(qi.SelectFields_, qi.WhereExpression_, tbl, c, stats)
 		scan, _ := so.findBestScan(projectTarget, so.qi.WhereExpression_.GetDeepCopy(), tbl, so.c, stats)
-		optimalPlans[samehada_util.MakeSet([]*string{from})] = CostAndPlan{scan.AccessRowCount(so.c), scan}
+		optimalPlans[samehada_util.StrSetToString(samehada_util.MakeSet([]*string{from}))] = CostAndPlan{scan.AccessRowCount(so.c), scan}
 	}
 
 	return optimalPlans
@@ -332,7 +331,7 @@ func (so *SelingerOptimizer) findBestScans() map[mapset.Set[string]]CostAndPlan 
 // attention: caller should pass *where* args which is deep copied
 func (so *SelingerOptimizer) findBestJoinInner(where *parser.BinaryOpExpression, left plans.Plan, right plans.Plan, c *catalog.Catalog) (plans.Plan, error) {
 	// pair<ColumnName, ColumnName>
-	var equals []pair.Pair[*string, *string] = make([]pair.Pair[*string, *string], 0)
+	equals := make([]pair.Pair[*string, *string], 0)
 	//stack<Expression> exp
 	exp := stack.New()
 	exp.Push(where)
@@ -363,20 +362,20 @@ func (so *SelingerOptimizer) findBestJoinInner(where *parser.BinaryOpExpression,
 	}
 
 	candidates := make([]plans.Plan, 0)
-	if len(equals) > 0 {
-		left_cols := make([]*string, len(equals))
-		right_cols := make([]*string, len(equals))
+	// equols is bigger than 1 case is not supported now
+	if len(equals) == 1 {
+		left_cols := make([]*string, 0)
+		right_cols := make([]*string, 0)
 		for _, cn := range equals {
 			left_cols = append(left_cols, cn.First)
 			right_cols = append(right_cols, cn.Second)
 		}
 
 		// HashJoin
-		// candidates.push_back(std::make_shared<ProductPlan>(left, left_cols, right, right_cols));
-		var tmpPlan plans.Plan = plans.NewHashJoinPlanNodeWithChilds(left, parser.ConvColumnStrsToExpIfOnes(so.c, left_cols, true), right, parser.ConvColumnStrsToExpIfOnes(so.c, right_cols, false))
+		var tmpPlan plans.Plan = plans.NewHashJoinPlanNodeWithChilds(left, parser.ConvColumnStrsToExpIfOnes(so.c, left, left_cols, true), right, parser.ConvColumnStrsToExpIfOnes(so.c, right, right_cols, false))
 		candidates = append(candidates, tmpPlan)
-		// candidates.push_back(std::make_shared<ProductPlan>(right, right_cols, left, left_cols));
-		tmpPlan = plans.NewHashJoinPlanNodeWithChilds(right, parser.ConvColumnStrsToExpIfOnes(so.c, right_cols, true), left, parser.ConvColumnStrsToExpIfOnes(so.c, left_cols, false))
+		//add left / right reversed pattern too
+		tmpPlan = plans.NewHashJoinPlanNodeWithChilds(right, parser.ConvColumnStrsToExpIfOnes(so.c, right, right_cols, true), left, parser.ConvColumnStrsToExpIfOnes(so.c, left, left_cols, false))
 		candidates = append(candidates, tmpPlan)
 
 		// IndexJoin
@@ -393,15 +392,18 @@ func (so *SelingerOptimizer) findBestJoinInner(where *parser.BinaryOpExpression,
 			}
 			if len(so.c.GetTableByOID(rightOID).Indexes()) > 0 {
 				// for (size_t i = 0; i < right_tbl->IndexCount(); ++i) {
-				// const Index& right_idx = right_tbl->GetIndex(i);
-				for _, right_idx := range so.c.GetTableByOID(rightOID).Indexes() {
+				// const Index& right_index = right_tbl->GetIndex(i);
+				for index_idx, right_index := range so.c.GetTableByOID(rightOID).Indexes() {
+					if right_index == nil {
+						continue
+					}
 					//ASSIGN_OR_CRASH(std::shared_ptr<TableStatistics>, stat,
 					//	ctx.GetStats(right_tbl->GetSchema().Name()));
-					for _, rcol := range right_cols {
-						if right_idx.GetTupleSchema().IsHaveColumn(rcol) {
-							// candidates.push_back(std::make_shared<ProductPlan>(left, left_cols, *right_tbl, right_idx, right_cols, *stat));
+					for idx, rcol := range right_cols {
+						if right_index.GetTupleSchema().GetColumn(uint32(index_idx)).GetColumnName() == *rcol {
+							// candidates.push_back(std::make_shared<ProductPlan>(left, left_cols, *right_tbl, right_index, right_cols, *stat));
 							// right scan plan is not used because IndexJoinExecutor does point scans internally
-							candidates = append(candidates, plans.NewIndexJoinPlanNode(so.c, left, parser.ConvColumnStrsToExpIfOnes(so.c, left_cols, true), rightSchema, rightOID, parser.ConvColumnStrsToExpIfOnes(so.c, right_cols, false)))
+							candidates = append(candidates, plans.NewIndexJoinPlanNode(so.c, left, parser.ConvColumnStrsToExpIfOnes(so.c, left, []*string{left_cols[idx]}, true), rightSchema, rightOID, parser.ConvColumnStrsToExpIfOnes(so.c, nil, []*string{rcol}, false)))
 						}
 					}
 				}
@@ -435,18 +437,24 @@ func (so *SelingerOptimizer) findBestJoinInner(where *parser.BinaryOpExpression,
 		}
 	}
 
-	// TODO: (SDB) [OPT] need to review that cost of join is estimated collectly (SelingerOptimizer::findBestJoin)
-	//                   ex: (A(BCD)) =>  join order is (((AB)C)D)
 	sort.Slice(candidates, func(i, j int) bool {
 		return candidates[i].AccessRowCount(c) < candidates[j].AccessRowCount(c)
 	})
+
+	//costDebugList := make([]pair.Pair[plans.Plan, int], 0)
+	//for ii := 0; ii < len(candidates); ii++ {
+	//	costDebugList = append(costDebugList, pair.Pair[plans.Plan, int]{candidates[ii], int(candidates[ii].AccessRowCount(c))})
+	//}
+
 	return candidates[0], nil
 }
 
-func (so *SelingerOptimizer) findBestJoin(optimalPlans map[mapset.Set[string]]CostAndPlan) plans.Plan {
+func (so *SelingerOptimizer) findBestJoin(optimalPlans map[string]CostAndPlan) plans.Plan {
 	for ii := 1; ii < len(so.qi.JoinTables_); ii += 1 {
-		for baseTableFrom, baseTableCP := range optimalPlans {
-			for joinTableFrom, joinTableCP := range optimalPlans {
+		for baseTableFromOrg, baseTableCP := range optimalPlans {
+			baseTableFrom := samehada_util.StringToMapset(baseTableFromOrg)
+			for joinTableFromOrg, joinTableCP := range optimalPlans {
+				joinTableFrom := samehada_util.StringToMapset(joinTableFromOrg)
 				// Note: checking num of tables joined table includes avoids occurring problem
 				//       related to adding element into optimalPlans on this range loop
 				if containsAny(baseTableFrom, joinTableFrom) || (baseTableFrom.Cardinality()+joinTableFrom.Cardinality() != ii+1) {
@@ -456,21 +464,20 @@ func (so *SelingerOptimizer) findBestJoin(optimalPlans map[mapset.Set[string]]Co
 				//       current impl can construct bushy plan tree, but it searches more candidates than left-deep Selinger
 
 				bestJoinPlan, _ := so.findBestJoinInner(so.qi.WhereExpression_.GetDeepCopy(), baseTableCP.plan, joinTableCP.plan, so.c)
-				fmt.Println(bestJoinPlan)
 
 				joinedTables := baseTableFrom.Union(joinTableFrom)
 				common.SH_Assert(1 < joinedTables.Cardinality(), "joinedTables.Cardinality() is illegal!")
 				cost := bestJoinPlan.AccessRowCount(so.c)
 
-				if existedPlan, ok := optimalPlans[joinedTables]; ok {
-					optimalPlans[joinedTables] = CostAndPlan{cost, bestJoinPlan}
+				if existedPlan, ok := optimalPlans[samehada_util.StrSetToString(joinedTables)]; !ok {
+					optimalPlans[samehada_util.StrSetToString(joinedTables)] = CostAndPlan{cost, bestJoinPlan}
 				} else if cost < existedPlan.cost {
-					optimalPlans[joinedTables] = CostAndPlan{cost, bestJoinPlan}
+					optimalPlans[samehada_util.StrSetToString(joinedTables)] = CostAndPlan{cost, bestJoinPlan}
 				}
 			}
 		}
 	}
-	optimalPlan, ok := optimalPlans[samehada_util.MakeSet(so.qi.JoinTables_)]
+	optimalPlan, ok := optimalPlans[samehada_util.StrSetToString(samehada_util.MakeSet(so.qi.JoinTables_))]
 	samehada_util.SHAssert(ok, "plan which includes all tables is not found")
 
 	// Attach final projection and emit the result

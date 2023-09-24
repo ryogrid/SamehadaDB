@@ -59,7 +59,6 @@ func (p *RangeScanWithIndexPlanNode) AccessRowCount(c *catalog.Catalog) uint64 {
 }
 
 func (p *RangeScanWithIndexPlanNode) EmitRowCount(c *catalog.Catalog) uint64 {
-	// 	TODO: (SDB) if (index_.IsUnique() && begin_ == end_) { return 1; } (RangeScanWithIndexPlanNode::EmitRowCount)
 	return uint64(math.Ceil(c.GetTableByOID(p.tableOID).GetStatistics().EstimateCount(p.colIdx, p.startRange, p.endRange)))
 }
 
