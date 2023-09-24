@@ -70,7 +70,7 @@ func SetupTableWithMetadata(exec_ctx *executors.ExecutorContext, tableMeta *Setu
 	return tm
 }
 
-func setupTablesAndStatisticsDataForTesting(exec_ctx *executors.ExecutorContext) (*catalog.TableMetadata, *catalog.TableMetadata, *catalog.TableMetadata, *catalog.TableMetadata) {
+func setupTablesAndStatisticsData(exec_ctx *executors.ExecutorContext) (*catalog.TableMetadata, *catalog.TableMetadata, *catalog.TableMetadata, *catalog.TableMetadata) {
 	Sc1Meta := &SetupTableMeta{
 		"Sc1",
 		100,
@@ -125,10 +125,12 @@ func setupTablesAndStatisticsDataForTesting(exec_ctx *executors.ExecutorContext)
 		[]*ColumnMeta{
 			{"c1", types.Integer, index_constants.INDEX_KIND_INVALID},
 			{"c2", types.Varchar, index_constants.INDEX_KIND_SKIP_LIST},
+			{"c3", types.Integer, index_constants.INDEX_KIND_SKIP_LIST},
 		},
 		[]ColValGenFunc{
 			func(idx int) interface{} { return int32(idx + 1) },
 			func(idx int) interface{} { return strconv.Itoa((idx + 1) % 4) },
+			func(idx int) interface{} { return int32(idx) },
 		},
 	}
 	tm4 := SetupTableWithMetadata(exec_ctx, Sc4Meta)
@@ -165,7 +167,7 @@ func TestSetupedTableAndStatistcsContents(t *testing.T) {
 	c := catalog.BootstrapCatalog(bpm, log_mgr, lock_mgr, txn)
 	exec_ctx := executors.NewExecutorContext(c, bpm, txn)
 
-	tm1, tm2, tm3, tm4 := setupTablesAndStatisticsDataForTesting(exec_ctx)
+	tm1, tm2, tm3, tm4 := setupTablesAndStatisticsData(exec_ctx)
 	txn_mgr.Commit(c, txn)
 
 	txn = txn_mgr.Begin(nil)
@@ -321,14 +323,14 @@ func TestFindBestScans(t *testing.T) {
 	c := catalog.BootstrapCatalog(bpm, log_mgr, lock_mgr, txn)
 	exec_ctx := executors.NewExecutorContext(c, bpm, txn)
 
-	setupTablesAndStatisticsDataForTesting(exec_ctx)
+	setupTablesAndStatisticsData(exec_ctx)
 	txn_mgr.Commit(c, txn)
 
 	testAQuery := func(queryStr string, patternName string) {
 		queryInfo := parser.ProcessSQLStr(&queryStr)
 		optimalPlans := NewSelingerOptimizer(queryInfo, c).findBestScans()
 		testingpkg.Assert(t, len(optimalPlans) == len(queryInfo.JoinTables_), "len(optimalPlans) != len(query.JoinTables_) ["+patternName+"]")
-		PrintOptimalPlans(patternName, queryStr, optimalPlans)
+		printOptimalPlans(patternName, queryStr, optimalPlans)
 	}
 
 	testAQuery("select Sc1.c1 from Sc1 where Sc1.c1 = 2;", "Simple(SequentialScan)")
@@ -336,8 +338,8 @@ func TestFindBestScans(t *testing.T) {
 	testAQuery("select Sc2.d1, Sc2.d2, Sc2.d3, Sc2.d4 from Sc2 where Sc2.d3 >= 'd3-3' and Sc2.d3 <= 'd3-5';", "IndexScanInclude(1)")
 	testAQuery("select Sc2.d1, Sc2.d2, Sc2.d3, Sc2.d4 from Sc2 where Sc2.d3 >= 'd3-3' and Sc2.d3 < 'd3-5';", "IndexScanInclude(2)")
 	testAQuery("select Sc1.c2, Sc2.d1, Sc2.d3 from Sc1, Sc2 where Sc1.c1 = Sc2.d1;", "Join(HashJoin)")
-	testAQuery("select Sc1.c2, Sc4.c1, Sc4.c2 from Sc1, Sc4 where Sc1.c2 = Sc4.c2;", "Join(IndexJoin)")
-	testAQuery("select Sc1.c2, Sc4.c1, Sc4.c2 from Sc1, Sc4 where Sc1.c2 = Sc4.c2 and Sc4.c2 = '1';", "Join(IndexJoin)")
+	testAQuery("select Sc3.e2, Sc4.c1, Sc4.c2 from Sc3, Sc4 where Sc3.e1 = Sc4.c3;", "Join(IndexJoin)")
+	testAQuery("select Sc3.e2, Sc4.c1, Sc4.c2 from Sc3, Sc4 where Sc3.e1 = Sc4.c3 and Sc4.c3 = 5;", "JoinAndIndexScan(HashJoin)")
 	testAQuery("select Sc1.c2, Sc2.d1, Sc3.e2 from Sc1, Sc2, Sc3 where Sc1.c1 = Sc2.d1 and Sc2.d1 = Sc3.e1;", "ThreeJoin(HashJoin)")
 	testAQuery("select Sc1.c1, Sc1.c2, Sc2.d1, Sc2.d2, Sc2.d3 from Sc1, Sc2 where Sc1.c1 = 2;", "JoinWhere(NestedLoopJoin)")
 	testAQuery("select Sc1.c1, Sc1.c2, Sc1.c3, Sc4.c1, Sc4.c2 from Sc1, Sc4 where Sc1.c1 = Sc4.c1 and Sc4.c1 = 2;", "SameNameColumn")
@@ -345,7 +347,7 @@ func TestFindBestScans(t *testing.T) {
 	// "select * from Sc1, Sc4 where Sc1.c1 = Sc4.c1 and Sc4.c1 = 2;" // Asterisk (Not supported now...)
 }
 
-func PrintBestPlan(title string, queryStr string, bestPlan plans.Plan) {
+func printBestPlan(title string, queryStr string, bestPlan plans.Plan) {
 	fmt.Println("")
 	fmt.Println("Pattern Name: " + title)
 	fmt.Println(" [ " + queryStr + " ]")
@@ -354,7 +356,7 @@ func PrintBestPlan(title string, queryStr string, bestPlan plans.Plan) {
 	fmt.Println("==================================================")
 }
 
-func PrintOptimalPlans(title string, queryStr string, optimalPlans map[string]CostAndPlan) {
+func printOptimalPlans(title string, queryStr string, optimalPlans map[string]CostAndPlan) {
 	fmt.Println("")
 	fmt.Println("Pattern Name: " + title)
 	fmt.Println(" [ " + queryStr + " ]")
@@ -388,7 +390,7 @@ func TestSimplePlanOptimization(t *testing.T) {
 	c := catalog.BootstrapCatalog(bpm, log_mgr, lock_mgr, txn)
 	exec_ctx := executors.NewExecutorContext(c, bpm, txn)
 
-	setupTablesAndStatisticsDataForTesting(exec_ctx)
+	setupTablesAndStatisticsData(exec_ctx)
 	txn_mgr.Commit(c, txn)
 
 	testAQuery := func(queryStr string, patternName string) {
@@ -401,13 +403,13 @@ func TestSimplePlanOptimization(t *testing.T) {
 		}
 		testingpkg.Assert(t, err == nil, "err != nil")
 
-		//executionEngine := &executors.ExecutionEngine{}
-		//txn_ := txn_mgr.Begin(nil)
-		//execCtx := executors.NewExecutorContext(c, bpm, txn_)
-		//execRslt := executionEngine.Execute(solution, execCtx)
-		//testingpkg.Assert(t, execRslt != nil, "execRslt == nil")
-		PrintBestPlan(patternName, queryStr, solution)
-		//fmt.Printf("row num of execution result: %d\n", len(execRslt))
+		executionEngine := &executors.ExecutionEngine{}
+		txn_ := txn_mgr.Begin(nil)
+		execCtx := executors.NewExecutorContext(c, bpm, txn_)
+		execRslt := executionEngine.Execute(solution, execCtx)
+		testingpkg.Assert(t, execRslt != nil, "execRslt == nil")
+		printBestPlan(patternName, queryStr, solution)
+		fmt.Printf("row num of execution result: %d\n", len(execRslt))
 	}
 
 	//testAQuery("select Sc1.c1 from Sc1 where Sc1.c1 = 2;", "Simple(SequentialScan)")
@@ -416,8 +418,8 @@ func TestSimplePlanOptimization(t *testing.T) {
 	//testAQuery("select Sc2.d1, Sc2.d2, Sc2.d3, Sc2.d4 from Sc2 where Sc2.d3 >= 'd3-3' and Sc2.d3 < 'd3-5';", "IndexScanInclude(2)")
 	//testAQuery("select Sc1.c2, Sc2.d1, Sc2.d3 from Sc1, Sc2 where Sc1.c1 = Sc2.d1;", "Join(HashJoin)")
 
-	testAQuery("select Sc1.c2, Sc4.c1, Sc4.c2 from Sc1, Sc4 where Sc1.c2 = Sc4.c2;", "Join(IndexJoin)")
-	testAQuery("select Sc1.c2, Sc4.c1, Sc4.c2 from Sc1, Sc4 where Sc1.c2 = Sc4.c2 and Sc4.c2 = '1';", "Join(HashJoin?)")
+	//testAQuery("select Sc3.e2, Sc4.c1, Sc4.c2 from Sc3, Sc4 where Sc3.e1 = Sc4.c3;", "Join(IndexJoin)")
+	testAQuery("select Sc3.e2, Sc4.c1, Sc4.c2 from Sc3, Sc4 where Sc3.e1 = Sc4.c3 and Sc4.c3 = 5;", "JoinAndIndexScan(HashJoin)")
 
 	//testAQuery("select Sc1.c2, Sc2.d1, Sc3.e2 from Sc1, Sc2, Sc3 where Sc1.c1 = Sc2.d1 and Sc2.d1 = Sc3.e1;", "ThreeJoin(HashJoin)")
 	//testAQuery("select Sc1.c1, Sc1.c2, Sc2.d1, Sc2.d2, Sc2.d3 from Sc1, Sc2 where Sc1.c1 = 2;", "JoinWhere(NestedLoopJoin)")

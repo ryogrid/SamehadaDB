@@ -371,10 +371,9 @@ func (so *SelingerOptimizer) findBestJoinInner(where *parser.BinaryOpExpression,
 		}
 
 		// HashJoin
-		// candidates.push_back(std::make_shared<ProductPlan>(left, left_cols, right, right_cols));
 		var tmpPlan plans.Plan = plans.NewHashJoinPlanNodeWithChilds(left, parser.ConvColumnStrsToExpIfOnes(so.c, left, left_cols, true), right, parser.ConvColumnStrsToExpIfOnes(so.c, right, right_cols, false))
 		candidates = append(candidates, tmpPlan)
-		// candidates.push_back(std::make_shared<ProductPlan>(right, right_cols, left, left_cols));
+		//add left / right reversed pattern too
 		tmpPlan = plans.NewHashJoinPlanNodeWithChilds(right, parser.ConvColumnStrsToExpIfOnes(so.c, right, right_cols, true), left, parser.ConvColumnStrsToExpIfOnes(so.c, left, left_cols, false))
 		candidates = append(candidates, tmpPlan)
 
@@ -442,6 +441,13 @@ func (so *SelingerOptimizer) findBestJoinInner(where *parser.BinaryOpExpression,
 	sort.Slice(candidates, func(i, j int) bool {
 		return candidates[i].AccessRowCount(c) < candidates[j].AccessRowCount(c)
 	})
+
+	// TODO: (SDB) [OPT] for debug
+	costDebugList := make([]pair.Pair[plans.Plan, int], 0)
+	for ii := 0; ii < len(candidates); ii++ {
+		costDebugList = append(costDebugList, pair.Pair[plans.Plan, int]{candidates[ii], int(candidates[ii].AccessRowCount(c))})
+	}
+
 	return candidates[0], nil
 }
 

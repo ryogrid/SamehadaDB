@@ -64,7 +64,7 @@ func (p *IndexJoinPlanNode) getRightTableRows(c *catalog.Catalog) uint64 {
 }
 
 func (p *IndexJoinPlanNode) AccessRowCount(c *catalog.Catalog) uint64 {
-	return p.getRightTableRows(c) * 3
+	return p.GetLeftPlan().AccessRowCount(c) * 3
 }
 
 func (p *IndexJoinPlanNode) GetDebugStr() string {
