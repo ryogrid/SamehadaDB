@@ -409,6 +409,12 @@ func TestSimplePlanOptimization(t *testing.T) {
 		execRslt := executionEngine.Execute(solution, execCtx)
 		testingpkg.Assert(t, execRslt != nil, "execRslt == nil")
 		printBestPlan(patternName, queryStr, solution)
+		fmt.Print("values of first row: ")
+		for idx, _ := range queryInfo.SelectFields_ {
+			val := execRslt[0].GetValue(solution.OutputSchema(), uint32(idx))
+			fmt.Printf("%s(%d), ", val.ToString(), val.ValueType())
+		}
+		fmt.Println("")
 		fmt.Printf("row num of execution result: %d\n", len(execRslt))
 	}
 

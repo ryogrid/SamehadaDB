@@ -357,7 +357,7 @@ func (v Value) ToString() string {
 	case Integer:
 		return strconv.Itoa(int(*v.integer))
 	case Float:
-		return strconv.FormatFloat(float64(*v.float), 'f', -1, 64)
+		return strconv.FormatFloat(float64(*v.float), 'f', -1, 32)
 	case Varchar:
 		return *v.varchar
 	case Boolean:
