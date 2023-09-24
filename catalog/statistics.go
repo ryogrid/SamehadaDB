@@ -159,9 +159,9 @@ func (cs *columnStats) EstimateCount(from *types.Value, to *types.Value) float64
 		to = retValAccordingToCompareResult(to.CompareLessThan(*cs.max), to, cs.max)
 		tmpVal := to.Sub(from)
 		if cs.colType == types.Integer {
-			return float64(tmpVal.ToInteger()) * float64(cs.count) / float64(cs.distinct)
+			return float64(tmpVal.ToInteger()+1) * float64(cs.count) / float64(cs.distinct)
 		} else { // Float
-			return float64(tmpVal.ToFloat()) * float64(cs.count) / float64(cs.distinct)
+			return float64(tmpVal.ToFloat()+1) * float64(cs.count) / float64(cs.distinct)
 		}
 	} else if cs.colType == types.Varchar {
 		if to.CompareLessThanOrEqual(*from) {
