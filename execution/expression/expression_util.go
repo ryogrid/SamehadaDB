@@ -7,7 +7,7 @@ import (
 )
 
 // get string of "Reverse Polish Notation" style
-func PrintExpTree(node interface{}) string {
+func GetExpTreeStr(node interface{}) string {
 	retStr := ""
 
 	childTraverse := func(exp Expression) string {
@@ -15,7 +15,7 @@ func PrintExpTree(node interface{}) string {
 		var tmpStr string = ""
 		for exp.GetChildAt(idx) != nil && idx < math.MaxInt32 {
 			child := exp.GetChildAt(idx)
-			tmpStr += PrintExpTree(child)
+			tmpStr += GetExpTreeStr(child)
 			idx++
 		}
 		return tmpStr

@@ -45,7 +45,7 @@ func (p *SelectionPlanNode) EmitRowCount(c *catalog.Catalog) uint64 {
 }
 
 func (p *SelectionPlanNode) GetDebugStr() string {
-	return "SelectionPlanNode [ " + expression.PrintExpTree(p.predicate) + "]"
+	return "SelectionPlanNode [ " + expression.GetExpTreeStr(p.predicate) + "]"
 }
 
 func (p *SelectionPlanNode) GetStatistics() *catalog.TableStatistics {

@@ -58,6 +58,5 @@ func (p *NestedLoopJoinPlanNode) GetStatistics() *catalog.TableStatistics {
 }
 
 func (p *NestedLoopJoinPlanNode) GetDebugStr() string {
-	// TODO: (SDB) [OPT] not implemented yet (NestedLoopJoinPlanNode::GetDebugStr)
 	return "NestedLoopJoinPlanNode"
 }

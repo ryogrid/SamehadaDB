@@ -436,17 +436,14 @@ func (so *SelingerOptimizer) findBestJoinInner(where *parser.BinaryOpExpression,
 		}
 	}
 
-	// TODO: (SDB) [OPT] need to review that cost of join is estimated collectly (SelingerOptimizer::findBestJoin)
-	//                   ex: (A(BCD)) =>  join order is (((AB)C)D)
 	sort.Slice(candidates, func(i, j int) bool {
 		return candidates[i].AccessRowCount(c) < candidates[j].AccessRowCount(c)
 	})
 
-	// TODO: (SDB) [OPT] for debug
-	costDebugList := make([]pair.Pair[plans.Plan, int], 0)
-	for ii := 0; ii < len(candidates); ii++ {
-		costDebugList = append(costDebugList, pair.Pair[plans.Plan, int]{candidates[ii], int(candidates[ii].AccessRowCount(c))})
-	}
+	//costDebugList := make([]pair.Pair[plans.Plan, int], 0)
+	//for ii := 0; ii < len(candidates); ii++ {
+	//	costDebugList = append(costDebugList, pair.Pair[plans.Plan, int]{candidates[ii], int(candidates[ii].AccessRowCount(c))})
+	//}
 
 	return candidates[0], nil
 }
