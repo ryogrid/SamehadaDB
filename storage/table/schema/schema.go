@@ -82,9 +82,10 @@ func (s *Schema) IsHaveColumn(columnName *string) bool {
 	for _, col := range s.columns {
 		if strings.Contains(*columnName, ".") && col.GetColumnName() == *columnName {
 			return true
-		} else if !strings.Contains(*columnName, ".") && strings.Split(col.GetColumnName(), ".")[1] == *columnName {
-			return true
 		}
+		//} else if !strings.Contains(*columnName, ".") && strings.Split(col.GetColumnName(), ".")[1] == *columnName {
+		//	return true
+		//}
 	}
 	return false
 }
