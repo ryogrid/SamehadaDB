@@ -26,8 +26,9 @@ type SamehadaDB struct {
 	shi_         *SamehadaInstance
 	catalog_     *catalog.Catalog
 	exec_engine_ *executors.ExecutionEngine
-	chkpntMgr    *concurrency.CheckpointManager
-	planner_     planner.Planner
+	//chkpntMgr    *concurrency.CheckpointManager
+	planner_           planner.Planner
+	statistics_updator *concurrency.StatisticsUpdater
 }
 
 func reconstructIndexDataOfATbl(t *catalog.TableMetadata, c *catalog.Catalog, dman disk.DiskManager, txn *access.Transaction) {
@@ -137,10 +138,16 @@ func NewSamehadaDB(dbName string, memKBytes int) *SamehadaDB {
 	exec_engine := &executors.ExecutionEngine{}
 	pnner := planner.NewSimplePlanner(c, shi.GetBufferPoolManager())
 
-	chkpntMgr := concurrency.NewCheckpointManager(shi.GetTransactionManager(), shi.GetLogManager(), shi.GetBufferPoolManager())
-	chkpntMgr.StartCheckpointTh()
+	//chkpntMgr := concurrency.NewCheckpointManager(shi.GetTransactionManager(), shi.GetLogManager(), shi.GetBufferPoolManager())
+	//chkpntMgr.StartCheckpointTh()
+	shi.GetCheckpointManager().StartCheckpointTh()
 
-	return &SamehadaDB{shi, c, exec_engine, chkpntMgr, pnner}
+	// statics data is updated periodically by this thread with full scan of all tables
+	// this may be not good implementation of statistics, but it is enough for now...
+	statUpdater := concurrency.NewStatisticsUpdater(shi.GetTransactionManager(), c)
+	statUpdater.StartStaticsUpdaterTh()
+
+	return &SamehadaDB{shi, c, exec_engine, pnner, statUpdater}
 }
 
 func (sdb *SamehadaDB) ExecuteSQL(sqlStr string) (error, [][]interface{}) {
@@ -186,20 +193,20 @@ func (sdb *SamehadaDB) ExecuteSQLRetValues(sqlStr string) (error, [][]*types.Val
 
 func (sdb *SamehadaDB) Shutdown() {
 	// set a flag which is check by checkpointing thread
-	sdb.chkpntMgr.StopCheckpointTh()
+	sdb.shi_.GetCheckpointManager().StopCheckpointTh()
 	sdb.shi_.GetBufferPoolManager().FlushAllDirtyPages()
 	sdb.shi_.Shutdown(false)
 }
 
 func (sdb *SamehadaDB) ShutdownForTescase() {
 	// set a flag which is check by checkpointing thread
-	sdb.chkpntMgr.StopCheckpointTh()
+	sdb.shi_.GetCheckpointManager().StopCheckpointTh()
 	sdb.shi_.Shutdown(false)
 }
 
 func (sdb *SamehadaDB) ForceCheckpointingForTestcase() {
-	sdb.chkpntMgr.BeginCheckpoint()
-	sdb.chkpntMgr.EndCheckpoint()
+	sdb.shi_.GetCheckpointManager().BeginCheckpoint()
+	sdb.shi_.GetCheckpointManager().EndCheckpoint()
 }
 
 func ConvTupleListToValues(schema_ *schema.Schema, result []*tuple.Tuple) [][]*types.Value {
