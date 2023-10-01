@@ -328,6 +328,9 @@ func (ts *TableStatistics) EstimateCount(col_idx int32, from *types.Value, to *t
 func (ts *TableStatistics) TransformBy(col_idx int32, from *types.Value, to *types.Value) *TableStatistics {
 	multiplier := ts.EstimateCount(col_idx, from, to)
 	for _, st := range ts.colStats {
+		if st.Count() == 0 {
+			continue
+		}
 		st.Multiply(multiplier / float64(st.Count()))
 	}
 

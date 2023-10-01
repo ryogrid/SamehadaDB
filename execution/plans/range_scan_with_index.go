@@ -27,7 +27,10 @@ type RangeScanWithIndexPlanNode struct {
 
 func NewRangeScanWithIndexPlanNode(c *catalog.Catalog, schema *schema.Schema, tableOID uint32, colIdx int32, predicate expression.Expression, startRange *types.Value, endRange *types.Value) Plan {
 	tm := c.GetTableByOID(tableOID)
-	return &RangeScanWithIndexPlanNode{&AbstractPlanNode{schema, nil}, predicate, tableOID, colIdx, startRange, endRange, tm.GetStatistics().GetDeepCopy()}
+	//return &RangeScanWithIndexPlanNode{&AbstractPlanNode{schema, nil}, predicate, tableOID, colIdx, startRange, endRange, tm.GetStatistics().GetDeepCopy()}
+	ret := &RangeScanWithIndexPlanNode{&AbstractPlanNode{schema, nil}, predicate, tableOID, colIdx, startRange, endRange, tm.GetStatistics().GetDeepCopy()}
+	ret.stats_ = ret.stats_.TransformBy(colIdx, startRange, endRange)
+	return ret
 }
 
 func (p *RangeScanWithIndexPlanNode) GetPredicate() expression.Expression {
