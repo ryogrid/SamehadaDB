@@ -192,15 +192,17 @@ func (sdb *SamehadaDB) ExecuteSQLRetValues(sqlStr string) (error, [][]*types.Val
 }
 
 func (sdb *SamehadaDB) Shutdown() {
-	// set a flag which is check by checkpointing thread
+	// set a flag which is checked by checkpointing thread
+	sdb.statistics_updator.StopStatsUpdateTh()
 	sdb.shi_.GetCheckpointManager().StopCheckpointTh()
 	sdb.shi_.GetBufferPoolManager().FlushAllDirtyPages()
 	sdb.shi_.Shutdown(false)
 }
 
 func (sdb *SamehadaDB) ShutdownForTescase() {
-	// set a flag which is check by checkpointing thread
+	// set a flag which is checked by checkpointing thread
 	sdb.shi_.GetCheckpointManager().StopCheckpointTh()
+	sdb.statistics_updator.StopStatsUpdateTh()
 	sdb.shi_.Shutdown(false)
 }
 

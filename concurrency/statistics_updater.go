@@ -60,7 +60,7 @@ func (updater *StatisticsUpdater) EndStatsUpdate() {
 	// do nothing
 }
 
-func (updater *StatisticsUpdater) StopCheckpointTh() {
+func (updater *StatisticsUpdater) StopStatsUpdateTh() {
 	updater.isUpdaterActive = false
 }
 
