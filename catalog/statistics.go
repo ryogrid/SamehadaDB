@@ -1,6 +1,7 @@
 package catalog
 
 import (
+	"errors"
 	"github.com/ryogrid/SamehadaDB/common"
 	"github.com/ryogrid/SamehadaDB/execution/expression"
 	"github.com/ryogrid/SamehadaDB/samehada/samehada_util"
@@ -9,6 +10,8 @@ import (
 	"github.com/ryogrid/SamehadaDB/types"
 	"math"
 )
+
+var AbortedError error = errors.New("aborted")
 
 type distinctCounter struct {
 	max      *types.Value
@@ -207,6 +210,9 @@ func (ts *TableStatistics) Update(target *TableMetadata, txn *access.Transaction
 	}
 
 	for t := it.Current(); !it.End(); t = it.Next() {
+		if txn.GetState() == access.ABORTED {
+			return AbortedError
+		}
 		for ii := 0; ii < len(ts.colStats); ii++ {
 			distCounters[ii].Add(samehada_util.GetPonterOfValue(t.GetValue(schema_, uint32(ii))))
 		}
