@@ -497,3 +497,19 @@ func (so *SelingerOptimizer) Optimize() (plans.Plan, error) {
 	optimalPlans := so.findBestScans()
 	return so.findBestJoin(optimalPlans), nil
 }
+
+// add table name prefix to column name if column name doesn't have it
+func NormalizeQueryInfo(c *catalog.Catalog, qi *parser.QueryInfo) *parser.QueryInfo {
+	// TODO: (SDB) [OPT] not implemented yet (NormalizeQueryInfo)
+
+	// SelectFields_
+	// when SelectFields_[x].TableName_ is empty, set appropriate value
+	//for _, sfield := range qi.SelectFields_ {
+	//}
+
+	// JoinTables_
+
+	// WhereExpression_
+
+	return qi
+}

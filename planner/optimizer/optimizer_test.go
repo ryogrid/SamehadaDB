@@ -328,6 +328,7 @@ func TestFindBestScans(t *testing.T) {
 
 	testAQuery := func(queryStr string, patternName string) {
 		queryInfo := parser.ProcessSQLStr(&queryStr)
+		queryInfo = NormalizeQueryInfo(c, queryInfo)
 		optimalPlans := NewSelingerOptimizer(queryInfo, c).findBestScans()
 		testingpkg.Assert(t, len(optimalPlans) == len(queryInfo.JoinTables_), "len(optimalPlans) != len(query.JoinTables_) ["+patternName+"]")
 		printOptimalPlans(patternName, queryStr, optimalPlans)
@@ -397,6 +398,7 @@ func TestSimplePlanOptimization(t *testing.T) {
 
 	testAQuery := func(queryStr string, patternName string) {
 		queryInfo := parser.ProcessSQLStr(&queryStr)
+		queryInfo = NormalizeQueryInfo(c, queryInfo)
 
 		optimizer := NewSelingerOptimizer(queryInfo, c)
 		solution, err := optimizer.Optimize()
