@@ -328,7 +328,7 @@ func TestFindBestScans(t *testing.T) {
 
 	testAQuery := func(queryStr string, patternName string) {
 		queryInfo := parser.ProcessSQLStr(&queryStr)
-		queryInfo = NormalizeQueryInfo(c, queryInfo)
+		queryInfo, _ = NormalizeQueryInfo(c, queryInfo)
 		optimalPlans := NewSelingerOptimizer(queryInfo, c).findBestScans()
 		testingpkg.Assert(t, len(optimalPlans) == len(queryInfo.JoinTables_), "len(optimalPlans) != len(query.JoinTables_) ["+patternName+"]")
 		printOptimalPlans(patternName, queryStr, optimalPlans)
@@ -398,7 +398,7 @@ func TestSimplePlanOptimization(t *testing.T) {
 
 	testAQuery := func(queryStr string, patternName string) {
 		queryInfo := parser.ProcessSQLStr(&queryStr)
-		queryInfo = NormalizeQueryInfo(c, queryInfo)
+		queryInfo, _ = NormalizeQueryInfo(c, queryInfo)
 
 		optimizer := NewSelingerOptimizer(queryInfo, c)
 		solution, err := optimizer.Optimize()
@@ -434,6 +434,8 @@ func TestSimplePlanOptimization(t *testing.T) {
 	testAQuery("select Sc1.c2, Sc2.d1, Sc3.e2 from Sc1, Sc2, Sc3 where Sc1.c1 = Sc2.d1 and Sc2.d1 = Sc3.e1;", "ThreeJoin(HashJoin)")
 	testAQuery("select Sc1.c1, Sc1.c2, Sc2.d1, Sc2.d2, Sc2.d3 from Sc1, Sc2 where Sc1.c1 = 2;", "JoinWhere(NestedLoopJoin)")
 	testAQuery("select Sc1.c1, Sc1.c2, Sc1.c3, Sc4.c1, Sc4.c2 from Sc1, Sc4 where Sc1.c1 = Sc4.c1 and Sc4.c1 = 2;", "SameNameColumn")
+
+	//testAQuery("select c1 from Sc1 where c1 = 2;", "NoTablePrefixScan(SequentialScan)")
 
 	// "select * from Sc1, Sc4 where Sc1.c1 = Sc4.c1 and Sc4.c1 = 2;" // Asterisk (Not supported now...)
 }

@@ -499,7 +499,7 @@ func (so *SelingerOptimizer) Optimize() (plans.Plan, error) {
 }
 
 // add table name prefix to column name if column name doesn't have it
-func NormalizeQueryInfo(c *catalog.Catalog, qi *parser.QueryInfo) *parser.QueryInfo {
+func NormalizeQueryInfo(c *catalog.Catalog, qi *parser.QueryInfo) (*parser.QueryInfo, error) {
 	// TODO: (SDB) [OPT] not implemented yet (NormalizeQueryInfo)
 
 	// SelectFields_
@@ -511,5 +511,5 @@ func NormalizeQueryInfo(c *catalog.Catalog, qi *parser.QueryInfo) *parser.QueryI
 
 	// WhereExpression_
 
-	return qi
+	return qi, nil
 }
