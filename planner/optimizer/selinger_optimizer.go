@@ -482,9 +482,11 @@ func (so *SelingerOptimizer) findBestJoin(optimalPlans map[string]CostAndPlan) p
 	optimalPlan, ok := optimalPlans[samehada_util.StrSetToString(samehada_util.MakeSet(so.qi.JoinTables_))]
 	samehada_util.SHAssert(ok, "plan which includes all tables is not found")
 
-	// Attach final projection and emit the result
 	solution := optimalPlan.plan
-	solution = plans.NewProjectionPlanNode(solution, parser.ConvParsedSelectionExprToSchema(so.c, so.qi.SelectFields_))
+	// Attach final projection and emit the result
+	if int(solution.OutputSchema().GetColumnCount()) > len(so.qi.SelectFields_) {
+		solution = plans.NewProjectionPlanNode(solution, parser.ConvParsedSelectionExprToSchema(so.c, so.qi.SelectFields_))
+	}
 
 	return solution
 }
@@ -570,7 +572,7 @@ func genTableMap(c *catalog.Catalog, qi *parser.QueryInfo) map[string][]*string 
 }
 
 // add table name prefix to column name if column name doesn't have it
-// ATTENTIN: this func modifies *qi* arg
+// ATTENTION: this func modifies *qi* arg
 func NormalizeQueryInfo(c *catalog.Catalog, qi *parser.QueryInfo) (*parser.QueryInfo, error) {
 	tableMap := genTableMap(c, qi)
 	// SelectFields_
