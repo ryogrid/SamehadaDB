@@ -1,6 +1,7 @@
 package optimizer
 
 import (
+	"fmt"
 	mapset "github.com/deckarep/golang-set/v2"
 	stack "github.com/golang-collections/collections/stack"
 	pair "github.com/notEpsilon/go-pair"
@@ -498,7 +499,26 @@ func (so *SelingerOptimizer) Optimize() (plans.Plan, error) {
 	return so.findBestJoin(optimalPlans), nil
 }
 
+func collectColNameStrRefsFromBinaryOpExp(exp interface{}) []*string {
+	retArr := make([]*string, 0)
+
+	switch casted := exp.(type) {
+	case *parser.BinaryOpExpression:
+		retArr = append(retArr, collectColNameStrRefsFromBinaryOpExp(casted.Left_)...)
+		retArr = append(retArr, collectColNameStrRefsFromBinaryOpExp(casted.Right_)...)
+	case *string:
+		retArr = append(retArr, casted)
+	case *types.Value:
+		// do nothing
+	default:
+		panic("invalid type")
+	}
+
+	return retArr
+}
+
 // add table name prefix to column name if column name doesn't have it
+// ATTENTIN: this func modifies *qi* arg
 func NormalizeQueryInfo(c *catalog.Catalog, qi *parser.QueryInfo) (*parser.QueryInfo, error) {
 	// TODO: (SDB) [OPT] not implemented yet (NormalizeQueryInfo)
 
@@ -510,6 +530,9 @@ func NormalizeQueryInfo(c *catalog.Catalog, qi *parser.QueryInfo) (*parser.Query
 	// JoinTables_
 
 	// WhereExpression_
+	for _, ref := range collectColNameStrRefsFromBinaryOpExp(qi.WhereExpression_) {
+		fmt.Println(*ref)
+	}
 
 	return qi, nil
 }
