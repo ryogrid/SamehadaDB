@@ -1,7 +1,7 @@
 package optimizer
 
 import (
-	"fmt"
+	"errors"
 	mapset "github.com/deckarep/golang-set/v2"
 	stack "github.com/golang-collections/collections/stack"
 	pair "github.com/notEpsilon/go-pair"
@@ -16,6 +16,7 @@ import (
 	"github.com/ryogrid/SamehadaDB/types"
 	"math"
 	"sort"
+	"strings"
 )
 
 type CostAndPlan struct {
@@ -499,40 +500,103 @@ func (so *SelingerOptimizer) Optimize() (plans.Plan, error) {
 	return so.findBestJoin(optimalPlans), nil
 }
 
-func collectColNameStrRefsFromBinaryOpExp(exp interface{}) []*string {
-	retArr := make([]*string, 0)
+var CantTableIdentifedErr = errors.New("tableName can't be identified!")
+var InvalidColNameErr = errors.New("invalid column name!")
 
+func attachTableNameIfNeeded(tableMap map[string][]*string, tgtStr *string) (*string, error) {
+	if strings.Contains(*tgtStr, ".") {
+		return tgtStr, nil
+	}
+	if val, ok := tableMap[*tgtStr]; ok {
+		if len(val) == 1 {
+			tmpStr := *val[0] + "." + *tgtStr
+			return &tmpStr, nil
+		} else {
+			return nil, CantTableIdentifedErr
+		}
+	} else {
+		return nil, InvalidColNameErr
+	}
+}
+
+func rewiteColNameStrOfBinaryOpExp(tableMap map[string][]*string, exp interface{}) error {
 	switch casted := exp.(type) {
 	case *parser.BinaryOpExpression:
-		retArr = append(retArr, collectColNameStrRefsFromBinaryOpExp(casted.Left_)...)
-		retArr = append(retArr, collectColNameStrRefsFromBinaryOpExp(casted.Right_)...)
-	case *string:
-		retArr = append(retArr, casted)
+		var err error
+		if str, ok := casted.Left_.(*string); ok {
+			casted.Left_, err = attachTableNameIfNeeded(tableMap, str)
+		} else {
+			err = rewiteColNameStrOfBinaryOpExp(tableMap, casted.Left_)
+		}
+		if err != nil {
+			return err
+		}
+		if str, ok := casted.Right_.(*string); ok {
+			casted.Right_, err = attachTableNameIfNeeded(nil, str)
+		} else {
+			err = rewiteColNameStrOfBinaryOpExp(tableMap, casted.Right_)
+		}
+		return err
 	case *types.Value:
 		// do nothing
+		return nil
+	case nil:
+		return nil
 	default:
 		panic("invalid type")
 	}
+}
 
-	return retArr
+func genTableMap(c *catalog.Catalog, qi *parser.QueryInfo) map[string][]*string {
+	tableMap := make(map[string][]*string, 0)
+	for _, tableName := range qi.JoinTables_ {
+		tm := c.GetTableByName(*tableName)
+		colNum := tm.GetColumnNum()
+
+		for ii := 0; ii < int(colNum); ii++ {
+			col := tm.Schema().GetColumn(uint32(ii))
+			colName := col.GetColumnName()
+			if strings.Contains(colName, ".") {
+				colName = strings.Split(colName, ".")[1]
+			}
+			if val, ok := tableMap[colName]; ok {
+				tableMap[colName] = append(val, tableName)
+			} else {
+				tableMap[colName] = []*string{tableName}
+			}
+		}
+	}
+	return tableMap
 }
 
 // add table name prefix to column name if column name doesn't have it
 // ATTENTIN: this func modifies *qi* arg
 func NormalizeQueryInfo(c *catalog.Catalog, qi *parser.QueryInfo) (*parser.QueryInfo, error) {
-	// TODO: (SDB) [OPT] not implemented yet (NormalizeQueryInfo)
-
+	tableMap := genTableMap(c, qi)
 	// SelectFields_
 	// when SelectFields_[x].TableName_ is empty, set appropriate value
-	//for _, sfield := range qi.SelectFields_ {
-	//}
-
-	// JoinTables_
-
-	// WhereExpression_
-	for _, ref := range collectColNameStrRefsFromBinaryOpExp(qi.WhereExpression_) {
-		fmt.Println(*ref)
+	for _, sfield := range qi.SelectFields_ {
+		if sfield.TableName_ == nil {
+			if val, ok := tableMap[*sfield.ColName_]; ok {
+				if len(val) == 1 {
+					sfield.TableName_ = val[0]
+				} else {
+					return nil, CantTableIdentifedErr
+				}
+			} else {
+				return nil, InvalidColNameErr
+			}
+		}
 	}
 
-	return qi, nil
+	// OnExpressions_
+	err := rewiteColNameStrOfBinaryOpExp(tableMap, qi.OnExpressions_)
+	if err != nil {
+		return nil, err
+	}
+
+	// WhereExpression_
+	err = rewiteColNameStrOfBinaryOpExp(tableMap, qi.WhereExpression_)
+
+	return qi, err
 }

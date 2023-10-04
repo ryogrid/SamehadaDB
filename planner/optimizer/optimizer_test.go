@@ -424,7 +424,7 @@ func TestSimplePlanOptimization(t *testing.T) {
 
 	//testAQuery("select Sc1.c1 from Sc1 where Sc1.c1 = 2;", "Simple(SequentialScan)")
 	//testAQuery("select Sc1.c1, Sc1.c3 from Sc1 where Sc1.c2 = 'c2-32';", "IndexScan")
-	testAQuery("select Sc2.d1, Sc2.d2, Sc2.d3, Sc2.d4 from Sc2 where Sc2.d3 >= 'd3-3' and Sc2.d3 <= 'd3-5';", "IndexScanInclude(1)")
+	//testAQuery("select Sc2.d1, Sc2.d2, Sc2.d3, Sc2.d4 from Sc2 where Sc2.d3 >= 'd3-3' and Sc2.d3 <= 'd3-5';", "IndexScanInclude(1)")
 	//testAQuery("select Sc2.d1, Sc2.d2, Sc2.d3, Sc2.d4 from Sc2 where Sc2.d3 >= 'd3-3' and Sc2.d3 < 'd3-5';", "IndexScanInclude(2)")
 	//testAQuery("select Sc4.c1 from Sc4 where Sc4.c3 >= 5 and Sc4.c3 <= 10;", "IndexScanInclude(3)")
 	//testAQuery("select Sc4.c1 from Sc4 where Sc4.c3 >= 5 and Sc4.c3 < 10;", "IndexScanInclude(4)")
@@ -435,7 +435,7 @@ func TestSimplePlanOptimization(t *testing.T) {
 	//testAQuery("select Sc1.c1, Sc1.c2, Sc2.d1, Sc2.d2, Sc2.d3 from Sc1, Sc2 where Sc1.c1 = 2;", "JoinWhere(NestedLoopJoin)")
 	//testAQuery("select Sc1.c1, Sc1.c2, Sc1.c3, Sc4.c1, Sc4.c2 from Sc1, Sc4 where Sc1.c1 = Sc4.c1 and Sc4.c1 = 2;", "SameNameColumn")
 
-	//testAQuery("select c1 from Sc1 where c1 = 2;", "NoTablePrefixScan(SequentialScan)")
+	testAQuery("select c1 from Sc1 where c1 = 2;", "NoTablePrefixScan(SequentialScan)")
 
 	// "select * from Sc1, Sc4 where Sc1.c1 = Sc4.c1 and Sc4.c1 = 2;" // Asterisk (Not supported now...)
 }
