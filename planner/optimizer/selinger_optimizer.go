@@ -606,6 +606,10 @@ func RewriteQueryInfo(c *catalog.Catalog, qi *parser.QueryInfo) (*parser.QueryIn
 			break
 		}
 	}
+	// DELETE and UPDATE query is processed with optimizer asterisk specified SELECT query
+	if *qi.QueryType_ == parser.DELETE || *qi.QueryType_ == parser.UPDATE {
+		qi.SelectFields_ = colList
+	}
 
 	// OnExpressions_
 	err := rewiteColNameStrOfBinaryOpExp(tableMap, qi.OnExpressions_)

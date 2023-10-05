@@ -439,6 +439,8 @@ func TestSimplePlanOptimization(t *testing.T) {
 	testAQuery("select * from Sc1 join Sc4 on Sc1.c1 = Sc4.c1 where Sc4.c1 = 2;", "SameNameColumn(3)")
 
 	testAQuery("select c1 from Sc1 where c1 = 2;", "NoTablePrefixScan(SequentialScan)")
+	testAQuery("delete from Sc1 where c1 = 2;", "NoTablePrefixScanDelete(SequentialScan)")
+	testAQuery("update Sc1 set c1 = 5 where c1 = 2;", "NoTablePrefixScanUpdate(SequentialScan)")
 
 	// "select * from Sc1, Sc4 where Sc1.c1 = Sc4.c1 and Sc4.c1 = 2;" // Asterisk (Not supported now...)
 }
