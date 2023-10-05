@@ -14,6 +14,7 @@ import (
 	"github.com/ryogrid/SamehadaDB/storage/table/column"
 	"github.com/ryogrid/SamehadaDB/storage/table/schema"
 	"github.com/ryogrid/SamehadaDB/types"
+	"golang.org/x/exp/slices"
 	"math"
 	"sort"
 	"strings"
@@ -549,8 +550,9 @@ func rewiteColNameStrOfBinaryOpExp(tableMap map[string][]*string, exp interface{
 	}
 }
 
-func genTableMap(c *catalog.Catalog, qi *parser.QueryInfo) map[string][]*string {
+func genTableMapAndColList(c *catalog.Catalog, qi *parser.QueryInfo) (map[string][]*string, []*parser.SelectFieldExpression) {
 	tableMap := make(map[string][]*string, 0)
+	colList := make([]*parser.SelectFieldExpression, 0)
 	for _, tableName := range qi.JoinTables_ {
 		tm := c.GetTableByName(*tableName)
 		colNum := tm.GetColumnNum()
@@ -558,8 +560,13 @@ func genTableMap(c *catalog.Catalog, qi *parser.QueryInfo) map[string][]*string 
 		for ii := 0; ii < int(colNum); ii++ {
 			col := tm.Schema().GetColumn(uint32(ii))
 			colName := col.GetColumnName()
+
 			if strings.Contains(colName, ".") {
-				colName = strings.Split(colName, ".")[1]
+				splited := strings.Split(colName, ".")
+				colName = splited[1]
+				colList = append(colList, &parser.SelectFieldExpression{false, -1, &splited[0], &colName})
+			} else {
+				panic("invalid column name")
 			}
 			if val, ok := tableMap[colName]; ok {
 				tableMap[colName] = append(val, tableName)
@@ -568,18 +575,18 @@ func genTableMap(c *catalog.Catalog, qi *parser.QueryInfo) map[string][]*string 
 			}
 		}
 	}
-	return tableMap
+	return tableMap, colList
 }
 
 // add table name prefix to column name if column name doesn't have it
 // and attach predicate of ON clause to one of WHERE clause
 // ATTENTION: this func modifies *qi* arg
 func RewriteQueryInfo(c *catalog.Catalog, qi *parser.QueryInfo) (*parser.QueryInfo, error) {
-	tableMap := genTableMap(c, qi)
+	tableMap, colList := genTableMapAndColList(c, qi)
 	// SelectFields_
 	// when SelectFields_[x].TableName_ is empty, set appropriate value
 	for _, sfield := range qi.SelectFields_ {
-		if sfield.TableName_ == nil {
+		if sfield.TableName_ == nil && *sfield.ColName_ != "*" {
 			if val, ok := tableMap[*sfield.ColName_]; ok {
 				if len(val) == 1 {
 					sfield.TableName_ = val[0]
@@ -589,6 +596,14 @@ func RewriteQueryInfo(c *catalog.Catalog, qi *parser.QueryInfo) (*parser.QueryIn
 			} else {
 				return nil, InvalidColNameErr
 			}
+		}
+	}
+	// replace asterisk to column names (one asterisk only)
+	for ii := 0; ii < len(qi.SelectFields_); ii++ {
+		if *qi.SelectFields_[ii].ColName_ == "*" {
+			qi.SelectFields_ = append(qi.SelectFields_[:ii], qi.SelectFields_[ii+1:]...)
+			qi.SelectFields_ = slices.Insert(qi.SelectFields_, ii, colList...)
+			break
 		}
 	}
 

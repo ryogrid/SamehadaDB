@@ -436,6 +436,7 @@ func TestSimplePlanOptimization(t *testing.T) {
 	testAQuery("select Sc1.c1, Sc1.c2, Sc1.c3, Sc4.c1, Sc4.c2 from Sc1, Sc4 where Sc1.c1 = Sc4.c1 and Sc4.c1 = 2;", "SameNameColumn")
 
 	testAQuery("select Sc1.c1, Sc1.c2, Sc1.c3, Sc4.c1, Sc4.c2 from Sc1 join Sc4 on Sc1.c1 = Sc4.c1 where Sc4.c1 = 2;", "SameNameColumn(2)")
+	testAQuery("select * from Sc1 join Sc4 on Sc1.c1 = Sc4.c1 where Sc4.c1 = 2;", "SameNameColumn(3)")
 
 	testAQuery("select c1 from Sc1 where c1 = 2;", "NoTablePrefixScan(SequentialScan)")
 
