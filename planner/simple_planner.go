@@ -225,6 +225,7 @@ func (pner *SimplePlanner) MakeSelectPlan() (error, plans.Plan) {
 	}
 }
 
+// TODO: (SDB) duplicated functionality with expression.ConvParsedBinaryOpExprToExpIFOne func???
 func processPredicateTreeNode(node *parser.BinaryOpExpression, tgtTblSchemas []*schema.Schema) expression.Expression {
 	if node.LogicalOperationType_ != -1 { // node of logical operation
 		left_side_pred := processPredicateTreeNode(node.Left_.(*parser.BinaryOpExpression), tgtTblSchemas)

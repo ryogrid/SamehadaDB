@@ -572,8 +572,9 @@ func genTableMap(c *catalog.Catalog, qi *parser.QueryInfo) map[string][]*string 
 }
 
 // add table name prefix to column name if column name doesn't have it
+// and attach predicate of ON clause to one of WHERE clause
 // ATTENTION: this func modifies *qi* arg
-func NormalizeQueryInfo(c *catalog.Catalog, qi *parser.QueryInfo) (*parser.QueryInfo, error) {
+func RewriteQueryInfo(c *catalog.Catalog, qi *parser.QueryInfo) (*parser.QueryInfo, error) {
 	tableMap := genTableMap(c, qi)
 	// SelectFields_
 	// when SelectFields_[x].TableName_ is empty, set appropriate value
@@ -599,6 +600,12 @@ func NormalizeQueryInfo(c *catalog.Catalog, qi *parser.QueryInfo) (*parser.Query
 
 	// WhereExpression_
 	err = rewiteColNameStrOfBinaryOpExp(tableMap, qi.WhereExpression_)
+	if err != nil {
+		return nil, err
+	}
 
-	return qi, err
+	// attach predicate of ON clause to one of WHERE clause
+	qi.WhereExpression_ = qi.WhereExpression_.AppendBinaryOpExpWithAnd(qi.OnExpressions_)
+
+	return qi, nil
 }

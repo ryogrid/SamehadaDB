@@ -328,7 +328,7 @@ func TestFindBestScans(t *testing.T) {
 
 	testAQuery := func(queryStr string, patternName string) {
 		queryInfo := parser.ProcessSQLStr(&queryStr)
-		queryInfo, _ = NormalizeQueryInfo(c, queryInfo)
+		queryInfo, _ = RewriteQueryInfo(c, queryInfo)
 		optimalPlans := NewSelingerOptimizer(queryInfo, c).findBestScans()
 		testingpkg.Assert(t, len(optimalPlans) == len(queryInfo.JoinTables_), "len(optimalPlans) != len(query.JoinTables_) ["+patternName+"]")
 		printOptimalPlans(patternName, queryStr, optimalPlans)
@@ -398,7 +398,7 @@ func TestSimplePlanOptimization(t *testing.T) {
 
 	testAQuery := func(queryStr string, patternName string) {
 		queryInfo := parser.ProcessSQLStr(&queryStr)
-		queryInfo, _ = NormalizeQueryInfo(c, queryInfo)
+		queryInfo, _ = RewriteQueryInfo(c, queryInfo)
 
 		optimizer := NewSelingerOptimizer(queryInfo, c)
 		solution, err := optimizer.Optimize()
@@ -422,18 +422,20 @@ func TestSimplePlanOptimization(t *testing.T) {
 		fmt.Printf("row num of execution result: %d\n", len(execRslt))
 	}
 
-	//testAQuery("select Sc1.c1 from Sc1 where Sc1.c1 = 2;", "Simple(SequentialScan)")
-	//testAQuery("select Sc1.c1, Sc1.c3 from Sc1 where Sc1.c2 = 'c2-32';", "IndexScan")
-	//testAQuery("select Sc2.d1, Sc2.d2, Sc2.d3, Sc2.d4 from Sc2 where Sc2.d3 >= 'd3-3' and Sc2.d3 <= 'd3-5';", "IndexScanInclude(1)")
-	//testAQuery("select Sc2.d1, Sc2.d2, Sc2.d3, Sc2.d4 from Sc2 where Sc2.d3 >= 'd3-3' and Sc2.d3 < 'd3-5';", "IndexScanInclude(2)")
-	//testAQuery("select Sc4.c1 from Sc4 where Sc4.c3 >= 5 and Sc4.c3 <= 10;", "IndexScanInclude(3)")
-	//testAQuery("select Sc4.c1 from Sc4 where Sc4.c3 >= 5 and Sc4.c3 < 10;", "IndexScanInclude(4)")
-	//testAQuery("select Sc1.c2, Sc2.d1, Sc2.d3 from Sc1, Sc2 where Sc1.c1 = Sc2.d1;", "Join(HashJoin)")
-	//testAQuery("select Sc3.e2, Sc4.c1, Sc4.c2 from Sc3, Sc4 where Sc3.e1 = Sc4.c3;", "Join(IndexJoin)")
-	//testAQuery("select Sc3.e2, Sc4.c1, Sc4.c2 from Sc3, Sc4 where Sc3.e1 = Sc4.c3 and Sc4.c3 = 5;", "JoinAndIndexScan(HashJoin)")
-	//testAQuery("select Sc1.c2, Sc2.d1, Sc3.e2 from Sc1, Sc2, Sc3 where Sc1.c1 = Sc2.d1 and Sc2.d1 = Sc3.e1;", "ThreeJoin(HashJoin)")
-	//testAQuery("select Sc1.c1, Sc1.c2, Sc2.d1, Sc2.d2, Sc2.d3 from Sc1, Sc2 where Sc1.c1 = 2;", "JoinWhere(NestedLoopJoin)")
-	//testAQuery("select Sc1.c1, Sc1.c2, Sc1.c3, Sc4.c1, Sc4.c2 from Sc1, Sc4 where Sc1.c1 = Sc4.c1 and Sc4.c1 = 2;", "SameNameColumn")
+	testAQuery("select Sc1.c1 from Sc1 where Sc1.c1 = 2;", "Simple(SequentialScan)")
+	testAQuery("select Sc1.c1, Sc1.c3 from Sc1 where Sc1.c2 = 'c2-32';", "IndexScan")
+	testAQuery("select Sc2.d1, Sc2.d2, Sc2.d3, Sc2.d4 from Sc2 where Sc2.d3 >= 'd3-3' and Sc2.d3 <= 'd3-5';", "IndexScanInclude(1)")
+	testAQuery("select Sc2.d1, Sc2.d2, Sc2.d3, Sc2.d4 from Sc2 where Sc2.d3 >= 'd3-3' and Sc2.d3 < 'd3-5';", "IndexScanInclude(2)")
+	testAQuery("select Sc4.c1 from Sc4 where Sc4.c3 >= 5 and Sc4.c3 <= 10;", "IndexScanInclude(3)")
+	testAQuery("select Sc4.c1 from Sc4 where Sc4.c3 >= 5 and Sc4.c3 < 10;", "IndexScanInclude(4)")
+	testAQuery("select Sc1.c2, Sc2.d1, Sc2.d3 from Sc1, Sc2 where Sc1.c1 = Sc2.d1;", "Join(HashJoin)")
+	testAQuery("select Sc3.e2, Sc4.c1, Sc4.c2 from Sc3, Sc4 where Sc3.e1 = Sc4.c3;", "Join(IndexJoin)")
+	testAQuery("select Sc3.e2, Sc4.c1, Sc4.c2 from Sc3, Sc4 where Sc3.e1 = Sc4.c3 and Sc4.c3 = 5;", "JoinAndIndexScan(HashJoin)")
+	testAQuery("select Sc1.c2, Sc2.d1, Sc3.e2 from Sc1, Sc2, Sc3 where Sc1.c1 = Sc2.d1 and Sc2.d1 = Sc3.e1;", "ThreeJoin(HashJoin)")
+	testAQuery("select Sc1.c1, Sc1.c2, Sc2.d1, Sc2.d2, Sc2.d3 from Sc1, Sc2 where Sc1.c1 = 2;", "JoinWhere(NestedLoopJoin)")
+	testAQuery("select Sc1.c1, Sc1.c2, Sc1.c3, Sc4.c1, Sc4.c2 from Sc1, Sc4 where Sc1.c1 = Sc4.c1 and Sc4.c1 = 2;", "SameNameColumn")
+
+	testAQuery("select Sc1.c1, Sc1.c2, Sc1.c3, Sc4.c1, Sc4.c2 from Sc1 join Sc4 on Sc1.c1 = Sc4.c1 where Sc4.c1 = 2;", "SameNameColumn(2)")
 
 	testAQuery("select c1 from Sc1 where c1 = 2;", "NoTablePrefixScan(SequentialScan)")
 
