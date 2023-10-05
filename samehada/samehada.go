@@ -9,6 +9,7 @@ import (
 	"github.com/ryogrid/SamehadaDB/execution/plans"
 	"github.com/ryogrid/SamehadaDB/parser"
 	"github.com/ryogrid/SamehadaDB/planner"
+	"github.com/ryogrid/SamehadaDB/planner/optimizer"
 	"github.com/ryogrid/SamehadaDB/recovery/log_recovery"
 	"github.com/ryogrid/SamehadaDB/samehada/samehada_util"
 	"github.com/ryogrid/SamehadaDB/storage/access"
@@ -157,6 +158,7 @@ func (sdb *SamehadaDB) ExecuteSQL(sqlStr string) (error, [][]interface{}) {
 
 func (sdb *SamehadaDB) ExecuteSQLRetValues(sqlStr string) (error, [][]*types.Value) {
 	qi := parser.ProcessSQLStr(&sqlStr)
+	qi, _ = optimizer.RewriteQueryInfo(sdb.catalog_, qi)
 	txn := sdb.shi_.transaction_manager.Begin(nil)
 	err, plan := sdb.planner_.MakePlan(qi, txn)
 

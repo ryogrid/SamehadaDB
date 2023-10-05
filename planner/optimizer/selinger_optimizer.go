@@ -550,6 +550,19 @@ func rewiteColNameStrOfBinaryOpExp(tableMap map[string][]*string, exp interface{
 	}
 }
 
+func CheckIncludesORInPredicate(exp interface{}) bool {
+	switch casted := exp.(type) {
+	case *parser.BinaryOpExpression:
+		if casted.LogicalOperationType_ == expression.OR {
+			return true
+		} else {
+			return CheckIncludesORInPredicate(casted.Left_) || CheckIncludesORInPredicate(casted.Right_)
+		}
+	default:
+		return false
+	}
+}
+
 func genTableMapAndColList(c *catalog.Catalog, qi *parser.QueryInfo) (map[string][]*string, []*parser.SelectFieldExpression) {
 	tableMap := make(map[string][]*string, 0)
 	colList := make([]*parser.SelectFieldExpression, 0)
@@ -623,8 +636,10 @@ func RewriteQueryInfo(c *catalog.Catalog, qi *parser.QueryInfo) (*parser.QueryIn
 		return nil, err
 	}
 
-	// attach predicate of ON clause to one of WHERE clause
-	qi.WhereExpression_ = qi.WhereExpression_.AppendBinaryOpExpWithAnd(qi.OnExpressions_)
+	if !(qi.OnExpressions_.Left_ == nil && qi.OnExpressions_.Right_ == nil) {
+		// attach predicate of ON clause to one of WHERE clause
+		qi.WhereExpression_ = qi.WhereExpression_.AppendBinaryOpExpWithAnd(qi.OnExpressions_)
+	}
 
 	return qi, nil
 }

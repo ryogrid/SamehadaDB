@@ -7,6 +7,7 @@ import (
 	"github.com/ryogrid/SamehadaDB/execution/expression"
 	"github.com/ryogrid/SamehadaDB/execution/plans"
 	"github.com/ryogrid/SamehadaDB/parser"
+	"github.com/ryogrid/SamehadaDB/planner/optimizer"
 	"github.com/ryogrid/SamehadaDB/storage/access"
 	"github.com/ryogrid/SamehadaDB/storage/buffer"
 	"github.com/ryogrid/SamehadaDB/storage/index/index_constants"
@@ -87,6 +88,11 @@ func (pner *SimplePlanner) MakeSelectPlanWithoutJoin() (error, plans.Plan) {
 	}
 
 	return nil, plans.NewSeqScanPlanNode(pner.catalog_, outSchema, predicate, tableMetadata.OID())
+}
+
+func (pner *SimplePlanner) MakeOptimizedSelectPlanWithJoin() (error, plans.Plan) {
+	optPlan, err := optimizer.NewSelingerOptimizer(pner.qi, pner.catalog_).Optimize()
+	return err, optPlan
 }
 
 func (pner *SimplePlanner) MakeSelectPlanWithJoin() (error, plans.Plan) {
@@ -218,10 +224,15 @@ func (pner *SimplePlanner) MakeSelectPlanWithJoin() (error, plans.Plan) {
 }
 
 func (pner *SimplePlanner) MakeSelectPlan() (error, plans.Plan) {
-	if len(pner.qi.JoinTables_) == 1 {
-		return pner.MakeSelectPlanWithoutJoin()
+	if optimizer.CheckIncludesORInPredicate(pner.qi.WhereExpression_) {
+		// optimizer does not support OR, so use planning logic without optimization...
+		if len(pner.qi.JoinTables_) == 1 {
+			return pner.MakeSelectPlanWithoutJoin()
+		} else {
+			return pner.MakeSelectPlanWithJoin()
+		}
 	} else {
-		return pner.MakeSelectPlanWithJoin()
+		return pner.MakeOptimizedSelectPlanWithJoin()
 	}
 }
 
@@ -258,7 +269,8 @@ func (pner *SimplePlanner) MakeCreateTablePlan() (error, plans.Plan) {
 
 	columns := make([]*column.Column, 0)
 	for _, cdefExp := range pner.qi.ColDefExpressions_ {
-		columns = append(columns, column.NewColumn(*cdefExp.ColName_, *cdefExp.ColType_, false, index_constants.INDEX_KIND_INVALID, types.PageID(-1), nil))
+		//columns = append(columns, column.NewColumn(*cdefExp.ColName_, *cdefExp.ColType_, false, index_constants.INDEX_KIND_INVALID, types.PageID(-1), nil))
+		columns = append(columns, column.NewColumn(*cdefExp.ColName_, *cdefExp.ColType_, false, index_constants.INDEX_KIND_SKIP_LIST, types.PageID(-1), nil))
 	}
 	schema_ := schema.NewSchema(columns)
 
