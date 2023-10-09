@@ -5,7 +5,10 @@ import (
 	"github.com/ryogrid/SamehadaDB/common"
 	"github.com/ryogrid/SamehadaDB/samehada"
 	testingpkg "github.com/ryogrid/SamehadaDB/testing/testing_assert"
+	"math/rand"
 	"os"
+	"runtime"
+	"strconv"
 	"testing"
 	"time"
 )
@@ -324,4 +327,98 @@ func TestRebootAndReturnIFValuesWithCheckpoint(t *testing.T) {
 	common.TempSuppressOnMemStorage = false
 	db3.Shutdown()
 	common.TempSuppressOnMemStorageMutex.Unlock()
+}
+
+func TestParallelQueryIssue(t *testing.T) {
+	// clear all state of DB
+	if !common.EnableOnMemStorage {
+		os.Remove(t.Name() + ".db")
+		os.Remove(t.Name() + ".log")
+	}
+
+	db := samehada.NewSamehadaDB(t.Name(), 5000) // 5MB
+	opTimes := 10000
+
+	queryVals := make([]int32, opTimes)
+
+	for ii := 0; ii < opTimes; ii++ {
+		randVal := rand.Int31()
+		queryVals = append(queryVals, randVal)
+	}
+
+	//err, _ := db.ExecuteSQLRetValues("CREATE TABLE key_val_list (key int, val int);")
+	err, _ := db.ExecuteSQL("CREATE TABLE k_v_list(k INT, v INT);")
+	testingpkg.Assert(t, err == nil, "failed to create table")
+
+	for ii := 0; ii < opTimes; ii++ {
+		err, _ = db.ExecuteSQLRetValues(fmt.Sprintf("INSERT INTO k_v_list(k, v) VALUES (%d, %d);", queryVals[ii], queryVals[ii]))
+		testingpkg.Assert(t, err == nil, "failed to insert val: "+strconv.Itoa(int(queryVals[ii])))
+	}
+
+	// shuffle query vals array elements
+	//rand.Shuffle(len(queryVals), func(i, j int) { queryVals[i], queryVals[j] = queryVals[j], queryVals[i] })
+
+	fmt.Println("records insertion done.")
+
+	THREAD_NUM := 12
+	runtime.GOMAXPROCS(THREAD_NUM)
+
+	ch := make(chan [2]int32)
+
+	runningThCnt := 0
+	allCnt := 0
+	commitedCnt := 0
+	abotedCnt := 0
+	for ii := 0; ii < opTimes; ii++ {
+		// wait last go routines finishes
+		if ii == opTimes-1 {
+			for runningThCnt > 0 {
+				recvRslt := <-ch
+				allCnt++
+				if recvRslt[1] == -1 {
+					abotedCnt++
+				} else {
+					commitedCnt++
+					testingpkg.Assert(t, recvRslt[0] == recvRslt[1], "failed to select val: "+strconv.Itoa(int(recvRslt[0])))
+				}
+				runningThCnt--
+			}
+			break
+		}
+
+		// wait for keeping THREAD_NUM groroutine existing
+		for runningThCnt >= THREAD_NUM*2 {
+			recvRslt := <-ch
+			runningThCnt--
+			allCnt++
+			if allCnt%500 == 0 {
+				fmt.Printf(strconv.Itoa(allCnt) + " queries done\n")
+			}
+			if recvRslt[1] == -1 {
+				abotedCnt++
+			} else {
+				commitedCnt++
+				testingpkg.Assert(t, recvRslt[0] == recvRslt[1], "failed to select val: "+strconv.Itoa(int(recvRslt[0])))
+			}
+		}
+
+		go func(queryVal int32) {
+			err_, results := db.ExecuteSQLRetValues(fmt.Sprintf("SELECT v FROM k_v_list WHERE k = %d;", queryVal))
+			if err != nil {
+				fmt.Println(err_)
+				ch <- [2]int32{queryVal, -1}
+				return
+			}
+
+			gotValue := (*results[0][0]).ToInteger()
+			ch <- [2]int32{queryVal, gotValue}
+		}(queryVals[ii])
+
+		runningThCnt++
+	}
+
+	fmt.Println("allCnt: " + strconv.Itoa(allCnt))
+	fmt.Println("abotedCnt: " + strconv.Itoa(abotedCnt))
+	fmt.Println("commitedCnt: " + strconv.Itoa(commitedCnt))
+	db.Shutdown()
 }
