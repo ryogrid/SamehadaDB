@@ -1846,7 +1846,7 @@ func testUniqSkipListParallelTxnStrideRoot[T int32 | float32 | string](t *testin
 }
 
 func TestUniqSkipListPrallelTxnStrideInteger(t *testing.T) {
-	t.Parallel()
+	//t.Parallel()
 	if testing.Short() {
 		t.Skip("skip this in short mode.")
 	}
@@ -1854,7 +1854,7 @@ func TestUniqSkipListPrallelTxnStrideInteger(t *testing.T) {
 }
 
 func TestUniqSkipListPrallelTxnStrideFloat(t *testing.T) {
-	t.Parallel()
+	//t.Parallel()
 	if testing.Short() {
 		t.Skip("skip this in short mode.")
 	}
@@ -1862,7 +1862,7 @@ func TestUniqSkipListPrallelTxnStrideFloat(t *testing.T) {
 }
 
 func TestUniqSkipListPrallelTxnStrideVarchar(t *testing.T) {
-	t.Parallel()
+	//t.Parallel()
 	if testing.Short() {
 		t.Skip("skip this in short mode.")
 	}
