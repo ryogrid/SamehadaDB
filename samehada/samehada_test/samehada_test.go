@@ -337,9 +337,9 @@ func TestParallelQueryIssue(t *testing.T) {
 	}
 
 	db := samehada.NewSamehadaDB(t.Name(), 5000) // 5MB
-	opTimes := 10000
+	opTimes := 100000
 
-	queryVals := make([]int32, opTimes)
+	queryVals := make([]int32, 0)
 
 	for ii := 0; ii < opTimes; ii++ {
 		randVal := rand.Int31()
@@ -356,7 +356,7 @@ func TestParallelQueryIssue(t *testing.T) {
 	}
 
 	// shuffle query vals array elements
-	//rand.Shuffle(len(queryVals), func(i, j int) { queryVals[i], queryVals[j] = queryVals[j], queryVals[i] })
+	rand.Shuffle(len(queryVals), func(i, j int) { queryVals[i], queryVals[j] = queryVals[j], queryVals[i] })
 
 	fmt.Println("records insertion done.")
 
@@ -386,7 +386,7 @@ func TestParallelQueryIssue(t *testing.T) {
 			break
 		}
 
-		// wait for keeping THREAD_NUM groroutine existing
+		// wait for keeping THREAD_NUM * 2 groroutine existing
 		for runningThCnt >= THREAD_NUM*2 {
 			recvRslt := <-ch
 			runningThCnt--
