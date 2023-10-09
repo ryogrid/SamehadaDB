@@ -320,19 +320,26 @@ func (pner *SimplePlanner) MakeInsertPlan() (error, plans.Plan) {
 }
 
 func (pner *SimplePlanner) MakeDeletePlan() (error, plans.Plan) {
-	tableMetadata := pner.catalog_.GetTableByName(*pner.qi.JoinTables_[0])
-	if tableMetadata == nil {
-		return PrintAndCreateError("table " + *pner.qi.JoinTables_[0] + " not found.")
+	if optimizer.CheckIncludesORInPredicate(pner.qi.WhereExpression_) {
+		// optimizer does not support OR, so use planning logic without optimization...
+		tableMetadata := pner.catalog_.GetTableByName(*pner.qi.JoinTables_[0])
+		if tableMetadata == nil {
+			return PrintAndCreateError("table " + *pner.qi.JoinTables_[0] + " not found.")
+		}
+
+		tgtTblSchema := tableMetadata.Schema()
+
+		expression_ := pner.ConstructPredicate([]*schema.Schema{tgtTblSchema})
+		seqScanPlanP := plans.NewSeqScanPlanNode(pner.catalog_, tgtTblSchema, expression_, tableMetadata.OID())
+		deletePlan := plans.NewDeletePlanNode(seqScanPlanP)
+
+		return nil, deletePlan
+	} else {
+		_, selectPlan := pner.MakeOptimizedSelectPlanWithJoin()
+		deletePlan := plans.NewDeletePlanNode(selectPlan)
+		return nil, deletePlan
 	}
 
-	tgtTblSchema := tableMetadata.Schema()
-
-	expression_ := pner.ConstructPredicate([]*schema.Schema{tgtTblSchema})
-	//deletePlan := plans.NewDeletePlanNode(expression_, tableMetadata.OID())
-	seqScanPlanP := plans.NewSeqScanPlanNode(pner.catalog_, tgtTblSchema, expression_, tableMetadata.OID())
-	deletePlan := plans.NewDeletePlanNode(seqScanPlanP)
-
-	return nil, deletePlan
 }
 
 func (pner *SimplePlanner) MakeUpdatePlan() (error, plans.Plan) {
