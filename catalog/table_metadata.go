@@ -49,13 +49,19 @@ func NewTableMetadata(schema *schema.Schema, name string, table *access.TableHea
 			case index_constants.INDEX_KIND_UNIQ_SKIP_LIST:
 				// currently, SkipList Index always use new pages even if relaunch
 				im := index.NewIndexMetadata(column_.GetColumnName()+"_index", name, schema, []uint32{uint32(idx)})
+				// TODO: (SDB) need to add index headae ID argument like HashIndex (NewTableMetadata)
 				slIdx := index.NewUniqSkipListIndex(im, table.GetBufferPoolManager(), uint32(idx))
+
 				indexes = append(indexes, slIdx)
+				//column_.SetIndexHeaderPageId(slIdx.GetHeaderPageId())
 			case index_constants.INDEX_KIND_SKIP_LIST:
 				// currently, SkipList Index always use new pages even if relaunch
 				im := index.NewIndexMetadata(column_.GetColumnName()+"_index", name, schema, []uint32{uint32(idx)})
+				// TODO: (SDB) need to add index headae ID argument like HashIndex (NewTableMetadata)
 				slIdx := index.NewSkipListIndex(im, table.GetBufferPoolManager(), uint32(idx))
+
 				indexes = append(indexes, slIdx)
+				//column_.SetIndexHeaderPageId(slIdx.GetHeaderPageId())
 			default:
 				panic("illegal index kind!")
 			}

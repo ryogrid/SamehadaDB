@@ -1,6 +1,7 @@
 package catalog
 
 import (
+	"errors"
 	"github.com/ryogrid/SamehadaDB/common"
 	"github.com/ryogrid/SamehadaDB/execution/expression"
 	"github.com/ryogrid/SamehadaDB/samehada/samehada_util"
@@ -9,6 +10,8 @@ import (
 	"github.com/ryogrid/SamehadaDB/types"
 	"math"
 )
+
+var AbortedError error = errors.New("aborted")
 
 type distinctCounter struct {
 	max      *types.Value
@@ -159,9 +162,9 @@ func (cs *columnStats) EstimateCount(from *types.Value, to *types.Value) float64
 		to = retValAccordingToCompareResult(to.CompareLessThan(*cs.max), to, cs.max)
 		tmpVal := to.Sub(from)
 		if cs.colType == types.Integer {
-			return float64(tmpVal.ToInteger()+1) * float64(cs.count) / float64(cs.distinct)
+			return float64(tmpVal.ToInteger()+1) * float64(cs.count) / guardNotZeroReturn(float64(cs.distinct))
 		} else { // Float
-			return float64(tmpVal.ToFloat()+1) * float64(cs.count) / float64(cs.distinct)
+			return float64(tmpVal.ToFloat()+1) * float64(cs.count) / guardNotZeroReturn(float64(cs.distinct))
 		}
 	} else if cs.colType == types.Varchar {
 		if to.CompareLessThanOrEqual(*from) {
@@ -207,6 +210,9 @@ func (ts *TableStatistics) Update(target *TableMetadata, txn *access.Transaction
 	}
 
 	for t := it.Current(); !it.End(); t = it.Next() {
+		if txn.GetState() == access.ABORTED {
+			return AbortedError
+		}
 		for ii := 0; ii < len(ts.colStats); ii++ {
 			distCounters[ii].Add(samehada_util.GetPonterOfValue(t.GetValue(schema_, uint32(ii))))
 		}
@@ -237,6 +243,13 @@ func isBinaryExp(exp expression.Expression) bool {
 	return exp.GetType() == expression.EXPRESSION_TYPE_COMPARISON || exp.GetType() == expression.EXPRESSION_TYPE_LOGICAL_OP
 }
 
+func guardNotZeroReturn(val float64) float64 {
+	if val == 0 {
+		return math.MaxFloat64
+	}
+	return val
+}
+
 // Returns estimated inverted selection ratio if the `sc` is selected by
 // `predicate`. If the predicate selects rows to 1 / x, returns x.
 // Returning 1 means no selection (pass through).
@@ -253,21 +266,21 @@ func (ts *TableStatistics) ReductionFactor(sc *schema.Schema, predicate expressi
 				samehada_util.SHAssert(colIndexLeft >= 0 && int(colIndexLeft) < len(ts.colStats), "invalid column index (Left)")
 				colIndexRight := rcv.GetColIndex()
 				samehada_util.SHAssert(colIndexRight >= 0 && int(colIndexRight) < len(ts.colStats), "invalid column index (Right)")
-				return math.Min(float64(ts.colStats[colIndexLeft].Distinct()), float64(ts.colStats[colIndexRight].Distinct()))
+				return guardNotZeroReturn(math.Min(float64(ts.colStats[colIndexLeft].Distinct()), float64(ts.colStats[colIndexRight].Distinct())))
 			}
 			if boCmp.GetChildAt(0).GetType() == expression.EXPRESSION_TYPE_COLUMN_VALUE {
 				lcv := boCmp.GetChildAt(0).(*expression.ColumnValue)
 				colIndexLeft := lcv.GetColIndex()
 				samehada_util.SHAssert(colIndexLeft >= 0 && int(colIndexLeft) < len(ts.colStats), "invalid column index (Left)")
 				// return static_cast<double>(stats_[offset_left].distinct());
-				return float64(ts.colStats[colIndexLeft].Distinct())
+				return guardNotZeroReturn(float64(ts.colStats[colIndexLeft].Distinct()))
 			}
 			if boCmp.GetChildAt(1).GetType() == expression.EXPRESSION_TYPE_COLUMN_VALUE {
 				rcv := boCmp.GetChildAt(1).(*expression.ColumnValue)
 				colIndexRight := rcv.GetColIndex()
 				samehada_util.SHAssert(colIndexRight >= 0 && int(colIndexRight) < len(ts.colStats), "invalid column index (Right)")
 				// return static_cast<double>(stats_[offset_right].distinct());
-				return float64(ts.colStats[colIndexRight].Distinct())
+				return guardNotZeroReturn(float64(ts.colStats[colIndexRight].Distinct()))
 			}
 			if boCmp.GetChildAt(0).GetType() == expression.EXPRESSION_TYPE_CONSTANT_VALUE &&
 				boCmp.GetChildAt(1).GetType() == expression.EXPRESSION_TYPE_CONSTANT_VALUE {
@@ -284,11 +297,11 @@ func (ts *TableStatistics) ReductionFactor(sc *schema.Schema, predicate expressi
 		boLogi, okLogi := predicate.(*expression.LogicalOp)
 		if okLogi {
 			if boLogi.GetLogicalOpType() == expression.AND {
-				return ts.ReductionFactor(sc, boLogi.GetChildAt(0)) * ts.ReductionFactor(sc, boLogi.GetChildAt(1))
+				return guardNotZeroReturn(ts.ReductionFactor(sc, boLogi.GetChildAt(0)) * ts.ReductionFactor(sc, boLogi.GetChildAt(1)))
 			}
 			if boLogi.GetLogicalOpType() == expression.OR {
 				// TODO: what should be returned?
-				return ts.ReductionFactor(sc, boLogi.GetChildAt(0)) * ts.ReductionFactor(sc, boLogi.GetChildAt(1))
+				return guardNotZeroReturn(ts.ReductionFactor(sc, boLogi.GetChildAt(0)) * ts.ReductionFactor(sc, boLogi.GetChildAt(1)))
 			}
 		}
 	}
@@ -315,6 +328,9 @@ func (ts *TableStatistics) EstimateCount(col_idx int32, from *types.Value, to *t
 func (ts *TableStatistics) TransformBy(col_idx int32, from *types.Value, to *types.Value) *TableStatistics {
 	multiplier := ts.EstimateCount(col_idx, from, to)
 	for _, st := range ts.colStats {
+		if st.Count() == 0 {
+			continue
+		}
 		st.Multiply(multiplier / float64(st.Count()))
 	}
 

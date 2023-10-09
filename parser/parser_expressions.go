@@ -115,6 +115,10 @@ func (expr *BinaryOpExpression) GetDeepCopy() *BinaryOpExpression {
 	return ret
 }
 
+func (expr *BinaryOpExpression) AppendBinaryOpExpWithAnd(expr2 *BinaryOpExpression) *BinaryOpExpression {
+	return &BinaryOpExpression{expression.AND, -1, expr, expr2}
+}
+
 type SetExpression struct {
 	ColName_     *string
 	UpdateValue_ *types.Value

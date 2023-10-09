@@ -9,6 +9,7 @@ import (
 	"github.com/ryogrid/SamehadaDB/execution/plans"
 	"github.com/ryogrid/SamehadaDB/parser"
 	"github.com/ryogrid/SamehadaDB/planner"
+	"github.com/ryogrid/SamehadaDB/planner/optimizer"
 	"github.com/ryogrid/SamehadaDB/recovery/log_recovery"
 	"github.com/ryogrid/SamehadaDB/samehada/samehada_util"
 	"github.com/ryogrid/SamehadaDB/storage/access"
@@ -26,8 +27,9 @@ type SamehadaDB struct {
 	shi_         *SamehadaInstance
 	catalog_     *catalog.Catalog
 	exec_engine_ *executors.ExecutionEngine
-	chkpntMgr    *concurrency.CheckpointManager
-	planner_     planner.Planner
+	//chkpntMgr    *concurrency.CheckpointManager
+	planner_           planner.Planner
+	statistics_updator *concurrency.StatisticsUpdater
 }
 
 func reconstructIndexDataOfATbl(t *catalog.TableMetadata, c *catalog.Catalog, dman disk.DiskManager, txn *access.Transaction) {
@@ -56,6 +58,10 @@ func reconstructIndexDataOfATbl(t *catalog.TableMetadata, c *catalog.Catalog, dm
 					dman.WritePage(blockPageId, zeroClearedBuf)
 				}
 			case index_constants.INDEX_KIND_UNIQ_SKIP_LIST:
+				// do nothing here
+				// (Since SkipList index can't reuse past allocated pages, data clear of allocated pages
+				//  are not needed...)
+			case index_constants.INDEX_KIND_SKIP_LIST:
 				// do nothing here
 				// (Since SkipList index can't reuse past allocated pages, data clear of allocated pages
 				//  are not needed...)
@@ -137,10 +143,16 @@ func NewSamehadaDB(dbName string, memKBytes int) *SamehadaDB {
 	exec_engine := &executors.ExecutionEngine{}
 	pnner := planner.NewSimplePlanner(c, shi.GetBufferPoolManager())
 
-	chkpntMgr := concurrency.NewCheckpointManager(shi.GetTransactionManager(), shi.GetLogManager(), shi.GetBufferPoolManager())
-	chkpntMgr.StartCheckpointTh()
+	//chkpntMgr := concurrency.NewCheckpointManager(shi.GetTransactionManager(), shi.GetLogManager(), shi.GetBufferPoolManager())
+	//chkpntMgr.StartCheckpointTh()
+	shi.GetCheckpointManager().StartCheckpointTh()
 
-	return &SamehadaDB{shi, c, exec_engine, chkpntMgr, pnner}
+	// statics data is updated periodically by this thread with full scan of all tables
+	// this may be not good implementation of statistics, but it is enough for now...
+	statUpdater := concurrency.NewStatisticsUpdater(shi.GetTransactionManager(), c)
+	statUpdater.StartStaticsUpdaterTh()
+
+	return &SamehadaDB{shi, c, exec_engine, pnner, statUpdater}
 }
 
 func (sdb *SamehadaDB) ExecuteSQL(sqlStr string) (error, [][]interface{}) {
@@ -150,6 +162,7 @@ func (sdb *SamehadaDB) ExecuteSQL(sqlStr string) (error, [][]interface{}) {
 
 func (sdb *SamehadaDB) ExecuteSQLRetValues(sqlStr string) (error, [][]*types.Value) {
 	qi := parser.ProcessSQLStr(&sqlStr)
+	qi, _ = optimizer.RewriteQueryInfo(sdb.catalog_, qi)
 	txn := sdb.shi_.transaction_manager.Begin(nil)
 	err, plan := sdb.planner_.MakePlan(qi, txn)
 
@@ -185,21 +198,25 @@ func (sdb *SamehadaDB) ExecuteSQLRetValues(sqlStr string) (error, [][]*types.Val
 }
 
 func (sdb *SamehadaDB) Shutdown() {
-	// set a flag which is check by checkpointing thread
-	sdb.chkpntMgr.StopCheckpointTh()
+	// set a flag which is checked by checkpointing thread
+	sdb.statistics_updator.StopStatsUpdateTh()
+	sdb.shi_.GetCheckpointManager().StopCheckpointTh()
 	sdb.shi_.GetBufferPoolManager().FlushAllDirtyPages()
 	sdb.shi_.Shutdown(false)
 }
 
+// no flush of page buffer
 func (sdb *SamehadaDB) ShutdownForTescase() {
-	// set a flag which is check by checkpointing thread
-	sdb.chkpntMgr.StopCheckpointTh()
-	sdb.shi_.Shutdown(false)
+	// set a flag which is checked by checkpointing thread
+	sdb.shi_.GetCheckpointManager().StopCheckpointTh()
+	sdb.statistics_updator.StopStatsUpdateTh()
+	//sdb.shi_.Shutdown(false)
+	sdb.shi_.CloseFilesForTesting()
 }
 
 func (sdb *SamehadaDB) ForceCheckpointingForTestcase() {
-	sdb.chkpntMgr.BeginCheckpoint()
-	sdb.chkpntMgr.EndCheckpoint()
+	sdb.shi_.GetCheckpointManager().BeginCheckpoint()
+	sdb.shi_.GetCheckpointManager().EndCheckpoint()
 }
 
 func ConvTupleListToValues(schema_ *schema.Schema, result []*tuple.Tuple) [][]*types.Value {
