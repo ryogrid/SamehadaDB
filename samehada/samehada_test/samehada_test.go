@@ -369,6 +369,8 @@ func TestParallelQueryIssue(t *testing.T) {
 	allCnt := 0
 	commitedCnt := 0
 	abotedCnt := 0
+
+	startTime := time.Now()
 	for ii := 0; ii < opTimes; ii++ {
 		// wait last go routines finishes
 		if ii == opTimes-1 {
@@ -420,5 +422,7 @@ func TestParallelQueryIssue(t *testing.T) {
 	fmt.Println("allCnt: " + strconv.Itoa(allCnt))
 	fmt.Println("abotedCnt: " + strconv.Itoa(abotedCnt))
 	fmt.Println("commitedCnt: " + strconv.Itoa(commitedCnt))
+	d := time.Since(startTime)
+	fmt.Printf("%f qps: elapsed %f sec\n", float32(opTimes)/float32(d.Seconds()), d.Seconds())
 	db.Shutdown()
 }
