@@ -154,7 +154,8 @@ func TestRebootWithLoadAndRecovery(t *testing.T) {
 	testingpkg.SimpleAssert(t, len(results1) == 3)
 
 	// close db and log file
-	db.Shutdown()
+	db.ShutdownForTescase()
+	//db.Shutdown()
 
 	// relaunch using TestRebootWithLoadAndRecovery.log files
 	// load of db file and redo/undo process runs
@@ -166,7 +167,8 @@ func TestRebootWithLoadAndRecovery(t *testing.T) {
 	testingpkg.SimpleAssert(t, len(results2) == 4)
 
 	// close db and log file
-	db2.Shutdown()
+	db2.ShutdownForTescase()
+	//db2.Shutdown()
 
 	// relaunch using TestRebootWithLoadAndRecovery.db and TestRebootWithLoadAndRecovery.log files
 	// load of db file and redo/undo process runs
@@ -210,7 +212,8 @@ func TestRebootAndReturnIFValues(t *testing.T) {
 	testingpkg.SimpleAssert(t, len(results1) == 3)
 
 	// close db and log file
-	db.Shutdown()
+	db.ShutdownForTescase()
+	//db.Shutdown()
 
 	// relaunch
 	// load of db file and redo/undo process runs
@@ -225,7 +228,8 @@ func TestRebootAndReturnIFValues(t *testing.T) {
 	testingpkg.SimpleAssert(t, len(results2) == 4)
 
 	// close db and log file
-	db2.Shutdown()
+	db2.ShutdownForTescase()
+	//db2.Shutdown()
 
 	// relaunch
 	// load of db file and redo/undo process runs

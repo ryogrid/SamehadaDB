@@ -29,9 +29,7 @@ func NewCheckpointManager(
 func (checkpoint_manager *CheckpointManager) StartCheckpointTh() {
 	go func() {
 		for checkpoint_manager.IsCheckpointActive() {
-			// TODO: (SDB) for debugging
 			time.Sleep(time.Second * 30)
-			//time.Sleep(time.Minute * 5)
 			if !checkpoint_manager.IsCheckpointActive() {
 				break
 			}
