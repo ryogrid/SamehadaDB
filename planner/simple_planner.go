@@ -270,7 +270,7 @@ func (pner *SimplePlanner) MakeCreateTablePlan() (error, plans.Plan) {
 	columns := make([]*column.Column, 0)
 	for _, cdefExp := range pner.qi.ColDefExpressions_ {
 		//columns = append(columns, column.NewColumn(*cdefExp.ColName_, *cdefExp.ColType_, false, index_constants.INDEX_KIND_INVALID, types.PageID(-1), nil))
-		columns = append(columns, column.NewColumn(*cdefExp.ColName_, *cdefExp.ColType_, false, index_constants.INDEX_KIND_SKIP_LIST, types.PageID(-1), nil))
+		columns = append(columns, column.NewColumn(*cdefExp.ColName_, *cdefExp.ColType_, true, index_constants.INDEX_KIND_SKIP_LIST, types.PageID(-1), nil))
 	}
 	schema_ := schema.NewSchema(columns)
 
@@ -343,6 +343,8 @@ func (pner *SimplePlanner) MakeDeletePlan() (error, plans.Plan) {
 }
 
 func (pner *SimplePlanner) MakeUpdatePlan() (error, plans.Plan) {
+
+	// optimizer does not support OR, so use planning logic without optimization...
 	tableMetadata := pner.catalog_.GetTableByName(*pner.qi.JoinTables_[0])
 	if tableMetadata == nil {
 		return PrintAndCreateError("table " + *pner.qi.JoinTables_[0] + " not found.")
@@ -377,6 +379,12 @@ func (pner *SimplePlanner) MakeUpdatePlan() (error, plans.Plan) {
 		predicate = pner.ConstructPredicate([]*schema.Schema{tgtTblSchema})
 	}
 
-	seqScanPlan := plans.NewSeqScanPlanNode(pner.catalog_, tgtTblSchema, predicate, tableMetadata.OID())
-	return nil, plans.NewUpdatePlanNode(updateVals, updateColIdxs, seqScanPlan)
+	var scanPlan plans.Plan
+	if optimizer.CheckIncludesORInPredicate(pner.qi.WhereExpression_) {
+		scanPlan = plans.NewSeqScanPlanNode(pner.catalog_, tgtTblSchema, predicate, tableMetadata.OID())
+	} else {
+		_, scanPlan = pner.MakeOptimizedSelectPlanWithJoin()
+	}
+
+	return nil, plans.NewUpdatePlanNode(updateVals, updateColIdxs, scanPlan)
 }
