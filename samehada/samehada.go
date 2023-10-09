@@ -61,6 +61,10 @@ func reconstructIndexDataOfATbl(t *catalog.TableMetadata, c *catalog.Catalog, dm
 				// do nothing here
 				// (Since SkipList index can't reuse past allocated pages, data clear of allocated pages
 				//  are not needed...)
+			case index_constants.INDEX_KIND_SKIP_LIST:
+				// do nothing here
+				// (Since SkipList index can't reuse past allocated pages, data clear of allocated pages
+				//  are not needed...)
 			default:
 				panic("invalid index kind!")
 			}
@@ -201,11 +205,13 @@ func (sdb *SamehadaDB) Shutdown() {
 	sdb.shi_.Shutdown(false)
 }
 
+// no flush of page buffer
 func (sdb *SamehadaDB) ShutdownForTescase() {
 	// set a flag which is checked by checkpointing thread
 	sdb.shi_.GetCheckpointManager().StopCheckpointTh()
 	sdb.statistics_updator.StopStatsUpdateTh()
-	sdb.shi_.Shutdown(false)
+	//sdb.shi_.Shutdown(false)
+	sdb.shi_.CloseFilesForTesting()
 }
 
 func (sdb *SamehadaDB) ForceCheckpointingForTestcase() {
