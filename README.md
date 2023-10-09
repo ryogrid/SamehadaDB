@@ -67,7 +67,7 @@
     - Alternative of B-tree Index 
   - <del>B-tree Index</del>
   - [ ] Logging/Recovery of Index Data (Redo/Undo)
-- [ ] JOIN [^2]
+- [ ] JOIN
   - [x] INNER JOIN (Hash Join, Index Join, Nested Loop Join)
     - Condition specified at ON clause should be composed of single item and can use equal(==) operator only
   - [ ] OUTER JOIN
@@ -84,11 +84,11 @@
 - [x] Frontend Impl as Embedded DB Library (like SQLite)
   - Currently, functions of the library are not thread safe and concurrent transaction is not supported
 - [ ] Deduplication of Result Records (Distinct)
-- [x] Query Optimization (Selinger) [^1]
+- [x] Query Optimization (Selinger) 
   - cases below are not supported now
-    - predicate including bracket, OR operation, NOT, column name without table name prefix
-    - projection including asterisk or aggregation
-    - LIMIT, ORDER BY, GROUP BY
+    - predicate including OR operation, NOT, IS NULL
+    - projection including aggregation
+    - LIMIT, ORDER BY
 - [ ] AS clause
 - [ ] Nested Query
 - [ ] DB Connector (Driver) or Other Kind of Network Access Interface
@@ -101,11 +101,9 @@
   - Current implementation searches a free space which is enough for insert data with sequential scan from head (this is slow on exsisting large amount of records situation) 
 - [ ] UNION clause
 - [ ] Materialization (implementation of component for temporal teble management)
-- [ ] Communication over SSL/TLS
 - [ ] Authentication
   
 [^1]: Not supported on using from frontend now  
-[^2]: More than two tables join is not supported on using from frontend now
 
 ## More Info
 - [Wiki on this repo](https://github.com/ryogrid/SamehadaDB/wiki)
