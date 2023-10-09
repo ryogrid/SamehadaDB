@@ -336,8 +336,8 @@ func TestParallelQueryIssue(t *testing.T) {
 		os.Remove(t.Name() + ".log")
 	}
 
-	db := samehada.NewSamehadaDB(t.Name(), 5000) // 5MB
-	opTimes := 100000
+	db := samehada.NewSamehadaDB(t.Name(), 5000*1000) //5GB // 5MB
+	opTimes := 100000                                 //500000                                 //1000000
 
 	queryVals := make([]int32, 0)
 
@@ -350,9 +350,16 @@ func TestParallelQueryIssue(t *testing.T) {
 	err, _ := db.ExecuteSQL("CREATE TABLE k_v_list(k INT, v INT);")
 	testingpkg.Assert(t, err == nil, "failed to create table")
 
+	insCh := make(chan int32)
 	for ii := 0; ii < opTimes; ii++ {
-		err, _ = db.ExecuteSQLRetValues(fmt.Sprintf("INSERT INTO k_v_list(k, v) VALUES (%d, %d);", queryVals[ii], queryVals[ii]))
-		testingpkg.Assert(t, err == nil, "failed to insert val: "+strconv.Itoa(int(queryVals[ii])))
+		go func(val int32) {
+			err, _ = db.ExecuteSQLRetValues(fmt.Sprintf("INSERT INTO k_v_list(k, v) VALUES (%d, %d);", val, val))
+			insCh <- val
+		}(queryVals[ii])
+		//testingpkg.Assert(t, err == nil, "failed to insert val: "+strconv.Itoa(int(queryVals[ii])))
+	}
+	for ii := 0; ii < opTimes; ii++ {
+		<-insCh
 	}
 
 	// shuffle query vals array elements
