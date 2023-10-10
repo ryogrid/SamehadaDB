@@ -5,6 +5,7 @@ package catalog
 
 import (
 	"strings"
+	"sync"
 
 	"github.com/ryogrid/SamehadaDB/storage/index"
 	"github.com/ryogrid/SamehadaDB/storage/index/index_constants"
@@ -36,10 +37,12 @@ type Catalog struct {
 	tableIds   map[uint32]*TableMetadata
 	tableNames map[string]*TableMetadata
 	// incrementation must be atomic
-	nextTableId  uint32
-	tableHeap    *access.TableHeap
-	Log_manager  *recovery.LogManager
-	Lock_manager *access.LockManager
+	nextTableId     uint32
+	tableHeap       *access.TableHeap
+	Log_manager     *recovery.LogManager
+	Lock_manager    *access.LockManager
+	tableIdsMutex   *sync.Mutex
+	tableNamesMutex *sync.Mutex
 }
 
 func Int32toBool(val int32) bool {
@@ -53,7 +56,7 @@ func Int32toBool(val int32) bool {
 // BootstrapCatalog bootstrap the systems' catalogs on the first database initialization
 func BootstrapCatalog(bpm *buffer.BufferPoolManager, log_manager *recovery.LogManager, lock_manager *access.LockManager, txn *access.Transaction) *Catalog {
 	tableCatalogHeap := access.NewTableHeap(bpm, log_manager, lock_manager, txn)
-	tableCatalog := &Catalog{bpm, make(map[uint32]*TableMetadata), make(map[string]*TableMetadata), 0, tableCatalogHeap, log_manager, lock_manager}
+	tableCatalog := &Catalog{bpm, make(map[uint32]*TableMetadata), make(map[string]*TableMetadata), 0, tableCatalogHeap, log_manager, lock_manager, new(sync.Mutex), new(sync.Mutex)}
 	tableCatalog.CreateTable("columns_catalog", ColumnsCatalogSchema(), txn)
 	return tableCatalog
 }
@@ -107,13 +110,14 @@ func RecoveryCatalogFromCatalogPage(bpm *buffer.BufferPoolManager, log_manager *
 		tableNames[name] = tableMetadata
 	}
 
-	return &Catalog{bpm, tableIds, tableNames, 1, access.InitTableHeap(bpm, 0, log_manager, lock_manager), log_manager, lock_manager}
-
+	return &Catalog{bpm, tableIds, tableNames, 1, access.InitTableHeap(bpm, 0, log_manager, lock_manager), log_manager, lock_manager, new(sync.Mutex), new(sync.Mutex)}
 }
 
 func (c *Catalog) GetTableByName(table string) *TableMetadata {
 	// note: alphabets on table name is stored in lowercase
 	tableName := strings.ToLower(table)
+	c.tableNamesMutex.Lock()
+	defer c.tableNamesMutex.Unlock()
 	if table_, ok := c.tableNames[tableName]; ok {
 		return table_
 	}
@@ -121,6 +125,8 @@ func (c *Catalog) GetTableByName(table string) *TableMetadata {
 }
 
 func (c *Catalog) GetTableByOID(oid uint32) *TableMetadata {
+	c.tableIdsMutex.Lock()
+	defer c.tableIdsMutex.Unlock()
 	if table, ok := c.tableIds[oid]; ok {
 		return table
 	}
@@ -129,6 +135,8 @@ func (c *Catalog) GetTableByOID(oid uint32) *TableMetadata {
 
 func (c *Catalog) GetAllTables() []*TableMetadata {
 	ret := make([]*TableMetadata, 0)
+	c.tableIdsMutex.Lock()
+	defer c.tableIdsMutex.Unlock()
 	for key, _ := range c.tableIds {
 		ret = append(ret, c.tableIds[key])
 	}
@@ -163,8 +171,12 @@ func (c *Catalog) CreateTable(name string, schema_ *schema.Schema, txn *access.T
 
 	tableMetadata := NewTableMetadata(schema_, name_, tableHeap, oid)
 
+	c.tableIdsMutex.Lock()
 	c.tableIds[oid] = tableMetadata
+	c.tableIdsMutex.Unlock()
+	c.tableNamesMutex.Lock()
 	c.tableNames[name_] = tableMetadata
+	c.tableNamesMutex.Unlock()
 	c.insertTable(tableMetadata, txn)
 
 	return tableMetadata

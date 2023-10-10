@@ -322,9 +322,11 @@ func (t *TableHeap) GetTuple(rid *page.RID, txn *Transaction) (*tuple.Tuple, err
 			}()
 		}
 	}
-	if !txn.IsSharedLocked(rid) && !txn.IsExclusiveLocked(rid) && !t.lock_manager.LockShared(txn, rid) {
-		txn.SetState(ABORTED)
-		return nil, ErrGeneral
+	if !txn.IsRecoveryPhase() {
+		if !txn.IsSharedLocked(rid) && !txn.IsExclusiveLocked(rid) && !t.lock_manager.LockShared(txn, rid) {
+			txn.SetState(ABORTED)
+			return nil, ErrGeneral
+		}
 	}
 	page := CastPageAsTablePage(t.bpm.FetchPage(rid.GetPageId()))
 	page.RLatch()

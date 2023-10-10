@@ -156,6 +156,11 @@ func (lock_manager *LockManager) LockShared(txn *Transaction, rid *page.RID) boo
 	//fmt.Printf("called LockShared, %v\n", rid1)
 	lock_manager.mutex.Lock()
 	defer lock_manager.mutex.Unlock()
+
+	if txn.IsRecoveryPhase() {
+		return true
+	}
+
 	slock_set := txn.GetSharedLockSet()
 	if txnID, ok := lock_manager.exclusive_lock_table[*rid]; ok {
 		if txnID == txn.GetTransactionId() {
@@ -196,6 +201,11 @@ func (lock_manager *LockManager) LockExclusive(txn *Transaction, rid *page.RID) 
 	//fmt.Printf("called LockExclusive, %v\n", rid1)
 	lock_manager.mutex.Lock()
 	defer lock_manager.mutex.Unlock()
+
+	if txn.IsRecoveryPhase() {
+		return true
+	}
+
 	exlock_set := txn.GetExclusiveLockSet()
 	if txnID, ok := lock_manager.exclusive_lock_table[*rid]; ok {
 		if txnID == txn.GetTransactionId() {
@@ -228,6 +238,11 @@ func (lock_manager *LockManager) LockUpgrade(txn *Transaction, rid *page.RID) bo
 	//fmt.Printf("called LockUpgrade %v\n", rid1)
 	lock_manager.mutex.Lock()
 	defer lock_manager.mutex.Unlock()
+
+	if txn.IsRecoveryPhase() {
+		return true
+	}
+
 	//slock_set := txn.GetSharedLockSet()
 	elock_set := txn.GetExclusiveLockSet()
 	if txn.IsSharedLocked(rid) {

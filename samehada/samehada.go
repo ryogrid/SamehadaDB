@@ -1,6 +1,7 @@
 package samehada
 
 import (
+	"errors"
 	"fmt"
 	"github.com/ryogrid/SamehadaDB/catalog"
 	"github.com/ryogrid/SamehadaDB/common"
@@ -28,7 +29,7 @@ type SamehadaDB struct {
 	catalog_     *catalog.Catalog
 	exec_engine_ *executors.ExecutionEngine
 	//chkpntMgr    *concurrency.CheckpointManager
-	planner_           planner.Planner
+	//planner_           planner.Planner
 	statistics_updator *concurrency.StatisticsUpdater
 }
 
@@ -109,6 +110,7 @@ func NewSamehadaDB(dbName string, memKBytes int) *SamehadaDB {
 	txn := shi.GetTransactionManager().Begin(nil)
 
 	shi.GetLogManager().DeactivateLogging()
+	txn.SetIsRecoveryPhase(true)
 
 	var c *catalog.Catalog
 	if isExistingDB {
@@ -116,8 +118,8 @@ func NewSamehadaDB(dbName string, memKBytes int) *SamehadaDB {
 			shi.GetDiskManager(),
 			shi.GetBufferPoolManager(),
 			shi.GetLogManager())
-		greatestLSN, isRedoOccured := log_recovery.Redo()
-		isUndoOccured := log_recovery.Undo()
+		greatestLSN, isRedoOccured := log_recovery.Redo(txn)
+		isUndoOccured := log_recovery.Undo(txn)
 
 		dman := shi.GetDiskManager()
 		dman.GCLogFile()
@@ -141,7 +143,7 @@ func NewSamehadaDB(dbName string, memKBytes int) *SamehadaDB {
 	shi.GetLogManager().ActivateLogging()
 
 	exec_engine := &executors.ExecutionEngine{}
-	pnner := planner.NewSimplePlanner(c, shi.GetBufferPoolManager())
+	//pnner := planner.NewSimplePlanner(c, shi.GetBufferPoolManager())
 
 	//chkpntMgr := concurrency.NewCheckpointManager(shi.GetTransactionManager(), shi.GetLogManager(), shi.GetBufferPoolManager())
 	//chkpntMgr.StartCheckpointTh()
@@ -152,24 +154,37 @@ func NewSamehadaDB(dbName string, memKBytes int) *SamehadaDB {
 	statUpdater := concurrency.NewStatisticsUpdater(shi.GetTransactionManager(), c)
 	statUpdater.StartStaticsUpdaterTh()
 
-	return &SamehadaDB{shi, c, exec_engine, pnner, statUpdater}
+	return &SamehadaDB{shi, c, exec_engine, statUpdater}
 }
 
 func (sdb *SamehadaDB) ExecuteSQL(sqlStr string) (error, [][]interface{}) {
 	err, results := sdb.ExecuteSQLRetValues(sqlStr)
-	return err, ConvValueListToIFs(results)
+	if err != nil {
+		return err, nil
+	}
+	return nil, ConvValueListToIFs(results)
 }
+
+var PlanCreationErr error = errors.New("plan creation error")
+
+// temporal error
+var QueryAbortedErr error = errors.New("query aborted")
 
 func (sdb *SamehadaDB) ExecuteSQLRetValues(sqlStr string) (error, [][]*types.Value) {
 	qi := parser.ProcessSQLStr(&sqlStr)
 	qi, _ = optimizer.RewriteQueryInfo(sdb.catalog_, qi)
 	txn := sdb.shi_.transaction_manager.Begin(nil)
-	err, plan := sdb.planner_.MakePlan(qi, txn)
+	err, plan := planner.NewSimplePlanner(sdb.catalog_, sdb.shi_.bpm).MakePlan(qi, txn)
 
 	if err == nil && plan == nil {
 		// some problem exists on SQL string
 		sdb.shi_.GetTransactionManager().Commit(sdb.catalog_, txn)
-		return nil, nil
+		if *qi.QueryType_ == parser.CREATE_TABLE {
+			return nil, nil
+		} else {
+			return PlanCreationErr, nil
+		}
+
 	} else if err != nil {
 		// already table exist case
 		sdb.shi_.GetTransactionManager().Commit(sdb.catalog_, txn)
@@ -180,8 +195,10 @@ func (sdb *SamehadaDB) ExecuteSQLRetValues(sqlStr string) (error, [][]*types.Val
 	result := sdb.exec_engine_.Execute(plan, context)
 
 	if txn.GetState() == access.ABORTED {
-		// TODO: (SDB) when concurrent execution of transaction is activated, appropriate handling of aborted request is needed
+		// TODO: (SDB) [PARA] when concurrent execution of transaction is activated, appropriate handling of aborted request is needed
 		sdb.shi_.GetTransactionManager().Abort(sdb.catalog_, txn)
+		// temporal impl
+		return QueryAbortedErr, nil
 	} else {
 		sdb.shi_.GetTransactionManager().Commit(sdb.catalog_, txn)
 	}
