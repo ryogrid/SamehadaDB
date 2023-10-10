@@ -211,6 +211,7 @@ func TestRedo(t *testing.T) {
 	testingpkg.AssertFalse(t, samehada_instance.GetLogManager().IsEnabledLogging(), "")
 	fmt.Println("Check if tuple is not in table before recovery")
 	txn = samehada_instance.GetTransactionManager().Begin(nil)
+	txn.SetIsRecoveryPhase(true)
 	test_table = access.NewTableHeap(
 		samehada_instance.GetBufferPoolManager(),
 		samehada_instance.GetLogManager(),
@@ -222,6 +223,8 @@ func TestRedo(t *testing.T) {
 	testingpkg.AssertFalse(t, old_tuple1 != nil, "")
 	samehada_instance.GetTransactionManager().Commit(nil, txn)
 
+	txn = samehada_instance.GetTransactionManager().Begin(nil)
+	txn.SetIsRecoveryPhase(true)
 	fmt.Println("Begin recovery")
 	log_recovery := log_recovery.NewLogRecovery(
 		samehada_instance.GetDiskManager(),
@@ -231,12 +234,13 @@ func TestRedo(t *testing.T) {
 	testingpkg.AssertFalse(t, samehada_instance.GetLogManager().IsEnabledLogging(), "")
 
 	fmt.Println("Redo underway...")
-	log_recovery.Redo()
+	log_recovery.Redo(txn)
 	fmt.Println("Undo underway...")
-	log_recovery.Undo()
+	log_recovery.Undo(txn)
 
 	fmt.Println("Check if recovery success")
 	txn = samehada_instance.GetTransactionManager().Begin(nil)
+	txn.SetIsRecoveryPhase(true)
 
 	test_table = access.NewTableHeap(
 		samehada_instance.GetBufferPoolManager(),
@@ -345,6 +349,7 @@ func TestUndo(t *testing.T) {
 	fmt.Println("System restarted..")
 	samehada_instance = samehada.NewSamehadaInstance(t.Name(), common.BufferPoolMaxFrameNumForTest)
 	txn = samehada_instance.GetTransactionManager().Begin(nil)
+	txn.SetIsRecoveryPhase(true)
 
 	test_table = access.NewTableHeap(
 		samehada_instance.GetBufferPoolManager(),
@@ -379,16 +384,19 @@ func TestUndo(t *testing.T) {
 
 	samehada_instance.GetLogManager().DeactivateLogging()
 	testingpkg.AssertFalse(t, samehada_instance.GetLogManager().IsEnabledLogging(), "")
+	txn = samehada_instance.GetTransactionManager().Begin(nil)
+	txn.SetIsRecoveryPhase(true)
 
-	log_recovery.Redo()
+	log_recovery.Redo(txn)
 	fmt.Println("Redo underway...")
-	log_recovery.Undo()
+	log_recovery.Undo(txn)
 	fmt.Println("Undo underway...")
 
 	//samehada_instance.GetTransactionManager().Commit(txn)
 
 	fmt.Println("Check if failed txn is undo successfully")
 	txn = samehada_instance.GetTransactionManager().Begin(nil)
+	txn.SetIsRecoveryPhase(true)
 
 	fmt.Println("Check deleted tuple exists")
 	old_tuple1, _ = test_table.GetTuple(rid1, txn)

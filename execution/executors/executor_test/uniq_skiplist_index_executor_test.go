@@ -374,7 +374,10 @@ func TestAbortWthDeleteUpdateUniqSkipListIndexCasePointScan(t *testing.T) {
 	executionEngine.Execute(deletePlanNode, executorContext)
 
 	log_mgr.DeactivateLogging()
-
+	// TODO: (SDB) for avoiding crash...
+	txn = txn_mgr.Begin(nil)
+	txn.SetIsRecoveryPhase(true)
+	executorContext.SetTransaction(txn)
 	fmt.Println("select and check value before Abort...")
 
 	// check updated row

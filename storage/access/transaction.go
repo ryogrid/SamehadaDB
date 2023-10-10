@@ -97,6 +97,7 @@ type Transaction struct {
 	exclusive_lock_set []page.RID
 	dbgInfo            string
 	abortable          bool // for debugging and testing
+	isRecoveryPhase    bool
 }
 
 func NewTransaction(txn_id types.TxnID) *Transaction {
@@ -112,6 +113,7 @@ func NewTransaction(txn_id types.TxnID) *Transaction {
 		make([]page.RID, 0),
 		"",
 		true,
+		false,
 	}
 }
 
@@ -218,3 +220,7 @@ func (txn *Transaction) SetDebugInfo(dbgInfo string) { txn.dbgInfo = dbgInfo }
 func (txn *Transaction) MakeNotAbortable() { txn.abortable = false }
 
 func (txn *Transaction) IsAbortable() bool { return txn.abortable }
+
+func (txn *Transaction) IsRecoveryPhase() bool { return txn.isRecoveryPhase }
+
+func (txn *Transaction) SetIsRecoveryPhase(val bool) { txn.isRecoveryPhase = val }

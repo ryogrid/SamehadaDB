@@ -104,9 +104,10 @@ func (log_recovery *LogRecovery) DeserializeLogRecord(data []byte, log_record *r
 * first return value: greatest LSN of log entries
 * seconde return value: when redo operation occured, value is true
  */
-func (log_recovery *LogRecovery) Redo() (types.LSN, bool) {
+func (log_recovery *LogRecovery) Redo(txn *access.Transaction) (types.LSN, bool) {
 	// readLogLoopCnt := 0
 	// deserializeLoopCnt := 0
+
 	greatestLSN := 0
 	log_recovery.log_buffer = make([]byte, common.LogBufferSize)
 	var file_offset uint32 = 0
@@ -142,7 +143,7 @@ func (log_recovery *LogRecovery) Redo() (types.LSN, bool) {
 					access.CastPageAsTablePage(log_recovery.buffer_pool_manager.FetchPage(log_record.Insert_rid.GetPageId()))
 				if page_.GetLSN() < log_record.GetLSN() {
 					log_record.Insert_tuple.SetRID(&log_record.Insert_rid)
-					page_.InsertTuple(&log_record.Insert_tuple, log_recovery.log_manager, nil, nil)
+					page_.InsertTuple(&log_record.Insert_tuple, log_recovery.log_manager, nil, txn)
 					page_.SetLSN(log_record.GetLSN())
 					isRedoOccured = true
 				}
@@ -151,7 +152,7 @@ func (log_recovery *LogRecovery) Redo() (types.LSN, bool) {
 				page_ :=
 					access.CastPageAsTablePage(log_recovery.buffer_pool_manager.FetchPage(log_record.Delete_rid.GetPageId()))
 				if page_.GetLSN() < log_record.GetLSN() {
-					page_.ApplyDelete(&log_record.Delete_rid, nil, log_recovery.log_manager)
+					page_.ApplyDelete(&log_record.Delete_rid, txn, log_recovery.log_manager)
 					page_.SetLSN(log_record.GetLSN())
 					isRedoOccured = true
 				}
@@ -160,7 +161,7 @@ func (log_recovery *LogRecovery) Redo() (types.LSN, bool) {
 				page_ :=
 					access.CastPageAsTablePage(log_recovery.buffer_pool_manager.FetchPage(log_record.Delete_rid.GetPageId()))
 				if page_.GetLSN() < log_record.GetLSN() {
-					page_.MarkDelete(&log_record.Delete_rid, nil, nil, log_recovery.log_manager)
+					page_.MarkDelete(&log_record.Delete_rid, txn, nil, log_recovery.log_manager)
 					page_.SetLSN(log_record.GetLSN())
 					isRedoOccured = true
 				}
@@ -169,7 +170,7 @@ func (log_recovery *LogRecovery) Redo() (types.LSN, bool) {
 				page_ :=
 					access.CastPageAsTablePage(log_recovery.buffer_pool_manager.FetchPage(log_record.Delete_rid.GetPageId()))
 				if page_.GetLSN() < log_record.GetLSN() {
-					page_.RollbackDelete(&log_record.Delete_rid, nil, log_recovery.log_manager)
+					page_.RollbackDelete(&log_record.Delete_rid, txn, log_recovery.log_manager)
 					page_.SetLSN(log_record.GetLSN())
 					isRedoOccured = true
 				}
@@ -180,7 +181,7 @@ func (log_recovery *LogRecovery) Redo() (types.LSN, bool) {
 				if page_.GetLSN() < log_record.GetLSN() {
 					// UpdateTuple overwrites Old_tuple argument
 					// but it is no problem because log_record is read from log file again in Undo phase
-					page_.UpdateTuple(&log_record.New_tuple, nil, nil, &log_record.Old_tuple, &log_record.Update_rid, nil, nil, log_recovery.log_manager)
+					page_.UpdateTuple(&log_record.New_tuple, nil, nil, &log_record.Old_tuple, &log_record.Update_rid, txn, nil, log_recovery.log_manager)
 					page_.SetLSN(log_record.GetLSN())
 					isRedoOccured = true
 				}
@@ -197,7 +198,7 @@ func (log_recovery *LogRecovery) Redo() (types.LSN, bool) {
 				new_page := access.CastPageAsTablePage(log_recovery.buffer_pool_manager.NewPage())
 				page_id = new_page.GetPageId()
 				// fmt.Printf("page_id: %d\n", page_id)
-				new_page.Init(page_id, log_record.Prev_page_id, log_recovery.log_manager, nil, nil)
+				new_page.Init(page_id, log_record.Prev_page_id, log_recovery.log_manager, nil, txn)
 				//log_recovery.buffer_pool_manager.FlushPage(page_id)
 				log_recovery.buffer_pool_manager.UnpinPage(page_id, true)
 			}
@@ -215,7 +216,7 @@ func (log_recovery *LogRecovery) Redo() (types.LSN, bool) {
 *iterate through active txn map and undo each operation
 * when undo operation occured, return value becomes true
  */
-func (log_recovery *LogRecovery) Undo() bool {
+func (log_recovery *LogRecovery) Undo(txn *access.Transaction) bool {
 	var file_offset int
 	var log_record recovery.LogRecord
 	isUndoOccured := false
@@ -250,45 +251,45 @@ func (log_recovery *LogRecovery) Undo() bool {
 				page_ :=
 					access.CastPageAsTablePage(log_recovery.buffer_pool_manager.FetchPage(convRID(&log_record.Insert_rid).GetPageId()))
 				// fmt.Printf("insert log type, page lsn:%d, log lsn:%d", page.GetLSN(), log_record.GetLSN())
-				page_.ApplyDelete(&log_record.Insert_rid, nil, log_recovery.log_manager)
+				page_.ApplyDelete(&log_record.Insert_rid, txn, log_recovery.log_manager)
 				log_recovery.buffer_pool_manager.UnpinPage(convRID(&log_record.Insert_rid).GetPageId(), true)
 				isUndoOccured = true
 			} else if log_record.Log_record_type == recovery.APPLYDELETE {
 				page_ :=
 					access.CastPageAsTablePage(log_recovery.buffer_pool_manager.FetchPage(convRID(&log_record.Delete_rid).GetPageId()))
 				log_record.Delete_tuple.SetRID(convRID(&log_record.Delete_rid))
-				page_.InsertTuple(&log_record.Delete_tuple, log_recovery.log_manager, nil, nil)
+				page_.InsertTuple(&log_record.Delete_tuple, log_recovery.log_manager, nil, txn)
 				log_recovery.buffer_pool_manager.UnpinPage(convRID(&log_record.Delete_rid).GetPageId(), true)
 				isUndoOccured = true
 			} else if log_record.Log_record_type == recovery.MARKDELETE {
 				page_ :=
 					access.CastPageAsTablePage(log_recovery.buffer_pool_manager.FetchPage(convRID(&log_record.Delete_rid).GetPageId()))
-				page_.RollbackDelete(convRID(&log_record.Delete_rid), nil, log_recovery.log_manager)
+				page_.RollbackDelete(convRID(&log_record.Delete_rid), txn, log_recovery.log_manager)
 				log_recovery.buffer_pool_manager.UnpinPage(convRID(&log_record.Delete_rid).GetPageId(), true)
 				isUndoOccured = true
 			} else if log_record.Log_record_type == recovery.ROLLBACKDELETE {
 				page_ :=
 					access.CastPageAsTablePage(log_recovery.buffer_pool_manager.FetchPage(convRID(&log_record.Delete_rid).GetPageId()))
-				page_.MarkDelete(convRID(&log_record.Delete_rid), nil, nil, log_recovery.log_manager)
+				page_.MarkDelete(convRID(&log_record.Delete_rid), txn, nil, log_recovery.log_manager)
 				log_recovery.buffer_pool_manager.UnpinPage(convRID(&log_record.Delete_rid).GetPageId(), true)
 				isUndoOccured = true
 			} else if log_record.Log_record_type == recovery.UPDATE {
 				var org_update_rid page.RID = *convRID(&log_record.Update_rid)
 				page_ :=
 					access.CastPageAsTablePage(log_recovery.buffer_pool_manager.FetchPage(org_update_rid.GetPageId()))
-				is_updated, err, need_follow_tuple := page_.UpdateTuple(&log_record.Old_tuple, nil, nil, &log_record.New_tuple, convRID(&log_record.Update_rid), nil, nil, log_recovery.log_manager)
+				is_updated, err, need_follow_tuple := page_.UpdateTuple(&log_record.Old_tuple, nil, nil, &log_record.New_tuple, convRID(&log_record.Update_rid), txn, nil, log_recovery.log_manager)
 
 				if is_updated == false && err == access.ErrNotEnoughSpace {
 					// when rid is changed case (data is move to new page)
 
 					// first, delete original data
-					page_.ApplyDelete(&org_update_rid, nil, log_recovery.log_manager)
+					page_.ApplyDelete(&org_update_rid, txn, log_recovery.log_manager)
 
 					var new_rid *page.RID
 					var err2 error
 					// second, insert updated tuple to other page
 					for {
-						new_rid, err2 = page_.InsertTuple(need_follow_tuple, log_recovery.log_manager, nil, nil)
+						new_rid, err2 = page_.InsertTuple(need_follow_tuple, log_recovery.log_manager, nil, txn)
 						if err2 == nil || err2 == access.ErrEmptyTuple {
 							//page_.WUnlatch()
 							break
@@ -305,7 +306,7 @@ func (log_recovery *LogRecovery) Undo() bool {
 							newPage := access.CastPageAsTablePage(p)
 							page_.SetNextPageId(p.GetPageId())
 							currentPageId := page_.GetPageId()
-							newPage.Init(p.GetPageId(), currentPageId, log_recovery.log_manager, nil, nil)
+							newPage.Init(p.GetPageId(), currentPageId, log_recovery.log_manager, nil, txn)
 							log_recovery.buffer_pool_manager.UnpinPage(page_.GetPageId(), true)
 							page_ = newPage
 						}

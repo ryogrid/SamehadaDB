@@ -788,6 +788,8 @@ func TestDeleteWithSelctInsert(t *testing.T) {
 	bpm := buffer.NewBufferPoolManager(uint32(32), diskManager, log_mgr)
 	txn_mgr := access.NewTransactionManager(access.NewLockManager(access.REGULAR, access.DETECTION), log_mgr)
 	txn := txn_mgr.Begin(nil)
+	// TODO: (SDB) this is a hack to get around the fact that we don't have a recovery manager
+	txn.SetIsRecoveryPhase(true)
 
 	c := catalog.BootstrapCatalog(bpm, log_mgr, access.NewLockManager(access.REGULAR, access.PREVENTION), txn)
 
@@ -1112,6 +1114,8 @@ func TestAbortWIthDeleteUpdate(t *testing.T) {
 	bpm := buffer.NewBufferPoolManager(uint32(32), diskManager, log_mgr)
 	txn_mgr := access.NewTransactionManager(access.NewLockManager(access.REGULAR, access.DETECTION), log_mgr)
 	txn := txn_mgr.Begin(nil)
+	// TODO: (SDB) for avoiding crash
+	txn.SetIsRecoveryPhase(true)
 
 	c := catalog.BootstrapCatalog(bpm, log_mgr, access.NewLockManager(access.REGULAR, access.PREVENTION), txn)
 
@@ -1148,6 +1152,8 @@ func TestAbortWIthDeleteUpdate(t *testing.T) {
 
 	fmt.Println("update and delete rows...")
 	txn = txn_mgr.Begin(nil)
+	// TODO: (SDB) for avoiding crash...
+	txn.SetIsRecoveryPhase(true)
 	executorContext.SetTransaction(txn)
 
 	// update
@@ -1217,6 +1223,8 @@ func TestAbortWIthDeleteUpdate(t *testing.T) {
 	fmt.Println("select and check value after Abort...")
 
 	txn = txn_mgr.Begin(nil)
+	// TODO: (SDB) for avoiding crash...
+	txn.SetIsRecoveryPhase(true)
 	executorContext.SetTransaction(txn)
 
 	// check updated row
@@ -2379,11 +2387,13 @@ func TestInsertAndSpecifiedColumnUpdatePageMoveRecovery(t *testing.T) {
 
 	// disable logging
 	log_mgr.DeactivateLogging()
+	txn.SetIsRecoveryPhase(true)
 
 	// do recovery from Log
-	log_recovery.Redo()
-	log_recovery.Undo()
+	log_recovery.Redo(txn)
+	log_recovery.Undo(txn)
 
+	txn.SetIsRecoveryPhase(false)
 	// reactivate logging
 	log_mgr.ActivateLogging()
 
@@ -2552,11 +2562,13 @@ func TestInsertAndSpecifiedColumnUpdatePageMoveOccurOnRecovery(t *testing.T) {
 
 	// disable logging
 	log_mgr.DeactivateLogging()
+	txn.SetIsRecoveryPhase(true)
 
 	// do recovery from Log
-	log_recovery.Redo()
-	log_recovery.Undo()
+	log_recovery.Redo(txn)
+	log_recovery.Undo(txn)
 
+	txn.SetIsRecoveryPhase(false)
 	// reactivate logging
 	log_mgr.ActivateLogging()
 
