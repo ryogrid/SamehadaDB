@@ -110,6 +110,7 @@ func NewSamehadaDB(dbName string, memKBytes int) *SamehadaDB {
 	txn := shi.GetTransactionManager().Begin(nil)
 
 	shi.GetLogManager().DeactivateLogging()
+	txn.SetIsRecoveryPhase(true)
 
 	var c *catalog.Catalog
 	if isExistingDB {
@@ -117,8 +118,8 @@ func NewSamehadaDB(dbName string, memKBytes int) *SamehadaDB {
 			shi.GetDiskManager(),
 			shi.GetBufferPoolManager(),
 			shi.GetLogManager())
-		greatestLSN, isRedoOccured := log_recovery.Redo()
-		isUndoOccured := log_recovery.Undo()
+		greatestLSN, isRedoOccured := log_recovery.Redo(txn)
+		isUndoOccured := log_recovery.Undo(txn)
 
 		dman := shi.GetDiskManager()
 		dman.GCLogFile()
@@ -139,7 +140,7 @@ func NewSamehadaDB(dbName string, memKBytes int) *SamehadaDB {
 	shi.bpm.FlushAllPages()
 	shi.transaction_manager.Commit(c, txn)
 
-	shi.GetLogManager().ActivateLogging()
+	//shi.GetLogManager().ActivateLogging()
 
 	exec_engine := &executors.ExecutionEngine{}
 	//pnner := planner.NewSimplePlanner(c, shi.GetBufferPoolManager())

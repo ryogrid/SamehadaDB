@@ -107,7 +107,7 @@ func (tp *TablePage) InsertTuple(tuple *tuple.Tuple, log_manager *recovery.LogMa
 	rid := &page.RID{}
 	rid.Set(tp.GetPageId(), slot)
 
-	if log_manager.IsEnabledLogging() {
+	if !txn.IsRecoveryPhase() {
 		// Acquire an exclusive lock on the new tuple1.
 		locked := lock_manager.LockExclusive(txn, rid)
 		if !locked {
@@ -168,7 +168,7 @@ func (tp *TablePage) UpdateTuple(new_tuple *tuple.Tuple, update_col_idxs []int, 
 	}
 	common.SH_Assert(new_tuple.Size() > 0, "Cannot have empty tuples.")
 
-	if log_manager.IsEnabledLogging() {
+	if !txn.IsRecoveryPhase() {
 		// Acquire an exclusive lock, upgrading from shared if necessary.
 		if txn.IsSharedLocked(rid) {
 			if !lock_manager.LockUpgrade(txn, rid) {
@@ -184,7 +184,7 @@ func (tp *TablePage) UpdateTuple(new_tuple *tuple.Tuple, update_col_idxs []int, 
 	slot_num := rid.GetSlotNum()
 	// If the slot number is invalid, abort the transaction.
 	if slot_num >= tp.GetTupleCount() {
-		if log_manager.IsEnabledLogging() {
+		if !txn.IsRecoveryPhase() {
 			txn.SetState(ABORTED)
 		}
 		return false, nil, nil
@@ -192,7 +192,7 @@ func (tp *TablePage) UpdateTuple(new_tuple *tuple.Tuple, update_col_idxs []int, 
 	tuple_size := tp.GetTupleSize(slot_num)
 	// If the tuple1 is deleted, abort the transaction.
 	if IsDeleted(tuple_size) {
-		if log_manager.IsEnabledLogging() {
+		if !txn.IsRecoveryPhase() {
 			txn.SetState(ABORTED)
 		}
 		return false, nil, nil
@@ -277,7 +277,7 @@ func (tp *TablePage) MarkDelete(rid *page.RID, txn *Transaction, lock_manager *L
 		}
 	}
 
-	if log_manager.IsEnabledLogging() {
+	if !txn.IsRecoveryPhase() {
 		// Acquire an exclusive lock, upgrading from a shared lock if necessary.
 		if txn.IsSharedLocked(rid) {
 			if !lock_manager.LockUpgrade(txn, rid) {
@@ -293,7 +293,7 @@ func (tp *TablePage) MarkDelete(rid *page.RID, txn *Transaction, lock_manager *L
 	slot_num := rid.GetSlotNum()
 	// If the slot number is invalid, abort the transaction.
 	if slot_num >= tp.GetTupleCount() {
-		if log_manager.IsEnabledLogging() {
+		if !txn.IsRecoveryPhase() {
 			txn.SetState(ABORTED)
 		}
 		return false, nil
@@ -302,7 +302,7 @@ func (tp *TablePage) MarkDelete(rid *page.RID, txn *Transaction, lock_manager *L
 	tuple_size := tp.GetTupleSize(slot_num)
 	// If the tuple1 is already deleted, abort the transaction.
 	if IsDeleted(tuple_size) {
-		if log_manager.IsEnabledLogging() {
+		if !txn.IsRecoveryPhase() {
 			txn.SetState(ABORTED)
 		}
 		return false, nil
@@ -361,6 +361,10 @@ func (tp *TablePage) ApplyDelete(rid *page.RID, txn *Transaction, log_manager *r
 		panic("TablePage::ApplyDelete: target tuple size is illegal!!!")
 	}
 
+	if !txn.IsRecoveryPhase() {
+		common.SH_Assert(txn.IsExclusiveLocked(rid), "We must own the exclusive lock!")
+	}
+
 	if log_manager.IsEnabledLogging() {
 		// We need to copy out the deleted tuple1 for undo purposes.
 		var delete_tuple *tuple.Tuple = new(tuple.Tuple)
@@ -369,7 +373,6 @@ func (tp *TablePage) ApplyDelete(rid *page.RID, txn *Transaction, log_manager *r
 		copy(delete_tuple.Data(), tp.Data()[tuple_offset:tuple_offset+delete_tuple.Size()])
 		delete_tuple.SetRID(rid)
 
-		common.SH_Assert(txn.IsExclusiveLocked(rid), "We must own the exclusive lock!")
 		log_record := recovery.NewLogRecordInsertDelete(txn.GetTransactionId(), txn.GetPrevLSN(), recovery.APPLYDELETE, *rid, delete_tuple)
 		lsn := log_manager.AppendLogRecord(log_record)
 		tp.SetLSN(lsn)
@@ -410,9 +413,13 @@ func (tp *TablePage) RollbackDelete(rid *page.RID, txn *Transaction, log_manager
 			fmt.Printf("TablePage::RollbackDelete called. pageId:%d txn.txn_id:%v dbgInfo:%s rid1:%v\n", tp.GetPageId(), txn.txn_id, txn.dbgInfo, *rid)
 		}
 	}
+
+	if !txn.IsRecoveryPhase() {
+		common.SH_Assert(txn.IsExclusiveLocked(rid), "We must own an exclusive lock on the RID.")
+	}
+
 	// Log the rollback.
 	if log_manager.IsEnabledLogging() {
-		common.SH_Assert(txn.IsExclusiveLocked(rid), "We must own an exclusive lock on the RID.")
 		dummy_tuple := new(tuple.Tuple)
 		log_record := recovery.NewLogRecordInsertDelete(txn.GetTransactionId(), txn.GetPrevLSN(), recovery.ROLLBACKDELETE, *rid, dummy_tuple)
 		lsn := log_manager.AppendLogRecord(log_record)
@@ -553,7 +560,7 @@ func (tp *TablePage) GetTuple(rid *page.RID, log_manager *recovery.LogManager, l
 	}
 
 	// check having appropriate lock or gettable at least a shared access.
-	if log_manager.IsEnabledLogging() {
+	if !txn.IsRecoveryPhase() {
 		if !txn.IsSharedLocked(rid) && !txn.IsExclusiveLocked(rid) && !lock_manager.LockShared(txn, rid) {
 			txn.SetState(ABORTED)
 			return nil, ErrGeneral
@@ -562,7 +569,7 @@ func (tp *TablePage) GetTuple(rid *page.RID, log_manager *recovery.LogManager, l
 
 	// If somehow we have more slots than tuples, abort transaction
 	if rid.GetSlotNum() >= tp.GetTupleCount() {
-		if log_manager.IsEnabledLogging() {
+		if !txn.IsRecoveryPhase() {
 			txn.SetState(ABORTED)
 		}
 		return nil, ErrGeneral
@@ -574,36 +581,49 @@ func (tp *TablePage) GetTuple(rid *page.RID, log_manager *recovery.LogManager, l
 
 	// target tuple1 should be deleted completely (= operation is commited)
 	if tupleOffset == 0 && tupleSize == 0 {
-		if txn.IsExclusiveLocked(rid) {
+		if !txn.IsRecoveryPhase() {
+			if txn.IsExclusiveLocked(rid) {
+				// txn which deletes target tuple1 is current txn
+				fmt.Println("TablePage:GetTuple ErrSelfDeletedCase (1)!")
+				return tuple.NewTuple(rid, 0, make([]byte, 0)), ErrSelfDeletedCase
+			} else {
+				// when Index returned RID of deleted by other txn
+				// in current implementation, this case occurs in not illegal situation
+
+				fmt.Printf("TablePage::GetTuple rid of deleted record is passed. rid:%v\n", *rid)
+				//panic(fmt.Sprintf("TablePage::GetTuple illegal rid passed. rid:%v", *rid))
+				txn.SetState(ABORTED)
+				return nil, ErrGeneral
+			}
+		} else {
 			// txn which deletes target tuple1 is current txn
 			fmt.Println("TablePage:GetTuple ErrSelfDeletedCase (1)!")
 			return tuple.NewTuple(rid, 0, make([]byte, 0)), ErrSelfDeletedCase
-		} else {
-			// when Index returned RID of deleted by other txn
-			// in current implementation, this case occurs in not illegal situation
-
-			fmt.Printf("TablePage::GetTuple rid of deleted record is passed. rid:%v\n", *rid)
-			//panic(fmt.Sprintf("TablePage::GetTuple illegal rid passed. rid:%v", *rid))
-			txn.SetState(ABORTED)
-			return nil, ErrGeneral
 		}
 	}
 
 	// If the tuple1 is marked as deleted
 	if IsDeleted(tupleSize) {
-		if txn.IsExclusiveLocked(rid) {
+		if !txn.IsRecoveryPhase() {
+			if txn.IsExclusiveLocked(rid) {
+				// txn which deletes target tuple1 is current txn
+				fmt.Println("TablePage:GetTuple ErrSelfDeletedCase (2)!")
+				return tuple.NewTuple(rid, 0, make([]byte, 0)), ErrSelfDeletedCase
+				//return nil, ErrSelfDeletedCase
+			} else {
+				// when RangeSanWithIndexExecutor or PointScanWithIndexExecutor which uses SkipListIterator as RID itrator is called,
+				// the txn enter here.
+
+				fmt.Printf("TablePage::GetTuple faced deleted marked record . rid:%v tupleSize:%d tupleOffset:%d\n", *rid, tupleSize, tupleOffset)
+
+				txn.SetState(ABORTED)
+				return nil, ErrGeneral
+			}
+		} else {
 			// txn which deletes target tuple1 is current txn
 			fmt.Println("TablePage:GetTuple ErrSelfDeletedCase (2)!")
 			return tuple.NewTuple(rid, 0, make([]byte, 0)), ErrSelfDeletedCase
 			//return nil, ErrSelfDeletedCase
-		} else {
-			// when RangeSanWithIndexExecutor or PointScanWithIndexExecutor which uses SkipListIterator as RID itrator is called,
-			// the txn enter here.
-
-			fmt.Printf("TablePage::GetTuple faced deleted marked record . rid:%v tupleSize:%d tupleOffset:%d\n", *rid, tupleSize, tupleOffset)
-
-			txn.SetState(ABORTED)
-			return nil, ErrGeneral
 		}
 	}
 

@@ -162,13 +162,14 @@ func TestRecounstructionOfHashIndex(t *testing.T) {
 	shi = samehada.NewSamehadaInstance(t.Name(), common.BufferPoolMaxFrameNumForTest)
 	shi.GetLogManager().DeactivateLogging()
 	txn = shi.GetTransactionManager().Begin(nil)
+	txn.SetIsRecoveryPhase(true)
 
 	log_recovery := log_recovery.NewLogRecovery(
 		shi.GetDiskManager(),
 		shi.GetBufferPoolManager(),
 		shi.GetLogManager())
-	greatestLSN, _ := log_recovery.Redo()
-	log_recovery.Undo()
+	greatestLSN, _ := log_recovery.Redo(txn)
+	log_recovery.Undo(txn)
 
 	dman := shi.GetDiskManager()
 	dman.GCLogFile()
@@ -183,6 +184,7 @@ func TestRecounstructionOfHashIndex(t *testing.T) {
 	// checking reconstruction result of index data by getting tuples using index
 	txn = shi.GetTransactionManager().Begin(nil)
 
+	txn.SetIsRecoveryPhase(false)
 	shi.GetLogManager().ActivateLogging()
 	testingpkg.Assert(t, shi.GetLogManager().IsEnabledLogging(), "")
 	fmt.Println("System logging is active.")
