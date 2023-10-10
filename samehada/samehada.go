@@ -140,7 +140,7 @@ func NewSamehadaDB(dbName string, memKBytes int) *SamehadaDB {
 	shi.bpm.FlushAllPages()
 	shi.transaction_manager.Commit(c, txn)
 
-	shi.GetLogManager().ActivateLogging()
+	//shi.GetLogManager().ActivateLogging()
 
 	exec_engine := &executors.ExecutionEngine{}
 	//pnner := planner.NewSimplePlanner(c, shi.GetBufferPoolManager())

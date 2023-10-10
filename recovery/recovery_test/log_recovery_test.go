@@ -349,7 +349,7 @@ func TestUndo(t *testing.T) {
 	fmt.Println("System restarted..")
 	samehada_instance = samehada.NewSamehadaInstance(t.Name(), common.BufferPoolMaxFrameNumForTest)
 	txn = samehada_instance.GetTransactionManager().Begin(nil)
-	txn.SetIsRecoveryPhase(true)
+	//txn.SetIsRecoveryPhase(true)
 
 	test_table = access.NewTableHeap(
 		samehada_instance.GetBufferPoolManager(),
@@ -396,7 +396,7 @@ func TestUndo(t *testing.T) {
 
 	fmt.Println("Check if failed txn is undo successfully")
 	txn = samehada_instance.GetTransactionManager().Begin(nil)
-	txn.SetIsRecoveryPhase(true)
+	//txn.SetIsRecoveryPhase(true)
 
 	fmt.Println("Check deleted tuple exists")
 	old_tuple1, _ = test_table.GetTuple(rid1, txn)
