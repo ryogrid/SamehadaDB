@@ -247,7 +247,7 @@ func (d *DiskManagerImpl) GCLogFile() error {
  * Write the contents of the log into disk file
  * Only return when sync is done, and only perform sequence write
  */
-func (d *DiskManagerImpl) WriteLog(log_data []byte) {
+func (d *DiskManagerImpl) WriteLog(log_data []byte) error {
 	d.logFileMutex.Lock()
 	defer d.logFileMutex.Unlock()
 
@@ -277,13 +277,16 @@ func (d *DiskManagerImpl) WriteLog(log_data []byte) {
 	if err != nil {
 		fmt.Println("I/O error while writing log")
 		fmt.Println(err)
-		panic("I/O error while writing log")
-		return
+		//panic("I/O error while writing log")
+		// TODO: (SDB) SHOULD BE FIXED: statistics update thread's call causes this error rarely
+		return err
 	}
 	// needs to flush to keep disk file in sync
 	//disk_manager.log.Flush()
 	d.log.Sync()
 	d.flush_log = false
+
+	return nil
 }
 
 /**

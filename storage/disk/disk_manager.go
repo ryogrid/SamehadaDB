@@ -22,7 +22,7 @@ type DiskManager interface {
 	RemoveDBFile()
 	RemoveLogFile()
 	//WriteLog([]byte, int32)
-	WriteLog([]byte)
+	WriteLog([]byte) error
 	ReadLog([]byte, int32, *uint32) bool
 	GetLogFileSize() int64
 	GCLogFile() error

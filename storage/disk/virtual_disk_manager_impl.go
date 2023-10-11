@@ -182,7 +182,7 @@ func (d *VirtualDiskManagerImpl) GCLogFile() error {
  * Write the contents of the log into disk file
  * Only return when sync is done, and only perform sequence write
  */
-func (d *VirtualDiskManagerImpl) WriteLog(log_data []byte) {
+func (d *VirtualDiskManagerImpl) WriteLog(log_data []byte) error {
 	d.logFileMutex.Lock()
 	defer d.logFileMutex.Unlock()
 
@@ -195,6 +195,8 @@ func (d *VirtualDiskManagerImpl) WriteLog(log_data []byte) {
 	//d.log.Write(log_data)
 
 	d.flush_log = false
+
+	return nil
 }
 
 /**
