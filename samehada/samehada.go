@@ -218,7 +218,10 @@ func (sdb *SamehadaDB) Shutdown() {
 	// set a flag which is checked by checkpointing thread
 	sdb.statistics_updator.StopStatsUpdateTh()
 	sdb.shi_.GetCheckpointManager().StopCheckpointTh()
-	sdb.shi_.GetBufferPoolManager().FlushAllDirtyPages()
+	isSuccess := sdb.shi_.GetBufferPoolManager().FlushAllDirtyPages()
+	if !isSuccess {
+		panic("flush all dirty pages failed!")
+	}
 	sdb.shi_.Shutdown(false)
 }
 
