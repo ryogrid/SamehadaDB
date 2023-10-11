@@ -97,17 +97,22 @@ func (d *DiskManagerImpl) WritePage(pageId types.PageID, pageData []byte) error 
 	defer d.dbFileMutex.Unlock()
 
 	offset := int64(pageId) * int64(common.PageSize)
-	d.db.Seek(offset, io.SeekStart)
-	bytesWritten, err := d.db.Write(pageData)
-	if err != nil {
-		fmt.Println(err)
+	_, errSeek := d.db.Seek(offset, io.SeekStart)
+	if errSeek != nil {
+		fmt.Println(errSeek)
+		// TODO: (SDB) SHOULD BE FIXED: checkpoint thread's call causes this error rarely
+		fmt.Println("WritePge: d.db.Write returns err!")
+		return errSeek
+	}
+	bytesWritten, errWrite := d.db.Write(pageData)
+	if errWrite != nil {
+		fmt.Println(errWrite)
 		panic("WritePge: d.db.Write returns err!")
-		//return err
+		//return errWrite
 	}
 
 	if bytesWritten != common.PageSize {
 		panic("bytes written not equals page size")
-		//return errors.New("bytes written not equals page size")
 	}
 
 	if offset >= d.size {
