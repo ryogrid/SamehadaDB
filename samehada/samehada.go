@@ -31,6 +31,13 @@ type SamehadaDB struct {
 	//chkpntMgr    *concurrency.CheckpointManager
 	//planner_           planner.Planner
 	statistics_updator *concurrency.StatisticsUpdater
+	request_manager    *RequestManager
+}
+
+type reqResult struct {
+	err      error
+	result   [][]interface{}
+	callerCh *chan *reqResult
 }
 
 func reconstructIndexDataOfATbl(t *catalog.TableMetadata, c *catalog.Catalog, dman disk.DiskManager, txn *access.Transaction) {
@@ -147,22 +154,36 @@ func NewSamehadaDB(dbName string, memKBytes int) *SamehadaDB {
 
 	//chkpntMgr := concurrency.NewCheckpointManager(shi.GetTransactionManager(), shi.GetLogManager(), shi.GetBufferPoolManager())
 	//chkpntMgr.StartCheckpointTh()
-	shi.GetCheckpointManager().StartCheckpointTh()
+
+	//shi.GetCheckpointManager().StartCheckpointTh()
 
 	// statics data is updated periodically by this thread with full scan of all tables
 	// this may be not good implementation of statistics, but it is enough for now...
 	statUpdater := concurrency.NewStatisticsUpdater(shi.GetTransactionManager(), c)
-	statUpdater.StartStaticsUpdaterTh()
 
-	return &SamehadaDB{shi, c, exec_engine, statUpdater}
+	//statUpdater.StartStaticsUpdaterTh()
+
+	ret := &SamehadaDB{shi, c, exec_engine, statUpdater, nil}
+	tmpReqMgr := NewRequestManager(ret)
+	ret.request_manager = tmpReqMgr
+	ret.request_manager.StartTh()
+
+	return ret
+}
+
+func (sdb *SamehadaDB) executeSQLForTxnTh(ch *chan *reqResult, qr *queryRequest) {
+	err, results := sdb.ExecuteSQLRetValues(*qr.queryStr)
+	if err != nil {
+		*ch <- &reqResult{err, nil, qr.callerCh}
+		return
+	}
+	*ch <- &reqResult{nil, ConvValueListToIFs(results), qr.callerCh}
 }
 
 func (sdb *SamehadaDB) ExecuteSQL(sqlStr string) (error, [][]interface{}) {
-	err, results := sdb.ExecuteSQLRetValues(sqlStr)
-	if err != nil {
-		return err, nil
-	}
-	return nil, ConvValueListToIFs(results)
+	ch := sdb.request_manager.AppendRequest(&sqlStr)
+	ret := <-*ch
+	return ret.err, ret.result
 }
 
 var PlanCreationErr error = errors.New("plan creation error")
@@ -218,6 +239,7 @@ func (sdb *SamehadaDB) Shutdown() {
 	// set a flag which is checked by checkpointing thread
 	sdb.statistics_updator.StopStatsUpdateTh()
 	sdb.shi_.GetCheckpointManager().StopCheckpointTh()
+	sdb.request_manager.StopTh()
 	isSuccess := sdb.shi_.GetBufferPoolManager().FlushAllDirtyPages()
 	if !isSuccess {
 		panic("flush all dirty pages failed!")
@@ -230,6 +252,7 @@ func (sdb *SamehadaDB) ShutdownForTescase() {
 	// set a flag which is checked by checkpointing thread
 	sdb.shi_.GetCheckpointManager().StopCheckpointTh()
 	sdb.statistics_updator.StopStatsUpdateTh()
+	sdb.request_manager.StopTh()
 	//sdb.shi_.Shutdown(false)
 	sdb.shi_.CloseFilesForTesting()
 }

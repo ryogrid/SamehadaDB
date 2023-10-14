@@ -277,7 +277,7 @@ func TestParallelQueryIssue(t *testing.T) {
 	insCh := make(chan int32)
 	for ii := 0; ii < opTimes; ii++ {
 		go func(val int32) {
-			err, _ = db.ExecuteSQLRetValues(fmt.Sprintf("INSERT INTO k_v_list(k, v) VALUES (%d, %d);", val, val))
+			err, _ = db.ExecuteSQL(fmt.Sprintf("INSERT INTO k_v_list(k, v) VALUES (%d, %d);", val, val))
 			insCh <- val
 		}(queryVals[ii])
 		//testingpkg.Assert(t, err == nil, "failed to insert val: "+strconv.Itoa(int(queryVals[ii])))
@@ -336,14 +336,14 @@ func TestParallelQueryIssue(t *testing.T) {
 		}
 
 		go func(queryVal int32) {
-			err_, results := db.ExecuteSQLRetValues(fmt.Sprintf("SELECT v FROM k_v_list WHERE k = %d;", queryVal))
+			err_, results := db.ExecuteSQL(fmt.Sprintf("SELECT v FROM k_v_list WHERE k = %d;", queryVal))
 			if err != nil {
 				fmt.Println(err_)
 				ch <- [2]int32{queryVal, -1}
 				return
 			}
 
-			gotValue := (*results[0][0]).ToInteger()
+			gotValue := results[0][0].(int32)
 			ch <- [2]int32{queryVal, gotValue}
 		}(queryVals[ii])
 
