@@ -22,7 +22,9 @@ type RequestManager struct {
 }
 
 func NewRequestManager(sdb *SamehadaDB) *RequestManager {
-	ch := make(chan *reqResult, 1000000)
+	//ch := make(chan *reqResult, 1000000)
+	ch := make(chan *reqResult, 100)
+	//ch := make(chan *reqResult)
 	return &RequestManager{sdb, 0, make([]*queryRequest, 0), new(sync.Mutex), 0, &ch, true}
 }
 
@@ -73,25 +75,26 @@ func (reqManager *RequestManager) executeQuedTxns() {
 func (reqManager *RequestManager) Run() {
 	for {
 		recvVal := <-*reqManager.inCh
-		if recvVal == nil { // stop signal or new request
-			if !reqManager.isExecutionActive {
-				break
-			}
-			reqManager.queMutex.Lock()
-			if len(reqManager.execQue) > 0 && reqManager.curExectingReqNum < common.MaxTxnThreadNum {
-				reqManager.executeQuedTxns()
-			}
-			reqManager.queMutex.Unlock()
-		} else { // receive result
+		if recvVal != nil { // receive result
 			reqManager.queMutex.Lock()
 			reqManager.curExectingReqNum--
 
 			if recvVal.err != nil {
-				// TODO: (SDB) [PARA] appropriate handling of error is needed
+				// TODO: (SDB) [PARA] appropriate handling of error (mainly Aborted case) is needed
 				panic("error on execution")
 			}
 			reqManager.queMutex.Unlock()
 			*recvVal.callerCh <- recvVal
 		}
+
+		// check stop signal or new request
+		if !reqManager.isExecutionActive {
+			break
+		}
+		reqManager.queMutex.Lock()
+		if len(reqManager.execQue) > 0 && reqManager.curExectingReqNum < common.MaxTxnThreadNum {
+			reqManager.executeQuedTxns()
+		}
+		reqManager.queMutex.Unlock()
 	}
 }
