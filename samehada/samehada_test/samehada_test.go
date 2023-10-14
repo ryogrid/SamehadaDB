@@ -415,6 +415,8 @@ func TestParallelQueryIssueSelectUpdate(t *testing.T) {
 				recvRslt := <-ch
 				allCnt++
 				if recvRslt[1] == -1 {
+					// may be update
+					//commitedCnt++
 					abotedCnt++
 				} else {
 					commitedCnt++
@@ -434,6 +436,9 @@ func TestParallelQueryIssueSelectUpdate(t *testing.T) {
 				fmt.Printf(strconv.Itoa(allCnt) + " queries done\n")
 			}
 			if recvRslt[1] == -1 {
+				// may be update
+				//commitedCnt++
+
 				abotedCnt++
 			} else {
 				commitedCnt++
@@ -457,8 +462,13 @@ func TestParallelQueryIssueSelectUpdate(t *testing.T) {
 				return
 			}
 
-			gotValue := results[0][0].(int32)
-			ch <- [2]int32{queryVal, gotValue}
+			if results != nil && len(results) > 0 { // may be select
+				fmt.Println(results)
+				gotValue := results[0][0].(int32)
+				ch <- [2]int32{queryVal, gotValue}
+			} else { // may be update
+				ch <- [2]int32{queryVal, -1}
+			}
 		}(queryVals[ii%10])
 
 		runningThCnt++

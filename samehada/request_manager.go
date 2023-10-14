@@ -97,9 +97,10 @@ func (reqManager *RequestManager) Run() {
 					reqManager.queMutex.Unlock()
 					*recvVal.callerCh <- recvVal
 				}
+			} else {
+				reqManager.queMutex.Unlock()
+				*recvVal.callerCh <- recvVal
 			}
-			reqManager.queMutex.Unlock()
-			*recvVal.callerCh <- recvVal
 		}
 
 		// check stop signal or new request
