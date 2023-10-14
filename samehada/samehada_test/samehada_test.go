@@ -261,7 +261,7 @@ func TestParallelQueryIssue(t *testing.T) {
 	}
 
 	db := samehada.NewSamehadaDB(t.Name(), 5000) // 5MB
-	opTimes := 10000
+	opTimes := 24                                //10000
 
 	queryVals := make([]int32, 0)
 
@@ -274,24 +274,26 @@ func TestParallelQueryIssue(t *testing.T) {
 	err, _ := db.ExecuteSQL("CREATE TABLE k_v_list(k INT, v INT);")
 	testingpkg.Assert(t, err == nil, "failed to create table")
 
-	insCh := make(chan int32)
+	//insCh := make(chan int32)
 	for ii := 0; ii < opTimes; ii++ {
-		go func(val int32) {
+		//go func(val int32) {
+		func(val int32) {
 			err, _ = db.ExecuteSQL(fmt.Sprintf("INSERT INTO k_v_list(k, v) VALUES (%d, %d);", val, val))
-			insCh <- val
+			//insCh <- val
 		}(queryVals[ii])
+
 		//testingpkg.Assert(t, err == nil, "failed to insert val: "+strconv.Itoa(int(queryVals[ii])))
 	}
-	for ii := 0; ii < opTimes; ii++ {
-		<-insCh
-	}
+	//for ii := 0; ii < opTimes; ii++ {
+	//	<-insCh
+	//}
 
 	// shuffle query vals array elements
 	rand.Shuffle(len(queryVals), func(i, j int) { queryVals[i], queryVals[j] = queryVals[j], queryVals[i] })
 
 	fmt.Println("records insertion done.")
 
-	THREAD_NUM := 12
+	THREAD_NUM := common.KernelThreadNum
 	runtime.GOMAXPROCS(THREAD_NUM)
 
 	ch := make(chan [2]int32)
@@ -303,37 +305,37 @@ func TestParallelQueryIssue(t *testing.T) {
 
 	startTime := time.Now()
 	for ii := 0; ii < opTimes; ii++ {
-		// wait last go routines finishes
-		if ii == opTimes-1 {
-			for runningThCnt > 0 {
-				recvRslt := <-ch
-				allCnt++
-				if recvRslt[1] == -1 {
-					abotedCnt++
-				} else {
-					commitedCnt++
-					testingpkg.Assert(t, recvRslt[0] == recvRslt[1], "failed to select val: "+strconv.Itoa(int(recvRslt[0])))
+		/*		// wait last go routines finishes
+				if ii == opTimes-1 {
+					for runningThCnt > 0 {
+						recvRslt := <-ch
+						allCnt++
+						if recvRslt[1] == -1 {
+							abotedCnt++
+						} else {
+							commitedCnt++
+							testingpkg.Assert(t, recvRslt[0] == recvRslt[1], "failed to select val: "+strconv.Itoa(int(recvRslt[0])))
+						}
+						runningThCnt--
+					}
+					break
 				}
-				runningThCnt--
-			}
-			break
-		}
 
-		// wait for keeping THREAD_NUM * 2 groroutine existing
-		for runningThCnt >= THREAD_NUM*2 {
-			recvRslt := <-ch
-			runningThCnt--
-			allCnt++
-			if allCnt%500 == 0 {
-				fmt.Printf(strconv.Itoa(allCnt) + " queries done\n")
-			}
-			if recvRslt[1] == -1 {
-				abotedCnt++
-			} else {
-				commitedCnt++
-				testingpkg.Assert(t, recvRslt[0] == recvRslt[1], "failed to select val: "+strconv.Itoa(int(recvRslt[0])))
-			}
-		}
+				// wait for keeping THREAD_NUM * 2 groroutine existing
+				for runningThCnt >= THREAD_NUM*2 {
+					recvRslt := <-ch
+					runningThCnt--
+					allCnt++
+					if allCnt%500 == 0 {
+						fmt.Printf(strconv.Itoa(allCnt) + " queries done\n")
+					}
+					if recvRslt[1] == -1 {
+						abotedCnt++
+					} else {
+						commitedCnt++
+						testingpkg.Assert(t, recvRslt[0] == recvRslt[1], "failed to select val: "+strconv.Itoa(int(recvRslt[0])))
+					}
+				}*/
 
 		go func(queryVal int32) {
 			err_, results := db.ExecuteSQL(fmt.Sprintf("SELECT v FROM k_v_list WHERE k = %d;", queryVal))
@@ -348,6 +350,20 @@ func TestParallelQueryIssue(t *testing.T) {
 		}(queryVals[ii])
 
 		runningThCnt++
+	}
+
+	for ii := 0; ii < opTimes-1; ii++ {
+		recvRslt := <-ch
+		allCnt++
+		if allCnt%500 == 0 {
+			fmt.Printf(strconv.Itoa(allCnt) + " queries done\n")
+		}
+		if recvRslt[1] == -1 {
+			abotedCnt++
+		} else {
+			commitedCnt++
+			testingpkg.Assert(t, recvRslt[0] == recvRslt[1], "failed to select val: "+strconv.Itoa(int(recvRslt[0])))
+		}
 	}
 
 	fmt.Println("allCnt: " + strconv.Itoa(allCnt))

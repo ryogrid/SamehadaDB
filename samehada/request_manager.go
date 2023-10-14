@@ -22,7 +22,7 @@ type RequestManager struct {
 }
 
 func NewRequestManager(sdb *SamehadaDB) *RequestManager {
-	ch := make(chan *reqResult)
+	ch := make(chan *reqResult, 1000000)
 	return &RequestManager{sdb, 0, make([]*queryRequest, 0), new(sync.Mutex), 0, &ch, true}
 }
 
@@ -66,7 +66,7 @@ func (reqManager *RequestManager) StopTh() {
 // caller must having lock of queMutex
 func (reqManager *RequestManager) executeQuedTxns() {
 	qr := reqManager.RetrieveRequest()
-	go reqManager.sdb.executeSQLForTxnTh(reqManager.inCh, qr)
+	go reqManager.sdb.ExecuteSQLForTxnTh(reqManager.inCh, qr)
 	reqManager.curExectingReqNum++
 }
 

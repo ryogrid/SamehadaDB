@@ -171,7 +171,7 @@ func NewSamehadaDB(dbName string, memKBytes int) *SamehadaDB {
 	return ret
 }
 
-func (sdb *SamehadaDB) executeSQLForTxnTh(ch *chan *reqResult, qr *queryRequest) {
+func (sdb *SamehadaDB) ExecuteSQLForTxnTh(ch *chan *reqResult, qr *queryRequest) {
 	err, results := sdb.ExecuteSQLRetValues(*qr.queryStr)
 	if err != nil {
 		*ch <- &reqResult{err, nil, qr.callerCh}
