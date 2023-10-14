@@ -352,7 +352,7 @@ func TestParallelQueryIssue(t *testing.T) {
 		runningThCnt++
 	}
 
-	for ii := 0; ii < opTimes-1; ii++ {
+	for ii := 0; ii < opTimes; ii++ {
 		recvRslt := <-ch
 		allCnt++
 		if allCnt%500 == 0 {
