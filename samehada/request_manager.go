@@ -1,12 +1,13 @@
 package samehada
 
 import (
+	"fmt"
 	"github.com/ryogrid/SamehadaDB/common"
 	"sync"
 )
 
 type queryRequest struct {
-	reqId    uint64
+	reqId    *uint64
 	queryStr *string
 	callerCh *chan *reqResult
 }
@@ -32,7 +33,8 @@ func (reqManager *RequestManager) AppendRequest(queryStr *string) *chan *reqResu
 	reqManager.queMutex.Lock()
 
 	qr := new(queryRequest)
-	qr.reqId = reqManager.nextReqId
+	tmpId := reqManager.nextReqId
+	qr.reqId = &tmpId
 	reqManager.nextReqId++
 	qr.queryStr = queryStr
 
@@ -72,6 +74,14 @@ func (reqManager *RequestManager) executeQuedTxns() {
 	reqManager.curExectingReqNum++
 }
 
+// caller must having lock of queMutex
+func (reqManager *RequestManager) handleAbortedByCCTxn(result *reqResult) {
+	// insert aborted request to head of que
+	reqManager.execQue = append([]*queryRequest{&queryRequest{result.reqId, result.query, result.callerCh}}, reqManager.execQue...)
+	// TODO: (SDB) [PARA] for debug
+	fmt.Println("add que aborted req")
+}
+
 func (reqManager *RequestManager) Run() {
 	for {
 		recvVal := <-*reqManager.inCh
@@ -80,8 +90,13 @@ func (reqManager *RequestManager) Run() {
 			reqManager.curExectingReqNum--
 
 			if recvVal.err != nil {
-				// TODO: (SDB) [PARA] appropriate handling of error (mainly Aborted case) is needed
-				panic("error on execution")
+				if recvVal.err == QueryAbortedErr {
+					reqManager.handleAbortedByCCTxn(recvVal)
+					reqManager.queMutex.Unlock()
+				} else {
+					reqManager.queMutex.Unlock()
+					*recvVal.callerCh <- recvVal
+				}
 			}
 			reqManager.queMutex.Unlock()
 			*recvVal.callerCh <- recvVal

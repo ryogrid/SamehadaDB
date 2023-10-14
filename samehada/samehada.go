@@ -37,6 +37,8 @@ type SamehadaDB struct {
 type reqResult struct {
 	err      error
 	result   [][]interface{}
+	reqId    *uint64
+	query    *string
 	callerCh *chan *reqResult
 }
 
@@ -174,10 +176,10 @@ func NewSamehadaDB(dbName string, memKBytes int) *SamehadaDB {
 func (sdb *SamehadaDB) ExecuteSQLForTxnTh(ch *chan *reqResult, qr *queryRequest) {
 	err, results := sdb.ExecuteSQLRetValues(*qr.queryStr)
 	if err != nil {
-		*ch <- &reqResult{err, nil, qr.callerCh}
+		*ch <- &reqResult{err, nil, qr.reqId, qr.queryStr, qr.callerCh}
 		return
 	}
-	*ch <- &reqResult{nil, ConvValueListToIFs(results), qr.callerCh}
+	*ch <- &reqResult{nil, ConvValueListToIFs(results), qr.reqId, qr.queryStr, qr.callerCh}
 }
 
 func (sdb *SamehadaDB) ExecuteSQL(sqlStr string) (error, [][]interface{}) {
@@ -205,7 +207,6 @@ func (sdb *SamehadaDB) ExecuteSQLRetValues(sqlStr string) (error, [][]*types.Val
 		} else {
 			return PlanCreationErr, nil
 		}
-
 	} else if err != nil {
 		// already table exist case
 		sdb.shi_.GetTransactionManager().Commit(sdb.catalog_, txn)
@@ -216,7 +217,6 @@ func (sdb *SamehadaDB) ExecuteSQLRetValues(sqlStr string) (error, [][]*types.Val
 	result := sdb.exec_engine_.Execute(plan, context)
 
 	if txn.GetState() == access.ABORTED {
-		// TODO: (SDB) [PARA] when concurrent execution of transaction is activated, appropriate handling of aborted request is needed
 		sdb.shi_.GetTransactionManager().Abort(sdb.catalog_, txn)
 		// temporal impl
 		return QueryAbortedErr, nil
