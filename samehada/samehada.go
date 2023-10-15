@@ -152,18 +152,13 @@ func NewSamehadaDB(dbName string, memKBytes int) *SamehadaDB {
 	shi.GetLogManager().ActivateLogging()
 
 	exec_engine := &executors.ExecutionEngine{}
-	//pnner := planner.NewSimplePlanner(c, shi.GetBufferPoolManager())
 
-	//chkpntMgr := concurrency.NewCheckpointManager(shi.GetTransactionManager(), shi.GetLogManager(), shi.GetBufferPoolManager())
-	//chkpntMgr.StartCheckpointTh()
-
-	//shi.GetCheckpointManager().StartCheckpointTh()
+	shi.GetCheckpointManager().StartCheckpointTh()
 
 	// statics data is updated periodically by this thread with full scan of all tables
 	// this may be not good implementation of statistics, but it is enough for now...
 	statUpdater := concurrency.NewStatisticsUpdater(shi.GetTransactionManager(), c)
-
-	//statUpdater.StartStaticsUpdaterTh()
+	statUpdater.StartStaticsUpdaterTh()
 
 	ret := &SamehadaDB{shi, c, exec_engine, statUpdater, nil}
 	tmpReqMgr := NewRequestManager(ret)
