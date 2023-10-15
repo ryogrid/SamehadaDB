@@ -113,7 +113,8 @@ func (b *BufferPoolManager) FetchPage(pageID types.PageID) *page.Page {
 		//return nil
 	}
 	var pageData [common.PageSize]byte
-	copy(pageData[:], data)
+	//copy(pageData[:], data)
+	pageData = *(*[common.PageSize]byte)(data)
 	pg := page.New(pageID, false, &pageData)
 
 	if common.EnableDebug && common.ActiveLogKindSetting&common.PIN_COUNT_ASSERT > 0 {
