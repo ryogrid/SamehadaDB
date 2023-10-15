@@ -362,7 +362,7 @@ func TestParallelQueryIssueSelectUpdate(t *testing.T) {
 		os.Remove(t.Name() + ".log")
 	}
 
-	db := samehada.NewSamehadaDB(t.Name(), 500) // 7MB
+	db := samehada.NewSamehadaDB(t.Name(), 500) // 500KB
 	opTimes := 10000
 
 	queryVals := make([]int32, 0)
