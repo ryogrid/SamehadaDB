@@ -46,6 +46,8 @@ const (
 	// probability used for determin node level on SkipList
 	SkipListProb         = 0.5                             //0.25
 	ActiveLogKindSetting = INFO | NOT_ABORABLE_TXN_FEATURE //| COMMIT_ABORT_HANDLE_INFO | NOT_ABORABLE_TXN_FEATURE | DEBUGGING | RDB_OP_FUNC_CALL // | DEBUG_INFO  //| BUFFER_INTERNAL_STATE //| DEBUGGING | DEBUG_INFO //| PIN_COUNT_ASSERT //DEBUG_INFO_DETAIL  //DEBUGGING
+	KernelThreadNum      = 24
+	MaxTxnThreadNum      = KernelThreadNum * 1
 )
 
 type TxnID int32        // transaction id type
