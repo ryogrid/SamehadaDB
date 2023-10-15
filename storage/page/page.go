@@ -116,6 +116,7 @@ func New(id types.PageID, isDirty bool, data *[common.PageSize]byte) *Page {
 func NewEmpty(id types.PageID) *Page {
 	//return &Page{id, int32(1), false, &[common.PageSize]byte{}, common.NewUpgradableMutex()}
 
+	//return &Page{id, int32(1), false, false, &[common.PageSize]byte{}, common.NewRWLatch(), make(map[int32]bool, 0), make(map[int32]bool, 0), new(sync.Mutex)}
 	return &Page{id, int32(1), false, false, &[common.PageSize]byte{}, common.NewRWLatch(), make(map[int32]bool, 0), make(map[int32]bool, 0), new(sync.Mutex)}
 
 	//return &Page{id, uint32(1), false, &[common.PageSize]byte{}, common.NewRWLatchDebug()}

@@ -28,6 +28,20 @@ type BufferPoolManager struct {
 	//mutex *deadlock.Mutex
 }
 
+var pool = &sync.Pool{
+	New: func() interface{} {
+		return make([]byte, common.PageSize)
+	},
+}
+
+func GetBuffer() []byte {
+	return pool.Get().([]byte)
+}
+
+func ReturnBuffer(page *page.Page) {
+	pool.Put(page.Data()[:])
+}
+
 // FetchPage fetches the requested page from the buffer pool.
 func (b *BufferPoolManager) FetchPage(pageID types.PageID) *page.Page {
 	// if it is on buffer pool return it
@@ -91,13 +105,14 @@ func (b *BufferPoolManager) FetchPage(pageID types.PageID) *page.Page {
 				common.ShPrintf(common.DEBUG_INFO, "FetchPage: page=%d is removed from pageTable.\n", currentPage.GetPageId())
 			}
 			delete(b.pageTable, currentPage.GetPageId())
+			ReturnBuffer(currentPage)
 			//b.mutex.WUnlock()
 		}
 		//b.mutex.WUnlock()
 	}
 
 	//b.mutex.WLock()
-	data := make([]byte, common.PageSize)
+	data := GetBuffer() //make([]byte, common.PageSize)
 	if common.EnableDebug && common.ActiveLogKindSetting&common.CACHE_OUT_IN_INFO > 0 {
 		fmt.Printf("BPM::FetchPage Cache in occurs! requested pageId:%d\n", pageID)
 	}
@@ -113,7 +128,8 @@ func (b *BufferPoolManager) FetchPage(pageID types.PageID) *page.Page {
 		//return nil
 	}
 	var pageData [common.PageSize]byte
-	copy(pageData[:], data)
+	//copy(pageData[:], data)
+	pageData = *(*[common.PageSize]byte)(data)
 	pg := page.New(pageID, false, &pageData)
 
 	if common.EnableDebug && common.ActiveLogKindSetting&common.PIN_COUNT_ASSERT > 0 {
@@ -159,6 +175,7 @@ func (b *BufferPoolManager) UnpinPage(pageID types.PageID, isDirty bool) error {
 
 		if pg.PinCount() <= 0 {
 			(*b.replacer).Unpin(frameID)
+			ReturnBuffer(pg)
 		}
 
 		if pg.IsDirty() || isDirty {
@@ -261,6 +278,7 @@ func (b *BufferPoolManager) NewPage() *page.Page {
 				common.ShPrintf(common.DEBUG_INFO, "NewPage: page=%d is removed from pageTable.\n", currentPage.GetPageId())
 			}
 			delete(b.pageTable, currentPage.GetPageId())
+			ReturnBuffer(currentPage)
 		}
 	}
 
