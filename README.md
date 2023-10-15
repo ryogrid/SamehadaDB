@@ -75,10 +75,9 @@
 - [x] Aggregations (COUNT, MAX, MIN, SUM on SELECT clause including Group by and Having) [^1]
 - [x] Sort (ORDER BY clause) [^1]
 - [x] Tuple Level Locking With Strong Strict 2-Phase Locking (SS2PL) Protocol
-- [x] Concurrent Execution of Transactions [^1]
+- [x] Concurrent Execution of Transactions
   - Avoidance of phantom problem is not implemented yet
     - So, current transaction isolation level is **"REPEATABLE READ"**
-  - Retry of txns aborted due to concurrency control protocol is not implemented yet
 - [ ] <del>Execution Planning from hard coded SQL like method call I/F (like some kind of embedded DB)</del>
 - [x] Execution of Query with SQL string
 - [x] Frontend Impl as Embedded DB Library (like SQLite)
