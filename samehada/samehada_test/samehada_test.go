@@ -362,8 +362,8 @@ func TestParallelQueryIssueSelectUpdate(t *testing.T) {
 		os.Remove(t.Name() + ".log")
 	}
 
-	db := samehada.NewSamehadaDB(t.Name(), 5000) // 5MB
-	opTimes := 10000                             //24                                //10000
+	db := samehada.NewSamehadaDB(t.Name(), 500) // 7MB
+	opTimes := 10000
 
 	queryVals := make([]int32, 0)
 
@@ -387,9 +387,15 @@ func TestParallelQueryIssueSelectUpdate(t *testing.T) {
 		<-insCh
 	}
 
-	queryVals = queryVals[:len(queryVals)/10]
+	queryVals = queryVals[:len(queryVals)/2]
 	// shuffle query vals array elements
 	rand.Shuffle(len(queryVals), func(i, j int) { queryVals[i], queryVals[j] = queryVals[j], queryVals[i] })
+	tmpQueryVals := make([]int32, 0)
+	for _, val := range queryVals {
+		tmpQueryVals = append(tmpQueryVals, val)
+		tmpQueryVals = append(tmpQueryVals, val)
+	}
+	queryVals = tmpQueryVals
 
 	fmt.Println("records insertion done.")
 
@@ -465,7 +471,7 @@ func TestParallelQueryIssueSelectUpdate(t *testing.T) {
 			} else { // may be update
 				ch <- [2]int32{queryVal, -1}
 			}
-		}(queryVals[ii%10])
+		}(queryVals[ii])
 
 		runningThCnt++
 	}
