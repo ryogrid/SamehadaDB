@@ -1,7 +1,6 @@
 package samehada
 
 import (
-	"fmt"
 	"github.com/ryogrid/SamehadaDB/common"
 	"sync"
 )
@@ -78,8 +77,7 @@ func (reqManager *RequestManager) executeQuedTxns() {
 func (reqManager *RequestManager) handleAbortedByCCTxn(result *reqResult) {
 	// insert aborted request to head of que
 	reqManager.execQue = append([]*queryRequest{&queryRequest{result.reqId, result.query, result.callerCh}}, reqManager.execQue...)
-	// TODO: (SDB) [PARA] for debug
-	fmt.Println("add que aborted req")
+	//fmt.Println("add que aborted req")
 }
 
 func (reqManager *RequestManager) Run() {

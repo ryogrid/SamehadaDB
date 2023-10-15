@@ -252,8 +252,6 @@ func TestRebootAndReturnIFValues(t *testing.T) {
 }
 
 func TestParallelQueryIssue(t *testing.T) {
-	t.Parallel()
-
 	// clear all state of DB
 	if !common.EnableOnMemStorage {
 		os.Remove(t.Name() + ".db")
@@ -358,8 +356,6 @@ func TestParallelQueryIssue(t *testing.T) {
 }
 
 func TestParallelQueryIssueSelectUpdate(t *testing.T) {
-	t.Parallel()
-
 	// clear all state of DB
 	if !common.EnableOnMemStorage {
 		os.Remove(t.Name() + ".db")
@@ -416,8 +412,8 @@ func TestParallelQueryIssueSelectUpdate(t *testing.T) {
 				allCnt++
 				if recvRslt[1] == -1 {
 					// may be update
-					//commitedCnt++
-					abotedCnt++
+					commitedCnt++
+					//abotedCnt++
 				} else {
 					commitedCnt++
 					testingpkg.Assert(t, recvRslt[0] == recvRslt[1], "failed to select val: "+strconv.Itoa(int(recvRslt[0])))
@@ -437,9 +433,9 @@ func TestParallelQueryIssueSelectUpdate(t *testing.T) {
 			}
 			if recvRslt[1] == -1 {
 				// may be update
-				//commitedCnt++
+				commitedCnt++
 
-				abotedCnt++
+				//abotedCnt++
 			} else {
 				commitedCnt++
 				testingpkg.Assert(t, recvRslt[0] == recvRslt[1], "failed to select val: "+strconv.Itoa(int(recvRslt[0])))
@@ -463,7 +459,7 @@ func TestParallelQueryIssueSelectUpdate(t *testing.T) {
 			}
 
 			if results != nil && len(results) > 0 { // may be select
-				fmt.Println(results)
+				//fmt.Println(results)
 				gotValue := results[0][0].(int32)
 				ch <- [2]int32{queryVal, gotValue}
 			} else { // may be update
