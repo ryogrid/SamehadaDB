@@ -92,14 +92,8 @@ func GetPonterOfValue(value types.Value) *types.Value {
 func GetRandomStr(maxLength int32) *string {
 	alphabets :=
 		"ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz!#$%&'(),-./:;<=>?@[]^_`{|}~"
-	//"ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz"
 	var len_ int
-	//for len_ < 50 {
-	//	len_ = 1 + (rand.Intn(math.MaxInt32))%(int(maxLength)-1)
-	//}
 	len_ = 1 + (rand.Intn(math.MaxInt32))%(int(maxLength)-1)
-
-	//len_ = 50
 
 	s := ""
 	for j := 0; j < len_; j++ {
@@ -130,11 +124,6 @@ func IsContainList[T comparable](list interface{}, searchItem interface{}) bool 
 	return false
 }
 
-//func GetParentFuncName() string {
-//	_, name, _, _ := runtime.Caller(1)
-//	return name
-//}
-
 // maxVal is *int32 when get int32 and float32
 func GetRandomPrimitiveVal[T int32 | float32 | string](keyType types.TypeID, maxVal interface{}) T {
 	switch keyType {
@@ -154,21 +143,10 @@ func GetRandomPrimitiveVal[T int32 | float32 | string](keyType types.TypeID, max
 		var ret interface{} = val
 		return ret.(T)
 	case types.Float:
-		//var ret interface{}
-		//specifiedMax, ok := maxVal.(float32)
-		//if ok {
-		//	ret = specifiedMax * rand.Float32()
-		//} else {
-		//	ret = rand.Float32()
-		//}
-		//val := 100.0 + rand.Float32()
-		//val := rand.Float32()
 		val := rand.Int31n(0xFFFF)
 		var ret interface{} = float32(val)
 		return ret.(T)
 	case types.Varchar:
-		//var ret interface{} = *samehada_util.GetRandomStr(1000)
-		//var ret interface{} = *GetRandomStr(500)
 		var ret interface{} = *GetRandomStr(200)
 		return ret.(T)
 	default:
@@ -215,10 +193,7 @@ func StrideAdd(base interface{}, k interface{}) interface{} {
 		return base.(int32) + k.(int32)
 	case float32:
 		return base.(float32) + float32(k.(int32))
-		//return base.(float32) * float32(math.Pow(1.05, float64(k.(int32))))
 	case string:
-		//buf := make([]byte, k.(int32))
-		//memset(buf, 'Z')
 		return base.(string) + "+" + strconv.Itoa(int(k.(int32)))
 	default:
 		panic("not supported type")
@@ -232,9 +207,6 @@ func StrideMul(base interface{}, k interface{}) interface{} {
 	case float32:
 		return base.(float32) * float32(k.(int32))
 	case string:
-		//return "DEADBEAF" + base.(string)
-		//buf := make([]byte, k.(int32))
-		//memset(buf, 'A')
 		return base.(string) + "*" + strconv.Itoa(int(k.(int32)))
 	default:
 		panic("not supported type")
@@ -338,7 +310,7 @@ func EncodeValueAndRIDToDicOrderComparableVarchar(orgVal *types.Value, rid *page
 		arrToFill = append(arrToFill, convedBytes[3:]...)
 		// value {0,0,0,0} is for avoiding revesed dict ordering
 		// ex: "abcde" should be bigger than "abcd" conbined any RID value
-		//     on UTF-9, no charactor exist whose numeric representation is lesser than 0x00000000 at byte unit dict order
+		//     on UTF-8, no charactor exist whose numeric representation is lesser than 0x00000000 at byte unit dict order
 		arrToFill = append(arrToFill, []byte{0, 0, 0, 0}...)
 		arrToFill = append(arrToFill, types.UInt64(PackRIDtoUint64(rid)).Serialize()...)
 		//fmt.Println(arrToFill)

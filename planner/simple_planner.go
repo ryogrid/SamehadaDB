@@ -113,7 +113,6 @@ func (pner *SimplePlanner) MakeSelectPlanWithJoin() (error, plans.Plan) {
 	{
 		var columns []*column.Column = make([]*column.Column, 0)
 		for _, col := range tgtTblColumnsL {
-			//columns = append(columns, column.NewColumn(tblNameL+"."+col.GetColumnName(), col.GetType(), false, index_constants.INDEX_KIND_INVALID, types.PageID(-1), col.GetExpr()))
 			columns = append(columns, column.NewColumn(col.GetColumnName(), col.GetType(), false, index_constants.INDEX_KIND_INVALID, types.PageID(-1), col.GetExpr()))
 		}
 		outSchemaL = schema.NewSchema(columns)
@@ -123,9 +122,8 @@ func (pner *SimplePlanner) MakeSelectPlanWithJoin() (error, plans.Plan) {
 	var outSchemaR *schema.Schema
 	var scanPlanR plans.Plan
 	{
-		var columns []*column.Column = make([]*column.Column, 0)
+		var columns = make([]*column.Column, 0)
 		for _, col := range tgtTblColumnsR {
-			//columns = append(columns, column.NewColumn(tblNameR+"."+col.GetColumnName(), col.GetType(), false, index_constants.INDEX_KIND_INVALID, types.PageID(-1), col.GetExpr()))
 			columns = append(columns, column.NewColumn(col.GetColumnName(), col.GetType(), false, index_constants.INDEX_KIND_INVALID, types.PageID(-1), col.GetExpr()))
 		}
 		outSchemaR = schema.NewSchema(columns)
@@ -144,13 +142,11 @@ func (pner *SimplePlanner) MakeSelectPlanWithJoin() (error, plans.Plan) {
 		colValR := expression.MakeColumnValueExpression(outSchemaR, 1, *pner.qi.OnExpressions_.Right_.(*string))
 
 		for _, colDef := range tgtTblColumnsL {
-			//col := column.NewColumn(tblNameL+"."+colDef.GetColumnName(), colDef.GetType(), false, index_constants.INDEX_KIND_INVALID, types.PageID(-1), colDef.GetExpr())
 			col := column.NewColumn(colDef.GetColumnName(), colDef.GetType(), false, index_constants.INDEX_KIND_INVALID, types.PageID(-1), colDef.GetExpr())
 			col.SetIsLeft(true)
 			finalOutCols = append(finalOutCols, col)
 		}
 		for _, colDef := range tgtTblColumnsR {
-			//col := column.NewColumn(tblNameR+"."+colDef.GetColumnName(), colDef.GetType(), false, index_constants.INDEX_KIND_INVALID, types.PageID(-1), colDef.GetExpr())
 			col := column.NewColumn(colDef.GetColumnName(), colDef.GetType(), false, index_constants.INDEX_KIND_INVALID, types.PageID(-1), colDef.GetExpr())
 			col.SetIsLeft(false)
 			finalOutCols = append(finalOutCols, col)
@@ -269,7 +265,6 @@ func (pner *SimplePlanner) MakeCreateTablePlan() (error, plans.Plan) {
 
 	columns := make([]*column.Column, 0)
 	for _, cdefExp := range pner.qi.ColDefExpressions_ {
-		//columns = append(columns, column.NewColumn(*cdefExp.ColName_, *cdefExp.ColType_, false, index_constants.INDEX_KIND_INVALID, types.PageID(-1), nil))
 		columns = append(columns, column.NewColumn(*cdefExp.ColName_, *cdefExp.ColType_, true, index_constants.INDEX_KIND_SKIP_LIST, types.PageID(-1), nil))
 	}
 	schema_ := schema.NewSchema(columns)

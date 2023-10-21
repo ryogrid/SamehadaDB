@@ -24,14 +24,11 @@ type BufferPoolManager struct {
 	pageTable   map[types.PageID]FrameID
 	log_manager *recovery.LogManager
 	mutex       *sync.Mutex
-	//// when using go-dedlock package
-	//mutex *deadlock.Mutex
 }
 
 // FetchPage fetches the requested page from the buffer pool.
 func (b *BufferPoolManager) FetchPage(pageID types.PageID) *page.Page {
 	// if it is on buffer pool return it
-	//b.mutex.WLock()
 	b.mutex.Lock()
 	if frameID, ok := b.pageTable[pageID]; ok {
 		if frameID == DEALLOCATED_FRAME {

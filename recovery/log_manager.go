@@ -26,13 +26,11 @@ type LogManager struct {
 	next_lsn types.LSN
 	/** The log records before and including the persistent lsn have been written to disk. */
 	// TODO: (SDB) must ensure atomicity if current locking becomes not enough
-	persistent_lsn types.LSN
-	log_buffer     []byte
-	flush_buffer   []byte
-	latch          common.ReaderWriterLatch
-	wlog_mutex     *sync.Mutex
-	//flush_thread   *thread //__attribute__((__unused__));
-	//cv           condition_variable
+	persistent_lsn  types.LSN
+	log_buffer      []byte
+	flush_buffer    []byte
+	latch           common.ReaderWriterLatch
+	wlog_mutex      *sync.Mutex
 	disk_manager    *disk.DiskManager //__attribute__((__unused__));
 	isEnableLogging bool
 }
@@ -55,9 +53,6 @@ func (log_manager *LogManager) GetNextLSN() types.LSN       { return log_manager
 func (log_manager *LogManager) SetNextLSN(lsnVal types.LSN) { log_manager.next_lsn = lsnVal }
 func (log_manager *LogManager) GetPersistentLSN() types.LSN { return log_manager.persistent_lsn }
 
-//func (log_manager *LogManager) SetPersistentLSN(lsn types.LSN) { log_manager.persistent_lsn = lsn }
-//func (log_manager *LogManager) GetLogBuffer() []byte           { return log_manager.log_buffer }
-
 func (log_manager *LogManager) Flush() {
 	// TODO: (SDB) need fix to occur buffer swap when already running flushing?
 
@@ -74,7 +69,6 @@ func (log_manager *LogManager) Flush() {
 	log_manager.offset = 0
 
 	// swap address of two buffers
-	//swap(log_manager.log_buffer, log_manager.flush_buffer)
 	tmp_p := log_manager.flush_buffer
 	log_manager.flush_buffer = log_manager.log_buffer
 	log_manager.log_buffer = tmp_p
@@ -106,23 +100,7 @@ func (log_manager *LogManager) IsEnabledLogging() bool { return log_manager.isEn
 
 /*
 * append a log record into log buffer
-* you MUST set the log record's lsn within this method
-* @return: lsn that is assigned to this log record
-*
-*
-* example below
-* // First, serialize the must have fields(20 bytes in total)
-* log_record.lsn_ = next_lsn_++;
-* memcpy(log_buffer_ + offset_, &log_record, 20);
-* int pos = offset_ + 20;
-*
-* if (log_record.log_record_type_ == LogRecordType::INSERT) {
-*    memcpy(log_buffer_ + pos, &log_record.insert_rid_, sizeof(RID));
-*    pos += sizeof(RID);
-*    // we have provided serialize function for tuple class
-*    log_record.insert_tuple_.SerializeTo(log_buffer_ + pos);
-*  }
-*
+* return: lsn that is assigned to this log record
  */
 func (log_manager *LogManager) AppendLogRecord(log_record *LogRecord) types.LSN {
 	// First, serialize the must have fields(20 bytes in total)

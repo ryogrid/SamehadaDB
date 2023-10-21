@@ -158,7 +158,6 @@ func TestRebootWithLoadAndRecovery(t *testing.T) {
 
 	// close db and log file
 	db.ShutdownForTescase()
-	//db.Shutdown()
 
 	// relaunch using TestRebootWithLoadAndRecovery.log files
 	// load of db file and redo/undo process runs
@@ -171,7 +170,6 @@ func TestRebootWithLoadAndRecovery(t *testing.T) {
 
 	// close db and log file
 	db2.ShutdownForTescase()
-	//db2.Shutdown()
 
 	// relaunch using TestRebootWithLoadAndRecovery.db and TestRebootWithLoadAndRecovery.log files
 	// load of db file and redo/undo process runs
@@ -216,7 +214,6 @@ func TestRebootAndReturnIFValues(t *testing.T) {
 
 	// close db and log file
 	db.ShutdownForTescase()
-	//db.Shutdown()
 
 	// relaunch
 	// load of db file and redo/undo process runs
@@ -232,7 +229,6 @@ func TestRebootAndReturnIFValues(t *testing.T) {
 
 	// close db and log file
 	db2.ShutdownForTescase()
-	//db2.Shutdown()
 
 	// relaunch
 	// load of db file and redo/undo process runs
@@ -419,7 +415,6 @@ func TestParallelQueryIssueSelectUpdate(t *testing.T) {
 				if recvRslt[1] == -1 {
 					// may be update
 					commitedCnt++
-					//abotedCnt++
 				} else {
 					commitedCnt++
 					testingpkg.Assert(t, recvRslt[0] == recvRslt[1], "failed to select val: "+strconv.Itoa(int(recvRslt[0])))
@@ -440,8 +435,6 @@ func TestParallelQueryIssueSelectUpdate(t *testing.T) {
 			if recvRslt[1] == -1 {
 				// may be update
 				commitedCnt++
-
-				//abotedCnt++
 			} else {
 				commitedCnt++
 				testingpkg.Assert(t, recvRslt[0] == recvRslt[1], "failed to select val: "+strconv.Itoa(int(recvRslt[0])))
@@ -507,8 +500,6 @@ func TestRebootAndReturnIFValuesWithCheckpoint(t *testing.T) {
 	db.ExecuteSQL("INSERT INTO name_age_list(name, age) VALUES ('木村', 18);")
 	db.ExecuteSQL("DELETE from name_age_list WHERE age = 20;")
 
-	//db.ForceCheckpointingForTestcase()
-
 	db.ExecuteSQL("UPDATE name_age_list SET name = '鮫肌' WHERE age <= 20;")
 	db.ExecuteSQL("UPDATE name_age_list SET name = 'lksaｊぁｓあいえあいえじゃｓｌｋｆｄじゃか' WHERE name = 'saklasjさいあｐしえあｓｄｋあｌｋ;ぢえああ';")
 	_, results1 := db.ExecuteSQL("SELECT * FROM name_age_list WHERE name = '鮫肌';")
@@ -519,7 +510,6 @@ func TestRebootAndReturnIFValuesWithCheckpoint(t *testing.T) {
 	testingpkg.SimpleAssert(t, len(results1) == 2)
 
 	// close db and stop checkpointing thread
-	//db.Shutdown()
 	db.ShutdownForTescase()
 
 	// relaunch

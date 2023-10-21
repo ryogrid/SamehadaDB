@@ -2,8 +2,6 @@ package hash
 
 import "github.com/ryogrid/SamehadaDB/types"
 
-// Document this class! What does it represent?
-
 // when doing hash join
 // we create a temp page to store all the tuple from left table which corresponds to the input key from right tuple
 // so that we can refer to this page when calling Next from the hash join executor

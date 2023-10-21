@@ -20,21 +20,15 @@ import (
 type UpdateExecutor struct {
 	context *ExecutorContext
 	plan    *plans.UpdatePlanNode
-	//tableMetadata *catalog.TableMetadata
-	//it            *access.TableHeapIterator
-	child Executor
-	txn   *access.Transaction
+	child   Executor
+	txn     *access.Transaction
 }
 
 func NewUpdateExecutor(context *ExecutorContext, plan *plans.UpdatePlanNode, child Executor) Executor {
-	//tableMetadata := context.GetCatalog().GetTableByOID(plan.GetTableOID())
-
-	//return &UpdateExecutor{context, plan, tableMetadata, nil, context.GetTransaction()}
 	return &UpdateExecutor{context, plan, child, context.GetTransaction()}
 }
 
 func (e *UpdateExecutor) Init() {
-	//e.it = e.tableMetadata.Table().Iterator(e.txn)
 	e.child.Init()
 }
 
@@ -66,7 +60,6 @@ func (e *UpdateExecutor) Next() (*tuple.Tuple, Done, error) {
 		var new_rid *page.RID = nil
 		var updateErr error = nil
 		var updateTuple *tuple.Tuple
-		//var oldTuple *tuple.Tuple
 		if e.plan.GetUpdateColIdxs() == nil {
 			is_updated, new_rid, updateErr, updateTuple, _ = e.child.GetTableMetaData().Table().UpdateTuple(new_tuple, nil, nil, e.child.GetTableMetaData().OID(), *rid, e.txn, false)
 		} else {
@@ -100,20 +93,10 @@ func (e *UpdateExecutor) Next() (*tuple.Tuple, Done, error) {
 						fmt.Println("DeleteEntry due to ErrPartialUpdate occured.")
 						index_.DeleteEntry(t, *rid, e.txn)
 
-						//if updateErr != access.ErrPartialUpdate {
-						//	fmt.Println("UpdateExecuter: index entry insert with new_rid. value update of index entry occurs.")
-						//	//index_.InsertEntry(new_tuple, *new_rid, e.txn)
-						//	index_.InsertEntry(updateTuple, *new_rid, e.txn)
-						//}
-
 						// do nothing
 					} else if new_rid != nil {
-						//index_.DeleteEntry(t, *rid, e.txn)
-						//index_.InsertEntry(updateTuple, *new_rid, e.txn)
 						index_.UpdateEntry(t, *rid, updateTuple, *new_rid, e.txn)
 					} else {
-						//index_.DeleteEntry(t, *rid, e.txn)
-						//index_.InsertEntry(updateTuple, *rid, e.txn)
 						index_.UpdateEntry(t, *rid, updateTuple, *rid, e.txn)
 					}
 				} else {
@@ -138,16 +121,10 @@ func (e *UpdateExecutor) Next() (*tuple.Tuple, Done, error) {
 	return nil, true, nil
 }
 
-//// select evaluates an expression on the tuple
-//func (e *UpdateExecutor) selects(tuple *tuple.Tuple, predicate expression.Expression) bool {
-//	return predicate == nil || predicate.Evaluate(tuple, e.child.GetTableMetaData().Schema()).ToBoolean()
-//}
-
 func (e *UpdateExecutor) GetOutputSchema() *schema.Schema {
 	return e.plan.OutputSchema()
 }
 
 func (e *UpdateExecutor) GetTableMetaData() *catalog.TableMetadata {
-	//return e.tableMetadata
 	return e.child.GetTableMetaData()
 }

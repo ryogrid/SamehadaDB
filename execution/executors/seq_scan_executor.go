@@ -28,8 +28,6 @@ type SeqScanExecutor struct {
 // NewSeqScanExecutor creates a new sequential executor
 func NewSeqScanExecutor(context *ExecutorContext, plan *plans.SeqScanPlanNode) Executor {
 	tableMetadata := context.GetCatalog().GetTableByOID(plan.GetTableOID())
-	//txn := access.NewTransaction(1)
-	//catalog := context.GetCatalog()
 
 	return &SeqScanExecutor{context, plan, tableMetadata, nil, context.GetTransaction()}
 }
@@ -49,10 +47,6 @@ func (e *SeqScanExecutor) Next() (*tuple.Tuple, Done, error) {
 			err := errors.New("e.it.Next returned nil")
 			return nil, true, err
 		}
-
-		//if e.plan.OutputSchema().GetColumn(0).GetType() == types.Integer {
-		//	fmt.Printf("%d\n", t.GetValue(e.plan.OutputSchema(), 0).ToInteger())
-		//}
 
 		if e.selects(t, e.plan.GetPredicate()) {
 			break
@@ -76,16 +70,12 @@ func (e *SeqScanExecutor) selects(tuple *tuple.Tuple, predicate expression.Expre
 }
 
 // project applies the projection operator defined by the output schema
-// It transform the tuple into a new tuple that corresponds to the output schema
 func (e *SeqScanExecutor) projects(tuple_ *tuple.Tuple) *tuple.Tuple {
 	outputSchema := e.plan.OutputSchema()
 
 	values := []types.Value{}
 	for i := uint32(0); i < outputSchema.GetColumnCount(); i++ {
 		colName := outputSchema.GetColumns()[i].GetColumnName()
-		//if strings.Contains(colName, ".") {
-		//	colName = strings.Split(colName, ".")[1]
-		//}
 
 		colIndex := e.tableMetadata.Schema().GetColIndex(colName)
 		values = append(values, tuple_.GetValue(e.tableMetadata.Schema(), colIndex))

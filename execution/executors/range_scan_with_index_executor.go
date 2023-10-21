@@ -21,16 +21,14 @@ type RangeScanWithIndexExecutor struct {
 	context       *ExecutorContext
 	plan          *plans.RangeScanWithIndexPlanNode
 	tableMetadata *catalog.TableMetadata
-	//it            *access.TableHeapIterator
-	txn    *access.Transaction
-	ridItr index.IndexRangeScanIterator
-	//foundTuples []*tuple.Tuple
+	txn           *access.Transaction
+	ridItr        index.IndexRangeScanIterator
 }
 
 func NewRangeScanWithIndexExecutor(context *ExecutorContext, plan *plans.RangeScanWithIndexPlanNode) Executor {
 	tableMetadata := context.GetCatalog().GetTableByOID(plan.GetTableOID())
 
-	return &RangeScanWithIndexExecutor{context, plan, tableMetadata, context.GetTransaction(), nil} //, make([]*tuple.Tuple, 0)}
+	return &RangeScanWithIndexExecutor{context, plan, tableMetadata, context.GetTransaction(), nil}
 }
 
 func (e *RangeScanWithIndexExecutor) Init() {
@@ -116,7 +114,6 @@ func (e *RangeScanWithIndexExecutor) selects(tuple *tuple.Tuple, predicate expre
 }
 
 // project applies the projection operator defined by the output schema
-// It transform the tuple into a new tuple that corresponds to the output schema
 func (e *RangeScanWithIndexExecutor) projects(tuple_ *tuple.Tuple) *tuple.Tuple {
 	outputSchema := e.plan.OutputSchema()
 

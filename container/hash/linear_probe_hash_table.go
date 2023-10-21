@@ -169,18 +169,13 @@ func (ht *LinearProbeHashTable) Remove(key []byte, value uint32) {
 	ht.bpm.UnpinPage(ht.headerPageId, false)
 }
 
-// func (ht *LinearProbeHashTable) hash(key int) int {
 func (ht *LinearProbeHashTable) hash(key []byte) uint32 {
 	h := murmur3.New128()
-	//bs := make([]byte, 4)
-	//binary.LittleEndian.PutUint32(bs, uint32(key))
 
-	//h.Write(bs)
 	h.Write(key)
 
 	hash := h.Sum(nil)
 
-	//return int(binary.LittleEndian.Uint32(hash))
 	return binary.LittleEndian.Uint32(hash)
 }
 

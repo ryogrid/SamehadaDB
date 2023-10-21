@@ -358,7 +358,6 @@ func TestUniqSkipListSerialIndexRangeScan(t *testing.T) {
 		tmpColVal.SetColIndex(tableMetadata.Schema().GetColIndex(pred.LeftColumn))
 		expression_ := expression.NewComparison(tmpColVal, expression.NewConstantValue(testing_util.GetValue(pred.RightColumn), testing_util.GetValueType(pred.RightColumn)), pred.Operator, types.Boolean)
 
-		//seqScanPlan := plans.NewSeqScanPlanNode(tableMetadata.Schema(), expression_, tableMetadata.OID())
 		skipListPointScanP := plans.NewPointScanWithIndexPlanNode(c, tableMetadata.Schema(), expression_.(*expression.Comparison), tableMetadata.OID())
 		updatePlanNode := plans.NewUpdatePlanNode(row1, []int{0, 1}, skipListPointScanP)
 		executionEngine.Execute(updatePlanNode, executorContext)
@@ -603,7 +602,6 @@ func createBalanceUpdatePlanNode[T int32 | float32 | string](keyColumnVal T, new
 
 	pred := testing_pattern_fw.Predicate{"account_id", expression.Equal, keyColumnVal}
 	tmpColVal := new(expression.ColumnValue)
-	//tmpColVal.SetTupleIndex(0)
 	tmpColVal.SetColIndex(tm.Schema().GetColIndex(pred.LeftColumn))
 	expression_ := expression.NewComparison(tmpColVal, expression.NewConstantValue(testing_util.GetValue(pred.RightColumn), testing_util.GetValueType(pred.RightColumn)), pred.Operator, types.Boolean)
 
@@ -617,8 +615,6 @@ func createBalanceUpdatePlanNode[T int32 | float32 | string](keyColumnVal T, new
 		panic("not implemented!")
 	}
 	updatePlanNode := plans.NewUpdatePlanNode(row, []int{1}, skipListPointScanP)
-	//updatePlanNode := plans.NewUpdatePlanNode(row, []int{0, 1}, skipListPointScanP)
-	//updatePlanNode := plans.NewUpdatePlanNode(row, nil, skipListPointScanP)
 
 	return updatePlanNode
 }
@@ -638,7 +634,6 @@ func createSpecifiedValInsertPlanNode[T int32 | float32 | string](keyColumnVal T
 func createSpecifiedValDeletePlanNode[T int32 | float32 | string](keyColumnVal T, c *catalog.Catalog, tm *catalog.TableMetadata, keyType types.TypeID, indexKind index_constants.IndexKind) (createdPlan plans.Plan) {
 	pred := testing_pattern_fw.Predicate{"account_id", expression.Equal, keyColumnVal}
 	tmpColVal := new(expression.ColumnValue)
-	//tmpColVal.SetTupleIndex(0)
 	tmpColVal.SetColIndex(tm.Schema().GetColIndex(pred.LeftColumn))
 	expression_ := expression.NewComparison(tmpColVal, expression.NewConstantValue(testing_util.GetValue(pred.RightColumn), testing_util.GetValueType(pred.RightColumn)), pred.Operator, types.Boolean)
 
@@ -662,7 +657,6 @@ func createAccountIdUpdatePlanNode[T int32 | float32 | string](keyColumnVal T, n
 
 	pred := testing_pattern_fw.Predicate{"account_id", expression.Equal, keyColumnVal}
 	tmpColVal := new(expression.ColumnValue)
-	//tmpColVal.SetTupleIndex(0)
 	tmpColVal.SetColIndex(tm.Schema().GetColIndex(pred.LeftColumn))
 	expression_ := expression.NewComparison(tmpColVal, expression.NewConstantValue(testing_util.GetValue(pred.RightColumn), testing_util.GetValueType(pred.RightColumn)), pred.Operator, types.Boolean)
 
@@ -683,7 +677,6 @@ func createAccountIdUpdatePlanNode[T int32 | float32 | string](keyColumnVal T, n
 func createSpecifiedPointScanPlanNode[T int32 | float32 | string](getKeyVal T, c *catalog.Catalog, tm *catalog.TableMetadata, keyType types.TypeID, indexKind index_constants.IndexKind) (createdPlan plans.Plan) {
 	pred := testing_pattern_fw.Predicate{"account_id", expression.Equal, getKeyVal}
 	tmpColVal := new(expression.ColumnValue)
-	//tmpColVal.SetTupleIndex(0)
 	tmpColVal.SetColIndex(tm.Schema().GetColIndex(pred.LeftColumn))
 	expression_ := expression.NewComparison(tmpColVal, expression.NewConstantValue(testing_util.GetValue(pred.RightColumn), testing_util.GetValueType(pred.RightColumn)), pred.Operator, types.Boolean)
 
@@ -767,9 +760,6 @@ func testParallelTxnsQueryingUniqSkipListIndexUsedColumns[T int32 | float32 | st
 	tableMetadata := c.CreateTable("test_1", schema_, txn)
 	txnMgr.Commit(nil, txn)
 
-	// ignored when execType is SERIAL_EXEC
-	//const THREAD_NUM = 20 //1 // 10 //20 // 2
-
 	rand.Seed(int64(seedVal))
 
 	insVals := make([]T, 0)
@@ -818,13 +808,6 @@ func testParallelTxnsQueryingUniqSkipListIndexUsedColumns[T int32 | float32 | st
 	insertedTupleCnt += ACCOUNT_NUM
 
 	handleFnishedTxn := func(catalog_ *catalog.Catalog, txn_mgr *access.TransactionManager, txn *access.Transaction) bool {
-		//// TODO: for debugging
-		//var randVal int
-		//randVal = rand.Intn(3)
-		//if randVal == 0 || randVal == 1 {
-		//	txn.SetState(access.ABORTED)
-		//}
-
 		// fmt.Println(txn.GetState())
 		if txn.GetState() == access.ABORTED {
 			// fmt.Println(txn.GetSharedLockSet())
@@ -849,8 +832,7 @@ func testParallelTxnsQueryingUniqSkipListIndexUsedColumns[T int32 | float32 | st
 			casted := val.(string)
 			byteArr := make([]byte, len(casted))
 			copy(byteArr, casted)
-			//return int32(hash.GenHashMurMur(byteArr)) % (math.MaxInt32 / stride)
-			return int32(hash.GenHashMurMur(byteArr)) //% (math.MaxInt32 / stride)
+			return int32(hash.GenHashMurMur(byteArr))
 		default:
 			panic("unsupported type!")
 		}
@@ -867,7 +849,6 @@ func testParallelTxnsQueryingUniqSkipListIndexUsedColumns[T int32 | float32 | st
 			goto retry0
 		}
 		checkBalanceColDupMap[balanceVal] = balanceVal
-		//checkKeyColDupMap[keyValBase] = keyValBase
 
 		for ii := int32(0); ii < stride; ii++ {
 			insKeyVal := samehada_util.StrideAdd(samehada_util.StrideMul(keyValBase, stride), ii).(T)
@@ -960,7 +941,6 @@ func testParallelTxnsQueryingUniqSkipListIndexUsedColumns[T int32 | float32 | st
 		for ii := 0; ii < ACCOUNT_NUM; ii++ {
 			selPlan := createSpecifiedPointScanPlanNode(accountIds[ii], c, tableMetadata, keyType, indexKind)
 			results := executePlan(c, shi.GetBufferPoolManager(), txn_, selPlan)
-			//common.SH_Assert(txn_.GetState() != access.ABORTED, "txn state should not be ABORTED!")
 			if txn_.GetState() == access.ABORTED {
 				handleFnishedTxn(c, txnMgr, txn_)
 				return
@@ -973,10 +953,6 @@ func testParallelTxnsQueryingUniqSkipListIndexUsedColumns[T int32 | float32 | st
 	}
 
 	finalizeAccountUpdateTxn := func(txn_ *access.Transaction, oldBalance1 int32, oldBalance2 int32, newBalance1 int32, newBalance2 int32) {
-		//if rand.Intn(3) == 0 {
-		//	txn_.SetState(access.ABORTED)
-		//}
-
 		txnOk := handleFnishedTxn(c, txnMgr, txn_)
 
 		if txnOk {
@@ -996,7 +972,6 @@ func testParallelTxnsQueryingUniqSkipListIndexUsedColumns[T int32 | float32 | st
 		txnOk := handleFnishedTxn(c, txnMgr, txn_)
 		if txnOk {
 			insValsAppendWithLock(insKeyValBase)
-			//putCheckMapEntriesWithLock(insKeyValBase)
 			atomic.AddInt32(&insertedTupleCnt, stride)
 			atomic.AddInt32(&commitedTxnCnt, 1)
 		} else {
@@ -1030,7 +1005,6 @@ func testParallelTxnsQueryingUniqSkipListIndexUsedColumns[T int32 | float32 | st
 			// append new base value
 			insValsAppendWithLock(newKeyValBase)
 			deleteCheckMapEntriesWithLock(oldKeyValBase)
-			//deleteCheckMapEntriesWithLock(newKeyValBase)
 			atomic.AddInt32(&commitedTxnCnt, 1)
 		} else {
 			// rollback removed element
@@ -1056,7 +1030,6 @@ func testParallelTxnsQueryingUniqSkipListIndexUsedColumns[T int32 | float32 | st
 
 		// wait for keeping THREAD_NUM groroutine existing
 		for runningThCnt >= threadNum && execType == PARALLEL_EXEC {
-			//for runningThCnt > 0 { // serial execution
 			<-ch
 			runningThCnt--
 
@@ -1067,58 +1040,6 @@ func testParallelTxnsQueryingUniqSkipListIndexUsedColumns[T int32 | float32 | st
 		// get 0-7
 		opType := rand.Intn(8)
 
-		//// move money, random Insert, Delete
-		//opType := rand.Intn(4)
-
-		//// move money, Random Insert, Randome Delete, Random Update
-		//opType := rand.Intn(5)
-
-		//// move money, Random Insert, Randome Delete, Random Update, Random Point Scan
-		//opType := rand.Intn(7)
-
-		//// Random Insert only
-		//opType := 1
-
-		//// Random Isert and Random Delete only
-		//opType := rand.Intn(3)
-		//opType += 1
-
-		//// move money, Random Insert, Randome Delete, Random Update, Random Point Scan, Random Range Scan
-		//opType := rand.Intn(8)
-
-		//// move money, Random Insert, Randome Delete, (Random Update), Random Point Scan, Random Range Scan
-		//opType := rand.Intn(7)
-		//if opType >= 4 {
-		//	opType = opType + 1
-		//}
-
-		//// (move money), Random Insert, Randome Delete, (Random Update), Random Point Scan, Random Range Scan
-		//opType := rand.Intn(6)
-		//opType += 1
-		//if opType >= 4 {
-		//	opType = opType + 1
-		//}
-
-		//// move money, Random Insert, (Randome Delete), Random Update, Random Point Scan, Random Range Scan
-		//opType := rand.Intn(7)
-		//if opType >= 2 {
-		//	opType = opType + 1
-		//}
-
-		//// move money, Random Insert, Randome Delete, ,Random Point Scan, Random Range Scan
-		//opType := rand.Intn(7)
-		//if opType >= 4 {
-		//	opType += 1
-		//}
-
-		//// move money only
-		//opType := 0
-
-		//// move money, Random Insert, Random Update, Random Point Scan
-		//opType := rand.Intn(5)
-		//if opType >= 2 {
-		//	opType = opType + 2
-		//}
 		switch opType {
 		case 0: // Update two account balance (move money)
 			moveMoneyOpFunc := func() {
@@ -1140,7 +1061,6 @@ func testParallelTxnsQueryingUniqSkipListIndexUsedColumns[T int32 | float32 | st
 					return
 				}
 				if results1 == nil || len(results1) != 1 {
-					//time.Sleep(time.Second * 120)
 					panic("balance check failed(1).")
 				}
 				balance1 := results1[0].GetValue(tableMetadata.Schema(), 1).ToInteger()
@@ -1152,7 +1072,6 @@ func testParallelTxnsQueryingUniqSkipListIndexUsedColumns[T int32 | float32 | st
 					return
 				}
 				if results2 == nil || len(results2) != 1 {
-					//time.Sleep(time.Second * 120)
 					panic("balance check failed(2).")
 				}
 				balance2 := results2[0].GetValue(tableMetadata.Schema(), 1).ToInteger()
@@ -1191,7 +1110,6 @@ func testParallelTxnsQueryingUniqSkipListIndexUsedColumns[T int32 | float32 | st
 						checkBalanceColDupMapMutex.Unlock()
 						goto retry1_2
 					}
-					//putCheckBalanceColDupMapNewBalance(balance1, balance2, newBalance1, newBalance2)
 					checkBalanceColDupMapMutex.Unlock()
 					putCheckBalanceColDupMapNewBalance(newBalance1, newBalance2)
 				}
@@ -1270,7 +1188,6 @@ func testParallelTxnsQueryingUniqSkipListIndexUsedColumns[T int32 | float32 | st
 
 				for jj := int32(0); jj < stride; jj++ {
 					insKeyVal := samehada_util.StrideAdd(samehada_util.StrideMul(insKeyValBase, stride), jj).(T)
-					//insBalanceVal := getInt32ValCorrespondToPassVal(insKeyVal)
 					insBalanceVal := getNewAmountAndInc()
 
 					// because avoiding duplication at Float is hard
@@ -1303,7 +1220,6 @@ func testParallelTxnsQueryingUniqSkipListIndexUsedColumns[T int32 | float32 | st
 		case 2, 3: // Delete
 			// get 0-1 value
 			tmpRand := rand.Intn(2)
-			//tmpRand := 1
 			if tmpRand == 0 {
 				// 50% is Delete to not existing entry
 				randomDeleteFailOpFunc := func() {
@@ -1447,7 +1363,6 @@ func testParallelTxnsQueryingUniqSkipListIndexUsedColumns[T int32 | float32 | st
 				for jj := int32(0); jj < stride; jj++ {
 					updateKeyVal := samehada_util.StrideAdd(samehada_util.StrideMul(updateKeyValBase, stride), jj).(T)
 					updateNewKeyVal := samehada_util.StrideAdd(samehada_util.StrideMul(updateNewKeyValBase, stride), jj).(T)
-					//newBalanceVal := samehada_util.getInt32ValCorrespondToPassVal(updateKeyVal)
 
 					common.ShPrintf(common.DEBUGGING, "Update (random) op start.")
 
@@ -1467,7 +1382,6 @@ func testParallelTxnsQueryingUniqSkipListIndexUsedColumns[T int32 | float32 | st
 
 					common.SH_Assert(results1 != nil && len(results1) == 1, "Update failed!")
 
-					//updatePlan2 := createBalanceUpdatePlanNode(updateNewKeyVal, getInt32ValCorrespondToPassVal(updateNewKeyVal), c, tableMetadata, keyType, indexKind)
 					updatePlan2 := createBalanceUpdatePlanNode(updateNewKeyVal, getNewAmountAndInc(), c, tableMetadata, keyType, indexKind)
 
 					results2 := executePlan(c, shi.GetBufferPoolManager(), txn_, updatePlan2)
@@ -1557,9 +1471,6 @@ func testParallelTxnsQueryingUniqSkipListIndexUsedColumns[T int32 | float32 | st
 						}
 
 						common.SH_Assert(results != nil && len(results) == 1, "Select(success) should not be fail!")
-						//collectVal := types.NewInteger(getInt32ValCorrespondToPassVal(getKeyVal))
-						//gotVal := results[0].GetValue(tableMetadata.Schema(), 1)
-						//common.SH_Assert(gotVal.CompareEquals(collectVal), "value should be "+fmt.Sprintf("%d not %d", collectVal.ToInteger(), gotVal.ToInteger()))
 					}
 					finalizeRandomNoSideEffectTxn(txn_)
 					if execType == PARALLEL_EXEC {
@@ -1765,41 +1676,6 @@ func testParallelTxnsQueryingUniqSkipListIndexUsedColumns[T int32 | float32 | st
 	}
 	// --------------------------------------
 
-	//// check value duplication (second column)
-	//rsltCheckMap2 := make(map[int32]int32, 0)
-	//for _, tuple_ := range results2 {
-	//	val := tuple_.GetValue(tableMetadata.Schema(), 1).ToInteger()
-	//	if _, ok := rsltCheckMap2[val]; ok {
-	//		fmt.Printf("duplicated key found on result1! rid:%v val:%v\n", tuple_.GetRID(), val)
-	//	} else {
-	//		rsltCheckMap2[val] = val
-	//	}
-	//}
-	//
-	//// detect tuple which has illegal value at second column (unknown key based value)
-	//// -- make map having values which should be in DB
-	//okValMap2 := make(map[int32]int32, 0)
-	//for _, baseKey := range insVals {
-	//	for ii := int32(0); ii < stride; ii++ {
-	//		okValBasedKey := samehada_util.StrideAdd(samehada_util.StrideMul(baseKey, stride), ii).(T)
-	//		okVal := getInt32ValCorrespondToPassVal(okValBasedKey)
-	//		okValMap2[okVal] = okVal
-	//	}
-	//}
-	//// -- check values on results2
-	//okValListAccount := make([]int32, 0)
-	//for k, _ := range checkBalanceColDupMap {
-	//	okValListAccount = append(okValListAccount, k)
-	//}
-	//for _, tuple_ := range results2 {
-	//	val := tuple_.GetValue(tableMetadata.Schema(), 1).ToInteger()
-	//	if _, ok := okValMap2[val]; !ok {
-	//		if !samehada_util.IsContainList[int32](okValListAccount, val) {
-	//			fmt.Printf("illegal key found on result2! rid:%v val:%v\n", tuple_.GetRID(), val)
-	//		}
-	//	}
-	//}
-
 	// TODO: for debugging
 	fmt.Printf("NewRIDAtNormal:%v NewRIDAtRollback:%v\n", common.NewRIDAtNormal, common.NewRIDAtRollback)
 
@@ -1826,7 +1702,6 @@ func testParallelTxnsQueryingUniqSkipListIndexUsedColumns[T int32 | float32 | st
 
 func testUniqSkipListParallelTxnStrideRoot[T int32 | float32 | string](t *testing.T, keyType types.TypeID) {
 	bpoolSize := int32(500)
-	//bpoolSize := int32(100)
 
 	switch keyType {
 	case types.Integer:

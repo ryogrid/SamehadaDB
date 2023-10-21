@@ -16,8 +16,6 @@ import (
 const INITIAL_VAL_NUM = 300000
 const WORK_NUM = INITIAL_VAL_NUM / 10
 
-//const PASS_WORK_NUM = 200
-
 type opTypeAndVal struct {
 	OpType skip_list.SkipListOpType
 	Val    *types.Value
@@ -66,10 +64,6 @@ func (arr *workArray) Shuffle() {
 	rand.Shuffle(len(arr.arr), func(i, j int) { arr.arr[i], arr.arr[j] = arr.arr[j], arr.arr[i] })
 }
 
-// // get:remove = 8:2
-//
-//get:remove = 9:1
-//get:remove = 10:0
 func TestSkipListBench8_2(t *testing.T) {
 	if testing.Short() {
 		t.Skip("skip this in short mode.")
@@ -78,12 +72,10 @@ func TestSkipListBench8_2(t *testing.T) {
 	runtime.GOMAXPROCS(50)
 
 	threadNumArr := []int{1, 2, 3, 4, 5, 6, 12, 20, 50, 100}
-	//threadNumArr := []int{6}
 
 	masterCh := make(chan int)
 	// measure in each thread num
 	for ii := 0; ii < 10; ii++ {
-		//for ii := 0; ii < 1; ii++ {
 		sl, wArray := genInitialSLAndWorkArr(t.Name())
 		fmt.Println("setuped data.")
 		threadNum := threadNumArr[ii]
@@ -130,7 +122,6 @@ func TestSkipListBench8_2(t *testing.T) {
 func genInitialSLAndWorkArr(dbName string) (*skip_list.SkipList, *workArray) {
 	rand.Seed(5)
 
-	//shi := samehada.NewSamehadaInstance(dbName, 1024*1024) //4GB
 	//shi := samehada.NewSamehadaInstance(dbName, 2000) //cover about 10% filled data
 	shi := samehada.NewSamehadaInstance(dbName, 4000) //cover 100% of filled data
 	bpm := shi.GetBufferPoolManager()
@@ -140,7 +131,7 @@ func genInitialSLAndWorkArr(dbName string) (*skip_list.SkipList, *workArray) {
 
 	// insert initial values and fill work array
 	for ii := 0; ii < INITIAL_VAL_NUM; ii++ {
-		tmpValBase := ii //rand.Int31()
+		tmpValBase := ii
 		tmpVal := samehada_util.GetPonterOfValue(types.NewInteger(int32(tmpValBase)))
 		sl.Insert(tmpVal, uint64(tmpValBase))
 		if ii%WORK_NUM == 0 {

@@ -38,7 +38,6 @@ func (m *SH_Mutex) Unlock() {
 func RuntimeStack() error {
 	// channels
 	var (
-		//chSingle = make(chan []byte, 1)
 		chAll = make(chan []byte, 1)
 	)
 
@@ -60,22 +59,11 @@ func RuntimeStack() error {
 		}
 	)
 
-	////current goroutin only
-	//go func(ch chan<- []byte) {
-	//	defer close(ch)
-	//	ch <- getStack(false)
-	//}(chSingle)
-
 	// all goroutin
 	go func(ch chan<- []byte) {
 		defer close(ch)
 		ch <- getStack(true)
 	}(chAll)
-
-	//// result of runtime.Stack(false)
-	//for v := range chSingle {
-	//	output.Stdoutl("=== stack-single", string(v))
-	//}
 
 	// result of runtime.Stack(true)
 	for v := range chAll {

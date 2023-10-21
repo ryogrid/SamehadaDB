@@ -13,8 +13,6 @@ type UpdatePlanNode struct {
 	rawValues       []types.Value
 	update_col_idxs []int
 	stats_          *catalog.TableStatistics
-	//predicate       expression.Expression
-	//tableOID        uint32
 }
 
 // if you update all column, you can specify nil to update_col_idxs. then all data of existed tuple is replaced with rawValues
@@ -28,10 +26,6 @@ func NewUpdatePlanNode(rawValues []types.Value, update_col_idxs []int, child Pla
 func (p *UpdatePlanNode) GetTableOID() uint32 {
 	return p.children[0].GetTableOID()
 }
-
-//func (p *UpdatePlanNode) GetPredicate() expression.Expression {
-//	return p.predicate
-//}
 
 func (p *UpdatePlanNode) GetType() PlanType {
 	return Delete

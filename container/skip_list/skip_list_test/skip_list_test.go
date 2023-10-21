@@ -37,7 +37,6 @@ func TestSerializationOfSkipLisBlockPage(t *testing.T) {
 		os.Remove(t.Name() + ".db")
 		os.Remove(t.Name() + ".log")
 	}
-	//shi := samehada.NewSamehadaInstance(t.Name(), common.BufferPoolMaxFrameNumForTest)
 	shi := samehada.NewSamehadaInstance(t.Name(), common.BufferPoolMaxFrameNumForTest)
 	bpm := shi.GetBufferPoolManager()
 
@@ -80,7 +79,6 @@ func TestSerializationOfSkipLisHeaderPage(t *testing.T) {
 	bpm := shi.GetBufferPoolManager()
 
 	hpage, _, _ := skip_list_page.NewSkipListHeaderPage(bpm, types.Integer)
-	//hpage := skip_list_page.FetchAndCastToHeaderPage(bpm, hpageId)
 
 	hpage.SetPageId(7)
 	hpage.SetLSN(7)
@@ -226,7 +224,6 @@ func TestBSearchOfSkipLisBlockPage(t *testing.T) {
 	for ii := 1; ii < 100; ii++ {
 		key := types.NewInteger(int32(ii * 5))
 		found, entry, idx := bpage.FindEntryByKey(&key)
-		//fmt.Println(ii)
 		if ii%2 == 0 {
 			testingpkg.SimpleAssert(t, found == true && entry.Value == uint64(key.ToInteger()))
 		} else {
@@ -249,7 +246,6 @@ func TestBSearchOfSkipLisBlockPage(t *testing.T) {
 	for ii := 1; ii < 102; ii++ {
 		key := types.NewInteger(int32(ii * 5))
 		found, entry, idx := bpage.FindEntryByKey(&key)
-		//fmt.Println(ii)
 		if ii%2 == 0 {
 			testingpkg.SimpleAssert(t, found == true && entry.Value == uint64(key.ToInteger()))
 		} else {
@@ -285,7 +281,6 @@ func TestBSearchOfSkipLisBlockPage2(t *testing.T) {
 		bpage.WLatch()
 		bpm.IncPinOfPage(bpage)
 		bpage.Insert(samehada_util.GetPonterOfValue(types.NewInteger(int32(ii*10))), uint64(ii*10), bpm, nil, 1)
-		//bpage.SetEntries(append(bpage.GetEntries(types.Integer), &skip_list_page.SkipListPair{types.NewInteger(int32(ii * 10)), uint64(ii * 10)}))
 	}
 	bpage.WLatch()
 	bpage.SetEntryCnt(int32(len(bpage.GetEntries(types.Integer))))
@@ -293,7 +288,6 @@ func TestBSearchOfSkipLisBlockPage2(t *testing.T) {
 	for ii := 1; ii < 100; ii++ {
 		key := types.NewInteger(int32(ii * 5))
 		found, entry, idx := bpage.FindEntryByKey(&key)
-		//fmt.Println(ii)
 		if ii%2 == 0 {
 			testingpkg.SimpleAssert(t, found == true && entry.Value == uint64(key.ToInteger()))
 		} else {
@@ -315,7 +309,6 @@ func TestBSearchOfSkipLisBlockPage2(t *testing.T) {
 		bpage.WLatch()
 		bpm.IncPinOfPage(bpage)
 		bpage.Insert(samehada_util.GetPonterOfValue(types.NewInteger(int32(ii*10))), uint64(ii*10), bpm, nil, 1)
-		//bpage.SetEntries(append(bpage.GetEntries(types.Integer), &skip_list_page.SkipListPair{types.NewInteger(int32(ii * 10)), uint64(ii * 10)}))
 	}
 	bpage.WLatch()
 	bpage.SetEntryCnt(int32(len(bpage.GetEntries(types.Integer))))
@@ -323,7 +316,6 @@ func TestBSearchOfSkipLisBlockPage2(t *testing.T) {
 	for ii := 1; ii < 102; ii++ {
 		key := types.NewInteger(int32(ii * 5))
 		found, entry, idx := bpage.FindEntryByKey(&key)
-		//fmt.Println(ii)
 		if ii%2 == 0 {
 			testingpkg.SimpleAssert(t, found == true && entry.Value == uint64(key.ToInteger()))
 		} else {
@@ -363,69 +355,6 @@ func confirmSkipListContent(t *testing.T, sl *skip_list.SkipList, step int32) in
 }
 
 /*
-func TestSkipListSimple(t *testing.T) {
-	t.Parallel()
-	if !common.EnableOnMemStorage {
-		os.Remove(t.Name() + ".db")
-		os.Remove(t.Name() + ".log")
-	}
-
-	shi := samehada.NewSamehadaInstance(t.Name(), common.BufferPoolMaxFrameNumForTest)
-	sl := skip_list.NewSkipList(shi.GetBufferPoolManager(), types.Integer)
-
-	// override global rand seed (seed has been set on NewSkipList)
-	rand.Seed(3)
-
-	insVals := make([]int32, 0)
-	for i := 0; i < 250; i++ {
-		insVals = append(insVals, int32(i*11))
-	}
-	// shuffle value list for inserting
-	rand.Shuffle(len(insVals), func(i, j int) { insVals[i], insVals[j] = insVals[j], insVals[i] })
-
-	// Insert entries
-	insCnt := 0
-	for _, insVal := range insVals {
-		//fmt.Printf("insCnt: %d\n", insCnt)
-		insCnt++
-		sl.Insert(samehada_util.GetPonterOfValue(types.NewInteger(int32(insVal))), uint64(insVal))
-	}
-
-	//confirmSkipListContent(t, sl, 11)
-
-	// Get entries
-	for i := 0; i < 250; i++ {
-		//fmt.Printf("get entry i=%d key=%d\n", i, i*11)
-		res := sl.GetValue(samehada_util.GetPonterOfValue(types.NewInteger(int32(i * 11))))
-		if res == math.MaxUint32 {
-			t.Errorf("result should not be nil")
-		} else {
-			testingpkg.SimpleAssert(t, uint64(i*11) == res)
-		}
-	}
-
-	// delete some values
-	for i := 0; i < 100; i++ {
-		// check existance before delete
-		res := sl.GetValue(samehada_util.GetPonterOfValue(types.NewInteger(int32(i * 11))))
-		if res == math.MaxUint32 {
-			panic("result should not be nil")
-		} else {
-			testingpkg.SimpleAssert(t, uint64(i*11) == res)
-		}
-
-		// check no existance after delete
-		sl.Remove(samehada_util.GetPonterOfValue(types.NewInteger(int32(i*11))), uint64(i*11))
-
-		res = sl.GetValue(samehada_util.GetPonterOfValue(types.NewInteger(int32(i * 11))))
-		testingpkg.SimpleAssert(t, math.MaxUint64 == res)
-		//fmt.Println("contents listing after delete")
-		//confirmSkipListContent(t, sl, -1)
-	}
-
-	shi.Shutdown(false)
-}
-
 func TestSkipListInsertAndDeleteAll(t *testing.T) {
 	t.Parallel()
 	if !common.EnableOnMemStorage {
@@ -599,99 +528,6 @@ func TestSkipListItr(t *testing.T) {
 }
 */
 
-//func FuzzSkipLisMixInteger(f *testing.F) {
-//	if testing.Short() {
-//		f.Skip("skip this in short mode.")
-//	}
-//	//f.Add(int32(100), int32(150), int32(10), int32(300))
-//	f.Add(int32(100), int32(50), int32(10), int32(300))
-//	f.Fuzz(func(t *testing.T, bulkSize int32, opTimes int32, skipRand int32, initialEntryNum int32) {
-//		if bulkSize < 0 || opTimes < 0 || skipRand < 0 || initialEntryNum < 0 {
-//			return
-//		}
-//
-//		//if !common.EnableOnMemStorage {
-//		//	os.Remove(t.Name() + ".db")
-//		//	os.Remove(t.Name() + ".log")
-//		//}
-//
-//		//shi := samehada.NewSamehadaInstance(t.Name(), common.BufferPoolMaxFrameNumForTest)
-//		////shi := samehada.NewSamehadaInstance(t.Name(), 10*1024) // buffer is about 40MB
-//		//bpm := shi.GetBufferPoolManager()
-//
-//		testSkipListMix[int32](t, types.Integer, bulkSize, opTimes, skipRand, initialEntryNum, true)
-//
-//		//shi.CloseFilesForTesting()
-//	})
-//}
-//
-//func FuzzSkipLisMixVarchar(f *testing.F) {
-//	if testing.Short() {
-//		f.Skip("skip this in short mode.")
-//	}
-//	f.Add(int32(100), int32(150), int32(10), int32(300))
-//	f.Fuzz(func(t *testing.T, bulkSize int32, opTimes int32, skipRand int32, initialEntryNum int32) {
-//		if bulkSize < 0 || opTimes < 0 || skipRand < 0 || initialEntryNum < 0 {
-//			return
-//		}
-//
-//		//if !common.EnableOnMemStorage {
-//		//	os.Remove(t.Name() + ".db")
-//		//	os.Remove(t.Name() + ".log")
-//		//}
-//		//randStr := *samehada_util.GetRandomStr(20)
-//		////fnameNum := strconv.Itoa(int(bulkSize + opTimes + skipRand + initialEntryNum))
-//		////randStr := fnameNum + ".db"
-//		//
-//		////shi := samehada.NewSamehadaInstance(t.Name(), common.BufferPoolMaxFrameNumForTest)
-//		////shi := samehada.NewSamehadaInstance(*randStr, 10) // 10 frames (1 page = 4096bytes)
-//		//shi := samehada.NewSamehadaInstance(randStr, 10*1024) // 10 * 1024 frames (1 page = 4096bytes)
-//		//bpm := shi.GetBufferPoolManager()
-//
-//		testSkipListMix[string](t, types.Varchar, bulkSize, opTimes, skipRand, initialEntryNum, true)
-//
-//		////shi.CloseFilesForTesting()
-//		//shi.Shutdown(true)
-//	})
-//}
-//
-//func FuzzSkipLisMixParallelStrideVarchar(f *testing.F) {
-//	if testing.Short() {
-//		f.Skip("skip this in short mode.")
-//	}
-//	f.Add(int32(30), int32(100), int32(10), int32(0))
-//	f.Add(int32(1), int32(200), int32(11), int32(100))
-//	f.Fuzz(func(t *testing.T, stride int32, opTimes int32, skipRand int32, initialEntryNum int32) {
-//		//startTime := time.Now().UnixNano()
-//
-//		if stride < 1 || stride > 60 || opTimes < 1 || opTimes > 200 || skipRand < 0 || initialEntryNum < 0 || initialEntryNum > 20 {
-//			return
-//		}
-//
-//		testSkipListMixParallelStride[string](t, types.Varchar, stride, opTimes, skipRand, initialEntryNum, 500)
-//
-//		//// launch test with passed paramaters
-//		//go func(stride_ int32, opTimes_ int32, skipRand_ int32, initialEntryNum_ int32) {
-//		//	testSkipListMixParallelStride[string](t, types.Varchar, stride_, opTimes_, skipRand_, initialEntryNum_, 500, false)
-//		//}(stride, opTimes, skipRand, initialEntryNum)
-//		//
-//		//// check timeout
-//		//for {
-//		//	elapsedTime := time.Now().UnixNano() - startTime
-//		//	if elapsedTime > 1000*1000*800 { //800ms
-//		//		return
-//		//	}
-//		//	time.Sleep(time.Millisecond * 10) // 5ms
-//		//}
-//	})
-//}
-
-func memset(buffer []byte, value int) {
-	for i := range buffer {
-		buffer[i] = byte(value)
-	}
-}
-
 func isAlreadyRemoved[T int32 | float32 | string](checkVal T, removedVals []T) bool {
 	for _, val := range removedVals {
 		if val == checkVal {
@@ -765,11 +601,6 @@ func removeRandom[T int32 | float32 | string](t *testing.T, sl *skip_list.SkipLi
 				*insVals = append((*insVals)[:tmpIdx], (*insVals)[tmpIdx+1:]...)
 			}
 			*removedVals = append(*removedVals, insVal)
-			//if int32(len(*insVals)) != countSkipListContent(sl) {
-			//	fmt.Printf("entries num on list is strange! len(*insVals)=%d ii=%d\n", len(*insVals), ii)
-			//	panic("entries num on list is strange!")
-			//	//common.RuntimeStack()
-			//}
 		}
 	}
 }
@@ -787,12 +618,7 @@ func testSkipListMix[T int32 | float32 | string](t *testing.T, keyType types.Typ
 	//	os.Remove(t.Name() + ".log")
 	//}
 
-	//shi := samehada.NewSamehadaInstance(t.Name(), common.BufferPoolMaxFrameNumForTest)
-	//shi := samehada.NewSamehadaInstance(t.Name(), 10)
-
 	shi := samehada.NewSamehadaInstance(t.Name(), 300)
-	//shi := samehada.NewSamehadaInstance(t.Name(), 10)
-	//shi := samehada.NewSamehadaInstance(t.Name(), 10*1024) // buffer is about 40MB
 
 	bpm := shi.GetBufferPoolManager()
 
@@ -818,10 +644,8 @@ func testSkipListMix[T int32 | float32 | string](t *testing.T, keyType types.Typ
 	useInitialEntryNum := int(initialEntryNum)
 	for ii := 0; ii < useInitialEntryNum; ii++ {
 		// avoid duplication
-		//insVal := rand.Int31()
 		insVal := samehada_util.GetRandomPrimitiveVal[T](keyType, nil)
 		for _, exist := checkDupMap[insVal]; exist; _, exist = checkDupMap[insVal] {
-			//insVal = rand.Int31()
 			insVal = samehada_util.GetRandomPrimitiveVal[T](keyType, nil)
 		}
 		checkDupMap[insVal] = insVal
@@ -839,7 +663,6 @@ func testSkipListMix[T int32 | float32 | string](t *testing.T, keyType types.Typ
 	if entriesOnListNum != countSkipListContent(sl) {
 		fmt.Println("initial entries num are strange!")
 		panic("initial entries count are strange!")
-		//common.RuntimeStack()
 	}
 
 	useOpTimes := int(opTimes)
@@ -859,7 +682,6 @@ func testSkipListMix[T int32 | float32 | string](t *testing.T, keyType types.Typ
 			entriesOnListNum += bulkSize
 			if entriesOnListNum != countSkipListContent(sl) || entriesOnListNum != int32(len(insVals)) || removedEntriesNum != int32(len(removedVals)) {
 				fmt.Printf("entries num on list is strange! %d != (%d or %d) / %d != %d\n", entriesOnListNum, countSkipListContent(sl), len(insVals), removedEntriesNum, len(removedVals))
-				//common.RuntimeStack()
 				panic("entries num on list is strange!")
 			}
 		case 1: // Delete
@@ -886,7 +708,6 @@ func testSkipListMix[T int32 | float32 | string](t *testing.T, keyType types.Typ
 					if entriesOnListNum != countSkipListContent(sl) || entriesOnListNum != int32(len(insVals)) || removedEntriesNum != int32(len(removedVals)) {
 						fmt.Printf("entries num on list is strange! %d != (%d or %d) / %d != %d\n", entriesOnListNum, countSkipListContent(sl), len(insVals), removedEntriesNum, len(removedVals))
 						panic("entries num on list is strange!")
-						//common.RuntimeStack()
 					}
 				}
 			}
@@ -898,7 +719,6 @@ func testSkipListMix[T int32 | float32 | string](t *testing.T, keyType types.Typ
 				if entriesOnListNum != countSkipListContent(sl) || entriesOnListNum != int32(len(insVals)) || removedEntriesNum != int32(len(removedVals)) {
 					fmt.Printf("entries num on list is strange! %d != (%d or %d) / %d != %d\n", entriesOnListNum, countSkipListContent(sl), len(insVals), removedEntriesNum, len(removedVals))
 					panic("entries num on list is strange!")
-					//common.RuntimeStack()
 				}
 				if gotVal == math.MaxUint32 {
 					fmt.Printf("%v is not found!\n", insVals[tmpIdx])
@@ -908,14 +728,12 @@ func testSkipListMix[T int32 | float32 | string](t *testing.T, keyType types.Typ
 				if gotVal != correctVal {
 					fmt.Printf("gotVal is not match! %d != %d\n", gotVal, correctVal)
 					panic("gotVal is not match!")
-					//common.RuntimeStack()
 				}
 				testingpkg.SimpleAssert(t, gotVal == correctVal)
 			}
 		}
 	}
 
-	//shi.Shutdown(false)
 	shi.CloseFilesForTesting()
 }
 
@@ -928,10 +746,8 @@ func testSkipListMixParallel[T int32 | float32 | string](t *testing.T, keyType t
 		os.Remove(t.Name() + ".log")
 	}
 
-	//shi := samehada.NewSamehadaInstance(t.Name(), 30)
 	shi := samehada.NewSamehadaInstance(t.Name(), common.BufferPoolMaxFrameNumForTest)
-	//shi := samehada.NewSamehadaInstance(t.Name(), common.BufferPoolMaxFrameNumForTest)
-	//shi := samehada.NewSamehadaInstance(t.Name(), 10*1024) // buffer is about 40MB
+
 	bpm := shi.GetBufferPoolManager()
 	sl := skip_list.NewSkipList(bpm, keyType)
 
@@ -949,16 +765,13 @@ func testSkipListMixParallel[T int32 | float32 | string](t *testing.T, keyType t
 
 	insVals := make([]T, 0)
 	removedVals := make([]T, 0)
-	//entriesOnListNum := int32(0)
 
 	// initial entries
 	useInitialEntryNum := int(initialEntryNum)
 	for ii := 0; ii < useInitialEntryNum; ii++ {
 		// avoid duplication
-		//insVal := rand.Int31()
 		insVal := samehada_util.GetRandomPrimitiveVal[T](keyType, nil)
 		for _, exist := checkDupMap[insVal]; exist; _, exist = checkDupMap[insVal] {
-			//insVal = rand.Int31()
 			insVal = samehada_util.GetRandomPrimitiveVal[T](keyType, nil)
 		}
 		checkDupMap[insVal] = insVal
@@ -968,8 +781,6 @@ func testSkipListMixParallel[T int32 | float32 | string](t *testing.T, keyType t
 		sl.Insert(samehada_util.GetPonterOfValue(types.NewValue(insVal)), uint64(pairVal))
 		insVals = append(insVals, insVal)
 	}
-
-	//removedEntriesNum := int32(0)
 
 	insValsMutex := new(sync.RWMutex)
 	removedValsMutex := new(sync.RWMutex)
@@ -1075,7 +886,6 @@ func testSkipListMixParallel[T int32 | float32 | string](t *testing.T, keyType t
 						removedValsMutex.RUnlock()
 					}
 					ch <- 1
-					//common.SH_Assert(isDeleted == true, "remove should be success!")
 				}()
 			}
 		case 2: // Get
@@ -1106,7 +916,6 @@ func testSkipListMixParallel[T int32 | float32 | string](t *testing.T, keyType t
 					panic("returned value of get of is wrong!")
 				}
 				ch <- 1
-				//common.SH_Assert(, "gotVal is not collect!")
 			}()
 		}
 	}
@@ -1123,8 +932,6 @@ func testSkipListMixParallelBulk[T int32 | float32 | string](t *testing.T, keyTy
 	}
 
 	shi := samehada.NewSamehadaInstance(t.Name(), common.BufferPoolMaxFrameNumForTest)
-	//shi := samehada.NewSamehadaInstance(t.Name(), common.BufferPoolMaxFrameNumForTest)
-	//shi := samehada.NewSamehadaInstance(t.Name(), 10*1024) // buffer is about 40MB
 	bpm := shi.GetBufferPoolManager()
 	sl := skip_list.NewSkipList(bpm, keyType)
 
@@ -1142,17 +949,14 @@ func testSkipListMixParallelBulk[T int32 | float32 | string](t *testing.T, keyTy
 
 	insVals := make([]T, 0)
 	removedVals := make([]T, 0)
-	//entriesOnListNum := int32(0)
 
 	threadNum := 20
 	// initial entries
 	useInitialEntryNum := int(initialEntryNum)
 	for ii := 0; ii < useInitialEntryNum; ii++ {
 		// avoid duplication
-		//insVal := rand.Int31()
 		insVal := samehada_util.GetRandomPrimitiveVal[T](keyType, nil)
 		for _, exist := checkDupMap[insVal]; exist; _, exist = checkDupMap[insVal] {
-			//insVal = rand.Int31()
 			insVal = samehada_util.GetRandomPrimitiveVal[T](keyType, nil)
 		}
 		checkDupMap[insVal] = insVal
@@ -1162,8 +966,6 @@ func testSkipListMixParallelBulk[T int32 | float32 | string](t *testing.T, keyTy
 		sl.Insert(samehada_util.GetPonterOfValue(types.NewValue(insVal)), uint64(pairVal))
 		insVals = append(insVals, insVal)
 	}
-
-	//removedEntriesNum := int32(0)
 
 	insValsMutex := new(sync.RWMutex)
 	removedValsMutex := new(sync.RWMutex)
@@ -1231,7 +1033,6 @@ func testSkipListMixParallelBulk[T int32 | float32 | string](t *testing.T, keyTy
 							removedValsMutex.RUnlock()
 							ch <- 1
 							continue
-							//return
 						}
 
 						tmpIdx := int(rand.Intn(len(removedVals)))
@@ -1253,7 +1054,6 @@ func testSkipListMixParallelBulk[T int32 | float32 | string](t *testing.T, keyTy
 							insValsMutex.RUnlock()
 							ch <- 1
 							continue
-							//return
 						}
 						tmpIdx := int(rand.Intn(len(insVals)))
 						insVal := (insVals)[tmpIdx]
@@ -1276,7 +1076,6 @@ func testSkipListMixParallelBulk[T int32 | float32 | string](t *testing.T, keyTy
 							removedValsMutex.RUnlock()
 						}
 						ch <- 1
-						//common.SH_Assert(isDeleted == true, "remove should be success!")
 					}
 				}()
 			}
@@ -1288,7 +1087,6 @@ func testSkipListMixParallelBulk[T int32 | float32 | string](t *testing.T, keyTy
 						insValsMutex.RUnlock()
 						ch <- 1
 						continue
-						//return
 					}
 					tmpIdx := int(rand.Intn(len(insVals)))
 					//fmt.Printf("sl.GetValue at testSkipListMix: ii=%d, tmpIdx=%d insVals[tmpIdx]=%d len(*insVals)=%d len(*removedVals)=%d\n", ii, tmpIdx, insVals[tmpIdx], len(insVals), len(removedVals))
@@ -1310,7 +1108,6 @@ func testSkipListMixParallelBulk[T int32 | float32 | string](t *testing.T, keyTy
 						panic("returned value of get of is wrong!")
 					}
 					ch <- 1
-					//common.SH_Assert(, "gotVal is not collect!")
 				}
 			}()
 		}
@@ -1330,26 +1127,13 @@ func testSkipListMixParallelStride[T int32 | float32 | string](t *testing.T, key
 	const THREAD_NUM = 20
 
 	shi := samehada.NewSamehadaInstance(t.Name(), int(bpoolSize))
-	//shi := samehada.NewSamehadaInstance(t.Name(), 30)
-	//shi := samehada.NewSamehadaInstance(t.Name(), 60)
-
-	//shi := samehada.NewSamehadaInstance(t.Name(), common.BufferPoolMaxFrameNumForTest)
-	//shi := samehada.NewSamehadaInstance(t.Name(), 10*1024) // buffer is about 40MB
 	bpm := shi.GetBufferPoolManager()
 	sl := skip_list.NewSkipList(bpm, keyType)
 
 	checkDupMap := make(map[T]T)
 
 	// override global rand seed (seed has been set on NewSkipList)
-	//rand.Seed(3)
 	rand.Seed(int64(seedVal))
-
-	//tmpSkipRand := seedVal
-	//// skip random value series
-	//for tmpSkipRand > 0 {
-	//	rand.Int31()
-	//	tmpSkipRand--
-	//}
 
 	insVals := make([]T, 0)
 	removedValsForGetAndRemove := make(map[T]T, 0)
@@ -1399,28 +1183,23 @@ func testSkipListMixParallelStride[T int32 | float32 | string](t *testing.T, key
 
 		// wait for keeping THREAD_NUM groroutine existing
 		for runningThCnt >= THREAD_NUM {
-			//for runningThCnt > 0 { // serial execution
 			<-ch
 			runningThCnt--
 
 			common.ShPrintf(common.DEBUGGING, "runningThCnt=%d\n", runningThCnt)
 		}
 		common.ShPrintf(common.DEBUGGING, "ii=%d\n", ii)
-		//runningThCnt = 0
 
 		// get 0-3
 		opType := rand.Intn(4)
 		switch opType {
 		case 0: // Insert
 			go func() {
-				//checkDupMapMutex.RLock()
 				checkDupMapMutex.Lock()
 				insValBase := samehada_util.GetRandomPrimitiveVal[T](keyType, nil)
 				for _, exist := checkDupMap[insValBase]; exist; _, exist = checkDupMap[insValBase] {
 					insValBase = samehada_util.GetRandomPrimitiveVal[T](keyType, nil)
 				}
-				//checkDupMapMutex.RUnlock()
-				//checkDupMapMutex.Lock()
 				checkDupMap[insValBase] = insValBase
 				checkDupMapMutex.Unlock()
 
@@ -1451,7 +1230,6 @@ func testSkipListMixParallelStride[T int32 | float32 | string](t *testing.T, key
 					if len(removedValsForRemove) == 0 {
 						removedValsForRemoveMutex.RUnlock()
 						ch <- 1
-						//continue
 						return
 					}
 					removedValsForRemoveMutex.RUnlock()
@@ -1474,7 +1252,6 @@ func testSkipListMixParallelStride[T int32 | float32 | string](t *testing.T, key
 					if len(insVals)-1 < 0 {
 						insValsMutex.Unlock()
 						ch <- 1
-						//continue
 						return
 					}
 					tmpIdx := int(rand.Intn(len(insVals)))
@@ -1513,11 +1290,9 @@ func testSkipListMixParallelStride[T int32 | float32 | string](t *testing.T, key
 								panic("remove op test failed!")
 							}
 							removedValsForGetMutex.RUnlock()
-							//panic("remove op test failed!")
 						}
 					}
 					ch <- 1
-					//common.SH_Assert(isDeleted == true, "remove should be success!")
 				}()
 			}
 		case 3: // Get
@@ -1526,7 +1301,6 @@ func testSkipListMixParallelStride[T int32 | float32 | string](t *testing.T, key
 				if len(insVals) == 0 {
 					insValsMutex.RUnlock()
 					ch <- 1
-					//continue
 					return
 				}
 				tmpIdx := int(rand.Intn(len(insVals)))
@@ -1552,7 +1326,6 @@ func testSkipListMixParallelStride[T int32 | float32 | string](t *testing.T, key
 					}
 				}
 				ch <- 1
-				//common.SH_Assert(, "gotVal is not collect!")
 			}()
 		}
 		runningThCnt++
@@ -1572,26 +1345,14 @@ func testSkipListMixParallelStrideAddedIterator[T int32 | float32 | string](t *t
 	const THREAD_NUM = 20
 
 	shi := samehada.NewSamehadaInstance(t.Name(), int(bpoolSize))
-	//shi := samehada.NewSamehadaInstance(t.Name(), 30)
-	//shi := samehada.NewSamehadaInstance(t.Name(), 60)
 
-	//shi := samehada.NewSamehadaInstance(t.Name(), common.BufferPoolMaxFrameNumForTest)
-	//shi := samehada.NewSamehadaInstance(t.Name(), 10*1024) // buffer is about 40MB
 	bpm := shi.GetBufferPoolManager()
 	sl := skip_list.NewSkipList(bpm, keyType)
 
 	checkDupMap := make(map[T]T)
 
 	// override global rand seed (seed has been set on NewSkipList)
-	//rand.Seed(3)
 	rand.Seed(int64(seedVal))
-
-	//tmpSkipRand := seedVal
-	//// skip random value series
-	//for tmpSkipRand > 0 {
-	//	rand.Int31()
-	//	tmpSkipRand--
-	//}
 
 	insVals := make([]T, 0)
 	removedValsForGetAndRemove := make(map[T]T, 0)
@@ -1641,21 +1402,18 @@ func testSkipListMixParallelStrideAddedIterator[T int32 | float32 | string](t *t
 
 		// wait for keeping THREAD_NUM groroutine existing
 		for runningThCnt >= THREAD_NUM {
-			//for runningThCnt > 0 { // serial execution
 			<-ch
 			runningThCnt--
 
 			common.ShPrintf(common.DEBUGGING, "runningThCnt=%d\n", runningThCnt)
 		}
 		common.ShPrintf(common.DEBUGGING, "ii=%d\n", ii)
-		//runningThCnt = 0
 
 		// get 0-4
 		opType := rand.Intn(5)
 		switch opType {
 		case 0: // Insert
 			go func() {
-				//checkDupMapMutex.RLock()
 				checkDupMapMutex.RLock()
 				insValBase := samehada_util.GetRandomPrimitiveVal[T](keyType, nil)
 				for _, exist := checkDupMap[insValBase]; exist; _, exist = checkDupMap[insValBase] {
@@ -1689,7 +1447,6 @@ func testSkipListMixParallelStrideAddedIterator[T int32 | float32 | string](t *t
 					if len(removedValsForRemove) == 0 {
 						removedValsForRemoveMutex.RUnlock()
 						ch <- 1
-						//continue
 						return
 					}
 					removedValsForRemoveMutex.RUnlock()
@@ -1712,10 +1469,9 @@ func testSkipListMixParallelStrideAddedIterator[T int32 | float32 | string](t *t
 					if len(insVals)-1 < 0 {
 						insValsMutex.Unlock()
 						ch <- 1
-						//continue
 						return
 					}
-					tmpIdx := int(rand.Intn(len(insVals)))
+					tmpIdx := rand.Intn(len(insVals))
 					delValBase := insVals[tmpIdx]
 					if len(insVals) == 1 {
 						// make empty
@@ -1751,11 +1507,9 @@ func testSkipListMixParallelStrideAddedIterator[T int32 | float32 | string](t *t
 								panic("remove op test failed!")
 							}
 							removedValsForGetMutex.RUnlock()
-							//panic("remove op test failed!")
 						}
 					}
 					ch <- 1
-					//common.SH_Assert(isDeleted == true, "remove should be success!")
 				}()
 			}
 		case 3: // Get
@@ -1764,7 +1518,6 @@ func testSkipListMixParallelStrideAddedIterator[T int32 | float32 | string](t *t
 				if len(insVals) == 0 {
 					insValsMutex.RUnlock()
 					ch <- 1
-					//continue
 					return
 				}
 				tmpIdx := int(rand.Intn(len(insVals)))
@@ -1790,7 +1543,6 @@ func testSkipListMixParallelStrideAddedIterator[T int32 | float32 | string](t *t
 					}
 				}
 				ch <- 1
-				//common.SH_Assert(, "gotVal is not collect!")
 			}()
 		case 4: //GetRangeScanIterator
 			go func() {
@@ -1798,7 +1550,6 @@ func testSkipListMixParallelStrideAddedIterator[T int32 | float32 | string](t *t
 				if len(insVals) == 0 {
 					insValsMutex.RUnlock()
 					ch <- 1
-					//continue
 					return
 				}
 				tmpIdx := int(rand.Intn(len(insVals)))
@@ -1821,16 +1572,6 @@ func testSkipListMixParallelStrideAddedIterator[T int32 | float32 | string](t *t
 }
 
 func testSkipListMixRoot[T int32 | float32 | string](t *testing.T, keyType types.TypeID) {
-	//if !common.EnableOnMemStorage {
-	//	os.Remove(t.Name() + ".db")
-	//	os.Remove(t.Name() + ".log")
-	//}
-	//
-	//shi := samehada.NewSamehadaInstance(t.Name(), 10)
-	////shi := samehada.NewSamehadaInstance(t.Name(), common.BufferPoolMaxFrameNumForTest)
-	////shi := samehada.NewSamehadaInstance(t.Name(), 10*1024) // buffer is about 40MB
-	//bpm := shi.GetBufferPoolManager()
-
 	testSkipListMix[T](t, keyType, 1, int32(150), int32(10), int32(0), false)
 	testSkipListMix[T](t, keyType, 1, int32(150), int32(10), int32(300), false)
 	testSkipListMix[T](t, keyType, 1, int32(150), int32(10), int32(600), false)
@@ -1854,9 +1595,6 @@ func testSkipListMixRoot[T int32 | float32 | string](t *testing.T, keyType types
 	//testSkipListMix[T](t, keyType, 100, int32(250), int32(5), int32(10), false)
 	//testSkipListMix[T](t, keyType, 100, int32(250), int32(4), int32(0), false)
 	//testSkipListMix[T](t, keyType, 100, int32(250), int32(3), int32(0), false)
-
-	////shi.Shutdown(true)
-	//shi.CloseFilesForTesting()
 }
 
 func testSkipListMixParallelRoot[T int32 | float32 | string](t *testing.T, keyType types.TypeID) {
@@ -2040,52 +1778,52 @@ func TestSkipListMixParallelStrideAddedIteratorVarchar(t *testing.T) {
 }
 
 /*
-//// 24h running had been succeeded at 220923
-//// \SamehadaDB\container\skip_list\skip_list_test>go test . -race -timeout 24h -v 2>&1 > fuzzlikelog-parallel2.txt
-//func TestSkipListMixParallsStrideVarcharLikeFuzzer(t *testing.T) {
-//	//t.Parallel()
-//	if testing.Short() {
-//		t.Skip("skip this in short mode.")
-//	}
-//
-//	runtime.GOMAXPROCS(50)
-//
-//	const THREAD_NUM = 15
-//
-//	startTime := time.Now()
-//
-//	ch := make(chan int32)
-//	finishedCase := 0
-//	runningThCnt := 0
-//	for {
-//		// wait for keeping THREAD_NUM groroutine existing
-//		for runningThCnt >= THREAD_NUM {
-//			//for runningThCnt > 0 { // serial execution
-//			<-ch
-//			runningThCnt--
-//			finishedCase++
-//		}
-//
-//		if finishedCase%10 == 0 {
-//			d := time.Since(startTime)
-//			fmt.Printf("elapse %v: %d case executed\n", d, finishedCase)
-//		}
-//
-//		stride := 1 + (rand.Uint32() % 60)
-//		opTimes := 1 + (rand.Uint32() % 200)
-//		seedVal := rand.Uint32() % 1000
-//		initialEntryNum := 1 + (rand.Uint32() % 20)
-//
-//		//fmt.Printf("%d %d %d %d\n", stride, opTimes, seedVal, initialEntryNum)
-//		go func(stride_ int32, opTimes_ int32, seedVal_ int32, initialEntryNum_ int32) {
-//
-//			testSkipListMixParallelStride[string](t, types.Varchar, stride_, opTimes_, seedVal_, initialEntryNum_, 500)
-//			ch <- 1
-//		}(int32(stride), int32(opTimes), int32(seedVal), int32(initialEntryNum))
-//
-//		runningThCnt++
-//	}
-//}
+// 24h running had been succeeded at 220923
+// \SamehadaDB\container\skip_list\skip_list_test>go test . -race -timeout 24h -v 2>&1 > fuzzlikelog-parallel2.txt
+func TestSkipListMixParallsStrideVarcharLikeFuzzer(t *testing.T) {
+	//t.Parallel()
+	if testing.Short() {
+		t.Skip("skip this in short mode.")
+	}
+
+	runtime.GOMAXPROCS(50)
+
+	const THREAD_NUM = 15
+
+	startTime := time.Now()
+
+	ch := make(chan int32)
+	finishedCase := 0
+	runningThCnt := 0
+	for {
+		// wait for keeping THREAD_NUM groroutine existing
+		for runningThCnt >= THREAD_NUM {
+			//for runningThCnt > 0 { // serial execution
+			<-ch
+			runningThCnt--
+			finishedCase++
+		}
+
+		if finishedCase%10 == 0 {
+			d := time.Since(startTime)
+			fmt.Printf("elapse %v: %d case executed\n", d, finishedCase)
+		}
+
+		stride := 1 + (rand.Uint32() % 60)
+		opTimes := 1 + (rand.Uint32() % 200)
+		seedVal := rand.Uint32() % 1000
+		initialEntryNum := 1 + (rand.Uint32() % 20)
+
+		//fmt.Printf("%d %d %d %d\n", stride, opTimes, seedVal, initialEntryNum)
+		go func(stride_ int32, opTimes_ int32, seedVal_ int32, initialEntryNum_ int32) {
+
+			testSkipListMixParallelStride[string](t, types.Varchar, stride_, opTimes_, seedVal_, initialEntryNum_, 500)
+			ch <- 1
+		}(int32(stride), int32(opTimes), int32(seedVal), int32(initialEntryNum))
+
+		runningThCnt++
+	}
+}
 */
 
 func testSkipListInsertGetEven(t *testing.T, sl *skip_list.SkipList, ch chan string) {
@@ -2208,7 +1946,6 @@ func TestSkipListParallelSimpleInteger(t *testing.T) {
 		os.Remove(t.Name() + ".log")
 	}
 
-	//shi := samehada.NewSamehadaInstance(t.Name(), 400)
 	shi := samehada.NewSamehadaInstance(t.Name(), 30)
 	bpm := shi.GetBufferPoolManager()
 	sl := skip_list.NewSkipList(bpm, types.Integer)
@@ -2239,7 +1976,6 @@ func TestSkipListParallelSimpleInteger2(t *testing.T) {
 		os.Remove(t.Name() + ".log")
 	}
 
-	//shi := samehada.NewSamehadaInstance(t.Name(), 400)
 	shi := samehada.NewSamehadaInstance(t.Name(), 30)
 	bpm := shi.GetBufferPoolManager()
 	sl := skip_list.NewSkipList(bpm, types.Integer)
@@ -2271,7 +2007,6 @@ func TestSkipListParallelSimpleInteger3Stride(t *testing.T) {
 		os.Remove(t.Name() + ".log")
 	}
 
-	//shi := samehada.NewSamehadaInstance(t.Name(), 400)
 	shi := samehada.NewSamehadaInstance(t.Name(), 30)
 	bpm := shi.GetBufferPoolManager()
 	sl := skip_list.NewSkipList(bpm, types.Integer)
@@ -2282,7 +2017,6 @@ func TestSkipListParallelSimpleInteger3Stride(t *testing.T) {
 	go testSkipListInsertGetInsert3stride1and3(t, sl, ch1)
 	go testSkipListInsertGetRemove3stride2(t, sl, ch2)
 
-	//wg.Wait()
 	ch1Ret := <-ch1
 	t.Logf("%s\n", ch1Ret)
 	t.Logf("ch1 received\n")

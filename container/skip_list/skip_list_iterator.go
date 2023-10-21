@@ -83,7 +83,7 @@ func (itr *SkipListIterator) initRIDList(sl *SkipList) {
 			}
 		}
 
-		// always having RLatch of itr.curNode
+		// always having RLatch of itr.curNode here
 
 		curPageSlotIdx++
 

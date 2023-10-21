@@ -33,10 +33,6 @@ func NewRootSQLVisitor() *RootSQLVisitor {
 }
 
 func (v *RootSQLVisitor) Enter(in ast.Node) (ast.Node, bool) {
-	//refVal := reflect.ValueOf(in)
-	//fmt.Println(refVal.Type())
-	//return in, false
-
 	switch node := in.(type) {
 	case *ast.SelectStmt:
 		*v.QueryInfo_.QueryType_ = SELECT

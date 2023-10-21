@@ -28,7 +28,6 @@ func TestHashTableHeaderPage(t *testing.T) {
 	} else {
 		diskManager = disk.NewVirtualDiskManagerImpl(t.Name() + ".db")
 	}
-	//bpm := buffer.NewBufferPoolManager(diskManager, buffer.NewClockReplacer(5))
 	bpm := buffer.NewBufferPoolManager(uint32(10), diskManager, recovery.NewLogManager(&diskManager))
 
 	newPage := bpm.NewPage()
@@ -42,16 +41,10 @@ func TestHashTableHeaderPage(t *testing.T) {
 			t.Errorf("GetSize shoud be %d, but got %d", i, headerPage.GetSize())
 		}
 
-		//headerPage.SetSerializedPageId(page.PageID(i))
 		headerPage.SetPageId(types.PageID(i))
 		if types.PageID(i) != headerPage.GetPageId() {
 			t.Errorf("GetPageId shoud be %d, but got %d", types.PageID(i), headerPage.GetPageId())
 		}
-
-		//headerPage.SetLSN(i)
-		//if i != headerPage.GetLSN() {
-		//	t.Errorf("GetLSN shoud be %d, but got %d", i, headerPage.GetLSN())
-		//}
 	}
 
 	// add a few hypothetical block pages
@@ -70,7 +63,6 @@ func TestHashTableHeaderPage(t *testing.T) {
 	}
 
 	// unpin the header page now that we are done
-	//bpm.UnpinPage(headerPage.GetPageId(), true)
 	bpm.UnpinPage(0, true)
 	diskManager.ShutDown()
 	if !common.EnableOnMemStorage || common.TempSuppressOnMemStorage {
@@ -89,7 +81,6 @@ func TestHashTableBlockPage(t *testing.T) {
 		diskManager = disk.NewVirtualDiskManagerImpl(t.Name() + ".db")
 	}
 
-	//bpm := buffer.NewBufferPoolManager(diskManager, buffer.NewClockReplacer(5))
 	bpm := buffer.NewBufferPoolManager(uint32(32), diskManager, recovery.NewLogManager(&diskManager))
 
 	newPage := bpm.NewPage()
@@ -102,7 +93,6 @@ func TestHashTableBlockPage(t *testing.T) {
 	}
 
 	for i := 0; i < 10; i++ {
-		//testingpkg.Assert(t, uint32(i) == blockPage.KeyAt(uint32(i)), "")
 		testingpkg.Assert(t, uint32(i) == blockPage.ValueAt(uint32(i)), "")
 	}
 

@@ -18,9 +18,8 @@ type PointScanWithIndexExecutor struct {
 	context       *ExecutorContext
 	plan          *plans.PointScanWithIndexPlanNode
 	tableMetadata *catalog.TableMetadata
-	//it            *access.TableHeapIterator
-	txn         *access.Transaction
-	foundTuples []*tuple.Tuple
+	txn           *access.Transaction
+	foundTuples   []*tuple.Tuple
 }
 
 func NewPointScanWithIndexExecutor(context *ExecutorContext, plan *plans.PointScanWithIndexPlanNode) Executor {
@@ -78,7 +77,6 @@ func (e *PointScanWithIndexExecutor) Next() (*tuple.Tuple, Done, error) {
 }
 
 // project applies the projection operator defined by the output schema
-// It transform the tuple into a new tuple that corresponds to the output schema
 func (e *PointScanWithIndexExecutor) projects(tuple_ *tuple.Tuple) *tuple.Tuple {
 	outputSchema := e.plan.OutputSchema()
 

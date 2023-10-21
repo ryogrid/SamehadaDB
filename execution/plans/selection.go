@@ -36,12 +36,9 @@ func (p *SelectionPlanNode) AccessRowCount(c *catalog.Catalog) uint64 {
 }
 
 func (p *SelectionPlanNode) EmitRowCount(c *catalog.Catalog) uint64 {
-	// 	  return std::ceil(static_cast<double>(src_->EmitRowCount()) /
-	//	                   stats_.ReductionFactor(GetSchema(), exp_));
 	return uint64(math.Ceil(float64(
 		p.children[0].EmitRowCount(c)) /
 		p.children[0].GetStatistics().ReductionFactor(p.children[0].OutputSchema(), p.predicate)))
-	//c.GetTableByOID(p.GetTableOID()).GetStatistics().ReductionFactor(*p.children[0].OutputSchema(), p.predicate)))
 }
 
 func (p *SelectionPlanNode) GetDebugStr() string {

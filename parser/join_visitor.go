@@ -9,9 +9,6 @@ type JoinVisitor struct {
 }
 
 func (v *JoinVisitor) Enter(in ast.Node) (ast.Node, bool) {
-	//refVal := reflect.ValueOf(in)
-	//fmt.Println(refVal.Type())
-
 	switch node := in.(type) {
 	case *ast.TableName:
 		tblname := node.Name.String()

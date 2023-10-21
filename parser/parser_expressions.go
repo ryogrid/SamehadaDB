@@ -50,7 +50,6 @@ func (expr *BinaryOpExpression) GetType() BinaryOpExpType {
 		return Logical
 	} else {
 		panic("BinaryOpExpression tree is broken")
-		//return ColumnNameOrConstant
 	}
 }
 
@@ -225,7 +224,6 @@ func ConvColumnStrsToExpIfOnes(c *catalog.Catalog, childPlan plans.Plan, convSrc
 		samehada_util.SHAssert(strings.Contains(*colStr, "."), "column name must includes table name as prefix!")
 		splited := strings.Split(*colStr, ".")
 		tableName := splited[0]
-		//colName := splited[1]
 		var sc *schema.Schema
 		if childPlan != nil {
 			sc = childPlan.OutputSchema()

@@ -8,8 +8,6 @@ import (
 	"github.com/ryogrid/SamehadaDB/types"
 )
 
-//class TransactionManager;
-
 /** Two-Phase Locking mode. */
 type TwoPLMode int32
 
@@ -50,25 +48,18 @@ func NewLockRequest(txn_id types.TxnID, lock_mode LockMode) *LockRequest {
 
 type LockRequestQueue struct {
 	request_queue []*LockRequest
-	//std::condition_variable cv  // for notifying blocked transactions on this rid1
-	upgrading bool
+	upgrading     bool
 }
 
 /**
  * LockManager handles transactions asking for locks on records.
  */
 type LockManager struct {
-	two_pl_mode   TwoPLMode //__attribute__((__unused__));
+	two_pl_mode   TwoPLMode
 	deadlock_mode DeadlockMode
 
 	mutex                  *sync.Mutex
 	enable_cycle_detection bool
-	//cycle_detection_thread *std::thread
-
-	// /** WLock table for lock requests. */
-	// lock_table map[page.RID]*LockRequestQueue
-	// /** Waits-for graph representation. */
-	// waits_for map[types.TxnID][]types.TxnID
 
 	shared_lock_table    map[page.RID][]types.TxnID
 	exclusive_lock_table map[page.RID]types.TxnID
@@ -86,23 +77,8 @@ func NewLockManager(two_pl_mode TwoPLMode, deadlock_mode DeadlockMode /*= Deadlo
 	ret.mutex = new(sync.Mutex)
 	ret.shared_lock_table = make(map[page.RID][]types.TxnID)
 	ret.exclusive_lock_table = make(map[page.RID]types.TxnID)
-	// // If Detection() is enabled, we should launch a background cycle detection thread.
-	// if ret.Detection() {
-	// 	ret.enable_cycle_detection = true
-	// 	//ret.cycle_detection_thread = new std::thread(&LockManager::RunCycleDetection, this)
-	// 	//LOG_INFO("Cycle detection thread launched")
-	// }
 	return ret
 }
-
-// ~LockManager() {
-//  if (Detection()) {
-//    enable_cycle_detection = false
-//    cycle_detection_thread.join()
-//    delete cycle_detection_thread
-//    LOG_INFO("Cycle detection thread stopped")
-//  }
-// }
 
 func (lock_manager *LockManager) Detection() bool  { return lock_manager.deadlock_mode == DETECTION }
 func (lock_manager *LockManager) Prevention() bool { return lock_manager.deadlock_mode == PREVENTION }
@@ -243,7 +219,6 @@ func (lock_manager *LockManager) LockUpgrade(txn *Transaction, rid *page.RID) bo
 		return true
 	}
 
-	//slock_set := txn.GetSharedLockSet()
 	elock_set := txn.GetExclusiveLockSet()
 	if txn.IsSharedLocked(rid) {
 		if txnID, ok := lock_manager.exclusive_lock_table[*rid]; ok {
@@ -263,8 +238,6 @@ func (lock_manager *LockManager) LockUpgrade(txn *Transaction, rid *page.RID) bo
 				lock_manager.exclusive_lock_table[*rid] = txn.GetTransactionId()
 				elock_set = append(elock_set, *rid)
 				txn.SetExclusiveLockSet(elock_set)
-				//slock_set = removeRID(slock_set, *rid1)
-				//txn.SetSharedLockSet(slock_set)
 				return true
 			}
 		}
@@ -283,11 +256,6 @@ func (lock_manager *LockManager) Unlock(txn *Transaction, rid_list []page.RID) b
 	lock_manager.mutex.Lock()
 	defer lock_manager.mutex.Unlock()
 	for _, locked_rid := range rid_list {
-		// slock_set := txn.GetSharedLockSet()
-		// slock_set = removeRID(slock_set, locked_rid)
-		// elock_set := txn.GetExclusiveLockSet()
-		// elock_set = removeRID(elock_set, locked_rid)
-
 		if _, ok := lock_manager.exclusive_lock_table[locked_rid]; ok {
 			if lock_manager.exclusive_lock_table[locked_rid] == txn.GetTransactionId() {
 				// fmt.Println("delete exclusive_lock_table entry")
@@ -303,8 +271,6 @@ func (lock_manager *LockManager) Unlock(txn *Transaction, rid_list []page.RID) b
 			}
 		}
 	}
-	// txn.SetSharedLockSet(slock_set)
-	// txn.SetExclusiveLockSet(elock_set)
 
 	return true
 }
@@ -323,50 +289,4 @@ func (lock_manager *LockManager) PrintLockTables() {
 func (lock_manager *LockManager) ClearLockTablesForDebug() {
 	lock_manager.shared_lock_table = make(map[page.RID][]types.TxnID, 0)
 	lock_manager.exclusive_lock_table = make(map[page.RID]types.TxnID, 0)
-}
-
-/*** Graph API ***/
-/**
-* Adds edge t1->t2
- */
-
-/** Adds an edge from t1 -> t2. */
-func (lock_manager *LockManager) AddEdge(t1 types.TxnID, t2 types.TxnID) { /* assert(Detection()) */ }
-
-/** Removes an edge from t1 -> t2. */
-func (lock_manager *LockManager) RemoveEdge(t1 types.TxnID, t2 types.TxnID) { /* assert(Detection()) */
-}
-
-/**
-* Checks if the graph has a cycle, returning the newest transaction GetPageId in the cycle if so.
-* @param[out] txn_id if the graph has a cycle, will contain the newest transaction GetPageId
-* @return false if the graph has no cycle, otherwise stores the newest transaction GetPageId in the cycle to txn_id
- */
-func (lock_manager *LockManager) HasCycle(txn_id *types.TxnID) bool {
-	/*
-	   BUSTUB_ASSERT(Detection(), "Detection should be enabled!")
-	*/
-	return false
-}
-
-// /** @return the set of all edges in the graph, used for testing only! */
-// func (lock_manager *LockManager) GetEdgeList() std::vector<std::pair<txn_id_t, txn_id_t>> {
-// /*
-//   BUSTUB_ASSERT(Detection(), "Detection should be enabled!")
-// */
-//   return {}
-// }
-
-/** Runs cycle detection in the background. */
-func (lock_manager *LockManager) RunCycleDetection() {
-	/*
-	   	BUSTUB_ASSERT(Detection(), "Detection should be enabled!")
-	     while (enable_cycle_detection) {
-	       std::this_thread::sleep_for(cycle_detection_interval)
-	       {
-	         std::unique_lock<std::mutex> l(latch)
-	         continue
-	       }
-	     }
-	*/
 }

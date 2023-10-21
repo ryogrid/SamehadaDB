@@ -19,8 +19,8 @@ import (
  * Read log file from disk, redo and undo.
  */
 type LogRecovery struct {
-	disk_manager        disk.DiskManager          //__attribute__((__unused__))
-	buffer_pool_manager *buffer.BufferPoolManager //__attribute__((__unused__))
+	disk_manager        disk.DiskManager
+	buffer_pool_manager *buffer.BufferPoolManager
 	log_manager         *recovery.LogManager
 
 	/** Maintain active transactions and its corresponding latest lsn. */
@@ -28,7 +28,7 @@ type LogRecovery struct {
 	/** Mapping the log sequence number to log file offset for undos. */
 	lsn_mapping map[types.LSN]int
 
-	offset     int32 //__attribute__((__unused__))
+	offset     int32
 	log_buffer []byte
 }
 
@@ -42,7 +42,6 @@ func NewLogRecovery(disk_manager disk.DiskManager, buffer_pool_manager *buffer.B
  * incomplete log record
  */
 func (log_recovery *LogRecovery) DeserializeLogRecord(data []byte, log_record *recovery.LogRecord) bool {
-	//if common.LogBufferSize-len(data) < int(recovery.HEADER_SIZE) {
 	if len(data) < int(recovery.HEADER_SIZE) {
 		// fmt.Printf("len(data) = %d\n", len(data))
 		// fmt.Println("return false point 1")
@@ -62,9 +61,6 @@ func (log_recovery *LogRecovery) DeserializeLogRecord(data []byte, log_record *r
 		// fmt.Println("return false point 2")
 		return false
 	}
-	// if common.LogBufferSize-len(data) < int(log_record.Size) {
-	// 	return false
-	// }
 
 	pos := recovery.HEADER_SIZE
 	if log_record.Log_record_type == recovery.INSERT {
@@ -105,9 +101,6 @@ func (log_recovery *LogRecovery) DeserializeLogRecord(data []byte, log_record *r
 * seconde return value: when redo operation occured, value is true
  */
 func (log_recovery *LogRecovery) Redo(txn *access.Transaction) (types.LSN, bool) {
-	// readLogLoopCnt := 0
-	// deserializeLoopCnt := 0
-
 	greatestLSN := 0
 	log_recovery.log_buffer = make([]byte, common.LogBufferSize)
 	var file_offset uint32 = 0
@@ -116,23 +109,7 @@ func (log_recovery *LogRecovery) Redo(txn *access.Transaction) (types.LSN, bool)
 	for log_recovery.disk_manager.ReadLog(log_recovery.log_buffer, int32(file_offset), &readBytes) {
 		var buffer_offset uint32 = 0
 		var log_record recovery.LogRecord
-		// fmt.Printf("outer file_offset %d\n", file_offset)
-		// readLogLoopCnt++
-		// if readLogLoopCnt > 100 {
-		// 	//fmt.Printf("file_offset %d\n", file_offset)
-		// 	panic("readLogLoopCnt is illegal")
-		// }
 		for log_recovery.DeserializeLogRecord(log_recovery.log_buffer[buffer_offset:readBytes], &log_record) {
-			// fmt.Printf("inner file_offset %d\n", file_offset)
-			// fmt.Printf("inner buffer_offset %d\n", buffer_offset)
-			// fmt.Println(log_record)
-			// deserializeLoopCnt++
-			// if deserializeLoopCnt > 100 {
-			// 	fmt.Printf("file_offset %d\n", file_offset)
-			// 	fmt.Printf("buffer_offset %d\n", buffer_offset)
-			// 	fmt.Println(log_record)
-			// 	panic("deserializeLoopCnt is illegal")
-			// }
 			if int(log_record.Lsn) > greatestLSN {
 				greatestLSN = int(log_record.Lsn)
 			}
@@ -194,7 +171,6 @@ func (log_recovery *LogRecovery) Redo(txn *access.Transaction) (types.LSN, bool)
 				delete(log_recovery.active_txn, log_record.Txn_id)
 			} else if log_record.Log_record_type == recovery.NEWPAGE {
 				var page_id types.PageID
-				//new_page := access.CastPageAsTablePage(log_recovery.buffer_pool_manager.NewPage(&page_id, nil))
 				new_page := access.CastPageAsTablePage(log_recovery.buffer_pool_manager.NewPage())
 				page_id = new_page.GetPageId()
 				// fmt.Printf("page_id: %d\n", page_id)
@@ -239,7 +215,6 @@ func (log_recovery *LogRecovery) Undo(txn *access.Transaction) bool {
 	// fmt.Println(log_recovery.active_txn)
 	// fmt.Println(log_recovery.lsn_mapping)
 	for _, lsn := range log_recovery.active_txn {
-		//lsn = it.second
 		for lsn != common.InvalidLSN {
 			//fmt.Printf("lsn at Undo loop top: %d\n", lsn)
 			file_offset = log_recovery.lsn_mapping[lsn]
@@ -291,7 +266,6 @@ func (log_recovery *LogRecovery) Undo(txn *access.Transaction) bool {
 					for {
 						new_rid, err2 = page_.InsertTuple(need_follow_tuple, log_recovery.log_manager, nil, txn)
 						if err2 == nil || err2 == access.ErrEmptyTuple {
-							//page_.WUnlatch()
 							break
 						}
 
@@ -325,5 +299,4 @@ func (log_recovery *LogRecovery) Undo(txn *access.Transaction) bool {
 		}
 	}
 	return isUndoOccured
-	//log_recovery.buffer_pool_manager.FlushAllPages()
 }

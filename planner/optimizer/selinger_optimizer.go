@@ -143,16 +143,11 @@ func containsAny(map1 mapset.Set[string], map2 mapset.Set[string]) bool {
 
 func touchOnly(from *catalog.TableMetadata, where expression.Expression, colName string) bool {
 	if where.GetType() == expression.EXPRESSION_TYPE_COLUMN_VALUE {
-		// 		   const ColumnValue& cv = where->AsColumnValue();
-		//		   return cv.GetColumnName() == col_name;
 		cv := where.(*expression.ColumnValue)
 		return from.Schema().GetColumn(cv.GetColIndex()).GetColumnName() == colName
 	} else if where.GetType() == expression.EXPRESSION_TYPE_LOGICAL_OP || where.GetType() == expression.EXPRESSION_TYPE_COMPARISON {
-		//		   const BinaryExpression& be = where->AsBinaryExpression();
-		//		   return TouchOnly(be.Left(), col_name) && TouchOnly(be.Right(), col_name);
 		return touchOnly(from, where.GetChildAt(0), colName) && touchOnly(from, where.GetChildAt(1), colName)
 	}
-	//samehada_util.SHAssert(where.GetType() == expression.EXPRESSION_TYPE_CONSTANT_VALUE, "invalid expression type")
 	return true
 }
 
@@ -174,7 +169,6 @@ func (so *SelingerOptimizer) findBestScan(outNeededCols []*column.Column, where 
 	var minimamCost uint64 = math.MaxUint64
 	var bestScan plans.Plan
 	// Get { index key column offset => index offset } map
-	//std::unordered_map<slot_t, size_t> candidates = from.availableKeyIndex();
 	candidates := availableKeyIndex()
 	// Prepare all range of candidates
 	ranges := make(map[int]*Range, 0)
@@ -182,18 +176,12 @@ func (so *SelingerOptimizer) findBestScan(outNeededCols []*column.Column, where 
 		ranges[key] = NewRange(sc.GetColumn(uint32(key)).GetType())
 	}
 
-	//std::vector<Expression> stack
 	stack_ := stack.New()
 	stack_.Push(where)
-	//std::vector<Expression> related_ops
 	relatedOps := make([]*parser.BinaryOpExpression, 0)
 	for stack_.Len() > 0 {
-		//Expression exp = stack.back()
-		//stack.pop_back()
 		exp := stack_.Pop().(*parser.BinaryOpExpression)
-		//if (exp->Type() == TypeTag::kBinaryExp) {
 		if exp.GetType() == parser.Logical {
-			//const BinaryExpression& be = exp->AsBinaryExpression();
 			if exp.LogicalOperationType_ == expression.AND {
 				stack_.Push(exp.Left_)
 				stack_.Push(exp.Right_)
@@ -203,35 +191,17 @@ func (so *SelingerOptimizer) findBestScan(outNeededCols []*column.Column, where 
 			}
 		} else if exp.GetType() == parser.Compare {
 			if samehada_util.IsColumnName(exp.Left_) && samehada_util.IsConstantValue(exp.Right_) {
-				//const ColumnValue& cv = be.Left()->AsColumnValue();
-				//const int offset = sc.Offset(cv.GetColumnName());
-				//if (0 <= offset) {
 				colIdx := sc.GetColIndex(*exp.Left_.(*string))
 				if colIdx != math.MaxUint32 {
 					relatedOps = append(relatedOps, exp)
-					//auto iter = ranges.find(offset);
-					//if (iter != ranges.end()) {
-					//	iter->second.Update(be.Op(),
-					//		be.Right()->AsConstantValue().GetValue(),
-					//		Range::Dir::kRight);
-					//}
 					if rng, ok := ranges[int(colIdx)]; ok {
 						rng.Update(exp.ComparisonOperationType_, exp.Right_.(*types.Value), DIR_RIGHT)
 					}
 				}
 			} else if samehada_util.IsColumnName(exp.Right_) && samehada_util.IsConstantValue(exp.Left_) {
-				//const ColumnValue& cv = be.Right()->AsColumnValue();
-				//const int offset = sc.Offset(cv.GetColumnName());
-				//if (0 <= offset) {
 				colIdx := sc.GetColIndex(*exp.Right_.(*string))
 				if colIdx != math.MaxUint32 {
 					relatedOps = append(relatedOps, exp)
-					//auto iter = ranges.find(offset);
-					//if (iter != ranges.end()) {
-					//	iter->second.Update(be.Op(),
-					//		be.Left()->AsConstantValue().GetValue(),
-					//		Range::Dir::kLeft);
-					//}
 					if rng, ok := ranges[int(colIdx)]; ok {
 						rng.Update(exp.ComparisonOperationType_, exp.Left_.(*types.Value), DIR_LEFT)
 					}
@@ -241,22 +211,17 @@ func (so *SelingerOptimizer) findBestScan(outNeededCols []*column.Column, where 
 	}
 
 	// Expression scan_exp;
-	//var scanExp *parser.BinaryOpExpression
 	var scanExp expression.Expression = nil
 	if len(relatedOps) > 0 {
 		scanExp = parser.ConvParsedBinaryOpExprToExpIFOne(sc, relatedOps[0])
 		for ii := 1; ii < len(relatedOps); ii++ {
 			// append addiitional condition with AND operator
 
-			//scan_exp = BinaryExpressionExp(scan_exp, BinaryOperation::kAnd, related_ops[i]);
 			scanExp = expression.AppendLogicalCondition(scanExp, expression.AND, parser.ConvParsedBinaryOpExprToExpIFOne(sc, relatedOps[ii]))
 		}
 	}
 
 	// Build all IndexScan.
-	//for (const auto& range : ranges) {
-	//slot_t key = range.first;
-	//const Range& span = range.second;
 	for key, span := range ranges {
 		if span.Empty() {
 			continue
@@ -275,7 +240,6 @@ func (so *SelingerOptimizer) findBestScan(outNeededCols []*column.Column, where 
 			newPlan = plans.NewSelectionPlanNode(newPlan, scanExp)
 		}
 		if len(outNeededCols) != int(newPlan.OutputSchema().GetColumnCount()) {
-			//new_plan = std::make_shared<ProjectionPlan>(new_plan, select);
 			newPlan = plans.NewProjectionPlanNode(newPlan, schema.NewSchema(outNeededCols))
 		}
 		if newPlan.AccessRowCount(c) < minimamCost {
@@ -284,14 +248,11 @@ func (so *SelingerOptimizer) findBestScan(outNeededCols []*column.Column, where 
 		}
 	}
 
-	// Plan full_scan_plan(new FullScanPlan(from, stat));
 	fullScanPlan := plans.NewSeqScanPlanNode(c, sc, nil, from.OID())
 	if scanExp != nil {
-		// full_scan_plan = std::make_shared<SelectionPlan>(full_scan_plan, scan_exp, stat);
 		fullScanPlan = plans.NewSelectionPlanNode(fullScanPlan, scanExp)
 	}
 	if len(outNeededCols) != int(sc.GetColumnCount()) {
-		// full_scan_plan = std::make_shared<ProjectionPlan>(full_scan_plan, select);
 		fullScanPlan = plans.NewProjectionPlanNode(fullScanPlan, schema.NewSchema(outNeededCols))
 	}
 	if fullScanPlan.AccessRowCount(c) < minimamCost {
@@ -323,7 +284,6 @@ func (so *SelingerOptimizer) findBestScans() map[string]CostAndPlan {
 				}
 			}
 		}
-		//scan, _ := NewSelingerOptimizer().findBestScan(qi.SelectFields_, qi.WhereExpression_, tbl, c, stats)
 		scan, _ := so.findBestScan(projectTarget, so.qi.WhereExpression_.GetDeepCopy(), tbl, so.c, stats)
 		optimalPlans[samehada_util.StrSetToString(samehada_util.MakeSet([]*string{from}))] = CostAndPlan{scan.AccessRowCount(so.c), scan}
 	}
@@ -333,12 +293,9 @@ func (so *SelingerOptimizer) findBestScans() map[string]CostAndPlan {
 
 // attention: caller should pass *where* args which is deep copied
 func (so *SelingerOptimizer) findBestJoinInner(where *parser.BinaryOpExpression, left plans.Plan, right plans.Plan, c *catalog.Catalog) (plans.Plan, error) {
-	// pair<ColumnName, ColumnName>
 	equals := make([]pair.Pair[*string, *string], 0)
-	//stack<Expression> exp
 	exp := stack.New()
 	exp.Push(where)
-	// vector<Expression> relatedExp
 	var relatedExp = make([]*parser.BinaryOpExpression, 0)
 	for exp.Len() > 0 {
 		here := exp.Pop().(*parser.BinaryOpExpression)
@@ -383,7 +340,6 @@ func (so *SelingerOptimizer) findBestJoinInner(where *parser.BinaryOpExpression,
 
 		// IndexJoin
 
-		// if (const Table* right_tbl = right->ScanSource()) {
 		// checks whether right Plan deal only one table (join or aggregation on tree is NG)
 		if right.GetTableOID() != math.MaxUint32 || right.GetType() == plans.Projection {
 			rightSchema := right.OutputSchema()
@@ -394,17 +350,12 @@ func (so *SelingerOptimizer) findBestJoinInner(where *parser.BinaryOpExpression,
 				rightOID = right.GetChildAt(0).GetTableOID()
 			}
 			if len(so.c.GetTableByOID(rightOID).Indexes()) > 0 {
-				// for (size_t i = 0; i < right_tbl->IndexCount(); ++i) {
-				// const Index& right_index = right_tbl->GetIndex(i);
 				for index_idx, right_index := range so.c.GetTableByOID(rightOID).Indexes() {
 					if right_index == nil {
 						continue
 					}
-					//ASSIGN_OR_CRASH(std::shared_ptr<TableStatistics>, stat,
-					//	ctx.GetStats(right_tbl->GetSchema().Name()));
 					for idx, rcol := range right_cols {
 						if right_index.GetTupleSchema().GetColumn(uint32(index_idx)).GetColumnName() == *rcol {
-							// candidates.push_back(std::make_shared<ProductPlan>(left, left_cols, *right_tbl, right_index, right_cols, *stat));
 							// right scan plan is not used because IndexJoinExecutor does point scans internally
 							candidates = append(candidates, plans.NewIndexJoinPlanNode(so.c, left, parser.ConvColumnStrsToExpIfOnes(so.c, left, []*string{left_cols[idx]}, true), rightSchema, rightOID, parser.ConvColumnStrsToExpIfOnes(so.c, nil, []*string{rcol}, false)))
 						}
@@ -443,11 +394,6 @@ func (so *SelingerOptimizer) findBestJoinInner(where *parser.BinaryOpExpression,
 	sort.Slice(candidates, func(i, j int) bool {
 		return candidates[i].AccessRowCount(c) < candidates[j].AccessRowCount(c)
 	})
-
-	//costDebugList := make([]pair.Pair[plans.Plan, int], 0)
-	//for ii := 0; ii < len(candidates); ii++ {
-	//	costDebugList = append(costDebugList, pair.Pair[plans.Plan, int]{candidates[ii], int(candidates[ii].AccessRowCount(c))})
-	//}
 
 	return candidates[0], nil
 }

@@ -37,7 +37,6 @@ func (p *SeqScanPlanNode) GetType() PlanType {
 }
 
 func (p *SeqScanPlanNode) AccessRowCount(c *catalog.Catalog) uint64 {
-	// return stats_.Rows();
 	return c.GetTableByOID(p.GetTableOID()).GetStatistics().Rows()
 }
 

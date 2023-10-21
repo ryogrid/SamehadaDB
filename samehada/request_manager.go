@@ -22,9 +22,7 @@ type RequestManager struct {
 }
 
 func NewRequestManager(sdb *SamehadaDB) *RequestManager {
-	//ch := make(chan *reqResult, 1000000)
 	ch := make(chan *reqResult, 100)
-	//ch := make(chan *reqResult)
 	return &RequestManager{sdb, 0, make([]*queryRequest, 0), new(sync.Mutex), 0, &ch, true}
 }
 

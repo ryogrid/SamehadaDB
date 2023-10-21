@@ -131,7 +131,7 @@ func TestSimpleInsertAndSeqScanWithPredicateComparison(t *testing.T) {
 	diskManager := disk.NewDiskManagerTest()
 	defer diskManager.ShutDown()
 	log_mgr := recovery.NewLogManager(&diskManager)
-	bpm := buffer.NewBufferPoolManager(uint32(32), diskManager, log_mgr) //, recovery.NewLogManager(diskManager), access.NewLockManager(access.REGULAR, access.PREVENTION))
+	bpm := buffer.NewBufferPoolManager(uint32(32), diskManager, log_mgr)
 	txn_mgr := access.NewTransactionManager(access.NewLockManager(access.REGULAR, access.DETECTION), log_mgr)
 	txn := txn_mgr.Begin(nil)
 
@@ -253,7 +253,7 @@ func TestInsertBoolAndSeqScanWithComparison(t *testing.T) {
 	diskManager := disk.NewDiskManagerTest()
 	defer diskManager.ShutDown()
 	log_mgr := recovery.NewLogManager(&diskManager)
-	bpm := buffer.NewBufferPoolManager(uint32(32), diskManager, log_mgr) //, recovery.NewLogManager(diskManager), access.NewLockManager(access.REGULAR, access.PREVENTION))
+	bpm := buffer.NewBufferPoolManager(uint32(32), diskManager, log_mgr)
 	txn_mgr := access.NewTransactionManager(access.NewLockManager(access.REGULAR, access.DETECTION), log_mgr)
 	txn := txn_mgr.Begin(nil)
 
@@ -483,8 +483,6 @@ func TestSimpleInsertAndLimitExecutionMultiTable(t *testing.T) {
 
 	insertPlanNode = plans.NewInsertPlanNode(rows, tableMetadata2.OID())
 
-	//executionEngine := &ExecutionEngine{}
-	//executorContext := NewExecutorContext(c, bpm, txn)
 	executionEngine.Execute(insertPlanNode, executorContext)
 
 	bpm.FlushAllPages()
@@ -554,7 +552,7 @@ func TestHashTableIndex(t *testing.T) {
 
 	diskManager := disk.NewDiskManagerTest()
 	log_mgr := recovery.NewLogManager(&diskManager)
-	bpm := buffer.NewBufferPoolManager(uint32(32), diskManager, log_mgr) //, recovery.NewLogManager(diskManager), access.NewLockManager(access.REGULAR, access.PREVENTION))
+	bpm := buffer.NewBufferPoolManager(uint32(32), diskManager, log_mgr)
 
 	txn_mgr := access.NewTransactionManager(access.NewLockManager(access.REGULAR, access.DETECTION), log_mgr)
 	txn := txn_mgr.Begin(nil)
@@ -988,7 +986,6 @@ func TestSimpleInsertAndUpdate(t *testing.T) {
 	txn_mgr.Commit(nil, txn)
 
 	testingpkg.Assert(t, types.NewVarchar("updated").CompareEquals(results[0].GetValue(outSchema, 0)), "value should be 'updated'")
-	//testingpkg.Assert(t, types.NewInteger(99).CompareEquals(results[1].GetValue(outSchema, 0)), "value should be 99")
 }
 
 func TestInsertUpdateMix(t *testing.T) {
@@ -1307,7 +1304,6 @@ func TestSimpleHashJoin(t *testing.T) {
 	var out_schema1 *schema.Schema
 	{
 		table_info := executorContext.GetCatalog().GetTableByName("test_1")
-		//&schema := table_info.schema_
 		colA := column.NewColumn("test_1.colA", types.Integer, false, index_constants.INDEX_KIND_INVALID, types.PageID(-1), nil)
 		colB := column.NewColumn("test_1.colB", types.Integer, false, index_constants.INDEX_KIND_INVALID, types.PageID(-1), nil)
 		out_schema1 = schema.NewSchema([]*column.Column{colA, colB})
@@ -1317,7 +1313,6 @@ func TestSimpleHashJoin(t *testing.T) {
 	var out_schema2 *schema.Schema
 	{
 		table_info := executorContext.GetCatalog().GetTableByName("test_2")
-		//schema := table_info.schema_
 		col1 := column.NewColumn("test_2.col1", types.Integer, false, index_constants.INDEX_KIND_INVALID, types.PageID(-1), nil)
 		col2 := column.NewColumn("test_2.col2", types.Integer, false, index_constants.INDEX_KIND_INVALID, types.PageID(-1), nil)
 		out_schema2 = schema.NewSchema([]*column.Column{col1, col2})
@@ -1411,7 +1406,6 @@ func TestSimpleNestedLoopJoin(t *testing.T) {
 	var out_schema1 *schema.Schema
 	{
 		table_info := executorContext.GetCatalog().GetTableByName("test_1")
-		//&schema := table_info.schema_
 		colA := column.NewColumn("test_1.colA", types.Integer, false, index_constants.INDEX_KIND_INVALID, types.PageID(-1), nil)
 		colB := column.NewColumn("test_1.colB", types.Integer, false, index_constants.INDEX_KIND_INVALID, types.PageID(-1), nil)
 		out_schema1 = schema.NewSchema([]*column.Column{colA, colB})
@@ -1421,7 +1415,6 @@ func TestSimpleNestedLoopJoin(t *testing.T) {
 	var out_schema2 *schema.Schema
 	{
 		table_info := executorContext.GetCatalog().GetTableByName("test_2")
-		//schema := table_info.schema_
 		col1 := column.NewColumn("test_2.col1", types.Integer, false, index_constants.INDEX_KIND_INVALID, types.PageID(-1), nil)
 		col2 := column.NewColumn("test_2.col2", types.Integer, false, index_constants.INDEX_KIND_INVALID, types.PageID(-1), nil)
 		out_schema2 = schema.NewSchema([]*column.Column{col1, col2})
@@ -1490,7 +1483,6 @@ func TestSimpleIndexJoin(t *testing.T) {
 	var out_schema1 *schema.Schema
 	{
 		table_info := executorContext.GetCatalog().GetTableByName("test_1")
-		//&schema := table_info.schema_
 		colA := column.NewColumn("test_1.colA", types.Integer, false, index_constants.INDEX_KIND_INVALID, types.PageID(-1), nil)
 		colB := column.NewColumn("test_1.colB", types.Integer, false, index_constants.INDEX_KIND_INVALID, types.PageID(-1), nil)
 		out_schema1 = schema.NewSchema([]*column.Column{colA, colB})
@@ -1500,7 +1492,6 @@ func TestSimpleIndexJoin(t *testing.T) {
 	var out_schema2 *schema.Schema
 	{
 		table_info := executorContext.GetCatalog().GetTableByName("test_2")
-		//schema := table_info.schema_
 		col1 := column.NewColumn("test_2.col1", types.Integer, false, index_constants.INDEX_KIND_INVALID, types.PageID(-1), nil)
 		col2 := column.NewColumn("test_2.col2", types.Integer, false, index_constants.INDEX_KIND_INVALID, types.PageID(-1), nil)
 		out_schema2 = schema.NewSchema([]*column.Column{col1, col2})
@@ -1512,12 +1503,10 @@ func TestSimpleIndexJoin(t *testing.T) {
 		// colA and colB have a tuple index of 0 because they are the left side of the join
 		colA := expression.MakeColumnValueExpression(out_schema1, 0, "test_1.colA")
 		// col1 and col2 have a tuple index of 1 because they are the right side of the join
-		//col1 := expression.MakeColumnValueExpression(out_schema2, 1, "test_2.col1")
 		col2 := expression.MakeColumnValueExpression(out_schema2, 1, "test_2.col2")
 		var left_keys []expression.Expression
 		left_keys = append(left_keys, colA)
 		var right_keys []expression.Expression
-		//right_keys = append(right_keys, col1)
 		right_keys = append(right_keys, col2)
 		join_plan = plans.NewIndexJoinPlanNode(c, scan_plan1, left_keys, scan_plan2.OutputSchema(), scan_plan2.GetTableOID(), right_keys)
 	}
@@ -1526,7 +1515,6 @@ func TestSimpleIndexJoin(t *testing.T) {
 	results := executionEngine.Execute(join_plan, executorContext)
 
 	num_tuples := len(results)
-	//testingpkg.Assert(t, num_tuples == 100, "len(results) != 100. Got %d", num_tuples)
 	testingpkg.Assert(t, num_tuples == 1000, "len(results) != 1000. Got %d", num_tuples)
 	for ii := 0; ii < 20; ii++ {
 		fmt.Println(results[ii])
@@ -1539,7 +1527,7 @@ func TestInsertAndSeqScanWithComplexPredicateComparison(t *testing.T) {
 	diskManager := disk.NewDiskManagerTest()
 	defer diskManager.ShutDown()
 	log_mgr := recovery.NewLogManager(&diskManager)
-	bpm := buffer.NewBufferPoolManager(uint32(32), diskManager, log_mgr) //, recovery.NewLogManager(diskManager), access.NewLockManager(access.REGULAR, access.PREVENTION))
+	bpm := buffer.NewBufferPoolManager(uint32(32), diskManager, log_mgr)
 	txn_mgr := access.NewTransactionManager(access.NewLockManager(access.REGULAR, access.DETECTION), log_mgr)
 	txn := txn_mgr.Begin(nil)
 
@@ -1753,142 +1741,6 @@ func handleFnishTxn(catalog_ *catalog.Catalog, txn_mgr *access.TransactionManage
 	}
 }
 
-//	func TestConcurrentTransactionExecution(t *testing.T) {
-//		if testing.Short() {
-//			t.Skip("skip this in short mode.")
-//		}
-//
-//		if !common.EnableOnMemStorage {
-//			os.Remove(t.Name() + ".db")
-//			os.Remove(t.Name() + ".log")
-//		}
-//
-//		shi := samehada.NewSamehadaInstance(t.Name(), common.BufferPoolMaxFrameNumForTest)
-//		shi.GetLogManager().ActivateLogging()
-//		testingpkg.Assert(t, shi.GetLogManager().IsEnabledLogging(), "")
-//		fmt.Println("System logging is active.")
-//
-//		txn_mgr := shi.GetTransactionManager()
-//		txn := txn_mgr.Begin(nil)
-//
-//		c := catalog.BootstrapCatalog(shi.GetBufferPoolManager(), shi.GetLogManager(), shi.GetLockManager(), txn)
-//
-//		columnA := column.NewColumn("a", types.Integer, false, index_constants.INDEX_KIND_INVALID, types.PageID(-1), nil)
-//		columnB := column.NewColumn("b", types.Varchar, false, index_constants.INDEX_KIND_INVALID, types.PageID(-1), nil)
-//		columnC := column.NewColumn("c", types.Integer, false, index_constants.INDEX_KIND_INVALID, types.PageID(-1), nil)
-//		columnD := column.NewColumn("d", types.Varchar, false, index_constants.INDEX_KIND_INVALID, types.PageID(-1), nil)
-//		schema_ := schema.NewSchema([]*column.Column{columnA, columnB, columnC, columnD})
-//
-//		tableMetadata := c.CreateTable("test_1", schema_, txn)
-//
-//		row1 := make([]types.Value, 0)
-//		row1 = append(row1, types.NewInteger(20))
-//		row1 = append(row1, types.NewVarchar("hoge"))
-//		row1 = append(row1, types.NewInteger(40))
-//		row1 = append(row1, types.NewVarchar("hogehoge"))
-//
-//		row2 := make([]types.Value, 0)
-//		row2 = append(row2, types.NewInteger(99))
-//		row2 = append(row2, types.NewVarchar("foo"))
-//		row2 = append(row2, types.NewInteger(999))
-//		row2 = append(row2, types.NewVarchar("foofoo"))
-//
-//		row3 := make([]types.Value, 0)
-//		row3 = append(row3, types.NewInteger(11))
-//		row3 = append(row3, types.NewVarchar("bar"))
-//		row3 = append(row3, types.NewInteger(17))
-//		row3 = append(row3, types.NewVarchar("barbar"))
-//
-//		row4 := make([]types.Value, 0)
-//		row4 = append(row4, types.NewInteger(100))
-//		row4 = append(row4, types.NewVarchar("piyo"))
-//		row4 = append(row4, types.NewInteger(1000))
-//		row4 = append(row4, types.NewVarchar("piyopiyo"))
-//
-//		rows := make([][]types.Value, 0)
-//		rows = append(rows, row1)
-//		rows = append(rows, row2)
-//		rows = append(rows, row3)
-//		rows = append(rows, row4)
-//
-//		insertPlanNode := plans.NewInsertPlanNode(rows, tableMetadata.OID())
-//
-//		executionEngine := &executors.ExecutionEngine{}
-//		executorContext := executors.NewExecutorContext(c, shi.GetBufferPoolManager(), txn)
-//		executionEngine.Execute(insertPlanNode, executorContext)
-//
-//		txn_mgr.Commit(txn)
-//
-//		const PARALLEL_EXEC_CNT int = 100
-//
-//		// // set timeout for debugging
-//		// time.AfterFunc(time.Duration(40)*time.Second, TimeoutPanic)
-//
-//		commited_cnt := int32(0)
-//		for i := 0; i < PARALLEL_EXEC_CNT; i++ {
-//			ch1 := make(chan int32)
-//			ch2 := make(chan int32)
-//			ch3 := make(chan int32)
-//			ch4 := make(chan int32)
-//			go rowInsertTransaction(t, shi, c, tableMetadata, ch1)
-//			go selectAllRowTransaction(t, shi, c, tableMetadata, ch2)
-//			go deleteAllRowTransaction(t, shi, c, tableMetadata, ch3)
-//			go selectAllRowTransaction(t, shi, c, tableMetadata, ch4)
-//
-//			commited_cnt += <-ch1
-//			commited_cnt += <-ch2
-//			commited_cnt += <-ch3
-//			commited_cnt += <-ch4
-//			//fmt.Printf("commited_cnt: %d\n", commited_cnt)
-//			//shi.GetLockManager().PrintLockTables()
-//			//shi.GetLockManager().ClearLockTablesForDebug()
-//		}
-//
-//		fmt.Printf("final commited_cnt: %d\n", commited_cnt)
-//
-//		// remove db file and log file
-//		shi.Shutdown(true)
-//	}
-//
-//	func TestTestTableGenerator(t *testing.T) {
-//		if !common.EnableOnMemStorage {
-//			os.Remove(t.Name() + ".db")
-//			os.Remove(t.Name() + ".log")
-//		}
-//
-//		shi := samehada.NewSamehadaInstance(t.Name(), common.BufferPoolMaxFrameNumForTest)
-//		shi.GetLogManager().ActivateLogging()
-//		testingpkg.Assert(t, shi.GetLogManager().IsEnabledLogging(), "")
-//		fmt.Println("System logging is active.")
-//
-//		txn_mgr := shi.GetTransactionManager()
-//		txn := txn_mgr.Begin(nil)
-//
-//		c := catalog.BootstrapCatalog(shi.GetBufferPoolManager(), shi.GetLogManager(), shi.GetLockManager(), txn)
-//		exec_ctx := executors.NewExecutorContext(c, shi.GetBufferPoolManager(), txn)
-//
-//		table_info, _ := executors.GenerateTestTabls(c, exec_ctx, txn)
-//
-//		//txn_mgr.Commit(txn)
-//		//shi.GetBufferPoolManager().FlushAllPages()
-//		//txn = txn_mgr.Begin(nil)
-//		//exec_ctx.SetTransaction(txn)
-//
-//		outColumnA := column.NewColumn("colA", types.Integer, false, index_constants.INDEX_KIND_INVALID, types.PageID(-1), nil)
-//		outSchema := schema.NewSchema([]*column.Column{outColumnA})
-//
-//		seqPlan := plans.NewSeqScanPlanNode(outSchema, nil, table_info.OID())
-//
-//		executionEngine := &executors.ExecutionEngine{}
-//
-//		results := executionEngine.Execute(seqPlan, exec_ctx)
-//		fmt.Printf("len(results) => %d", len(results))
-//		fmt.Println("")
-//		testingpkg.Assert(t, len(results) == int(executors.TEST1_SIZE), "generated table or testcase is wrong.")
-//
-//		txn_mgr.Commit(txn)
-//		shi.Shutdown(true)
-//	}
 func TestSimpleAggregation(t *testing.T) {
 	// SELECT COUNT(colA), SUM(colA), min(colA), max(colA) from test_1;
 	if !common.EnableOnMemStorage {
@@ -1912,7 +1764,6 @@ func TestSimpleAggregation(t *testing.T) {
 	var scan_plan *plans.SeqScanPlanNode
 	var scan_schema *schema.Schema
 	{
-		//auto table_info = GetExecutorContext()->GetCatalog()->GetTable("test_1");
 		schema_ := table_info.Schema()
 		colA := expression.MakeColumnValueExpression(schema_, 0, "test_1.colA").(*expression.ColumnValue)
 		scan_schema = testing_tbl_gen.MakeOutputSchema([]testing_tbl_gen.MakeSchemaMeta{{"test_1.colA", *colA}})
@@ -1938,7 +1789,6 @@ func TestSimpleAggregation(t *testing.T) {
 
 	executionEngine := &executors.ExecutionEngine{}
 	executor := executionEngine.CreateExecutor(agg_plan, exec_ctx)
-	//executor := ExecutorFactory::CreateExecutor(GetExecutorContext(), agg_plan.get())
 	executor.Init()
 	tuple_, _, err := executor.Next()
 	testingpkg.Assert(t, tuple_ != nil && err == nil, "first call of AggregationExecutor.Next() failed")
@@ -1985,7 +1835,6 @@ func TestSimpleGroupByAggregation(t *testing.T) {
 	var scan_plan *plans.SeqScanPlanNode
 	var scan_schema *schema.Schema
 	{
-		//auto table_info = GetExecutorContext()->GetCatalog()->GetTable("test_1");
 		schema_ := table_info.Schema()
 		colA := expression.MakeColumnValueExpression(schema_, 0, "colA").(*expression.ColumnValue)
 		colB := expression.MakeColumnValueExpression(schema_, 0, "colB").(*expression.ColumnValue)
@@ -2000,14 +1849,13 @@ func TestSimpleGroupByAggregation(t *testing.T) {
 		colA := expression.MakeColumnValueExpression(scan_schema, 0, "colA").(*expression.ColumnValue)
 		colB := expression.MakeColumnValueExpression(scan_schema, 0, "colB").(*expression.ColumnValue)
 		colC := expression.MakeColumnValueExpression(scan_schema, 0, "colC").(*expression.ColumnValue)
-		// Make group bye
+		// Make group by
 		groupbyB := *testing_tbl_gen.MakeAggregateValueExpression(true, 0).(*expression.AggregateValueExpression)
 		// Make aggregates
 		countA := *testing_tbl_gen.MakeAggregateValueExpression(false, 0).(*expression.AggregateValueExpression)
 		sumC := *testing_tbl_gen.MakeAggregateValueExpression(false, 1).(*expression.AggregateValueExpression)
 		// Make having clause
 		pred_const := types.NewInteger(int32(testing_tbl_gen.TEST1_SIZE / 10))
-		//pred_const := types.NewInteger(100)
 		having := testing_tbl_gen.MakeComparisonExpression(&countA, testing_tbl_gen.MakeConstantValueExpression(&pred_const), expression.GreaterThan)
 
 		agg_schema = testing_tbl_gen.MakeOutputSchemaAgg([]testing_tbl_gen.MakeSchemaMetaAgg{{"countA", countA}, {"colB", groupbyB}, {"sumC", sumC}})
@@ -2109,8 +1957,6 @@ func TestSeqScanWithMultiItemPredicate(t *testing.T) {
 		colA_val := tuple_.GetValue(scan_schema, scan_schema.GetColIndex("colA")).ToInteger()
 		colB_val := tuple_.GetValue(scan_schema, scan_schema.GetColIndex("colB")).ToInteger()
 		colC_val := tuple_.GetValue(scan_schema, scan_schema.GetColIndex("colC")).ToInteger()
-
-		//fmt.Printf("%d %d %d\n", colA_val, colB_val, colC_val)
 
 		testingpkg.Assert(t, (colA_val > 500 && colB_val < 5) || !(colC_val >= 1000), "return tuple violates predicate!")
 	}
@@ -2622,7 +2468,6 @@ func TestSimpleSeqScanAndOrderBy(t *testing.T) {
 	c := catalog.BootstrapCatalog(shi.GetBufferPoolManager(), shi.GetLogManager(), shi.GetLockManager(), txn)
 	exec_ctx := executors.NewExecutorContext(c, shi.GetBufferPoolManager(), txn)
 
-	//table_info, _ := GenerateTestTabls(c, exec_ctx, txn)
 	columnA := column.NewColumn("a", types.Integer, false, index_constants.INDEX_KIND_INVALID, types.PageID(-1), nil)
 	columnB := column.NewColumn("b", types.Varchar, false, index_constants.INDEX_KIND_INVALID, types.PageID(-1), nil)
 	schema_ := schema.NewSchema([]*column.Column{columnA, columnB})
@@ -2658,7 +2503,6 @@ func TestSimpleSeqScanAndOrderBy(t *testing.T) {
 	var scan_plan *plans.SeqScanPlanNode
 	var scan_schema *schema.Schema
 	{
-		//auto table_info = GetExecutorContext()->GetCatalog()->GetTable("test_1");
 		schema_ := tableMetadata.Schema()
 		colA := expression.MakeColumnValueExpression(schema_, 0, "a").(*expression.ColumnValue)
 		colB := expression.MakeColumnValueExpression(schema_, 0, "b").(*expression.ColumnValue)
@@ -2769,7 +2613,6 @@ func TestSimpleSetNullToVarchar(t *testing.T) {
 	var scan_plan *plans.SeqScanPlanNode
 	var scan_schema *schema.Schema
 	{
-		//auto table_info = GetExecutorContext()->GetCatalog()->GetTable("test_1");
 		schema_ := tableMetadata.Schema()
 		colA := expression.MakeColumnValueExpression(schema_, 0, "a").(*expression.ColumnValue)
 		colB := expression.MakeColumnValueExpression(schema_, 0, "b").(*expression.ColumnValue)
@@ -2787,8 +2630,6 @@ func TestSimpleSetNullToVarchar(t *testing.T) {
 	fmt.Println(results[2].GetValue(scan_schema, 1).ToVarchar())
 
 	testingpkg.Assert(t, types.NewInteger(20).CompareEquals(results[0].GetValue(scan_schema, 0)), "value should be 20")
-	//testingpkg.Assert(t, types.NewInteger(0).CompareEquals(results[0].GetValue(scan_schema, 0)), "value should be 0")
-	//testingpkg.Assert(t, results[0].GetValue(scan_schema, 0).IsNull() == true, "IsNull() of colomun at 0 value should be true")
 	testingpkg.Assert(t, types.NewVarchar("").CompareEquals(results[0].GetValue(scan_schema, 1)) == false, "compared result should be false")
 	testingpkg.Assert(t, results[0].GetValue(scan_schema, 1).IsNull() == true, "IsNull() of column at 1 value should be true")
 

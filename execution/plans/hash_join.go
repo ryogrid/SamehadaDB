@@ -98,7 +98,6 @@ func (p *HashJoinPlanNode) GetDebugStr() string {
 	rightColIdx := p.onPredicate.GetChildAt(1).(*expression.ColumnValue).GetColIndex()
 	rightColName := p.GetChildAt(1).OutputSchema().GetColumn(rightColIdx).GetColumnName()
 	return "HashJoinPlanNode [" + leftColName + " = " + rightColName + "]"
-	//return "HashJoinPlanNode"
 }
 
 func (p *HashJoinPlanNode) GetStatistics() *catalog.TableStatistics {

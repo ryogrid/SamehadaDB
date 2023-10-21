@@ -46,7 +46,6 @@ func (e *ProjectionExecutor) GetOutputSchema() *schema.Schema {
 }
 
 // project applies the projection operator defined by the output schema
-// It transform the tuple into a new tuple that corresponds to the output schema
 func (e *ProjectionExecutor) projects(tuple_ *tuple.Tuple) *tuple.Tuple {
 	srcOutSchema := e.plan.GetChildAt(0).OutputSchema()
 	projectSchema := e.plan.OutputSchema()

@@ -17,20 +17,15 @@ import (
 type DeleteExecutor struct {
 	context *ExecutorContext
 	plan    *plans.DeletePlanNode
-	//tableMetadata *catalog.TableMetadata
-	//it            *access.TableHeapIterator
-	child Executor
-	txn   *access.Transaction
+	child   Executor
+	txn     *access.Transaction
 }
 
 func NewDeleteExecutor(context *ExecutorContext, plan *plans.DeletePlanNode, child Executor) Executor {
-	//tableMetadata := context.GetCatalog().GetTableByOID(plan.GetTableOID())
-
 	return &DeleteExecutor{context, plan, child, context.GetTransaction()}
 }
 
 func (e *DeleteExecutor) Init() {
-	//e.it = e.tableMetadata.Table().Iterator(e.txn)
 	e.child.Init()
 }
 
@@ -73,7 +68,6 @@ func (e *DeleteExecutor) Next() (*tuple.Tuple, Done, error) {
 				continue
 			} else {
 				index_ := ret
-				//index_.DeleteEntry(e.it.Current(), *rid, e.txn)
 				index_.DeleteEntry(t, *rid, e.txn)
 			}
 		}
@@ -83,11 +77,6 @@ func (e *DeleteExecutor) Next() (*tuple.Tuple, Done, error) {
 
 	return nil, true, nil
 }
-
-//// select evaluates an expression on the tuple
-//func (e *DeleteExecutor) selects(tuple *tuple.Tuple, predicate expression.Expression) bool {
-//	return predicate == nil || predicate.Evaluate(tuple, e.tableMetadata.Schema()).ToBoolean()
-//}
 
 func (e *DeleteExecutor) GetOutputSchema() *schema.Schema { return e.plan.OutputSchema() }
 

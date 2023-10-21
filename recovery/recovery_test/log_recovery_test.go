@@ -22,136 +22,6 @@ import (
 	"github.com/ryogrid/SamehadaDB/types"
 )
 
-/*
-func TestLogSererializeAndDeserialize(t *testing.T) {
-	os.Remove(t.Name() + ".log")
-
-	// on this test, EnableLogging should no be true
-	common.EnableLogging = false
-
-	dm := disk.NewDiskManagerImpl(t.Name() + ".log")
-	lm := recovery.NewLogManager(&dm)
-	lr := log_recovery.NewLogRecovery(&dm, nil)
-	tm := access.NewTransactionManager(lm)
-
-	dummyTupleData1 := make([]byte, 100)
-	for ii := 0; ii < 100; ii++ {
-		// each Byte value is 7!
-		dummyTupleData1[ii] = byte(7)
-	}
-
-	dummyTupleData2 := make([]byte, 100)
-	for ii := 0; ii < 100; ii++ {
-		// each Byte value is 11!
-		dummyTupleData2[ii] = byte(11)
-	}
-
-	var cntup_num uint32 = 0
-	//INSERT, APPLYDELETE, UPDATE, NEWPAGE
-	for ii := 0; ii < 110; ii++ {
-		txn := tm.Begin(nil)
-		rid := new(page.RID)
-		rid.Set(types.PageID(cntup_num), cntup_num)
-		dummyData := make([]byte, 100)
-		copy(dummyData, dummyTupleData1)
-		tuple_ := tuple.NewTuple(rid, 100, dummyData)
-		log_rec := recovery.NewLogRecordInsertDelete(txn.GetTransactionId(), txn.GetPrevLSN(),
-			recovery.INSERT, *rid, tuple_)
-		lsn := lm.AppendLogRecord(log_rec)
-		txn.SetPrevLSN(lsn)
-		cntup_num++
-		////////////////////////
-
-		txn = tm.Begin(nil)
-		rid = new(page.RID)
-		rid.Set(types.PageID(cntup_num), cntup_num)
-		dummyData = make([]byte, 100)
-		copy(dummyData, dummyTupleData1)
-		tuple_old := tuple.NewTuple(rid, 100, dummyData)
-		dummyData2 := make([]byte, 100)
-		copy(dummyData2, dummyTupleData2)
-		tuple_new := tuple.NewTuple(rid, 100, dummyData2)
-		log_rec = recovery.NewLogRecordUpdate(txn.GetTransactionId(), txn.GetPrevLSN(),
-			recovery.UPDATE, *rid, *tuple_old, *tuple_new)
-		lsn = lm.AppendLogRecord(log_rec)
-		txn.SetPrevLSN(lsn)
-		cntup_num++
-		////////////////////////
-
-		txn = tm.Begin(nil)
-		rid = new(page.RID)
-		rid.Set(types.PageID(cntup_num), cntup_num)
-		cntup_num++
-		// dummyData = make([]byte, 100)
-		// copy(dummyData, dummyTupleData1)
-		log_rec = recovery.NewLogRecordNewPage(txn.GetTransactionId(), txn.GetPrevLSN(),
-			recovery.NEWPAGE, types.PageID(cntup_num))
-		lsn = lm.AppendLogRecord(log_rec)
-		txn.SetPrevLSN(lsn)
-		cntup_num++
-
-		if cntup_num%100 == 0 {
-			lm.Flush()
-		}
-	}
-
-	//panic("serialize finish")
-
-	readLogLoopCnt := 0
-	deserializeLoopCnt := 0
-	var file_offset uint32 = 0
-	var readDataBytes uint32
-	log_buffer := make([]byte, common.LogBufferSize)
-	for dm.ReadLog(log_buffer, int32(file_offset), &readDataBytes) {
-		var buffer_offset uint32 = 0
-		var log_record recovery.LogRecord
-		readLogLoopCnt++
-		if readLogLoopCnt > 10 {
-			//fmt.Printf("file_offset %d\n", file_offset)
-			//fmt.Println(log_record)
-			panic("readLogLoopCnt is illegal")
-		}
-		//fmt.Printf("outer file_offset %d\n", file_offset)
-		for lr.DeserializeLogRecord(log_buffer[buffer_offset:readDataBytes], &log_record) {
-			fmt.Printf("inner file_offset %d\n", file_offset)
-			fmt.Printf("inner buffer_offset %d\n", buffer_offset)
-			//fmt.Println(log_record)
-			fmt.Println(log_record.Size)
-			fmt.Println(log_record.Lsn)
-			fmt.Println(log_record.Txn_id)
-			fmt.Println(log_record.Prev_lsn)
-			fmt.Println(log_record.Log_record_type)
-			deserializeLoopCnt++
-			// if deserializeLoopCnt > 10 {
-			// 	//fmt.Println(log_record)
-			// 	fmt.Printf("file_offset %d\n", file_offset)
-			// 	fmt.Printf("buffer_offset %d\n", buffer_offset)
-			// 	panic("deserializeLoopCnt is illegal")
-			// }
-			if log_record.Log_record_type == recovery.INSERT {
-				fmt.Println("Deserialized INSERT log record.")
-				fmt.Println(log_record.Insert_rid)
-				fmt.Println(log_record.Insert_tuple)
-			} else if log_record.Log_record_type == recovery.UPDATE {
-				fmt.Println("Deserialized UPDATE log record.")
-				fmt.Println(log_record.Update_rid)
-				fmt.Println(log_record.Old_tuple.Size())
-				fmt.Println(log_record.New_tuple.Size())
-				// fmt.Println(log_record.Old_tuple)
-				// fmt.Println(log_record.New_tuple)
-			} else if log_record.Log_record_type == recovery.NEWPAGE {
-				fmt.Println("Deserialized NEWPAGE log record.")
-				fmt.Println(log_record.Prev_page_id)
-			}
-			buffer_offset += log_record.Size
-		}
-		// incomplete log record
-		fmt.Printf("buffer_offset %d\n", buffer_offset)
-		file_offset += buffer_offset
-	}
-}
-*/
-
 func TestRedo(t *testing.T) {
 	common.TempSuppressOnMemStorageMutex.Lock()
 	common.TempSuppressOnMemStorage = true
@@ -174,7 +44,6 @@ func TestRedo(t *testing.T) {
 	txn := samehada_instance.GetTransactionManager().Begin(nil)
 	test_table := access.NewTableHeap(samehada_instance.GetBufferPoolManager(), samehada_instance.GetLogManager(),
 		samehada_instance.GetLockManager(), txn)
-	//first_page_id := test_table.GetFirstPageId()
 
 	var rid *page.RID
 	var rid1 *page.RID
@@ -201,7 +70,6 @@ func TestRedo(t *testing.T) {
 	fmt.Println("Commit txn")
 
 	fmt.Println("Shutdown System")
-	//samehada_instance.Shutdown(false)
 	samehada_instance.CloseFilesForTesting()
 
 	fmt.Println("System restart...")
@@ -283,7 +151,7 @@ func TestUndo(t *testing.T) {
 
 	samehada_instance.GetLogManager().ActivateLogging()
 	testingpkg.Assert(t, samehada_instance.GetLogManager().IsEnabledLogging(), "")
-	//fmt.Println("System logging thread running...")
+	fmt.Println("System logging thread running...")
 
 	fmt.Println("Create a test table")
 	txn := samehada_instance.GetTransactionManager().Begin(nil)
@@ -349,7 +217,6 @@ func TestUndo(t *testing.T) {
 	fmt.Println("System restarted..")
 	samehada_instance = samehada.NewSamehadaInstance(t.Name(), common.BufferPoolMaxFrameNumForTest)
 	txn = samehada_instance.GetTransactionManager().Begin(nil)
-	//txn.SetIsRecoveryPhase(true)
 
 	test_table = access.NewTableHeap(
 		samehada_instance.GetBufferPoolManager(),
@@ -363,7 +230,6 @@ func TestUndo(t *testing.T) {
 
 	fmt.Println("Check if updated tuple values are effected before recovery")
 	var old_tuple2 *tuple.Tuple
-	//testingpkg.Assert(t, test_table.GetTuple(rid, &old_tuple, txn), "")
 	old_tuple2, _ = test_table.GetTuple(rid2, txn)
 	testingpkg.Assert(t, old_tuple2 != nil, "")
 	testingpkg.Assert(t, old_tuple2.GetValue(schema_, 0).CompareEquals(types.NewVarchar("updated")), "")
@@ -392,11 +258,8 @@ func TestUndo(t *testing.T) {
 	log_recovery.Undo(txn)
 	fmt.Println("Undo underway...")
 
-	//samehada_instance.GetTransactionManager().Commit(txn)
-
 	fmt.Println("Check if failed txn is undo successfully")
 	txn = samehada_instance.GetTransactionManager().Begin(nil)
-	//txn.SetIsRecoveryPhase(true)
 
 	fmt.Println("Check deleted tuple exists")
 	old_tuple1, _ = test_table.GetTuple(rid1, txn)
@@ -413,8 +276,6 @@ func TestUndo(t *testing.T) {
 	fmt.Println("Check inserted tuple does not exist")
 	old_tuple3, _ = test_table.GetTuple(rid3, txn)
 	testingpkg.Assert(t, old_tuple3 == nil, "")
-
-	//samehada_instance.GetTransactionManager().Commit(txn)
 
 	fmt.Println("Tearing down the system..")
 
@@ -465,7 +326,6 @@ func TestCheckpoint(t *testing.T) {
 	// insert a ton of tuples
 	txn1 := samehada_instance.GetTransactionManager().Begin(nil)
 	for i := 0; i < 1000; i++ {
-		//var rid *page.RID = nil
 		rid, err := test_table.InsertTuple(tuple_, false, txn1, math.MaxUint32)
 		if err != nil {
 			fmt.Println(err)
@@ -518,7 +378,6 @@ func TestCheckpoint(t *testing.T) {
 	// Verify all committed transactions flushed to disk
 	persistent_lsn := samehada_instance.GetLogManager().GetPersistentLSN()
 	next_lsn := samehada_instance.GetLogManager().GetNextLSN()
-	//EXPECT_EQ(persistent_lsn, (next_lsn - 1))
 	testingpkg.Assert(t, persistent_lsn == (next_lsn-1), "")
 
 	// verify log was flushed and each page's LSN <= persistent lsn
@@ -549,12 +408,10 @@ func ConstructTuple(schema_ *schema.Schema) *tuple.Tuple {
 
 	v := types.NewInteger(-1) //&types.Value{types.Invalid, nil, nil, nil}
 
-	//seed = std::chrono::system_clock::now().time_since_epoch().count()
 	seed := time.Now().UnixNano()
 	rand.Seed(seed)
 
 	col_cnt := int(schema_.GetColumnCount())
-	//std::mt19937 generator(seed)  // mt19937 is a standard mersenne_twister_engine
 	for i := 0; i < col_cnt; i++ {
 		// get type
 		col := schema_.GetColumn(uint32(i))
@@ -567,35 +424,21 @@ func ConstructTuple(schema_ *schema.Schema) *tuple.Tuple {
 			} else {
 				v = types.NewBoolean(true)
 			}
-		// case types.Tinyint:
-		// 	v = Value(type_, int8(rand.Intn(math.MaxUint32)) % 1000)
-		// 	break
-		// case types.Smallint:
-		// 	v = Value(type_, int16(rand.Intn(math.MaxUint32)) % 1000)
-		// 	break
 		case types.Integer:
 			v = types.NewInteger(int32(rand.Intn(math.MaxUint32)) % 1000)
-		// case types.BigInt:
-		// 	v = Value(type_, int64(rand.Intn(math.MaxUint32)) % 1000)
-		// 	break
 		case types.Varchar:
 			alphabets :=
 				"ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz"
 			len_ := int(1 + rand.Intn(math.MaxUint32)%10)
-			//char s[10]
 			s := ""
 			for j := 0; j < len_; j++ {
-				//s[j] = alphanum[rand.Intn(math.MaxUint32) % (sizeof(alphanum) - 1)]
 				idx := rand.Intn(52)
 				s = s + alphabets[idx:idx+1]
 			}
-			//s[len] = 0
-			//v = Value(type, s, len + 1, true)
 			v = types.NewVarchar(s)
 		default:
 		}
 		values = append(values, v)
 	}
 	return tuple.NewTupleFromSchema(values, schema_)
-	//return tuple.NewTuple(new(page.RID), 0, []byte{})
 }

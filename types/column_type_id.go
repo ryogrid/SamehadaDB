@@ -20,16 +20,6 @@ const (
 	Null
 )
 
-//func (t TypeID) Size() uint32 {
-//	switch t {
-//	case Integer:
-//		return 4
-//	case Float:
-//		return 4
-//	}
-//	return 0
-//}
-
 func (t TypeID) Size() uint32 {
 	switch t {
 	case Integer:

@@ -14,9 +14,6 @@ type BinaryOpVisitor struct {
 }
 
 func (v *BinaryOpVisitor) Enter(in ast.Node) (ast.Node, bool) {
-	//refVal := reflect.ValueOf(in)
-	//fmt.Println(refVal.Type())
-
 	switch node := in.(type) {
 	case *ast.BinaryOperationExpr:
 		l_visitor := &BinaryOpVisitor{v.QueryInfo_, new(BinaryOpExpression)}

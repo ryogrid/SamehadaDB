@@ -22,7 +22,6 @@ type InsertExecutor struct {
 
 func NewInsertExecutor(context *ExecutorContext, plan *plans.InsertPlanNode) Executor {
 	tableMetadata := context.GetCatalog().GetTableByOID(plan.GetTableOID())
-	//catalog := context.GetCatalog()
 
 	return &InsertExecutor{context, plan, tableMetadata}
 }

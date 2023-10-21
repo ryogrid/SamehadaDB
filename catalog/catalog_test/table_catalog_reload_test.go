@@ -27,8 +27,6 @@ func TestTableCatalogReload(t *testing.T) {
 		os.Remove(t.Name() + ".db")
 	}
 	samehada_instance := samehada.NewSamehadaInstance(t.Name(), common.BufferPoolMaxFrameNumForTest)
-	//diskManager := disk.NewDiskManagerImpl(t.Name() + ".db")
-	//defer diskManager.ShutDown()
 	bpm := buffer.NewBufferPoolManager(uint32(32), samehada_instance.GetDiskManager(), samehada_instance.GetLogManager())
 
 	txn := samehada_instance.GetTransactionManager().Begin(nil)
@@ -47,7 +45,6 @@ func TestTableCatalogReload(t *testing.T) {
 
 	samehada_instance_new := samehada.NewSamehadaInstance(t.Name(), common.BufferPoolMaxFrameNumForTest)
 	txn_new := samehada_instance_new.GetTransactionManager().Begin(nil)
-	//catalog := GetCatalog(bpm)
 	catalog_recov := catalog.RecoveryCatalogFromCatalogPage(samehada_instance_new.GetBufferPoolManager(), samehada_instance_new.GetLogManager(), samehada_instance_new.GetLockManager(), txn_new)
 
 	columnToCheck := catalog_recov.GetTableByOID(1).Schema().GetColumn(1)
@@ -57,6 +54,5 @@ func TestTableCatalogReload(t *testing.T) {
 	testingpkg.Assert(t, columnToCheck.HasIndex() == true, "")
 
 	common.TempSuppressOnMemStorage = false
-	//samehada_instance.Shutdown(true)
 	common.TempSuppressOnMemStorageMutex.Unlock()
 }

@@ -80,11 +80,6 @@ type LogRecord struct {
 	Prev_page_id types.PageID //INVALID_PAGE_ID
 }
 
-// friend class LogManager;
-// friend class LogRecovery;
-
-//func NewLogRecord() *LogRecord {}
-
 // constructor for Transaction type(BEGIN/COMMIT/ABORT)
 func NewLogRecordTxn(txn_id types.TxnID, prev_lsn types.LSN, log_record_type LogRecordType) *LogRecord {
 	ret := new(LogRecord)
@@ -170,16 +165,3 @@ func (log_record *LogRecord) GetLogHeaderData() []byte {
 	// 	buf.Len())
 	return buf.Bytes()
 }
-
-// // For debug purpose
-// std::string ToString() const {
-// 	std::ostringstream os;
-// 	os << "Log["
-// 		<< "size:" << size_ << ", "
-// 		<< "LSN:" << lsn_ << ", "
-// 		<< "transID:" << txn_id_ << ", "
-// 		<< "prevLSN:" << prev_lsn_ << ", "
-// 		<< "LogType:" << static_cast<int>(log_record_type_) << "]";
-
-// 	return os.str();
-// }

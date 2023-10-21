@@ -19,7 +19,7 @@ type HashJoinExecutor struct {
 	/** The hash join plan node. */
 	plan_ *plans.HashJoinPlanNode
 	/** The hash table that we are using. */
-	jht_ *SimpleHashJoinHashTable //*hash.LinearProbeHashTable
+	jht_ *SimpleHashJoinHashTable
 	/** The number of buckets in the hash table. */
 	jht_num_buckets_ uint32 //= 2
 	left_            Executor
@@ -42,7 +42,6 @@ type HashJoinExecutor struct {
  */
 func NewHashJoinExecutor(exec_ctx *ExecutorContext, plan *plans.HashJoinPlanNode, left Executor,
 	right Executor) *HashJoinExecutor {
-	//retun &HashJoinExecutor{exec_ctx, plan, }
 	ret := new(HashJoinExecutor)
 	ret.plan_ = plan
 	ret.context = exec_ctx
@@ -50,7 +49,6 @@ func NewHashJoinExecutor(exec_ctx *ExecutorContext, plan *plans.HashJoinPlanNode
 	ret.right_ = right
 	// about 200k entry can be stored
 	ret.jht_num_buckets_ = 100
-	//ret.jht_ = hash.NewLinearProbeHashTable(exec_ctx.GetBufferPoolManager(), int(ret.jht_num_buckets_))
 	ret.jht_ = NewSimpleHashJoinHashTable()
 	return ret
 }
@@ -83,7 +81,6 @@ func (e *HashJoinExecutor) Init() {
 	e.right_.Init()
 	e.left_expr_ = e.plan_.OnPredicate().GetChildAt(0)
 	e.right_expr_ = e.plan_.OnPredicate().GetChildAt(1)
-	//var left_tuple tuple.Tuple
 	// store all the left tuples in tmp pages in that it can not fit in memory
 	// use tmp tuple as the value of the hash table kv pair
 	var tmp_page *hash.TmpTuplePage = nil
@@ -130,11 +127,6 @@ func (e *HashJoinExecutor) Next() (*tuple.Tuple, Done, error) {
 			var done Done = false
 			var tmp_tuple *tuple.Tuple
 			if tmp_tuple, done, _ = e.right_.Next(); done {
-				//if tmp_tuple == nil {
-				//	err := errors.New("e.right_.Next returned nil")
-				//	return nil, false, err
-				//}
-
 				// hash join finished, delete all the tmp page we created
 				for _, tmp_page_id := range e.tmp_page_ids_ {
 					e.context.GetBufferPoolManager().DeallocatePage(tmp_page_id)

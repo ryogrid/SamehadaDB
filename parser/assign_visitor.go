@@ -12,12 +12,8 @@ type AssignVisitor struct {
 }
 
 func (v *AssignVisitor) Enter(in ast.Node) (ast.Node, bool) {
-	//refVal := reflect.ValueOf(in)
-	//fmt.Println(refVal.Type())
-
 	switch node := in.(type) {
 	case *ast.ColumnName:
-		//colname := node.Name.String()
 		colname := node.String()
 		v.Colname_ = &colname
 		return in, true

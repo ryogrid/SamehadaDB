@@ -25,11 +25,9 @@ import (
 )
 
 type SamehadaDB struct {
-	shi_         *SamehadaInstance
-	catalog_     *catalog.Catalog
-	exec_engine_ *executors.ExecutionEngine
-	//chkpntMgr    *concurrency.CheckpointManager
-	//planner_           planner.Planner
+	shi_               *SamehadaInstance
+	catalog_           *catalog.Catalog
+	exec_engine_       *executors.ExecutionEngine
 	statistics_updator *concurrency.StatisticsUpdater
 	request_manager    *RequestManager
 }
@@ -248,7 +246,6 @@ func (sdb *SamehadaDB) ShutdownForTescase() {
 	sdb.shi_.GetCheckpointManager().StopCheckpointTh()
 	sdb.statistics_updator.StopStatsUpdateTh()
 	sdb.request_manager.StopTh()
-	//sdb.shi_.Shutdown(false)
 	sdb.shi_.CloseFilesForTesting()
 }
 

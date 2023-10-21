@@ -57,15 +57,8 @@ func (dc *distinctCounter) Output(o *columnStats) {
 	o.max = dc.max
 	o.min = dc.min
 	o.count = dc.count
-	// o.distinct = counter_.size();
 	o.distinct = int64(len(dc.counter))
 }
-
-/*
-func (dc *distinctCounter[T]) ToColumnStats() *ColumnStats[T] {
-	return nil
-}
-*/
 
 type columnStats struct {
 	max      *types.Value
@@ -272,14 +265,12 @@ func (ts *TableStatistics) ReductionFactor(sc *schema.Schema, predicate expressi
 				lcv := boCmp.GetChildAt(0).(*expression.ColumnValue)
 				colIndexLeft := lcv.GetColIndex()
 				samehada_util.SHAssert(colIndexLeft >= 0 && int(colIndexLeft) < len(ts.colStats), "invalid column index (Left)")
-				// return static_cast<double>(stats_[offset_left].distinct());
 				return guardNotZeroReturn(float64(ts.colStats[colIndexLeft].Distinct()))
 			}
 			if boCmp.GetChildAt(1).GetType() == expression.EXPRESSION_TYPE_COLUMN_VALUE {
 				rcv := boCmp.GetChildAt(1).(*expression.ColumnValue)
 				colIndexRight := rcv.GetColIndex()
 				samehada_util.SHAssert(colIndexRight >= 0 && int(colIndexRight) < len(ts.colStats), "invalid column index (Right)")
-				// return static_cast<double>(stats_[offset_right].distinct());
 				return guardNotZeroReturn(float64(ts.colStats[colIndexRight].Distinct()))
 			}
 			if boCmp.GetChildAt(0).GetType() == expression.EXPRESSION_TYPE_CONSTANT_VALUE &&
