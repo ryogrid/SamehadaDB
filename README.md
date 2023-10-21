@@ -37,7 +37,7 @@
 - [x] Predicates on Seq Scan
 - [x] Multiple Item on Predicate: AND, OR
 - [x] Predicates: <, >, <=, >=
-- [x] Null
+- [x] Null [^1]
 - [ ] Inline types (<del>integer, varchar, float, boolean</del>, bigint, smallint, decimal, timestamp, datetime and etc)
 - [x] Delete Tuple
 - [x] Update Tuple
@@ -49,13 +49,13 @@
 - [ ] <del>LRU replacer</del>
 - [x] Latches
 - [x] Transactions
-- [x] Rollback When Abort Occurs [^1]
+- [x] Rollback When Abort Occurs
 - [x] Logging
 - [x] Checkpointing
   - [x] Simple Checkpointing (all transaction block until finish of checkpointing)
   - [ ] Fuzzy Checkpointing (ARIES)
 - [x] Recovery from Logs
-- [ ] Index [^1]
+- [x] Index
   - [x] Hash Index
     - Hash index can be used only equal(==) operator is specified to index having columns
     - When the system exits in not graceful, reconstruction of index data is needed at reboot of system now
@@ -98,7 +98,7 @@
 - [ ] Materialization (implementation of component for temporal teble management)
 - [ ] Authentication
   
-[^1]: Not supported on using from frontend now  
+[^1]: Not supported use on frontend now  
 
 ## More Info
 - [Wiki on this repo](https://github.com/ryogrid/SamehadaDB/wiki)
