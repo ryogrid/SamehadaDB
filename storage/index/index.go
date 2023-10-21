@@ -30,7 +30,6 @@ func NewIndexMetadata(index_name string, table_name string, tuple_schema *schema
 	ret.name = index_name
 	ret.table_name = table_name
 	ret.key_attrs = key_attrs
-	//ret.tuple_schema = schema.CopySchema(tuple_schema, key_attrs)
 	ret.tuple_schema = tuple_schema
 	return ret
 }

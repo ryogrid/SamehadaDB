@@ -39,8 +39,6 @@ const ErrGeneral = errors.Error("some error is occured!")
 // delete and insert are needed, but delete is only succeeded case
 const ErrPartialUpdate = errors.Error("update with new rid1 is succeeded partially")
 
-//const ErrNoFreeSlot = errors.Error("could not find a free slot")
-
 // Slotted page format:
 //
 //	---------------------------------------------------------
@@ -57,7 +55,6 @@ const ErrPartialUpdate = errors.Error("update with new rid1 is succeeded partial
 //	----------------------------------------------------------------
 type TablePage struct {
 	page.Page
-	//rwlatch_ common.ReaderWriterLatch
 }
 
 // CastPageAsTablePage casts the abstract Page struct into TablePage
@@ -136,8 +133,6 @@ func (tp *TablePage) InsertTuple(tuple *tuple.Tuple, log_manager *recovery.LogMa
 
 	// Write the log record.
 	if log_manager.IsEnabledLogging() {
-		//common.SH_Assert(!txn.IsSharedLocked(rid1) && !txn.IsExclusiveLocked(rid1), "A new tuple1 should not be locked.")
-		//common.SH_Assert(locked, "Locking a new tuple1 should always work.")
 		log_record := recovery.NewLogRecordInsertDelete(txn.GetTransactionId(), txn.GetPrevLSN(), recovery.INSERT, *rid, tuple)
 		lsn := log_manager.AppendLogRecord(log_record)
 		tp.Page.SetLSN(lsn)
@@ -519,7 +514,6 @@ func (tp *TablePage) SetTupleOffsetAtSlot(slot_num uint32, offset uint32) {
 	buf := new(bytes.Buffer)
 	binary.Write(buf, binary.LittleEndian, offset)
 	offsetInBytes := buf.Bytes()
-	//memcpy(GetData() + OFFSET_TUPLE_OFFSET + SIZE_TUPLE * slot_num, &offset, sizeof(uint32_t));
 	copy(tp.Data()[offsetTupleOffset+sizeTuple*slot_num:], offsetInBytes)
 }
 
@@ -591,7 +585,6 @@ func (tp *TablePage) GetTuple(rid *page.RID, log_manager *recovery.LogManager, l
 				// in current implementation, this case occurs in not illegal situation
 
 				fmt.Printf("TablePage::GetTuple rid of deleted record is passed. rid:%v\n", *rid)
-				//panic(fmt.Sprintf("TablePage::GetTuple illegal rid passed. rid:%v", *rid))
 				txn.SetState(ABORTED)
 				return nil, ErrGeneral
 			}
@@ -609,7 +602,6 @@ func (tp *TablePage) GetTuple(rid *page.RID, log_manager *recovery.LogManager, l
 				// txn which deletes target tuple1 is current txn
 				fmt.Println("TablePage:GetTuple ErrSelfDeletedCase (2)!")
 				return tuple.NewTuple(rid, 0, make([]byte, 0)), ErrSelfDeletedCase
-				//return nil, ErrSelfDeletedCase
 			} else {
 				// when RangeSanWithIndexExecutor or PointScanWithIndexExecutor which uses SkipListIterator as RID itrator is called,
 				// the txn enter here.
@@ -623,7 +615,6 @@ func (tp *TablePage) GetTuple(rid *page.RID, log_manager *recovery.LogManager, l
 			// txn which deletes target tuple1 is current txn
 			fmt.Println("TablePage:GetTuple ErrSelfDeletedCase (2)!")
 			return tuple.NewTuple(rid, 0, make([]byte, 0)), ErrSelfDeletedCase
-			//return nil, ErrSelfDeletedCase
 		}
 	}
 

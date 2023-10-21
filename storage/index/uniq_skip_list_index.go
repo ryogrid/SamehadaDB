@@ -17,7 +17,6 @@ type UniqSkipListIndex struct {
 	metadata  *IndexMetadata
 	// idx of target column on table
 	col_idx uint32
-	//rwlatch common.ReaderWriterLatch
 }
 
 func NewUniqSkipListIndex(metadata *IndexMetadata, buffer_pool_manager *buffer.BufferPoolManager, col_idx uint32) *UniqSkipListIndex {
@@ -25,14 +24,10 @@ func NewUniqSkipListIndex(metadata *IndexMetadata, buffer_pool_manager *buffer.B
 	ret.metadata = metadata
 	ret.container = *skip_list.NewSkipList(buffer_pool_manager, ret.metadata.GetTupleSchema().GetColumn(col_idx).GetType())
 	ret.col_idx = col_idx
-	//ret.rwlatch = common.NewRWLatch()
 	return ret
 }
 
 func (slidx *UniqSkipListIndex) InsertEntry(key *tuple.Tuple, rid page.RID, transaction interface{}) {
-	//slidx.rwlatch.WLock()
-	//defer slidx.rwlatch.WUnlock()
-
 	tupleSchema_ := slidx.GetTupleSchema()
 	keyVal := key.GetValue(tupleSchema_, slidx.col_idx)
 
@@ -40,9 +35,6 @@ func (slidx *UniqSkipListIndex) InsertEntry(key *tuple.Tuple, rid page.RID, tran
 }
 
 func (slidx *UniqSkipListIndex) DeleteEntry(key *tuple.Tuple, rid page.RID, transaction interface{}) {
-	//slidx.rwlatch.WLock()
-	//defer slidx.rwlatch.WUnlock()
-
 	tupleSchema_ := slidx.GetTupleSchema()
 	keyVal := key.GetValue(tupleSchema_, slidx.col_idx)
 
@@ -53,9 +45,6 @@ func (slidx *UniqSkipListIndex) DeleteEntry(key *tuple.Tuple, rid page.RID, tran
 }
 
 func (slidx *UniqSkipListIndex) ScanKey(key *tuple.Tuple, transaction interface{}) []page.RID {
-	//slidx.rwlatch.RLock()
-	//defer slidx.rwlatch.RUnlock()
-
 	tupleSchema_ := slidx.GetTupleSchema()
 	keyVal := key.GetValue(tupleSchema_, slidx.col_idx)
 
@@ -69,9 +58,6 @@ func (slidx *UniqSkipListIndex) ScanKey(key *tuple.Tuple, transaction interface{
 }
 
 func (slidx *UniqSkipListIndex) UpdateEntry(oldKey *tuple.Tuple, oldRID page.RID, newKey *tuple.Tuple, newRID page.RID, transaction interface{}) {
-	//slidx.rwlatch.WLock()
-	//defer slidx.rwlatch.WUnlock()
-
 	slidx.DeleteEntry(oldKey, oldRID, transaction)
 	slidx.InsertEntry(newKey, newRID, transaction)
 }

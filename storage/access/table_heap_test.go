@@ -31,7 +31,6 @@ func TestTableHeap(t *testing.T) {
 	bpm := buffer.NewBufferPoolManager(10, dm, log_manager)
 	lock_manager := NewLockManager(STRICT, SS2PL_MODE)
 	txn_mgr := NewTransactionManager(lock_manager, log_manager)
-	//txn := NewTransaction(types.TxnID(0))
 	txn := txn_mgr.Begin(nil)
 
 	th := NewTableHeap(bpm, log_manager, lock_manager, txn)
@@ -42,7 +41,6 @@ func TestTableHeap(t *testing.T) {
 	columnB := column.NewColumn("b", types.Integer, false, index_constants.INDEX_KIND_INVALID, types.PageID(-1), nil)
 	schema_ := schema.NewSchema([]*column.Column{columnA, columnB})
 
-	//// inserting 1000 tuples, means that we need at least 4 pages to insert all tuples
 	// inserting 1000 tuples, means that we need at least 5 pages to insert all tuples
 	for i := 0; i < 1000; i++ {
 		row := make([]types.Value, 0)
@@ -62,8 +60,6 @@ func TestTableHeap(t *testing.T) {
 
 	for i := 0; i < 1000; i++ {
 		rid := &page.RID{}
-		//// (4096 - 24) / (8 + (4 * 2)) => 254.5
-		//rid1.Set(types.PageID(i/254), uint32(i%254))
 		// (4096 - 24) / (8 + (5 * 2)) => 226.222...
 
 		rid.Set(types.PageID(i/226), uint32(i%226))
@@ -71,9 +67,6 @@ func TestTableHeap(t *testing.T) {
 		testingpkg.Equals(t, int32(i*2), tuple.GetValue(schema_, 0).ToInteger())
 		testingpkg.Equals(t, int32((i+1)*2), tuple.GetValue(schema_, 1).ToInteger())
 	}
-
-	//// 4 pages should have the size of 16384 bytes
-	//testingpkg.Equals(t, int64(16384), dm.Size())
 
 	// 4 pages should have the size of 4096 * 5 => 20480 bytes
 	testingpkg.Equals(t, int64(20480), dm.Size())
@@ -104,7 +97,6 @@ func TestTableHeapFourCol(t *testing.T) {
 	bpm := buffer.NewBufferPoolManager(10, dm, log_manager)
 	lock_manager := NewLockManager(STRICT, SS2PL_MODE)
 	txn_mgr := NewTransactionManager(lock_manager, log_manager)
-	//txn := NewTransaction(types.TxnID(0))
 	txn := txn_mgr.Begin(nil)
 
 	th := NewTableHeap(bpm, log_manager, lock_manager, txn)

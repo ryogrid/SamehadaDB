@@ -84,11 +84,6 @@ func (d *VirtualDiskManagerImpl) ReadPage(pageID types.PageID, pageData []byte) 
 
 	offset := int64(d.convToSpaceID(pageID)) * int64(common.PageSize)
 
-	//currentSize := int64(len(d.db.Bytes()))
-	//if offset > currentSize || offset+int64(len(pageData)) > currentSize {
-	//	return errors.New("I/O error past end of file")
-	//}
-
 	if offset > d.size || offset+int64(len(pageData)) > d.size {
 		return errors.New("I/O error past end of file")
 	}
@@ -118,12 +113,6 @@ func (d *VirtualDiskManagerImpl) AllocatePage() types.PageID {
 	}
 	d.nextPageID++
 
-	//// extend db file for avoiding later ReadPage and WritePage fails
-	//zeroClearedPageData := make([]byte, common.PageSize)
-	//
-	//d.dbFileMutex.WUnlock()
-	//d.WritePage(ret, zeroClearedPageData)
-	//d.dbFileMutex.WLock()
 	defer d.dbFileMutex.Unlock()
 
 	return ret
@@ -191,7 +180,6 @@ func (d *VirtualDiskManagerImpl) WriteLog(log_data []byte) error {
 	d.numFlushes += 1
 
 	// not doing write log because VirtualDisk can't test logging/recovery
-	//// sequence write
 	//d.log.Write(log_data)
 
 	d.flush_log = false

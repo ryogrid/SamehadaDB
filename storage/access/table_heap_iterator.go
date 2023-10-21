@@ -43,10 +43,7 @@ start:
 	bpm := it.tableHeap.bpm
 	currentPage := CastPageAsTablePage(bpm.FetchPage(it.Current().GetRID().GetPageId()))
 	currentPage.RLatch()
-	currentPage.AddRLatchRecord(int32(it.txn.txn_id))
 
-	//isContinued := false
-	//for {
 	nextTupleRID := currentPage.GetNextTupleRID(it.Current().GetRID(), false)
 	if nextTupleRID == nil {
 		// VARIANT: currentPage is always RLatched after loop
@@ -54,8 +51,6 @@ start:
 			nextPage := CastPageAsTablePage(bpm.FetchPage(currentPage.GetNextPageId()))
 			bpm.UnpinPage(currentPage.GetPageId(), false)
 			nextPage.RLatch()
-			nextPage.AddRLatchRecord(int32(it.txn.txn_id))
-			currentPage.RemoveRLatchRecord(int32(it.txn.txn_id))
 			currentPage.RUnlatch()
 			currentPage = nextPage
 			nextTupleRID = currentPage.GetNextTupleRID(it.Current().GetRID(), true)
@@ -66,12 +61,9 @@ start:
 		}
 	}
 
-	//if !isContinued {
 	finalizeCurrentPage := func() {
 		bpm.UnpinPage(currentPage.GetPageId(), false)
-		currentPage.RemoveRLatchRecord(int32(it.txn.txn_id))
 		currentPage.RUnlatch()
-		//}
 	}
 
 	var err error = nil

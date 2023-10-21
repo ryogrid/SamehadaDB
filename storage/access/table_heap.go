@@ -77,7 +77,6 @@ func (t *TableHeap) InsertTuple(tuple_ *tuple.Tuple, isForUpdate bool, txn *Tran
 	for {
 		rid, err = currentPage.InsertTuple(tuple_, t.log_manager, t.lock_manager, txn)
 		if err == nil || err == ErrEmptyTuple {
-			//currentPage.WUnlatch()
 			break
 		}
 
@@ -108,8 +107,6 @@ func (t *TableHeap) InsertTuple(tuple_ *tuple.Tuple, isForUpdate bool, txn *Tran
 			}
 			currentPage.RemoveWLatchRecord(int32(txn.txn_id))
 			currentPage.WUnlatch()
-			//t.bpm.FlushPage(newPage.GetPageId())
-			//newPage.WUnlatch()
 			currentPage = newPage
 			// holding WLatch of currentPage here
 		}
@@ -273,7 +270,6 @@ func (t *TableHeap) ApplyDelete(rid *page.RID, txn *Transaction) {
 	page_.WLatch()
 	page_.AddWLatchRecord(int32(txn.txn_id))
 	page_.ApplyDelete(rid, txn, t.log_manager)
-	//t.lock_manager.WUnlock(txn, []page.RID{*rid1})
 	t.bpm.UnpinPage(page_.GetPageId(), true)
 	if common.EnableDebug && common.ActiveLogKindSetting&common.PIN_COUNT_ASSERT > 0 {
 		common.SH_Assert(page_.PinCount() == 0, "PinCount is not zero when finish TablePage::ApplyDelete!!!")
@@ -330,15 +326,9 @@ func (t *TableHeap) GetTuple(rid *page.RID, txn *Transaction) (*tuple.Tuple, err
 	}
 	page := CastPageAsTablePage(t.bpm.FetchPage(rid.GetPageId()))
 	page.RLatch()
-	page.AddRLatchRecord(int32(txn.txn_id))
 	ret, err := page.GetTuple(rid, t.log_manager, t.lock_manager, txn)
-	page.RemoveRLatchRecord(int32(txn.txn_id))
 	page.RUnlatch()
-	//page.WLatch()
-	//page.AddWLatchRecord(int32(txn.txn_id))
 	t.bpm.UnpinPage(page.GetPageId(), false)
-	//page.RemoveWLatchRecord(int32(txn.txn_id))
-	//page.WUnlatch()
 
 	return ret, err
 }
@@ -350,16 +340,13 @@ func (t *TableHeap) GetFirstTuple(txn *Transaction) *tuple.Tuple {
 	for pageId.IsValid() {
 		page := CastPageAsTablePage(t.bpm.FetchPage(pageId))
 		page.WLatch()
-		page.AddWLatchRecord(int32(txn.txn_id))
 		rid = page.GetTupleFirstRID()
 		t.bpm.UnpinPage(pageId, false)
 		if rid != nil {
-			page.RemoveWLatchRecord(int32(txn.txn_id))
 			page.WUnlatch()
 			break
 		}
 		pageId = page.GetNextPageId()
-		page.RemoveWLatchRecord(int32(txn.txn_id))
 		page.WUnlatch()
 	}
 	if rid == nil {

@@ -74,26 +74,18 @@ type Transaction struct {
 	/** The current transaction state. */
 	state TransactionState
 
-	// /** The thread GetPageId, used in single-threaded transactions. */
-	// thread_id ThreadID
-
 	/** The GetPageId of this access. */
 	txn_id types.TxnID
 
-	// /** The undo set of the access. */
+	// The undo set of the access.
 	write_set []*WriteRecord
 
 	/** The LSN of the last record written by the access. */
 	prev_lsn types.LSN
 
-	// /** Concurrent index: the pages that were latched during index operation. */
-	// page_set deque<*Page>
-	// /** Concurrent index: the page IDs that were deleted during index operation.*/
-	// deleted_page_set unordered_set<PageID>
-
-	// /** LockManager: the set of shared-locked tuples held by this access. */
+	// the set of shared-locked tuples held by this access.
 	shared_lock_set []page.RID
-	// /** LockManager: the set of exclusive-locked tuples held by this access. */
+	// the set of exclusive-locked tuples held by this access.
 	exclusive_lock_set []page.RID
 	dbgInfo            string
 	abortable          bool // for debugging and testing
@@ -103,12 +95,9 @@ type Transaction struct {
 func NewTransaction(txn_id types.TxnID) *Transaction {
 	return &Transaction{
 		GROWING,
-		// std::this_thread::get_id(),
 		txn_id,
 		make([]*WriteRecord, 0),
 		common.InvalidLSN,
-		// deque<*Page>,
-		// unordered_set<PageID>
 		make([]page.RID, 0),
 		make([]page.RID, 0),
 		"",
@@ -119,9 +108,6 @@ func NewTransaction(txn_id types.TxnID) *Transaction {
 
 /** @return the id of this transaction */
 func (txn *Transaction) GetTransactionId() types.TxnID { return txn.txn_id }
-
-// /** @return the id of the thread running the transaction */
-// func (txn *Transaction) GetThreadId() ThreadID { return txn.thread_id }
 
 /** @return the list of of write records of this transaction */
 func (txn *Transaction) GetWriteSet() []*WriteRecord { return txn.write_set }
@@ -184,7 +170,7 @@ func (txn *Transaction) SetState(state TransactionState) {
 
 		}
 	}
-	//if common.EnableDebug && common.ActiveLogKindSetting&common.NOT_ABORABLE_TXN_FEATURE > 0 {
+
 	if common.ActiveLogKindSetting&common.NOT_ABORABLE_TXN_FEATURE > 0 {
 		if state == ABORTED && txn.abortable == false {
 			fmt.Printf("debuginfo: %s\n", txn.dbgInfo)
@@ -216,7 +202,7 @@ func (txn *Transaction) GetDebugInfo() string { return txn.dbgInfo }
 
 func (txn *Transaction) SetDebugInfo(dbgInfo string) { txn.dbgInfo = dbgInfo }
 
-// when this txn is set ABORTED, probram panics
+// when this txn is set ABORTED, panic is called
 func (txn *Transaction) MakeNotAbortable() { txn.abortable = false }
 
 func (txn *Transaction) IsAbortable() bool { return txn.abortable }

@@ -25,8 +25,6 @@ type ClockReplacer struct {
 
 // Victim removes the victim frame as defined by the replacement policy
 func (c *ClockReplacer) Victim() *FrameID {
-	//c.mutex.Lock()
-	//defer c.mutex.Unlock()
 	if c.cList.size == 0 {
 		//fmt.Println("ClockReplacer::Victim: page which can be cache out is not exist!")
 		panic("Victim: page which can be cache out is not exist!")
@@ -36,12 +34,10 @@ func (c *ClockReplacer) Victim() *FrameID {
 	var victimFrameID *FrameID
 	currentNode := (*c.clockHand)
 	for {
-		//if currentNode.value.(bool) {
 		if currentNode.value {
 			currentNode.value = false
 			c.clockHand = &currentNode.next
 		} else {
-			//frameID := currentNode.key.(FrameID)
 			frameID := currentNode.key
 			victimFrameID = &frameID
 
@@ -55,8 +51,6 @@ func (c *ClockReplacer) Victim() *FrameID {
 
 // Unpin unpins a frame, indicating that it can now be victimized
 func (c *ClockReplacer) Unpin(id FrameID) {
-	//c.mutex.Lock()
-	//defer c.mutex.Unlock()
 	if !c.cList.hasKey(id) {
 		c.cList.insert(id, true)
 		if c.cList.size == 1 {
@@ -67,10 +61,6 @@ func (c *ClockReplacer) Unpin(id FrameID) {
 
 // Pin pins a frame, indicating that it should not be victimized until it is unpinned
 func (c *ClockReplacer) Pin(id FrameID) {
-	//c.mutex.Lock()
-	//defer c.mutex.Unlock()
-	//node := c.cList.find(id)
-	//if node == nil {
 	node, ok := c.cList.supportMap[id]
 	if !ok {
 		return
@@ -80,20 +70,15 @@ func (c *ClockReplacer) Pin(id FrameID) {
 		c.clockHand = &(*c.clockHand).next
 	}
 	c.cList.remove(id)
-	//delete(c.cList.supportMap, id)
 }
 
 func (c *ClockReplacer) isContain(id FrameID) bool {
-	//c.mutex.Lock()
-	//defer c.mutex.Unlock()
 	_, ok := c.cList.supportMap[id]
 	return ok
 }
 
 // Size returns the size of the clock
 func (c *ClockReplacer) Size() uint32 {
-	//c.mutex.Lock()
-	//defer c.mutex.Unlock()
 	return c.cList.size
 }
 

@@ -38,7 +38,6 @@ func (transaction_manager *TransactionManager) Begin(txn *Transaction) *Transact
 	if txn_ret == nil {
 		transaction_manager.mutex.Lock()
 		transaction_manager.next_txn_id += 1
-		//transaction_manager.next_txn_id.AtomicAdd(1)
 		txn_ret = NewTransaction(transaction_manager.next_txn_id)
 		transaction_manager.mutex.Unlock()
 		//fmt.Printf("new transactin GetPageId: %d\n", transaction_manager.next_txn_id)
@@ -124,7 +123,7 @@ func (transaction_manager *TransactionManager) Abort(catalog_ catalog_interface.
 	if common.EnableDebug {
 		common.ShPrintf(common.RDB_OP_FUNC_CALL, "TransactionManager::Abort called. txn.txn_id:%v dbgInfo:%s\n", txn.txn_id, txn.dbgInfo)
 	}
-	//// TODO: for debugging
+
 	//fmt.Printf("debuginfo: %s\n", txn.dbgInfo)
 	//for _, wr := range txn.GetWriteSet() {
 	//	fmt.Printf("write set item: %v\n", *wr)
@@ -135,7 +134,6 @@ func (transaction_manager *TransactionManager) Abort(catalog_ catalog_interface.
 	//		fmt.Printf("tuple1: %v\n", *(wr.tuple2))
 	//	}
 	//}
-	//panic("TransactionManager::Abort called!")
 
 	// on Abort, call of Transaction::SetState(ABORT) panics
 	txn.MakeNotAbortable()
@@ -178,8 +176,6 @@ func (transaction_manager *TransactionManager) Abort(catalog_ catalog_interface.
 			// rollback record data
 			table.RollbackDelete(convRID(item.rid1), txn)
 
-			////rollback of index entry is not needed because entry is deleted at commit
-
 			// rollback index data
 			indexes := catalog_.GetRollbackNeededIndexes(indexMap, item.oid)
 			for _, index_ := range indexes {
@@ -192,17 +188,14 @@ func (transaction_manager *TransactionManager) Abort(catalog_ catalog_interface.
 				fmt.Printf("TransactionManager::Abort handle INSERT write log. txn.txn_id:%v dbgInfo:%s rid1:%v\n", txn.txn_id, txn.dbgInfo, item.rid1)
 			}
 
-			//insertedTuple, _ := item.table.GetTuple(&item.rid1, txn)
 			// rollback record data
 			rid := convRID(item.rid1)
 			// Note that this also releases the lock when holding the page latch.
 			pageID := rid.GetPageId()
 			tpage := CastPageAsTablePage(table.bpm.FetchPage(pageID))
 			tpage.WLatch()
-			tpage.AddWLatchRecord(int32(txn.txn_id))
 			tpage.ApplyDelete(convRID(item.rid1), txn, transaction_manager.log_manager)
 			table.bpm.UnpinPage(pageID, true)
-			tpage.RemoveWLatchRecord(int32(txn.txn_id))
 			tpage.WUnlatch()
 
 			// rollback index data
@@ -210,7 +203,6 @@ func (transaction_manager *TransactionManager) Abort(catalog_ catalog_interface.
 				indexes := catalog_.GetRollbackNeededIndexes(indexMap, item.oid)
 				for _, index_ := range indexes {
 					if index_ != nil {
-						//index_.DeleteEntry(insertedTuple, item.rid1, txn)
 						index_.DeleteEntry(item.tuple1, *convRID(item.rid1), txn)
 					}
 				}
@@ -253,8 +245,6 @@ func (transaction_manager *TransactionManager) Abort(catalog_ catalog_interface.
 							if !bfRlbkKeyVal.CompareEquals(*rlbkKeyVal) {
 								index_.UpdateEntry(item.tuple2, *convRID(item.rid2), item.tuple1, *new_rid, txn)
 							} else {
-								//// do UPSERT
-								//index_.InsertEntry(item.tuple1, *new_rid, txn)
 								index_.UpdateEntry(item.tuple2, *convRID(item.rid2), item.tuple1, *new_rid, txn)
 							}
 						} else {
@@ -264,8 +254,6 @@ func (transaction_manager *TransactionManager) Abort(catalog_ catalog_interface.
 								if convRID(item.rid1).PageId == convRID(item.rid2).PageId && convRID(item.rid1).SlotNum == convRID(item.rid2).SlotNum {
 									// do nothing
 								} else {
-									//// do UPSERT
-									//index_.InsertEntry(item.tuple1, *convRID(item.rid1), txn)
 									index_.UpdateEntry(item.tuple2, *convRID(item.rid2), item.tuple1, *convRID(item.rid1), txn)
 								}
 							}
@@ -311,7 +299,4 @@ func (transaction_manager *TransactionManager) releaseLocks(txn *Transaction) {
 	lock_set = append(lock_set, txn.GetExclusiveLockSet()...)
 	lock_set = append(lock_set, txn.GetSharedLockSet()...)
 	transaction_manager.lock_manager.Unlock(txn, lock_set)
-	// for _, locked_rid := range lock_set {
-	// 	transaction_manager.lock_manager.WUnlock(txn, &locked_rid)
-	// }
 }

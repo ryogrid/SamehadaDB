@@ -722,45 +722,6 @@ func (node *SkipListBlockPage) newNodeAndUpdateChain(idx int32, bpm *buffer.Buff
 	return newNode
 }
 
-//func (node *SkipListBlockPage) ToDebugString() string {
-//	ret := ""
-//	ret += fmt.Sprintf("{")
-//	// Print smallestKey
-//	ret += fmt.Sprintf("%d ", node.GetSmallestKey().ToInteger())
-//	// print contents of forward
-//	ret += fmt.Sprintf("[")
-//	for ii := 0; ii < len(node.GetForward()); ii++ {
-//		if node.GetForwardEntry(int32(ii)) == nil {
-//			ret += fmt.Sprintf(" nil")
-//		} else {
-//			ret += fmt.Sprintf(" *")
-//		}
-//	}
-//	ret += fmt.Sprintf("] ")
-//	// print IsDeleteNeeded
-//	if node.GetIsNeedDeleted() {
-//		ret += fmt.Sprintf("true")
-//	} else {
-//		ret += fmt.Sprintf("false")
-//	}
-//	ret += fmt.Sprintf("}")
-//	return ret
-//}
-
-////for debug
-//func (node *SkipListBlockPage) CheckCompletelyEmpty() {
-//	if !node.GetIsNeedDeleted() {
-//		return
-//	}
-//
-//	for ii := 0; ii < len(node.GetForward()); ii++ {
-//		if node.GetForwardEntry(int32(ii)) != nil {
-//			return
-//		}
-//	}
-//	panic("chekCompletelyEmpty: this node can't be chain!")
-//}
-
 func (node *SkipListBlockPage) GetPageId() types.PageID {
 	return types.PageID(types.NewUInt32FromBytes(node.Data()[offsetPageId:]))
 	//return node.entryCnt
@@ -775,7 +736,6 @@ func (node *SkipListBlockPage) SetPageId(pageId types.PageID) {
 
 func (node *SkipListBlockPage) GetLevel() int32 {
 	return int32(types.NewInt32FromBytes(node.Data()[offsetLevel:]))
-	//return node.level
 }
 
 func (node *SkipListBlockPage) SetLevel(level int32) {

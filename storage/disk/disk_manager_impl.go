@@ -108,7 +108,6 @@ func (d *DiskManagerImpl) WritePage(pageId types.PageID, pageData []byte) error 
 	if errWrite != nil {
 		fmt.Println(errWrite)
 		panic("WritePge: d.db.Write returns err!")
-		//return errWrite
 	}
 
 	if bytesWritten != common.PageSize {
@@ -160,13 +159,6 @@ func (d *DiskManagerImpl) AllocatePage() types.PageID {
 	d.dbFileMutex.Lock()
 
 	ret := d.nextPageID
-
-	//// extend db file for avoiding later ReadPage and WritePage fails
-	//zeroClearedPageData := make([]byte, common.PageSize)
-	//
-	//d.dbFileMutex.WUnlock()
-	//d.WritePage(ret, zeroClearedPageData)
-	//d.dbFileMutex.WLock()
 	defer d.dbFileMutex.Unlock()
 
 	d.nextPageID++
@@ -251,38 +243,21 @@ func (d *DiskManagerImpl) WriteLog(log_data []byte) error {
 	d.logFileMutex.Lock()
 	defer d.logFileMutex.Unlock()
 
-	// enforce swap log buffer
-
-	//assert(log_data != buffer_used)
-	//buffer_used := log_data
-
-	// if size == 0 { // no effect on num_flushes_ if log buffer is empty
-	// 	return
-	// }
-
 	d.flush_log = true
 
 	// Note: current implementation does not use non-blocking I/O
-	// if flush_log_f_ != nullptr {
-	//   // used for checking non-blocking flushing
-	//   assert(flush_log_f_.wait_for(std::chrono::seconds(10)) == std::future_status::ready)
-	// }
 
 	d.numFlushes += 1
-	// sequence write
-	//disk_manager.log.write(log_data, size)
 	_, err := d.log.Write(log_data)
 
-	// check for I/O error
 	if err != nil {
 		fmt.Println("I/O error while writing log")
 		fmt.Println(err)
-		//panic("I/O error while writing log")
 		// TODO: (SDB) SHOULD BE FIXED: statistics update thread's call causes this error rarely
 		return err
 	}
 	// needs to flush to keep disk file in sync
-	//disk_manager.log.Flush()
+
 	d.log.Sync()
 	d.flush_log = false
 
@@ -308,14 +283,6 @@ func (d *DiskManagerImpl) ReadLog(log_data []byte, offset int32, retReadBytes *u
 	d.log.Seek(int64(offset), io.SeekStart)
 	readBytes, err := d.log.Read(log_data)
 	*retReadBytes = uint32(readBytes)
-
-	//// if log file ends before reading "size"
-	//if readBytes < len(log_data) {
-	//	d.log.Close()
-	//	//zeroClear(log_data+read_count, 0, size-read_count)
-	//	log_data[readBytes] = byte(len(log_data) - readBytes)
-	//	return false
-	//}
 
 	if err != nil {
 		fmt.Println("I/O error at log data reading")

@@ -12,8 +12,6 @@ import (
 )
 
 type LinearProbeHashTableIndex struct {
-	// comparator for key
-	//KeyComparator comparator_;
 	// container
 	container hash.LinearProbeHashTable
 	metadata  *IndexMetadata

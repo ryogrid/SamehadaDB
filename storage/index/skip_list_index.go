@@ -17,7 +17,6 @@ type SkipListIndex struct {
 	metadata  *IndexMetadata
 	// idx of target column on table
 	col_idx uint32
-	//rwlatch common.ReaderWriterLatch
 }
 
 func NewSkipListIndex(metadata *IndexMetadata, buffer_pool_manager *buffer.BufferPoolManager, col_idx uint32) *SkipListIndex {
@@ -28,14 +27,10 @@ func NewSkipListIndex(metadata *IndexMetadata, buffer_pool_manager *buffer.Buffe
 	// for the thechnique, key type is fixed to Varchar (comparison is done on dict order as byte array)
 	ret.container = *skip_list.NewSkipList(buffer_pool_manager, types.Varchar)
 	ret.col_idx = col_idx
-	//ret.rwlatch = common.NewRWLatch()
 	return ret
 }
 
 func (slidx *SkipListIndex) InsertEntry(key *tuple.Tuple, rid page.RID, txn interface{}) {
-	//slidx.rwlatch.WLock()
-	//defer slidx.rwlatch.WUnlock()
-
 	tupleSchema_ := slidx.GetTupleSchema()
 	orgKeyVal := key.GetValue(tupleSchema_, slidx.col_idx)
 
@@ -45,9 +40,6 @@ func (slidx *SkipListIndex) InsertEntry(key *tuple.Tuple, rid page.RID, txn inte
 }
 
 func (slidx *SkipListIndex) DeleteEntry(key *tuple.Tuple, rid page.RID, txn interface{}) {
-	//slidx.rwlatch.WLock()
-	//defer slidx.rwlatch.WUnlock()
-
 	tupleSchema_ := slidx.GetTupleSchema()
 	orgKeyVal := key.GetValue(tupleSchema_, slidx.col_idx)
 
@@ -65,9 +57,6 @@ func (slidx *SkipListIndex) DeleteEntry(key *tuple.Tuple, rid page.RID, txn inte
 }
 
 func (slidx *SkipListIndex) ScanKey(key *tuple.Tuple, txn interface{}) []page.RID {
-	//slidx.rwlatch.RLock()
-	//defer slidx.rwlatch.RUnlock()
-
 	tupleSchema_ := slidx.GetTupleSchema()
 	orgKeyVal := key.GetValue(tupleSchema_, slidx.col_idx)
 	smallestKeyVal := samehada_util.EncodeValueAndRIDToDicOrderComparableVarchar(&orgKeyVal, &page.RID{0, 0})
@@ -85,9 +74,6 @@ func (slidx *SkipListIndex) ScanKey(key *tuple.Tuple, txn interface{}) []page.RI
 }
 
 func (slidx *SkipListIndex) UpdateEntry(oldKey *tuple.Tuple, oldRID page.RID, newKey *tuple.Tuple, newRID page.RID, txn interface{}) {
-	//slidx.rwlatch.WLock()
-	//defer slidx.rwlatch.WUnlock()
-
 	slidx.DeleteEntry(oldKey, oldRID, txn)
 	slidx.InsertEntry(newKey, newRID, txn)
 }

@@ -22,30 +22,13 @@ type circularList struct {
 	supportMap map[FrameID]*node
 }
 
-//func (c *circularList) find(key FrameID) *node {
-//	ptr := c.head
-//	for i := uint32(0); i < c.size; i++ {
-//		if ptr.key == key {
-//			return ptr
-//		}
-//
-//		ptr = ptr.next
-//	}
-//
-//	return nil
-//}
-
-// func (c *circularList) hasKey(key interface{}) bool {
 func (c *circularList) hasKey(key FrameID) bool {
-	//return c.find(key) != nil
 	_, ok := c.supportMap[key]
 	return ok
 }
 
-// func (c *circularList) insert(key interface{}, value interface{}) error {
 func (c *circularList) insert(key FrameID, value bool) error {
 	if c.size == c.capacity {
-		//return errors.New("capacity is full")
 		panic("circularList::insert capacity is full")
 	}
 
@@ -60,8 +43,6 @@ func (c *circularList) insert(key FrameID, value bool) error {
 		return nil
 	}
 
-	//node := c.find(key)
-	//if node != nil {
 	node, ok := c.supportMap[key]
 	if ok {
 		node.value = value
@@ -85,10 +66,7 @@ func (c *circularList) insert(key FrameID, value bool) error {
 	return nil
 }
 
-// func (c *circularList) remove(key interface{}) {
 func (c *circularList) remove(key FrameID) {
-	//node := c.find(key)
-	//if node == nil {
 	node, ok := c.supportMap[key]
 	if !ok {
 		return

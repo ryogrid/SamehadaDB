@@ -4,7 +4,6 @@
 package buffer
 
 import (
-	//"github.com/sasha-s/go-deadlock"
 	"fmt"
 	"github.com/ryogrid/SamehadaDB/common"
 	"github.com/ryogrid/SamehadaDB/recovery"
@@ -50,10 +49,8 @@ func (b *BufferPoolManager) FetchPage(pageID types.PageID) *page.Page {
 		return pg
 	}
 
-	//b.mutex.WUnlock()
 	// get the id from free list or from replacer
 	frameID, isFromFreeList := b.getFrameID()
-	//b.mutex.WLock()
 	if frameID == nil {
 		b.mutex.Unlock()
 		return nil
@@ -61,9 +58,7 @@ func (b *BufferPoolManager) FetchPage(pageID types.PageID) *page.Page {
 
 	if !isFromFreeList {
 		// remove page from current frame
-		//b.mutex.WLock()
 		currentPage := b.pages[*frameID]
-		//b.mutex.WUnlock()
 		//common.SH_Assert(currentPage.PinCount() >= 0, "BPM::FetchPage Victim page's pin count is not zero!!!")
 		if currentPage != nil {
 			if currentPage.PinCount() != 0 {
@@ -77,23 +72,17 @@ func (b *BufferPoolManager) FetchPage(pageID types.PageID) *page.Page {
 			if currentPage.IsDirty() {
 				b.log_manager.Flush()
 				currentPage.WLatch()
-				currentPage.AddWLatchRecord(int32(-2))
 				data := currentPage.Data()
 				b.diskManager.WritePage(currentPage.GetPageId(), data[:])
-				currentPage.RemoveWLatchRecord(-2)
 				currentPage.WUnlatch()
 			}
-			//b.mutex.WLock()
 			if common.EnableDebug {
 				common.ShPrintf(common.DEBUG_INFO, "FetchPage: page=%d is removed from pageTable.\n", currentPage.GetPageId())
 			}
 			delete(b.pageTable, currentPage.GetPageId())
-			//b.mutex.WUnlock()
 		}
-		//b.mutex.WUnlock()
 	}
 
-	//b.mutex.WLock()
 	data := make([]byte, common.PageSize)
 	if common.EnableDebug && common.ActiveLogKindSetting&common.CACHE_OUT_IN_INFO > 0 {
 		fmt.Printf("BPM::FetchPage Cache in occurs! requested pageId:%d\n", pageID)
@@ -107,10 +96,8 @@ func (b *BufferPoolManager) FetchPage(pageID types.PageID) *page.Page {
 		}
 		fmt.Println(err)
 		panic("ReadPage returned error!")
-		//return nil
 	}
 	var pageData [common.PageSize]byte
-	//copy(pageData[:], data)
 	pageData = *(*[common.PageSize]byte)(data)
 	pg := page.New(pageID, false, &pageData)
 
@@ -134,7 +121,6 @@ func (b *BufferPoolManager) FetchPage(pageID types.PageID) *page.Page {
 func (b *BufferPoolManager) UnpinPage(pageID types.PageID, isDirty bool) error {
 
 	b.mutex.Lock()
-	//b.mutex.RLock()
 	if frameID, ok := b.pageTable[pageID]; ok {
 		if frameID == DEALLOCATED_FRAME {
 			b.mutex.Unlock()
@@ -143,7 +129,6 @@ func (b *BufferPoolManager) UnpinPage(pageID types.PageID, isDirty bool) error {
 		}
 
 		pg := b.pages[frameID]
-		//b.mutex.RUnlock()
 		pg.DecPinCount()
 
 		if common.EnableDebug && common.ActiveLogKindSetting&common.PIN_COUNT_ASSERT > 0 {
@@ -172,15 +157,12 @@ func (b *BufferPoolManager) UnpinPage(pageID types.PageID, isDirty bool) error {
 		return nil
 	}
 	b.mutex.Unlock()
-	//b.mutex.RUnlock()
 
 	if common.EnableDebug {
 		common.ShPrintf(common.DEBUG_INFO, "UnpinPage: could not find page! PageId=%d\n", pageID)
 		panic("could not find page")
 	}
 	panic("could not find page")
-	//return errors.New("could not find page")
-
 }
 
 // Decrement pincount of passed page (this can be used only when a thread has pin of page more than 1
@@ -204,20 +186,15 @@ func (b *BufferPoolManager) FlushPage(pageID types.PageID) bool {
 	b.mutex.Lock()
 	if frameID, ok := b.pageTable[pageID]; ok {
 		pg := b.pages[frameID]
-		//pg.WLatch()
-		//pg.DecPinCount()
 		b.mutex.Unlock()
 
 		data := pg.Data()
 		pg.SetIsDirty(false)
 
-		//b.mutex.WLock()
 		err := b.diskManager.WritePage(pageID, data[:])
 		if err != nil {
 			return false
 		}
-		//pg.WUnlatch()
-		//b.mutex.WUnlock()
 		return true
 	}
 	b.mutex.Unlock()
@@ -379,17 +356,14 @@ func (b *BufferPoolManager) FlushAllDirtyPages() bool {
 }
 
 func (b *BufferPoolManager) getFrameID() (*FrameID, bool) {
-	//b.mutex.WLock()
 	if len(b.freeList) > 0 {
 		frameID, newFreeList := b.freeList[0], b.freeList[1:]
 		b.freeList = newFreeList
 
-		//b.mutex.WUnlock()
 		return &frameID, true
 	}
 
 	ret := (*b.replacer).Victim()
-	//b.mutex.WUnlock()
 	if ret == nil {
 		//fmt.Printf("getFrameID: Victime page is nil! len(b.freeList)=%d\n", len(b.freeList))
 
@@ -452,7 +426,4 @@ func NewBufferPoolManager(poolSize uint32, DiskManager disk.DiskManager, log_man
 
 	replacer := NewClockReplacer(poolSize)
 	return &BufferPoolManager{DiskManager, pages, replacer, freeList, make(map[types.PageID]FrameID), log_manager, new(sync.Mutex)}
-	//// when using "go-deadlock" package
-	//deadlock.Opts.DisableLockOrderDetection = true
-	//return &BufferPoolManager{DiskManager, pages, replacer, freeList, make(map[types.PageID]FrameID), log_manager, new(deadlock.Mutex)}
 }
