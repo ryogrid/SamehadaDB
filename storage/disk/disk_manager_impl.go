@@ -299,11 +299,6 @@ func (d *DiskManagerImpl) GetLogFileSize() int64 {
 	d.logFileMutex.Lock()
 	defer d.logFileMutex.Unlock()
 
-	/*
-		struct stat stat_buf;
-		int rc = stat(file_name.c_str(), &stat_buf);
-		return rc == 0 ? static_cast<int>(stat_buf.st_size) : -1;
-	*/
 	fileInfo, err := d.log.Stat()
 	if err != nil {
 		return -1

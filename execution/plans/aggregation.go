@@ -9,7 +9,6 @@ import (
 	"math"
 )
 
-// /** AggregationType enumerates all the possible aggregation functions in our system. */
 type AggregationType int32
 
 /** The type of the log record. */

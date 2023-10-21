@@ -20,7 +20,6 @@ func TestNewPage(t *testing.T) {
 	testingpkg.Equals(t, int32(2), p.PinCount())
 	p.DecPinCount()
 	p.DecPinCount()
-	//p.DecPinCount()
 	testingpkg.Equals(t, int32(0), p.PinCount())
 	testingpkg.Equals(t, false, p.IsDirty())
 	p.SetIsDirty(true)

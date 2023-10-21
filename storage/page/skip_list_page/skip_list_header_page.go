@@ -37,15 +37,9 @@ const (
 type SkipListHeaderPage struct {
 	page.Page
 	// Header's successor node has all level path
-
-	//pageId          types.PageID
-	//pageLSN         types.LSN
-	//listStartPageId types.PageID //*SkipListBlockPage
-	//keyType         types.TypeID // used when load list datas from disk
 }
 
 func NewSkipListStartBlockPage(bpm *buffer.BufferPoolManager, keyType types.TypeID) (startNode_ *SkipListBlockPage, sentinelNode_ *SkipListBlockPage) {
-	//startPage.GetPageId()
 	var startNode *SkipListBlockPage = nil
 	switch keyType {
 	case types.Integer:
@@ -86,10 +80,6 @@ func NewSkipListStartBlockPage(bpm *buffer.BufferPoolManager, keyType types.Type
 	for ii := 0; ii < MAX_FOWARD_LIST_LEN; ii++ {
 		startNode.SetForwardEntry(ii, sentinelNode.GetPageId())
 	}
-
-	//ret := startNode.GetPageId()
-	//bpm.UnpinPage(startNode.GetPageId(), true)
-	//bpm.UnpinPage(sentinelNode.GetPageId(), true)
 
 	return startNode, sentinelNode
 }
@@ -136,10 +126,6 @@ func NewSkipListHeaderPage(bpm *buffer.BufferPoolManager, keyType types.TypeID) 
 	headerPage.SetListStartPageId(startNode.GetPageId())
 	headerPage.SetKeyType(keyType)
 
-	//retPageID := headerPage.GetPageId()
-	//bpm.UnpinPage(headerPage.GetPageId(), true)
-
-	//return retPageID
 	return headerPage, startNode, sentinelNode
 }
 

@@ -133,15 +133,6 @@ func (cs *columnStats) GetDeepCopy() *columnStats {
 	return &columnStats{cs.max.GetDeepCopy(), cs.min.GetDeepCopy(), cs.count, cs.distinct, cs.colType, common.NewRWLatch()}
 }
 
-/*
-func (cs *ColumnStats[T]) UpdateStatistics() {
-}
-
-func (cs *ColumnStats[T]) ReductionFactor(sc schema.Schema, planTree plans.Plan) float64 {
-	return -1.0
-}
-*/
-
 func (cs *columnStats) EstimateCount(from *types.Value, to *types.Value) float64 {
 	cs.latch.WLock()
 	defer cs.latch.WUnlock()

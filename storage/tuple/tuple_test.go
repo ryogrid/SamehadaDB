@@ -1,7 +1,6 @@
 // this code is from https://github.com/brunocalza/go-bustub
 // there is license and copyright notice in licenses/go-bustub dir
 
-// package table
 package tuple
 
 import (
@@ -39,7 +38,6 @@ func TestTuple(t *testing.T) {
 	testingpkg.Equals(t, expD, tuple.GetValue(schema, 3).ToVarchar())
 	testingpkg.Equals(t, expE, tuple.GetValue(schema, 4).ToVarchar())
 
-	//testingpkg.Equals(t, uint32(96), tuple.Size())
 	// added info of isNull(bool, 1byte) * 5 to 96(hos no info of isNull)
 	testingpkg.Equals(t, uint32(101), tuple.Size())
 }

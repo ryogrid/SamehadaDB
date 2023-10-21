@@ -117,7 +117,6 @@ func GenNumericValuesFloat(col_meta *ColumnInsertMeta, count uint32) []types.Val
 }
 
 func MakeValues(col_meta *ColumnInsertMeta, count uint32) []types.Value {
-	//var values []types.Value
 	switch col_meta.Type_ {
 	case types.Integer:
 		return GenNumericValues(col_meta, count)
@@ -159,13 +158,10 @@ func FillTable(info *catalog.TableMetadata, table_meta *TableInsertMeta, txn *ac
 			num_inserted++
 		}
 	}
-	//fmt.Printf("num_inserted %d\n", num_inserted)
 }
 
 func MakeComparisonExpression(lhs expression.Expression, rhs expression.Expression,
 	comp_type expression.ComparisonType) expression.Expression {
-	//casted_lhs := lhs.(*expression.ColumnValue)
-	//ret_exp := expression.NewComparison(casted_lhs, rhs, comp_type, types.Boolean)
 
 	ret_exp := expression.NewComparison(lhs, rhs, comp_type, types.Boolean)
 	return ret_exp
@@ -183,11 +179,6 @@ func MakeOutputSchema(exprs []MakeSchemaMeta) *schema.Schema {
 	var cols []*column.Column = make([]*column.Column, 0)
 	for _, input := range exprs {
 		cols = append(cols, column.NewColumn(input.Col_name_, input.Expr_.GetReturnType(), false, index_constants.INDEX_KIND_INVALID, types.PageID(-1), input.Expr_))
-		// if input.Expr_.GetReturnType() != types.Varchar {
-		// 	cols = append(cols, *column.NewColumn(input.Col_name_, input.Expr_.GetReturnType(), false, input.Expr_))
-		// } else {
-		// 	cols = append(cols, column.NewColumn(input[0], input[1].GetReturnType(), MAX_VARCHAR_SIZE, input[1]))
-		// }
 	}
 	return schema.NewSchema(cols)
 }
@@ -207,7 +198,6 @@ func GenerateTestTabls(c *catalog.Catalog, exec_ctx *executors.ExecutorContext,
 	columnC := column.NewColumn("colC", types.Integer, false, index_constants.INDEX_KIND_INVALID, types.PageID(-1), nil)
 	columnD := column.NewColumn("colD", types.Integer, false, index_constants.INDEX_KIND_INVALID, types.PageID(-1), nil)
 	schema_ := schema.NewSchema([]*column.Column{columnA, columnB, columnC, columnD})
-	//columnA.SetExpr(MakeColumnValueExpression(schema_, 0, "colA").(*expression.ColumnValue))
 	tableMetadata1 := c.CreateTable("test_1", schema_, txn)
 
 	column1 := column.NewColumn("col1", types.Integer, false, index_constants.INDEX_KIND_INVALID, types.PageID(-1), nil)

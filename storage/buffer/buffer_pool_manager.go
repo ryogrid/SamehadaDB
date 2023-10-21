@@ -37,7 +37,7 @@ func (b *BufferPoolManager) FetchPage(pageID types.PageID) *page.Page {
 
 		pg := b.pages[frameID]
 		if common.EnableDebug && common.ActiveLogKindSetting&common.PIN_COUNT_ASSERT > 0 {
-			common.SH_Assert(pg.PinCount() == 0 || ( /*pg.PinCount() == 1 && */ pg.GetPageId() == 4 || pg.GetPageId() == 5 || pg.GetPageId() == 7 || pg.GetPageId() == 8),
+			common.SH_Assert(pg.PinCount() == 0 || (pg.GetPageId() == 4 || pg.GetPageId() == 5 || pg.GetPageId() == 7 || pg.GetPageId() == 8),
 				fmt.Sprintf("BPM::FetchPage pin count must be zero here when single thread execution!!!. pageId:%d PinCount:%d", pg.GetPageId(), pg.PinCount()))
 		}
 		pg.IncPinCount()
@@ -132,7 +132,7 @@ func (b *BufferPoolManager) UnpinPage(pageID types.PageID, isDirty bool) error {
 		pg.DecPinCount()
 
 		if common.EnableDebug && common.ActiveLogKindSetting&common.PIN_COUNT_ASSERT > 0 {
-			common.SH_Assert(pg.PinCount() == 0 || ( /*pg.PinCount() == 1 &&*/ pg.GetPageId() == 4 || pg.GetPageId() == 5 || pg.GetPageId() == 7 || pg.GetPageId() == 8),
+			common.SH_Assert(pg.PinCount() == 0 || (pg.GetPageId() == 4 || pg.GetPageId() == 5 || pg.GetPageId() == 7 || pg.GetPageId() == 8),
 				fmt.Sprintf("BPM::UnpinPage pin count must be zero here when single thread execution!!!. pageId:%d PinCount:%d", pg.GetPageId(), pg.PinCount()))
 		}
 

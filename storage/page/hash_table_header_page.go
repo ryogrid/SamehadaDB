@@ -35,14 +35,6 @@ func (page *HashTableHeaderPage) SetPageId(pageId types.PageID) {
 	page.pageId = pageId
 }
 
-//func (page *HashTableHeaderPage) GetLSN() int {
-//	return page.lsn
-//}
-//
-//func (page *HashTableHeaderPage) SetLSN(lsn int) {
-//	page.lsn = lsn
-//}
-
 func (page *HashTableHeaderPage) AddBlockPageId(pageId types.PageID) {
 	page.blockPageIds[page.nextIndex] = pageId
 	page.nextIndex++

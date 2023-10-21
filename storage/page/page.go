@@ -45,11 +45,9 @@ type Page struct {
 
 // IncPinCount increments pin count
 func (p *Page) IncPinCount() {
-	///p.pinCount++
 	atomic.AddInt32(&p.pinCount, 1)
 
 	//common.ShPrintf(common.DEBUG_INFO, "pinCount of page-%d at IncPinCount: %d\n", p.GetPageId(), p.pinCount)
-	//common.RuntimeStack()
 }
 
 // DecPinCount decrements pin count
@@ -65,7 +63,6 @@ func (p *Page) DecPinCount() {
 // PinCount retunds the pin count
 func (p *Page) PinCount() int32 {
 	return atomic.LoadInt32(&p.pinCount)
-	//return p.pinCount
 }
 
 // GetPageId retunds the page id
@@ -104,21 +101,11 @@ func (p *Page) Copy(offset uint32, data []byte) {
 // New creates a new page
 func New(id types.PageID, isDirty bool, data *[common.PageSize]byte) *Page {
 	return &Page{id, int32(1), isDirty, false, data, common.NewRWLatch(), make(map[int32]bool, 0), make(map[int32]bool, 0), new(sync.Mutex)}
-
-	//// when using "go-deadlock" package
-	//return &Page{id, int32(1), isDirty, data, common.NewRWLatchTrace()}
-
-	//// customized RWMutex for concurrent skip list debug
-	//return &Page{id, uint32(1), isDirty, data, common.NewRWLatchDebug()}
 }
 
 // New creates a new empty page
 func NewEmpty(id types.PageID) *Page {
-	//return &Page{id, int32(1), false, &[common.PageSize]byte{}, common.NewUpgradableMutex()}
-
 	return &Page{id, int32(1), false, false, &[common.PageSize]byte{}, common.NewRWLatch(), make(map[int32]bool, 0), make(map[int32]bool, 0), new(sync.Mutex)}
-
-	//return &Page{id, uint32(1), false, &[common.PageSize]byte{}, common.NewRWLatchDebug()}
 }
 
 /** @return the page LSN. */
@@ -130,8 +117,6 @@ func (p *Page) GetLSN() types.LSN {
 func (p *Page) SetLSN(lsn types.LSN) {
 	copy(p.data[OffsetLSN:OffsetLSN+types.SizeOfLSN], lsn.Serialize())
 }
-
-//func (p *Page) GetPageId() types.PageID { return p.id }
 
 func (p *Page) GetData() *[common.PageSize]byte {
 	return p.data

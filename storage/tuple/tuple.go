@@ -1,7 +1,6 @@
 // this code is from https://github.com/brunocalza/go-bustub
 // there is license and copyright notice in licenses/go-bustub dir
 
-// package table
 package tuple
 
 import (
@@ -147,11 +146,8 @@ func (t *Tuple) GetValueInBytes(schema *schema.Schema, colIndex uint32) []byte {
 		buf := bytes.NewBuffer(t.data[offset:])
 		isNull := new(bool)
 		binary.Read(buf, binary.LittleEndian, isNull)
-		//data := t.data[offset:]
-		//lengthInBytes := data[0:2]
 		length := new(int16)
 		binary.Read(buf, binary.LittleEndian, length)
-		//binary.Read(bytes.NewBuffer(lengthInBytes), binary.LittleEndian, length)
 		retBuf := new(bytes.Buffer)
 		binary.Write(retBuf, binary.LittleEndian, *isNull)
 		binary.Write(retBuf, binary.LittleEndian, *length)
@@ -159,7 +155,6 @@ func (t *Tuple) GetValueInBytes(schema *schema.Schema, colIndex uint32) []byte {
 		retArr = append(retArr, retBuf.Bytes()...)
 		retArr = append(retArr, t.data[offset+(1+2):offset+(uint32(*length)+(1+2))]...)
 		return retArr
-		//return data[2:(*length + 2)]
 	default:
 		panic("illegal type column found in schema")
 	}
@@ -197,20 +192,15 @@ func (tuple_ *Tuple) SerializeTo(storage []byte) {
 	buf := new(bytes.Buffer)
 	binary.Write(buf, binary.LittleEndian, tuple_.size)
 	sizeInBytes := buf.Bytes()
-	// memcpy(storage, &tuple_.size, sizeof(int32_t))
-	// memcpy(storage+sizeof(int32_t), tuple_.data, tuple_.size)
 	copy(storage, sizeInBytes)
 	copy(storage[TupleSizeOffsetInLogrecord:TupleSizeOffsetInLogrecord+int(tuple_.size)], tuple_.data)
 }
 
 func (tuple_ *Tuple) DeserializeFrom(storage []byte) {
-	//size := len(storage) - TupleOffset
 	buf := bytes.NewBuffer(storage)
 	binary.Read(buf, binary.LittleEndian, &tuple_.size)
 	// Construct a tuple.
-	//tuple_.size = uint32(size)
 	tuple_.data = make([]byte, tuple_.size)
-	//memcpy(this.data, storage+sizeof(int32_t), this.size)
 	copy(tuple_.data, storage[TupleSizeOffsetInLogrecord:TupleSizeOffsetInLogrecord+int(tuple_.size)])
 }
 
