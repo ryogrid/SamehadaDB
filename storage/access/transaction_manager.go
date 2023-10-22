@@ -159,7 +159,6 @@ func (transaction_manager *TransactionManager) Abort(catalog_ catalog_interface.
 	}
 
 	write_set := txn.GetWriteSet()
-	isReadOnlyTxn := len(write_set) == 0
 	if common.EnableDebug && common.ActiveLogKindSetting&common.RDB_OP_FUNC_CALL > 0 {
 		writeSetStr := ""
 		for _, writeItem := range write_set {
