@@ -95,7 +95,7 @@ func (b *BufferPoolManager) FetchPage(pageID types.PageID) *page.Page {
 			return nil
 		}
 		fmt.Println(err)
-		panic("ReadPage returned error!")
+		return nil
 	}
 	var pageData [common.PageSize]byte
 	pageData = *(*[common.PageSize]byte)(data)

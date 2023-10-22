@@ -49,6 +49,13 @@ start:
 		// VARIANT: currentPage is always RLatched after loop
 		for currentPage.GetNextPageId().IsValid() {
 			nextPage := CastPageAsTablePage(bpm.FetchPage(currentPage.GetNextPageId()))
+			if nextPage == nil {
+				// TODO: (SDB) SHOULD BE FIXED: statics data update thread's call pass here rarely
+				bpm.UnpinPage(currentPage.GetPageId(), false)
+				currentPage.RUnlatch()
+				it.tuple = nil
+				return nil
+			}
 			bpm.UnpinPage(currentPage.GetPageId(), false)
 			nextPage.RLatch()
 			currentPage.RUnlatch()
