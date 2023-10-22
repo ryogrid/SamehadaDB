@@ -21,6 +21,10 @@ type TableHeap struct {
 	firstPageId  types.PageID
 	log_manager  *recovery.LogManager
 	lock_manager *LockManager
+	// for make faster to insert tuple, memorize last page id (not persisted)
+	// but, seek from last means waste unused space of former pages
+	// when delete or update occurs it is initialized to firstPageId
+	lastPageId types.PageID
 }
 
 // NewTableHeap creates a table heap without a  (open table)
@@ -36,12 +40,12 @@ func NewTableHeap(bpm *buffer.BufferPoolManager, log_manager *recovery.LogManage
 	bpm.UnpinPage(p.GetPageId(), true)
 	firstPage.RemoveWLatchRecord(int32(txn.txn_id))
 	firstPage.WUnlatch()
-	return &TableHeap{bpm, p.GetPageId(), log_manager, lock_manager}
+	return &TableHeap{bpm, p.GetPageId(), log_manager, lock_manager, p.GetPageId()}
 }
 
 // InitTableHeap ...
 func InitTableHeap(bpm *buffer.BufferPoolManager, pageId types.PageID, log_manager *recovery.LogManager, lock_manager *LockManager) *TableHeap {
-	return &TableHeap{bpm, pageId, log_manager, lock_manager}
+	return &TableHeap{bpm, pageId, log_manager, lock_manager, pageId}
 }
 
 // GetFirstPageId returns firstPageId
@@ -68,7 +72,15 @@ func (t *TableHeap) InsertTuple(tuple_ *tuple.Tuple, isForUpdate bool, txn *Tran
 			}()
 		}
 	}
-	currentPage := CastPageAsTablePage(t.bpm.FetchPage(t.firstPageId))
+	var currentPage *TablePage
+	if isForUpdate {
+		// seek from head
+		currentPage = CastPageAsTablePage(t.bpm.FetchPage(t.firstPageId))
+	} else {
+		// seek from last (almost case)
+		currentPage = CastPageAsTablePage(t.bpm.FetchPage(t.lastPageId))
+	}
+
 	currentPage.WLatch()
 	currentPage.AddWLatchRecord(int32(txn.txn_id))
 	// Insert into the first page with enough space. If no such page exists, create a new page and insert into that.
@@ -112,7 +124,10 @@ func (t *TableHeap) InsertTuple(tuple_ *tuple.Tuple, isForUpdate bool, txn *Tran
 		}
 	}
 
-	t.bpm.UnpinPage(currentPage.GetPageId(), true)
+	currentPageId := currentPage.GetPageId()
+	// memorize last page id
+	t.lastPageId = currentPageId
+	t.bpm.UnpinPage(currentPageId, true)
 	if common.EnableDebug && common.ActiveLogKindSetting&common.PIN_COUNT_ASSERT > 0 {
 		common.SH_Assert(currentPage.PinCount() == 0, "PinCount is not zero when finish TablePage::InsertTuple!!!")
 	}
@@ -206,6 +221,8 @@ func (t *TableHeap) UpdateTuple(tuple_ *tuple.Tuple, update_col_idxs []int, sche
 		if isUpdateWithDelInsert {
 			txn.AddIntoWriteSet(NewWriteRecord(&rid, new_rid, UPDATE, old_tuple, need_follow_tuple, t, oid))
 		} else {
+			// reset seek start point of Insert to first page
+			t.lastPageId = t.firstPageId
 			txn.AddIntoWriteSet(NewWriteRecord(&rid, &rid, UPDATE, old_tuple, need_follow_tuple, t, oid))
 		}
 	}
@@ -270,6 +287,10 @@ func (t *TableHeap) ApplyDelete(rid *page.RID, txn *Transaction) {
 	page_.WLatch()
 	page_.AddWLatchRecord(int32(txn.txn_id))
 	page_.ApplyDelete(rid, txn, t.log_manager)
+
+	// reset seek start point of Insert to first page
+	t.lastPageId = t.firstPageId
+
 	t.bpm.UnpinPage(page_.GetPageId(), true)
 	if common.EnableDebug && common.ActiveLogKindSetting&common.PIN_COUNT_ASSERT > 0 {
 		common.SH_Assert(page_.PinCount() == 0, "PinCount is not zero when finish TablePage::ApplyDelete!!!")

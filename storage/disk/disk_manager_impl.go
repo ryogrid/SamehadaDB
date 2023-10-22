@@ -132,6 +132,7 @@ func (d *DiskManagerImpl) ReadPage(pageID types.PageID, pageData []byte) error {
 	fileInfo, err := d.db.Stat()
 	if err != nil {
 		fmt.Println(err)
+		// TODO: (SDB) SHOULD BE FIXED: checkpoint and statics data update thread's call causes this error rarely
 		return errors.New("file info error")
 	}
 
