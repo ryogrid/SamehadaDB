@@ -279,9 +279,6 @@ func (transaction_manager *TransactionManager) Abort(catalog_ catalog_interface.
 		log_record := recovery.NewLogRecordTxn(txn.GetTransactionId(), txn.GetPrevLSN(), recovery.ABORT)
 		lsn := transaction_manager.log_manager.AppendLogRecord(log_record)
 		txn.SetPrevLSN(lsn)
-		if !isReadOnlyTxn {
-			transaction_manager.log_manager.Flush()
-		}
 	}
 
 	// Release all the locks.
