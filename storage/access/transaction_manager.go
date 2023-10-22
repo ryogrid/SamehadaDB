@@ -64,6 +64,7 @@ func (transaction_manager *TransactionManager) Commit(catalog_ catalog_interface
 
 	// Perform all deletes before we commit.
 	write_set := txn.GetWriteSet()
+	isReadOnlyTxn := len(write_set) == 0
 	if common.EnableDebug {
 		writeSetStr := ""
 		for _, writeItem := range write_set {
@@ -108,7 +109,9 @@ func (transaction_manager *TransactionManager) Commit(catalog_ catalog_interface
 		log_record := recovery.NewLogRecordTxn(txn.GetTransactionId(), txn.GetPrevLSN(), recovery.COMMIT)
 		lsn := transaction_manager.log_manager.AppendLogRecord(log_record)
 		txn.SetPrevLSN(lsn)
-		transaction_manager.log_manager.Flush()
+		if !isReadOnlyTxn {
+			transaction_manager.log_manager.Flush()
+		}
 	}
 
 	// Release all the locks.
@@ -156,7 +159,7 @@ func (transaction_manager *TransactionManager) Abort(catalog_ catalog_interface.
 	}
 
 	write_set := txn.GetWriteSet()
-
+	isReadOnlyTxn := len(write_set) == 0
 	if common.EnableDebug && common.ActiveLogKindSetting&common.RDB_OP_FUNC_CALL > 0 {
 		writeSetStr := ""
 		for _, writeItem := range write_set {
@@ -276,6 +279,9 @@ func (transaction_manager *TransactionManager) Abort(catalog_ catalog_interface.
 		log_record := recovery.NewLogRecordTxn(txn.GetTransactionId(), txn.GetPrevLSN(), recovery.ABORT)
 		lsn := transaction_manager.log_manager.AppendLogRecord(log_record)
 		txn.SetPrevLSN(lsn)
+		if !isReadOnlyTxn {
+			transaction_manager.log_manager.Flush()
+		}
 	}
 
 	// Release all the locks.
