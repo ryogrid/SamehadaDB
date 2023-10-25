@@ -5,7 +5,6 @@ package common
 
 import (
 	"fmt"
-	"github.com/sasha-s/go-deadlock"
 	"math"
 	"sync"
 	"sync/atomic"
@@ -152,35 +151,4 @@ func (l *readerWriterLatchDebug) RUnlock() {
 
 func (l *readerWriterLatchDebug) PrintDebugInfo() {
 	fmt.Printf("PrintDebugInfo: readerCnt=%d, writerCnt=%d\n", l.readerCnt, l.writerCnt)
-}
-
-type readerWriterLatchTrace struct {
-	mutex *deadlock.RWMutex
-}
-
-func NewRWLatchTrace() ReaderWriterLatch {
-	deadlock.Opts.DisableLockOrderDetection = true
-	latch := readerWriterLatchTrace{new(deadlock.RWMutex)}
-
-	return &latch
-}
-
-func (l *readerWriterLatchTrace) WLock() {
-	l.mutex.Lock()
-}
-
-func (l *readerWriterLatchTrace) WUnlock() {
-	l.mutex.Unlock()
-}
-
-func (l *readerWriterLatchTrace) RLock() {
-	l.mutex.RLock()
-}
-
-func (l *readerWriterLatchTrace) RUnlock() {
-	l.mutex.RUnlock()
-}
-
-func (l *readerWriterLatchTrace) PrintDebugInfo() {
-	// do nothing
 }

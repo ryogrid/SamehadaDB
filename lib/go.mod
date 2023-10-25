@@ -10,7 +10,6 @@ require (
 	github.com/notEpsilon/go-pair v0.0.0-20221220200415-e91ef28c6c0b
 	github.com/pingcap/parser v0.0.0-20200623164729-3a18f1e5dceb
 	github.com/pingcap/tidb v1.1.0-beta.0.20200630082100-328b6d0a955c
-	github.com/sasha-s/go-deadlock v0.2.0
 	github.com/spaolacci/murmur3 v1.1.0
 	golang.org/x/exp v0.0.0-20230905200255-921286631fa9
 )
@@ -22,7 +21,6 @@ require (
 	github.com/golang/protobuf v1.3.4 // indirect
 	github.com/konsorten/go-windows-terminal-sequences v1.0.3 // indirect
 	github.com/opentracing/opentracing-go v1.1.0 // indirect
-	github.com/petermattis/goid v0.0.0-20180202154549-b0b1615b78e5 // indirect
 	github.com/pingcap/errors v0.11.5-0.20190809092503-95897b64e011 // indirect
 	github.com/pingcap/log v0.0.0-20200511115504-543df19646ad // indirect
 	github.com/pingcap/tipb v0.0.0-20200522051215-f31a15d98fce // indirect
