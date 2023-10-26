@@ -1,8 +1,8 @@
 package main
 
 import (
-	"fmt"
 	"github.com/ant0ine/go-json-rest/rest"
+	"github.com/ryogrid/SamehadaDB/lib/samehada"
 	"log"
 	"net/http"
 )
@@ -11,40 +11,48 @@ type QueryInput struct {
 	Query string
 }
 
-type Rows struct {
+type Row struct {
 	C []interface{}
 }
 
 type QueryOutput struct {
-	Result []Rows
-	ErrMsg string
+	Result []Row
+	Error  string
 }
+
+var db = samehada.NewSamehadaDB("default", 5000) //5MB
 
 func postQuery(w rest.ResponseWriter, req *rest.Request) {
 	input := QueryInput{}
 	err := req.DecodeJsonPayload(&input)
 
 	if err != nil {
-		rest.Error(w, err.Error(), http.StatusInternalServerError)
+		rest.Error(w, err.Error(), http.StatusBadRequest)
 		return
 	}
-
-	fmt.Println(input.Query)
 
 	if input.Query == "" {
 		rest.Error(w, "Query is required", 400)
 		return
 	}
 
-	log.Printf("%#v", input)
+	err2, results := db.ExecuteSQL(input.Query)
+	if err2 != nil {
+		rest.Error(w, err2.Error(), http.StatusBadRequest)
+		return
+	}
+
+	rows := make([]Row, 0)
+	for _, row := range results {
+		rows = append(rows, Row{row})
+	}
 
 	w.WriteJson(&QueryOutput{
-		[]Rows{Rows{[]interface{}{1, "hoge"}}, Rows{[]interface{}{1, "hoge"}}}, "",
+		rows, "SUCCESS",
 	})
 }
 
 func main() {
-	//db := samehada.NewSamehadaDB("hoge", 200)
 	api := rest.NewApi()
 
 	// the Middleware stack
@@ -63,7 +71,7 @@ func main() {
 
 	log.Printf("Server started")
 	log.Fatal(http.ListenAndServe(
-		":9999",
+		"0.0.0.0:19999",
 		api.MakeHandler(),
 	))
 }
