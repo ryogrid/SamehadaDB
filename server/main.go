@@ -24,7 +24,6 @@ func postQuery(w rest.ResponseWriter, req *rest.Request) {
 	input := QueryInput{}
 	err := req.DecodeJsonPayload(&input)
 
-	// そもそも入力の形式と違うとここでエラーになる
 	if err != nil {
 		rest.Error(w, err.Error(), http.StatusInternalServerError)
 		return
@@ -32,7 +31,6 @@ func postQuery(w rest.ResponseWriter, req *rest.Request) {
 
 	fmt.Println(input.Query)
 
-	// 適当なバリデーション
 	if input.Query == "" {
 		rest.Error(w, "Query is required", 400)
 		return
@@ -40,7 +38,6 @@ func postQuery(w rest.ResponseWriter, req *rest.Request) {
 
 	log.Printf("%#v", input)
 
-	// 結果を返す部分
 	w.WriteJson(&QueryOutput{
 		[]Rows{Rows{[]interface{}{1, "hoge"}}, Rows{[]interface{}{1, "hoge"}}}, "",
 	})
