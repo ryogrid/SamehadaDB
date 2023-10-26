@@ -3,7 +3,7 @@ name: testing
 on: [push]
 
 jobs:
-  # 共通処理
+  # for all tests
   setup:
     runs-on: ubuntu-latest
     steps:
@@ -15,7 +15,7 @@ jobs:
       - name: check out
         uses: actions/checkout@v2
 
-      # 処理を高速化するために環境をキャッシュ
+      # cache environment
       - name: Cache
         uses: actions/cache@v2.1.0
         with:
@@ -24,7 +24,7 @@ jobs:
           restore-keys: |
             ${{ runner.os }}-go-
 
-  # buildテスト
+  # build testing
   build:
     needs: setup
     runs-on: ubuntu-latest
@@ -33,7 +33,7 @@ jobs:
       - name: build
         run: cd server; go build ./...
 
-  # testを通す
+  # exec unit tests
   test:
     needs: setup
     runs-on: ubuntu-latest
