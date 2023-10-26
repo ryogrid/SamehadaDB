@@ -12,7 +12,7 @@ type QueryInput struct {
 }
 
 type Rows struct {
-	Row []interface{}
+	C []interface{}
 }
 
 type QueryOutput struct {
