@@ -1,11 +1,11 @@
 <component name="ProjectRunConfigurationManager">
   <configuration default="false" name="go test SamehadaDB (short)" type="GoTestRunConfiguration" factoryName="Go Test" singleton="false">
     <module name="SamehadaDB" />
-    <working_directory value="$PROJECT_DIR$" />
+    <working_directory value="$PROJECT_DIR$/lib" />
     <go_parameters value=".\... -v -short" />
     <kind value="DIRECTORY" />
     <package value="github.com/ryogrid/SamehadaDB" />
-    <directory value="$PROJECT_DIR$" />
+    <directory value="$PROJECT_DIR$/lib" />
     <filePath value="$PROJECT_DIR$" />
     <framework value="gotest" />
     <method v="2">
