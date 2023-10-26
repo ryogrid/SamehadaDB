@@ -44,6 +44,6 @@ func ValueExprToValue(expr *driver.ValueExpr) *types.Value {
 
 func GetPredicateExprFromStr(schema_ *schema.Schema, pred *string) expression.Expression {
 	sqlStr := "SELECT * FROM dummy WHERE " + *pred + ";"
-	qi := ProcessSQLStr(&sqlStr)
+	qi, _ := ProcessSQLStr(&sqlStr)
 	return ConvParsedBinaryOpExprToExpIFOne(schema_, qi.WhereExpression_)
 }

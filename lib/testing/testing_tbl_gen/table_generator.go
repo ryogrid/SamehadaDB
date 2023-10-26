@@ -58,7 +58,7 @@ type TableInsertMeta struct {
 	 */
 	Num_rows_ uint32
 	/**
-	 * Columns
+	 * Row
 	 */
 	Col_meta_ []*ColumnInsertMeta
 }

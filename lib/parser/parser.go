@@ -42,14 +42,14 @@ func parse(sqlStr *string) (*ast.StmtNode, error) {
 	return &stmtNodes[0], nil
 }
 
-func ProcessSQLStr(sqlStr *string) *QueryInfo {
+func ProcessSQLStr(sqlStr *string) (*QueryInfo, error) {
 	astNode, err := parse(sqlStr)
 	if err != nil {
 		fmt.Printf("parse error: %v\n", err.Error())
-		return nil
+		return nil, err
 	}
 
-	return extractInfoFromAST(astNode)
+	return extractInfoFromAST(astNode), nil
 }
 
 // for utity func on develop phase

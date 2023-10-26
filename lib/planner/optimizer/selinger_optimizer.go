@@ -451,6 +451,7 @@ func (so *SelingerOptimizer) Optimize() (plans.Plan, error) {
 
 var CantTableIdentifedErr = errors.New("tableName can't be identified!")
 var InvalidColNameErr = errors.New("invalid column name!")
+var InvalidTableNameErr = errors.New("invalid table name!")
 
 func attachTableNameIfNeeded(tableMap map[string][]*string, tgtStr *string) (*string, error) {
 	if strings.Contains(*tgtStr, ".") {
@@ -509,13 +510,15 @@ func CheckIncludesORInPredicate(exp interface{}) bool {
 	}
 }
 
-func genTableMapAndColList(c *catalog.Catalog, qi *parser.QueryInfo) (map[string][]*string, []*parser.SelectFieldExpression) {
+func genTableMapAndColList(c *catalog.Catalog, qi *parser.QueryInfo) (map[string][]*string, []*parser.SelectFieldExpression, error) {
 	tableMap := make(map[string][]*string, 0)
 	colList := make([]*parser.SelectFieldExpression, 0)
 	for _, tableName := range qi.JoinTables_ {
 		tm := c.GetTableByName(*tableName)
+		if tm == nil {
+			return nil, nil, InvalidTableNameErr
+		}
 		colNum := tm.GetColumnNum()
-
 		for ii := 0; ii < int(colNum); ii++ {
 			col := tm.Schema().GetColumn(uint32(ii))
 			colName := col.GetColumnName()
@@ -534,14 +537,17 @@ func genTableMapAndColList(c *catalog.Catalog, qi *parser.QueryInfo) (map[string
 			}
 		}
 	}
-	return tableMap, colList
+	return tableMap, colList, nil
 }
 
 // add table name prefix to column name if column name doesn't have it
 // and attach predicate of ON clause to one of WHERE clause
 // ATTENTION: this func modifies *qi* arg
 func RewriteQueryInfo(c *catalog.Catalog, qi *parser.QueryInfo) (*parser.QueryInfo, error) {
-	tableMap, colList := genTableMapAndColList(c, qi)
+	tableMap, colList, err := genTableMapAndColList(c, qi)
+	if err != nil {
+		return nil, err
+	}
 	// SelectFields_
 	// when SelectFields_[x].TableName_ is empty, set appropriate value
 	for _, sfield := range qi.SelectFields_ {
@@ -571,7 +577,7 @@ func RewriteQueryInfo(c *catalog.Catalog, qi *parser.QueryInfo) (*parser.QueryIn
 	}
 
 	// OnExpressions_
-	err := rewiteColNameStrOfBinaryOpExp(tableMap, qi.OnExpressions_)
+	err = rewiteColNameStrOfBinaryOpExp(tableMap, qi.OnExpressions_)
 	if err != nil {
 		return nil, err
 	}

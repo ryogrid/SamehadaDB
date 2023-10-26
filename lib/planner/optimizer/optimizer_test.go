@@ -327,7 +327,7 @@ func TestFindBestScans(t *testing.T) {
 	txn_mgr.Commit(c, txn)
 
 	testAQuery := func(queryStr string, patternName string) {
-		queryInfo := parser.ProcessSQLStr(&queryStr)
+		queryInfo, _ := parser.ProcessSQLStr(&queryStr)
 		queryInfo, _ = RewriteQueryInfo(c, queryInfo)
 		optimalPlans := NewSelingerOptimizer(queryInfo, c).findBestScans()
 		testingpkg.Assert(t, len(optimalPlans) == len(queryInfo.JoinTables_), "len(optimalPlans) != len(query.JoinTables_) ["+patternName+"]")
@@ -397,7 +397,7 @@ func TestSimplePlanOptimization(t *testing.T) {
 	txn_mgr.Commit(c, txn)
 
 	testAQuery := func(queryStr string, patternName string) {
-		queryInfo := parser.ProcessSQLStr(&queryStr)
+		queryInfo, _ := parser.ProcessSQLStr(&queryStr)
 		queryInfo, _ = RewriteQueryInfo(c, queryInfo)
 
 		optimizer := NewSelingerOptimizer(queryInfo, c)

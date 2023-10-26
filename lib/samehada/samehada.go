@@ -187,8 +187,14 @@ var PlanCreationErr error = errors.New("plan creation error")
 var QueryAbortedErr error = errors.New("query aborted")
 
 func (sdb *SamehadaDB) ExecuteSQLRetValues(sqlStr string) (error, [][]*types.Value) {
-	qi := parser.ProcessSQLStr(&sqlStr)
-	qi, _ = optimizer.RewriteQueryInfo(sdb.catalog_, qi)
+	qi, err := parser.ProcessSQLStr(&sqlStr)
+	if err != nil {
+		return err, nil
+	}
+	qi, err = optimizer.RewriteQueryInfo(sdb.catalog_, qi)
+	if err != nil {
+		return err, nil
+	}
 	txn := sdb.shi_.transaction_manager.Begin(nil)
 	err, plan := planner.NewSimplePlanner(sdb.catalog_, sdb.shi_.bpm).MakePlan(qi, txn)
 

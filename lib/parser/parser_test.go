@@ -10,7 +10,7 @@ import (
 
 func TestSinglePredicateSelectQuery(t *testing.T) {
 	sqlStr := "SELECT a FROM t WHERE a = 'daylight';"
-	queryInfo := ProcessSQLStr(&sqlStr)
+	queryInfo, _ := ProcessSQLStr(&sqlStr)
 	testingpkg.SimpleAssert(t, *queryInfo.QueryType_ == SELECT)
 	testingpkg.SimpleAssert(t, *queryInfo.SelectFields_[0].ColName_ == "a")
 	testingpkg.SimpleAssert(t, *queryInfo.JoinTables_[0] == "t")
@@ -20,7 +20,7 @@ func TestSinglePredicateSelectQuery(t *testing.T) {
 	testingpkg.SimpleAssert(t, queryInfo.WhereExpression_.Right_.(*types.Value).ToVarchar() == "daylight")
 
 	sqlStr = "SELECT a, b FROM t WHERE a = 10;"
-	queryInfo = ProcessSQLStr(&sqlStr)
+	queryInfo, _ = ProcessSQLStr(&sqlStr)
 	testingpkg.SimpleAssert(t, *queryInfo.QueryType_ == SELECT)
 	testingpkg.SimpleAssert(t, *queryInfo.SelectFields_[0].ColName_ == "a")
 	testingpkg.SimpleAssert(t, *queryInfo.SelectFields_[1].ColName_ == "b")
@@ -31,7 +31,7 @@ func TestSinglePredicateSelectQuery(t *testing.T) {
 	testingpkg.SimpleAssert(t, queryInfo.WhereExpression_.Right_.(*types.Value).ToInteger() == 10)
 
 	sqlStr = "SELECT a, b FROM t WHERE a > 10.5;"
-	queryInfo = ProcessSQLStr(&sqlStr)
+	queryInfo, _ = ProcessSQLStr(&sqlStr)
 	testingpkg.SimpleAssert(t, *queryInfo.QueryType_ == SELECT)
 	testingpkg.SimpleAssert(t, *queryInfo.SelectFields_[0].ColName_ == "a")
 	testingpkg.SimpleAssert(t, *queryInfo.SelectFields_[1].ColName_ == "b")
@@ -58,7 +58,7 @@ func TestMultiPredicateSelectQuery(t *testing.T) {
 	//          |---- 50 (*types.Value)
 
 	sqlStr := "SELECT a, b FROM t WHERE a = 10 AND b = 20 AND c != 'daylight' OR d = 50;"
-	queryInfo := ProcessSQLStr(&sqlStr)
+	queryInfo, _ := ProcessSQLStr(&sqlStr)
 	testingpkg.SimpleAssert(t, *queryInfo.QueryType_ == SELECT)
 	testingpkg.SimpleAssert(t, *queryInfo.SelectFields_[0].ColName_ == "a")
 	testingpkg.SimpleAssert(t, *queryInfo.JoinTables_[0] == "t")
@@ -118,7 +118,7 @@ func TestMultiPredicateSelectQuery(t *testing.T) {
 	//                   |---- 50 (*types.Value)
 
 	sqlStr = "SELECT a, b FROM t WHERE a = 10 AND b = 20 AND (c != 'daylight' OR d = 50);"
-	queryInfo = ProcessSQLStr(&sqlStr)
+	queryInfo, _ = ProcessSQLStr(&sqlStr)
 	testingpkg.SimpleAssert(t, *queryInfo.QueryType_ == SELECT)
 	testingpkg.SimpleAssert(t, *queryInfo.SelectFields_[0].ColName_ == "a")
 	testingpkg.SimpleAssert(t, *queryInfo.SelectFields_[1].ColName_ == "b")
@@ -167,7 +167,7 @@ func TestMultiPredicateSelectQuery(t *testing.T) {
 
 func TestWildcardSelectQuery(t *testing.T) {
 	sqlStr := "SELECT * FROM t WHERE a = 10;"
-	queryInfo := ProcessSQLStr(&sqlStr)
+	queryInfo, _ := ProcessSQLStr(&sqlStr)
 	testingpkg.SimpleAssert(t, *queryInfo.QueryType_ == SELECT)
 	testingpkg.SimpleAssert(t, *queryInfo.SelectFields_[0].ColName_ == "*")
 	testingpkg.SimpleAssert(t, *queryInfo.JoinTables_[0] == "t")
@@ -179,7 +179,7 @@ func TestWildcardSelectQuery(t *testing.T) {
 
 func TestAggFuncSelectQuery(t *testing.T) {
 	sqlStr := "SELECT count(*), max(b), min(c), sum(d), b FROM t WHERE a = 10;"
-	queryInfo := ProcessSQLStr(&sqlStr)
+	queryInfo, _ := ProcessSQLStr(&sqlStr)
 	testingpkg.SimpleAssert(t, *queryInfo.QueryType_ == SELECT)
 
 	testingpkg.SimpleAssert(t, queryInfo.SelectFields_[0].IsAgg_ == true)
@@ -207,7 +207,7 @@ func TestAggFuncSelectQuery(t *testing.T) {
 
 func TestLimitOffsetSelectQuery(t *testing.T) {
 	sqlStr := "SELECT a, b FROM t WHERE a = 10 LIMIT 100 OFFSET 200;"
-	queryInfo := ProcessSQLStr(&sqlStr)
+	queryInfo, _ := ProcessSQLStr(&sqlStr)
 	testingpkg.SimpleAssert(t, *queryInfo.QueryType_ == SELECT)
 	testingpkg.SimpleAssert(t, *queryInfo.SelectFields_[0].ColName_ == "a")
 	testingpkg.SimpleAssert(t, *queryInfo.SelectFields_[1].ColName_ == "b")
@@ -222,7 +222,7 @@ func TestLimitOffsetSelectQuery(t *testing.T) {
 	testingpkg.SimpleAssert(t, queryInfo.OffsetNum_ == 200)
 
 	sqlStr = "SELECT a, b FROM t WHERE a = 10;"
-	queryInfo = ProcessSQLStr(&sqlStr)
+	queryInfo, _ = ProcessSQLStr(&sqlStr)
 	testingpkg.SimpleAssert(t, queryInfo.LimitNum_ == -1)
 	testingpkg.SimpleAssert(t, queryInfo.OffsetNum_ == -1)
 }
@@ -230,7 +230,7 @@ func TestLimitOffsetSelectQuery(t *testing.T) {
 func TestIsNullIsNotNullSelectQuery(t *testing.T) {
 	// (a IS NULL) AND (b > 10)
 	sqlStr := "SELECT a, b FROM t WHERE a IS NULL AND b > 10;"
-	queryInfo := ProcessSQLStr(&sqlStr)
+	queryInfo, _ := ProcessSQLStr(&sqlStr)
 	testingpkg.SimpleAssert(t, *queryInfo.QueryType_ == SELECT)
 	testingpkg.SimpleAssert(t, *queryInfo.SelectFields_[0].ColName_ == "a")
 	testingpkg.SimpleAssert(t, *queryInfo.SelectFields_[1].ColName_ == "b")
@@ -260,7 +260,7 @@ func TestIsNullIsNotNullSelectQuery(t *testing.T) {
 
 	// (a IS NOT NULL) AND (b > 10)
 	sqlStr = "SELECT a, b FROM t WHERE a IS NOT NULL AND b > 10;"
-	queryInfo = ProcessSQLStr(&sqlStr)
+	queryInfo, _ = ProcessSQLStr(&sqlStr)
 	testingpkg.SimpleAssert(t, *queryInfo.QueryType_ == SELECT)
 	testingpkg.SimpleAssert(t, *queryInfo.SelectFields_[0].ColName_ == "a")
 	testingpkg.SimpleAssert(t, *queryInfo.SelectFields_[1].ColName_ == "b")
@@ -292,7 +292,7 @@ func TestIsNullIsNotNullSelectQuery(t *testing.T) {
 
 func TestSimpleJoinSelectQuery(t *testing.T) {
 	sqlStr := "SELECT staff.a, staff.b, staff.c, friend.d FROM staff INNER JOIN friend ON staff.c = friend.c WHERE friend.d = 10;"
-	queryInfo := ProcessSQLStr(&sqlStr)
+	queryInfo, _ := ProcessSQLStr(&sqlStr)
 	testingpkg.SimpleAssert(t, *queryInfo.QueryType_ == SELECT)
 
 	testingpkg.SimpleAssert(t, *queryInfo.SelectFields_[0].TableName_ == "staff")
@@ -318,7 +318,7 @@ func TestSimpleJoinSelectQuery(t *testing.T) {
 	testingpkg.SimpleAssert(t, queryInfo.WhereExpression_.Right_.(*types.Value).ToInteger() == 10)
 
 	sqlStr = "SELECT staff.a, staff.b, staff.c, friend.d, e FROM staff INNER JOIN friend ON staff.c = friend.c WHERE friend.d = 10;"
-	queryInfo = ProcessSQLStr(&sqlStr)
+	queryInfo, _ = ProcessSQLStr(&sqlStr)
 	testingpkg.SimpleAssert(t, *queryInfo.QueryType_ == SELECT)
 
 	testingpkg.SimpleAssert(t, *queryInfo.SelectFields_[0].TableName_ == "staff")
@@ -348,7 +348,7 @@ func TestSimpleJoinSelectQuery(t *testing.T) {
 
 func TestSimpleCreateTableQuery(t *testing.T) {
 	sqlStr := "CREATE TABLE name_age_list(name VARCHAR(256), age INT);"
-	queryInfo := ProcessSQLStr(&sqlStr)
+	queryInfo, _ := ProcessSQLStr(&sqlStr)
 	testingpkg.SimpleAssert(t, *queryInfo.QueryType_ == CREATE_TABLE)
 	testingpkg.SimpleAssert(t, *queryInfo.NewTable_ == "name_age_list")
 	testingpkg.SimpleAssert(t, *queryInfo.ColDefExpressions_[0].ColName_ == "name")
@@ -359,7 +359,7 @@ func TestSimpleCreateTableQuery(t *testing.T) {
 
 func TestCreateTableWithIndexDefQuery(t *testing.T) {
 	sqlStr := "CREATE TABLE name_age_list(id INT, name VARCHAR(256), age FLOAT, index id_idx (id), index name_age_idx (name, age));"
-	queryInfo := ProcessSQLStr(&sqlStr)
+	queryInfo, _ := ProcessSQLStr(&sqlStr)
 	testingpkg.SimpleAssert(t, *queryInfo.QueryType_ == CREATE_TABLE)
 
 	testingpkg.SimpleAssert(t, *queryInfo.NewTable_ == "name_age_list")
@@ -380,7 +380,7 @@ func TestCreateTableWithIndexDefQuery(t *testing.T) {
 
 func TestInsertQuery(t *testing.T) {
 	sqlStr := "INSERT INTO syain(name) VALUES ('鈴木');"
-	queryInfo := ProcessSQLStr(&sqlStr)
+	queryInfo, _ := ProcessSQLStr(&sqlStr)
 	testingpkg.SimpleAssert(t, *queryInfo.QueryType_ == INSERT)
 
 	testingpkg.SimpleAssert(t, *queryInfo.JoinTables_[0] == "syain")
@@ -389,7 +389,7 @@ func TestInsertQuery(t *testing.T) {
 	testingpkg.SimpleAssert(t, queryInfo.Values_[0].ToVarchar() == "鈴木")
 
 	sqlStr = "INSERT INTO syain(id,name,romaji) VALUES (1,'鈴木','suzuki');"
-	queryInfo = ProcessSQLStr(&sqlStr)
+	queryInfo, _ = ProcessSQLStr(&sqlStr)
 	testingpkg.SimpleAssert(t, *queryInfo.QueryType_ == INSERT)
 
 	testingpkg.SimpleAssert(t, *queryInfo.JoinTables_[0] == "syain")
@@ -404,7 +404,7 @@ func TestInsertQuery(t *testing.T) {
 
 func TestSimpleDeleteQuery(t *testing.T) {
 	sqlStr := "DELETE FROM users WHERE id = 10;"
-	queryInfo := ProcessSQLStr(&sqlStr)
+	queryInfo, _ := ProcessSQLStr(&sqlStr)
 	testingpkg.SimpleAssert(t, *queryInfo.QueryType_ == DELETE)
 
 	testingpkg.SimpleAssert(t, *queryInfo.JoinTables_[0] == "users")
@@ -417,7 +417,7 @@ func TestSimpleDeleteQuery(t *testing.T) {
 
 func TestSimpleUpdateQuery(t *testing.T) {
 	sqlStr := "UPDATE employees SET title = 'Mr.' WHERE gender = 'M';"
-	queryInfo := ProcessSQLStr(&sqlStr)
+	queryInfo, _ := ProcessSQLStr(&sqlStr)
 	testingpkg.SimpleAssert(t, *queryInfo.QueryType_ == UPDATE)
 
 	testingpkg.SimpleAssert(t, *queryInfo.JoinTables_[0] == "employees")
@@ -430,7 +430,7 @@ func TestSimpleUpdateQuery(t *testing.T) {
 	testingpkg.SimpleAssert(t, queryInfo.WhereExpression_.Right_.(*types.Value).ToVarchar() == "M")
 
 	sqlStr = "UPDATE employees SET title = 'Mr.', gflag = 7 WHERE gender = 'M';"
-	queryInfo = ProcessSQLStr(&sqlStr)
+	queryInfo, _ = ProcessSQLStr(&sqlStr)
 	testingpkg.SimpleAssert(t, *queryInfo.QueryType_ == UPDATE)
 
 	testingpkg.SimpleAssert(t, *queryInfo.JoinTables_[0] == "employees")
