@@ -20,6 +20,9 @@
     - [All app codes](https://github.com/ryogrid/TODO-Fullstack-App-Go-Gin-Postgres-React/tree/5ee4feb72471d16231cc4f4c5e774ab902a0b402)
       - builded frontend JS code is little bit modified directly for escape from re-compile...
       - above code tree can be deployed to AWS Elastic Beanstalk (on not https and use 8088 port)
+- And can be used as DB server offers REST API I/F
+  - Please see server directory and [this note](https://gist.github.com/ryogrid/6beee126af2aaebd160a0497c2c9611f)
+  - The server binds on http://0.0.0.0:19999/Query (this means localhost, 127.0.0.1, other IP addresses your machine has)
 - **ATTENTION: SamehadaDB is not developed for productional use! There are no warranties!**
 - By the way, procedure described on next section executes almost all defined unit tests except these of taking long time
 
@@ -87,9 +90,8 @@
 - [ ] AS clause
 - [ ] Nested Query
 - [ ] DB Connector (Driver) or Other Kind of Network Access Interface
-  - [ ] Original Protocol
   - [ ] MySQL or PostgreSQL Compatible Protocol
-  - [ ] REST
+  - [x] REST
 - [ ] Deallocate and Reuse Page
   - Need tracking page usage by BufferPoolManager or TableHeap and need bitmap in header page corresponding to the tracking
 - [x] Optimization of INSERT
