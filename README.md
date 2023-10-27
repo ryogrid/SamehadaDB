@@ -26,6 +26,7 @@
   - There are Win binary and Linux binary at Release page
     - if Linux one runs without error at lauch, you are lucky :)
     - when error occurs, you need to build by myself :)
+      - **please check and modify if needed that value of EnableOnMemStorage constant is false (/lib/common/config.go)**
   - There is simple client which can use on browser in demo-client dir   
 - **ATTENTION: SamehadaDB is not developed for productional use! There are no warranties!**
 - By the way, procedure described on next section executes almost all defined unit tests except these of taking long time
