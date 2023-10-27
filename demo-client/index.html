@@ -1,78 +1,76 @@
-<!DOCTYPE html>
 <html>
-<head>
-    <meta charset="UTF-8">
-    <title>SamehadaDB Simple Client Demo</title>
-    <style>
-    input.queryform { width: 50%; }
-    input.serveraddress { width: 25%; }
-    </style>
-    <script type="text/javascript" src="./jquery-3.7.1.min.js"></script>
-    <script type="text/javascript">
-        var executedLog = "";
-        $(document).ready(function()
-        {
-            $("#issue").click(function()
-            {
-                var queryStr = $('#queryform [name=queryform]').val();
-                //var queryJson = JSON.parse(queryStr);
-                var serverAddress = $('#serveraddress [name=serveraddress]').val();
+    <head>
+        <meta charset="UTF-8">
+        <title>SamehadaDB Simple Client Demo</title>
+        <style>
+            input.queryform {
+                width: 50%;
+            }
 
-                $.ajax({
-                    type: "POST",
-                    url: "http://" + serverAddress + "/Query",
-                    // headers: {
-                    //     Accept: 'application/json;charset=utf-8',
-                    // },
-                    contentType: "application/json;charset=utf-8",
-                    //dataType: "application/json;charset=utf-8",
-                    data: queryStr,
-                }).done(function(data){
-                    console.log(data)
-                    $("#result-error").html(String(data.Error));
-                    var resultStr = "";
-                    if (data.Result != null && data.Result != undefined && data.length != 0){
-                        for (var ii = 0; ii < data.Result.length; ii++){
-                            var rowStr = "";
-                            for (var jj = 0; jj < data.Result[ii].C.length; jj++) {
-                                if (typeof data.Result[ii].C[jj] == "string") {
-                                    rowStr += '"' + data.Result[ii].C[jj] + '" ,';
-                                } else {
-                                    rowStr += data.Result[ii].C[jj] + " ,";
+            input.serveraddress {
+                width: 25%;
+            }
+        </style>
+        <script type="text/javascript" src="./jquery-3.7.1.min.js"></script>
+        <script type="text/javascript">
+            var executedLog = "";
+            $(document).ready(function () {
+                $("#issue").click(function () {
+                    var queryStr = $('#queryform [name=queryform]').val();
+                    var serverAddress = $('#serveraddress [name=serveraddress]').val();
+
+                    $.ajax({
+                        type: "POST",
+                        url: "http://" + serverAddress + "/Query",
+                        contentType: "application/json;charset=utf-8",
+                        data: queryStr,
+                    }).done(function (data) {
+                        console.log(data)
+                        $("#result-error").html(String(data.Error));
+                        var resultStr = "";
+                        if (data.Result != null && data.Result != undefined && data.length != 0) {
+                            for (var ii = 0; ii < data.Result.length; ii++) {
+                                var rowStr = "";
+                                for (var jj = 0; jj < data.Result[ii].C.length; jj++) {
+                                    if (typeof data.Result[ii].C[jj] == "string") {
+                                        rowStr += '"' + data.Result[ii].C[jj] + '" ,';
+                                    } else {
+                                        rowStr += data.Result[ii].C[jj] + " ,";
+                                    }
                                 }
-                            }
-                            resultStr += rowStr + "<br />"
+                                resultStr += rowStr + "<br />"
 
+                            }
+                            //$("#result-main").html(resultStr);
+                            resultStr = queryStr + "<br />" + resultStr + "<br />"
+                            executedLog += resultStr;
+                            $("#result-main").html(executedLog);
                         }
-                        //$("#result-main").html(resultStr);
-                        resultStr = queryStr + "<br />" + resultStr + "<br />"
-                        executedLog += resultStr;
-                        $("#result-main").html(executedLog);
-                    }
-                }).fail(function(jqXHR, textStatus, errorThrown){
-                    $("#result-error").html("Error: " + textStatus + " " + errorThrown);
-                    //$("#result-main").html("<p>No Data</p>");
+                    }).fail(function (jqXHR, textStatus, errorThrown) {
+                        $("#result-error").html("Error: " + textStatus + " " + errorThrown);
+                        //$("#result-main").html("<p>No Data</p>");
+                    });
                 });
             });
-        });
-    </script>
-</head>
-<body>
-<h1>SamehadaDB Simple Client Demo</h1>
-<p>server address</p>
-<form id="serveraddress">
-    <input type="text" class="serveraddress" name="serveraddress" value="127.0.0.1:19999" />
-</form>
-<p>query</p>
-<form id="queryform">
-    <input type="text" class="queryform" name="queryform" value="{&quot;Query&quot;:&quot;CREATE TABLE name_age_list(name VARCHAR(256), age INT);&quot;}" />
-</form>
-<br />
-<button id="issue">send</button>
-<br />
-<br />
-<div id="result-error"></div>
-<br/>
-<div id="result-main"></div>
-</body>
+        </script>
+    </head>
+    <body>
+        <h1>SamehadaDB Simple Client Demo</h1>
+        <p>server address</p>
+        <form id="serveraddress">
+            <input type="text" class="serveraddress" name="serveraddress" value="127.0.0.1:19999" />
+        </form>
+        <p>query</p>
+        <form id="queryform">
+            <input type="text" class="queryform" name="queryform"
+                value="{&quot;Query&quot;:&quot;CREATE TABLE name_age_list(name VARCHAR(256), age INT);&quot;}" />
+        </form>
+        <br />
+        <button id="issue">send</button>
+        <br />
+        <br />
+        <div id="result-error"></div>
+        <br />
+        <div id="result-main"></div>
+    </body>
 </html>
