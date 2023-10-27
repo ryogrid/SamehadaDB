@@ -1,6 +1,7 @@
 package main
 
 import (
+	"fmt"
 	"github.com/ant0ine/go-json-rest/rest"
 	"github.com/ryogrid/SamehadaDB/lib/samehada"
 	"log"
@@ -27,6 +28,7 @@ func postQuery(w rest.ResponseWriter, req *rest.Request) {
 	err := req.DecodeJsonPayload(&input)
 
 	if err != nil {
+		fmt.Println(err)
 		rest.Error(w, err.Error(), http.StatusBadRequest)
 		return
 	}
@@ -59,6 +61,16 @@ func main() {
 	api.Use(rest.DefaultDevStack...)
 	api.Use(&rest.JsonpMiddleware{
 		CallbackNameKey: "cb",
+	})
+	api.Use(&rest.CorsMiddleware{
+		RejectNonCorsRequests: false,
+		OriginValidator: func(origin string, request *rest.Request) bool {
+			return true
+		},
+		AllowedMethods:                []string{"POST"},
+		AllowedHeaders:                []string{"Accept", "content-type"},
+		AccessControlAllowCredentials: true,
+		AccessControlMaxAge:           3600,
 	})
 
 	router, err := rest.MakeRouter(
