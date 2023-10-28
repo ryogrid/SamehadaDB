@@ -32,7 +32,6 @@
     - little bit customized version is pleced at [demo site](http://ryogrid.s3-website-ap-northeast-1.amazonaws.com/samehada-client/index.html)
       - ryogrid.net:19999 is public SamehadaDBd server for demonstration
         - **Do not insert private or secret information/data! the server does not isolation**
-      - name_age_list table is already created by some user often. please use other table name or query to name_age_list table :)
 - **ATTENTION: SamehadaDB is not developed for productional use! There are no warranties!**
 - By the way, procedure described on next section executes almost all defined unit tests except these of taking long time
 
