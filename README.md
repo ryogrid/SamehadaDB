@@ -27,7 +27,12 @@
     - if Linux one runs without error at lauch, you are lucky :)
     - when error occurs, you need to build by myself :)
       - **please check and modify if needed that value of EnableOnMemStorage constant is false (/lib/common/config.go)**
-  - There is simple client which can use on browser in demo-client dir   
+  - there is simple client which can use on browser in demo-client dir
+    - very simple SPA. requirement is web browser which can executes JS only :)
+    - little bit customized version is pleced at [demo site](http://ryogrid.s3-website-ap-northeast-1.amazonaws.com/samehada-client/index.html)
+      - ryogrid.net:19999 is public SamehadaDBd server for demonstration
+        - **Do not insert private or secret information/data! the server does not isolation**
+      - name_age_list table is already created by some user often. please use other table name or query to name_age_list table :)
 - **ATTENTION: SamehadaDB is not developed for productional use! There are no warranties!**
 - By the way, procedure described on next section executes almost all defined unit tests except these of taking long time
 
