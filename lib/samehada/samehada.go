@@ -60,7 +60,7 @@ func reconstructIndexDataOfATbl(t *catalog.TableMetadata, c *catalog.Catalog, dm
 
 				hPageData := bpm.FetchPage(indexHeaderPageId).Data()
 				headerPage := (*page.HashTableHeaderPage)(unsafe.Pointer(hPageData))
-				for ii := uint32(0); ii < headerPage.NumBlocks(); ii++ {
+				for ii := uint64(0); ii < headerPage.NumBlocks(); ii++ {
 					blockPageId := headerPage.GetBlockPageId(ii)
 					// zero clear specifed space of db file
 					dman.WritePage(blockPageId, zeroClearedBuf)

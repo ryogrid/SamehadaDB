@@ -44,14 +44,14 @@ func (htidx *LinearProbeHashTableIndex) InsertEntry(key *tuple.Tuple, rid page.R
 	tupleSchema_ := htidx.GetTupleSchema()
 	keyDataInBytes := key.GetValueInBytes(tupleSchema_, htidx.col_idx)
 
-	htidx.container.Insert(keyDataInBytes, samehada_util.PackRIDtoUint32(&rid))
+	htidx.container.Insert(keyDataInBytes, samehada_util.PackRIDtoUint64(&rid))
 }
 
 func (htidx *LinearProbeHashTableIndex) DeleteEntry(key *tuple.Tuple, rid page.RID, transaction interface{}) {
 	tupleSchema_ := htidx.GetTupleSchema()
 	keyDataInBytes := key.GetValueInBytes(tupleSchema_, htidx.col_idx)
 
-	htidx.container.Remove(keyDataInBytes, samehada_util.PackRIDtoUint32(&rid))
+	htidx.container.Remove(keyDataInBytes, samehada_util.PackRIDtoUint64(&rid))
 }
 
 func (htidx *LinearProbeHashTableIndex) ScanKey(key *tuple.Tuple, transaction interface{}) []page.RID {
@@ -61,7 +61,7 @@ func (htidx *LinearProbeHashTableIndex) ScanKey(key *tuple.Tuple, transaction in
 	packed_values := htidx.container.GetValue(keyDataInBytes)
 	var ret_arr []page.RID
 	for _, packed_val := range packed_values {
-		ret_arr = append(ret_arr, samehada_util.UnpackUint32toRID(packed_val))
+		ret_arr = append(ret_arr, samehada_util.UnpackUint64toRID(packed_val))
 	}
 	return ret_arr
 }

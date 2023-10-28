@@ -17,9 +17,10 @@ import (
 
 /**
  * Implementation of linear probing hash table that is backed by a buffer pool
- * manager. Non-unique keys are supported. Supports insert and delete. The
- * table dynamically grows once full.
+ * manager. Non-unique keys are supported. Supports insert and delete.
  */
+
+// Limitation: current implementation contain BlockArraySize(252) * 1020 = 257,040 record info at most
 // TODO: (SDB) LinearProbeHashTable does not dynamically grows...
 type LinearProbeHashTable struct {
 	headerPageId types.PageID
@@ -27,7 +28,12 @@ type LinearProbeHashTable struct {
 	table_latch  common.ReaderWriterLatch
 }
 
+// numBuckets should be less than 1020
 func NewLinearProbeHashTable(bpm *buffer.BufferPoolManager, numBuckets int, headerPageId types.PageID) *LinearProbeHashTable {
+	if numBuckets > 1020 {
+		panic("numBuckets should be less than 1020")
+	}
+
 	if headerPageId == types.InvalidPageID {
 		header := bpm.NewPage()
 		headerData := header.Data()
@@ -57,7 +63,7 @@ func NewLinearProbeHashTable(bpm *buffer.BufferPoolManager, numBuckets int, head
 	}
 }
 
-func (ht *LinearProbeHashTable) GetValue(key []byte) []uint32 {
+func (ht *LinearProbeHashTable) GetValue(key []byte) []uint64 {
 	ht.table_latch.RLock()
 	defer ht.table_latch.RUnlock()
 	hPageData := ht.bpm.FetchPage(ht.headerPageId).Data()
@@ -70,11 +76,11 @@ func (ht *LinearProbeHashTable) GetValue(key []byte) []uint32 {
 
 	iterator := newHashTableIterator(ht.bpm, headerPage, originalBucketIndex, originalBucketOffset)
 
-	result := []uint32{}
+	result := []uint64{}
 	blockPage, offset := iterator.blockPage, iterator.offset
-	var bucket uint32
+	var bucket uint64
 	for blockPage.IsOccupied(offset) { // stop the search and we find an empty spot
-		if blockPage.IsReadable(offset) && blockPage.KeyAt(offset) == hash {
+		if blockPage.IsReadable(offset) && blockPage.KeyAt(offset) == uint64(hash) {
 			result = append(result, blockPage.ValueAt(offset))
 		}
 
@@ -91,7 +97,7 @@ func (ht *LinearProbeHashTable) GetValue(key []byte) []uint32 {
 	return result
 }
 
-func (ht *LinearProbeHashTable) Insert(key []byte, value uint32) (err error) {
+func (ht *LinearProbeHashTable) Insert(key []byte, value uint64) (err error) {
 	ht.table_latch.WLock()
 	defer ht.table_latch.WUnlock()
 	hPageData := ht.bpm.FetchPage(ht.headerPageId).Data()
@@ -105,7 +111,7 @@ func (ht *LinearProbeHashTable) Insert(key []byte, value uint32) (err error) {
 	iterator := newHashTableIterator(ht.bpm, headerPage, originalBucketIndex, originalBucketOffset)
 
 	blockPage, offset := iterator.blockPage, iterator.offset
-	var bucket uint32
+	var bucket uint64
 	for {
 		if blockPage.IsOccupied(offset) && blockPage.IsReadable(offset) && blockPage.ValueAt(offset) == value {
 			err = errors.New("duplicated values on the same key are not allowed")
@@ -114,13 +120,13 @@ func (ht *LinearProbeHashTable) Insert(key []byte, value uint32) (err error) {
 
 		// insert to deleted marked slot
 		if blockPage.IsOccupied(offset) && !blockPage.IsReadable(offset) {
-			blockPage.Insert(offset, hash, value)
+			blockPage.Insert(offset, uint64(hash), value)
 			err = nil
 			break
 		}
 
 		if !blockPage.IsOccupied(offset) {
-			blockPage.Insert(offset, hash, value)
+			blockPage.Insert(offset, uint64(hash), value)
 			err = nil
 			break
 		}
@@ -138,7 +144,7 @@ func (ht *LinearProbeHashTable) Insert(key []byte, value uint32) (err error) {
 	return
 }
 
-func (ht *LinearProbeHashTable) Remove(key []byte, value uint32) {
+func (ht *LinearProbeHashTable) Remove(key []byte, value uint64) {
 	ht.table_latch.WLock()
 	defer ht.table_latch.WUnlock()
 	hPageData := ht.bpm.FetchPage(ht.headerPageId).Data()
@@ -146,15 +152,15 @@ func (ht *LinearProbeHashTable) Remove(key []byte, value uint32) {
 
 	hash := ht.hash(key)
 
-	originalBucketIndex := hash % headerPage.NumBlocks()
+	originalBucketIndex := hash % uint64(headerPage.NumBlocks())
 	originalBucketOffset := hash % page.BlockArraySize
 
 	iterator := newHashTableIterator(ht.bpm, headerPage, originalBucketIndex, originalBucketOffset)
 
 	blockPage, offset := iterator.blockPage, iterator.offset
-	var bucket uint32
+	var bucket uint64
 	for blockPage.IsOccupied(offset) { // stop the search and we find an empty spot
-		if blockPage.IsOccupied(offset) && blockPage.KeyAt(offset) == hash && blockPage.ValueAt(offset) == value {
+		if blockPage.IsOccupied(offset) && blockPage.KeyAt(offset) == uint64(hash) && blockPage.ValueAt(offset) == value {
 			blockPage.Remove(offset)
 		}
 
@@ -169,14 +175,14 @@ func (ht *LinearProbeHashTable) Remove(key []byte, value uint32) {
 	ht.bpm.UnpinPage(ht.headerPageId, false)
 }
 
-func (ht *LinearProbeHashTable) hash(key []byte) uint32 {
+func (ht *LinearProbeHashTable) hash(key []byte) uint64 {
 	h := murmur3.New128()
 
 	h.Write(key)
 
 	hash := h.Sum(nil)
 
-	return binary.LittleEndian.Uint32(hash)
+	return binary.LittleEndian.Uint64(hash)
 }
 
 func (ht *LinearProbeHashTable) GetHeaderPageId() types.PageID {

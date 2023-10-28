@@ -29,12 +29,12 @@ func TestLinearProbeHashTable(t *testing.T) {
 	ht := NewLinearProbeHashTable(bpm, 1000, types.InvalidPageID)
 
 	for i := 0; i < 5; i++ {
-		ht.Insert(IntToBytes(i), uint32(i))
+		ht.Insert(IntToBytes(i), uint64(i))
 		res := ht.GetValue(IntToBytes(i))
 		if len(res) == 0 {
 			t.Errorf("result should not be nil")
 		} else {
-			testingpkg.Equals(t, uint32(i), res[0])
+			testingpkg.Equals(t, uint64(i), res[0])
 		}
 	}
 
@@ -43,29 +43,29 @@ func TestLinearProbeHashTable(t *testing.T) {
 		if len(res) == 0 {
 			t.Errorf("result should not be nil")
 		} else {
-			testingpkg.Equals(t, uint32(i), res[0])
+			testingpkg.Equals(t, uint64(i), res[0])
 		}
 	}
 
 	// test for duplicate values
 	for i := 0; i < 5; i++ {
 		if i == 0 {
-			testingpkg.Nok(t, ht.Insert(IntToBytes(i), uint32(2*i)))
+			testingpkg.Nok(t, ht.Insert(IntToBytes(i), uint64(2*i)))
 		} else {
-			testingpkg.Ok(t, ht.Insert(IntToBytes(i), uint32(2*i)))
+			testingpkg.Ok(t, ht.Insert(IntToBytes(i), uint64(2*i)))
 		}
-		ht.Insert(IntToBytes(i), uint32(2*i))
+		ht.Insert(IntToBytes(i), uint64(2*i))
 		res := ht.GetValue(IntToBytes(i))
 		if i == 0 {
 			testingpkg.Equals(t, 1, len(res))
-			testingpkg.Equals(t, uint32(i), res[0])
+			testingpkg.Equals(t, uint64(i), res[0])
 		} else {
 			testingpkg.Equals(t, 2, len(res))
-			if res[0] == uint32(i) {
-				testingpkg.Equals(t, uint32(2*i), res[1])
+			if res[0] == uint64(i) {
+				testingpkg.Equals(t, uint64(2*i), res[1])
 			} else {
-				testingpkg.Equals(t, uint32(2*i), res[0])
-				testingpkg.Equals(t, uint32(i), res[1])
+				testingpkg.Equals(t, uint64(2*i), res[0])
+				testingpkg.Equals(t, uint64(i), res[1])
 			}
 		}
 	}
@@ -76,25 +76,25 @@ func TestLinearProbeHashTable(t *testing.T) {
 
 	// delete some values
 	for i := 0; i < 5; i++ {
-		ht.Remove(IntToBytes(i), uint32(i))
+		ht.Remove(IntToBytes(i), uint64(i))
 		res := ht.GetValue(IntToBytes(i))
 
 		if i == 0 {
 			testingpkg.Equals(t, 0, len(res))
 		} else {
 			testingpkg.Equals(t, 1, len(res))
-			testingpkg.Equals(t, uint32(2*i), res[0])
+			testingpkg.Equals(t, uint64(2*i), res[0])
 		}
 	}
 
 	// remove several entries and re-insert these entry and check got value
 	for i := 1; i < 5; i++ {
-		ht.Remove(IntToBytes(i), uint32(i*2))
-		ht.Insert(IntToBytes(i), uint32(i*3))
+		ht.Remove(IntToBytes(i), uint64(i*2))
+		ht.Insert(IntToBytes(i), uint64(i*3))
 		res := ht.GetValue(IntToBytes(i))
 
 		testingpkg.Equals(t, 1, len(res))
-		testingpkg.Equals(t, uint32(3*i), res[0])
+		testingpkg.Equals(t, uint64(3*i), res[0])
 	}
 
 	bpm.FlushAllPages()
