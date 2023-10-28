@@ -17,9 +17,10 @@ import (
 
 /**
  * Implementation of linear probing hash table that is backed by a buffer pool
- * manager. Non-unique keys are supported. Supports insert and delete. The
- * table dynamically grows once full.
+ * manager. Non-unique keys are supported. Supports insert and delete.
  */
+
+// Limitation: current implementation contain BlockArraySize(252) * 1020 = 257,040 record info at most
 // TODO: (SDB) LinearProbeHashTable does not dynamically grows...
 type LinearProbeHashTable struct {
 	headerPageId types.PageID
@@ -27,7 +28,12 @@ type LinearProbeHashTable struct {
 	table_latch  common.ReaderWriterLatch
 }
 
+// numBuckets should be less than 1020
 func NewLinearProbeHashTable(bpm *buffer.BufferPoolManager, numBuckets int, headerPageId types.PageID) *LinearProbeHashTable {
+	if numBuckets > 1020 {
+		panic("numBuckets should be less than 1020")
+	}
+
 	if headerPageId == types.InvalidPageID {
 		header := bpm.NewPage()
 		headerData := header.Data()
