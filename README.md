@@ -27,7 +27,7 @@
     - if Linux one runs without error at lauch, you are lucky :)
     - when error occurs, you need to build by myself :)
       - **please check and modify if needed that value of EnableOnMemStorage constant is false (/lib/common/config.go)**
-  - there is simple client which can use on browser in demo-client dir
+  - there is simple client which can be useed on browser in demo-client dir
     - very simple SPA. requirement is web browser which can executes JS only :)
     - little bit customized version is pleced at [demo site](http://ryogrid.s3-website-ap-northeast-1.amazonaws.com/samehada-client/index.html)
       - ryogrid.net:19999 is public SamehadaDBd server for demonstration
