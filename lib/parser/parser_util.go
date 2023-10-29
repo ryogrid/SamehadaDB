@@ -34,9 +34,10 @@ func ValueExprToValue(expr *driver.ValueExpr) *types.Value {
 		fval, _ := strconv.ParseFloat(fstr, 32)
 		ret := types.NewFloat(float32(fval))
 		return &ret
-	default:
+	default: // varchar
 		val_str := expr.String()
-		target_str := strings.Split(val_str, " ")[1]
+		splited := strings.Split(val_str, " ")
+		target_str := strings.Join(splited[1:], " ")
 		ret := types.NewVarchar(target_str)
 		return &ret
 	}

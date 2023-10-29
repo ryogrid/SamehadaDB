@@ -402,6 +402,17 @@ func TestInsertQuery(t *testing.T) {
 	testingpkg.SimpleAssert(t, queryInfo.Values_[2].ToVarchar() == "suzuki")
 }
 
+func TestInsertQueryIncludesSpaceOnString(t *testing.T) {
+	sqlStr := "INSERT INTO syain(name) VALUES ('鈴 木');"
+	queryInfo, _ := ProcessSQLStr(&sqlStr)
+	testingpkg.SimpleAssert(t, *queryInfo.QueryType_ == INSERT)
+
+	testingpkg.SimpleAssert(t, *queryInfo.JoinTables_[0] == "syain")
+
+	testingpkg.SimpleAssert(t, *queryInfo.TargetCols_[0] == "name")
+	testingpkg.SimpleAssert(t, queryInfo.Values_[0].ToVarchar() == "鈴 木")
+}
+
 func TestSimpleDeleteQuery(t *testing.T) {
 	sqlStr := "DELETE FROM users WHERE id = 10;"
 	queryInfo, _ := ProcessSQLStr(&sqlStr)

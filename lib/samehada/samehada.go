@@ -242,10 +242,6 @@ func (sdb *SamehadaDB) Shutdown() {
 	sdb.statistics_updator.StopStatsUpdateTh()
 	sdb.shi_.GetCheckpointManager().StopCheckpointTh()
 	sdb.request_manager.StopTh()
-	//isSuccess := sdb.shi_.GetBufferPoolManager().FlushAllDirtyPages()
-	//if !isSuccess {
-	//	panic("flush all dirty pages failed!")
-	//}
 	sdb.shi_.Shutdown(ShutdownPatternRemoveLogOnly)
 }
 
