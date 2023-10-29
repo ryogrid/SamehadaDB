@@ -11,7 +11,7 @@ import (
 	"github.com/ryogrid/SamehadaDB/lib/types"
 )
 
-var TupleSizeOffsetInLogrecord = 4 // payload size info in Bytes
+const TupleSizeOffsetInLogrecord = 4 // payload size info in Bytes
 
 /**
  * Tuple format:
