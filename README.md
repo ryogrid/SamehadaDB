@@ -31,7 +31,7 @@
     - very simple SPA. requirement is web browser which can executes JS only :)
     - little bit customized version is pleced at [demo site](http://ryogrid.s3-website-ap-northeast-1.amazonaws.com/samehada-client/index.html)
       - ryogrid.net:19999 is public SamehadaDBd server for demonstration
-      - **Do not insert private or secret information/data! the server does not isolation**
+      - **Do not insert private or secret information/data! the server does not do isolation**
 - **ATTENTION: SamehadaDB is not developed for productional use! There are no warranties!**
 - By the way, procedure described on next section executes almost all defined unit tests except these of taking long time
 
