@@ -4,8 +4,10 @@ import (
 	"fmt"
 	"github.com/ant0ine/go-json-rest/rest"
 	"github.com/ryogrid/SamehadaDB/lib/samehada"
+	"github.com/ryogrid/SamehadaDB/server/signal_handle"
 	"log"
 	"net/http"
+	"os"
 )
 
 type QueryInput struct {
@@ -22,8 +24,14 @@ type QueryOutput struct {
 }
 
 var db = samehada.NewSamehadaDB("default", 5000) //5MB
+var IsStopped = false
 
 func postQuery(w rest.ResponseWriter, req *rest.Request) {
+	if signal_handle.IsStopped {
+		rest.Error(w, "Server is stopped", http.StatusGone)
+		return
+	}
+
 	input := QueryInput{}
 	err := req.DecodeJsonPayload(&input)
 
@@ -54,7 +62,7 @@ func postQuery(w rest.ResponseWriter, req *rest.Request) {
 	})
 }
 
-func main() {
+func launchDBAndListen() {
 	api := rest.NewApi()
 
 	// the Middleware stack
@@ -86,4 +94,21 @@ func main() {
 		"0.0.0.0:19999",
 		api.MakeHandler(),
 	))
+}
+
+func main() {
+	exitNotifyCh := make(chan bool, 1)
+
+	// start signal handler thread
+	go signal_handle.SignalHandlerTh(db, &exitNotifyCh)
+
+	// start server
+	go launchDBAndListen()
+
+	// wait shutdown operation finished notification
+	<-exitNotifyCh
+
+	fmt.Println("Server is stopped gracefully")
+	// exit process
+	os.Exit(0)
 }

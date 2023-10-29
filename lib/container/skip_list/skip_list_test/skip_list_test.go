@@ -52,7 +52,7 @@ func TestSerializationOfSkipLisBlockPage(t *testing.T) {
 	testingpkg.SimpleAssert(t, entry.Key.CompareEquals(types.NewVarchar("abcdeff")))
 	testingpkg.SimpleAssert(t, entry.Value == 12345)
 
-	shi.Shutdown(false)
+	shi.Shutdown(samehada.ShutdownPatternCloseFiles)
 }
 
 func TestSerializationOfSkipLisHeaderPage(t *testing.T) {
@@ -76,7 +76,7 @@ func TestSerializationOfSkipLisHeaderPage(t *testing.T) {
 	testingpkg.SimpleAssert(t, hpage.GetListStartPageId() == 7)
 	testingpkg.SimpleAssert(t, hpage.GetKeyType() == types.Varchar)
 
-	shi.Shutdown(false)
+	shi.Shutdown(samehada.ShutdownPatternCloseFiles)
 }
 
 func TestInnerInsertDeleteOfBlockPageSimple(t *testing.T) {
@@ -178,7 +178,7 @@ func TestInnerInsertDeleteOfBlockPageSimple(t *testing.T) {
 
 	bpm.UnpinPage(bpage2.GetPageId(), true)
 
-	shi.Shutdown(false)
+	shi.Shutdown(samehada.ShutdownPatternCloseFiles)
 }
 
 func TestBSearchOfSkipLisBlockPage(t *testing.T) {
@@ -239,7 +239,7 @@ func TestBSearchOfSkipLisBlockPage(t *testing.T) {
 		}
 	}
 
-	shi.Shutdown(false)
+	shi.Shutdown(samehada.ShutdownPatternCloseFiles)
 }
 
 func TestBSearchOfSkipLisBlockPage2(t *testing.T) {
@@ -310,7 +310,7 @@ func TestBSearchOfSkipLisBlockPage2(t *testing.T) {
 	}
 	bpage.WUnlatch()
 
-	shi.Shutdown(false)
+	shi.Shutdown(samehada.ShutdownPatternCloseFiles)
 }
 
 func confirmSkipListContent(t *testing.T, sl *skip_list.SkipList, step int32) int32 {
@@ -432,7 +432,7 @@ func TestSkipListInsertAndDeleteAll(t *testing.T) {
 		testingpkg.SimpleAssert(t, math.MaxUint64 == res)
 	}
 
-	shi.Shutdown(false)
+	shi.Shutdown(ShutdownPatternCloseFiles)
 }
 
 func TestSkipListItr(t *testing.T) {

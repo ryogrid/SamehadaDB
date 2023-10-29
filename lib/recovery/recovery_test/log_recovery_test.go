@@ -131,7 +131,7 @@ func TestRedo(t *testing.T) {
 	fmt.Println("Tearing down the system..")
 
 	common.TempSuppressOnMemStorage = false
-	samehada_instance.Shutdown(true)
+	samehada_instance.Shutdown(samehada.ShutdownPatternRemoveFiles)
 	common.TempSuppressOnMemStorageMutex.Unlock()
 }
 
@@ -212,7 +212,7 @@ func TestUndo(t *testing.T) {
 
 	fmt.Println("System crash before commit")
 	// delete samehada_instance
-	samehada_instance.Shutdown(false)
+	samehada_instance.Shutdown(samehada.ShutdownPatternCloseFiles)
 
 	fmt.Println("System restarted..")
 	samehada_instance = samehada.NewSamehadaInstance(t.Name(), common.BufferPoolMaxFrameNumForTest)
@@ -280,7 +280,7 @@ func TestUndo(t *testing.T) {
 	fmt.Println("Tearing down the system..")
 
 	common.TempSuppressOnMemStorage = false
-	samehada_instance.Shutdown(true)
+	samehada_instance.Shutdown(samehada.ShutdownPatternRemoveFiles)
 	common.TempSuppressOnMemStorageMutex.Unlock()
 }
 
@@ -398,7 +398,7 @@ func TestCheckpoint(t *testing.T) {
 	fmt.Println("Tearing down the system..")
 
 	common.TempSuppressOnMemStorage = false
-	samehada_instance.Shutdown(true)
+	samehada_instance.Shutdown(samehada.ShutdownPatternRemoveFiles)
 	common.TempSuppressOnMemStorageMutex.Unlock()
 }
 

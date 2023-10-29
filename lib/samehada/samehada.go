@@ -107,9 +107,11 @@ func ReconstructAllIndexData(c *catalog.Catalog, dman disk.DiskManager, txn *acc
 
 func NewSamehadaDB(dbName string, memKBytes int) *SamehadaDB {
 	isExistingDB := false
+	isExistingLog := false
 
 	if !common.EnableOnMemStorage || common.TempSuppressOnMemStorage {
 		isExistingDB = samehada_util.FileExists(dbName + ".db")
+		isExistingLog = samehada_util.FileExists(dbName + ".log")
 	}
 
 	bpoolSize := math.Floor(float64(memKBytes*1024) / float64(common.PageSize))
@@ -125,8 +127,8 @@ func NewSamehadaDB(dbName string, memKBytes int) *SamehadaDB {
 			shi.GetDiskManager(),
 			shi.GetBufferPoolManager(),
 			shi.GetLogManager())
-		greatestLSN, isRedoOccured := log_recovery.Redo(txn)
-		isUndoOccured := log_recovery.Undo(txn)
+		greatestLSN, _ := log_recovery.Redo(txn)
+		log_recovery.Undo(txn)
 
 		dman := shi.GetDiskManager()
 		dman.GCLogFile()
@@ -134,7 +136,8 @@ func NewSamehadaDB(dbName string, memKBytes int) *SamehadaDB {
 
 		c = catalog.RecoveryCatalogFromCatalogPage(shi.GetBufferPoolManager(), shi.GetLogManager(), shi.GetLockManager(), txn)
 
-		if isRedoOccured || isUndoOccured {
+		// db file exists but log file doesn't exist case means gracefully shutdown. so this block is passed
+		if isExistingLog {
 			// index date reloading/recovery is not implemented yet
 			// so when db did not exit graceful, all index data should be recounstruct
 			// (hash index uses already allocated pages but skip list index deserts these...)
@@ -239,11 +242,11 @@ func (sdb *SamehadaDB) Shutdown() {
 	sdb.statistics_updator.StopStatsUpdateTh()
 	sdb.shi_.GetCheckpointManager().StopCheckpointTh()
 	sdb.request_manager.StopTh()
-	isSuccess := sdb.shi_.GetBufferPoolManager().FlushAllDirtyPages()
-	if !isSuccess {
-		panic("flush all dirty pages failed!")
-	}
-	sdb.shi_.Shutdown(false)
+	//isSuccess := sdb.shi_.GetBufferPoolManager().FlushAllDirtyPages()
+	//if !isSuccess {
+	//	panic("flush all dirty pages failed!")
+	//}
+	sdb.shi_.Shutdown(ShutdownPatternRemoveLogOnly)
 }
 
 // no flush of page buffer

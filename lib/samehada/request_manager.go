@@ -99,7 +99,7 @@ func (reqManager *RequestManager) Run() {
 			}
 		}
 
-		// check stop signal or new request
+		// check stop signal_handle or new request
 		if !reqManager.isExecutionActive {
 			break
 		}

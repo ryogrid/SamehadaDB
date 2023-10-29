@@ -1809,7 +1809,7 @@ func TestSimpleAggregation(t *testing.T) {
 	testingpkg.Assert(t, tuple_ == nil && done == true && err == nil, "second call of AggregationExecutor::Next() failed")
 
 	txn_mgr.Commit(nil, txn)
-	shi.Shutdown(true)
+	shi.Shutdown(samehada.ShutdownPatternRemoveFiles)
 }
 
 func TestSimpleGroupByAggregation(t *testing.T) {
@@ -1889,7 +1889,7 @@ func TestSimpleGroupByAggregation(t *testing.T) {
 	}
 
 	txn_mgr.Commit(nil, txn)
-	shi.Shutdown(true)
+	shi.Shutdown(samehada.ShutdownPatternRemoveFiles)
 }
 
 func TestSeqScanWithMultiItemPredicate(t *testing.T) {
@@ -1963,7 +1963,7 @@ func TestSeqScanWithMultiItemPredicate(t *testing.T) {
 
 	txn_mgr.Commit(nil, txn)
 
-	shi.Shutdown(true)
+	shi.Shutdown(samehada.ShutdownPatternRemoveFiles)
 }
 
 func TestInsertAndSpecifiedColumnUpdate(t *testing.T) {
@@ -2138,7 +2138,7 @@ func TestInsertAndSpecifiedColumnUpdatePageMoveCase(t *testing.T) {
 	testingpkg.Assert(t, types.NewInteger(99).CompareEquals(results[0].GetValue(outSchema, 0)), "value should be 99")
 	testingpkg.Assert(t, types.NewVarchar("updated_xxxxxxxxxxxxxxxxxxxxxxxxx").CompareEquals(results[0].GetValue(outSchema, 1)), "value should be 'updated_xxxxxxxxxxxxxxxxxxxxxxxxx'")
 
-	shi.Shutdown(true)
+	shi.Shutdown(samehada.ShutdownPatternRemoveFiles)
 }
 
 func TestInsertAndSpecifiedColumnUpdatePageMoveRecovery(t *testing.T) {
@@ -2206,7 +2206,7 @@ func TestInsertAndSpecifiedColumnUpdatePageMoveRecovery(t *testing.T) {
 	executionEngine.Execute(updatePlanNode, executorContext)
 
 	// system crash before finish txn
-	shi.Shutdown(false)
+	shi.Shutdown(samehada.ShutdownPatternCloseFiles)
 
 	// restart system
 	shi = samehada.NewSamehadaInstance(t.Name(), common.BufferPoolMaxFrameNumForTest)
@@ -2269,7 +2269,7 @@ func TestInsertAndSpecifiedColumnUpdatePageMoveRecovery(t *testing.T) {
 	testingpkg.Assert(t, types.NewInteger(99).CompareEquals(results[0].GetValue(outSchema, 0)), "value should be 99")
 	testingpkg.Assert(t, types.NewVarchar("k").CompareEquals(results[0].GetValue(outSchema, 1)), "value should be 'k'")
 
-	shi.Shutdown(true)
+	shi.Shutdown(samehada.ShutdownPatternRemoveFiles)
 
 	common.TempSuppressOnMemStorage = false
 	common.TempSuppressOnMemStorageMutex.Unlock()
@@ -2381,7 +2381,7 @@ func TestInsertAndSpecifiedColumnUpdatePageMoveOccurOnRecovery(t *testing.T) {
 	txn_mgr.Commit(nil, txn2)
 
 	// system crash before finish "txn"
-	shi.Shutdown(false)
+	shi.Shutdown(samehada.ShutdownPatternCloseFiles)
 
 	// restart system
 	shi = samehada.NewSamehadaInstance(t.Name(), common.BufferPoolMaxFrameNumForTest)
@@ -2444,7 +2444,7 @@ func TestInsertAndSpecifiedColumnUpdatePageMoveOccurOnRecovery(t *testing.T) {
 	testingpkg.Assert(t, types.NewInteger(180).CompareEquals(results[0].GetValue(outSchema, 0)), "value should be 180")
 	testingpkg.Assert(t, types.NewVarchar("kkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkk").CompareEquals(results[0].GetValue(outSchema, 1)), "value should be 'kkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkk'")
 
-	shi.Shutdown(true)
+	shi.Shutdown(samehada.ShutdownPatternRemoveFiles)
 
 	common.TempSuppressOnMemStorage = false
 	common.TempSuppressOnMemStorageMutex.Unlock()
@@ -2556,7 +2556,7 @@ func TestSimpleSeqScanAndOrderBy(t *testing.T) {
 	testingpkg.Assert(t, types.NewVarchar("daylight").CompareEquals(results[2].GetValue(scan_schema, 1)), "value should be 'daylight'")
 
 	txn_mgr.Commit(nil, txn)
-	shi.Shutdown(true)
+	shi.Shutdown(samehada.ShutdownPatternRemoveFiles)
 }
 
 func TestSimpleSetNullToVarchar(t *testing.T) {
@@ -2640,7 +2640,7 @@ func TestSimpleSetNullToVarchar(t *testing.T) {
 	testingpkg.Assert(t, types.NewVarchar("daylight").CompareEquals(results[2].GetValue(scan_schema, 1)), "value should be 'daylight'")
 
 	txn_mgr.Commit(nil, txn)
-	shi.Shutdown(true)
+	shi.Shutdown(samehada.ShutdownPatternRemoveFiles)
 }
 
 func TestInsertNullValueAndSeqScanWithNullComparison(t *testing.T) {
