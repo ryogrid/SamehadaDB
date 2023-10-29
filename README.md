@@ -88,6 +88,7 @@
     - So, current transaction isolation level is **"REPEATABLE READ"**
 - [ ] <del>Execution Planning from hard coded SQL like method call I/F (like some kind of embedded DB)</del>
 - [x] Execution of Query with SQL string
+  - not supported multi queries on a request yet
 - [x] Frontend Impl as Embedded DB Library (like SQLite)
 - [ ] Deduplication of Result Records (Distinct)
 - [x] Query Optimization (Selinger) 
@@ -95,6 +96,7 @@
     - predicate including OR operation, NOT, IS NULL
     - projection including aggregation
     - LIMIT, ORDER BY
+- [ ] TRANSACTION Statement On Frontend
 - [ ] AS clause
 - [ ] Nested Query
 - [ ] DB Connector (Driver) or Other Kind of Network Access Interface
