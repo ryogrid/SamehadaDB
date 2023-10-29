@@ -9,6 +9,14 @@ import (
 	"github.com/ryogrid/SamehadaDB/lib/storage/disk"
 )
 
+type ShutdownPattern int
+
+const (
+	ShutdownPatternRemoveFiles ShutdownPattern = iota
+	ShutdownPatternCloseFiles
+	ShutdownPatternRemoveLogOnly
+)
+
 type SamehadaInstance struct {
 	disk_manager        disk.DiskManager
 	log_manager         *recovery.LogManager
@@ -70,19 +78,28 @@ func (si *SamehadaInstance) GetCheckpointManager() *concurrency.CheckpointManage
 }
 
 // functionality is Flushing dirty pages, shutdown of DiskManager and action around DB/Log files
-func (si *SamehadaInstance) Shutdown(IsRemoveFiles bool) {
-	if IsRemoveFiles {
+func (si *SamehadaInstance) Shutdown(shutdownPat ShutdownPattern) {
+	switch shutdownPat {
+	case ShutdownPatternRemoveFiles:
 		//close
 		si.disk_manager.ShutDown()
 		//remove
 		si.disk_manager.RemoveDBFile()
 		si.disk_manager.RemoveLogFile()
-	} else {
+	case ShutdownPatternCloseFiles:
 		si.log_manager.Flush()
-		// TODO: (SDB) flush only dirty pages
-		si.bpm.FlushAllPages()
+		si.bpm.FlushAllDirtyPages()
 		// close only
 		si.disk_manager.ShutDown()
+	case ShutdownPatternRemoveLogOnly:
+		si.log_manager.Flush()
+		si.bpm.FlushAllDirtyPages()
+		// close files
+		si.disk_manager.ShutDown()
+
+		si.disk_manager.RemoveLogFile()
+	default:
+		panic("invalid shutdown pattern")
 	}
 }
 

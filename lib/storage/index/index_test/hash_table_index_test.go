@@ -154,7 +154,7 @@ func TestRecounstructionOfHashIndex(t *testing.T) {
 	}
 
 	shi.GetTransactionManager().Commit(nil, txn)
-	shi.Shutdown(false)
+	shi.Shutdown(samehada.ShutdownPatternCloseFiles)
 
 	// ----------- check recovery includes index data ----------
 
@@ -239,6 +239,6 @@ func TestRecounstructionOfHashIndex(t *testing.T) {
 	shi.GetTransactionManager().Commit(nil, txn)
 
 	common.TempSuppressOnMemStorage = false
-	shi.Shutdown(false)
+	shi.Shutdown(samehada.ShutdownPatternCloseFiles)
 	common.TempSuppressOnMemStorageMutex.Unlock()
 }
