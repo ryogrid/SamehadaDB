@@ -50,6 +50,7 @@
 - [x] Multiple Item on Predicate: AND, OR
 - [x] Predicates: <, >, <=, >=
 - [x] Null [^1]
+- [x] Predicates: NOT [^1]
 - [ ] Inline types (<del>integer, varchar, float, boolean</del>, bigint, smallint, decimal, timestamp, datetime and etc)
 - [x] Delete Tuple
 - [x] Update Tuple
@@ -99,6 +100,7 @@
 - [ ] TRANSACTION Statement On Frontend
 - [ ] AS clause
 - [ ] Nested Query
+- [ ] Predicates: IN
 - [ ] DB Connector (Driver) or Other Kind of Network Access Interface
   - [ ] MySQL or PostgreSQL Compatible Protocol
   - [x] REST
