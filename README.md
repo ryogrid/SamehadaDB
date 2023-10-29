@@ -53,7 +53,6 @@
 - [ ] Inline types (<del>integer, varchar, float, boolean</del>, bigint, smallint, decimal, timestamp, datetime and etc)
 - [x] Delete Tuple
 - [x] Update Tuple
-  - <del>RESTRICTION: a condition which update transaction aborts on exists</del>
 - [x] LIMIT / OFFSET [^1]
 - [x] Varchar
 - [x] Persistent Catalog
@@ -69,7 +68,7 @@
 - [x] Recovery from Logs
 - [x] Index
   - [x] Hash Index
-    - Hash index can be used only equal(==) operator is specified to index having columns
+    - Hash index can be used only equal(=) operator is specified to index having columns
     - Access is serialized (not parallel)
   - [x] SkipList Index
     - Alternative of B-tree Index
@@ -90,7 +89,6 @@
 - [ ] <del>Execution Planning from hard coded SQL like method call I/F (like some kind of embedded DB)</del>
 - [x] Execution of Query with SQL string
 - [x] Frontend Impl as Embedded DB Library (like SQLite)
-  - Currently, functions of the library are not thread safe and concurrent transaction is not supported
 - [ ] Deduplication of Result Records (Distinct)
 - [x] Query Optimization (Selinger) 
   - cases below are not supported now
