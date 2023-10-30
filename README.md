@@ -111,6 +111,8 @@
 - [ ] UNION clause
 - [ ] Materialization (implementation of component for temporal teble management)
 - [ ] Authentication
+- [ ] Making Usable From OR Mapper of One Web Framework Such as Django (Python) on Simple Application Scope
+  - implementation of DB driver/connector for Python is needed (Or supporting major RDBMS compatible NW I/F)  
   
 [^1]: Not supported use on frontend now  
 
