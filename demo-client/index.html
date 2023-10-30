@@ -12,8 +12,11 @@
             }
         </style>
         <script type="text/javascript" src="./jquery-3.7.1.min.js"></script>
+        <script src="./jquery.binarytransport.js"></script>
+        <script src="https://rawgit.com/kawanet/msgpack-lite/master/dist/msgpack.min.js"></script>
         <script type="text/javascript">
             var executedLog = "";
+            /*
             $(document).ready(function () {
                 $("#issue").click(function () {
                     var queryStr = $('#queryform [name=queryform]').val();
@@ -52,6 +55,54 @@
                     });
                 });
             });
+            */
+
+            $(document).ready(function () {
+                $("#issue").click(function () {
+                    var queryStr = $('#queryform [name=queryform]').val();
+                    var serverAddress = $('#serveraddress [name=serveraddress]').val();
+
+                    $.ajax({
+                        type: "POST",
+                        url: "http://" + serverAddress + "/QueryMsgPack",
+                        contentType: "application/json;charset=utf-8",
+                        responseType: "arraybuffer",
+                        dataType: "binary",
+                        data: queryStr,
+                    }).done(function (data) {
+                        console.log(data);
+                        console.log(typeof data);
+                        const decoded = msgpack.decode(data);
+                        console.log(unpacked);
+
+                        /*
+                        $("#result-error").html(String(data.Error));
+                        var resultStr = "";
+                        if (data.Result != null && data.Result != undefined && data.length != 0) {
+                            for (var ii = 0; ii < data.Result.length; ii++) {
+                                var rowStr = "";
+                                for (var jj = 0; jj < data.Result[ii].C.length; jj++) {
+                                    if (typeof data.Result[ii].C[jj] == "string") {
+                                        rowStr += '"' + data.Result[ii].C[jj] + '" ,';
+                                    } else {
+                                        rowStr += data.Result[ii].C[jj] + " ,";
+                                    }
+                                }
+                                resultStr += rowStr + "<br />"
+
+                            }
+                            //$("#result-main").html(resultStr);
+                            resultStr = queryStr + "<br />" + resultStr + "<br />"
+                            executedLog += resultStr;
+                            $("#result-main").html(executedLog);
+                        }
+                        */
+                    }).fail(function (jqXHR, textStatus, errorThrown) {
+                        $("#result-error").html("Error: " + textStatus + " " + errorThrown);
+                        //$("#result-main").html("<p>No Data</p>");
+                    });
+                });
+            });            
         </script>
     </head>
     <body>
