@@ -12,20 +12,10 @@
             }
         </style>
         <script type="text/javascript" src="./jquery-3.7.1.min.js"></script>
+        <script src="./jquery.binarytransport.js"></script>
+        <script src="./msgpack.min.js"></script>
         <script type="text/javascript">
-            var executedLog = "";
-            $(document).ready(function () {
-                $("#issue").click(function () {
-                    var queryStr = $('#queryform [name=queryform]').val();
-                    var serverAddress = $('#serveraddress [name=serveraddress]').val();
-
-                    $.ajax({
-                        type: "POST",
-                        url: "http://" + serverAddress + "/Query",
-                        contentType: "application/json;charset=utf-8",
-                        data: queryStr,
-                    }).done(function (data) {
-                        console.log(data)
+            function handleDecoded(queryStr, data) {
                         $("#result-error").html(String(data.Error));
                         var resultStr = "";
                         if (data.Result != null && data.Result != undefined && data.length != 0) {
@@ -41,17 +31,54 @@
                                 resultStr += rowStr + "<br />"
 
                             }
-                            //$("#result-main").html(resultStr);
                             resultStr = queryStr + "<br />" + resultStr + "<br />"
                             executedLog += resultStr;
                             $("#result-main").html(executedLog);
                         }
+            }
+
+            var executedLog = "";
+
+            $(document).ready(function () {
+                $("#issue1").click(function () {
+                    var queryStr = $('#queryform [name=queryform]').val();
+                    var serverAddress = $('#serveraddress [name=serveraddress]').val();
+
+                    $.ajax({
+                        type: "POST",
+                        url: "http://" + serverAddress + "/Query",
+                        contentType: "application/json;charset=utf-8",
+                        data: queryStr,
+                    }).done(function (data) {
+                        console.log(data);
+                        handleDecoded(queryStr, data);
                     }).fail(function (jqXHR, textStatus, errorThrown) {
                         $("#result-error").html("Error: " + textStatus + " " + errorThrown);
                         //$("#result-main").html("<p>No Data</p>");
                     });
                 });
             });
+
+            $(document).ready(function () {
+                $("#issue2").click(function () {
+                    var queryStr = $('#queryform [name=queryform]').val();
+                    var serverAddress = $('#serveraddress [name=serveraddress]').val();
+
+                    $.ajax({
+                        type: "POST",
+                        url: "http://" + serverAddress + "/QueryMsgPack",
+                        contentType: "application/json;charset=utf-8",
+                        responseType: "arraybuffer",
+                        dataType: "binary",
+                        data: queryStr,
+                    }).done(function (data) {
+                        data = msgpack.deserialize(data);
+                        handleDecoded(queryStr, data);
+                    }).fail(function (jqXHR, textStatus, errorThrown) {
+                        $("#result-error").html("Error: " + textStatus + " " + errorThrown);
+                    });
+                });
+            });            
         </script>
     </head>
     <body>
@@ -66,7 +93,8 @@
                 value="{&quot;Query&quot;:&quot;CREATE TABLE name_age_list(name VARCHAR(256), age INT);&quot;}" />
         </form>
         <br />
-        <button id="issue">send</button>
+        <button id="issue1">send (JSON respons I/F)</button><br/>
+        <button id="issue2">send (MessagePack respons I/F)</button><br/>
         <br />
         <br />
         <div id="result-error"></div>
