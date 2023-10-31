@@ -13,22 +13,9 @@
         </style>
         <script type="text/javascript" src="./jquery-3.7.1.min.js"></script>
         <script src="./jquery.binarytransport.js"></script>
-        <script src="https://rawgit.com/kawanet/msgpack-lite/master/dist/msgpack.min.js"></script>
+        <script src="./msgpack.min.js"></script>
         <script type="text/javascript">
-            var executedLog = "";
-            /*
-            $(document).ready(function () {
-                $("#issue").click(function () {
-                    var queryStr = $('#queryform [name=queryform]').val();
-                    var serverAddress = $('#serveraddress [name=serveraddress]').val();
-
-                    $.ajax({
-                        type: "POST",
-                        url: "http://" + serverAddress + "/Query",
-                        contentType: "application/json;charset=utf-8",
-                        data: queryStr,
-                    }).done(function (data) {
-                        console.log(data)
+            function handleDecoded(queryStr, data) {
                         $("#result-error").html(String(data.Error));
                         var resultStr = "";
                         if (data.Result != null && data.Result != undefined && data.length != 0) {
@@ -44,21 +31,36 @@
                                 resultStr += rowStr + "<br />"
 
                             }
-                            //$("#result-main").html(resultStr);
                             resultStr = queryStr + "<br />" + resultStr + "<br />"
                             executedLog += resultStr;
                             $("#result-main").html(executedLog);
                         }
+            }
+
+            var executedLog = "";
+
+            $(document).ready(function () {
+                $("#issue1").click(function () {
+                    var queryStr = $('#queryform [name=queryform]').val();
+                    var serverAddress = $('#serveraddress [name=serveraddress]').val();
+
+                    $.ajax({
+                        type: "POST",
+                        url: "http://" + serverAddress + "/Query",
+                        contentType: "application/json;charset=utf-8",
+                        data: queryStr,
+                    }).done(function (data) {
+                        console.log(data);
+                        handleDecoded(queryStr, data);
                     }).fail(function (jqXHR, textStatus, errorThrown) {
                         $("#result-error").html("Error: " + textStatus + " " + errorThrown);
                         //$("#result-main").html("<p>No Data</p>");
                     });
                 });
             });
-            */
 
             $(document).ready(function () {
-                $("#issue").click(function () {
+                $("#issue2").click(function () {
                     var queryStr = $('#queryform [name=queryform]').val();
                     var serverAddress = $('#serveraddress [name=serveraddress]').val();
 
@@ -70,36 +72,10 @@
                         dataType: "binary",
                         data: queryStr,
                     }).done(function (data) {
-                        console.log(data);
-                        console.log(typeof data);
-                        const decoded = msgpack.decode(data);
-                        console.log(unpacked);
-
-                        /*
-                        $("#result-error").html(String(data.Error));
-                        var resultStr = "";
-                        if (data.Result != null && data.Result != undefined && data.length != 0) {
-                            for (var ii = 0; ii < data.Result.length; ii++) {
-                                var rowStr = "";
-                                for (var jj = 0; jj < data.Result[ii].C.length; jj++) {
-                                    if (typeof data.Result[ii].C[jj] == "string") {
-                                        rowStr += '"' + data.Result[ii].C[jj] + '" ,';
-                                    } else {
-                                        rowStr += data.Result[ii].C[jj] + " ,";
-                                    }
-                                }
-                                resultStr += rowStr + "<br />"
-
-                            }
-                            //$("#result-main").html(resultStr);
-                            resultStr = queryStr + "<br />" + resultStr + "<br />"
-                            executedLog += resultStr;
-                            $("#result-main").html(executedLog);
-                        }
-                        */
+                        data = msgpack.deserialize(data);
+                        handleDecoded(queryStr, data);
                     }).fail(function (jqXHR, textStatus, errorThrown) {
                         $("#result-error").html("Error: " + textStatus + " " + errorThrown);
-                        //$("#result-main").html("<p>No Data</p>");
                     });
                 });
             });            
@@ -117,7 +93,8 @@
                 value="{&quot;Query&quot;:&quot;CREATE TABLE name_age_list(name VARCHAR(256), age INT);&quot;}" />
         </form>
         <br />
-        <button id="issue">send</button>
+        <button id="issue1">send (JSON respons I/F)</button><br/>
+        <button id="issue2">send (MessagePack respons I/F)</button><br/>
         <br />
         <br />
         <div id="result-error"></div>
