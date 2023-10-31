@@ -1,13 +1,11 @@
 package main
 
 import (
-	"bytes"
 	"fmt"
 	"github.com/ant0ine/go-json-rest/rest"
 	"github.com/ryogrid/SamehadaDB/lib/samehada"
 	"github.com/ryogrid/SamehadaDB/server/signal_handle"
-	"github.com/ugorji/go/codec"
-	"io"
+	"github.com/vmihailenco/msgpack/v5"
 	"log"
 	"net/http"
 	"os"
@@ -96,23 +94,21 @@ func postQueryMsgPack(w rest.ResponseWriter, req *rest.Request) {
 		rows = append(rows, Row{row})
 	}
 
-	var w_ io.Writer = new(bytes.Buffer)
-	var h codec.Handle = new(codec.MsgpackHandle)
-	var enc = codec.NewEncoder(w_, h)
-	var err3 = enc.Encode(rows)
-	if err3 != nil {
-		fmt.Println(err3)
-		http.Error(w.(http.ResponseWriter), err.Error(), http.StatusBadRequest)
-		return
+	ret := QueryOutput{rows, "SUCCESS"}
+	b, err := msgpack.Marshal(&ret)
+	if err != nil {
+		panic(err)
 	}
 
-	dec := codec.NewDecoder(w_.(*bytes.Buffer), h)
-	var decoded interface{}
-	dec.Decode(decoded)
-	fmt.Println(decoded)
+	//var decoded []Row
+	//err = msgpack.Unmarshal(b, &decoded)
+	//if err != nil {
+	//	panic(err)
+	//}
+	//fmt.Println(decoded)
 
 	w.Header().Set("Content-Type", "application/octent-stream")
-	w.(http.ResponseWriter).Write(w_.(*bytes.Buffer).Bytes())
+	w.(http.ResponseWriter).Write(b)
 }
 
 func launchDBAndListen() {
