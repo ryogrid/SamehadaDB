@@ -22,15 +22,22 @@
       - above code tree can be deployed to AWS Elastic Beanstalk (on not https and use 8088 port)
 - And can be used as DB server which offers REST API I/F
   - Please see server directory and [this note](https://gist.github.com/ryogrid/6beee126af2aaebd160a0497c2c9611f)
-  - The server binds on http://0.0.0.0:19999/Query (this means localhost, 127.0.0.1, other IP addresses your machine has)
+  - The server listen on http://0.0.0.0:19999/Query (this means localhost, 127.0.0.1, other IP addresses your machine has)
+    - Content-Type of request and response are "application/json"
+  - Additionaly the server listen on http://0.0.0.0:19999/QueryMsgPack
+    - Content-Type of request is "application/json" **but one of response is "application/octet-stream"**
+    - **Response is serialized binary in [MessagePack](https://github.com/msgpack/msgpack/tree/master) specification**
+    - For understanding response data schema, easy way is reading demo client code (schema is almost same with JSON response)
+      - [code (JS)](https://github.com/ryogrid/SamehadaDB/blob/9a0475b7550f80982c18fd355ca8b9d1b5d343ee/demo-client/index.html#L20-L41)
   - There are Win binary and Linux binary at Release page
     - if Linux one runs without error at lauch, you are lucky :)
     - when error occurs, you need to build by myself :)
-      - **please check and modify if needed that value of EnableOnMemStorage constant is false (/lib/common/config.go)**
+      - **please check that value of EnableOnMemStorage constant is false and modify it if needed (/lib/common/config.go)**
   - there is simple client which can be useed on browser in demo-client dir
     - very simple SPA. requirement is web browser which can executes JS only :)
-    - little bit customized version is pleced at [demo site](http://ryogrid.s3-website-ap-northeast-1.amazonaws.com/samehada-client/index.html)
-      - ryogrid.net:19999 is public SamehadaDBd server for demonstration
+      - It can access SamehadaDB server on your machine (localhost, 127.0.0.1, etc...)
+    - It is also pleced at [here](http://ryogrid.s3-website-ap-northeast-1.amazonaws.com/samehada-client/index.html) for demonstration
+      - ryogrid.net:19999 is public SamehadaDBd server for the demonstration
       - **Do not insert private or secret information/data! the server does not do isolation**
 - **ATTENTION: SamehadaDB is not developed for productional use! There are no warranties!**
 - By the way, procedure described on next section executes almost all defined unit tests except these of taking long time
