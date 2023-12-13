@@ -123,6 +123,9 @@
   
 [^1]: Use on frontend is not supported now  
 
+## Limitations
+- to be wrote...
+
 ## More Info
 - [Wiki on this repo](https://github.com/ryogrid/SamehadaDB/wiki)
 
