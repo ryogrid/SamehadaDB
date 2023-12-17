@@ -5,6 +5,7 @@ package buffer
 
 import (
 	"fmt"
+	"github.com/ncw/directio"
 	"github.com/ryogrid/SamehadaDB/lib/common"
 	"github.com/ryogrid/SamehadaDB/lib/recovery"
 	"github.com/ryogrid/SamehadaDB/lib/storage/disk"
@@ -83,7 +84,8 @@ func (b *BufferPoolManager) FetchPage(pageID types.PageID) *page.Page {
 		}
 	}
 
-	data := make([]byte, common.PageSize)
+	//data := make([]byte, common.PageSize)
+	data := directio.AlignedBlock(common.PageSize)
 	if common.EnableDebug && common.ActiveLogKindSetting&common.CACHE_OUT_IN_INFO > 0 {
 		fmt.Printf("BPM::FetchPage Cache in occurs! requested pageId:%d\n", pageID)
 	}

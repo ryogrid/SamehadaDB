@@ -35,7 +35,7 @@ type DiskManagerImpl struct {
 // NewDiskManagerImpl returns a DiskManager instance
 func NewDiskManagerImpl(dbFilename string) DiskManager {
 	//file, err := os.OpenFile(dbFilename, os.O_RDWR|os.O_CREATE, 0666)
-	file, err := directio.OpenFile(dbFilename, os.O_RDWR|os.O_CREATE, 0666)
+	file, err := os.OpenFile(dbFilename, os.O_RDWR|os.O_CREATE, 0666)
 	if err != nil {
 		log.Fatalln("can't open db file")
 		return nil
@@ -147,10 +147,7 @@ func (d *DiskManagerImpl) ReadPage(pageID types.PageID, pageData []byte) error {
 
 	d.db.Seek(offset, io.SeekStart)
 
-	block := directio.AlignedBlock(common.PageSize)
-	//bytesRead, err := d.db.Read(pageData)
-	bytesRead, err := d.db.Read(block)
-	copy(pageData, block)
+	bytesRead, err := d.db.Read(pageData)
 	if err != nil {
 		return errors.New("I/O error while reading")
 	}
