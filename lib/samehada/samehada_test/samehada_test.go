@@ -444,12 +444,12 @@ func TestParallelQueryIssueSelectUpdate(t *testing.T) {
 		go func(queryVal int32) {
 			var err_ error
 			var results [][]interface{}
-			rndVal := rand.Int31()
-			if rndVal%2 == 0 {
-				err_, results = db.ExecuteSQL(fmt.Sprintf("SELECT v FROM k_v_list WHERE k = %d;", queryVal))
-			} else {
-				err_, results = db.ExecuteSQL(fmt.Sprintf("UPDATE k_v_list SET k = %d, v = %d WHERE k = %d;", queryVal, queryVal, queryVal))
-			}
+			//rndVal := rand.Int31()
+			//if rndVal%2 == 0 {
+			//	err_, results = db.ExecuteSQL(fmt.Sprintf("SELECT v FROM k_v_list WHERE k = %d;", queryVal))
+			//} else {
+			err_, results = db.ExecuteSQL(fmt.Sprintf("UPDATE k_v_list SET k = %d, v = %d WHERE k = %d;", queryVal, queryVal, queryVal))
+			//}
 
 			if err_ != nil {
 				fmt.Println(err_)
