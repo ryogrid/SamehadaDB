@@ -12,6 +12,7 @@ import (
 	"strings"
 	"sync"
 
+	"github.com/ncw/directio"
 	"github.com/ryogrid/SamehadaDB/lib/common"
 	"github.com/ryogrid/SamehadaDB/lib/types"
 )
@@ -33,7 +34,8 @@ type DiskManagerImpl struct {
 
 // NewDiskManagerImpl returns a DiskManager instance
 func NewDiskManagerImpl(dbFilename string) DiskManager {
-	file, err := os.OpenFile(dbFilename, os.O_RDWR|os.O_CREATE, 0666)
+	//file, err := os.OpenFile(dbFilename, os.O_RDWR|os.O_CREATE, 0666)
+	file, err := directio.OpenFile(dbFilename, os.O_RDWR|os.O_CREATE, 0666)
 	if err != nil {
 		log.Fatalln("can't open db file")
 		return nil
@@ -104,7 +106,10 @@ func (d *DiskManagerImpl) WritePage(pageId types.PageID, pageData []byte) error 
 		fmt.Println("WritePge: d.db.Write returns err!")
 		return errSeek
 	}
-	bytesWritten, errWrite := d.db.Write(pageData)
+	block := directio.AlignedBlock(common.PageSize)
+	copy(block, pageData)
+	//bytesWritten, errWrite := d.db.Write(pageData)
+	bytesWritten, errWrite := d.db.Write(block)
 	if errWrite != nil {
 		fmt.Println(errWrite)
 		panic("WritePge: d.db.Write returns err!")
@@ -118,7 +123,7 @@ func (d *DiskManagerImpl) WritePage(pageId types.PageID, pageData []byte) error 
 		d.size = offset + int64(bytesWritten)
 	}
 
-	d.db.Sync()
+	//d.db.Sync()
 	return nil
 }
 
@@ -142,7 +147,10 @@ func (d *DiskManagerImpl) ReadPage(pageID types.PageID, pageData []byte) error {
 
 	d.db.Seek(offset, io.SeekStart)
 
-	bytesRead, err := d.db.Read(pageData)
+	block := directio.AlignedBlock(common.PageSize)
+	//bytesRead, err := d.db.Read(pageData)
+	bytesRead, err := d.db.Read(block)
+	copy(pageData, block)
 	if err != nil {
 		return errors.New("I/O error while reading")
 	}
@@ -249,7 +257,11 @@ func (d *DiskManagerImpl) WriteLog(log_data []byte) error {
 	// Note: current implementation does not use non-blocking I/O
 
 	d.numFlushes += 1
-	_, err := d.log.Write(log_data)
+	blockSize := len(log_data)
+	block := directio.AlignedBlock(blockSize)
+	copy(block, log_data)
+	//_, err := d.log.Write(log_data)
+	_, err := d.log.Write(block)
 
 	if err != nil {
 		fmt.Println("I/O error while writing log")
@@ -259,7 +271,7 @@ func (d *DiskManagerImpl) WriteLog(log_data []byte) error {
 	}
 	// needs to flush to keep disk file in sync
 
-	d.log.Sync()
+	//d.log.Sync()
 	d.flush_log = false
 
 	return nil
@@ -272,7 +284,8 @@ func (d *DiskManagerImpl) WriteLog(log_data []byte) error {
  */
 // Attention: len(log_data) specifies read data length
 func (d *DiskManagerImpl) ReadLog(log_data []byte, offset int32, retReadBytes *uint32) bool {
-	if int64(offset) >= d.GetLogFileSize() {
+	logSize := d.GetLogFileSize()
+	if int64(offset) >= logSize {
 		// fmt.Println("end of log file")
 		// fmt.Printf("file size is %d\n", d.GetLogFileSize())
 		return false
@@ -282,7 +295,10 @@ func (d *DiskManagerImpl) ReadLog(log_data []byte, offset int32, retReadBytes *u
 	defer d.logFileMutex.Unlock()
 
 	d.log.Seek(int64(offset), io.SeekStart)
-	readBytes, err := d.log.Read(log_data)
+	block := directio.AlignedBlock(int(logSize) - int(offset))
+	//readBytes, err := d.log.Read(log_data)
+	readBytes, err := d.log.Read(block)
+	copy(log_data, block)
 	*retReadBytes = uint32(readBytes)
 
 	if err != nil {
