@@ -35,7 +35,7 @@ type DiskManagerImpl struct {
 // NewDiskManagerImpl returns a DiskManager instance
 func NewDiskManagerImpl(dbFilename string) DiskManager {
 	//file, err := os.OpenFile(dbFilename, os.O_RDWR|os.O_CREATE, 0666)
-	file, err := os.OpenFile(dbFilename, os.O_RDWR|os.O_CREATE, 0666)
+	file, err := directio.OpenFile(dbFilename, os.O_RDWR|os.O_CREATE, 0666)
 	if err != nil {
 		log.Fatalln("can't open db file")
 		return nil
@@ -44,7 +44,7 @@ func NewDiskManagerImpl(dbFilename string) DiskManager {
 	period_idx := strings.LastIndex(dbFilename, ".")
 	logfname_base := dbFilename[:period_idx]
 	logfname := logfname_base + "." + "log"
-	file_1, err := os.OpenFile(logfname, os.O_RDWR|os.O_CREATE, 0666)
+	file_1, err := directio.OpenFile(logfname, os.O_RDWR|os.O_CREATE, 0666)
 	if err != nil {
 		log.Fatalln("can't open log file")
 		return nil
@@ -109,6 +109,7 @@ func (d *DiskManagerImpl) WritePage(pageId types.PageID, pageData []byte) error 
 	block := directio.AlignedBlock(common.PageSize)
 	copy(block, pageData)
 	//bytesWritten, errWrite := d.db.Write(pageData)
+	d.db.Write(block)
 	bytesWritten, errWrite := d.db.Write(block)
 	if errWrite != nil {
 		fmt.Println(errWrite)
@@ -292,10 +293,8 @@ func (d *DiskManagerImpl) ReadLog(log_data []byte, offset int32, retReadBytes *u
 	defer d.logFileMutex.Unlock()
 
 	d.log.Seek(int64(offset), io.SeekStart)
-	block := directio.AlignedBlock(int(logSize) - int(offset))
-	//readBytes, err := d.log.Read(log_data)
-	readBytes, err := d.log.Read(block)
-	copy(log_data, block)
+	readBytes, err := d.log.Read(log_data)
+
 	*retReadBytes = uint32(readBytes)
 
 	if err != nil {

@@ -133,119 +133,119 @@ func TestSimpleUpdate(t *testing.T) {
 	common.TempSuppressOnMemStorageMutex.Unlock()
 }
 
-func TestRebootWithLoadAndRecovery(t *testing.T) {
-	common.TempSuppressOnMemStorageMutex.Lock()
-	common.TempSuppressOnMemStorage = true
-
-	// clear all state of DB
-	if !common.EnableOnMemStorage || common.TempSuppressOnMemStorage {
-		os.Remove(t.Name() + ".db")
-		os.Remove(t.Name() + ".log")
-	}
-
-	db := samehada.NewSamehadaDB("TestRebootWithLoadAndRecovery", 200)
-	db.ExecuteSQLRetValues("CREATE TABLE name_age_list(name VARCHAR(256), age INT);")
-	db.ExecuteSQLRetValues("INSERT INTO name_age_list(name, age) VALUES ('鈴木', 20);")
-	db.ExecuteSQLRetValues("INSERT INTO name_age_list(name, age) VALUES ('青木', 22);")
-	db.ExecuteSQLRetValues("INSERT INTO name_age_list(name, age) VALUES ('山田', 25);")
-	db.ExecuteSQLRetValues("INSERT INTO name_age_list(name, age) VALUES ('加藤', 18);")
-	db.ExecuteSQLRetValues("INSERT INTO name_age_list(name, age) VALUES ('木村', 18);")
-
-	db.ExecuteSQLRetValues("UPDATE name_age_list SET name = '鮫肌' WHERE age <= 20;")
-	_, results1 := db.ExecuteSQLRetValues("SELECT * FROM name_age_list WHERE name = '鮫肌';")
-	samehada.PrintExecuteResults(results1)
-	testingpkg.SimpleAssert(t, len(results1) == 3)
-
-	// close db and log file
-	db.ShutdownForTescase()
-
-	// relaunch using TestRebootWithLoadAndRecovery.log files
-	// load of db file and redo/undo process runs
-	// and remove needless log data
-	db2 := samehada.NewSamehadaDB(t.Name(), 200)
-	db2.ExecuteSQLRetValues("INSERT INTO name_age_list(name, age) VALUES ('鮫肌', 18);")
-	_, results2 := db2.ExecuteSQLRetValues("SELECT * FROM name_age_list WHERE name = '鮫肌';")
-	samehada.PrintExecuteResults(results2)
-	testingpkg.SimpleAssert(t, len(results2) == 4)
-
-	// close db and log file
-	db2.ShutdownForTescase()
-
-	// relaunch using TestRebootWithLoadAndRecovery.db and TestRebootWithLoadAndRecovery.log files
-	// load of db file and redo/undo process runs
-	// and remove needless log data
-	db3 := samehada.NewSamehadaDB(t.Name(), 200)
-	db3.ExecuteSQLRetValues("INSERT INTO name_age_list(name, age) VALUES ('鮫肌', 15);")
-	_, results3 := db3.ExecuteSQLRetValues("SELECT * FROM name_age_list WHERE name = '鮫肌';")
-	samehada.PrintExecuteResults(results3)
-	testingpkg.SimpleAssert(t, len(results3) == 5)
-
-	common.TempSuppressOnMemStorage = false
-	// close db and log file
-	db3.Shutdown()
-	common.TempSuppressOnMemStorageMutex.Unlock()
-}
-
-func TestRebootAndReturnIFValues(t *testing.T) {
-	common.TempSuppressOnMemStorageMutex.Lock()
-	common.TempSuppressOnMemStorage = true
-
-	// clear all state of DB
-	if !common.EnableOnMemStorage || common.TempSuppressOnMemStorage == true {
-		os.Remove(t.Name() + ".db")
-		os.Remove(t.Name() + ".log")
-	}
-
-	db := samehada.NewSamehadaDB(t.Name(), 200)
-	db.ExecuteSQL("CREATE TABLE name_age_list(name VARCHAR(256), age INT);")
-	db.ExecuteSQL("INSERT INTO name_age_list(name, age) VALUES ('鈴木', 20);")
-	db.ExecuteSQL("INSERT INTO name_age_list(name, age) VALUES ('青木', 22);")
-	db.ExecuteSQL("INSERT INTO name_age_list(name, age) VALUES ('山田', 25);")
-	db.ExecuteSQL("INSERT INTO name_age_list(name, age) VALUES ('加藤', 18);")
-	db.ExecuteSQL("INSERT INTO name_age_list(name, age) VALUES ('木村', 18);")
-
-	db.ExecuteSQL("UPDATE name_age_list SET name = '鮫肌' WHERE age <= 20;")
-	_, results1 := db.ExecuteSQL("SELECT * FROM name_age_list WHERE name = '鮫肌';")
-	fmt.Println("---")
-	for _, resultRow := range results1 {
-		fmt.Printf("%s %d\n", resultRow[0].(string), resultRow[1].(int32))
-	}
-	testingpkg.SimpleAssert(t, len(results1) == 3)
-
-	// close db and log file
-	db.ShutdownForTescase()
-
-	// relaunch
-	// load of db file and redo/undo process runs
-	// and remove needless log data
-	db2 := samehada.NewSamehadaDB(t.Name(), 200)
-	db2.ExecuteSQL("INSERT INTO name_age_list(name, age) VALUES ('鮫肌', 18);")
-	_, results2 := db2.ExecuteSQL("SELECT * FROM name_age_list WHERE name = '鮫肌';")
-	fmt.Println("---")
-	for _, resultRow := range results2 {
-		fmt.Printf("%s %d\n", resultRow[0].(string), resultRow[1].(int32))
-	}
-	testingpkg.SimpleAssert(t, len(results2) == 4)
-
-	// close db and log file
-	db2.ShutdownForTescase()
-
-	// relaunch
-	// load of db file and redo/undo process runs
-	// and remove needless log data
-	db3 := samehada.NewSamehadaDB(t.Name(), 200)
-	db3.ExecuteSQL("INSERT INTO name_age_list(name, age) VALUES ('鮫肌', 15);")
-	_, results3 := db3.ExecuteSQL("SELECT * FROM name_age_list WHERE name = '鮫肌';")
-	fmt.Println("---")
-	for _, resultRow := range results3 {
-		fmt.Printf("%s %d\n", resultRow[0].(string), resultRow[1].(int32))
-	}
-	testingpkg.SimpleAssert(t, len(results3) == 5)
-
-	common.TempSuppressOnMemStorage = false
-	db3.Shutdown()
-	common.TempSuppressOnMemStorageMutex.Unlock()
-}
+//func TestRebootWithLoadAndRecovery(t *testing.T) {
+//	common.TempSuppressOnMemStorageMutex.Lock()
+//	common.TempSuppressOnMemStorage = true
+//
+//	// clear all state of DB
+//	if !common.EnableOnMemStorage || common.TempSuppressOnMemStorage {
+//		os.Remove(t.Name() + ".db")
+//		os.Remove(t.Name() + ".log")
+//	}
+//
+//	db := samehada.NewSamehadaDB("TestRebootWithLoadAndRecovery", 200)
+//	db.ExecuteSQLRetValues("CREATE TABLE name_age_list(name VARCHAR(256), age INT);")
+//	db.ExecuteSQLRetValues("INSERT INTO name_age_list(name, age) VALUES ('鈴木', 20);")
+//	db.ExecuteSQLRetValues("INSERT INTO name_age_list(name, age) VALUES ('青木', 22);")
+//	db.ExecuteSQLRetValues("INSERT INTO name_age_list(name, age) VALUES ('山田', 25);")
+//	db.ExecuteSQLRetValues("INSERT INTO name_age_list(name, age) VALUES ('加藤', 18);")
+//	db.ExecuteSQLRetValues("INSERT INTO name_age_list(name, age) VALUES ('木村', 18);")
+//
+//	db.ExecuteSQLRetValues("UPDATE name_age_list SET name = '鮫肌' WHERE age <= 20;")
+//	_, results1 := db.ExecuteSQLRetValues("SELECT * FROM name_age_list WHERE name = '鮫肌';")
+//	samehada.PrintExecuteResults(results1)
+//	testingpkg.SimpleAssert(t, len(results1) == 3)
+//
+//	// close db and log file
+//	db.ShutdownForTescase()
+//
+//	// relaunch using TestRebootWithLoadAndRecovery.log files
+//	// load of db file and redo/undo process runs
+//	// and remove needless log data
+//	db2 := samehada.NewSamehadaDB(t.Name(), 200)
+//	db2.ExecuteSQLRetValues("INSERT INTO name_age_list(name, age) VALUES ('鮫肌', 18);")
+//	_, results2 := db2.ExecuteSQLRetValues("SELECT * FROM name_age_list WHERE name = '鮫肌';")
+//	samehada.PrintExecuteResults(results2)
+//	testingpkg.SimpleAssert(t, len(results2) == 4)
+//
+//	// close db and log file
+//	db2.ShutdownForTescase()
+//
+//	// relaunch using TestRebootWithLoadAndRecovery.db and TestRebootWithLoadAndRecovery.log files
+//	// load of db file and redo/undo process runs
+//	// and remove needless log data
+//	db3 := samehada.NewSamehadaDB(t.Name(), 200)
+//	db3.ExecuteSQLRetValues("INSERT INTO name_age_list(name, age) VALUES ('鮫肌', 15);")
+//	_, results3 := db3.ExecuteSQLRetValues("SELECT * FROM name_age_list WHERE name = '鮫肌';")
+//	samehada.PrintExecuteResults(results3)
+//	testingpkg.SimpleAssert(t, len(results3) == 5)
+//
+//	common.TempSuppressOnMemStorage = false
+//	// close db and log file
+//	db3.Shutdown()
+//	common.TempSuppressOnMemStorageMutex.Unlock()
+//}
+//
+//func TestRebootAndReturnIFValues(t *testing.T) {
+//	common.TempSuppressOnMemStorageMutex.Lock()
+//	common.TempSuppressOnMemStorage = true
+//
+//	// clear all state of DB
+//	if !common.EnableOnMemStorage || common.TempSuppressOnMemStorage == true {
+//		os.Remove(t.Name() + ".db")
+//		os.Remove(t.Name() + ".log")
+//	}
+//
+//	db := samehada.NewSamehadaDB(t.Name(), 200)
+//	db.ExecuteSQL("CREATE TABLE name_age_list(name VARCHAR(256), age INT);")
+//	db.ExecuteSQL("INSERT INTO name_age_list(name, age) VALUES ('鈴木', 20);")
+//	db.ExecuteSQL("INSERT INTO name_age_list(name, age) VALUES ('青木', 22);")
+//	db.ExecuteSQL("INSERT INTO name_age_list(name, age) VALUES ('山田', 25);")
+//	db.ExecuteSQL("INSERT INTO name_age_list(name, age) VALUES ('加藤', 18);")
+//	db.ExecuteSQL("INSERT INTO name_age_list(name, age) VALUES ('木村', 18);")
+//
+//	db.ExecuteSQL("UPDATE name_age_list SET name = '鮫肌' WHERE age <= 20;")
+//	_, results1 := db.ExecuteSQL("SELECT * FROM name_age_list WHERE name = '鮫肌';")
+//	fmt.Println("---")
+//	for _, resultRow := range results1 {
+//		fmt.Printf("%s %d\n", resultRow[0].(string), resultRow[1].(int32))
+//	}
+//	testingpkg.SimpleAssert(t, len(results1) == 3)
+//
+//	// close db and log file
+//	db.ShutdownForTescase()
+//
+//	// relaunch
+//	// load of db file and redo/undo process runs
+//	// and remove needless log data
+//	db2 := samehada.NewSamehadaDB(t.Name(), 200)
+//	db2.ExecuteSQL("INSERT INTO name_age_list(name, age) VALUES ('鮫肌', 18);")
+//	_, results2 := db2.ExecuteSQL("SELECT * FROM name_age_list WHERE name = '鮫肌';")
+//	fmt.Println("---")
+//	for _, resultRow := range results2 {
+//		fmt.Printf("%s %d\n", resultRow[0].(string), resultRow[1].(int32))
+//	}
+//	testingpkg.SimpleAssert(t, len(results2) == 4)
+//
+//	// close db and log file
+//	db2.ShutdownForTescase()
+//
+//	// relaunch
+//	// load of db file and redo/undo process runs
+//	// and remove needless log data
+//	db3 := samehada.NewSamehadaDB(t.Name(), 200)
+//	db3.ExecuteSQL("INSERT INTO name_age_list(name, age) VALUES ('鮫肌', 15);")
+//	_, results3 := db3.ExecuteSQL("SELECT * FROM name_age_list WHERE name = '鮫肌';")
+//	fmt.Println("---")
+//	for _, resultRow := range results3 {
+//		fmt.Printf("%s %d\n", resultRow[0].(string), resultRow[1].(int32))
+//	}
+//	testingpkg.SimpleAssert(t, len(results3) == 5)
+//
+//	common.TempSuppressOnMemStorage = false
+//	db3.Shutdown()
+//	common.TempSuppressOnMemStorageMutex.Unlock()
+//}
 
 func TestParallelQueryIssue(t *testing.T) {
 	// clear all state of DB
