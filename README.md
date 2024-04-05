@@ -104,7 +104,8 @@
     - predicate including OR operation, NOT, IS NULL
     - projection including aggregation
     - LIMIT, ORDER BY
-- [ ] TRANSACTION Statement On Frontend
+- [ ] TRANSACTION Statement on SQL
+  - This includes adding support of multi statements (multi statements is not suported on SQL now)
 - [ ] AS clause
 - [ ] Nested Query
 - [ ] Predicates: IN
