@@ -71,7 +71,7 @@
 - [x] Rollback When Abort Occurs
 - [x] Logging
 - [x] Checkpointing
-  - [x] Simple Checkpointing (all transaction block until finish of checkpointing)
+  - [x] Simple Checkpointing (all transactions are blocked until finish of checkpointing)
   - [ ] Fuzzy Checkpointing (ARIES)
 - [x] Recovery from Logs
 - [x] Index
