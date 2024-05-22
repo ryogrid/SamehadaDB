@@ -10,7 +10,7 @@
 - Samehada, which literally means shark skin, is a tool used to grate wasabi, usually for sushi, but also for other Japanese cuisines
 - Samehada features its grid shape that forms air bubbles between the grated wasabi, minimizing unnecessary spiciness
 - We are proud to call SamehadaDB because the grid produces a pleasant taste and aroma with a nice harmony
-- (The text in this section was contributed by [ujihisa](https://github.com/ujihisa). Thanks ujihisa)
+- (Texts in this section is contributed by [ujihisa](https://github.com/ujihisa). Thanks ujihisa)
 
 # Current Status
 - SamehadaDB can be used as simple embedded DB (library form)
