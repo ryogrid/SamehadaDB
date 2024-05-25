@@ -44,7 +44,7 @@ func NewDiskManagerImpl(dbFilename string) DiskManager {
 	period_idx := strings.LastIndex(dbFilename, ".")
 	logfname_base := dbFilename[:period_idx]
 	logfname := logfname_base + "." + "log"
-	file_1, err := directio.OpenFile(logfname, os.O_RDWR|os.O_CREATE, 0666)
+	file_1, err := os.OpenFile(logfname, os.O_RDWR|os.O_CREATE, 0666)
 	if err != nil {
 		log.Fatalln("can't open log file")
 		return nil
@@ -106,10 +106,11 @@ func (d *DiskManagerImpl) WritePage(pageId types.PageID, pageData []byte) error 
 		fmt.Println("WritePge: d.db.Write returns err!")
 		return errSeek
 	}
-	block := directio.AlignedBlock(common.PageSize)
+	block := directio.AlignedBlock(directio.BlockSize)
 	copy(block, pageData)
 	//bytesWritten, errWrite := d.db.Write(pageData)
-	d.db.Write(block)
+
+	// this works because directio.BlockSize == common.PageSize
 	bytesWritten, errWrite := d.db.Write(block)
 	if errWrite != nil {
 		fmt.Println(errWrite)
@@ -254,22 +255,42 @@ func (d *DiskManagerImpl) WriteLog(log_data []byte) error {
 
 	// Note: current implementation does not use non-blocking I/O
 
-	d.numFlushes += 1
-	blockSize := len(log_data)
-	block := directio.AlignedBlock(blockSize)
-	copy(block, log_data)
-	//_, err := d.log.Write(log_data)
-	_, err := d.log.Write(block)
+	//block := directio.AlignedBlock(directio.BlockSize)
+	//d.numFlushes += 1
+	//dataSize := len(log_data)
+	//for wroteSize := 0; wroteSize < dataSize; wroteSize += directio.BlockSize {
+	//	var err error
+	//	if wroteSize+directio.BlockSize > dataSize {
+	//		// write last part
+	//		copy(block, log_data[wroteSize:])
+	//		//_, err = d.log.Write(block)
+	//		_, err = d.log.Write(block[:dataSize-wroteSize])
+	//		fmt.Println("write last part. length: ", dataSize-wroteSize, len(block[:dataSize-wroteSize]))
+	//	} else {
+	//		copy(block, log_data[wroteSize:wroteSize+directio.BlockSize])
+	//		_, err = d.log.Write(block[:directio.BlockSize])
+	//	}
+	//	if err != nil {
+	//		fmt.Println("I/O error while writing log")
+	//		fmt.Println(err)
+	//		// TODO: (SDB) SHOULD BE FIXED: statistics update thread's call causes this error rarely
+	//		return err
+	//	}
+	//}
 
+	// TODO: (SDB) writing log isn't using direct I/O now
+
+	_, err := d.log.Write(log_data)
 	if err != nil {
 		fmt.Println("I/O error while writing log")
 		fmt.Println(err)
 		// TODO: (SDB) SHOULD BE FIXED: statistics update thread's call causes this error rarely
 		return err
 	}
+
 	// needs to flush to keep disk file in sync
 
-	//d.log.Sync()
+	d.log.Sync()
 	d.flush_log = false
 
 	return nil
