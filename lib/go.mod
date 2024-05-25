@@ -7,6 +7,7 @@ require (
 	github.com/devlights/gomy v0.4.0
 	github.com/dsnet/golib/memfile v1.0.0
 	github.com/golang-collections/collections v0.0.0-20130729185459-604e922904d3
+	github.com/ncw/directio v1.0.5
 	github.com/notEpsilon/go-pair v0.0.0-20221220200415-e91ef28c6c0b
 	github.com/pingcap/parser v0.0.0-20200623164729-3a18f1e5dceb
 	github.com/pingcap/tidb v1.1.0-beta.0.20200630082100-328b6d0a955c
@@ -20,7 +21,6 @@ require (
 	github.com/go-ole/go-ole v1.2.4 // indirect
 	github.com/golang/protobuf v1.3.4 // indirect
 	github.com/konsorten/go-windows-terminal-sequences v1.0.3 // indirect
-	github.com/ncw/directio v1.0.5 // indirect
 	github.com/opentracing/opentracing-go v1.1.0 // indirect
 	github.com/pingcap/errors v0.11.5-0.20190809092503-95897b64e011 // indirect
 	github.com/pingcap/log v0.0.0-20200511115504-543df19646ad // indirect
