@@ -158,7 +158,16 @@ func (log_recovery *LogRecovery) Redo(txn *access.Transaction) (types.LSN, bool)
 				if page_.GetLSN() < log_record.GetLSN() {
 					// UpdateTuple overwrites Old_tuple argument
 					// but it is no problem because log_record is read from log file again in Undo phase
-					page_.UpdateTuple(&log_record.New_tuple, nil, nil, &log_record.Old_tuple, &log_record.Update_rid, txn, nil, log_recovery.log_manager)
+					page_.UpdateTuple(&log_record.New_tuple, nil, nil, &log_record.Old_tuple, &log_record.Update_rid, txn, nil, log_recovery.log_manager, false)
+					page_.SetLSN(log_record.GetLSN())
+					isRedoOccured = true
+				}
+				log_recovery.buffer_pool_manager.UnpinPage(log_record.Update_rid.GetPageId(), true)
+			} else if log_record.Log_record_type == recovery.FINALIZE_UPDATE {
+				page_ :=
+					access.CastPageAsTablePage(log_recovery.buffer_pool_manager.FetchPage(log_record.Update_rid.GetPageId()))
+				if page_.GetLSN() < log_record.GetLSN() {
+					page_.FinalizeUpdateTuple(&log_record.Update_rid, &log_record.Old_tuple, &log_record.New_tuple, txn, log_recovery.log_manager)
 					page_.SetLSN(log_record.GetLSN())
 					isRedoOccured = true
 				}
@@ -234,13 +243,15 @@ func (log_recovery *LogRecovery) Undo(txn *access.Transaction) bool {
 			} else if log_record.Log_record_type == recovery.UPDATE {
 				page_ :=
 					access.CastPageAsTablePage(log_recovery.buffer_pool_manager.FetchPage(log_record.Update_rid.GetPageId()))
-				_, err, _ := page_.UpdateTuple(&log_record.Old_tuple, nil, nil, &log_record.New_tuple, &log_record.Update_rid, txn, nil, log_recovery.log_manager)
+				_, err, _ := page_.UpdateTuple(&log_record.Old_tuple, nil, nil, &log_record.New_tuple, &log_record.Update_rid, txn, nil, log_recovery.log_manager, true)
 				if err != nil {
 					panic(fmt.Sprintln("UpdateTuple at rollback failed! err:", err))
 				}
 				log_recovery.buffer_pool_manager.UnpinPage(page_.GetPageId(), true)
 				isUndoOccured = true
 			}
+			// FINALIZE_UPDATE is not considered because it is not necessary to undo
+
 			lsn = log_record.Prev_lsn
 			// fmt.Printf("lsn at Undo loop bottom: %d\n", lsn)
 		}

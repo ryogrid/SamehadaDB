@@ -78,8 +78,6 @@ func (transaction_manager *TransactionManager) Commit(catalog_ catalog_interface
 		table := item.table
 		rid := item.rid
 		if item.wtype == DELETE {
-			// Note that this also releases the lock when holding the page latch.
-
 			if common.EnableDebug && common.ActiveLogKindSetting&common.COMMIT_ABORT_HANDLE_INFO > 0 {
 				fmt.Printf("TransactionManager::Commit handle DELETE write log. txn.txn_id:%v dbgInfo:%s rid:%v\n", txn.txn_id, txn.dbgInfo, rid)
 			}
@@ -88,6 +86,19 @@ func (transaction_manager *TransactionManager) Commit(catalog_ catalog_interface
 			tpage.WLatch()
 			tpage.AddWLatchRecord(int32(txn.txn_id))
 			tpage.ApplyDelete(item.rid, txn, transaction_manager.log_manager)
+			table.bpm.UnpinPage(tpage.GetPageId(), true)
+			tpage.RemoveWLatchRecord(int32(txn.txn_id))
+			tpage.WUnlatch()
+		} else if item.wtype == UPDATE {
+			if common.EnableDebug && common.ActiveLogKindSetting&common.COMMIT_ABORT_HANDLE_INFO > 0 {
+				fmt.Printf("TransactionManager::Commit handle UPDATE write log. txn.txn_id:%v dbgInfo:%s rid:%v\n", txn.txn_id, txn.dbgInfo, rid)
+			}
+			pageID := rid.GetPageId()
+			tpage := CastPageAsTablePage(table.bpm.FetchPage(pageID))
+			tpage.WLatch()
+			tpage.AddWLatchRecord(int32(txn.txn_id))
+			// move updated tuple to collect position on the page
+			tpage.FinalizeUpdateTuple(rid, item.tuple1, item.tuple2, txn, transaction_manager.log_manager)
 			table.bpm.UnpinPage(tpage.GetPageId(), true)
 			tpage.RemoveWLatchRecord(int32(txn.txn_id))
 			tpage.WUnlatch()
