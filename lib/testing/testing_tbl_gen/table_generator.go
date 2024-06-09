@@ -143,7 +143,7 @@ func FillTable(info *catalog.TableMetadata, table_meta *TableInsertMeta, txn *ac
 				entry = append(entry, values[idx][i])
 			}
 			tuple_ := tuple.NewTupleFromSchema(entry, info.Schema())
-			rid, err := info.Table().InsertTuple(tuple_, false, txn, info.OID())
+			rid, err := info.Table().InsertTuple(tuple_, txn, info.OID())
 			if rid == nil || err != nil {
 				fmt.Printf("InsertTuple failed on FillTable rid = %v, err = %v", rid, err)
 				panic("InsertTuple failed on FillTable!")

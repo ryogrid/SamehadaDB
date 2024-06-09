@@ -37,7 +37,7 @@ const ErrSelfDeletedCase = errors.Error("encont self deleted tuple1.")
 const ErrGeneral = errors.Error("some error is occured!")
 
 // delete and insert are needed, but delete is only succeeded case
-const ErrPartialUpdate = errors.Error("update with new rid1 is succeeded partially")
+const ErrPartialUpdate = errors.Error("update with new rid is succeeded partially")
 
 // Slotted page format:
 //
@@ -110,7 +110,7 @@ func (tp *TablePage) InsertTuple(tuple *tuple.Tuple, log_manager *recovery.LogMa
 		if !locked {
 			//txn.SetState(ABORTED)
 			return nil, errors.Error("could not acquire an exclusive lock of found slot (=RID)")
-			// fmt.Printf("Locking a new tuple1 should always work. rid1: %v\n", rid1)
+			// fmt.Printf("Locking a new tuple1 should always work. rid: %v\n", rid)
 			// lock_manager.PrintLockTables()
 			// os.Stdout.Sync()
 			// panic("")
@@ -121,7 +121,7 @@ func (tp *TablePage) InsertTuple(tuple *tuple.Tuple, log_manager *recovery.LogMa
 
 	if common.EnableDebug {
 		setFSP := tp.GetFreeSpacePointer() - tuple.Size()
-		common.SH_Assert(setFSP <= common.PageSize, fmt.Sprintf("illegal pointer value!! txnId:%d txnState:%d txn.dbgInfo:%s rid1:%v GetPageId():%d setFSP:%d", txn.txn_id, txn.state, txn.dbgInfo, *rid, tp.GetPageId(), setFSP))
+		common.SH_Assert(setFSP <= common.PageSize, fmt.Sprintf("illegal pointer value!! txnId:%d txnState:%d txn.dbgInfo:%s rid:%v GetPageId():%d setFSP:%d", txn.txn_id, txn.state, txn.dbgInfo, *rid, tp.GetPageId(), setFSP))
 	}
 
 	tp.SetFreeSpacePointer(tp.GetFreeSpacePointer() - tuple.Size())
@@ -158,7 +158,7 @@ func (tp *TablePage) UpdateTuple(new_tuple *tuple.Tuple, update_col_idxs []int, 
 			}
 		}()
 		if common.ActiveLogKindSetting&common.RDB_OP_FUNC_CALL > 0 {
-			fmt.Printf("TablePage::UpdateTuple called. pageId:%d txn.txn_id:%v dbgInfo:%s new_tuple:%v update_col_idxs:%v rid1:%v\n", tp.GetPageId(), txn.txn_id, txn.dbgInfo, *new_tuple, update_col_idxs, *rid)
+			fmt.Printf("TablePage::UpdateTuple called. pageId:%d txn.txn_id:%v dbgInfo:%s new_tuple:%v update_col_idxs:%v rid:%v\n", tp.GetPageId(), txn.txn_id, txn.dbgInfo, *new_tuple, update_col_idxs, *rid)
 		}
 	}
 	common.SH_Assert(new_tuple.Size() > 0, "Cannot have empty tuples.")
@@ -268,7 +268,7 @@ func (tp *TablePage) MarkDelete(rid *page.RID, txn *Transaction, lock_manager *L
 			}
 		}()
 		if common.ActiveLogKindSetting&common.RDB_OP_FUNC_CALL > 0 {
-			fmt.Printf("TablePage::MarkDelete called. pageId:%d txn.txn_id:%v dbgInfo:%s  rid1:%v\n", tp.GetPageId(), txn.txn_id, txn.dbgInfo, *rid)
+			fmt.Printf("TablePage::MarkDelete called. pageId:%d txn.txn_id:%v dbgInfo:%s  rid:%v\n", tp.GetPageId(), txn.txn_id, txn.dbgInfo, *rid)
 		}
 	}
 
@@ -337,7 +337,7 @@ func (tp *TablePage) ApplyDelete(rid *page.RID, txn *Transaction, log_manager *r
 			}
 		}()
 		if common.ActiveLogKindSetting&common.RDB_OP_FUNC_CALL > 0 {
-			fmt.Printf("TablePage::ApplyDelete called. pageId:%d txn.txn_id:%v dbgInfo:%s rid1:%v\n", tp.GetPageId(), txn.txn_id, txn.dbgInfo, *rid)
+			fmt.Printf("TablePage::ApplyDelete called. pageId:%d txn.txn_id:%v dbgInfo:%s rid:%v\n", tp.GetPageId(), txn.txn_id, txn.dbgInfo, *rid)
 		}
 	}
 
@@ -405,7 +405,7 @@ func (tp *TablePage) RollbackDelete(rid *page.RID, txn *Transaction, log_manager
 			}
 		}()
 		if common.ActiveLogKindSetting&common.RDB_OP_FUNC_CALL > 0 {
-			fmt.Printf("TablePage::RollbackDelete called. pageId:%d txn.txn_id:%v dbgInfo:%s rid1:%v\n", tp.GetPageId(), txn.txn_id, txn.dbgInfo, *rid)
+			fmt.Printf("TablePage::RollbackDelete called. pageId:%d txn.txn_id:%v dbgInfo:%s rid:%v\n", tp.GetPageId(), txn.txn_id, txn.dbgInfo, *rid)
 		}
 	}
 
@@ -549,7 +549,7 @@ func (tp *TablePage) GetTuple(rid *page.RID, log_manager *recovery.LogManager, l
 			}
 		}()
 		if common.ActiveLogKindSetting&common.RDB_OP_FUNC_CALL > 0 {
-			fmt.Printf("TablePage::GetTuple called. pageId:%d txn.txn_id:%v  dbgInfo:%s rid1:%v\n", tp.GetPageId(), txn.txn_id, txn.dbgInfo, *rid)
+			fmt.Printf("TablePage::GetTuple called. pageId:%d txn.txn_id:%v  dbgInfo:%s rid:%v\n", tp.GetPageId(), txn.txn_id, txn.dbgInfo, *rid)
 		}
 	}
 

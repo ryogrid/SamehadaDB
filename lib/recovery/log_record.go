@@ -100,8 +100,6 @@ func NewLogRecordInsertDelete(txn_id types.TxnID, prev_lsn types.LSN, log_record
 		ret.Insert_rid = rid
 		ret.Insert_tuple = *tuple
 	} else {
-		// assert(log_record_type == LogRecordType::APPLYDELETE || log_record_type == LogRecordType::MARKDELETE ||
-		// 		log_record_type == LogRecordType::ROLLBACKDELETE)
 		ret.Delete_rid = rid
 		ret.Delete_tuple = *tuple
 	}
