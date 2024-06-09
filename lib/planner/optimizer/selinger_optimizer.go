@@ -3,8 +3,8 @@ package optimizer
 import (
 	"errors"
 	mapset "github.com/deckarep/golang-set/v2"
-	stack "github.com/golang-collections/collections/stack"
-	pair "github.com/notEpsilon/go-pair"
+	"github.com/golang-collections/collections/stack"
+	"github.com/notEpsilon/go-pair"
 	"github.com/ryogrid/SamehadaDB/lib/catalog"
 	"github.com/ryogrid/SamehadaDB/lib/common"
 	"github.com/ryogrid/SamehadaDB/lib/execution/expression"
@@ -172,7 +172,7 @@ func (so *SelingerOptimizer) findBestScan(outNeededCols []*column.Column, where 
 	candidates := availableKeyIndex()
 	// Prepare all range of candidates
 	ranges := make(map[int]*Range, 0)
-	for key, _ := range candidates {
+	for key := range candidates {
 		ranges[key] = NewRange(sc.GetColumn(uint32(key)).GetType())
 	}
 

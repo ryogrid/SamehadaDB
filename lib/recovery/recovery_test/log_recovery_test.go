@@ -59,10 +59,10 @@ func TestRedo(t *testing.T) {
 	val1_1 := tuple1_.GetValue(schema_, 1)
 	val1_0 := tuple1_.GetValue(schema_, 0)
 
-	rid, _ = test_table.InsertTuple(tuple_, false, txn, math.MaxUint32)
+	rid, _ = test_table.InsertTuple(tuple_, txn, math.MaxUint32)
 	// TODO: (SDB) insert index entry if needed
 	testingpkg.Assert(t, rid != nil, "")
-	rid1, _ = test_table.InsertTuple(tuple1_, false, txn, math.MaxUint32)
+	rid1, _ = test_table.InsertTuple(tuple1_, txn, math.MaxUint32)
 	// TODO: (SDB) insert index entry if needed
 	testingpkg.Assert(t, rid != nil, "")
 
@@ -171,7 +171,8 @@ func TestUndo(t *testing.T) {
 	val1_0 := tuple1.GetValue(schema_, 0)
 	val1_1 := tuple1.GetValue(schema_, 1)
 	var rid1 *page.RID
-	rid1, _ = test_table.InsertTuple(tuple1, false, txn, math.MaxUint32)
+	fmt.Println("tuple1: ", tuple1.Data())
+	rid1, _ = test_table.InsertTuple(tuple1, txn, math.MaxUint32)
 	testingpkg.Assert(t, rid1 != nil, "")
 
 	tuple2 := ConstructTuple(schema_)
@@ -179,8 +180,11 @@ func TestUndo(t *testing.T) {
 	val2_1 := tuple2.GetValue(schema_, 1)
 
 	var rid2 *page.RID
-	rid2, _ = test_table.InsertTuple(tuple2, false, txn, math.MaxUint32)
+	rid2, _ = test_table.InsertTuple(tuple2, txn, math.MaxUint32)
 	testingpkg.Assert(t, rid2 != nil, "")
+
+	bf_commit_tuple2, _ := test_table.GetTuple(rid2, txn)
+	fmt.Println("bf_commit_tuple2: ", bf_commit_tuple2.Data())
 
 	fmt.Println("Log page content is written to disk")
 	samehada_instance.GetLogManager().Flush()
@@ -189,21 +193,34 @@ func TestUndo(t *testing.T) {
 
 	txn = samehada_instance.GetTransactionManager().Begin(nil)
 
+	bf_commit_tuple2__, _ := test_table.GetTuple(rid2, txn)
+	fmt.Println("bf_commit_tuple2_: ", bf_commit_tuple2__.Data())
+
 	// tuple deletion (rid1)
-	test_table.MarkDelete(rid1, math.MaxUint32, false, txn)
+	test_table.MarkDelete(rid1, math.MaxUint32, txn)
+
+	bf_commit_tuple2___, _ := test_table.GetTuple(rid2, txn)
+	fmt.Println("bf_commit_tuple2_: ", bf_commit_tuple2___.Data())
 
 	// tuple updating (rid2)
 	row1 := make([]types.Value, 0)
 	row1 = append(row1, types.NewVarchar("updated"))
 	row1 = append(row1, types.NewInteger(256))
-	test_table.UpdateTuple(tuple.NewTupleFromSchema(row1, schema_), nil, nil, math.MaxUint32, *rid2, txn, false)
+	is_success, new_rid, err, update_tuple, old_tuple := test_table.UpdateTuple(tuple.NewTupleFromSchema(row1, schema_), nil, nil, math.MaxUint32, *rid2, txn, false)
+	fmt.Println("returned values of test_table.Update_Tuple: ", is_success, new_rid, err, update_tuple, update_tuple.Data(), old_tuple, old_tuple.Data())
+	old_value := old_tuple.GetValue(schema_, 0)
+	update_value := update_tuple.GetValue(schema_, 0)
+	fmt.Println("old_value: ", old_value, "update_value: ", update_value)
 
 	// tuple insertion (rid3)
 	tuple3 := ConstructTuple(schema_)
 	var rid3 *page.RID
-	rid3, _ = test_table.InsertTuple(tuple3, false, txn, math.MaxUint32)
+	rid3, _ = test_table.InsertTuple(tuple3, txn, math.MaxUint32)
 	// TODO: (SDB) insert index entry if needed
 	testingpkg.Assert(t, rid3 != nil, "")
+
+	af_insert_tuple2, _ := test_table.GetTuple(rid2, txn)
+	fmt.Println("af_update_tuple2_: ", af_insert_tuple2.Data())
 
 	fmt.Println("Log page content is written to disk")
 	samehada_instance.GetLogManager().Flush()
@@ -226,11 +243,13 @@ func TestUndo(t *testing.T) {
 
 	fmt.Println("Check if deleted tuple does not exist before recovery")
 	old_tuple1, _ := test_table.GetTuple(rid1, txn)
-	testingpkg.Assert(t, old_tuple1 == nil, "")
+	testingpkg.Assert(t, old_tuple1 == nil, "handled as self deleted case")
 
 	fmt.Println("Check if updated tuple values are effected before recovery")
 	var old_tuple2 *tuple.Tuple
 	old_tuple2, _ = test_table.GetTuple(rid2, txn)
+	fmt.Println("old_tuple2: ", old_tuple2.Data())
+
 	testingpkg.Assert(t, old_tuple2 != nil, "")
 	testingpkg.Assert(t, old_tuple2.GetValue(schema_, 0).CompareEquals(types.NewVarchar("updated")), "")
 	testingpkg.Assert(t, old_tuple2.GetValue(schema_, 1).CompareEquals(types.NewInteger(256)), "")
@@ -326,7 +345,7 @@ func TestCheckpoint(t *testing.T) {
 	// insert a ton of tuples
 	txn1 := samehada_instance.GetTransactionManager().Begin(nil)
 	for i := 0; i < 1000; i++ {
-		rid, err := test_table.InsertTuple(tuple_, false, txn1, math.MaxUint32)
+		rid, err := test_table.InsertTuple(tuple_, txn1, math.MaxUint32)
 		if err != nil {
 			fmt.Println(err)
 		}

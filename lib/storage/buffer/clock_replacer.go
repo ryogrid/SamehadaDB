@@ -32,7 +32,7 @@ func (c *ClockReplacer) Victim() *FrameID {
 	}
 
 	var victimFrameID *FrameID
-	currentNode := (*c.clockHand)
+	currentNode := *c.clockHand
 	for {
 		if currentNode.value {
 			currentNode.value = false

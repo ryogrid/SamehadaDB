@@ -59,7 +59,7 @@ func SetupTableWithMetadata(exec_ctx *executors.ExecutorContext, tableMeta *Setu
 			vals = append(vals, types.NewValue(genFunc(ii)))
 		}
 		tuple_ := tuple.NewTupleFromSchema(vals, schema_)
-		rid, _ := tm.Table().InsertTuple(tuple_, false, txn, tm.OID())
+		rid, _ := tm.Table().InsertTuple(tuple_, txn, tm.OID())
 		for jj, colMeta := range tableMeta.Columns {
 			if colMeta.IdxKind != index_constants.INDEX_KIND_INVALID {
 				tm.GetIndex(jj).InsertEntry(tuple_, *rid, txn)
@@ -414,7 +414,7 @@ func TestSimplePlanOptimization(t *testing.T) {
 		testingpkg.Assert(t, execRslt != nil, "execRslt == nil")
 		printBestPlan(patternName, queryStr, solution)
 		fmt.Print("values of first row: ")
-		for idx, _ := range queryInfo.SelectFields_ {
+		for idx := range queryInfo.SelectFields_ {
 			val := execRslt[0].GetValue(solution.OutputSchema(), uint32(idx))
 			fmt.Printf("%s(%d), ", val.ToString(), val.ValueType())
 		}

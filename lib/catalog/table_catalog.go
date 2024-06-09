@@ -137,7 +137,7 @@ func (c *Catalog) GetAllTables() []*TableMetadata {
 	ret := make([]*TableMetadata, 0)
 	c.tableIdsMutex.Lock()
 	defer c.tableIdsMutex.Unlock()
-	for key, _ := range c.tableIds {
+	for key := range c.tableIds {
 		ret = append(ret, c.tableIds[key])
 	}
 	return ret
@@ -199,7 +199,7 @@ func (c *Catalog) insertTable(tableMetadata *TableMetadata, txn *access.Transact
 	first_tuple := tuple.NewTupleFromSchema(row, TableCatalogSchema())
 
 	// insert entry to TableCatalogPage (PageId = 0)
-	c.tableHeap.InsertTuple(first_tuple, false, txn, tableMetadata.OID())
+	c.tableHeap.InsertTuple(first_tuple, txn, tableMetadata.OID())
 	for _, column_ := range tableMetadata.schema.GetColumns() {
 		row := make([]types.Value, 0)
 		row = append(row, types.NewInteger(int32(tableMetadata.oid)))
@@ -214,7 +214,7 @@ func (c *Catalog) insertTable(tableMetadata *TableMetadata, txn *access.Transact
 		new_tuple := tuple.NewTupleFromSchema(row, ColumnsCatalogSchema())
 
 		// insert entry to ColumnsCatalogPage (PageId = 1)
-		c.tableIds[ColumnsCatalogOID].Table().InsertTuple(new_tuple, false, txn, ColumnsCatalogOID)
+		c.tableIds[ColumnsCatalogOID].Table().InsertTuple(new_tuple, txn, ColumnsCatalogOID)
 	}
 	// flush a page having table definitions
 	c.bpm.FlushPage(TableCatalogPageId)

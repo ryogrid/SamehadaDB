@@ -4,7 +4,7 @@ import (
 	"github.com/ryogrid/SamehadaDB/lib/samehada/samehada_util"
 	"github.com/ryogrid/SamehadaDB/lib/types"
 
-	hash "github.com/ryogrid/SamehadaDB/lib/container/hash"
+	"github.com/ryogrid/SamehadaDB/lib/container/hash"
 	"github.com/ryogrid/SamehadaDB/lib/storage/buffer"
 	"github.com/ryogrid/SamehadaDB/lib/storage/page"
 	"github.com/ryogrid/SamehadaDB/lib/storage/table/schema"

@@ -38,14 +38,14 @@ const (
 	INSERT WType = iota
 	DELETE
 	UPDATE
+	RESERVE_SPACE
 )
 
 /**
  * WriteRecord tracks information related to a write.
  */
 type WriteRecord struct {
-	rid1  *page.RID
-	rid2  *page.RID
+	rid   *page.RID
 	wtype WType
 	/** The tuple1 is used only for the updateoperation. */
 	tuple1 *tuple.Tuple
@@ -55,10 +55,9 @@ type WriteRecord struct {
 	oid   uint32 // for rollback of index data
 }
 
-func NewWriteRecord(rid1 *page.RID, rid2 *page.RID, wtype WType, tuple1 *tuple.Tuple, tuple2 *tuple.Tuple, table *TableHeap, oid uint32) *WriteRecord {
+func NewWriteRecord(rid *page.RID, wtype WType, tuple1 *tuple.Tuple, tuple2 *tuple.Tuple, table *TableHeap, oid uint32) *WriteRecord {
 	ret := new(WriteRecord)
-	ret.rid1 = rid1
-	ret.rid2 = rid2
+	ret.rid = rid
 	ret.wtype = wtype
 	ret.tuple1 = tuple1
 	ret.tuple2 = tuple2
@@ -142,14 +141,14 @@ func isContainsRID(list []page.RID, rid page.RID) bool {
 	return false
 }
 
-/** @return true if rid1 is shared locked by this transaction */
+/** @return true if rid is shared locked by this transaction */
 func (txn *Transaction) IsSharedLocked(rid *page.RID) bool {
 	ret := isContainsRID(txn.shared_lock_set, *rid)
 	//fmt.Printf("called IsSharedLocked: %v\n", ret)
 	return ret
 }
 
-/** @return true if rid1 is exclusively locked by this transaction */
+/** @return true if rid is exclusively locked by this transaction */
 func (txn *Transaction) IsExclusiveLocked(rid *page.RID) bool {
 	ret := isContainsRID(txn.exclusive_lock_set, *rid)
 	//fmt.Printf("called IsExclusiveLocked: %v\n", ret)

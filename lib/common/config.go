@@ -12,8 +12,8 @@ var LogTimeout time.Duration
 
 const EnableDebug bool = false //true
 
-// use virtual storage or not
-const EnableOnMemStorage = false //true
+// use on memory virtual storage or not
+const EnableOnMemStorage = true
 
 // when this is true, virtual storage use is suppressed
 // for test case which can't work with virtual storage
@@ -39,7 +39,7 @@ const (
 	// number for calculate log buffer size (number of page size)
 	LogBufferSizeBase = 128
 	// size of a log buffer in byte
-	LogBufferSize = ((LogBufferSizeBase + 1) * PageSize)
+	LogBufferSize = (LogBufferSizeBase + 1) * PageSize
 	// size of hash bucket
 	BucketSizeOfHashIndex = 10
 	// probability used for determin node level on SkipList

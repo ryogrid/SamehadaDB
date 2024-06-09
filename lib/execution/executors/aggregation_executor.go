@@ -167,8 +167,8 @@ func (aht *SimpleAggregationHashTable) InsertCombine(agg_key *plans.AggregateKey
 
 /* return iterator to the start of the hash table */
 func (aht *SimpleAggregationHashTable) Begin() *AggregateHTIterator {
-	var agg_key_list []*plans.AggregateKey = make([]*plans.AggregateKey, 0)
-	var agg_val_list []*plans.AggregateValue = make([]*plans.AggregateValue, 0)
+	var agg_key_list = make([]*plans.AggregateKey, 0)
+	var agg_val_list = make([]*plans.AggregateValue, 0)
 	for hval, val := range aht.ht_val {
 		agg_key_list = append(agg_key_list, aht.ht_key[hval])
 		agg_val_list = append(agg_val_list, val)
@@ -240,7 +240,7 @@ func (e *AggregationExecutor) Next() (*tuple.Tuple, Done, error) {
 	if e.aht_iterator_.IsEnd() {
 		return nil, true, nil
 	}
-	var values []types.Value = make([]types.Value, 0)
+	var values = make([]types.Value, 0)
 	for i := 0; i < len(e.exprs_); i++ {
 		values = append(values, e.exprs_[i].EvaluateAggregate(e.aht_iterator_.Key().Group_bys_, e.aht_iterator_.Val().Aggregates_))
 	}
@@ -251,7 +251,7 @@ func (e *AggregationExecutor) Next() (*tuple.Tuple, Done, error) {
 
 /** return the tuple as an AggregateKey */
 func (e *AggregationExecutor) MakeKey(tuple_ *tuple.Tuple) *plans.AggregateKey {
-	var keys []*types.Value = make([]*types.Value, 0)
+	var keys = make([]*types.Value, 0)
 	for _, expr := range e.plan_.GetGroupBys() {
 		tmp_val := expr.Evaluate(tuple_, e.child_[0].GetOutputSchema())
 		keys = append(keys, &tmp_val)
@@ -261,7 +261,7 @@ func (e *AggregationExecutor) MakeKey(tuple_ *tuple.Tuple) *plans.AggregateKey {
 
 /** return the tuple as an AggregateValue */
 func (e *AggregationExecutor) MakeVal(tuple_ *tuple.Tuple) *plans.AggregateValue {
-	var vals []*types.Value = make([]*types.Value, 0)
+	var vals = make([]*types.Value, 0)
 	for _, expr := range e.plan_.GetAggregates() {
 		tmp_val := expr.Evaluate(tuple_, e.child_[0].GetOutputSchema())
 		vals = append(vals, &tmp_val)

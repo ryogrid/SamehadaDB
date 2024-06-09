@@ -96,7 +96,7 @@ func (e *OrderbyExecutor) Init() {
 	fmt.Printf("inserted_tuple_cnt %d\n", inserted_tuple_cnt)
 	// arrange tuple array (apply sort result)
 	tuple_cnt := len(e.sort_tuples_)
-	var tmp_tuples []*tuple.Tuple = make([]*tuple.Tuple, tuple_cnt)
+	var tmp_tuples = make([]*tuple.Tuple, tuple_cnt)
 	idx_of_orig_idx := len(e.plan_.GetColIdxs())
 	for idx := 0; idx < tuple_cnt; idx++ {
 		tmp_tuples[idx] = e.sort_tuples_[sort_values[idx][idx_of_orig_idx].ToInteger()]

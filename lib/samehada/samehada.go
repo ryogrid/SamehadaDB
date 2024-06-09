@@ -186,10 +186,10 @@ func (sdb *SamehadaDB) ExecuteSQL(sqlStr string) (error, [][]interface{}) {
 	return ret.err, ret.result
 }
 
-var PlanCreationErr error = errors.New("plan creation error")
+var PlanCreationErr = errors.New("plan creation error")
 
 // temporal error
-var QueryAbortedErr error = errors.New("query aborted")
+var QueryAbortedErr = errors.New("query aborted")
 
 func (sdb *SamehadaDB) ExecuteSQLRetValues(sqlStr string) (error, [][]*types.Value) {
 	qi, err := parser.ProcessSQLStr(&sqlStr)

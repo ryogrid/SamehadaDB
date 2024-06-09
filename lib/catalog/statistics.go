@@ -11,7 +11,7 @@ import (
 	"math"
 )
 
-var AbortedError error = errors.New("aborted")
+var AbortedError = errors.New("aborted")
 
 type distinctCounter struct {
 	max      *types.Value

@@ -3,7 +3,7 @@ package log_recovery
 import (
 	"bytes"
 	"encoding/binary"
-	"github.com/ryogrid/SamehadaDB/lib/storage/page"
+	"fmt"
 	"unsafe"
 
 	"github.com/ryogrid/SamehadaDB/lib/common"
@@ -66,24 +66,25 @@ func (log_recovery *LogRecovery) DeserializeLogRecord(data []byte, log_record *r
 	if log_record.Log_record_type == recovery.INSERT {
 		binary.Read(bytes.NewBuffer(data[pos:]), binary.LittleEndian, &log_record.Insert_rid)
 		pos += uint32(unsafe.Sizeof(log_record.Insert_rid))
-		// we have provided serialize function for tuple class
 		log_record.Insert_tuple.DeserializeFrom(data[pos:])
 	} else if log_record.Log_record_type == recovery.APPLYDELETE ||
 		log_record.Log_record_type == recovery.MARKDELETE ||
 		log_record.Log_record_type == recovery.ROLLBACKDELETE {
 		binary.Read(bytes.NewBuffer(data[pos:]), binary.LittleEndian, &log_record.Delete_rid)
 		pos += uint32(unsafe.Sizeof(log_record.Delete_rid))
-		// we have provided serialize function for tuple class
 		log_record.Delete_tuple.DeserializeFrom(data[pos:])
 	} else if log_record.Log_record_type == recovery.UPDATE {
 		binary.Read(bytes.NewBuffer(data[pos:]), binary.LittleEndian, &log_record.Update_rid)
 		pos += uint32(unsafe.Sizeof(log_record.Update_rid))
-		// we have provided serialize function for tuple class
 		log_record.Old_tuple.DeserializeFrom(data[pos:])
 		pos += log_record.Old_tuple.Size() + uint32(tuple.TupleSizeOffsetInLogrecord)
 		log_record.New_tuple.DeserializeFrom(data[pos:])
 	} else if log_record.Log_record_type == recovery.NEWPAGE {
 		binary.Read(bytes.NewBuffer(data[pos:]), binary.LittleEndian, &log_record.Prev_page_id)
+	} else if log_record.Log_record_type == recovery.RESERVE_SPACE {
+		binary.Read(bytes.NewBuffer(data[pos:]), binary.LittleEndian, &log_record.Reserving_rid)
+		pos += uint32(unsafe.Sizeof(log_record.Reserving_rid))
+		log_record.Reserving_tuple.DeserializeFrom(data[pos:])
 	}
 
 	//fmt.Println(log_record)
@@ -177,6 +178,14 @@ func (log_recovery *LogRecovery) Redo(txn *access.Transaction) (types.LSN, bool)
 				new_page.Init(page_id, log_record.Prev_page_id, log_recovery.log_manager, nil, txn)
 				//log_recovery.buffer_pool_manager.FlushPage(page_id)
 				log_recovery.buffer_pool_manager.UnpinPage(page_id, true)
+			} else if log_record.Log_record_type == recovery.RESERVE_SPACE {
+				page_ :=
+					access.CastPageAsTablePage(log_recovery.buffer_pool_manager.FetchPage(log_record.Delete_rid.GetPageId()))
+				if page_.GetLSN() < log_record.GetLSN() {
+					page_.ReserveSpaceForRollbackUpdate(&log_record.Reserving_rid, log_record.Reserving_tuple.Size(), txn, log_recovery.log_manager)
+					page_.SetLSN(log_record.GetLSN())
+					isRedoOccured = true
+				}
 			}
 			buffer_offset += log_record.Size
 		}
@@ -197,23 +206,6 @@ func (log_recovery *LogRecovery) Undo(txn *access.Transaction) bool {
 	var log_record recovery.LogRecord
 	isUndoOccured := false
 
-	// table for RID conversion
-	// when rid of record is changed at UpdateTuple on this method, conversion is needed for appropriate rollback.
-	RIDConvMap := make(map[page.RID]*page.RID, 0)
-	convRID := func(orgRID *page.RID) (convedRID *page.RID) {
-		if tmpRID, ok := RIDConvMap[*orgRID]; ok {
-			//fmt.Println("Abort: RID conversion occured.")
-			return tmpRID
-		} else {
-			return orgRID
-		}
-	}
-	updateRIDConvMap := func(orgRID *page.RID, changedRID *page.RID) {
-		RIDConvMap[*orgRID] = changedRID
-	}
-
-	// fmt.Println(log_recovery.active_txn)
-	// fmt.Println(log_recovery.lsn_mapping)
 	for _, lsn := range log_recovery.active_txn {
 		for lsn != common.InvalidLSN {
 			//fmt.Printf("lsn at Undo loop top: %d\n", lsn)
@@ -224,76 +216,47 @@ func (log_recovery *LogRecovery) Undo(txn *access.Transaction) bool {
 			log_recovery.DeserializeLogRecord(log_recovery.log_buffer[:readBytes], &log_record)
 			if log_record.Log_record_type == recovery.INSERT {
 				page_ :=
-					access.CastPageAsTablePage(log_recovery.buffer_pool_manager.FetchPage(convRID(&log_record.Insert_rid).GetPageId()))
+					access.CastPageAsTablePage(log_recovery.buffer_pool_manager.FetchPage(log_record.Insert_rid.GetPageId()))
 				// fmt.Printf("insert log type, page lsn:%d, log lsn:%d", page.GetLSN(), log_record.GetLSN())
 				page_.ApplyDelete(&log_record.Insert_rid, txn, log_recovery.log_manager)
-				log_recovery.buffer_pool_manager.UnpinPage(convRID(&log_record.Insert_rid).GetPageId(), true)
+				log_recovery.buffer_pool_manager.UnpinPage(log_record.Insert_rid.GetPageId(), true)
 				isUndoOccured = true
 			} else if log_record.Log_record_type == recovery.APPLYDELETE {
 				page_ :=
-					access.CastPageAsTablePage(log_recovery.buffer_pool_manager.FetchPage(convRID(&log_record.Delete_rid).GetPageId()))
-				log_record.Delete_tuple.SetRID(convRID(&log_record.Delete_rid))
+					access.CastPageAsTablePage(log_recovery.buffer_pool_manager.FetchPage(log_record.Delete_rid.GetPageId()))
+				log_record.Delete_tuple.SetRID(&log_record.Delete_rid)
 				page_.InsertTuple(&log_record.Delete_tuple, log_recovery.log_manager, nil, txn)
-				log_recovery.buffer_pool_manager.UnpinPage(convRID(&log_record.Delete_rid).GetPageId(), true)
+				log_recovery.buffer_pool_manager.UnpinPage(log_record.Delete_rid.GetPageId(), true)
 				isUndoOccured = true
 			} else if log_record.Log_record_type == recovery.MARKDELETE {
 				page_ :=
-					access.CastPageAsTablePage(log_recovery.buffer_pool_manager.FetchPage(convRID(&log_record.Delete_rid).GetPageId()))
-				page_.RollbackDelete(convRID(&log_record.Delete_rid), txn, log_recovery.log_manager)
-				log_recovery.buffer_pool_manager.UnpinPage(convRID(&log_record.Delete_rid).GetPageId(), true)
+					access.CastPageAsTablePage(log_recovery.buffer_pool_manager.FetchPage(log_record.Delete_rid.GetPageId()))
+				page_.RollbackDelete(&log_record.Delete_rid, txn, log_recovery.log_manager)
+				log_recovery.buffer_pool_manager.UnpinPage(log_record.Delete_rid.GetPageId(), true)
 				isUndoOccured = true
 			} else if log_record.Log_record_type == recovery.ROLLBACKDELETE {
 				page_ :=
-					access.CastPageAsTablePage(log_recovery.buffer_pool_manager.FetchPage(convRID(&log_record.Delete_rid).GetPageId()))
-				page_.MarkDelete(convRID(&log_record.Delete_rid), txn, nil, log_recovery.log_manager)
-				log_recovery.buffer_pool_manager.UnpinPage(convRID(&log_record.Delete_rid).GetPageId(), true)
+					access.CastPageAsTablePage(log_recovery.buffer_pool_manager.FetchPage(log_record.Delete_rid.GetPageId()))
+				page_.MarkDelete(&log_record.Delete_rid, txn, nil, log_recovery.log_manager)
+				log_recovery.buffer_pool_manager.UnpinPage(log_record.Delete_rid.GetPageId(), true)
 				isUndoOccured = true
 			} else if log_record.Log_record_type == recovery.UPDATE {
-				var org_update_rid page.RID = *convRID(&log_record.Update_rid)
 				page_ :=
-					access.CastPageAsTablePage(log_recovery.buffer_pool_manager.FetchPage(org_update_rid.GetPageId()))
-				is_updated, err, need_follow_tuple := page_.UpdateTuple(&log_record.Old_tuple, nil, nil, &log_record.New_tuple, convRID(&log_record.Update_rid), txn, nil, log_recovery.log_manager)
-
-				if is_updated == false && err == access.ErrNotEnoughSpace {
-					// when rid is changed case (data is move to new page)
-
-					// first, delete original data
-					page_.ApplyDelete(&org_update_rid, txn, log_recovery.log_manager)
-
-					var new_rid *page.RID
-					var err2 error
-					// second, insert updated tuple to other page
-					for {
-						new_rid, err2 = page_.InsertTuple(need_follow_tuple, log_recovery.log_manager, nil, txn)
-						if err2 == nil || err2 == access.ErrEmptyTuple {
-							break
-						}
-
-						// traverse pages until find needed capacity having page or create new page
-						nextPageId := page_.GetNextPageId()
-						if nextPageId.IsValid() {
-							nextPage := access.CastPageAsTablePage(log_recovery.buffer_pool_manager.FetchPage(nextPageId))
-							log_recovery.buffer_pool_manager.UnpinPage(page_.GetPageId(), true)
-							page_ = nextPage
-						} else {
-							p := log_recovery.buffer_pool_manager.NewPage()
-							newPage := access.CastPageAsTablePage(p)
-							page_.SetNextPageId(p.GetPageId())
-							currentPageId := page_.GetPageId()
-							newPage.Init(p.GetPageId(), currentPageId, log_recovery.log_manager, nil, txn)
-							log_recovery.buffer_pool_manager.UnpinPage(page_.GetPageId(), true)
-							page_ = newPage
-						}
-					}
-
-					if new_rid != nil {
-						updateRIDConvMap(&org_update_rid, new_rid)
-					}
+					access.CastPageAsTablePage(log_recovery.buffer_pool_manager.FetchPage(log_record.Update_rid.GetPageId()))
+				_, err, _ := page_.UpdateTuple(&log_record.Old_tuple, nil, nil, &log_record.New_tuple, &log_record.Update_rid, txn, nil, log_recovery.log_manager)
+				if err != nil {
+					panic(fmt.Sprintln("UpdateTuple at rollback failed! err:", err))
 				}
 				log_recovery.buffer_pool_manager.UnpinPage(page_.GetPageId(), true)
-
+				isUndoOccured = true
+			} else if log_record.Log_record_type == recovery.RESERVE_SPACE {
+				page_ :=
+					access.CastPageAsTablePage(log_recovery.buffer_pool_manager.FetchPage(log_record.Reserving_rid.GetPageId()))
+				page_.ApplyDelete(&log_record.Reserving_rid, txn, log_recovery.log_manager)
+				log_recovery.buffer_pool_manager.UnpinPage(log_record.Delete_rid.GetPageId(), true)
 				isUndoOccured = true
 			}
+
 			lsn = log_record.Prev_lsn
 			// fmt.Printf("lsn at Undo loop bottom: %d\n", lsn)
 		}

@@ -12,7 +12,7 @@ func GetExpTreeStr(node interface{}) string {
 
 	childTraverse := func(exp Expression) string {
 		var idx uint32 = 0
-		var tmpStr string = ""
+		var tmpStr = ""
 		for exp.GetChildAt(idx) != nil && idx < math.MaxInt32 {
 			child := exp.GetChildAt(idx)
 			tmpStr += GetExpTreeStr(child)
