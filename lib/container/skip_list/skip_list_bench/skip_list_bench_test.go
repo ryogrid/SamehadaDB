@@ -31,7 +31,7 @@ type workArray struct {
 func (arr *workArray) GetNewWork(threadNum int32) (work []*opTypeAndVal, done bool) {
 	arr.mutex.Lock()
 	defer arr.mutex.Unlock()
-	splitedWorkNum := (WORK_NUM / threadNum)
+	splitedWorkNum := WORK_NUM / threadNum
 
 	if arr.pos+splitedWorkNum <= WORK_NUM {
 		retArr := arr.arr[arr.pos : arr.pos+splitedWorkNum]

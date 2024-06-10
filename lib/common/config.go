@@ -39,7 +39,7 @@ const (
 	// number for calculate log buffer size (number of page size)
 	LogBufferSizeBase = 128
 	// size of a log buffer in byte
-	LogBufferSize = ((LogBufferSizeBase + 1) * PageSize)
+	LogBufferSize = (LogBufferSizeBase + 1) * PageSize
 	// size of hash bucket
 	BucketSizeOfHashIndex = 10
 	// probability used for determin node level on SkipList

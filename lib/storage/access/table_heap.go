@@ -210,7 +210,7 @@ func (t *TableHeap) UpdateTuple(tuple_ *tuple.Tuple, update_col_idxs []int, sche
 	// add appropriate transaction's write set of Update.
 	// when txn is ABORTED state case, data is not updated. so adding a write set entry is not needed
 	// when err == ErrNotEnoughSpace route and old tuple delete is only succeeded, DELETE write set entry is added above (no come here)
-	if !isRollback && is_updated && txn.GetState() != ABORTED {
+	if is_updated && txn.GetState() != ABORTED {
 		if isUpdateWithDelInsert {
 			// adding write record of UPDATE is not needed
 		} else {

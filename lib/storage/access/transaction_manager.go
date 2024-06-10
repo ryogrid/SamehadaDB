@@ -24,7 +24,7 @@ type TransactionManager struct {
 	mutex            *sync.Mutex
 }
 
-var txn_map map[types.TxnID]*Transaction = make(map[types.TxnID]*Transaction)
+var txn_map = make(map[types.TxnID]*Transaction)
 
 func NewTransactionManager(lock_manager *LockManager, log_manager *recovery.LogManager) *TransactionManager {
 	return &TransactionManager{0, lock_manager, log_manager, common.NewRWLatch(), new(sync.Mutex)}
@@ -33,7 +33,7 @@ func NewTransactionManager(lock_manager *LockManager, log_manager *recovery.LogM
 func (transaction_manager *TransactionManager) Begin(txn *Transaction) *Transaction {
 	// Acquire the global transaction latch in shared mode.
 	transaction_manager.global_txn_latch.RLock()
-	var txn_ret *Transaction = txn
+	var txn_ret = txn
 
 	if txn_ret == nil {
 		transaction_manager.mutex.Lock()
@@ -254,7 +254,7 @@ func (transaction_manager *TransactionManager) ResumeTransactions() {
 }
 
 func (transaction_manager *TransactionManager) releaseLocks(txn *Transaction) {
-	var lock_set []page.RID = make([]page.RID, 0)
+	var lock_set = make([]page.RID, 0)
 	lock_set = append(lock_set, txn.GetExclusiveLockSet()...)
 	lock_set = append(lock_set, txn.GetSharedLockSet()...)
 	transaction_manager.lock_manager.Unlock(txn, lock_set)

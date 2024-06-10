@@ -66,19 +66,22 @@ func (log_recovery *LogRecovery) DeserializeLogRecord(data []byte, log_record *r
 	if log_record.Log_record_type == recovery.INSERT {
 		binary.Read(bytes.NewBuffer(data[pos:]), binary.LittleEndian, &log_record.Insert_rid)
 		pos += uint32(unsafe.Sizeof(log_record.Insert_rid))
-		// we have provided serialize function for tuple class
 		log_record.Insert_tuple.DeserializeFrom(data[pos:])
 	} else if log_record.Log_record_type == recovery.APPLYDELETE ||
 		log_record.Log_record_type == recovery.MARKDELETE ||
 		log_record.Log_record_type == recovery.ROLLBACKDELETE {
 		binary.Read(bytes.NewBuffer(data[pos:]), binary.LittleEndian, &log_record.Delete_rid)
 		pos += uint32(unsafe.Sizeof(log_record.Delete_rid))
-		// we have provided serialize function for tuple class
 		log_record.Delete_tuple.DeserializeFrom(data[pos:])
 	} else if log_record.Log_record_type == recovery.UPDATE {
 		binary.Read(bytes.NewBuffer(data[pos:]), binary.LittleEndian, &log_record.Update_rid)
 		pos += uint32(unsafe.Sizeof(log_record.Update_rid))
-		// we have provided serialize function for tuple class
+		log_record.Old_tuple.DeserializeFrom(data[pos:])
+		pos += log_record.Old_tuple.Size() + uint32(tuple.TupleSizeOffsetInLogrecord)
+		log_record.New_tuple.DeserializeFrom(data[pos:])
+	} else if log_record.Log_record_type == recovery.FINALIZE_UPDATE {
+		binary.Read(bytes.NewBuffer(data[pos:]), binary.LittleEndian, &log_record.Update_rid)
+		pos += uint32(unsafe.Sizeof(log_record.Update_rid))
 		log_record.Old_tuple.DeserializeFrom(data[pos:])
 		pos += log_record.Old_tuple.Size() + uint32(tuple.TupleSizeOffsetInLogrecord)
 		log_record.New_tuple.DeserializeFrom(data[pos:])

@@ -320,7 +320,7 @@ func (b *BufferPoolManager) DeallocatePage(pageID types.PageID) error {
 func (b *BufferPoolManager) FlushAllPages() {
 	pageIDs := make([]types.PageID, 0)
 	b.mutex.Lock()
-	for pageID, _ := range b.pageTable {
+	for pageID := range b.pageTable {
 		pageIDs = append(pageIDs, pageID)
 	}
 	b.mutex.Unlock()
@@ -334,7 +334,7 @@ func (b *BufferPoolManager) FlushAllPages() {
 func (b *BufferPoolManager) FlushAllDirtyPages() bool {
 	pageIDs := make([]types.PageID, 0)
 	b.mutex.Lock()
-	for pageID, _ := range b.pageTable {
+	for pageID := range b.pageTable {
 		if frameID, ok := b.pageTable[pageID]; ok {
 			pg := b.pages[frameID]
 			pg.RLatch()

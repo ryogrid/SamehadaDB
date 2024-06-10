@@ -132,7 +132,7 @@ func FillTable(info *catalog.TableMetadata, table_meta *TableInsertMeta, txn *ac
 	var batch_size uint32 = 128
 	for num_inserted < table_meta.Num_rows_ {
 		var values [][]types.Value
-		var num_values uint32 = uint32(math.Min(float64(batch_size), float64(table_meta.Num_rows_-num_inserted)))
+		var num_values = uint32(math.Min(float64(batch_size), float64(table_meta.Num_rows_-num_inserted)))
 		for _, col_meta := range table_meta.Col_meta_ {
 			values = append(values, MakeValues(col_meta, num_values))
 		}
@@ -176,7 +176,7 @@ func MakeConstantValueExpression(val *types.Value) expression.Expression {
 }
 
 func MakeOutputSchema(exprs []MakeSchemaMeta) *schema.Schema {
-	var cols []*column.Column = make([]*column.Column, 0)
+	var cols = make([]*column.Column, 0)
 	for _, input := range exprs {
 		cols = append(cols, column.NewColumn(input.Col_name_, input.Expr_.GetReturnType(), false, index_constants.INDEX_KIND_INVALID, types.PageID(-1), input.Expr_))
 	}
@@ -184,7 +184,7 @@ func MakeOutputSchema(exprs []MakeSchemaMeta) *schema.Schema {
 }
 
 func MakeOutputSchemaAgg(exprs []MakeSchemaMetaAgg) *schema.Schema {
-	var cols []*column.Column = make([]*column.Column, 0)
+	var cols = make([]*column.Column, 0)
 	for _, input := range exprs {
 		cols = append(cols, column.NewColumn(input.Col_name_, input.Expr_.GetReturnType(), false, index_constants.INDEX_KIND_INVALID, types.PageID(-1), input.Expr_))
 	}

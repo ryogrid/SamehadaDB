@@ -1869,7 +1869,7 @@ func TestSimpleGroupByAggregation(t *testing.T) {
 	executor := executionEngine.CreateExecutor(agg_plan, exec_ctx)
 	executor.Init()
 
-	var encountered map[int32]int32 = make(map[int32]int32, 0)
+	var encountered = make(map[int32]int32, 0)
 	for tuple_, done, _ := executor.Next(); !done; tuple_, done, _ = executor.Next() {
 		// Should have countA > 100
 		countA := tuple_.GetValue(agg_schema, agg_schema.GetColIndex("countA")).ToInteger()

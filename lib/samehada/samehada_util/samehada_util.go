@@ -161,7 +161,7 @@ func ChoiceKeyFromMap[T int32 | float32 | string, V int32 | float32 | string | b
 	index := rand.Intn(l)
 
 	var ans T
-	for k, _ := range m {
+	for k := range m {
 		if index == i {
 			ans = k
 			break
@@ -218,7 +218,7 @@ const SIGN_MASK_SMALL byte = 0x80
 
 // true = big endian, false = little endian
 func getEndian() (ret bool) {
-	var i int = 0x1
+	var i = 0x1
 	bs := (*[4]byte)(unsafe.Pointer(&i))
 	if bs[0] == 0 {
 		return true

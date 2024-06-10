@@ -210,9 +210,9 @@ func (tp *TablePage) UpdateTuple(new_tuple *tuple.Tuple, update_col_idxs []int, 
 	} else {
 		// update specifed columns only case
 
-		var update_tuple_values []types.Value = make([]types.Value, 0)
+		var update_tuple_values = make([]types.Value, 0)
 		matched_cnt := int(0)
-		for idx, _ := range schema_.GetColumns() {
+		for idx := range schema_.GetColumns() {
 			if matched_cnt < len(update_col_idxs) && idx == update_col_idxs[matched_cnt] {
 				update_tuple_values = append(update_tuple_values, new_tuple.GetValue(schema_, uint32(idx)))
 				matched_cnt++
@@ -247,8 +247,10 @@ func (tp *TablePage) UpdateTuple(new_tuple *tuple.Tuple, update_col_idxs []int, 
 		// and move other tuples data
 		copy(tp.GetData()[free_space_pointer+tuple_size-update_tuple.Size():], tp.GetData()[free_space_pointer:tuple_offset])
 		tp.SetFreeSpacePointer(free_space_pointer + tuple_size - update_tuple.Size())
-		copy(tp.GetData()[tuple_offset+tuple_size-update_tuple.Size():], update_tuple.Data()[:update_tuple.Size()])
+		//copy(tp.GetData()[tuple_offset+tuple_size-update_tuple.Size():], update_tuple.Data()[:update_tuple.Size()])
+		copy(tp.GetData()[tuple_offset:], update_tuple.Data()[:update_tuple.Size()])
 		tp.SetTupleSize(slot_num, update_tuple.Size())
+		tp.SetTupleOffsetAtSlot(rid.GetSlotNum(), tuple_offset+(tuple_size-update_tuple.Size()))
 	} else {
 		// occupy the same memory space as the old_tuple until transaction finish
 
@@ -275,6 +277,7 @@ func (tp *TablePage) UpdateTuple(new_tuple *tuple.Tuple, update_col_idxs []int, 
 
 // called only at commit or redo
 func (tp *TablePage) FinalizeUpdateTuple(rid *page.RID, old_tuple *tuple.Tuple, update_tuple *tuple.Tuple, txn *Transaction, log_manager *recovery.LogManager) {
+	// needless
 	if update_tuple.Size() > old_tuple.Size() {
 		// finalize is not needed
 		return
@@ -299,6 +302,9 @@ func (tp *TablePage) FinalizeUpdateTuple(rid *page.RID, old_tuple *tuple.Tuple, 
 	slide_size := slot_size - tuple_size
 	new_slot_offset := slot_offset + slide_size
 	tp.SetTupleOffsetAtSlot(rid.GetSlotNum(), new_slot_offset)
+
+	free_space_pointer := tp.GetFreeSpacePointer()
+	tp.SetFreeSpacePointer(free_space_pointer + slide_size)
 
 	// move tuple data to collect location
 	copy(tp.GetData()[new_slot_offset:], update_tuple.Data())

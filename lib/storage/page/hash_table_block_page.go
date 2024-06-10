@@ -48,8 +48,8 @@ func (page *HashTableBlockPage) Insert(index uint64, key uint64, value uint64) b
 	}
 
 	page.array[index] = HashTablePair{key, value}
-	page.occuppied[index/8] |= (1 << (index % 8))
-	page.readable[index/8] |= (1 << (index % 8))
+	page.occuppied[index/8] |= 1 << (index % 8)
+	page.readable[index/8] |= 1 << (index % 8)
 	return true
 }
 

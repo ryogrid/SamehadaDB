@@ -56,7 +56,7 @@ func (e *UpdateExecutor) Next() (*tuple.Tuple, Done, error) {
 		values := e.plan.GetRawValues()
 		new_tuple := tuple.NewTupleFromSchema(values, e.child.GetTableMetaData().Schema())
 
-		var is_updated bool = false
+		var is_updated = false
 		var new_rid *page.RID = nil
 		var updateErr error = nil
 		var updateTuple *tuple.Tuple

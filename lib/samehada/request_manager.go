@@ -74,7 +74,7 @@ func (reqManager *RequestManager) executeQuedTxns() {
 // caller must having lock of queMutex
 func (reqManager *RequestManager) handleAbortedByCCTxn(result *reqResult) {
 	// insert aborted request to head of que
-	reqManager.execQue = append([]*queryRequest{&queryRequest{result.reqId, result.query, result.callerCh}}, reqManager.execQue...)
+	reqManager.execQue = append([]*queryRequest{{result.reqId, result.query, result.callerCh}}, reqManager.execQue...)
 	//fmt.Println("add que aborted req")
 }
 

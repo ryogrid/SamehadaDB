@@ -137,7 +137,7 @@ func (c *Catalog) GetAllTables() []*TableMetadata {
 	ret := make([]*TableMetadata, 0)
 	c.tableIdsMutex.Lock()
 	defer c.tableIdsMutex.Unlock()
-	for key, _ := range c.tableIds {
+	for key := range c.tableIds {
 		ret = append(ret, c.tableIds[key])
 	}
 	return ret

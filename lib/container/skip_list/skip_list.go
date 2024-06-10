@@ -106,7 +106,7 @@ func (sl *SkipList) FindNode(key *types.Value, opType SkipListOpType) (isSuccess
 	// entry of corners is corner node or target node
 	corners := make([]skip_list_page.SkipListCornerInfo, skip_list_page.MAX_FOWARD_LIST_LEN)
 	var curr *skip_list_page.SkipListBlockPage = nil
-	for ii := (skip_list_page.MAX_FOWARD_LIST_LEN - 1); ii >= 0; ii-- {
+	for ii := skip_list_page.MAX_FOWARD_LIST_LEN - 1; ii >= 0; ii-- {
 		//fmt.Printf("level %d\n", i)
 		for {
 			if pred == sl.startNode && pred.GetForwardEntry(ii) == sl.SentinelNodeID {

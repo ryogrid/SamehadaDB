@@ -111,7 +111,7 @@ func (pner *SimplePlanner) MakeSelectPlanWithJoin() (error, plans.Plan) {
 	var outSchemaL *schema.Schema
 	var scanPlanL plans.Plan
 	{
-		var columns []*column.Column = make([]*column.Column, 0)
+		var columns = make([]*column.Column, 0)
 		for _, col := range tgtTblColumnsL {
 			columns = append(columns, column.NewColumn(col.GetColumnName(), col.GetType(), false, index_constants.INDEX_KIND_INVALID, types.PageID(-1), col.GetExpr()))
 		}
@@ -361,7 +361,7 @@ func (pner *SimplePlanner) MakeUpdatePlan() (error, plans.Plan) {
 	// second, construc values list includes dummy value (not update target)
 	updateVals := make([]types.Value, tgtTblSchema.GetColumnCount())
 	// fill all elems with dummy
-	for idx, _ := range tgtTblSchema.GetColumns() {
+	for idx := range tgtTblSchema.GetColumns() {
 		updateVals[idx] = types.NewNull()
 	}
 	// overwrite elem which is update target

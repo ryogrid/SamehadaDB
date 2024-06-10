@@ -1021,8 +1021,8 @@ func testParallelTxnsQueryingSkipListIndexUsedColumns[T int32 | float32 | string
 				common.ShPrintf(common.DEBUGGING, "Select(success) op start.\n")
 				diffToMakeNoExist := int32(10)
 			rangeSelectRetry:
-				var rangeStartKey T = samehada_util.ChoiceKeyFromMap(insVals)
-				var rangeEndKey T = samehada_util.ChoiceKeyFromMap(insVals)
+				var rangeStartKey = samehada_util.ChoiceKeyFromMap(insVals)
+				var rangeEndKey = samehada_util.ChoiceKeyFromMap(insVals)
 				for rangeEndKey < rangeStartKey {
 					goto rangeSelectRetry
 				}
@@ -1126,7 +1126,7 @@ func testParallelTxnsQueryingSkipListIndexUsedColumns[T int32 | float32 | string
 	// detect tuple which has illegal value at first column (unknown key based value)
 	// -- make map having values which should be in DB
 	okValMap := make(map[T]T, 0)
-	for baseKey, _ := range insVals {
+	for baseKey := range insVals {
 		for ii := int32(0); ii < stride; ii++ {
 			okVal := samehada_util.StrideAdd(samehada_util.StrideMul(baseKey, stride), ii).(T)
 			okValMap[okVal] = okVal
@@ -1193,7 +1193,7 @@ func testParallelTxnsQueryingSkipListIndexUsedColumns[T int32 | float32 | string
 	// detect tuple which has illegal value at second column (unknown key based value)
 	// -- make map having values which should be in DB
 	okValMap2 := make(map[int32]int32, 0)
-	for baseKey, _ := range insVals {
+	for baseKey := range insVals {
 		for ii := int32(0); ii < stride; ii++ {
 			okValBasedKey := samehada_util.StrideAdd(samehada_util.StrideMul(baseKey, stride), ii).(T)
 			okVal := getInt32ValCorrespondToPassVal(okValBasedKey)
