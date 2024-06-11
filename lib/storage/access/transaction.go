@@ -38,6 +38,7 @@ const (
 	INSERT WType = iota
 	DELETE
 	UPDATE
+	RESERVE_SPACE
 )
 
 /**

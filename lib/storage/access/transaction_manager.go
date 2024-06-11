@@ -89,7 +89,7 @@ func (transaction_manager *TransactionManager) Commit(catalog_ catalog_interface
 			table.bpm.UnpinPage(tpage.GetPageId(), true)
 			tpage.RemoveWLatchRecord(int32(txn.txn_id))
 			tpage.WUnlatch()
-		} else if item.wtype == UPDATE {
+		} else if item.wtype == RESERVE_SPACE {
 			if common.EnableDebug && common.ActiveLogKindSetting&common.COMMIT_ABORT_HANDLE_INFO > 0 {
 				fmt.Printf("TransactionManager::Commit handle UPDATE write log. txn.txn_id:%v dbgInfo:%s rid:%v\n", txn.txn_id, txn.dbgInfo, rid)
 			}
@@ -97,8 +97,8 @@ func (transaction_manager *TransactionManager) Commit(catalog_ catalog_interface
 			tpage := CastPageAsTablePage(table.bpm.FetchPage(pageID))
 			tpage.WLatch()
 			tpage.AddWLatchRecord(int32(txn.txn_id))
-			// move updated tuple to collect position on the page
-			tpage.FinalizeUpdateTuple(rid, item.tuple1, item.tuple2, txn, transaction_manager.log_manager)
+			// remove dummy tuple which reserves space for update rollback
+			tpage.ApplyDelete(item.rid, txn, transaction_manager.log_manager)
 			table.bpm.UnpinPage(tpage.GetPageId(), true)
 			tpage.RemoveWLatchRecord(int32(txn.txn_id))
 			tpage.WUnlatch()
@@ -201,11 +201,21 @@ func (transaction_manager *TransactionManager) Abort(catalog_ catalog_interface.
 				fmt.Printf("TransactionManager::Abort handle UPDATE write log. txn.txn_id:%v dbgInfo:%s rid:%v tuple1.Size()=%d \n", txn.txn_id, txn.dbgInfo, item.rid, item.tuple1.Size())
 			}
 
-			var is_updated = false
-			is_updated, _, _, _, _ = table.UpdateTuple(item.tuple1, nil, nil, item.oid, *item.rid, txn, true)
-			if !is_updated {
-				panic("UpdateTuple at rollback failed!")
-			}
+			// rollback record data
+			rid := item.rid
+			// Note that this also releases the lock when holding the page latch.
+			pageID := rid.GetPageId()
+			tpage := CastPageAsTablePage(table.bpm.FetchPage(pageID))
+			tpage.WLatch()
+			tpage.UpdateTuple(item.tuple1, nil, nil, item.tuple2, rid, txn, transaction_manager.lock_manager, transaction_manager.log_manager)
+			table.bpm.UnpinPage(pageID, true)
+			tpage.WUnlatch()
+
+			//var is_updated = false
+			//is_updated, _, _, _, _ = table.UpdateTuple(item.tuple1, nil, nil, item.oid, *item.rid, txn, true)
+			//if !is_updated {
+			//	panic("UpdateTuple at rollback failed!")
+			//}
 
 			// rollback is not needed at update
 			// (RID chaned case is handled at DELETE and INSERT write log handling)
@@ -226,6 +236,19 @@ func (transaction_manager *TransactionManager) Abort(catalog_ catalog_interface.
 					}
 				}
 			}
+		} else if item.wtype == RESERVE_SPACE {
+			if common.EnableDebug && common.ActiveLogKindSetting&common.COMMIT_ABORT_HANDLE_INFO > 0 {
+				fmt.Printf("TransactionManager::Commit handle UPDATE write log. txn.txn_id:%v dbgInfo:%s rid:%v\n", txn.txn_id, txn.dbgInfo, item.rid)
+			}
+			pageID := item.rid.GetPageId()
+			tpage := CastPageAsTablePage(table.bpm.FetchPage(pageID))
+			tpage.WLatch()
+			tpage.AddWLatchRecord(int32(txn.txn_id))
+			// remove dummy tuple which reserves space for update rollback
+			tpage.ApplyDelete(item.rid, txn, transaction_manager.log_manager)
+			table.bpm.UnpinPage(tpage.GetPageId(), true)
+			tpage.RemoveWLatchRecord(int32(txn.txn_id))
+			tpage.WUnlatch()
 		}
 		write_set = write_set[:len(write_set)-1]
 	}

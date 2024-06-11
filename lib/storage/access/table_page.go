@@ -19,8 +19,8 @@ import (
 	"github.com/ryogrid/SamehadaDB/lib/types"
 )
 
-// static constexpr uint64_t DELETE_MASK = (1U << (8 * sizeof(uint32_t) - 1));
 const deleteMask = uint32(1 << ((8 * 4) - 1))
+const reservedMask = uint32(1 << ((8 * 4) - 2))
 
 const sizeTablePageHeader = uint32(24)
 const sizeTuple = uint32(8)
@@ -148,7 +148,7 @@ func (tp *TablePage) InsertTuple(tuple *tuple.Tuple, log_manager *recovery.LogMa
 // for ensureing existance of enough space at rollback on abort or undo
 // return Tuple pointer when updated tuple1 need to be moved new page location and it should be inserted after old data deleted, otherwise returned nil
 func (tp *TablePage) UpdateTuple(new_tuple *tuple.Tuple, update_col_idxs []int, schema_ *schema.Schema, old_tuple *tuple.Tuple, rid *page.RID, txn *Transaction,
-	lock_manager *LockManager, log_manager *recovery.LogManager, isForRollbackOrUndo bool) (bool, error, *tuple.Tuple) {
+	lock_manager *LockManager, log_manager *recovery.LogManager) (bool, error, *tuple.Tuple) {
 	if common.EnableDebug {
 		defer func() {
 			if common.ActiveLogKindSetting&common.DEBUGGING > 0 {
@@ -192,6 +192,10 @@ func (tp *TablePage) UpdateTuple(new_tuple *tuple.Tuple, update_col_idxs []int, 
 		if !txn.IsRecoveryPhase() {
 			txn.SetState(ABORTED)
 		}
+		return false, nil, nil
+	}
+	if IsReserved(tuple_size) {
+		// ignore dummy tuple
 		return false, nil, nil
 	}
 
@@ -240,7 +244,7 @@ func (tp *TablePage) UpdateTuple(new_tuple *tuple.Tuple, update_col_idxs []int, 
 
 	if new_tuple.Size() <= tuple_size {
 		// add dummy tuple which reserves space for update is aborted
-		tp.ReserveSpaceForRollbackUpdate(tuple_size-new_tuple.Size(), txn, log_manager)
+		tp.ReserveSpaceForRollbackUpdate(nil, tuple_size-new_tuple.Size(), txn, log_manager)
 	}
 
 	// Perform the update.
@@ -261,19 +265,28 @@ func (tp *TablePage) UpdateTuple(new_tuple *tuple.Tuple, update_col_idxs []int, 
 			tp.SetTupleOffsetAtSlot(uint32(ii), tuple_offset_i+tuple_size-update_tuple.Size())
 		}
 	}
-	// when other condition update, tuples offset updating is not done here (done at commit or redo)
 
 	return true, nil, update_tuple
 }
 
-func (tp *TablePage) ReserveSpaceForRollbackUpdate(size uint32, txn *Transaction, log_manager *recovery.LogManager) *page.RID {
+// rid is not null when caller is Redo
+func (tp *TablePage) ReserveSpaceForRollbackUpdate(rid *page.RID, size uint32, txn *Transaction, log_manager *recovery.LogManager) *page.RID {
 	maxSlotNum := tp.GetTupleCount()
 	buf := make([]byte, size)
 
 	// set dummy tuple for rollback
-	dummy_rid := &page.RID{tp.GetPageId(), maxSlotNum + 1}
+	var dummy_rid *page.RID
+	if rid != nil {
+		dummy_rid = rid
+	} else {
+		dummy_rid = &page.RID{tp.GetPageId(), maxSlotNum + 1}
+	}
 	dummy_tuple := tuple.NewTuple(dummy_rid, size, buf[:size])
-	tp.setTuple(maxSlotNum+1, dummy_tuple)
+	tp.setTuple(dummy_rid.GetSlotNum(), dummy_tuple)
+
+	if size > 0 {
+		tp.SetTupleSize(dummy_rid.GetSlotNum(), SetDeletedFlag(size))
+	}
 
 	if log_manager.IsEnabledLogging() {
 		log_record := recovery.NewLogRecordReserveSpace(txn.GetTransactionId(), txn.GetPrevLSN(), recovery.RESERVE_SPACE, *dummy_rid, dummy_tuple)
@@ -281,6 +294,8 @@ func (tp *TablePage) ReserveSpaceForRollbackUpdate(size uint32, txn *Transaction
 		tp.SetLSN(lsn)
 		txn.SetPrevLSN(lsn)
 	}
+
+	return dummy_rid
 }
 
 //// called only at commit or redo
@@ -421,6 +436,9 @@ func (tp *TablePage) ApplyDelete(rid *page.RID, txn *Transaction, log_manager *r
 	// Check if this is a delete operation, i.e. commit a delete.
 	if IsDeleted(tuple_size) {
 		tuple_size = UnsetDeletedFlag(tuple_size)
+	}
+	if IsReserved(tuple_size) {
+		tuple_size = UnsetReservedFlag(tuple_size)
 	}
 	// Otherwise we are rolling back an insert.
 
@@ -691,6 +709,11 @@ func (tp *TablePage) GetTuple(rid *page.RID, log_manager *recovery.LogManager, l
 		}
 	}
 
+	if IsReserved(tupleSize) {
+		// handle as same as deleted tuple
+		return tuple.NewTuple(rid, 0, make([]byte, 0)), ErrSelfDeletedCase
+	}
+
 	tupleData := make([]byte, tupleSize)
 	copy(tupleData, tp.Data()[tupleOffset:])
 
@@ -743,4 +766,16 @@ func SetDeletedFlag(tuple_size uint32) uint32 {
 /** @return tuple1 size with the deleted flag unset */
 func UnsetDeletedFlag(tuple_size uint32) uint32 {
 	return tuple_size & (^uint32(deleteMask))
+}
+
+func IsReserved(tuple_size uint32) bool {
+	return tuple_size&uint32(reservedMask) == uint32(reservedMask) || tuple_size == 0
+}
+
+func SetReservedFlag(tuple_size uint32) uint32 {
+	return tuple_size | uint32(reservedMask)
+}
+
+func UnsetReservedFlag(tuple_size uint32) uint32 {
+	return tuple_size & (^uint32(reservedMask))
 }
