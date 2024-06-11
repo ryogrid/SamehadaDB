@@ -161,6 +161,7 @@ func (log_manager *LogManager) AppendLogRecord(log_record *LogRecord) types.LSN 
 		pageIdInBytes := buf.Bytes()
 		copy(log_manager.log_buffer[pos:], pageIdInBytes)
 	}
+	// TODO: (SDB) need to implement serialization of RESERVE_SPACE type log
 
 	log_manager.latch.WUnlock()
 	return log_record.Lsn

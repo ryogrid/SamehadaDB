@@ -238,35 +238,27 @@ func (tp *TablePage) UpdateTuple(new_tuple *tuple.Tuple, update_col_idxs []int, 
 		txn.SetPrevLSN(lsn)
 	}
 
+	if new_tuple.Size() <= tuple_size {
+		// add dummy tuple which reserves space for update is aborted
+		tp.ReserveSpaceForRollbackUpdate(tuple_size-new_tuple.Size(), txn, log_manager)
+	}
+
 	// Perform the update.
 	free_space_pointer := tp.GetFreeSpacePointer()
 	common.SH_Assert(tuple_offset >= free_space_pointer, "Offset should appear after current free space position.")
 
-	if isForRollbackOrUndo || update_tuple.Size() >= old_tuple.Size() {
-		// occupy correct memory space for new_tuple
-		// and move other tuples data
-		copy(tp.GetData()[free_space_pointer+tuple_size-update_tuple.Size():], tp.GetData()[free_space_pointer:tuple_offset])
-		tp.SetFreeSpacePointer(free_space_pointer + tuple_size - update_tuple.Size())
-		copy(tp.GetData()[tuple_offset+tuple_size-update_tuple.Size():], update_tuple.Data()[:update_tuple.Size()])
-		tp.SetTupleSize(slot_num, update_tuple.Size())
-		tp.SetTupleOffsetAtSlot(rid.GetSlotNum(), tuple_offset+(tuple_size-update_tuple.Size()))
-	} else {
-		// occupy the same memory space as the old_tuple until transaction finish
+	copy(tp.GetData()[free_space_pointer+tuple_size-update_tuple.Size():], tp.GetData()[free_space_pointer:tuple_offset])
+	tp.SetFreeSpacePointer(free_space_pointer + tuple_size - update_tuple.Size())
+	copy(tp.GetData()[tuple_offset+tuple_size-update_tuple.Size():], update_tuple.Data()[:update_tuple.Size()])
+	tp.SetTupleSize(slot_num, update_tuple.Size())
+	tp.SetTupleOffsetAtSlot(rid.GetSlotNum(), tuple_offset+(tuple_size-update_tuple.Size()))
 
-		// no move of other tuples and no update of free space pointer here (done at commit or redo)
-
-		copy(tp.GetData()[tuple_offset:], update_tuple.Data()[:update_tuple.Size()])
-		tp.SetTupleSize(slot_num, update_tuple.Size())
-	}
-
-	if isForRollbackOrUndo || update_tuple.Size() > old_tuple.Size() {
-		// Update all tuples offsets.
-		tuple_cnt := int(tp.GetTupleCount())
-		for ii := 0; ii < tuple_cnt; ii++ {
-			tuple_offset_i := tp.GetTupleOffsetAtSlot(uint32(ii))
-			if tp.GetTupleSize(uint32(ii)) > 0 && tuple_offset_i < tuple_offset+tuple_size {
-				tp.SetTupleOffsetAtSlot(uint32(ii), tuple_offset_i+tuple_size-update_tuple.Size())
-			}
+	// Update all tuples offsets.
+	tuple_cnt := int(tp.GetTupleCount())
+	for ii := 0; ii < tuple_cnt; ii++ {
+		tuple_offset_i := tp.GetTupleOffsetAtSlot(uint32(ii))
+		if tp.GetTupleSize(uint32(ii)) > 0 && tuple_offset_i < tuple_offset+tuple_size {
+			tp.SetTupleOffsetAtSlot(uint32(ii), tuple_offset_i+tuple_size-update_tuple.Size())
 		}
 	}
 	// when other condition update, tuples offset updating is not done here (done at commit or redo)
@@ -274,50 +266,67 @@ func (tp *TablePage) UpdateTuple(new_tuple *tuple.Tuple, update_col_idxs []int, 
 	return true, nil, update_tuple
 }
 
-// called only at commit or redo
-func (tp *TablePage) FinalizeUpdateTuple(rid *page.RID, old_tuple *tuple.Tuple, update_tuple *tuple.Tuple, txn *Transaction, log_manager *recovery.LogManager) {
-	// needless
-	if update_tuple.Size() >= old_tuple.Size() {
-		// finalize is not needed
-		return
-	}
+func (tp *TablePage) ReserveSpaceForRollbackUpdate(size uint32, txn *Transaction, log_manager *recovery.LogManager) *page.RID {
+	maxSlotNum := tp.GetTupleCount()
+	buf := make([]byte, size)
+
+	// set dummy tuple for rollback
+	dummy_rid := &page.RID{tp.GetPageId(), maxSlotNum + 1}
+	dummy_tuple := tuple.NewTuple(dummy_rid, size, buf[:size])
+	tp.setTuple(maxSlotNum+1, dummy_tuple)
 
 	if log_manager.IsEnabledLogging() {
-		log_record := recovery.NewLogRecordUpdate(txn.GetTransactionId(), txn.GetPrevLSN(), recovery.FINALIZE_UPDATE, *rid, *old_tuple, *update_tuple)
+		log_record := recovery.NewLogRecordReserveSpace(txn.GetTransactionId(), txn.GetPrevLSN(), recovery.RESERVE_SPACE, *dummy_rid, dummy_tuple)
 		lsn := log_manager.AppendLogRecord(log_record)
 		tp.SetLSN(lsn)
 		txn.SetPrevLSN(lsn)
 	}
-
-	slot_size := tp.GetTupleSize(rid.GetSlotNum())
-	slot_offset := tp.GetTupleOffsetAtSlot(rid.GetSlotNum())
-	tuple_size := update_tuple.Size()
-	// If the tuple is deleted, do nothing
-	if IsDeleted(tuple_size) {
-		return
-	}
-
-	// update slot_offset to collect location
-	slide_size := slot_size - tuple_size
-	new_slot_offset := slot_offset + slide_size
-	tp.SetTupleSize(rid.GetSlotNum(), tuple_size)
-	tp.SetTupleOffsetAtSlot(rid.GetSlotNum(), new_slot_offset)
-
-	free_space_pointer := tp.GetFreeSpacePointer()
-	tp.SetFreeSpacePointer(free_space_pointer + slide_size)
-
-	// move tuple data to collect location
-	copy(tp.GetData()[new_slot_offset:], update_tuple.Data())
-
-	// Update all tuples offsets
-	tuple_cnt := int(tp.GetTupleCount())
-	for ii := 0; ii < tuple_cnt; ii++ {
-		tuple_offset_i := tp.GetTupleOffsetAtSlot(uint32(ii))
-		if tp.GetTupleSize(uint32(ii)) > 0 && tuple_offset_i < new_slot_offset {
-			tp.SetTupleOffsetAtSlot(uint32(ii), tuple_offset_i+slide_size)
-		}
-	}
 }
+
+//// called only at commit or redo
+//func (tp *TablePage) FinalizeUpdateTuple(rid *page.RID, old_tuple *tuple.Tuple, update_tuple *tuple.Tuple, txn *Transaction, log_manager *recovery.LogManager) {
+//	// needless
+//	if update_tuple.Size() >= old_tuple.Size() {
+//		// finalize is not needed
+//		return
+//	}
+//
+//	if log_manager.IsEnabledLogging() {
+//		log_record := recovery.NewLogRecordUpdate(txn.GetTransactionId(), txn.GetPrevLSN(), recovery.FINALIZE_UPDATE, *rid, *old_tuple, *update_tuple)
+//		lsn := log_manager.AppendLogRecord(log_record)
+//		tp.SetLSN(lsn)
+//		txn.SetPrevLSN(lsn)
+//	}
+//
+//	slot_size := tp.GetTupleSize(rid.GetSlotNum())
+//	slot_offset := tp.GetTupleOffsetAtSlot(rid.GetSlotNum())
+//	tuple_size := update_tuple.Size()
+//	// If the tuple is deleted, do nothing
+//	if IsDeleted(tuple_size) {
+//		return
+//	}
+//
+//	// update slot_offset to collect location
+//	slide_size := slot_size - tuple_size
+//	new_slot_offset := slot_offset + slide_size
+//	tp.SetTupleSize(rid.GetSlotNum(), tuple_size)
+//	tp.SetTupleOffsetAtSlot(rid.GetSlotNum(), new_slot_offset)
+//
+//	free_space_pointer := tp.GetFreeSpacePointer()
+//	tp.SetFreeSpacePointer(free_space_pointer + slide_size)
+//
+//	// move tuple data to collect location
+//	copy(tp.GetData()[new_slot_offset:], update_tuple.Data())
+//
+//	// Update all tuples offsets
+//	tuple_cnt := int(tp.GetTupleCount())
+//	for ii := 0; ii < tuple_cnt; ii++ {
+//		tuple_offset_i := tp.GetTupleOffsetAtSlot(uint32(ii))
+//		if tp.GetTupleSize(uint32(ii)) > 0 && tuple_offset_i < new_slot_offset {
+//			tp.SetTupleOffsetAtSlot(uint32(ii), tuple_offset_i+slide_size)
+//		}
+//	}
+//}
 
 func (tp *TablePage) MarkDelete(rid *page.RID, txn *Transaction, lock_manager *LockManager, log_manager *recovery.LogManager) (isMarked bool, markedTuple *tuple.Tuple) {
 	if common.EnableDebug {

@@ -22,7 +22,7 @@ const (
 	APPLYDELETE
 	ROLLBACKDELETE
 	UPDATE
-	FINALIZE_UPDATE
+	RESERVE_SPACE
 	BEGIN
 	COMMIT
 	ABORT
@@ -53,6 +53,10 @@ const (
  *--------------------------
  * | HEADER | prev_page_id |
  *--------------------------
+ * For reserve space type log record
+ *--------------------------
+ * | HEADER | tuple_rid |
+ *--------------------------
  */
 
 type LogRecord struct {
@@ -79,6 +83,10 @@ type LogRecord struct {
 
 	// case4: for new page opeartion
 	Prev_page_id types.PageID //INVALID_PAGE_ID
+
+	// case5: for reserve space
+	Reserving_rid   page.RID
+	Reserving_tuple tuple.Tuple
 }
 
 // constructor for Transaction type(BEGIN/COMMIT/ABORT)
@@ -134,6 +142,19 @@ func NewLogRecordNewPage(txn_id types.TxnID, prev_lsn types.LSN, log_record_type
 	ret.Prev_page_id = page_id
 	// calculate log record size
 	ret.Size = HEADER_SIZE + uint32(unsafe.Sizeof(page_id))
+	return ret
+}
+
+func NewLogRecordReserveSpace(txn_id types.TxnID, prev_lsn types.LSN, log_record_type LogRecordType, rid page.RID, tuple *tuple.Tuple) *LogRecord {
+	ret := new(LogRecord)
+	ret.Size = HEADER_SIZE
+	ret.Txn_id = txn_id
+	ret.Prev_lsn = prev_lsn
+	ret.Log_record_type = log_record_type
+	ret.Reserving_rid = rid
+	ret.Reserving_tuple = *tuple
+	// calculate log record size
+	ret.Size = HEADER_SIZE + uint32(unsafe.Sizeof(rid)) + tuple.Size() + uint32(unsafe.Sizeof(int32(0)))
 	return ret
 }
 
