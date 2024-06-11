@@ -242,13 +242,12 @@ func (tp *TablePage) UpdateTuple(new_tuple *tuple.Tuple, update_col_idxs []int, 
 	free_space_pointer := tp.GetFreeSpacePointer()
 	common.SH_Assert(tuple_offset >= free_space_pointer, "Offset should appear after current free space position.")
 
-	if isForRollbackOrUndo || update_tuple.Size() > old_tuple.Size() {
+	if isForRollbackOrUndo || update_tuple.Size() >= old_tuple.Size() {
 		// occupy correct memory space for new_tuple
 		// and move other tuples data
 		copy(tp.GetData()[free_space_pointer+tuple_size-update_tuple.Size():], tp.GetData()[free_space_pointer:tuple_offset])
 		tp.SetFreeSpacePointer(free_space_pointer + tuple_size - update_tuple.Size())
-		//copy(tp.GetData()[tuple_offset+tuple_size-update_tuple.Size():], update_tuple.Data()[:update_tuple.Size()])
-		copy(tp.GetData()[tuple_offset:], update_tuple.Data()[:update_tuple.Size()])
+		copy(tp.GetData()[tuple_offset+tuple_size-update_tuple.Size():], update_tuple.Data()[:update_tuple.Size()])
 		tp.SetTupleSize(slot_num, update_tuple.Size())
 		tp.SetTupleOffsetAtSlot(rid.GetSlotNum(), tuple_offset+(tuple_size-update_tuple.Size()))
 	} else {
@@ -256,7 +255,7 @@ func (tp *TablePage) UpdateTuple(new_tuple *tuple.Tuple, update_col_idxs []int, 
 
 		// no move of other tuples and no update of free space pointer here (done at commit or redo)
 
-		copy(tp.GetData()[tuple_offset+tuple_size-update_tuple.Size():], update_tuple.Data()[:update_tuple.Size()])
+		copy(tp.GetData()[tuple_offset:], update_tuple.Data()[:update_tuple.Size()])
 		tp.SetTupleSize(slot_num, update_tuple.Size())
 	}
 
@@ -278,7 +277,7 @@ func (tp *TablePage) UpdateTuple(new_tuple *tuple.Tuple, update_col_idxs []int, 
 // called only at commit or redo
 func (tp *TablePage) FinalizeUpdateTuple(rid *page.RID, old_tuple *tuple.Tuple, update_tuple *tuple.Tuple, txn *Transaction, log_manager *recovery.LogManager) {
 	// needless
-	if update_tuple.Size() > old_tuple.Size() {
+	if update_tuple.Size() >= old_tuple.Size() {
 		// finalize is not needed
 		return
 	}
@@ -301,6 +300,7 @@ func (tp *TablePage) FinalizeUpdateTuple(rid *page.RID, old_tuple *tuple.Tuple, 
 	// update slot_offset to collect location
 	slide_size := slot_size - tuple_size
 	new_slot_offset := slot_offset + slide_size
+	tp.SetTupleSize(rid.GetSlotNum(), tuple_size)
 	tp.SetTupleOffsetAtSlot(rid.GetSlotNum(), new_slot_offset)
 
 	free_space_pointer := tp.GetFreeSpacePointer()
@@ -593,7 +593,8 @@ func (tp *TablePage) SetTupleSize(slot_num uint32, size uint32) {
 }
 
 func (tp *TablePage) getFreeSpaceRemaining() uint32 {
-	return tp.GetFreeSpacePointer() - sizeTablePageHeader - sizeTuple*tp.GetTupleCount()
+	ret := tp.GetFreeSpacePointer() - sizeTablePageHeader - sizeTuple*tp.GetTupleCount()
+	return ret
 }
 
 func (tp *TablePage) GetFreeSpacePointer() uint32 {
