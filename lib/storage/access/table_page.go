@@ -279,7 +279,7 @@ func (tp *TablePage) ReserveSpaceForRollbackUpdate(rid *page.RID, size uint32, t
 	if rid != nil {
 		dummy_rid = rid
 	} else {
-		dummy_rid = &page.RID{tp.GetPageId(), maxSlotNum + 1}
+		dummy_rid = &page.RID{tp.GetPageId(), maxSlotNum}
 	}
 	dummy_tuple := tuple.NewTuple(dummy_rid, size, buf[:size])
 	tp.setTuple(dummy_rid.GetSlotNum(), dummy_tuple)
