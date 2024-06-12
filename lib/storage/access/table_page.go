@@ -242,10 +242,10 @@ func (tp *TablePage) UpdateTuple(new_tuple *tuple.Tuple, update_col_idxs []int, 
 		txn.SetPrevLSN(lsn)
 	}
 
-	if update_tuple.Size() < tuple_size {
-		// add dummy tuple which reserves space for update is aborted
-		tp.ReserveSpaceForRollbackUpdate(nil, tuple_size-update_tuple.Size(), txn, log_manager)
-	}
+	//if update_tuple.Size() < tuple_size {
+	//	// add dummy tuple which reserves space for update is aborted
+	//	tp.ReserveSpaceForRollbackUpdate(nil, tuple_size-update_tuple.Size(), txn, log_manager)
+	//}
 
 	// Perform the update.
 	free_space_pointer := tp.GetFreeSpacePointer()
@@ -283,6 +283,12 @@ func (tp *TablePage) ReserveSpaceForRollbackUpdate(rid *page.RID, size uint32, t
 	}
 	dummy_tuple := tuple.NewTuple(dummy_rid, size, buf[:size])
 	tp.setTuple(dummy_rid.GetSlotNum(), dummy_tuple)
+	tp.SetFreeSpacePointer(tp.GetFreeSpacePointer() - dummy_tuple.Size())
+	tp.setTuple(dummy_rid.GetSlotNum(), dummy_tuple)
+
+	if dummy_rid.GetSlotNum() == tp.GetTupleCount() {
+		tp.SetTupleCount(tp.GetTupleCount() + 1)
+	}
 
 	if size > 0 {
 		tp.SetTupleSize(dummy_rid.GetSlotNum(), SetReservedFlag(size))
