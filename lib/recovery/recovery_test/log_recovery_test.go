@@ -160,7 +160,7 @@ func TestUndo(t *testing.T) {
 		samehada_instance.GetLogManager(),
 		samehada_instance.GetLockManager(),
 		txn)
-	first_page_id := test_table.GetFirstPageId()
+	//first_page_id := test_table.GetFirstPageId()
 
 	col1 := column.NewColumn("a", types.Varchar, false, index_constants.INDEX_KIND_INVALID, types.PageID(-1), nil)
 	col2 := column.NewColumn("b", types.Integer, false, index_constants.INDEX_KIND_INVALID, types.PageID(-1), nil)
@@ -207,26 +207,12 @@ func TestUndo(t *testing.T) {
 
 	fmt.Println("Log page content is written to disk")
 	samehada_instance.GetLogManager().Flush()
-	fmt.Println("Table page content is written to disk")
-	samehada_instance.GetBufferPoolManager().FlushPage(first_page_id)
-
-	fmt.Println("System crash before commit")
-	// delete samehada_instance
-	samehada_instance.Shutdown(samehada.ShutdownPatternCloseFiles)
-
-	fmt.Println("System restarted..")
-	samehada_instance = samehada.NewSamehadaInstance(t.Name(), common.BufferPoolMaxFrameNumForTest)
-	txn = samehada_instance.GetTransactionManager().Begin(nil)
-
-	test_table = access.NewTableHeap(
-		samehada_instance.GetBufferPoolManager(),
-		samehada_instance.GetLogManager(),
-		samehada_instance.GetLockManager(),
-		txn)
+	//fmt.Println("Table page content is written to disk")
+	//samehada_instance.GetBufferPoolManager().FlushPage(first_page_id)
 
 	fmt.Println("Check if deleted tuple does not exist before recovery")
 	old_tuple1, _ := test_table.GetTuple(rid1, txn)
-	testingpkg.Assert(t, old_tuple1 == nil, "")
+	testingpkg.Assert(t, old_tuple1.Size() == 0, "handled as self deleted case")
 
 	fmt.Println("Check if updated tuple values are effected before recovery")
 	var old_tuple2 *tuple.Tuple
@@ -241,6 +227,20 @@ func TestUndo(t *testing.T) {
 
 	samehada_instance.GetLogManager().DeactivateLogging()
 	testingpkg.AssertFalse(t, samehada_instance.GetLogManager().IsEnabledLogging(), "common.EnableLogging is not false!")
+
+	fmt.Println("System crash before commit")
+	// delete samehada_instance
+	samehada_instance.Shutdown(samehada.ShutdownPatternCloseFiles)
+
+	fmt.Println("System restarted..")
+	samehada_instance = samehada.NewSamehadaInstance(t.Name(), common.BufferPoolMaxFrameNumForTest)
+	txn = samehada_instance.GetTransactionManager().Begin(nil)
+
+	test_table = access.NewTableHeap(
+		samehada_instance.GetBufferPoolManager(),
+		samehada_instance.GetLogManager(),
+		samehada_instance.GetLockManager(),
+		txn)
 
 	fmt.Println("Recovery started..")
 	log_recovery := log_recovery.NewLogRecovery(

@@ -192,7 +192,7 @@ func (transaction_manager *TransactionManager) Abort(catalog_ catalog_interface.
 				indexes := catalog_.GetRollbackNeededIndexes(indexMap, item.oid)
 				for _, index_ := range indexes {
 					if index_ != nil {
-						index_.DeleteEntry(item.tuple1, *item.rid, txn)
+						index_.DeleteEntry(item.tuple2, *item.rid, txn)
 					}
 				}
 			}
@@ -237,6 +237,7 @@ func (transaction_manager *TransactionManager) Abort(catalog_ catalog_interface.
 				}
 			}
 		} else if item.wtype == RESERVE_SPACE {
+			// TODO: (SDB) critical section for this operation should be concatenated with UPDATE case...
 			if common.EnableDebug && common.ActiveLogKindSetting&common.COMMIT_ABORT_HANDLE_INFO > 0 {
 				fmt.Printf("TransactionManager::Commit handle UPDATE write log. txn.txn_id:%v dbgInfo:%s rid:%v\n", txn.txn_id, txn.dbgInfo, item.rid)
 			}

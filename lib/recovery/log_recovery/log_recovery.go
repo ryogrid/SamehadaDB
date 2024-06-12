@@ -81,8 +81,11 @@ func (log_recovery *LogRecovery) DeserializeLogRecord(data []byte, log_record *r
 		log_record.New_tuple.DeserializeFrom(data[pos:])
 	} else if log_record.Log_record_type == recovery.NEWPAGE {
 		binary.Read(bytes.NewBuffer(data[pos:]), binary.LittleEndian, &log_record.Prev_page_id)
+	} else if log_record.Log_record_type == recovery.RESERVE_SPACE {
+		binary.Read(bytes.NewBuffer(data[pos:]), binary.LittleEndian, &log_record.Reserving_rid)
+		pos += uint32(unsafe.Sizeof(log_record.Reserving_rid))
+		log_record.Reserving_tuple.DeserializeFrom(data[pos:])
 	}
-	// TODO: (SDB) need to implement deserialization of RESERVE_SPACE type log
 
 	//fmt.Println(log_record)
 
