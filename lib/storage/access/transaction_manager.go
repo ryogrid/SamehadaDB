@@ -153,6 +153,10 @@ func (transaction_manager *TransactionManager) Abort(catalog_ catalog_interface.
 		}
 		fmt.Printf("TransactionManager::Abort txn.txn_id:%v  dbgInfo:%s write_set: %s\n", txn.txn_id, txn.dbgInfo, writeSetStr)
 	}
+
+	// flag for making handing RESERVE_SPACE and UPDATE write log atomic
+	var isReserveSpaceHandled = false
+
 	// Rollback before releasing the access.
 	for len(write_set) != 0 {
 		item := write_set[len(write_set)-1]
@@ -206,21 +210,17 @@ func (transaction_manager *TransactionManager) Abort(catalog_ catalog_interface.
 			// Note that this also releases the lock when holding the page latch.
 			pageID := rid.GetPageId()
 			tpage := CastPageAsTablePage(table.bpm.FetchPage(pageID))
-			tpage.WLatch()
+			if !isReserveSpaceHandled {
+				tpage.WLatch()
+			} else {
+				// getting latch is not needed because it is already latched at RESERVE_SPACE handling
+			}
+			isReserveSpaceHandled = false
+
 			tpage.UpdateTuple(item.tuple1, nil, nil, item.tuple2, rid, txn, transaction_manager.lock_manager, transaction_manager.log_manager)
 			table.bpm.UnpinPage(pageID, true)
 			tpage.WUnlatch()
 
-			//var is_updated = false
-			//is_updated, _, _, _, _ = table.UpdateTuple(item.tuple1, nil, nil, item.oid, *item.rid, txn, true)
-			//if !is_updated {
-			//	panic("UpdateTuple at rollback failed!")
-			//}
-
-			// rollback is not needed at update
-			// (RID chaned case is handled at DELETE and INSERT write log handling)
-			// when update is operated as delete and insert (rid change case),
-			//  rollback is done for each separated operation
 			if catalog_ != nil {
 				indexes := catalog_.GetRollbackNeededIndexes(indexMap, item.oid)
 
@@ -249,7 +249,10 @@ func (transaction_manager *TransactionManager) Abort(catalog_ catalog_interface.
 			tpage.ApplyDelete(item.rid, txn, transaction_manager.log_manager)
 			table.bpm.UnpinPage(tpage.GetPageId(), true)
 			tpage.RemoveWLatchRecord(int32(txn.txn_id))
-			tpage.WUnlatch()
+			// does not release the latch because it is needed for rollback of UPDATE
+			// WriteRecords and logs of RESERVE_SPACE and UPDATE are continuous in single transaction view
+
+			//tpage.WUnlatch()
 		}
 		write_set = write_set[:len(write_set)-1]
 	}

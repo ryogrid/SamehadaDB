@@ -303,51 +303,6 @@ func (tp *TablePage) ReserveSpaceForRollbackUpdate(rid *page.RID, size uint32, t
 	return dummy_rid
 }
 
-//// called only at commit or redo
-//func (tp *TablePage) FinalizeUpdateTuple(rid *page.RID, old_tuple *tuple.Tuple, update_tuple *tuple.Tuple, txn *Transaction, log_manager *recovery.LogManager) {
-//	// needless
-//	if update_tuple.Size() >= old_tuple.Size() {
-//		// finalize is not needed
-//		return
-//	}
-//
-//	if log_manager.IsEnabledLogging() {
-//		log_record := recovery.NewLogRecordUpdate(txn.GetTransactionId(), txn.GetPrevLSN(), recovery.FINALIZE_UPDATE, *rid, *old_tuple, *update_tuple)
-//		lsn := log_manager.AppendLogRecord(log_record)
-//		tp.SetLSN(lsn)
-//		txn.SetPrevLSN(lsn)
-//	}
-//
-//	slot_size := tp.GetTupleSize(rid.GetSlotNum())
-//	slot_offset := tp.GetTupleOffsetAtSlot(rid.GetSlotNum())
-//	tuple_size := update_tuple.Size()
-//	// If the tuple is deleted, do nothing
-//	if IsDeleted(tuple_size) {
-//		return
-//	}
-//
-//	// update slot_offset to collect location
-//	slide_size := slot_size - tuple_size
-//	new_slot_offset := slot_offset + slide_size
-//	tp.SetTupleSize(rid.GetSlotNum(), tuple_size)
-//	tp.SetTupleOffsetAtSlot(rid.GetSlotNum(), new_slot_offset)
-//
-//	free_space_pointer := tp.GetFreeSpacePointer()
-//	tp.SetFreeSpacePointer(free_space_pointer + slide_size)
-//
-//	// move tuple data to collect location
-//	copy(tp.GetData()[new_slot_offset:], update_tuple.Data())
-//
-//	// Update all tuples offsets
-//	tuple_cnt := int(tp.GetTupleCount())
-//	for ii := 0; ii < tuple_cnt; ii++ {
-//		tuple_offset_i := tp.GetTupleOffsetAtSlot(uint32(ii))
-//		if tp.GetTupleSize(uint32(ii)) > 0 && tuple_offset_i < new_slot_offset {
-//			tp.SetTupleOffsetAtSlot(uint32(ii), tuple_offset_i+slide_size)
-//		}
-//	}
-//}
-
 func (tp *TablePage) MarkDelete(rid *page.RID, txn *Transaction, lock_manager *LockManager, log_manager *recovery.LogManager) (isMarked bool, markedTuple *tuple.Tuple) {
 	if common.EnableDebug {
 		defer func() {
