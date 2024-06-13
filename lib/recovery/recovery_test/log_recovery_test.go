@@ -160,7 +160,7 @@ func TestUndo(t *testing.T) {
 		samehada_instance.GetLogManager(),
 		samehada_instance.GetLockManager(),
 		txn)
-	//first_page_id := test_table.GetFirstPageId()
+	first_page_id := test_table.GetFirstPageId()
 
 	col1 := column.NewColumn("a", types.Varchar, false, index_constants.INDEX_KIND_INVALID, types.PageID(-1), nil)
 	col2 := column.NewColumn("b", types.Integer, false, index_constants.INDEX_KIND_INVALID, types.PageID(-1), nil)
@@ -171,6 +171,7 @@ func TestUndo(t *testing.T) {
 	val1_0 := tuple1.GetValue(schema_, 0)
 	val1_1 := tuple1.GetValue(schema_, 1)
 	var rid1 *page.RID
+	fmt.Println("tuple1: ", tuple1.Data())
 	rid1, _ = test_table.InsertTuple(tuple1, txn, math.MaxUint32)
 	testingpkg.Assert(t, rid1 != nil, "")
 
@@ -182,6 +183,9 @@ func TestUndo(t *testing.T) {
 	rid2, _ = test_table.InsertTuple(tuple2, txn, math.MaxUint32)
 	testingpkg.Assert(t, rid2 != nil, "")
 
+	bf_commit_tuple2, _ := test_table.GetTuple(rid2, txn)
+	fmt.Println("bf_commit_tuple2: ", bf_commit_tuple2.Data())
+
 	fmt.Println("Log page content is written to disk")
 	samehada_instance.GetLogManager().Flush()
 	fmt.Println("two tuples inserted are commited")
@@ -189,14 +193,24 @@ func TestUndo(t *testing.T) {
 
 	txn = samehada_instance.GetTransactionManager().Begin(nil)
 
+	bf_commit_tuple2__, _ := test_table.GetTuple(rid2, txn)
+	fmt.Println("bf_commit_tuple2_: ", bf_commit_tuple2__.Data())
+
 	// tuple deletion (rid1)
 	test_table.MarkDelete(rid1, math.MaxUint32, txn)
+
+	bf_commit_tuple2___, _ := test_table.GetTuple(rid2, txn)
+	fmt.Println("bf_commit_tuple2_: ", bf_commit_tuple2___.Data())
 
 	// tuple updating (rid2)
 	row1 := make([]types.Value, 0)
 	row1 = append(row1, types.NewVarchar("updated"))
 	row1 = append(row1, types.NewInteger(256))
-	test_table.UpdateTuple(tuple.NewTupleFromSchema(row1, schema_), nil, nil, math.MaxUint32, *rid2, txn, false)
+	is_success, new_rid, err, update_tuple, old_tuple := test_table.UpdateTuple(tuple.NewTupleFromSchema(row1, schema_), nil, nil, math.MaxUint32, *rid2, txn, false)
+	fmt.Println("returned values of test_table.Update_Tuple: ", is_success, new_rid, err, update_tuple, update_tuple.Data(), old_tuple, old_tuple.Data())
+	old_value := old_tuple.GetValue(schema_, 0)
+	update_value := update_tuple.GetValue(schema_, 0)
+	fmt.Println("old_value: ", old_value, "update_value: ", update_value)
 
 	// tuple insertion (rid3)
 	tuple3 := ConstructTuple(schema_)
@@ -205,28 +219,13 @@ func TestUndo(t *testing.T) {
 	// TODO: (SDB) insert index entry if needed
 	testingpkg.Assert(t, rid3 != nil, "")
 
+	af_insert_tuple2, _ := test_table.GetTuple(rid2, txn)
+	fmt.Println("af_update_tuple2_: ", af_insert_tuple2.Data())
+
 	fmt.Println("Log page content is written to disk")
 	samehada_instance.GetLogManager().Flush()
-	//fmt.Println("Table page content is written to disk")
-	//samehada_instance.GetBufferPoolManager().FlushPage(first_page_id)
-
-	fmt.Println("Check if deleted tuple does not exist before recovery")
-	old_tuple1, _ := test_table.GetTuple(rid1, txn)
-	testingpkg.Assert(t, old_tuple1.Size() == 0, "handled as self deleted case")
-
-	fmt.Println("Check if updated tuple values are effected before recovery")
-	var old_tuple2 *tuple.Tuple
-	old_tuple2, _ = test_table.GetTuple(rid2, txn)
-	testingpkg.Assert(t, old_tuple2 != nil, "")
-	testingpkg.Assert(t, old_tuple2.GetValue(schema_, 0).CompareEquals(types.NewVarchar("updated")), "")
-	testingpkg.Assert(t, old_tuple2.GetValue(schema_, 1).CompareEquals(types.NewInteger(256)), "")
-
-	fmt.Println("Check if inserted tuple exists before recovery")
-	old_tuple3, _ := test_table.GetTuple(rid3, txn)
-	testingpkg.Assert(t, old_tuple3 != nil, "")
-
-	samehada_instance.GetLogManager().DeactivateLogging()
-	testingpkg.AssertFalse(t, samehada_instance.GetLogManager().IsEnabledLogging(), "common.EnableLogging is not false!")
+	fmt.Println("Table page content is written to disk")
+	samehada_instance.GetBufferPoolManager().FlushPage(first_page_id)
 
 	fmt.Println("System crash before commit")
 	// delete samehada_instance
@@ -241,6 +240,26 @@ func TestUndo(t *testing.T) {
 		samehada_instance.GetLogManager(),
 		samehada_instance.GetLockManager(),
 		txn)
+
+	fmt.Println("Check if deleted tuple does not exist before recovery")
+	old_tuple1, _ := test_table.GetTuple(rid1, txn)
+	testingpkg.Assert(t, old_tuple1 == nil, "handled as self deleted case")
+
+	fmt.Println("Check if updated tuple values are effected before recovery")
+	var old_tuple2 *tuple.Tuple
+	old_tuple2, _ = test_table.GetTuple(rid2, txn)
+	fmt.Println("old_tuple2: ", old_tuple2.Data())
+
+	testingpkg.Assert(t, old_tuple2 != nil, "")
+	testingpkg.Assert(t, old_tuple2.GetValue(schema_, 0).CompareEquals(types.NewVarchar("updated")), "")
+	testingpkg.Assert(t, old_tuple2.GetValue(schema_, 1).CompareEquals(types.NewInteger(256)), "")
+
+	fmt.Println("Check if inserted tuple exists before recovery")
+	old_tuple3, _ := test_table.GetTuple(rid3, txn)
+	testingpkg.Assert(t, old_tuple3 != nil, "")
+
+	samehada_instance.GetLogManager().DeactivateLogging()
+	testingpkg.AssertFalse(t, samehada_instance.GetLogManager().IsEnabledLogging(), "common.EnableLogging is not false!")
 
 	fmt.Println("Recovery started..")
 	log_recovery := log_recovery.NewLogRecovery(

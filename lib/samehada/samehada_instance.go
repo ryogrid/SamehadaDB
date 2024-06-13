@@ -88,7 +88,7 @@ func (si *SamehadaInstance) Shutdown(shutdownPat ShutdownPattern) {
 		si.disk_manager.RemoveLogFile()
 	case ShutdownPatternCloseFiles:
 		si.log_manager.Flush()
-		//si.bpm.FlushAllDirtyPages()
+		si.bpm.FlushAllDirtyPages()
 		// close only
 		si.disk_manager.ShutDown()
 	case ShutdownPatternRemoveLogOnly:
