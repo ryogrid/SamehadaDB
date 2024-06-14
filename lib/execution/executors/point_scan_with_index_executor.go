@@ -51,7 +51,6 @@ func (e *PointScanWithIndexExecutor) Init() {
 			e.txn.SetState(access.ABORTED)
 			return
 		}
-
 		if err == access.ErrSelfDeletedCase {
 			continue
 		}
