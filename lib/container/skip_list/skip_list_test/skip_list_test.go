@@ -1993,7 +1993,7 @@ func TestSkipListParallelSimpleInteger3Stride(t *testing.T) {
 		os.Remove(t.Name() + ".log")
 	}
 
-	shi := samehada.NewSamehadaInstance(t.Name(), 30)
+	shi := samehada.NewSamehadaInstance(t.Name(), 20)
 	bpm := shi.GetBufferPoolManager()
 	sl := skip_list.NewSkipList(bpm, types.Integer)
 

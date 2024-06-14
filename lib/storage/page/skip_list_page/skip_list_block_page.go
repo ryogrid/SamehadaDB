@@ -597,6 +597,9 @@ func (node *SkipListBlockPage) Remove(bpm *buffer.BufferPoolManager, key *types.
 		pred.SetLSN(pred.GetLSN() + 1)
 		node.SetLSN(node.GetLSN() + 1)
 
+		// mark this node (page) can be deallocated
+		node.SetIsDeallocated(true)
+
 		unlockAndUnpinNodes(bpm, lockedAndPinnedNodes, true)
 
 		if common.EnableDebug {
