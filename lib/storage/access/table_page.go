@@ -242,9 +242,22 @@ func (tp *TablePage) UpdateTuple(new_tuple *tuple.Tuple, update_col_idxs []int, 
 		txn.SetPrevLSN(lsn)
 	}
 
+	// whether dummy tuple insertion is needed or not
 	if update_tuple.Size() < tuple_size {
-		// add dummy tuple which reserves space for update is aborted
-		tp.ReserveSpaceForRollbackUpdate(nil, tuple_size-update_tuple.Size(), txn, log_manager)
+		reserve_size := tuple_size - update_tuple.Size()
+		// sizeTuple is needed metadata space additonaly
+		usableSpaceForDummy := tp.getFreeSpaceRemaining() - sizeTuple
+		if usableSpaceForDummy < reserve_size {
+			if usableSpaceForDummy < 1 {
+				// no need to reserve space for rollback
+			} else {
+				// add dummy tuple which fill space for rollback of update
+				tp.ReserveSpaceForRollbackUpdate(nil, usableSpaceForDummy, txn, log_manager)
+			}
+		} else {
+			// add dummy tuple which reserves space for rollback of update
+			tp.ReserveSpaceForRollbackUpdate(nil, tuple_size-update_tuple.Size(), txn, log_manager)
+		}
 	}
 
 	// Perform the update.
