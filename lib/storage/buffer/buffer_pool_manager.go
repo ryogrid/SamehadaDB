@@ -17,13 +17,14 @@ import (
 
 // BufferPoolManager represents the buffer pool manager
 type BufferPoolManager struct {
-	diskManager disk.DiskManager
-	pages       []*page.Page // index is FrameID
-	replacer    *ClockReplacer
-	freeList    []FrameID
-	pageTable   map[types.PageID]FrameID
-	log_manager *recovery.LogManager
-	mutex       *sync.Mutex
+	diskManager      disk.DiskManager
+	pages            []*page.Page // index is FrameID
+	replacer         *ClockReplacer
+	freeList         []FrameID
+	reUsablePageList []types.PageID
+	pageTable        map[types.PageID]FrameID
+	log_manager      *recovery.LogManager
+	mutex            *sync.Mutex
 }
 
 // FetchPage fetches the requested page from the buffer pool.
@@ -70,7 +71,9 @@ func (b *BufferPoolManager) FetchPage(pageID types.PageID) *page.Page {
 			if common.EnableDebug && common.ActiveLogKindSetting&common.CACHE_OUT_IN_INFO > 0 {
 				fmt.Printf("BPM::FetchPage Cache out occurs! pageId:%d requested pageId:%d\n", currentPage.GetPageId(), pageID)
 			}
-			if currentPage.IsDirty() {
+			if currentPage.IsDeallocated() {
+				b.reUsablePageList = append(b.reUsablePageList, currentPage.GetPageId())
+			} else if currentPage.IsDirty() {
 				b.log_manager.Flush()
 				currentPage.WLatch()
 				data := currentPage.Data()
@@ -224,7 +227,9 @@ func (b *BufferPoolManager) NewPage() *page.Page {
 				fmt.Printf("BPM::NewPage WLatch:%v RLatch:%v\n", currentPage.WLatchMap, currentPage.RLatchMap)
 				panic(fmt.Sprintf("BPM::NewPage pin count of page to be cache out must be zero!!!. pageId:%d PinCount:%d", currentPage.GetPageId(), currentPage.PinCount()))
 			}
-			if currentPage.IsDirty() {
+			if currentPage.IsDeallocated() {
+				b.reUsablePageList = append(b.reUsablePageList, currentPage.GetPageId())
+			} else if currentPage.IsDirty() {
 				b.log_manager.Flush()
 				currentPage.WLatch()
 				currentPage.AddWLatchRecord(int32(-2))
@@ -427,5 +432,5 @@ func NewBufferPoolManager(poolSize uint32, DiskManager disk.DiskManager, log_man
 	}
 
 	replacer := NewClockReplacer(poolSize)
-	return &BufferPoolManager{DiskManager, pages, replacer, freeList, make(map[types.PageID]FrameID), log_manager, new(sync.Mutex)}
+	return &BufferPoolManager{DiskManager, pages, replacer, freeList, make([]types.PageID, 0), make(map[types.PageID]FrameID), log_manager, new(sync.Mutex)}
 }
