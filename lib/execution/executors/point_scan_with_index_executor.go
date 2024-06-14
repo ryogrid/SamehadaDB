@@ -50,6 +50,9 @@ func (e *PointScanWithIndexExecutor) Init() {
 			e.txn.SetState(access.ABORTED)
 			return
 		}
+		if err == access.ErrSelfDeletedCase {
+			continue
+		}
 		if !tuple_.GetValue(schema_, colIdxOfPred).CompareEquals(*scanKey) {
 			// found record is updated and commited case
 			e.foundTuples = make([]*tuple.Tuple, 0)
