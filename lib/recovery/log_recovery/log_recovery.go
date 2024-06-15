@@ -253,7 +253,7 @@ func (log_recovery *LogRecovery) Undo(txn *access.Transaction) bool {
 				page_ :=
 					access.CastPageAsTablePage(log_recovery.buffer_pool_manager.FetchPage(log_record.Reserving_rid.GetPageId()))
 				page_.ApplyDelete(&log_record.Reserving_rid, txn, log_recovery.log_manager)
-				log_recovery.buffer_pool_manager.UnpinPage(log_record.Delete_rid.GetPageId(), true)
+				log_recovery.buffer_pool_manager.UnpinPage(log_record.Reserving_rid.GetPageId(), true)
 				isUndoOccured = true
 			}
 

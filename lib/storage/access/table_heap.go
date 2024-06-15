@@ -75,6 +75,7 @@ func (t *TableHeap) InsertTuple(tuple_ *tuple.Tuple, txn *Transaction, oid uint3
 
 	// seek from last (almost case)
 	currentPage := CastPageAsTablePage(t.bpm.FetchPage(t.lastPageId))
+	//currentPage := CastPageAsTablePage(t.bpm.FetchPage(t.firstPageId))
 
 	currentPage.WLatch()
 	currentPage.AddWLatchRecord(int32(txn.txn_id))

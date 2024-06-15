@@ -196,7 +196,7 @@ func (transaction_manager *TransactionManager) Abort(catalog_ catalog_interface.
 				indexes := catalog_.GetRollbackNeededIndexes(indexMap, item.oid)
 				for _, index_ := range indexes {
 					if index_ != nil {
-						index_.DeleteEntry(item.tuple2, *item.rid, txn)
+						index_.DeleteEntry(item.tuple1, *item.rid, txn)
 					}
 				}
 			}
