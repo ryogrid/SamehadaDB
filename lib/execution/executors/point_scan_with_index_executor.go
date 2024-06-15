@@ -39,7 +39,7 @@ func (e *PointScanWithIndexExecutor) Init() {
 	}
 
 	scanKey := samehada_util.GetPonterOfValue(comparison.GetRightSideValue(nil, schema_))
-	dummyTuple := tuple.GenTupleForIndexSearch(schema_, uint32(colIdxOfPred), scanKey)
+	dummyTuple := tuple.GenTupleForIndexSearch(schema_, colIdxOfPred, scanKey)
 	rids := index_.ScanKey(dummyTuple, e.txn)
 
 	for _, rid := range rids {
@@ -52,7 +52,9 @@ func (e *PointScanWithIndexExecutor) Init() {
 			return
 		}
 		if err == access.ErrSelfDeletedCase {
-			continue
+			e.foundTuples = make([]*tuple.Tuple, 0)
+			e.txn.SetState(access.ABORTED)
+			return
 		}
 
 		if !tuple_.GetValue(schema_, colIdxOfPred).CompareEquals(*scanKey) {
