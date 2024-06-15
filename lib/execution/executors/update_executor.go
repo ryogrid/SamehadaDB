@@ -109,7 +109,7 @@ func (e *UpdateExecutor) Next() (*tuple.Tuple, Done, error) {
 					} else if new_rid != nil {
 						index_.UpdateEntry(t, *rid, updateTuple, *new_rid, e.txn)
 					} else {
-						index_.UpdateEntry(t, *rid, updateTuple, *rid, e.txn)
+						//index_.UpdateEntry(t, *rid, updateTuple, *rid, e.txn)
 						// do nothing
 					}
 				}

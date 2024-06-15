@@ -75,6 +75,7 @@ func (t *TableHeap) InsertTuple(tuple_ *tuple.Tuple, txn *Transaction, oid uint3
 
 	// seek from last (almost case)
 	currentPage := CastPageAsTablePage(t.bpm.FetchPage(t.lastPageId))
+	//currentPage := CastPageAsTablePage(t.bpm.FetchPage(t.firstPageId))
 
 	currentPage.WLatch()
 	currentPage.AddWLatchRecord(int32(txn.txn_id))
@@ -167,10 +168,6 @@ func (t *TableHeap) UpdateTuple(tuple_ *tuple.Tuple, update_col_idxs []int, sche
 	}
 	page_.RemoveWLatchRecord(int32(txn.txn_id))
 	page_.WUnlatch()
-
-	if !is_updated {
-		fmt.Println("TableHeap::UpdateTuple(): is_updated:", is_updated, " err:", err)
-	}
 
 	var new_rid *page.RID
 	var isUpdateWithDelInsert = false

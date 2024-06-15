@@ -31,12 +31,16 @@ func (slidx *UniqSkipListIndex) InsertEntry(key *tuple.Tuple, rid page.RID, tran
 	tupleSchema_ := slidx.GetTupleSchema()
 	keyVal := key.GetValue(tupleSchema_, slidx.col_idx)
 
+	//fmt.Println("UniqSkipListIndex::InsertEntry: ", keyVal.ToString(), rid)
+
 	slidx.container.Insert(&keyVal, samehada_util.PackRIDtoUint64(&rid))
 }
 
 func (slidx *UniqSkipListIndex) DeleteEntry(key *tuple.Tuple, rid page.RID, transaction interface{}) {
 	tupleSchema_ := slidx.GetTupleSchema()
 	keyVal := key.GetValue(tupleSchema_, slidx.col_idx)
+
+	//fmt.Println("UniqSkipListIndex::DeleteEntry: ", keyVal.ToString(), rid)
 
 	isSuccess := slidx.container.Remove(&keyVal, samehada_util.PackRIDtoUint64(&rid))
 	if isSuccess == false {
