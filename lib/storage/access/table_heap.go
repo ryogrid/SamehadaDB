@@ -168,6 +168,10 @@ func (t *TableHeap) UpdateTuple(tuple_ *tuple.Tuple, update_col_idxs []int, sche
 	page_.RemoveWLatchRecord(int32(txn.txn_id))
 	page_.WUnlatch()
 
+	if !is_updated {
+		fmt.Println("TableHeap::UpdateTuple(): is_updated:", is_updated, " err:", err)
+	}
+
 	var new_rid *page.RID
 	var isUpdateWithDelInsert = false
 	if is_updated == false && err == ErrNotEnoughSpace {
@@ -202,7 +206,8 @@ func (t *TableHeap) UpdateTuple(tuple_ *tuple.Tuple, update_col_idxs []int, sche
 			return false, nil, ErrPartialUpdate, nil, old_tuple
 		}
 
-		// change return flag to success
+		// change return values to success
+		err = nil
 		is_updated = true
 		isUpdateWithDelInsert = true
 	}
@@ -220,7 +225,7 @@ func (t *TableHeap) UpdateTuple(tuple_ *tuple.Tuple, update_col_idxs []int, sche
 		}
 	}
 
-	return is_updated, new_rid, nil, need_follow_tuple, old_tuple
+	return is_updated, new_rid, err, need_follow_tuple, old_tuple
 }
 
 // when isForUpdate arg is true, write record is not created

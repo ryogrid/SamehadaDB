@@ -1,6 +1,7 @@
 package executors
 
 import (
+	"fmt"
 	"github.com/ryogrid/SamehadaDB/lib/samehada/samehada_util"
 
 	"github.com/ryogrid/SamehadaDB/lib/catalog"
@@ -39,8 +40,11 @@ func (e *PointScanWithIndexExecutor) Init() {
 	}
 
 	scanKey := samehada_util.GetPonterOfValue(comparison.GetRightSideValue(nil, schema_))
-	dummyTuple := tuple.GenTupleForIndexSearch(schema_, uint32(colIdxOfPred), scanKey)
+	dummyTuple := tuple.GenTupleForIndexSearch(schema_, colIdxOfPred, scanKey)
 	rids := index_.ScanKey(dummyTuple, e.txn)
+	if rids == nil || len(rids) == 0 {
+		fmt.Println("any RID not found")
+	}
 	for _, rid := range rids {
 		rid_ := rid
 		tuple_, err := e.tableMetadata.Table().GetTuple(&rid_, e.txn)
@@ -51,7 +55,9 @@ func (e *PointScanWithIndexExecutor) Init() {
 			return
 		}
 		if err == access.ErrSelfDeletedCase {
-			continue
+			e.foundTuples = make([]*tuple.Tuple, 0)
+			e.txn.SetState(access.ABORTED)
+			return
 		}
 		if !tuple_.GetValue(schema_, colIdxOfPred).CompareEquals(*scanKey) {
 			// found record is updated and commited case
