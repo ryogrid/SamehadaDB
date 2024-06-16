@@ -107,7 +107,7 @@ func (tp *TablePage) InsertTuple(tuple *tuple.Tuple, log_manager *recovery.LogMa
 		if !locked {
 			//txn.SetState(ABORTED)
 			return nil, errors.Error("could not acquire an exclusive lock of found slot (=RID)")
-			// fmt.Printf("Locking a new tuple1 should always work. rid: %v\n", rid)
+			// fmt.Printf("Locking a new tuple1 should always work. rid1: %v\n", rid1)
 			// lock_manager.PrintLockTables()
 			// os.Stdout.Sync()
 			// panic("")
@@ -118,7 +118,7 @@ func (tp *TablePage) InsertTuple(tuple *tuple.Tuple, log_manager *recovery.LogMa
 
 	if common.EnableDebug {
 		setFSP := tp.GetFreeSpacePointer() - tuple.Size()
-		common.SH_Assert(setFSP <= common.PageSize, fmt.Sprintf("illegal pointer value!! txnId:%d txnState:%d txn.dbgInfo:%s rid:%v GetPageId():%d setFSP:%d", txn.txn_id, txn.state, txn.dbgInfo, *rid, tp.GetPageId(), setFSP))
+		common.SH_Assert(setFSP <= common.PageSize, fmt.Sprintf("illegal pointer value!! txnId:%d txnState:%d txn.dbgInfo:%s rid1:%v GetPageId():%d setFSP:%d", txn.txn_id, txn.state, txn.dbgInfo, *rid, tp.GetPageId(), setFSP))
 	}
 
 	tp.SetFreeSpacePointer(tp.GetFreeSpacePointer() - tuple.Size())
@@ -157,7 +157,7 @@ func (tp *TablePage) UpdateTuple(new_tuple *tuple.Tuple, update_col_idxs []int, 
 			}
 		}()
 		if common.ActiveLogKindSetting&common.RDB_OP_FUNC_CALL > 0 {
-			fmt.Printf("TablePage::UpdateTuple called. pageId:%d txn.txn_id:%v dbgInfo:%s new_tuple:%v update_col_idxs:%v rid:%v\n", tp.GetPageId(), txn.txn_id, txn.dbgInfo, *new_tuple, update_col_idxs, *rid)
+			fmt.Printf("TablePage::UpdateTuple called. pageId:%d txn.txn_id:%v dbgInfo:%s new_tuple:%v update_col_idxs:%v rid1:%v\n", tp.GetPageId(), txn.txn_id, txn.dbgInfo, *new_tuple, update_col_idxs, *rid)
 		}
 	}
 	common.SH_Assert(new_tuple.Size() > 0, "Cannot have empty tuples.")
@@ -278,7 +278,7 @@ func (tp *TablePage) UpdateTuple(new_tuple *tuple.Tuple, update_col_idxs []int, 
 	return true, nil, update_tuple
 }
 
-// rid is not null when caller is Redo
+// rid1 is not null when caller is Redo
 func (tp *TablePage) ReserveSpaceForRollbackUpdate(rid *page.RID, size uint32, txn *Transaction, log_manager *recovery.LogManager) *page.RID {
 	maxSlotNum := tp.GetTupleCount()
 	buf := make([]byte, size)
@@ -325,7 +325,7 @@ func (tp *TablePage) MarkDelete(rid *page.RID, txn *Transaction, lock_manager *L
 			}
 		}()
 		if common.ActiveLogKindSetting&common.RDB_OP_FUNC_CALL > 0 {
-			fmt.Printf("TablePage::MarkDelete called. pageId:%d txn.txn_id:%v dbgInfo:%s  rid:%v\n", tp.GetPageId(), txn.txn_id, txn.dbgInfo, *rid)
+			fmt.Printf("TablePage::MarkDelete called. pageId:%d txn.txn_id:%v dbgInfo:%s  rid1:%v\n", tp.GetPageId(), txn.txn_id, txn.dbgInfo, *rid)
 		}
 	}
 
@@ -394,7 +394,7 @@ func (tp *TablePage) ApplyDelete(rid *page.RID, txn *Transaction, log_manager *r
 			}
 		}()
 		if common.ActiveLogKindSetting&common.RDB_OP_FUNC_CALL > 0 {
-			fmt.Printf("TablePage::ApplyDelete called. pageId:%d txn.txn_id:%v dbgInfo:%s rid:%v\n", tp.GetPageId(), txn.txn_id, txn.dbgInfo, *rid)
+			fmt.Printf("TablePage::ApplyDelete called. pageId:%d txn.txn_id:%v dbgInfo:%s rid1:%v\n", tp.GetPageId(), txn.txn_id, txn.dbgInfo, *rid)
 		}
 	}
 
@@ -465,7 +465,7 @@ func (tp *TablePage) RollbackDelete(rid *page.RID, txn *Transaction, log_manager
 			}
 		}()
 		if common.ActiveLogKindSetting&common.RDB_OP_FUNC_CALL > 0 {
-			fmt.Printf("TablePage::RollbackDelete called. pageId:%d txn.txn_id:%v dbgInfo:%s rid:%v\n", tp.GetPageId(), txn.txn_id, txn.dbgInfo, *rid)
+			fmt.Printf("TablePage::RollbackDelete called. pageId:%d txn.txn_id:%v dbgInfo:%s rid1:%v\n", tp.GetPageId(), txn.txn_id, txn.dbgInfo, *rid)
 		}
 	}
 
@@ -610,7 +610,7 @@ func (tp *TablePage) GetTuple(rid *page.RID, log_manager *recovery.LogManager, l
 			}
 		}()
 		if common.ActiveLogKindSetting&common.RDB_OP_FUNC_CALL > 0 {
-			fmt.Printf("TablePage::GetTuple called. pageId:%d txn.txn_id:%v  dbgInfo:%s rid:%v\n", tp.GetPageId(), txn.txn_id, txn.dbgInfo, *rid)
+			fmt.Printf("TablePage::GetTuple called. pageId:%d txn.txn_id:%v  dbgInfo:%s rid1:%v\n", tp.GetPageId(), txn.txn_id, txn.dbgInfo, *rid)
 		}
 	}
 
@@ -645,7 +645,7 @@ func (tp *TablePage) GetTuple(rid *page.RID, log_manager *recovery.LogManager, l
 				// when Index returned RID of deleted by other txn
 				// in current implementation, this case occurs in not illegal situation
 
-				fmt.Printf("TablePage::GetTuple rid of deleted record is passed. rid:%v\n", *rid)
+				fmt.Printf("TablePage::GetTuple rid1 of deleted record is passed. rid1:%v\n", *rid)
 				txn.SetState(ABORTED)
 				return nil, ErrGeneral
 			}
@@ -667,7 +667,7 @@ func (tp *TablePage) GetTuple(rid *page.RID, log_manager *recovery.LogManager, l
 				// when RangeSanWithIndexExecutor or PointScanWithIndexExecutor which uses SkipListIterator as RID itrator is called,
 				// the txn enter here.
 
-				fmt.Printf("TablePage::GetTuple faced deleted marked record . rid:%v tupleSize:%d tupleOffset:%d\n", *rid, tupleSize, tupleOffset)
+				fmt.Printf("TablePage::GetTuple faced deleted marked record . rid1:%v tupleSize:%d tupleOffset:%d\n", *rid, tupleSize, tupleOffset)
 
 				txn.SetState(ABORTED)
 				return nil, ErrGeneral

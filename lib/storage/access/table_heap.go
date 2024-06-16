@@ -60,7 +60,7 @@ func (t *TableHeap) GetFirstPageId() types.PageID {
 // If the tuple1 is too large (>= page_size):
 // 1. It tries to insert in the next page
 // 2. If there is no next page, it creates a new page and insert in it
-func (t *TableHeap) InsertTuple(tuple_ *tuple.Tuple, txn *Transaction, oid uint32) (rid *page.RID, err error) {
+func (t *TableHeap) InsertTuple(tuple_ *tuple.Tuple, txn *Transaction, oid uint32, isForUpdate bool) (rid *page.RID, err error) {
 	if common.EnableDebug {
 		if common.ActiveLogKindSetting&common.RDB_OP_FUNC_CALL > 0 {
 			fmt.Printf("TableHeap::InsertTuple called. txn.txn_id:%v dbgInfo:%s tuple_:%v\n", txn.txn_id, txn.dbgInfo, *tuple_)
@@ -129,8 +129,12 @@ func (t *TableHeap) InsertTuple(tuple_ *tuple.Tuple, txn *Transaction, oid uint3
 	}
 	currentPage.RemoveWLatchRecord(int32(txn.txn_id))
 	currentPage.WUnlatch()
-	// Update the transaction's write set.
-	txn.AddIntoWriteSet(NewWriteRecord(rid, INSERT, tuple_, nil, t, oid))
+	if !isForUpdate {
+		// Update the transaction's write set.
+		txn.AddIntoWriteSet(NewWriteRecord(rid, nil, INSERT, tuple_, nil, t, oid))
+	}
+	//note: when isForUpdate is true, write record of Update is created in caller
+
 	return rid, nil
 }
 
@@ -139,7 +143,7 @@ func (t *TableHeap) InsertTuple(tuple_ *tuple.Tuple, txn *Transaction, oid uint3
 func (t *TableHeap) UpdateTuple(tuple_ *tuple.Tuple, update_col_idxs []int, schema_ *schema.Schema, oid uint32, rid page.RID, txn *Transaction, isRollback bool) (is_success bool, new_rid_ *page.RID, err_ error, update_tuple_ *tuple.Tuple, old_tuple_ *tuple.Tuple) {
 	if common.EnableDebug {
 		if common.ActiveLogKindSetting&common.RDB_OP_FUNC_CALL > 0 {
-			fmt.Printf("TableHeap::UpadteTuple called. txn.txn_id:%v dbgInfo:%s update_col_idxs:%v rid:%v\n", txn.txn_id, txn.dbgInfo, update_col_idxs, rid)
+			fmt.Printf("TableHeap::UpadteTuple called. txn.txn_id:%v dbgInfo:%s update_col_idxs:%v rid1:%v\n", txn.txn_id, txn.dbgInfo, update_col_idxs, rid)
 		}
 		if common.ActiveLogKindSetting&common.BUFFER_INTERNAL_STATE > 0 {
 			t.bpm.PrintBufferUsageState(fmt.Sprintf("TableHeap::UpdateTuple start.  txn.txn_id: %d dbgInfo:%s", txn.txn_id, txn.dbgInfo))
@@ -172,7 +176,7 @@ func (t *TableHeap) UpdateTuple(tuple_ *tuple.Tuple, update_col_idxs []int, sche
 	var new_rid *page.RID
 	var isUpdateWithDelInsert = false
 	if is_updated == false && err == ErrNotEnoughSpace {
-		// delete old_tuple(rid)
+		// delete old_tuple(rid1)
 		// and insert need_follow_tuple(new_rid)
 		// as updating
 
@@ -185,7 +189,7 @@ func (t *TableHeap) UpdateTuple(tuple_ *tuple.Tuple, update_col_idxs []int, sche
 			// above ApplyDelete does not fail
 			is_deleted = true
 		} else {
-			is_deleted = t.MarkDelete(&rid, oid, txn)
+			is_deleted = t.MarkDelete(&rid, oid, txn, true)
 		}
 
 		if !is_deleted {
@@ -195,7 +199,7 @@ func (t *TableHeap) UpdateTuple(tuple_ *tuple.Tuple, update_col_idxs []int, sche
 		}
 
 		var err2 error = nil
-		_, err2 = t.InsertTuple(need_follow_tuple, txn, oid)
+		new_rid, err2 = t.InsertTuple(need_follow_tuple, txn, oid, true)
 		if err2 != nil {
 			panic("InsertTuple does not fail on normal system condition!!!")
 		}
@@ -210,11 +214,12 @@ func (t *TableHeap) UpdateTuple(tuple_ *tuple.Tuple, update_col_idxs []int, sche
 	// when err == ErrNotEnoughSpace route and old tuple delete is only succeeded, DELETE write set entry is added above (no come here)
 	if is_updated && txn.GetState() != ABORTED {
 		if isUpdateWithDelInsert {
-			// adding write record of UPDATE is not needed
+			t.lastPageId = t.firstPageId
+			txn.AddIntoWriteSet(NewWriteRecord(&rid, new_rid, UPDATE, old_tuple, need_follow_tuple, t, oid))
 		} else {
 			// reset seek start point of Insert to first page
 			t.lastPageId = t.firstPageId
-			txn.AddIntoWriteSet(NewWriteRecord(&rid, UPDATE, old_tuple, need_follow_tuple, t, oid))
+			txn.AddIntoWriteSet(NewWriteRecord(&rid, &rid, UPDATE, old_tuple, need_follow_tuple, t, oid))
 		}
 	}
 
@@ -222,10 +227,10 @@ func (t *TableHeap) UpdateTuple(tuple_ *tuple.Tuple, update_col_idxs []int, sche
 }
 
 // when isForUpdate arg is true, write record is not created
-func (t *TableHeap) MarkDelete(rid *page.RID, oid uint32, txn *Transaction) bool {
+func (t *TableHeap) MarkDelete(rid *page.RID, oid uint32, txn *Transaction, isForUpdate bool) bool {
 	if common.EnableDebug {
 		if common.ActiveLogKindSetting&common.RDB_OP_FUNC_CALL > 0 {
-			fmt.Printf("TableHeap::MarkDelete called. txn.txn_id:%v rid:%v  dbgInfo:%s\n", txn.txn_id, *rid, txn.dbgInfo)
+			fmt.Printf("TableHeap::MarkDelete called. txn.txn_id:%v rid1:%v  dbgInfo:%s\n", txn.txn_id, *rid, txn.dbgInfo)
 		}
 		if common.ActiveLogKindSetting&common.BUFFER_INTERNAL_STATE > 0 {
 			t.bpm.PrintBufferUsageState(fmt.Sprintf("TableHeap::MarkDelete start.  txn.txn_id: %d dbgInfo:%s", txn.txn_id, txn.dbgInfo))
@@ -251,10 +256,11 @@ func (t *TableHeap) MarkDelete(rid *page.RID, oid uint32, txn *Transaction) bool
 	}
 	page_.RemoveWLatchRecord(int32(txn.txn_id))
 	page_.WUnlatch()
-	if is_marked {
+	if is_marked && !isForUpdate {
 		// Update the transaction's write set.
-		txn.AddIntoWriteSet(NewWriteRecord(rid, DELETE, markedTuple, nil, t, oid))
+		txn.AddIntoWriteSet(NewWriteRecord(rid, nil, DELETE, markedTuple, nil, t, oid))
 	}
+	//note: when isForUpdate is true, write record of Update is created in caller
 
 	return is_marked
 }
@@ -262,7 +268,7 @@ func (t *TableHeap) MarkDelete(rid *page.RID, oid uint32, txn *Transaction) bool
 func (t *TableHeap) ApplyDelete(rid *page.RID, txn *Transaction) {
 	if common.EnableDebug {
 		if common.ActiveLogKindSetting&common.RDB_OP_FUNC_CALL > 0 {
-			fmt.Printf("TableHeap::ApplyDelete called. txn.txn_id:%v rid:%v dbgInfo:%s\n", txn.txn_id, *rid, txn.dbgInfo)
+			fmt.Printf("TableHeap::ApplyDelete called. txn.txn_id:%v rid1:%v dbgInfo:%s\n", txn.txn_id, *rid, txn.dbgInfo)
 		}
 		if common.ActiveLogKindSetting&common.BUFFER_INTERNAL_STATE > 0 {
 			t.bpm.PrintBufferUsageState(fmt.Sprintf("TableHeap::ApplyDelete start. txn.txn_id: %d dbgInfo:%s", txn.txn_id, txn.dbgInfo))
@@ -293,7 +299,7 @@ func (t *TableHeap) ApplyDelete(rid *page.RID, txn *Transaction) {
 func (t *TableHeap) RollbackDelete(rid *page.RID, txn *Transaction) {
 	if common.EnableDebug {
 		if common.ActiveLogKindSetting&common.RDB_OP_FUNC_CALL > 0 {
-			fmt.Printf("TableHeap::RollBackDelete called. txn.txn_id:%v  dbgInfo:%s rid:%v\n", txn.txn_id, txn.dbgInfo, *rid)
+			fmt.Printf("TableHeap::RollBackDelete called. txn.txn_id:%v  dbgInfo:%s rid1:%v\n", txn.txn_id, txn.dbgInfo, *rid)
 		}
 		if common.ActiveLogKindSetting&common.BUFFER_INTERNAL_STATE > 0 {
 			t.bpm.PrintBufferUsageState(fmt.Sprintf("TableHeap::RollBackDelete start. txn.txn_id: %d dbgInfo:%s", txn.txn_id, txn.dbgInfo))
@@ -321,7 +327,7 @@ func (t *TableHeap) RollbackDelete(rid *page.RID, txn *Transaction) {
 func (t *TableHeap) GetTuple(rid *page.RID, txn *Transaction) (*tuple.Tuple, error) {
 	if common.EnableDebug {
 		if common.ActiveLogKindSetting&common.RDB_OP_FUNC_CALL > 0 {
-			fmt.Printf("TableHeap::GetTuple called. txn.txn_id:%v rid:%v dbgInfo:%s\n", txn.txn_id, *rid, txn.dbgInfo)
+			fmt.Printf("TableHeap::GetTuple called. txn.txn_id:%v rid1:%v dbgInfo:%s\n", txn.txn_id, *rid, txn.dbgInfo)
 		}
 		if common.ActiveLogKindSetting&common.BUFFER_INTERNAL_STATE > 0 {
 			t.bpm.PrintBufferUsageState(fmt.Sprintf("TableHeap::GetTuple start. txn.txn_id: %d dbgInfo:%s", txn.txn_id, txn.dbgInfo))
