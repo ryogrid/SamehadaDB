@@ -39,5 +39,7 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v2
+      - name: change virtual file use flag to false
+        run: sed -i "/EnableOnMemStorage/c const EnableOnMemStorage = false" lib/common/config.go
       - name: test
         run: cd lib; go test ./... -v -short
