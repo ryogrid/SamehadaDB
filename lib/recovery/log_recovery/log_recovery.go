@@ -81,10 +81,6 @@ func (log_recovery *LogRecovery) DeserializeLogRecord(data []byte, log_record *r
 		log_record.New_tuple.DeserializeFrom(data[pos:])
 	} else if log_record.Log_record_type == recovery.NEWPAGE {
 		binary.Read(bytes.NewBuffer(data[pos:]), binary.LittleEndian, &log_record.Prev_page_id)
-	} else if log_record.Log_record_type == recovery.RESERVE_SPACE {
-		binary.Read(bytes.NewBuffer(data[pos:]), binary.LittleEndian, &log_record.Reserving_rid)
-		pos += uint32(unsafe.Sizeof(log_record.Reserving_rid))
-		log_record.Reserving_tuple.DeserializeFrom(data[pos:])
 	}
 
 	//fmt.Println(log_record)
@@ -159,7 +155,7 @@ func (log_recovery *LogRecovery) Redo(txn *access.Transaction) (types.LSN, bool)
 				if page_.GetLSN() < log_record.GetLSN() {
 					// UpdateTuple overwrites Old_tuple argument
 					// but it is no problem because log_record is read from log file again in Undo phase
-					page_.UpdateTuple(&log_record.New_tuple, nil, nil, &log_record.Old_tuple, &log_record.Update_rid, txn, nil, log_recovery.log_manager, true)
+					page_.UpdateTuple(&log_record.New_tuple, nil, nil, &log_record.Old_tuple, &log_record.Update_rid, txn, nil, log_recovery.log_manager)
 					page_.SetLSN(log_record.GetLSN())
 					isRedoOccured = true
 				}
@@ -178,14 +174,6 @@ func (log_recovery *LogRecovery) Redo(txn *access.Transaction) (types.LSN, bool)
 				new_page.Init(page_id, log_record.Prev_page_id, log_recovery.log_manager, nil, txn)
 				//log_recovery.buffer_pool_manager.FlushPage(page_id)
 				log_recovery.buffer_pool_manager.UnpinPage(page_id, true)
-			} else if log_record.Log_record_type == recovery.RESERVE_SPACE {
-				page_ :=
-					access.CastPageAsTablePage(log_recovery.buffer_pool_manager.FetchPage(log_record.Delete_rid.GetPageId()))
-				if page_.GetLSN() < log_record.GetLSN() {
-					page_.ReserveSpaceForRollbackUpdate(&log_record.Reserving_rid, log_record.Reserving_tuple.Size(), txn, log_recovery.log_manager, nil)
-					page_.SetLSN(log_record.GetLSN())
-					isRedoOccured = true
-				}
 			}
 			buffer_offset += log_record.Size
 		}
@@ -243,17 +231,11 @@ func (log_recovery *LogRecovery) Undo(txn *access.Transaction) bool {
 			} else if log_record.Log_record_type == recovery.UPDATE {
 				page_ :=
 					access.CastPageAsTablePage(log_recovery.buffer_pool_manager.FetchPage(log_record.Update_rid.GetPageId()))
-				_, err, _, _, _ := page_.UpdateTuple(&log_record.Old_tuple, nil, nil, &log_record.New_tuple, &log_record.Update_rid, txn, nil, log_recovery.log_manager, true)
+				_, err, _ := page_.UpdateTuple(&log_record.Old_tuple, nil, nil, &log_record.New_tuple, &log_record.Update_rid, txn, nil, log_recovery.log_manager)
 				if err != nil {
 					panic(fmt.Sprintln("UpdateTuple at rollback failed! err:", err))
 				}
 				log_recovery.buffer_pool_manager.UnpinPage(page_.GetPageId(), true)
-				isUndoOccured = true
-			} else if log_record.Log_record_type == recovery.RESERVE_SPACE {
-				page_ :=
-					access.CastPageAsTablePage(log_recovery.buffer_pool_manager.FetchPage(log_record.Reserving_rid.GetPageId()))
-				page_.ApplyDelete(&log_record.Reserving_rid, txn, log_recovery.log_manager)
-				log_recovery.buffer_pool_manager.UnpinPage(log_record.Reserving_rid.GetPageId(), true)
 				isUndoOccured = true
 			}
 

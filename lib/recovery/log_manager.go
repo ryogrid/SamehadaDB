@@ -160,16 +160,7 @@ func (log_manager *LogManager) AppendLogRecord(log_record *LogRecord) types.LSN 
 		binary.Write(buf, binary.LittleEndian, log_record.Prev_page_id)
 		pageIdInBytes := buf.Bytes()
 		copy(log_manager.log_buffer[pos:], pageIdInBytes)
-	} else if log_record.Log_record_type == RESERVE_SPACE {
-		buf := new(bytes.Buffer)
-		binary.Write(buf, binary.LittleEndian, log_record.Reserving_rid)
-		ridInBytes := buf.Bytes()
-		copy(log_manager.log_buffer[pos:], ridInBytes)
-		pos += uint32(unsafe.Sizeof(log_record.Reserving_rid))
-		// we have provided serialize function for tuple class
-		log_record.Reserving_tuple.SerializeTo(log_manager.log_buffer[pos:])
 	}
-	// TODO: (SDB) need to implement serialization of RESERVE_SPACE type log
 
 	log_manager.latch.WUnlock()
 	return log_record.Lsn

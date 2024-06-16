@@ -33,6 +33,7 @@ const offsetTupleSize = uint32(28)
 
 const ErrEmptyTuple = errors.Error("tuple1 cannot be empty.")
 const ErrNotEnoughSpace = errors.Error("there is not enough space.")
+const ErrRollbackDifficult = errors.Error("rollback is difficult. tuple need to be moved.")
 const ErrSelfDeletedCase = errors.Error("encont self deleted tuple1.")
 const ErrGeneral = errors.Error("some error is occured!")
 
@@ -145,7 +146,7 @@ func (tp *TablePage) InsertTuple(tuple *tuple.Tuple, log_manager *recovery.LogMa
 // for ensureing existance of enough space at rollback on abort or undo
 // return Tuple pointer when updated tuple1 need to be moved new page location and it should be inserted after old data deleted, otherwise returned nil
 func (tp *TablePage) UpdateTuple(new_tuple *tuple.Tuple, update_col_idxs []int, schema_ *schema.Schema, old_tuple *tuple.Tuple, rid *page.RID, txn *Transaction,
-	lock_manager *LockManager, log_manager *recovery.LogManager, isForRollbackUndo bool) (bool, error, *tuple.Tuple, *page.RID, *tuple.Tuple) {
+	lock_manager *LockManager, log_manager *recovery.LogManager) (bool, error, *tuple.Tuple) {
 	if common.EnableDebug {
 		defer func() {
 			if common.ActiveLogKindSetting&common.DEBUGGING > 0 {
@@ -167,11 +168,11 @@ func (tp *TablePage) UpdateTuple(new_tuple *tuple.Tuple, update_col_idxs []int, 
 		if txn.IsSharedLocked(rid) {
 			if !lock_manager.LockUpgrade(txn, rid) {
 				txn.SetState(ABORTED)
-				return false, nil, nil, nil, nil
+				return false, nil, nil
 			}
 		} else if !txn.IsExclusiveLocked(rid) && !lock_manager.LockExclusive(txn, rid) {
 			txn.SetState(ABORTED)
-			return false, nil, nil, nil, nil
+			return false, nil, nil
 		}
 	}
 
@@ -181,7 +182,7 @@ func (tp *TablePage) UpdateTuple(new_tuple *tuple.Tuple, update_col_idxs []int, 
 		if !txn.IsRecoveryPhase() {
 			txn.SetState(ABORTED)
 		}
-		return false, nil, nil, nil, nil
+		return false, nil, nil
 	}
 	tuple_size := tp.GetTupleSize(slot_num)
 	// If the tuple1 is deleted, abort the transaction.
@@ -189,11 +190,7 @@ func (tp *TablePage) UpdateTuple(new_tuple *tuple.Tuple, update_col_idxs []int, 
 		if !txn.IsRecoveryPhase() {
 			txn.SetState(ABORTED)
 		}
-		return false, nil, nil, nil, nil
-	}
-	if IsReserved(tuple_size) {
-		// ignore dummy tuple
-		return false, nil, nil, nil, nil
+		return false, nil, nil
 	}
 
 	// Copy out the old value.
@@ -229,8 +226,13 @@ func (tp *TablePage) UpdateTuple(new_tuple *tuple.Tuple, update_col_idxs []int, 
 	}
 
 	if tp.getFreeSpaceRemaining()+tuple_size < update_tuple.Size() {
-		fmt.Println("getFreeSpaceRemaining", tp.getFreeSpaceRemaining(), "tuple_size", tuple_size, "update_tuple.Size()", update_tuple.Size(), "RID", *rid)
-		return false, ErrNotEnoughSpace, update_tuple, nil, nil
+		fmt.Println("ErrNotEnoughSpace: getFreeSpaceRemaining", tp.getFreeSpaceRemaining(), "tuple_size", tuple_size, "update_tuple.Size()", update_tuple.Size(), "RID", *rid)
+		return false, ErrNotEnoughSpace, update_tuple
+	}
+
+	if tuple_size > update_tuple.Size() {
+		fmt.Println("ErrRollbackDifficult: getFreeSpaceRemaining", tp.getFreeSpaceRemaining(), "tuple_size", tuple_size, "update_tuple.Size()", update_tuple.Size(), "RID", *rid)
+		return false, ErrRollbackDifficult, update_tuple
 	}
 
 	if log_manager.IsEnabledLogging() {
@@ -258,81 +260,7 @@ func (tp *TablePage) UpdateTuple(new_tuple *tuple.Tuple, update_col_idxs []int, 
 		}
 	}
 
-	var dummy_rid *page.RID
-	var dummy_tuple *tuple.Tuple
-	// whether dummy tuple insertion is needed or not
-	if update_tuple.Size() < tuple_size && !isForRollbackUndo {
-		// addition of sizeTuple is needed because sizeTuple bytes is keep used
-		// after dummy tuple is deleted
-		reserve_size := tuple_size - update_tuple.Size() + sizeTuple
-		//reserve_size := tuple_size*2 + sizeTuple
-		// sizeTuple is needed metadata space additonaly
-		if tp.getFreeSpaceRemaining() >= sizeTuple+1 {
-			usableSpaceForDummy := tp.getFreeSpaceRemaining() - sizeTuple
-			if usableSpaceForDummy < reserve_size {
-				fmt.Println("fill few rest space for rollback for ", *rid, usableSpaceForDummy)
-				fmt.Println("new tuple size", update_tuple.Size(), "old tuple size", tuple_size)
-				dummy_rid, dummy_tuple = tp.ReserveSpaceForRollbackUpdate(nil, usableSpaceForDummy, txn, log_manager, lock_manager)
-				//if usableSpaceForDummy < 1 {
-				//	// no need to reserve space for rollback
-				//} else {
-				//	// add dummy tuple which fill space for rollback of update
-				//	dummy_rid, dummy_tuple = tp.ReserveSpaceForRollbackUpdate(nil, usableSpaceForDummy, txn, log_manager, lock_manager)
-				//}
-			} else {
-				// add dummy tuple which reserves space for rollback of update
-				dummy_rid, dummy_tuple = tp.ReserveSpaceForRollbackUpdate(nil, reserve_size, txn, log_manager, lock_manager)
-			}
-
-			//// add dummy tuple which fill rest all space of the page for rollback of update
-			//dummy_rid, dummy_tuple = tp.ReserveSpaceForRollbackUpdate(nil, usableSpaceForDummy, txn, log_manager, lock_manager)
-		}
-	}
-
-	return true, nil, update_tuple, dummy_rid, dummy_tuple
-}
-
-// rid1 is not null when caller is Redo
-func (tp *TablePage) ReserveSpaceForRollbackUpdate(rid *page.RID, size uint32, txn *Transaction, log_manager *recovery.LogManager, lock_manager *LockManager) (*page.RID, *tuple.Tuple) {
-	maxSlotNum := tp.GetTupleCount()
-	buf := make([]byte, size)
-
-	// set dummy tuple for rollback
-	var dummy_rid *page.RID
-	if rid != nil {
-		dummy_rid = rid
-	} else {
-		dummy_rid = &page.RID{tp.GetPageId(), maxSlotNum}
-	}
-
-	if !txn.IsRecoveryPhase() {
-		// Acquire an exclusive lock for inserting a dummy tuple
-		locked := lock_manager.LockExclusive(txn, dummy_rid)
-		if !locked {
-			panic("could not acquire an exclusive lock of found slot (=RID)")
-		}
-	}
-
-	dummy_tuple := tuple.NewTuple(dummy_rid, size, buf[:size])
-	tp.SetFreeSpacePointer(tp.GetFreeSpacePointer() - dummy_tuple.Size())
-	tp.setTuple(dummy_rid.GetSlotNum(), dummy_tuple)
-
-	if dummy_rid.GetSlotNum() == tp.GetTupleCount() {
-		tp.SetTupleCount(tp.GetTupleCount() + 1)
-	}
-
-	if size > 0 {
-		tp.SetTupleSize(dummy_rid.GetSlotNum(), SetReservedFlag(size))
-	}
-
-	if log_manager.IsEnabledLogging() {
-		log_record := recovery.NewLogRecordReserveSpace(txn.GetTransactionId(), txn.GetPrevLSN(), recovery.RESERVE_SPACE, *dummy_rid, dummy_tuple)
-		lsn := log_manager.AppendLogRecord(log_record)
-		tp.SetLSN(lsn)
-		txn.SetPrevLSN(lsn)
-	}
-
-	return dummy_rid, dummy_tuple
+	return true, nil, update_tuple
 }
 
 func (tp *TablePage) MarkDelete(rid *page.RID, txn *Transaction, lock_manager *LockManager, log_manager *recovery.LogManager) (isMarked bool, markedTuple *tuple.Tuple) {
@@ -431,12 +359,6 @@ func (tp *TablePage) ApplyDelete(rid *page.RID, txn *Transaction, log_manager *r
 	if IsDeleted(tuple_size) {
 		tuple_size = UnsetDeletedFlag(tuple_size)
 	}
-	//isReserved := false
-	if IsReserved(tuple_size) {
-		tuple_size = UnsetReservedFlag(tuple_size)
-		//isReserved = true
-		fmt.Println("ApplyDelete: freed dummy tuple: ", tuple_size)
-	}
 	// Otherwise we are rolling back an insert.
 
 	if tuple_size < 0 {
@@ -463,23 +385,10 @@ func (tp *TablePage) ApplyDelete(rid *page.RID, txn *Transaction, log_manager *r
 
 	free_space_pointer := tp.GetFreeSpacePointer()
 	common.SH_Assert(tuple_offset >= free_space_pointer, "Free space appears before tuples.")
-	//if tuple_offset >= free_space_pointer {
-	//	copy(tp.Data()[free_space_pointer+tuple_size:], tp.Data()[free_space_pointer:tuple_offset])
-	//}
-	// note: copy doesn't occur dummy tuple deleted and free space pointer value is not normal position
 
-	//if isReserved && spaceRemaining == 0 {
-	//	// this case is few rest rest space filled dummy tuple is deleted
-	//	// so header info of tuple also should be deleted
-	//	fmt.Println("ApplyDelete: delete dummy tuple (special case): ", tuple_size)
-	//	tp.SetFreeSpacePointer(free_space_pointer + tuple_size + sizeTuple)
-	//	tp.SetTupleCount(tp.GetTupleCount() - 1)
-	//} else {
-	// normal case
 	tp.SetFreeSpacePointer(free_space_pointer + tuple_size)
 	tp.SetTupleSize(slot_num, 0)
 	tp.SetTupleOffsetAtSlot(slot_num, 0)
-	//}
 
 	// Update all tuple offsets.
 	tuple_count := int(tp.GetTupleCount())
@@ -717,11 +626,6 @@ func (tp *TablePage) GetTuple(rid *page.RID, log_manager *recovery.LogManager, l
 		}
 	}
 
-	if IsReserved(tupleSize) {
-		// handle as same as deleted tuple
-		return tuple.NewTuple(rid, 0, make([]byte, 0)), ErrSelfDeletedCase
-	}
-
 	tupleData := make([]byte, tupleSize)
 	copy(tupleData, tp.Data()[tupleOffset:])
 
@@ -774,16 +678,4 @@ func SetDeletedFlag(tuple_size uint32) uint32 {
 /** @return tuple1 size with the deleted flag unset */
 func UnsetDeletedFlag(tuple_size uint32) uint32 {
 	return tuple_size & (^uint32(deleteMask))
-}
-
-func IsReserved(tuple_size uint32) bool {
-	return tuple_size&uint32(reservedMask) == uint32(reservedMask) || tuple_size == 0
-}
-
-func SetReservedFlag(tuple_size uint32) uint32 {
-	return tuple_size | uint32(reservedMask)
-}
-
-func UnsetReservedFlag(tuple_size uint32) uint32 {
-	return tuple_size & (^uint32(reservedMask))
 }

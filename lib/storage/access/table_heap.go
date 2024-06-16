@@ -165,7 +165,7 @@ func (t *TableHeap) UpdateTuple(tuple_ *tuple.Tuple, update_col_idxs []int, sche
 
 	page_.WLatch()
 	page_.AddWLatchRecord(int32(txn.txn_id))
-	is_updated, err, need_follow_tuple, dummy_rid, dummy_tuple := page_.UpdateTuple(tuple_, update_col_idxs, schema_, old_tuple, &rid, txn, t.lock_manager, t.log_manager, false)
+	is_updated, err, need_follow_tuple := page_.UpdateTuple(tuple_, update_col_idxs, schema_, old_tuple, &rid, txn, t.lock_manager, t.log_manager)
 	t.bpm.UnpinPage(page_.GetPageId(), is_updated)
 	if common.EnableDebug && common.ActiveLogKindSetting&common.PIN_COUNT_ASSERT > 0 {
 		common.SH_Assert(page_.PinCount() == 0, "PinCount is not zero when finish TablePage::UpdateTuple!!!")
@@ -175,7 +175,7 @@ func (t *TableHeap) UpdateTuple(tuple_ *tuple.Tuple, update_col_idxs []int, sche
 
 	var new_rid *page.RID
 	var isUpdateWithDelInsert = false
-	if is_updated == false && err == ErrNotEnoughSpace {
+	if is_updated == false && (err == ErrNotEnoughSpace || err == ErrRollbackDifficult) {
 		// delete old_tuple(rid1)
 		// and insert need_follow_tuple(new_rid)
 		// as updating
@@ -220,9 +220,6 @@ func (t *TableHeap) UpdateTuple(tuple_ *tuple.Tuple, update_col_idxs []int, sche
 			// reset seek start point of Insert to first page
 			t.lastPageId = t.firstPageId
 			txn.AddIntoWriteSet(NewWriteRecord(&rid, &rid, UPDATE, old_tuple, need_follow_tuple, t, oid))
-			if dummy_rid != nil && dummy_tuple != nil {
-				txn.AddIntoWriteSet(NewWriteRecord(dummy_rid, nil, RESERVE_SPACE, dummy_tuple, nil, t, oid))
-			}
 		}
 	}
 

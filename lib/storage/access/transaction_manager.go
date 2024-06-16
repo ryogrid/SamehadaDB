@@ -105,19 +105,6 @@ func (transaction_manager *TransactionManager) Commit(catalog_ catalog_interface
 				tpage.RemoveWLatchRecord(int32(txn.txn_id))
 				tpage.WUnlatch()
 			}
-		} else if item.wtype == RESERVE_SPACE {
-			if common.EnableDebug && common.ActiveLogKindSetting&common.COMMIT_ABORT_HANDLE_INFO > 0 {
-				fmt.Printf("TransactionManager::Commit handle RESERVE_SPACE write log. txn.txn_id:%v dbgInfo:%s rid1:%v\n", txn.txn_id, txn.dbgInfo, rid)
-			}
-			pageID := rid.GetPageId()
-			tpage := CastPageAsTablePage(table.bpm.FetchPage(pageID))
-			tpage.WLatch()
-			tpage.AddWLatchRecord(int32(txn.txn_id))
-			// remove dummy tuple which reserves space for update rollback
-			tpage.ApplyDelete(item.rid1, txn, transaction_manager.log_manager)
-			table.bpm.UnpinPage(tpage.GetPageId(), true)
-			tpage.RemoveWLatchRecord(int32(txn.txn_id))
-			tpage.WUnlatch()
 		}
 		write_set = write_set[:len(write_set)-1]
 	}
@@ -169,9 +156,6 @@ func (transaction_manager *TransactionManager) Abort(catalog_ catalog_interface.
 		}
 		fmt.Printf("TransactionManager::Abort txn.txn_id:%v  dbgInfo:%s write_set: %s\n", txn.txn_id, txn.dbgInfo, writeSetStr)
 	}
-
-	// flag for making handing RESERVE_SPACE and UPDATE write log atomic
-	var isReserveSpaceHandled = false
 
 	// Rollback before releasing the access.
 	for len(write_set) != 0 {
@@ -241,17 +225,8 @@ func (transaction_manager *TransactionManager) Abort(catalog_ catalog_interface.
 				// Note that this also releases the lock when holding the page latch.
 				pageID := rid.GetPageId()
 				tpage := CastPageAsTablePage(table.bpm.FetchPage(pageID))
-				if !isReserveSpaceHandled {
-					tpage.WLatch()
-				} else {
-					// getting latch is not needed because it is already latched at RESERVE_SPACE handling
-					fmt.Println("TransactionManager::Abort  getting latch is not needed because it is already latched at RESERVE_SPACE handling")
-					// unpin the page because it is pinned at RESERVE_SPACE handling
-					table.bpm.UnpinPage(pageID, true)
-				}
-				isReserveSpaceHandled = false
-
-				is_updated, err, _, _, _ := tpage.UpdateTuple(item.tuple1, nil, nil, item.tuple2, rid, txn, transaction_manager.lock_manager, transaction_manager.log_manager, true)
+				tpage.WLatch()
+				is_updated, err, _ := tpage.UpdateTuple(item.tuple1, nil, nil, item.tuple2, rid, txn, transaction_manager.lock_manager, transaction_manager.log_manager)
 				if !is_updated || err != nil {
 					panic("rollback of normal UPDATE failed")
 				}
@@ -275,24 +250,6 @@ func (transaction_manager *TransactionManager) Abort(catalog_ catalog_interface.
 					}
 				}
 			}
-		} else if item.wtype == RESERVE_SPACE {
-			// TODO: (SDB) critical section for this operation should be concatenated with UPDATE case...
-			if common.EnableDebug && common.ActiveLogKindSetting&common.COMMIT_ABORT_HANDLE_INFO > 0 {
-				fmt.Printf("TransactionManager::Commit handle UPDATE write log. txn.txn_id:%v dbgInfo:%s rid1:%v\n", txn.txn_id, txn.dbgInfo, item.rid1)
-			}
-			pageID := item.rid1.GetPageId()
-			tpage := CastPageAsTablePage(table.bpm.FetchPage(pageID))
-			tpage.WLatch()
-			tpage.AddWLatchRecord(int32(txn.txn_id))
-			// remove dummy tuple which reserves space for update rollback
-			tpage.ApplyDelete(item.rid1, txn, transaction_manager.log_manager)
-			//table.bpm.UnpinPage(tpage.GetPageId(), true)
-			tpage.RemoveWLatchRecord(int32(txn.txn_id))
-			// does not release the latch because it is needed for rollback of UPDATE
-			// WriteRecords and logs of RESERVE_SPACE and UPDATE are continuous in single transaction view
-
-			//tpage.WUnlatch()
-			isReserveSpaceHandled = true
 		}
 		write_set = write_set[:len(write_set)-1]
 	}
