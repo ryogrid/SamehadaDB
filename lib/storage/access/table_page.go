@@ -385,6 +385,7 @@ func (tp *TablePage) ApplyDelete(rid *page.RID, txn *Transaction, log_manager *r
 
 	free_space_pointer := tp.GetFreeSpacePointer()
 	common.SH_Assert(tuple_offset >= free_space_pointer, "Free space appears before tuples.")
+	copy(tp.Data()[free_space_pointer+tuple_size:], tp.Data()[free_space_pointer:tuple_offset])
 
 	tp.SetFreeSpacePointer(free_space_pointer + tuple_size)
 	tp.SetTupleSize(slot_num, 0)
