@@ -197,10 +197,7 @@ func (t *TableHeap) UpdateTuple(tuple_ *tuple.Tuple, update_col_idxs []int, sche
 		var err2 error = nil
 		_, err2 = t.InsertTuple(need_follow_tuple, txn, oid)
 		if err2 != nil {
-			fmt.Println("TableHeap::UpdateTuple(): InsertTuple failed")
-			txn.SetState(ABORTED)
-			//txn.AddIntoWriteSet(NewWriteRecord(&rid, nil, DELETE, old_tuple, nil, t, oid))
-			return false, nil, ErrPartialUpdate, nil, old_tuple
+			panic("InsertTuple does not fail on normal system condition!!!")
 		}
 
 		// change return values to success

@@ -10,6 +10,7 @@ import (
 	"github.com/ryogrid/SamehadaDB/lib/storage/tuple"
 	"github.com/ryogrid/SamehadaDB/lib/types"
 	"math"
+	"sync"
 )
 
 type SkipListIndex struct {
@@ -17,6 +18,8 @@ type SkipListIndex struct {
 	metadata  *IndexMetadata
 	// idx of target column on table
 	col_idx uint32
+	// UpdateEntry only get Write lock
+	updateMtx sync.RWMutex
 }
 
 func NewSkipListIndex(metadata *IndexMetadata, buffer_pool_manager *buffer.BufferPoolManager, col_idx uint32) *SkipListIndex {
@@ -27,33 +30,50 @@ func NewSkipListIndex(metadata *IndexMetadata, buffer_pool_manager *buffer.Buffe
 	// for the thechnique, key type is fixed to Varchar (comparison is done on dict order as byte array)
 	ret.container = *skip_list.NewSkipList(buffer_pool_manager, types.Varchar)
 	ret.col_idx = col_idx
+	ret.updateMtx = sync.RWMutex{}
 	return ret
 }
 
-func (slidx *SkipListIndex) InsertEntry(key *tuple.Tuple, rid page.RID, txn interface{}) {
+func (slidx *SkipListIndex) insertEntryInner(key *tuple.Tuple, rid page.RID, txn interface{}, isNoLock bool) {
 	tupleSchema_ := slidx.GetTupleSchema()
 	orgKeyVal := key.GetValue(tupleSchema_, slidx.col_idx)
 
 	convedKeyVal := samehada_util.EncodeValueAndRIDToDicOrderComparableVarchar(&orgKeyVal, &rid)
 
+	if isNoLock == false {
+		slidx.updateMtx.RLock()
+		defer slidx.updateMtx.RUnlock()
+	}
 	slidx.container.Insert(convedKeyVal, samehada_util.PackRIDtoUint64(&rid))
 }
 
-func (slidx *SkipListIndex) DeleteEntry(key *tuple.Tuple, rid page.RID, txn interface{}) {
+func (slidx *SkipListIndex) InsertEntry(key *tuple.Tuple, rid page.RID, txn interface{}) {
+	slidx.insertEntryInner(key, rid, txn, false)
+}
+
+func (slidx *SkipListIndex) deleteEntryInner(key *tuple.Tuple, rid page.RID, txn interface{}, isNoLock bool) {
 	tupleSchema_ := slidx.GetTupleSchema()
 	orgKeyVal := key.GetValue(tupleSchema_, slidx.col_idx)
 
 	convedKeyVal := samehada_util.EncodeValueAndRIDToDicOrderComparableVarchar(&orgKeyVal, &rid)
 
-	revertedOrgKey := samehada_util.ExtractOrgKeyFromDicOrderComparableEncodedVarchar(convedKeyVal, orgKeyVal.ValueType())
-	if !revertedOrgKey.CompareEquals(orgKeyVal) {
-		panic("key conversion may fail!")
-	}
+	//revertedOrgKey := samehada_util.ExtractOrgKeyFromDicOrderComparableEncodedVarchar(convedKeyVal, orgKeyVal.ValueType())
+	//if !revertedOrgKey.CompareEquals(orgKeyVal) {
+	//	panic("key conversion may fail!")
+	//}
 
+	if isNoLock == false {
+		slidx.updateMtx.RLock()
+		defer slidx.updateMtx.RUnlock()
+	}
 	isSuccess := slidx.container.Remove(convedKeyVal, 0)
 	if isSuccess == false {
-		panic(fmt.Sprintf("SkipListIndex::DeleteEntry: %v %v\n", convedKeyVal.ToIFValue(), rid))
+		panic(fmt.Sprintf("SkipListIndex::deleteEntryInner: %v %v\n", convedKeyVal.ToIFValue(), rid))
 	}
+}
+
+func (slidx *SkipListIndex) DeleteEntry(key *tuple.Tuple, rid page.RID, txn interface{}) {
+	slidx.deleteEntryInner(key, rid, txn, false)
 }
 
 func (slidx *SkipListIndex) ScanKey(key *tuple.Tuple, txn interface{}) []page.RID {
@@ -62,6 +82,7 @@ func (slidx *SkipListIndex) ScanKey(key *tuple.Tuple, txn interface{}) []page.RI
 	smallestKeyVal := samehada_util.EncodeValueAndRIDToDicOrderComparableVarchar(&orgKeyVal, &page.RID{0, 0})
 	biggestKeyVal := samehada_util.EncodeValueAndRIDToDicOrderComparableVarchar(&orgKeyVal, &page.RID{math.MaxInt32, math.MaxUint32})
 
+	slidx.updateMtx.RLock()
 	// Attention: returned itr's containing keys are string type Value which is constructed with byte arr of concatenated  original key and value
 	rangeItr := slidx.container.Iterator(smallestKeyVal, biggestKeyVal)
 
@@ -69,13 +90,16 @@ func (slidx *SkipListIndex) ScanKey(key *tuple.Tuple, txn interface{}) []page.RI
 	for done, _, _, rid := rangeItr.Next(); !done; done, _, _, rid = rangeItr.Next() {
 		retArr = append(retArr, *rid)
 	}
+	slidx.updateMtx.RUnlock()
 
 	return retArr
 }
 
 func (slidx *SkipListIndex) UpdateEntry(oldKey *tuple.Tuple, oldRID page.RID, newKey *tuple.Tuple, newRID page.RID, txn interface{}) {
-	slidx.DeleteEntry(oldKey, oldRID, txn)
-	slidx.InsertEntry(newKey, newRID, txn)
+	slidx.updateMtx.Lock()
+	defer slidx.updateMtx.Unlock()
+	slidx.deleteEntryInner(oldKey, oldRID, txn, true)
+	slidx.insertEntryInner(newKey, newRID, txn, true)
 }
 
 // get iterator which iterates entry in key sorted order
@@ -96,6 +120,8 @@ func (slidx *SkipListIndex) GetRangeScanIterator(start_key *tuple.Tuple, end_key
 		biggestKeyVal = samehada_util.EncodeValueAndRIDToDicOrderComparableVarchar(&orgEndKeyVal, &page.RID{math.MaxInt32, math.MaxUint32})
 	}
 
+	slidx.updateMtx.RLock()
+	defer slidx.updateMtx.RUnlock()
 	return slidx.container.Iterator(smallestKeyVal, biggestKeyVal)
 }
 

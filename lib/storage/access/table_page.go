@@ -36,9 +36,6 @@ const ErrNotEnoughSpace = errors.Error("there is not enough space.")
 const ErrSelfDeletedCase = errors.Error("encont self deleted tuple1.")
 const ErrGeneral = errors.Error("some error is occured!")
 
-// delete and insert are needed, but delete is only succeeded case
-const ErrPartialUpdate = errors.Error("update with new rid is succeeded partially")
-
 // Slotted page format:
 //
 //	---------------------------------------------------------

@@ -71,7 +71,7 @@ func (e *UpdateExecutor) Next() (*tuple.Tuple, Done, error) {
 			common.NewRIDAtNormal = true
 		}
 
-		if !is_updated && updateErr != access.ErrPartialUpdate {
+		if !is_updated && updateErr != nil {
 			err_ := errors.New("tuple update failed. PageId:SlotNum = " + string(rid.GetPageId()) + ":" + fmt.Sprint(rid.GetSlotNum()))
 			e.txn.SetState(access.ABORTED)
 			return nil, false, err_
@@ -86,27 +86,13 @@ func (e *UpdateExecutor) Next() (*tuple.Tuple, Done, error) {
 			} else {
 				index_ := ret
 				if updateIdxs == nil || samehada_util.IsContainList[int](updateIdxs, ii) {
-					if updateErr == access.ErrPartialUpdate {
-						// when tuple is moved page location on update, RID is changed to new value
-						// removing index entry is done at commit phase because delete operation uses marking technique
-
-						fmt.Println("DeleteEntry due to ErrPartialUpdate occured.")
-						index_.DeleteEntry(t, *rid, e.txn)
-
-						// do nothing
-					} else if new_rid != nil {
+					if new_rid != nil {
 						index_.UpdateEntry(t, *rid, updateTuple, *new_rid, e.txn)
 					} else {
 						index_.UpdateEntry(t, *rid, updateTuple, *rid, e.txn)
 					}
 				} else {
-					if updateErr == access.ErrPartialUpdate {
-						// when tuple is moved page location on update, RID is changed to new value
-						// removing index entry is done at commit phase because delete operation uses marking technique
-
-						fmt.Println("DeleteEntry due to ErrPartialUpdate occured.")
-						index_.DeleteEntry(t, *rid, e.txn)
-					} else if new_rid != nil {
+					if new_rid != nil {
 						index_.UpdateEntry(t, *rid, updateTuple, *new_rid, e.txn)
 					} else {
 						// do nothing
