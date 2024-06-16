@@ -114,8 +114,9 @@
 - [ ] DB Connector (Driver) or Other Kind of Network Access Interface
   - [ ] MySQL or PostgreSQL Compatible Protocol
   - [x] REST
-- [ ] Deallocate and Reuse Page
-  - Need tracking page usage by BufferPoolManager or TableHeap and need bitmap in header page corresponding to the tracking
+- [x] Deallocate and Reuse Page (TEMPORAL)
+  - Current implementation forgets reusable pages info at system shutdown or crash
+  - **Addition of persistence is needed**
 - [x] Optimization of INSERT
   - <del>Current implementation searches a free space which is enough for insert data with sequential scan from head (this is slow on exsisting large amount of records situation) </del>
 - [ ] UNION clause
