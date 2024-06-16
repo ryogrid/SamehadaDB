@@ -229,6 +229,7 @@ func (tp *TablePage) UpdateTuple(new_tuple *tuple.Tuple, update_col_idxs []int, 
 	}
 
 	if tp.getFreeSpaceRemaining()+tuple_size < update_tuple.Size() {
+		fmt.Println("getFreeSpaceRemaining", tp.getFreeSpaceRemaining(), "tuple_size", tuple_size, "update_tuple.Size()", update_tuple.Size(), "RID", *rid)
 		return false, ErrNotEnoughSpace, update_tuple, nil, nil
 	}
 
@@ -237,28 +238,6 @@ func (tp *TablePage) UpdateTuple(new_tuple *tuple.Tuple, update_col_idxs []int, 
 		lsn := log_manager.AppendLogRecord(log_record)
 		tp.SetLSN(lsn)
 		txn.SetPrevLSN(lsn)
-	}
-
-	var dummy_rid *page.RID
-	var dummy_tuple *tuple.Tuple
-	// whether dummy tuple insertion is needed or not
-	if update_tuple.Size() < tuple_size && !isForRollbackUndo {
-		reserve_size := tuple_size - update_tuple.Size()
-		// sizeTuple is needed metadata space additonaly
-		if tp.getFreeSpaceRemaining() >= sizeTuple {
-			usableSpaceForDummy := tp.getFreeSpaceRemaining() - sizeTuple
-			if usableSpaceForDummy < reserve_size {
-				if usableSpaceForDummy < 1 {
-					// no need to reserve space for rollback
-				} else {
-					// add dummy tuple which fill space for rollback of update
-					dummy_rid, dummy_tuple = tp.ReserveSpaceForRollbackUpdate(nil, usableSpaceForDummy, txn, log_manager, lock_manager)
-				}
-			} else {
-				// add dummy tuple which reserves space for rollback of update
-				dummy_rid, dummy_tuple = tp.ReserveSpaceForRollbackUpdate(nil, reserve_size, txn, log_manager, lock_manager)
-			}
-		}
 	}
 
 	// Perform the update.
@@ -276,6 +255,37 @@ func (tp *TablePage) UpdateTuple(new_tuple *tuple.Tuple, update_col_idxs []int, 
 		tuple_offset_i := tp.GetTupleOffsetAtSlot(uint32(ii))
 		if tp.GetTupleSize(uint32(ii)) > 0 && tuple_offset_i < tuple_offset+tuple_size {
 			tp.SetTupleOffsetAtSlot(uint32(ii), tuple_offset_i+tuple_size-update_tuple.Size())
+		}
+	}
+
+	var dummy_rid *page.RID
+	var dummy_tuple *tuple.Tuple
+	// whether dummy tuple insertion is needed or not
+	if update_tuple.Size() < tuple_size && !isForRollbackUndo {
+		// addition of sizeTuple is needed because sizeTuple bytes is keep used
+		// after dummy tuple is deleted
+		reserve_size := tuple_size - update_tuple.Size() + sizeTuple
+		//reserve_size := tuple_size*2 + sizeTuple
+		// sizeTuple is needed metadata space additonaly
+		if tp.getFreeSpaceRemaining() >= sizeTuple+1 {
+			usableSpaceForDummy := tp.getFreeSpaceRemaining() - sizeTuple
+			if usableSpaceForDummy < reserve_size {
+				fmt.Println("fill few rest space for rollback for ", *rid, usableSpaceForDummy)
+				fmt.Println("new tuple size", update_tuple.Size(), "old tuple size", tuple_size)
+				dummy_rid, dummy_tuple = tp.ReserveSpaceForRollbackUpdate(nil, usableSpaceForDummy, txn, log_manager, lock_manager)
+				//if usableSpaceForDummy < 1 {
+				//	// no need to reserve space for rollback
+				//} else {
+				//	// add dummy tuple which fill space for rollback of update
+				//	dummy_rid, dummy_tuple = tp.ReserveSpaceForRollbackUpdate(nil, usableSpaceForDummy, txn, log_manager, lock_manager)
+				//}
+			} else {
+				// add dummy tuple which reserves space for rollback of update
+				dummy_rid, dummy_tuple = tp.ReserveSpaceForRollbackUpdate(nil, reserve_size, txn, log_manager, lock_manager)
+			}
+
+			//// add dummy tuple which fill rest all space of the page for rollback of update
+			//dummy_rid, dummy_tuple = tp.ReserveSpaceForRollbackUpdate(nil, usableSpaceForDummy, txn, log_manager, lock_manager)
 		}
 	}
 
@@ -304,8 +314,8 @@ func (tp *TablePage) ReserveSpaceForRollbackUpdate(rid *page.RID, size uint32, t
 	}
 
 	dummy_tuple := tuple.NewTuple(dummy_rid, size, buf[:size])
-	tp.setTuple(dummy_rid.GetSlotNum(), dummy_tuple)
 	tp.SetFreeSpacePointer(tp.GetFreeSpacePointer() - dummy_tuple.Size())
+	tp.setTuple(dummy_rid.GetSlotNum(), dummy_tuple)
 
 	if dummy_rid.GetSlotNum() == tp.GetTupleCount() {
 		tp.SetTupleCount(tp.GetTupleCount() + 1)
@@ -410,6 +420,8 @@ func (tp *TablePage) ApplyDelete(rid *page.RID, txn *Transaction, log_manager *r
 		}
 	}
 
+	spaceRemaining := tp.getFreeSpaceRemaining()
+
 	slot_num := rid.GetSlotNum()
 	common.SH_Assert(slot_num < tp.GetTupleCount(), "Cannot have more slots than tuples.")
 
@@ -419,12 +431,15 @@ func (tp *TablePage) ApplyDelete(rid *page.RID, txn *Transaction, log_manager *r
 	if IsDeleted(tuple_size) {
 		tuple_size = UnsetDeletedFlag(tuple_size)
 	}
+	isReserved := false
 	if IsReserved(tuple_size) {
 		tuple_size = UnsetReservedFlag(tuple_size)
+		isReserved = true
+		fmt.Println("ApplyDelete: freed dummy tuple: ", tuple_size)
 	}
 	// Otherwise we are rolling back an insert.
 
-	if tuple_size <= 0 {
+	if tuple_size < 0 {
 		panic("TablePage::ApplyDelete: target tuple size is illegal!!!")
 	}
 
@@ -448,12 +463,23 @@ func (tp *TablePage) ApplyDelete(rid *page.RID, txn *Transaction, log_manager *r
 
 	free_space_pointer := tp.GetFreeSpacePointer()
 	common.SH_Assert(tuple_offset >= free_space_pointer, "Free space appears before tuples.")
+	//if tuple_offset >= free_space_pointer {
+	//	copy(tp.Data()[free_space_pointer+tuple_size:], tp.Data()[free_space_pointer:tuple_offset])
+	//}
+	// note: copy doesn't occur dummy tuple deleted and free space pointer value is not normal position
 
-	copy(tp.Data()[free_space_pointer+tuple_size:], tp.Data()[free_space_pointer:tuple_offset])
-
+	//if isReserved && spaceRemaining == 0 {
+	//	// this case is few rest rest space filled dummy tuple is deleted
+	//	// so header info of tuple also should be deleted
+	//	fmt.Println("ApplyDelete: delete dummy tuple (special case): ", tuple_size)
+	//	tp.SetFreeSpacePointer(free_space_pointer + tuple_size + sizeTuple)
+	//	tp.SetTupleCount(tp.GetTupleCount() - 1)
+	//} else {
+	// normal case
 	tp.SetFreeSpacePointer(free_space_pointer + tuple_size)
 	tp.SetTupleSize(slot_num, 0)
 	tp.SetTupleOffsetAtSlot(slot_num, 0)
+	//}
 
 	// Update all tuple offsets.
 	tuple_count := int(tp.GetTupleCount())
