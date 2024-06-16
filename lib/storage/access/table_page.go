@@ -420,7 +420,7 @@ func (tp *TablePage) ApplyDelete(rid *page.RID, txn *Transaction, log_manager *r
 		}
 	}
 
-	spaceRemaining := tp.getFreeSpaceRemaining()
+	//spaceRemaining := tp.getFreeSpaceRemaining()
 
 	slot_num := rid.GetSlotNum()
 	common.SH_Assert(slot_num < tp.GetTupleCount(), "Cannot have more slots than tuples.")
@@ -431,10 +431,10 @@ func (tp *TablePage) ApplyDelete(rid *page.RID, txn *Transaction, log_manager *r
 	if IsDeleted(tuple_size) {
 		tuple_size = UnsetDeletedFlag(tuple_size)
 	}
-	isReserved := false
+	//isReserved := false
 	if IsReserved(tuple_size) {
 		tuple_size = UnsetReservedFlag(tuple_size)
-		isReserved = true
+		//isReserved = true
 		fmt.Println("ApplyDelete: freed dummy tuple: ", tuple_size)
 	}
 	// Otherwise we are rolling back an insert.
