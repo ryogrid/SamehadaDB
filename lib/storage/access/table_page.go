@@ -145,7 +145,7 @@ func (tp *TablePage) InsertTuple(tuple *tuple.Tuple, log_manager *recovery.LogMa
 // for ensureing existance of enough space at rollback on abort or undo
 // return Tuple pointer when updated tuple1 need to be moved new page location and it should be inserted after old data deleted, otherwise returned nil
 func (tp *TablePage) UpdateTuple(new_tuple *tuple.Tuple, update_col_idxs []int, schema_ *schema.Schema, old_tuple *tuple.Tuple, rid *page.RID, txn *Transaction,
-	lock_manager *LockManager, log_manager *recovery.LogManager) (bool, error, *tuple.Tuple) {
+	lock_manager *LockManager, log_manager *recovery.LogManager, isForRollbackUndo bool) (bool, error, *tuple.Tuple, *page.RID, *tuple.Tuple) {
 	if common.EnableDebug {
 		defer func() {
 			if common.ActiveLogKindSetting&common.DEBUGGING > 0 {
@@ -167,11 +167,11 @@ func (tp *TablePage) UpdateTuple(new_tuple *tuple.Tuple, update_col_idxs []int, 
 		if txn.IsSharedLocked(rid) {
 			if !lock_manager.LockUpgrade(txn, rid) {
 				txn.SetState(ABORTED)
-				return false, nil, nil
+				return false, nil, nil, nil, nil
 			}
 		} else if !txn.IsExclusiveLocked(rid) && !lock_manager.LockExclusive(txn, rid) {
 			txn.SetState(ABORTED)
-			return false, nil, nil
+			return false, nil, nil, nil, nil
 		}
 	}
 
@@ -181,7 +181,7 @@ func (tp *TablePage) UpdateTuple(new_tuple *tuple.Tuple, update_col_idxs []int, 
 		if !txn.IsRecoveryPhase() {
 			txn.SetState(ABORTED)
 		}
-		return false, nil, nil
+		return false, nil, nil, nil, nil
 	}
 	tuple_size := tp.GetTupleSize(slot_num)
 	// If the tuple1 is deleted, abort the transaction.
@@ -189,11 +189,11 @@ func (tp *TablePage) UpdateTuple(new_tuple *tuple.Tuple, update_col_idxs []int, 
 		if !txn.IsRecoveryPhase() {
 			txn.SetState(ABORTED)
 		}
-		return false, nil, nil
+		return false, nil, nil, nil, nil
 	}
 	if IsReserved(tuple_size) {
 		// ignore dummy tuple
-		return false, nil, nil
+		return false, nil, nil, nil, nil
 	}
 
 	// Copy out the old value.
@@ -229,7 +229,7 @@ func (tp *TablePage) UpdateTuple(new_tuple *tuple.Tuple, update_col_idxs []int, 
 	}
 
 	if tp.getFreeSpaceRemaining()+tuple_size < update_tuple.Size() {
-		return false, ErrNotEnoughSpace, update_tuple
+		return false, ErrNotEnoughSpace, update_tuple, nil, nil
 	}
 
 	if log_manager.IsEnabledLogging() {
@@ -239,21 +239,25 @@ func (tp *TablePage) UpdateTuple(new_tuple *tuple.Tuple, update_col_idxs []int, 
 		txn.SetPrevLSN(lsn)
 	}
 
+	var dummy_rid *page.RID
+	var dummy_tuple *tuple.Tuple
 	// whether dummy tuple insertion is needed or not
-	if update_tuple.Size() < tuple_size {
+	if update_tuple.Size() < tuple_size && !isForRollbackUndo {
 		reserve_size := tuple_size - update_tuple.Size()
 		// sizeTuple is needed metadata space additonaly
-		usableSpaceForDummy := tp.getFreeSpaceRemaining() - sizeTuple
-		if usableSpaceForDummy < reserve_size {
-			if usableSpaceForDummy < 1 {
-				// no need to reserve space for rollback
+		if tp.getFreeSpaceRemaining() >= sizeTuple {
+			usableSpaceForDummy := tp.getFreeSpaceRemaining() - sizeTuple
+			if usableSpaceForDummy < reserve_size {
+				if usableSpaceForDummy < 1 {
+					// no need to reserve space for rollback
+				} else {
+					// add dummy tuple which fill space for rollback of update
+					dummy_rid, dummy_tuple = tp.ReserveSpaceForRollbackUpdate(nil, usableSpaceForDummy, txn, log_manager)
+				}
 			} else {
-				// add dummy tuple which fill space for rollback of update
-				tp.ReserveSpaceForRollbackUpdate(nil, usableSpaceForDummy, txn, log_manager)
+				// add dummy tuple which reserves space for rollback of update
+				dummy_rid, dummy_tuple = tp.ReserveSpaceForRollbackUpdate(nil, reserve_size, txn, log_manager)
 			}
-		} else {
-			// add dummy tuple which reserves space for rollback of update
-			tp.ReserveSpaceForRollbackUpdate(nil, tuple_size-update_tuple.Size(), txn, log_manager)
 		}
 	}
 
@@ -275,11 +279,11 @@ func (tp *TablePage) UpdateTuple(new_tuple *tuple.Tuple, update_col_idxs []int, 
 		}
 	}
 
-	return true, nil, update_tuple
+	return true, nil, update_tuple, dummy_rid, dummy_tuple
 }
 
 // rid1 is not null when caller is Redo
-func (tp *TablePage) ReserveSpaceForRollbackUpdate(rid *page.RID, size uint32, txn *Transaction, log_manager *recovery.LogManager) *page.RID {
+func (tp *TablePage) ReserveSpaceForRollbackUpdate(rid *page.RID, size uint32, txn *Transaction, log_manager *recovery.LogManager) (*page.RID, *tuple.Tuple) {
 	maxSlotNum := tp.GetTupleCount()
 	buf := make([]byte, size)
 
@@ -293,7 +297,6 @@ func (tp *TablePage) ReserveSpaceForRollbackUpdate(rid *page.RID, size uint32, t
 	dummy_tuple := tuple.NewTuple(dummy_rid, size, buf[:size])
 	tp.setTuple(dummy_rid.GetSlotNum(), dummy_tuple)
 	tp.SetFreeSpacePointer(tp.GetFreeSpacePointer() - dummy_tuple.Size())
-	tp.setTuple(dummy_rid.GetSlotNum(), dummy_tuple)
 
 	if dummy_rid.GetSlotNum() == tp.GetTupleCount() {
 		tp.SetTupleCount(tp.GetTupleCount() + 1)
@@ -310,7 +313,7 @@ func (tp *TablePage) ReserveSpaceForRollbackUpdate(rid *page.RID, size uint32, t
 		txn.SetPrevLSN(lsn)
 	}
 
-	return dummy_rid
+	return dummy_rid, dummy_tuple
 }
 
 func (tp *TablePage) MarkDelete(rid *page.RID, txn *Transaction, lock_manager *LockManager, log_manager *recovery.LogManager) (isMarked bool, markedTuple *tuple.Tuple) {
