@@ -17,13 +17,14 @@ import (
 
 // BufferPoolManager represents the buffer pool manager
 type BufferPoolManager struct {
-	diskManager disk.DiskManager
-	pages       []*page.Page // index is FrameID
-	replacer    *ClockReplacer
-	freeList    []FrameID
-	pageTable   map[types.PageID]FrameID
-	log_manager *recovery.LogManager
-	mutex       *sync.Mutex
+	diskManager      disk.DiskManager
+	pages            []*page.Page // index is FrameID
+	replacer         *ClockReplacer
+	freeList         []FrameID
+	reUsablePageList []types.PageID
+	pageTable        map[types.PageID]FrameID
+	log_manager      *recovery.LogManager
+	mutex            *sync.Mutex
 }
 
 // FetchPage fetches the requested page from the buffer pool.
@@ -70,7 +71,9 @@ func (b *BufferPoolManager) FetchPage(pageID types.PageID) *page.Page {
 			if common.EnableDebug && common.ActiveLogKindSetting&common.CACHE_OUT_IN_INFO > 0 {
 				fmt.Printf("BPM::FetchPage Cache out occurs! pageId:%d requested pageId:%d\n", currentPage.GetPageId(), pageID)
 			}
-			if currentPage.IsDirty() {
+			if currentPage.IsDeallocated() {
+				b.reUsablePageList = append(b.reUsablePageList, currentPage.GetPageId())
+			} else if currentPage.IsDirty() {
 				b.log_manager.Flush()
 				currentPage.WLatch()
 				data := currentPage.Data()
@@ -224,7 +227,9 @@ func (b *BufferPoolManager) NewPage() *page.Page {
 				fmt.Printf("BPM::NewPage WLatch:%v RLatch:%v\n", currentPage.WLatchMap, currentPage.RLatchMap)
 				panic(fmt.Sprintf("BPM::NewPage pin count of page to be cache out must be zero!!!. pageId:%d PinCount:%d", currentPage.GetPageId(), currentPage.PinCount()))
 			}
-			if currentPage.IsDirty() {
+			if currentPage.IsDeallocated() {
+				b.reUsablePageList = append(b.reUsablePageList, currentPage.GetPageId())
+			} else if currentPage.IsDirty() {
 				b.log_manager.Flush()
 				currentPage.WLatch()
 				currentPage.AddWLatchRecord(int32(-2))
@@ -242,7 +247,14 @@ func (b *BufferPoolManager) NewPage() *page.Page {
 	}
 
 	// allocates new page
-	pageID := b.diskManager.AllocatePage()
+	var pageID types.PageID
+	if len(b.reUsablePageList) > 0 {
+		pageID = b.reUsablePageList[0]
+		b.reUsablePageList = b.reUsablePageList[1:]
+	} else {
+		pageID = b.diskManager.AllocatePage()
+	}
+
 	pg := page.NewEmpty(pageID)
 
 	b.pageTable[pageID] = *frameID
@@ -258,61 +270,7 @@ func (b *BufferPoolManager) NewPage() *page.Page {
 }
 
 // DeallocatePage make disk space of db file which is idenfied by pageID
-// ATTENTION: when deallocated page is requested fetch, BPM return nil
 func (b *BufferPoolManager) DeallocatePage(pageID types.PageID) error {
-	//0.   Make sure you call DiskManager::DeallocatePage!
-	//1.   Search the page table for the requested page (P).
-	//1.   If P does not exist, return true.
-	//2.   If P exists, but has a non-zero pin-count, return false. Someone is using the page.
-	//3.   Otherwise, P can be deleted. Remove P from the page table, reset its metadata and return it to the free list.
-
-	/*
-		// TODO: this methods effects only when b.diskManage is VirtualDiskManager Impl (BPM::DeallocatePage)
-		//       and when use this, related component should consider nil returning by FetchPage
-		if common.EnableOnMemStorage {
-			var frameID FrameID
-			var ok bool
-			b.mutex.Lock()
-			b.diskManager.DeallocatePage(pageID)
-			if frameID, ok = b.pageTable[pageID]; !ok {
-				// nothing is needed for loaded data on BPM
-				b.mutex.Unlock()
-				return nil
-			}
-
-			page := b.pages[frameID]
-			page.WLatch()
-			page.AddWLatchRecord(-1)
-			// avoiding flushing current content
-			page.SetIsDirty(false)
-			//if page.PinCount() > 0 {
-			//	page.RemoveWLatchRecord(-1)
-			//	page.WUnlatch()
-			//	b.mutex.Unlock()
-			//	return nil
-			//	//panic("Pin count greater than 0")
-			//	//return errors.New("Pin count greater than 0")
-			//}
-
-			// when the page is on memory
-			//if page.GetPageId() == pageID {
-
-			//delete(b.pageTable, pageID)
-			b.pageTable[pageID] = DEALLOCATED_FRAME
-			// eliminate the page(frame) from cache out candidate list
-			(*b.replacer).Pin(frameID)
-			b.freeList = append(b.freeList, frameID)
-
-			//}
-
-			page.RemoveWLatchRecord(-1)
-			page.WUnlatch()
-			b.mutex.Unlock()
-
-			return nil
-		}
-	*/
-
 	return nil
 }
 
@@ -427,5 +385,5 @@ func NewBufferPoolManager(poolSize uint32, DiskManager disk.DiskManager, log_man
 	}
 
 	replacer := NewClockReplacer(poolSize)
-	return &BufferPoolManager{DiskManager, pages, replacer, freeList, make(map[types.PageID]FrameID), log_manager, new(sync.Mutex)}
+	return &BufferPoolManager{DiskManager, pages, replacer, freeList, make([]types.PageID, 0), make(map[types.PageID]FrameID), log_manager, new(sync.Mutex)}
 }

@@ -203,7 +203,7 @@ func (t *TableHeap) UpdateTuple(tuple_ *tuple.Tuple, update_col_idxs []int, sche
 			return false, nil, ErrPartialUpdate, nil, old_tuple
 		}
 
-		// change return flag to success
+		// change return values to success
 		is_updated = true
 		isUpdateWithDelInsert = true
 	}
