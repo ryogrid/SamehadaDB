@@ -245,6 +245,9 @@ func (transaction_manager *TransactionManager) Abort(catalog_ catalog_interface.
 					tpage.WLatch()
 				} else {
 					// getting latch is not needed because it is already latched at RESERVE_SPACE handling
+					fmt.Println("TransactionManager::Abort  getting latch is not needed because it is already latched at RESERVE_SPACE handling")
+					// unpin the page because it is pinned at RESERVE_SPACE handling
+					table.bpm.UnpinPage(pageID, true)
 				}
 				isReserveSpaceHandled = false
 
@@ -283,12 +286,13 @@ func (transaction_manager *TransactionManager) Abort(catalog_ catalog_interface.
 			tpage.AddWLatchRecord(int32(txn.txn_id))
 			// remove dummy tuple which reserves space for update rollback
 			tpage.ApplyDelete(item.rid1, txn, transaction_manager.log_manager)
-			table.bpm.UnpinPage(tpage.GetPageId(), true)
+			//table.bpm.UnpinPage(tpage.GetPageId(), true)
 			tpage.RemoveWLatchRecord(int32(txn.txn_id))
 			// does not release the latch because it is needed for rollback of UPDATE
 			// WriteRecords and logs of RESERVE_SPACE and UPDATE are continuous in single transaction view
 
 			//tpage.WUnlatch()
+			isReserveSpaceHandled = true
 		}
 		write_set = write_set[:len(write_set)-1]
 	}

@@ -182,7 +182,7 @@ func (log_recovery *LogRecovery) Redo(txn *access.Transaction) (types.LSN, bool)
 				page_ :=
 					access.CastPageAsTablePage(log_recovery.buffer_pool_manager.FetchPage(log_record.Delete_rid.GetPageId()))
 				if page_.GetLSN() < log_record.GetLSN() {
-					page_.ReserveSpaceForRollbackUpdate(&log_record.Reserving_rid, log_record.Reserving_tuple.Size(), txn, log_recovery.log_manager)
+					page_.ReserveSpaceForRollbackUpdate(&log_record.Reserving_rid, log_record.Reserving_tuple.Size(), txn, log_recovery.log_manager, nil)
 					page_.SetLSN(log_record.GetLSN())
 					isRedoOccured = true
 				}

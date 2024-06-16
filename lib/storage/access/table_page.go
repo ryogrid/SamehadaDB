@@ -252,11 +252,11 @@ func (tp *TablePage) UpdateTuple(new_tuple *tuple.Tuple, update_col_idxs []int, 
 					// no need to reserve space for rollback
 				} else {
 					// add dummy tuple which fill space for rollback of update
-					dummy_rid, dummy_tuple = tp.ReserveSpaceForRollbackUpdate(nil, usableSpaceForDummy, txn, log_manager)
+					dummy_rid, dummy_tuple = tp.ReserveSpaceForRollbackUpdate(nil, usableSpaceForDummy, txn, log_manager, lock_manager)
 				}
 			} else {
 				// add dummy tuple which reserves space for rollback of update
-				dummy_rid, dummy_tuple = tp.ReserveSpaceForRollbackUpdate(nil, reserve_size, txn, log_manager)
+				dummy_rid, dummy_tuple = tp.ReserveSpaceForRollbackUpdate(nil, reserve_size, txn, log_manager, lock_manager)
 			}
 		}
 	}
@@ -283,7 +283,7 @@ func (tp *TablePage) UpdateTuple(new_tuple *tuple.Tuple, update_col_idxs []int, 
 }
 
 // rid1 is not null when caller is Redo
-func (tp *TablePage) ReserveSpaceForRollbackUpdate(rid *page.RID, size uint32, txn *Transaction, log_manager *recovery.LogManager) (*page.RID, *tuple.Tuple) {
+func (tp *TablePage) ReserveSpaceForRollbackUpdate(rid *page.RID, size uint32, txn *Transaction, log_manager *recovery.LogManager, lock_manager *LockManager) (*page.RID, *tuple.Tuple) {
 	maxSlotNum := tp.GetTupleCount()
 	buf := make([]byte, size)
 
@@ -294,6 +294,15 @@ func (tp *TablePage) ReserveSpaceForRollbackUpdate(rid *page.RID, size uint32, t
 	} else {
 		dummy_rid = &page.RID{tp.GetPageId(), maxSlotNum}
 	}
+
+	if !txn.IsRecoveryPhase() {
+		// Acquire an exclusive lock for inserting a dummy tuple
+		locked := lock_manager.LockExclusive(txn, dummy_rid)
+		if !locked {
+			panic("could not acquire an exclusive lock of found slot (=RID)")
+		}
+	}
+
 	dummy_tuple := tuple.NewTuple(dummy_rid, size, buf[:size])
 	tp.setTuple(dummy_rid.GetSlotNum(), dummy_tuple)
 	tp.SetFreeSpacePointer(tp.GetFreeSpacePointer() - dummy_tuple.Size())
