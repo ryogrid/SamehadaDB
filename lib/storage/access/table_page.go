@@ -146,7 +146,7 @@ func (tp *TablePage) InsertTuple(tuple *tuple.Tuple, log_manager *recovery.LogMa
 // for ensureing existance of enough space at rollback on abort or undo
 // return Tuple pointer when updated tuple1 need to be moved new page location and it should be inserted after old data deleted, otherwise returned nil
 func (tp *TablePage) UpdateTuple(new_tuple *tuple.Tuple, update_col_idxs []int, schema_ *schema.Schema, old_tuple *tuple.Tuple, rid *page.RID, txn *Transaction,
-	lock_manager *LockManager, log_manager *recovery.LogManager) (bool, error, *tuple.Tuple) {
+	lock_manager *LockManager, log_manager *recovery.LogManager, isRollbackOrUndo bool) (bool, error, *tuple.Tuple) {
 	if common.EnableDebug {
 		defer func() {
 			if common.ActiveLogKindSetting&common.DEBUGGING > 0 {
@@ -226,12 +226,12 @@ func (tp *TablePage) UpdateTuple(new_tuple *tuple.Tuple, update_col_idxs []int, 
 	}
 
 	if tp.getFreeSpaceRemaining()+tuple_size < update_tuple.Size() {
-		fmt.Println("ErrNotEnoughSpace: getFreeSpaceRemaining", tp.getFreeSpaceRemaining(), "tuple_size", tuple_size, "update_tuple.Size()", update_tuple.Size(), "RID", *rid)
+		//fmt.Println("ErrNotEnoughSpace: getFreeSpaceRemaining", tp.getFreeSpaceRemaining(), "tuple_size", tuple_size, "update_tuple.Size()", update_tuple.Size(), "RID", *rid)
 		return false, ErrNotEnoughSpace, update_tuple
 	}
 
-	if tuple_size > update_tuple.Size() {
-		fmt.Println("ErrRollbackDifficult: getFreeSpaceRemaining", tp.getFreeSpaceRemaining(), "tuple_size", tuple_size, "update_tuple.Size()", update_tuple.Size(), "RID", *rid)
+	if tuple_size > update_tuple.Size() && !isRollbackOrUndo {
+		//fmt.Println("ErrRollbackDifficult: getFreeSpaceRemaining", tp.getFreeSpaceRemaining(), "tuple_size", tuple_size, "update_tuple.Size()", update_tuple.Size(), "RID", *rid)
 		return false, ErrRollbackDifficult, update_tuple
 	}
 

@@ -226,7 +226,7 @@ func (transaction_manager *TransactionManager) Abort(catalog_ catalog_interface.
 				pageID := rid.GetPageId()
 				tpage := CastPageAsTablePage(table.bpm.FetchPage(pageID))
 				tpage.WLatch()
-				is_updated, err, _ := tpage.UpdateTuple(item.tuple1, nil, nil, item.tuple2, rid, txn, transaction_manager.lock_manager, transaction_manager.log_manager)
+				is_updated, err, _ := tpage.UpdateTuple(item.tuple1, nil, nil, item.tuple2, rid, txn, transaction_manager.lock_manager, transaction_manager.log_manager, true)
 				if !is_updated || err != nil {
 					panic("rollback of normal UPDATE failed")
 				}

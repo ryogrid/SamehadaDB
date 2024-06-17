@@ -165,7 +165,7 @@ func (t *TableHeap) UpdateTuple(tuple_ *tuple.Tuple, update_col_idxs []int, sche
 
 	page_.WLatch()
 	page_.AddWLatchRecord(int32(txn.txn_id))
-	is_updated, err, need_follow_tuple := page_.UpdateTuple(tuple_, update_col_idxs, schema_, old_tuple, &rid, txn, t.lock_manager, t.log_manager)
+	is_updated, err, need_follow_tuple := page_.UpdateTuple(tuple_, update_col_idxs, schema_, old_tuple, &rid, txn, t.lock_manager, t.log_manager, false)
 	t.bpm.UnpinPage(page_.GetPageId(), is_updated)
 	if common.EnableDebug && common.ActiveLogKindSetting&common.PIN_COUNT_ASSERT > 0 {
 		common.SH_Assert(page_.PinCount() == 0, "PinCount is not zero when finish TablePage::UpdateTuple!!!")
@@ -214,11 +214,11 @@ func (t *TableHeap) UpdateTuple(tuple_ *tuple.Tuple, update_col_idxs []int, sche
 	// when err == ErrNotEnoughSpace route and old tuple delete is only succeeded, DELETE write set entry is added above (no come here)
 	if is_updated && txn.GetState() != ABORTED {
 		if isUpdateWithDelInsert {
-			t.lastPageId = t.firstPageId
+			//t.lastPageId = t.firstPageId
 			txn.AddIntoWriteSet(NewWriteRecord(&rid, new_rid, UPDATE, old_tuple, need_follow_tuple, t, oid))
 		} else {
 			// reset seek start point of Insert to first page
-			t.lastPageId = t.firstPageId
+			//t.lastPageId = t.firstPageId
 			txn.AddIntoWriteSet(NewWriteRecord(&rid, &rid, UPDATE, old_tuple, need_follow_tuple, t, oid))
 		}
 	}
