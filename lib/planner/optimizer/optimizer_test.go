@@ -59,7 +59,7 @@ func SetupTableWithMetadata(exec_ctx *executors.ExecutorContext, tableMeta *Setu
 			vals = append(vals, types.NewValue(genFunc(ii)))
 		}
 		tuple_ := tuple.NewTupleFromSchema(vals, schema_)
-		rid, _ := tm.Table().InsertTuple(tuple_, txn, tm.OID())
+		rid, _ := tm.Table().InsertTuple(tuple_, txn, tm.OID(), false)
 		for jj, colMeta := range tableMeta.Columns {
 			if colMeta.IdxKind != index_constants.INDEX_KIND_INVALID {
 				tm.GetIndex(jj).InsertEntry(tuple_, *rid, txn)

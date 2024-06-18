@@ -59,10 +59,10 @@ func TestRedo(t *testing.T) {
 	val1_1 := tuple1_.GetValue(schema_, 1)
 	val1_0 := tuple1_.GetValue(schema_, 0)
 
-	rid, _ = test_table.InsertTuple(tuple_, txn, math.MaxUint32)
+	rid, _ = test_table.InsertTuple(tuple_, txn, math.MaxUint32, false)
 	// TODO: (SDB) insert index entry if needed
 	testingpkg.Assert(t, rid != nil, "")
-	rid1, _ = test_table.InsertTuple(tuple1_, txn, math.MaxUint32)
+	rid1, _ = test_table.InsertTuple(tuple1_, txn, math.MaxUint32, false)
 	// TODO: (SDB) insert index entry if needed
 	testingpkg.Assert(t, rid != nil, "")
 
@@ -172,7 +172,7 @@ func TestUndo(t *testing.T) {
 	val1_1 := tuple1.GetValue(schema_, 1)
 	var rid1 *page.RID
 	fmt.Println("tuple1: ", tuple1.Data())
-	rid1, _ = test_table.InsertTuple(tuple1, txn, math.MaxUint32)
+	rid1, _ = test_table.InsertTuple(tuple1, txn, math.MaxUint32, false)
 	testingpkg.Assert(t, rid1 != nil, "")
 
 	tuple2 := ConstructTuple(schema_)
@@ -180,7 +180,7 @@ func TestUndo(t *testing.T) {
 	val2_1 := tuple2.GetValue(schema_, 1)
 
 	var rid2 *page.RID
-	rid2, _ = test_table.InsertTuple(tuple2, txn, math.MaxUint32)
+	rid2, _ = test_table.InsertTuple(tuple2, txn, math.MaxUint32, false)
 	testingpkg.Assert(t, rid2 != nil, "")
 
 	bf_commit_tuple2, _ := test_table.GetTuple(rid2, txn)
@@ -197,7 +197,7 @@ func TestUndo(t *testing.T) {
 	fmt.Println("bf_commit_tuple2_: ", bf_commit_tuple2__.Data())
 
 	// tuple deletion (rid1)
-	test_table.MarkDelete(rid1, math.MaxUint32, txn)
+	test_table.MarkDelete(rid1, math.MaxUint32, txn, false)
 
 	bf_commit_tuple2___, _ := test_table.GetTuple(rid2, txn)
 	fmt.Println("bf_commit_tuple2_: ", bf_commit_tuple2___.Data())
@@ -215,7 +215,7 @@ func TestUndo(t *testing.T) {
 	// tuple insertion (rid3)
 	tuple3 := ConstructTuple(schema_)
 	var rid3 *page.RID
-	rid3, _ = test_table.InsertTuple(tuple3, txn, math.MaxUint32)
+	rid3, _ = test_table.InsertTuple(tuple3, txn, math.MaxUint32, false)
 	// TODO: (SDB) insert index entry if needed
 	testingpkg.Assert(t, rid3 != nil, "")
 
@@ -345,7 +345,7 @@ func TestCheckpoint(t *testing.T) {
 	// insert a ton of tuples
 	txn1 := samehada_instance.GetTransactionManager().Begin(nil)
 	for i := 0; i < 1000; i++ {
-		rid, err := test_table.InsertTuple(tuple_, txn1, math.MaxUint32)
+		rid, err := test_table.InsertTuple(tuple_, txn1, math.MaxUint32, false)
 		if err != nil {
 			fmt.Println(err)
 		}

@@ -870,7 +870,8 @@ func testParallelTxnsQueryingSkipListIndexUsedColumns[T int32 | float32 | string
 			randomUpdateOpFunc := func() {
 				var updateKeyValBase T
 				isFound, updateKeyValBaseP := getKeyAndMarkItInsValsAndDeletedValsForDelete()
-				if !isFound || keyType == types.Varchar {
+				//if !isFound || keyType == types.Varchar {
+				if !isFound {
 					if execType == PARALLEL_EXEC {
 						ch <- 1
 					}

@@ -22,7 +22,6 @@ const (
 	APPLYDELETE
 	ROLLBACKDELETE
 	UPDATE
-	RESERVE_SPACE
 	BEGIN
 	COMMIT
 	ABORT
@@ -142,19 +141,6 @@ func NewLogRecordNewPage(txn_id types.TxnID, prev_lsn types.LSN, log_record_type
 	ret.Prev_page_id = page_id
 	// calculate log record size
 	ret.Size = HEADER_SIZE + uint32(unsafe.Sizeof(page_id))
-	return ret
-}
-
-func NewLogRecordReserveSpace(txn_id types.TxnID, prev_lsn types.LSN, log_record_type LogRecordType, rid page.RID, tuple *tuple.Tuple) *LogRecord {
-	ret := new(LogRecord)
-	ret.Size = HEADER_SIZE
-	ret.Txn_id = txn_id
-	ret.Prev_lsn = prev_lsn
-	ret.Log_record_type = log_record_type
-	ret.Reserving_rid = rid
-	ret.Reserving_tuple = *tuple
-	// calculate log record size
-	ret.Size = HEADER_SIZE + uint32(unsafe.Sizeof(rid)) + tuple.Size() + uint32(unsafe.Sizeof(int32(0)))
 	return ret
 }
 
