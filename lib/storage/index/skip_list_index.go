@@ -2,6 +2,7 @@ package index
 
 import (
 	"github.com/ryogrid/SamehadaDB/lib/container/skip_list"
+	"github.com/ryogrid/SamehadaDB/lib/recovery"
 	"github.com/ryogrid/SamehadaDB/lib/samehada/samehada_util"
 	"github.com/ryogrid/SamehadaDB/lib/storage/buffer"
 	"github.com/ryogrid/SamehadaDB/lib/storage/page"
@@ -16,20 +17,22 @@ type SkipListIndex struct {
 	container skip_list.SkipList
 	metadata  *IndexMetadata
 	// idx of target column on table
-	col_idx uint32
+	col_idx     uint32
+	log_manager *recovery.LogManager
 	// UpdateEntry only get Write lock
 	updateMtx sync.RWMutex
 }
 
-func NewSkipListIndex(metadata *IndexMetadata, buffer_pool_manager *buffer.BufferPoolManager, col_idx uint32) *SkipListIndex {
+func NewSkipListIndex(metadata *IndexMetadata, buffer_pool_manager *buffer.BufferPoolManager, col_idx uint32, log_manager *recovery.LogManager) *SkipListIndex {
 	ret := new(SkipListIndex)
 	ret.metadata = metadata
 
 	// SkipListIndex uses special technique to support key duplication with SkipList supporting unique key only
 	// for the thechnique, key type is fixed to Varchar (comparison is done on dict order as byte array)
-	ret.container = *skip_list.NewSkipList(buffer_pool_manager, types.Varchar)
+	ret.container = *skip_list.NewSkipList(buffer_pool_manager, types.Varchar, log_manager)
 	ret.col_idx = col_idx
 	ret.updateMtx = sync.RWMutex{}
+	ret.log_manager = log_manager
 	return ret
 }
 

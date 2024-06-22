@@ -5,6 +5,7 @@ package catalog
 
 import (
 	"github.com/ryogrid/SamehadaDB/lib/common"
+	"github.com/ryogrid/SamehadaDB/lib/recovery"
 	"github.com/ryogrid/SamehadaDB/lib/storage/access"
 	"github.com/ryogrid/SamehadaDB/lib/storage/index"
 	"github.com/ryogrid/SamehadaDB/lib/storage/index/index_constants"
@@ -23,7 +24,7 @@ type TableMetadata struct {
 	oid      uint32
 }
 
-func NewTableMetadata(schema *schema.Schema, name string, table *access.TableHeap, oid uint32) *TableMetadata {
+func NewTableMetadata(schema *schema.Schema, name string, table *access.TableHeap, oid uint32, log_manager *recovery.LogManager) *TableMetadata {
 	ret := new(TableMetadata)
 	ret.schema = schema
 	ret.name = name
@@ -58,7 +59,7 @@ func NewTableMetadata(schema *schema.Schema, name string, table *access.TableHea
 				// currently, SkipList Index always use new pages even if relaunch
 				im := index.NewIndexMetadata(column_.GetColumnName()+"_index", name, schema, []uint32{uint32(idx)})
 				// TODO: (SDB) need to add index headae ID argument like HashIndex (NewTableMetadata)
-				slIdx := index.NewSkipListIndex(im, table.GetBufferPoolManager(), uint32(idx))
+				slIdx := index.NewSkipListIndex(im, table.GetBufferPoolManager(), uint32(idx), log_manager)
 
 				indexes = append(indexes, slIdx)
 				//column_.SetIndexHeaderPageId(slIdx.GetHeaderPageId())

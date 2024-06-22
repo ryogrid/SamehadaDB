@@ -3,6 +3,7 @@ package skip_list
 import (
 	"fmt"
 	"github.com/ryogrid/SamehadaDB/lib/common"
+	"github.com/ryogrid/SamehadaDB/lib/recovery"
 	"github.com/ryogrid/SamehadaDB/lib/storage/buffer"
 	"github.com/ryogrid/SamehadaDB/lib/storage/page/skip_list_page"
 	"github.com/ryogrid/SamehadaDB/lib/types"
@@ -35,14 +36,16 @@ type SkipList struct {
 	SentinelNodeID  types.PageID
 	bpm             *buffer.BufferPoolManager
 	headerPageLatch common.ReaderWriterLatch
+	log_manager     *recovery.LogManager
 }
 
-func NewSkipList(bpm *buffer.BufferPoolManager, keyType types.TypeID) *SkipList {
+func NewSkipList(bpm *buffer.BufferPoolManager, keyType types.TypeID, log_manager *recovery.LogManager) *SkipList {
 	ret := new(SkipList)
 	ret.bpm = bpm
 	var sentinelNode *skip_list_page.SkipListBlockPage
 	ret.headerPage, ret.startNode, sentinelNode = skip_list_page.NewSkipListHeaderPage(bpm, keyType)
 	ret.SentinelNodeID = sentinelNode.GetPageId()
+	ret.log_manager = log_manager
 
 	return ret
 }
@@ -292,15 +295,14 @@ func (sl *SkipList) Remove(key *types.Value, value uint64) (isDeleted_ bool) {
 			continue
 		}
 
+		pageId := node.GetPageId()
+
 		// locking is not needed because already have lock with FindNode method call
 		isNodeShouldBeDeleted, isDeleted, isNeedRetry = node.Remove(sl.bpm, key, predOfCorners, corners)
 		// lock and pin which is got FindNode are released on Remove method
 
 		if isNodeShouldBeDeleted {
-			// page's isDeleted is set in Remove method
-			// then node is deallocated in BPM and do nothing here
-
-			//sl.bpm.DeallocatePage(pageId)
+			sl.bpm.DeallocatePage(pageId)
 		}
 	}
 

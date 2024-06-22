@@ -104,7 +104,9 @@ func RecoveryCatalogFromCatalogPage(bpm *buffer.BufferPoolManager, log_manager *
 			schema.NewSchema(columns),
 			name,
 			access.InitTableHeap(bpm, types.PageID(firstPage), log_manager, lock_manager),
-			uint32(oid))
+			uint32(oid),
+			log_manager,
+		)
 
 		tableIds[uint32(oid)] = tableMetadata
 		tableNames[name] = tableMetadata
@@ -169,7 +171,7 @@ func (c *Catalog) CreateTable(name string, schema_ *schema.Schema, txn *access.T
 	// attach table name as prefix to all columns name
 	attachTableNameToColumnsName(schema_, name_)
 
-	tableMetadata := NewTableMetadata(schema_, name_, tableHeap, oid)
+	tableMetadata := NewTableMetadata(schema_, name_, tableHeap, oid, c.Log_manager)
 
 	c.tableIdsMutex.Lock()
 	c.tableIds[oid] = tableMetadata

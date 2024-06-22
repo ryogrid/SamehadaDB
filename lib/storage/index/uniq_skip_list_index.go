@@ -25,7 +25,7 @@ type UniqSkipListIndex struct {
 func NewUniqSkipListIndex(metadata *IndexMetadata, buffer_pool_manager *buffer.BufferPoolManager, col_idx uint32) *UniqSkipListIndex {
 	ret := new(UniqSkipListIndex)
 	ret.metadata = metadata
-	ret.container = *skip_list.NewSkipList(buffer_pool_manager, ret.metadata.GetTupleSchema().GetColumn(col_idx).GetType())
+	ret.container = *skip_list.NewSkipList(buffer_pool_manager, ret.metadata.GetTupleSchema().GetColumn(col_idx).GetType(), nil)
 	ret.col_idx = col_idx
 	ret.updateMtx = sync.RWMutex{}
 	return ret

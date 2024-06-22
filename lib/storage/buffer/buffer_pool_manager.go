@@ -251,6 +251,9 @@ func (b *BufferPoolManager) NewPage() *page.Page {
 	if len(b.reUsablePageList) > 0 {
 		pageID = b.reUsablePageList[0]
 		b.reUsablePageList = b.reUsablePageList[1:]
+		logRecord := recovery.NewLogRecordReusePage(pageID)
+		b.log_manager.AppendLogRecord(logRecord)
+		b.log_manager.Flush()
 	} else {
 		pageID = b.diskManager.AllocatePage()
 	}
@@ -271,6 +274,9 @@ func (b *BufferPoolManager) NewPage() *page.Page {
 
 // DeallocatePage make disk space of db file which is idenfied by pageID
 func (b *BufferPoolManager) DeallocatePage(pageID types.PageID) error {
+	logRecord := recovery.NewLogRecordDeallocatePage(pageID)
+	b.log_manager.AppendLogRecord(logRecord)
+	b.log_manager.Flush()
 	return nil
 }
 
@@ -348,6 +354,16 @@ func (b *BufferPoolManager) GetPoolSize() int {
 
 func (b *BufferPoolManager) PrintReplacerInternalState() {
 	b.replacer.PrintList()
+}
+
+// ATTENTION: this method can be call at recovery phase
+func (b *BufferPoolManager) SetReusablePageIds(ids []types.PageID) {
+	b.reUsablePageList = ids
+}
+
+// ATTENTION: this method can be call at recovery phase
+func (b *BufferPoolManager) GetReusablePageIds() []types.PageID {
+	return b.reUsablePageList
 }
 
 func (b *BufferPoolManager) PrintBufferUsageState(callerAdditionalInfo string) {

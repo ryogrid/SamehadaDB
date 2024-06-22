@@ -247,12 +247,22 @@ func TestUndo(t *testing.T) {
 
 	fmt.Println("Check if updated tuple values are effected before recovery")
 	var old_tuple2 *tuple.Tuple
-	old_tuple2, _ = test_table.GetTuple(rid2, txn)
-	fmt.Println("old_tuple2: ", old_tuple2.Data())
 
-	testingpkg.Assert(t, old_tuple2 != nil, "")
-	testingpkg.Assert(t, old_tuple2.GetValue(schema_, 0).CompareEquals(types.NewVarchar("updated")), "")
-	testingpkg.Assert(t, old_tuple2.GetValue(schema_, 1).CompareEquals(types.NewInteger(256)), "")
+	if new_rid == nil {
+		old_tuple2, _ = test_table.GetTuple(rid2, txn)
+		fmt.Println("old_tuple2: ", old_tuple2.Data())
+
+		testingpkg.Assert(t, old_tuple2 != nil, "")
+		testingpkg.Assert(t, old_tuple2.GetValue(schema_, 0).CompareEquals(types.NewVarchar("updated")), "")
+		testingpkg.Assert(t, old_tuple2.GetValue(schema_, 1).CompareEquals(types.NewInteger(256)), "")
+	} else {
+		old_tuple2, _ = test_table.GetTuple(new_rid, txn)
+		fmt.Println("old_tuple2: ", old_tuple2.Data())
+
+		testingpkg.Assert(t, old_tuple2 != nil, "")
+		testingpkg.Assert(t, old_tuple2.GetValue(schema_, 0).CompareEquals(types.NewVarchar("updated")), "")
+		testingpkg.Assert(t, old_tuple2.GetValue(schema_, 1).CompareEquals(types.NewInteger(256)), "")
+	}
 
 	fmt.Println("Check if inserted tuple exists before recovery")
 	old_tuple3, _ := test_table.GetTuple(rid3, txn)

@@ -14,7 +14,6 @@ type ShutdownPattern int
 const (
 	ShutdownPatternRemoveFiles ShutdownPattern = iota
 	ShutdownPatternCloseFiles
-	ShutdownPatternRemoveLogOnly
 )
 
 type SamehadaInstance struct {
@@ -89,15 +88,11 @@ func (si *SamehadaInstance) Shutdown(shutdownPat ShutdownPattern) {
 	case ShutdownPatternCloseFiles:
 		si.log_manager.Flush()
 		si.bpm.FlushAllDirtyPages()
+		logRecord := recovery.NewLogRecordGracefulShutdown()
+		si.log_manager.AppendLogRecord(logRecord)
+		si.log_manager.Flush()
 		// close only
 		si.disk_manager.ShutDown()
-	case ShutdownPatternRemoveLogOnly:
-		si.log_manager.Flush()
-		si.bpm.FlushAllDirtyPages()
-		// close files
-		si.disk_manager.ShutDown()
-
-		si.disk_manager.RemoveLogFile()
 	default:
 		panic("invalid shutdown pattern")
 	}

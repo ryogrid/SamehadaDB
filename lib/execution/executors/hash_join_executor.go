@@ -96,7 +96,8 @@ func (e *HashJoinExecutor) Init() {
 				e.context.GetBufferPoolManager().UnpinPage(tmp_page_id, true)
 			}
 			// create new tmp page
-			tmp_page = hash.CastPageAsTmpTuplePage(e.context.GetBufferPoolManager().NewPage())
+			page := e.context.GetBufferPoolManager().NewPage()
+			tmp_page = hash.CastPageAsTmpTuplePage(page)
 			if tmp_page == nil {
 				panic("fail to create new tmp page when doing hash join")
 			}

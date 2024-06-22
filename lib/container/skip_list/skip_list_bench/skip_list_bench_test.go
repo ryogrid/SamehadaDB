@@ -126,7 +126,7 @@ func genInitialSLAndWorkArr(dbName string) (*skip_list.SkipList, *workArray) {
 	shi := samehada.NewSamehadaInstance(dbName, 4000) //cover 100% of filled data
 	bpm := shi.GetBufferPoolManager()
 
-	sl := skip_list.NewSkipList(bpm, types.Integer)
+	sl := skip_list.NewSkipList(bpm, types.Integer, nil)
 	wArray := NewWorkArray()
 
 	// insert initial values and fill work array

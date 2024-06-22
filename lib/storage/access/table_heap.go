@@ -34,7 +34,7 @@ func NewTableHeap(bpm *buffer.BufferPoolManager, log_manager *recovery.LogManage
 	firstPage := CastPageAsTablePage(p)
 	firstPage.WLatch()
 	firstPage.AddWLatchRecord(int32(txn.txn_id))
-	firstPage.Init(p.GetPageId(), types.InvalidPageID, log_manager, lock_manager, txn)
+	firstPage.Init(p.GetPageId(), types.InvalidPageID, log_manager, lock_manager, txn, false)
 	// flush page for recovery process works...
 	bpm.FlushPage(p.GetPageId())
 	bpm.UnpinPage(p.GetPageId(), true)
@@ -108,7 +108,7 @@ func (t *TableHeap) InsertTuple(tuple_ *tuple.Tuple, txn *Transaction, oid uint3
 			newPage.AddWLatchRecord(int32(txn.txn_id))
 			currentPage.SetNextPageId(p.GetPageId())
 			currentPageId := currentPage.GetPageId()
-			newPage.Init(p.GetPageId(), currentPageId, t.log_manager, t.lock_manager, txn)
+			newPage.Init(p.GetPageId(), currentPageId, t.log_manager, t.lock_manager, txn, false)
 			t.bpm.UnpinPage(currentPage.GetPageId(), true)
 			if common.EnableDebug && common.ActiveLogKindSetting&common.PIN_COUNT_ASSERT > 0 {
 				common.SH_Assert(currentPage.PinCount() == 0, "PinCount is not zero when finish TablePage::UpdateTuple!!!")

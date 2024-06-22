@@ -445,7 +445,7 @@ func (tp *TablePage) RollbackDelete(rid *page.RID, txn *Transaction, log_manager
 }
 
 // Init initializes the table header
-func (tp *TablePage) Init(pageId types.PageID, prevPageId types.PageID, log_manager *recovery.LogManager, lock_manager *LockManager, txn *Transaction) {
+func (tp *TablePage) Init(pageId types.PageID, prevPageId types.PageID, log_manager *recovery.LogManager, lock_manager *LockManager, txn *Transaction, isForRedo bool) {
 	if common.EnableDebug {
 		defer func() {
 			if common.ActiveLogKindSetting&common.DEBUGGING > 0 {
@@ -459,16 +459,18 @@ func (tp *TablePage) Init(pageId types.PageID, prevPageId types.PageID, log_mana
 	}
 	// Log that we are creating a new page.
 	if log_manager.IsEnabledLogging() {
-		log_record := recovery.NewLogRecordNewPage(txn.GetTransactionId(), txn.GetPrevLSN(), recovery.NEWPAGE, prevPageId)
+		log_record := recovery.NewLogRecordNewPage(txn.GetTransactionId(), txn.GetPrevLSN(), recovery.NEW_TABLE_PAGE, prevPageId, pageId)
 		lsn := log_manager.AppendLogRecord(log_record)
 		tp.Page.SetLSN(lsn)
 		txn.SetPrevLSN(lsn)
 	}
 	tp.SetSerializedPageId(pageId)
 	tp.SetPrevPageId(prevPageId)
-	tp.SetNextPageId(types.InvalidPageID)
-	tp.SetTupleCount(0)
-	tp.SetFreeSpacePointer(common.PageSize) // point to the end of the page
+	if !isForRedo {
+		tp.SetNextPageId(types.InvalidPageID)
+		tp.SetTupleCount(0)
+		tp.SetFreeSpacePointer(common.PageSize) // point to the end of the page
+	}
 }
 
 // set value to Page::data memory area. not to Page::id
@@ -510,7 +512,8 @@ func (tp *TablePage) GetNextPageId() types.PageID {
 }
 
 func (tp *TablePage) GetTupleCount() uint32 {
-	return uint32(types.NewUInt32FromBytes(tp.Data()[offSetTupleCount:]))
+	ret := uint32(types.NewUInt32FromBytes(tp.Data()[offSetTupleCount:]))
+	return ret
 }
 
 func (tp *TablePage) GetTupleOffsetAtSlot(slot_num uint32) uint32 {
