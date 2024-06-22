@@ -2714,3 +2714,311 @@ func TestInsertNullValueAndSeqScanWithNullComparison(t *testing.T) {
 		})
 	}
 }
+
+func TestDeallocatedPageReuseAfterRelaunchGraceful(t *testing.T) {
+	common.TempSuppressOnMemStorageMutex.Lock()
+	common.TempSuppressOnMemStorage = true
+
+	// clear all state of DB
+	if !common.EnableOnMemStorage || common.TempSuppressOnMemStorage == true {
+		os.Remove(t.Name() + ".db")
+		os.Remove(t.Name() + ".log")
+	}
+
+	shi := samehada.NewSamehadaInstance(t.Name(), 1)
+	shi.GetLogManager().ActivateLogging()
+	testingpkg.Assert(t, shi.GetLogManager().IsEnabledLogging(), "")
+	fmt.Println("System logging is active.")
+
+	log_mgr := shi.GetLogManager()
+	txn_mgr := shi.GetTransactionManager()
+	bpm := shi.GetBufferPoolManager()
+	lock_mgr := shi.GetLockManager()
+
+	txn := txn_mgr.Begin(nil)
+
+	c := catalog.BootstrapCatalog(bpm, log_mgr, lock_mgr, txn)
+
+	columnA := column.NewColumn("a", types.Integer, false, index_constants.INDEX_KIND_SKIP_LIST, types.PageID(-1), nil)
+	columnB := column.NewColumn("b", types.Varchar, false, index_constants.INDEX_KIND_SKIP_LIST, types.PageID(-1), nil)
+	schema_ := schema.NewSchema([]*column.Column{columnA, columnB})
+
+	tableMetadata := c.CreateTable("test_1", schema_, txn)
+
+	row1 := make([]types.Value, 0)
+	row1 = append(row1, types.NewInteger(20))
+	row1 = append(row1, types.NewVarchar("hoge"))
+
+	row2 := make([]types.Value, 0)
+	row2 = append(row2, types.NewInteger(99))
+	row2 = append(row2, types.NewVarchar("foo"))
+
+	rows := make([][]types.Value, 0)
+	rows = append(rows, row1)
+	rows = append(rows, row2)
+
+	insertPlanNode := plans.NewInsertPlanNode(rows, tableMetadata.OID())
+
+	executionEngine := &executors.ExecutionEngine{}
+	executorContext := executors.NewExecutorContext(c, bpm, txn)
+	executionEngine.Execute(insertPlanNode, executorContext)
+
+	targetPage := bpm.NewPage()
+	targetPageId := targetPage.GetPageId()
+	targetPage.SetIsDeallocated(true)
+	bpm.DeallocatePage(targetPageId)
+	bpm.UnpinPage(targetPageId, false)
+
+	txn_mgr.Commit(nil, txn)
+
+	fmt.Println("update a row...")
+	txn = txn_mgr.Begin(nil)
+
+	row1 = make([]types.Value, 0)
+	row1 = append(row1, types.NewInteger(99))
+	row1 = append(row1, types.NewVarchar("updated"))
+
+	pred := testing_pattern_fw.Predicate{"b", expression.Equal, "foo"}
+	tmpColVal := new(expression.ColumnValue)
+	tmpColVal.SetTupleIndex(0)
+	tmpColVal.SetColIndex(tableMetadata.Schema().GetColIndex(pred.LeftColumn))
+	expression_ := expression.NewComparison(tmpColVal, expression.NewConstantValue(testing_util.GetValue(pred.RightColumn), testing_util.GetValueType(pred.LeftColumn)), pred.Operator, types.Boolean)
+
+	seqScanPlan := plans.NewSeqScanPlanNode(c, tableMetadata.Schema(), expression_, tableMetadata.OID())
+	updatePlanNode := plans.NewUpdatePlanNode(row1, []int{0, 1}, seqScanPlan)
+	executionEngine.Execute(updatePlanNode, executorContext)
+
+	txn_mgr.Commit(nil, txn)
+
+	testingpkg.Assert(t, bpm.GetReusablePageIds()[0] == targetPageId, "reusable page list is not expected state!")
+	fmt.Println("reusable page list before relaunch: ", bpm.GetReusablePageIds(), targetPageId)
+
+	// system relaunch
+	shi.Shutdown(samehada.ShutdownPatternCloseFiles)
+
+	// restart system
+	shi = samehada.NewSamehadaInstance(t.Name(), 2)
+	log_mgr = shi.GetLogManager()
+	lock_mgr = shi.GetLockManager()
+	txn_mgr = shi.GetTransactionManager()
+	bpm = shi.GetBufferPoolManager()
+
+	log_recovery := log_recovery.NewLogRecovery(
+		shi.GetDiskManager(),
+		bpm,
+		log_mgr)
+
+	txn = txn_mgr.Begin(nil)
+	c = catalog.RecoveryCatalogFromCatalogPage(bpm, log_mgr, lock_mgr, txn)
+	tableMetadata = c.GetTableByName("test_1")
+
+	executorContext = executors.NewExecutorContext(c, bpm, txn)
+	executorContext.SetTransaction(txn)
+
+	// disable logging
+	log_mgr.DeactivateLogging()
+	txn.SetIsRecoveryPhase(true)
+
+	// do recovery from Log
+	greatestLSN, isUndoNeeded, isGracefulShutdown := log_recovery.Redo(txn)
+	testingpkg.Assert(t, isGracefulShutdown == true, "graceful shutdown log not worked!")
+	if isUndoNeeded {
+		log_recovery.Undo(txn)
+	}
+
+	dman := shi.GetDiskManager()
+	dman.GCLogFile()
+	shi.GetLogManager().SetNextLSN(greatestLSN + 1)
+
+	txn.SetIsRecoveryPhase(false)
+	// reactivate logging
+	log_mgr.ActivateLogging()
+
+	// rewrite reusable page id log because it is not wrote to log file after launch
+	// but the information is needed next launch also
+	reusablePageIds := bpm.GetReusablePageIds()
+	if len(reusablePageIds) > 0 {
+		for _, pageId := range reusablePageIds {
+			logRecord := recovery.NewLogRecordDeallocatePage(pageId)
+			log_mgr.AppendLogRecord(logRecord)
+		}
+	}
+	log_mgr.Flush()
+
+	// check reusable page list is recovered expected state
+	testingpkg.Assert(t, bpm.GetReusablePageIds()[0] == targetPageId, "reusable page list is not expected state!")
+	fmt.Println("reusable page list after relaunch: ", bpm.GetReusablePageIds(), targetPageId)
+
+	fmt.Println("check table content...")
+	txn = txn_mgr.Begin(nil)
+
+	outColumnB := column.NewColumn("b", types.Varchar, false, index_constants.INDEX_KIND_INVALID, types.PageID(-1), nil)
+	outSchema := schema.NewSchema([]*column.Column{outColumnB})
+
+	pred = testing_pattern_fw.Predicate{"a", expression.Equal, 99}
+	tmpColVal = new(expression.ColumnValue)
+	tmpColVal.SetTupleIndex(0)
+	tmpColVal.SetColIndex(tableMetadata.Schema().GetColIndex(pred.LeftColumn))
+	expression_ = expression.NewComparison(tmpColVal, expression.NewConstantValue(testing_util.GetValue(pred.RightColumn), testing_util.GetValueType(pred.RightColumn)), pred.Operator, types.Boolean)
+
+	seqPlan := plans.NewSeqScanPlanNode(c, outSchema, expression_, tableMetadata.OID())
+	results := executionEngine.Execute(seqPlan, executorContext)
+
+	txn_mgr.Commit(nil, txn)
+
+	testingpkg.Assert(t, types.NewVarchar("updated").CompareEquals(results[0].GetValue(outSchema, 0)), "value should be 'updated'")
+}
+
+func TestDeallocatedPageReuseAfterRelaunchByCrash(t *testing.T) {
+	common.TempSuppressOnMemStorageMutex.Lock()
+	common.TempSuppressOnMemStorage = true
+
+	// clear all state of DB
+	if !common.EnableOnMemStorage || common.TempSuppressOnMemStorage == true {
+		os.Remove(t.Name() + ".db")
+		os.Remove(t.Name() + ".log")
+	}
+
+	shi := samehada.NewSamehadaInstance(t.Name(), 1)
+	shi.GetLogManager().ActivateLogging()
+	testingpkg.Assert(t, shi.GetLogManager().IsEnabledLogging(), "")
+	fmt.Println("System logging is active.")
+
+	log_mgr := shi.GetLogManager()
+	txn_mgr := shi.GetTransactionManager()
+	bpm := shi.GetBufferPoolManager()
+	lock_mgr := shi.GetLockManager()
+
+	txn := txn_mgr.Begin(nil)
+
+	c := catalog.BootstrapCatalog(bpm, log_mgr, lock_mgr, txn)
+
+	columnA := column.NewColumn("a", types.Integer, false, index_constants.INDEX_KIND_SKIP_LIST, types.PageID(-1), nil)
+	columnB := column.NewColumn("b", types.Varchar, false, index_constants.INDEX_KIND_SKIP_LIST, types.PageID(-1), nil)
+	schema_ := schema.NewSchema([]*column.Column{columnA, columnB})
+
+	tableMetadata := c.CreateTable("test_1", schema_, txn)
+
+	row1 := make([]types.Value, 0)
+	row1 = append(row1, types.NewInteger(20))
+	row1 = append(row1, types.NewVarchar("hoge"))
+
+	row2 := make([]types.Value, 0)
+	row2 = append(row2, types.NewInteger(99))
+	row2 = append(row2, types.NewVarchar("foo"))
+
+	rows := make([][]types.Value, 0)
+	rows = append(rows, row1)
+	rows = append(rows, row2)
+
+	insertPlanNode := plans.NewInsertPlanNode(rows, tableMetadata.OID())
+
+	executionEngine := &executors.ExecutionEngine{}
+	executorContext := executors.NewExecutorContext(c, bpm, txn)
+	executionEngine.Execute(insertPlanNode, executorContext)
+
+	targetPage := bpm.NewPage()
+	targetPageId := targetPage.GetPageId()
+	targetPage.SetIsDeallocated(true)
+	bpm.DeallocatePage(targetPageId)
+	bpm.UnpinPage(targetPageId, false)
+
+	txn_mgr.Commit(nil, txn)
+
+	fmt.Println("update a row...")
+	txn = txn_mgr.Begin(nil)
+
+	row1 = make([]types.Value, 0)
+	row1 = append(row1, types.NewInteger(99))
+	row1 = append(row1, types.NewVarchar("updated"))
+
+	pred := testing_pattern_fw.Predicate{"b", expression.Equal, "foo"}
+	tmpColVal := new(expression.ColumnValue)
+	tmpColVal.SetTupleIndex(0)
+	tmpColVal.SetColIndex(tableMetadata.Schema().GetColIndex(pred.LeftColumn))
+	expression_ := expression.NewComparison(tmpColVal, expression.NewConstantValue(testing_util.GetValue(pred.RightColumn), testing_util.GetValueType(pred.LeftColumn)), pred.Operator, types.Boolean)
+
+	seqScanPlan := plans.NewSeqScanPlanNode(c, tableMetadata.Schema(), expression_, tableMetadata.OID())
+	updatePlanNode := plans.NewUpdatePlanNode(row1, []int{0, 1}, seqScanPlan)
+	executionEngine.Execute(updatePlanNode, executorContext)
+
+	fmt.Println("reusable page list before relaunch: ", bpm.GetReusablePageIds(), targetPageId)
+	testingpkg.Assert(t, bpm.GetReusablePageIds()[0] == targetPageId, "reusable page list is not expected state!")
+
+	// system crashes before commit
+	shi.CloseFilesForTesting()
+
+	// restart system
+	shi = samehada.NewSamehadaInstance(t.Name(), 2)
+	log_mgr = shi.GetLogManager()
+	lock_mgr = shi.GetLockManager()
+	txn_mgr = shi.GetTransactionManager()
+	bpm = shi.GetBufferPoolManager()
+
+	log_recovery := log_recovery.NewLogRecovery(
+		shi.GetDiskManager(),
+		bpm,
+		log_mgr)
+
+	txn = txn_mgr.Begin(nil)
+	c = catalog.RecoveryCatalogFromCatalogPage(bpm, log_mgr, lock_mgr, txn)
+	tableMetadata = c.GetTableByName("test_1")
+
+	executorContext = executors.NewExecutorContext(c, bpm, txn)
+	executorContext.SetTransaction(txn)
+
+	// disable logging
+	log_mgr.DeactivateLogging()
+	txn.SetIsRecoveryPhase(true)
+
+	// do recovery from Log
+	greatestLSN, isUndoNeeded, isGracefulShutdown := log_recovery.Redo(txn)
+	testingpkg.Assert(t, isGracefulShutdown == false, "graceful shutdown is wrong!")
+	testingpkg.Assert(t, isUndoNeeded == true, "undo is needed!")
+	if isUndoNeeded {
+		log_recovery.Undo(txn)
+	}
+
+	dman := shi.GetDiskManager()
+	dman.GCLogFile()
+	shi.GetLogManager().SetNextLSN(greatestLSN + 1)
+
+	txn.SetIsRecoveryPhase(false)
+	// reactivate logging
+	log_mgr.ActivateLogging()
+
+	// rewrite reusable page id log because it is not wrote to log file after launch
+	// but the information is needed next launch also
+	reusablePageIds := bpm.GetReusablePageIds()
+	if len(reusablePageIds) > 0 {
+		for _, pageId := range reusablePageIds {
+			logRecord := recovery.NewLogRecordDeallocatePage(pageId)
+			log_mgr.AppendLogRecord(logRecord)
+		}
+	}
+	log_mgr.Flush()
+
+	// check reusable page list is recovered expected state
+	testingpkg.Assert(t, bpm.GetReusablePageIds()[0] == targetPageId, "reusable page list is not expected state!")
+	fmt.Println("reusable page list after relaunch: ", bpm.GetReusablePageIds(), targetPageId)
+
+	fmt.Println("check table content...")
+	txn = txn_mgr.Begin(nil)
+
+	outColumnB := column.NewColumn("b", types.Varchar, false, index_constants.INDEX_KIND_INVALID, types.PageID(-1), nil)
+	outSchema := schema.NewSchema([]*column.Column{outColumnB})
+
+	pred = testing_pattern_fw.Predicate{"a", expression.Equal, 99}
+	tmpColVal = new(expression.ColumnValue)
+	tmpColVal.SetTupleIndex(0)
+	tmpColVal.SetColIndex(tableMetadata.Schema().GetColIndex(pred.LeftColumn))
+	expression_ = expression.NewComparison(tmpColVal, expression.NewConstantValue(testing_util.GetValue(pred.RightColumn), testing_util.GetValueType(pred.RightColumn)), pred.Operator, types.Boolean)
+
+	seqPlan := plans.NewSeqScanPlanNode(c, outSchema, expression_, tableMetadata.OID())
+	results := executionEngine.Execute(seqPlan, executorContext)
+
+	txn_mgr.Commit(nil, txn)
+
+	// aborted update transaction should be rollbacked
+	testingpkg.Assert(t, types.NewVarchar("foo").CompareEquals(results[0].GetValue(outSchema, 0)), "value should be 'foo'")
+}

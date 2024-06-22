@@ -111,7 +111,8 @@ func TestSample(t *testing.T) {
 	// now be pinned. Fetching page 0 should fail.
 	testingpkg.Ok(t, bpm.UnpinPage(types.PageID(0), true))
 
-	testingpkg.Equals(t, types.PageID(14), bpm.NewPage().GetPageId())
+	p := bpm.NewPage()
+	testingpkg.Equals(t, types.PageID(14), p.GetPageId())
 
 	common.TempSuppressOnMemStorage = false
 	dm.ShutDown()

@@ -610,7 +610,7 @@ func testSkipListMix[T int32 | float32 | string](t *testing.T, keyType types.Typ
 
 	checkDupMap := make(map[T]T)
 
-	sl := skip_list.NewSkipList(bpm, keyType)
+	sl := skip_list.NewSkipList(bpm, keyType, nil)
 
 	// override global rand seed (seed has been set on NewSkipList)
 	rand.Seed(3)
@@ -735,7 +735,7 @@ func testSkipListMixParallel[T int32 | float32 | string](t *testing.T, keyType t
 	shi := samehada.NewSamehadaInstance(t.Name(), common.BufferPoolMaxFrameNumForTest)
 
 	bpm := shi.GetBufferPoolManager()
-	sl := skip_list.NewSkipList(bpm, keyType)
+	sl := skip_list.NewSkipList(bpm, keyType, nil)
 
 	checkDupMap := make(map[T]T)
 
@@ -919,7 +919,7 @@ func testSkipListMixParallelBulk[T int32 | float32 | string](t *testing.T, keyTy
 
 	shi := samehada.NewSamehadaInstance(t.Name(), common.BufferPoolMaxFrameNumForTest)
 	bpm := shi.GetBufferPoolManager()
-	sl := skip_list.NewSkipList(bpm, keyType)
+	sl := skip_list.NewSkipList(bpm, keyType, nil)
 
 	checkDupMap := make(map[T]T)
 
@@ -1114,7 +1114,7 @@ func testSkipListMixParallelStride[T int32 | float32 | string](t *testing.T, key
 
 	shi := samehada.NewSamehadaInstance(t.Name(), int(bpoolSize))
 	bpm := shi.GetBufferPoolManager()
-	sl := skip_list.NewSkipList(bpm, keyType)
+	sl := skip_list.NewSkipList(bpm, keyType, nil)
 
 	checkDupMap := make(map[T]T)
 
@@ -1333,7 +1333,7 @@ func testSkipListMixParallelStrideAddedIterator[T int32 | float32 | string](t *t
 	shi := samehada.NewSamehadaInstance(t.Name(), int(bpoolSize))
 
 	bpm := shi.GetBufferPoolManager()
-	sl := skip_list.NewSkipList(bpm, keyType)
+	sl := skip_list.NewSkipList(bpm, keyType, nil)
 
 	checkDupMap := make(map[T]T)
 
@@ -1934,7 +1934,7 @@ func TestSkipListParallelSimpleInteger(t *testing.T) {
 
 	shi := samehada.NewSamehadaInstance(t.Name(), 30)
 	bpm := shi.GetBufferPoolManager()
-	sl := skip_list.NewSkipList(bpm, types.Integer)
+	sl := skip_list.NewSkipList(bpm, types.Integer, nil)
 
 	ch1 := make(chan string)
 	ch2 := make(chan string)
@@ -1964,7 +1964,7 @@ func TestSkipListParallelSimpleInteger2(t *testing.T) {
 
 	shi := samehada.NewSamehadaInstance(t.Name(), 30)
 	bpm := shi.GetBufferPoolManager()
-	sl := skip_list.NewSkipList(bpm, types.Integer)
+	sl := skip_list.NewSkipList(bpm, types.Integer, nil)
 
 	ch1 := make(chan string)
 	ch2 := make(chan string)
@@ -1995,7 +1995,7 @@ func TestSkipListParallelSimpleInteger3Stride(t *testing.T) {
 
 	shi := samehada.NewSamehadaInstance(t.Name(), 20)
 	bpm := shi.GetBufferPoolManager()
-	sl := skip_list.NewSkipList(bpm, types.Integer)
+	sl := skip_list.NewSkipList(bpm, types.Integer, nil)
 
 	ch1 := make(chan string)
 	ch2 := make(chan string)

@@ -12,6 +12,7 @@ import (
 	"github.com/ryogrid/SamehadaDB/lib/parser"
 	"github.com/ryogrid/SamehadaDB/lib/planner"
 	"github.com/ryogrid/SamehadaDB/lib/planner/optimizer"
+	"github.com/ryogrid/SamehadaDB/lib/recovery"
 	"github.com/ryogrid/SamehadaDB/lib/recovery/log_recovery"
 	"github.com/ryogrid/SamehadaDB/lib/samehada/samehada_util"
 	"github.com/ryogrid/SamehadaDB/lib/storage/access"
@@ -109,11 +110,9 @@ func ReconstructAllIndexData(c *catalog.Catalog, dman disk.DiskManager, txn *acc
 
 func NewSamehadaDB(dbName string, memKBytes int) *SamehadaDB {
 	isExistingDB := false
-	isExistingLog := false
 
 	if !common.EnableOnMemStorage || common.TempSuppressOnMemStorage {
 		isExistingDB = samehada_util.FileExists(dbName + ".db")
-		isExistingLog = samehada_util.FileExists(dbName + ".log")
 	}
 
 	bpoolSize := math.Floor(float64(memKBytes*1024) / float64(common.PageSize))
@@ -129,19 +128,32 @@ func NewSamehadaDB(dbName string, memKBytes int) *SamehadaDB {
 			shi.GetDiskManager(),
 			shi.GetBufferPoolManager(),
 			shi.GetLogManager())
-		greatestLSN, _ := log_recovery.Redo(txn)
-		log_recovery.Undo(txn)
+		greatestLSN, isUndoNeeded, isGracefulShutdown := log_recovery.Redo(txn)
+		if isUndoNeeded {
+			log_recovery.Undo(txn)
+		}
 
 		dman := shi.GetDiskManager()
 		dman.GCLogFile()
 		shi.GetLogManager().SetNextLSN(greatestLSN + 1)
 
+		// rewrite reusable page id log because it is not wrote to log file after launch
+		// but the information is needed next launch also
+		reusablePageIds := shi.bpm.GetReusablePageIds()
+		if len(reusablePageIds) > 0 {
+			for _, pageId := range reusablePageIds {
+				logRecord := recovery.NewLogRecordDeallocatePage(pageId)
+				shi.log_manager.AppendLogRecord(logRecord)
+			}
+		}
+		shi.log_manager.Flush()
+
 		c = catalog.RecoveryCatalogFromCatalogPage(shi.GetBufferPoolManager(), shi.GetLogManager(), shi.GetLockManager(), txn)
 
-		// db file exists but log file doesn't exist case means gracefully shutdown. so this block is passed
-		if isExistingLog {
-			// index date reloading/recovery is not implemented yet
-			// so when db did not exit graceful, all index data should be recounstruct
+		// if last shutdown is not gracefully done, all index data should be reconstructed
+		if !isGracefulShutdown {
+			// index date reloading and recovery is not implemented yet
+			// so when db did not exit graceful, all index data should be reconstructed
 			// (hash index uses already allocated pages but skip list index deserts these...)
 			ReconstructAllIndexData(c, shi.GetDiskManager(), txn)
 		}
@@ -244,7 +256,9 @@ func (sdb *SamehadaDB) Shutdown() {
 	sdb.statistics_updator.StopStatsUpdateTh()
 	sdb.shi_.GetCheckpointManager().StopCheckpointTh()
 	sdb.request_manager.StopTh()
-	sdb.shi_.Shutdown(ShutdownPatternRemoveLogOnly)
+	logRecord := recovery.NewLogRecordGracefulShutdown()
+	sdb.shi_.log_manager.AppendLogRecord(logRecord)
+	sdb.shi_.Shutdown(ShutdownPatternCloseFiles)
 }
 
 // no flush of page buffer

@@ -112,8 +112,12 @@ func (log_manager *LogManager) AppendLogRecord(log_record *LogRecord) types.LSN 
 		log_manager.latch.WLock()
 	}
 
-	log_record.Lsn = log_manager.next_lsn
-	log_manager.next_lsn += 1
+	// except DEALLOCATE_PAGE and REUSE_PAGE
+	if log_record.Lsn != -1 {
+		log_record.Lsn = log_manager.next_lsn
+		log_manager.next_lsn += 1
+	}
+
 	headerInBytes := log_record.GetLogHeaderData()
 	copy(log_manager.log_buffer[log_manager.offset:], headerInBytes)
 
@@ -123,7 +127,10 @@ func (log_manager *LogManager) AppendLogRecord(log_record *LogRecord) types.LSN 
 		log_manager.latch.WLock()
 		copy(log_manager.log_buffer[log_manager.offset:], log_record.GetLogHeaderData())
 	}
-	log_manager.log_buffer_lsn = log_record.Lsn
+	if log_record.Lsn != -1 {
+		log_manager.log_buffer_lsn = log_record.Lsn
+	}
+
 	pos := log_manager.offset + HEADER_SIZE
 	log_manager.offset += log_record.Size
 
@@ -155,11 +162,30 @@ func (log_manager *LogManager) AppendLogRecord(log_record *LogRecord) types.LSN 
 		log_record.Old_tuple.SerializeTo(log_manager.log_buffer[pos:])
 		pos += log_record.Old_tuple.Size() + uint32(tuple.TupleSizeOffsetInLogrecord)
 		log_record.New_tuple.SerializeTo(log_manager.log_buffer[pos:])
-	} else if log_record.Log_record_type == NEWPAGE {
+	} else if log_record.Log_record_type == NEW_TABLE_PAGE {
 		buf := new(bytes.Buffer)
 		binary.Write(buf, binary.LittleEndian, log_record.Prev_page_id)
+		prevPageIdInBytes := buf.Bytes()
+		copy(log_manager.log_buffer[pos:], prevPageIdInBytes)
+		pos += uint32(unsafe.Sizeof(log_record.Prev_page_id))
+		buf2 := new(bytes.Buffer)
+		binary.Write(buf2, binary.LittleEndian, log_record.Page_id)
+		pageIdInBytes := buf2.Bytes()
+		copy(log_manager.log_buffer[pos:], pageIdInBytes)
+	} else if log_record.Log_record_type == DEALLOCATE_PAGE {
+		buf := new(bytes.Buffer)
+		binary.Write(buf, binary.LittleEndian, log_record.Deallocate_page_id)
+		//pos += uint32(unsafe.Sizeof(log_record.Deallocate_page_id))
 		pageIdInBytes := buf.Bytes()
 		copy(log_manager.log_buffer[pos:], pageIdInBytes)
+	} else if log_record.Log_record_type == REUSE_PAGE {
+		buf := new(bytes.Buffer)
+		binary.Write(buf, binary.LittleEndian, log_record.Reuse_page_id)
+		//pos += uint32(unsafe.Sizeof(log_record.Reuse_page_id))
+		pageIdInBytes := buf.Bytes()
+		copy(log_manager.log_buffer[pos:], pageIdInBytes)
+	} else if log_record.Log_record_type == GRACEFUL_SHUTDOWN {
+		// do nothing
 	}
 
 	log_manager.latch.WUnlock()

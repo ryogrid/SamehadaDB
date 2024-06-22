@@ -4,6 +4,8 @@ import (
 	"bytes"
 	"encoding/binary"
 	"fmt"
+	"golang.org/x/exp/maps"
+	"math"
 	"unsafe"
 
 	"github.com/ryogrid/SamehadaDB/lib/common"
@@ -79,8 +81,19 @@ func (log_recovery *LogRecovery) DeserializeLogRecord(data []byte, log_record *r
 		log_record.Old_tuple.DeserializeFrom(data[pos:])
 		pos += log_record.Old_tuple.Size() + uint32(tuple.TupleSizeOffsetInLogrecord)
 		log_record.New_tuple.DeserializeFrom(data[pos:])
-	} else if log_record.Log_record_type == recovery.NEWPAGE {
+		pos += log_record.New_tuple.Size() + uint32(tuple.TupleSizeOffsetInLogrecord)
+	} else if log_record.Log_record_type == recovery.NEW_TABLE_PAGE {
 		binary.Read(bytes.NewBuffer(data[pos:]), binary.LittleEndian, &log_record.Prev_page_id)
+		pos += uint32(unsafe.Sizeof(log_record.Prev_page_id))
+		binary.Read(bytes.NewBuffer(data[pos:]), binary.LittleEndian, &log_record.Page_id)
+	} else if log_record.Log_record_type == recovery.DEALLOCATE_PAGE {
+		binary.Read(bytes.NewBuffer(data[pos:]), binary.LittleEndian, &log_record.Deallocate_page_id)
+		pos += uint32(unsafe.Sizeof(log_record.Deallocate_page_id))
+	} else if log_record.Log_record_type == recovery.REUSE_PAGE {
+		binary.Read(bytes.NewBuffer(data[pos:]), binary.LittleEndian, &log_record.Reuse_page_id)
+		pos += uint32(unsafe.Sizeof(log_record.Reuse_page_id))
+	} else if log_record.Log_record_type == recovery.GRACEFUL_SHUTDOWN {
+		// do nothing
 	}
 
 	//fmt.Println(log_record)
@@ -95,14 +108,17 @@ func (log_recovery *LogRecovery) DeserializeLogRecord(data []byte, log_record *r
 *LSN with log_record's sequence number, and also build active_txn table &
 *lsn_mapping table
 * first return value: greatest LSN of log entries
-* seconde return value: when redo operation occured, value is true
+* second return value: when undo operation is needed, value is true
+* third return value: when graceful shutdown is detected, value is true
  */
-func (log_recovery *LogRecovery) Redo(txn *access.Transaction) (types.LSN, bool) {
+func (log_recovery *LogRecovery) Redo(txn *access.Transaction) (types.LSN, bool, bool) {
 	greatestLSN := 0
 	log_recovery.log_buffer = make([]byte, common.LogBufferSize)
 	var file_offset uint32 = 0
 	var readBytes uint32
-	isRedoOccured := false
+	isUndoNeeded := true
+	isGracefulShutdown := false
+	reusablePageMap := make(map[types.PageID]bool)
 	for log_recovery.disk_manager.ReadLog(log_recovery.log_buffer, int32(file_offset), &readBytes) {
 		var buffer_offset uint32 = 0
 		var log_record recovery.LogRecord
@@ -119,7 +135,6 @@ func (log_recovery *LogRecovery) Redo(txn *access.Transaction) (types.LSN, bool)
 					log_record.Insert_tuple.SetRID(&log_record.Insert_rid)
 					page_.InsertTuple(&log_record.Insert_tuple, log_recovery.log_manager, nil, txn)
 					page_.SetLSN(log_record.GetLSN())
-					isRedoOccured = true
 				}
 				log_recovery.buffer_pool_manager.UnpinPage(log_record.Insert_rid.GetPageId(), true)
 			} else if log_record.Log_record_type == recovery.APPLYDELETE {
@@ -128,7 +143,6 @@ func (log_recovery *LogRecovery) Redo(txn *access.Transaction) (types.LSN, bool)
 				if page_.GetLSN() < log_record.GetLSN() {
 					page_.ApplyDelete(&log_record.Delete_rid, txn, log_recovery.log_manager)
 					page_.SetLSN(log_record.GetLSN())
-					isRedoOccured = true
 				}
 				log_recovery.buffer_pool_manager.UnpinPage(log_record.Delete_rid.GetPageId(), true)
 			} else if log_record.Log_record_type == recovery.MARKDELETE {
@@ -137,7 +151,6 @@ func (log_recovery *LogRecovery) Redo(txn *access.Transaction) (types.LSN, bool)
 				if page_.GetLSN() < log_record.GetLSN() {
 					page_.MarkDelete(&log_record.Delete_rid, txn, nil, log_recovery.log_manager)
 					page_.SetLSN(log_record.GetLSN())
-					isRedoOccured = true
 				}
 				log_recovery.buffer_pool_manager.UnpinPage(log_record.Delete_rid.GetPageId(), true)
 			} else if log_record.Log_record_type == recovery.ROLLBACKDELETE {
@@ -146,7 +159,6 @@ func (log_recovery *LogRecovery) Redo(txn *access.Transaction) (types.LSN, bool)
 				if page_.GetLSN() < log_record.GetLSN() {
 					page_.RollbackDelete(&log_record.Delete_rid, txn, log_recovery.log_manager)
 					page_.SetLSN(log_record.GetLSN())
-					isRedoOccured = true
 				}
 				log_recovery.buffer_pool_manager.UnpinPage(log_record.Delete_rid.GetPageId(), true)
 			} else if log_record.Log_record_type == recovery.UPDATE {
@@ -157,7 +169,6 @@ func (log_recovery *LogRecovery) Redo(txn *access.Transaction) (types.LSN, bool)
 					// but it is no problem because log_record is read from log file again in Undo phase
 					page_.UpdateTuple(&log_record.New_tuple, nil, nil, &log_record.Old_tuple, &log_record.Update_rid, txn, nil, log_recovery.log_manager, false)
 					page_.SetLSN(log_record.GetLSN())
-					isRedoOccured = true
 				}
 				log_recovery.buffer_pool_manager.UnpinPage(log_record.Update_rid.GetPageId(), true)
 			} else if log_record.Log_record_type == recovery.BEGIN {
@@ -166,22 +177,45 @@ func (log_recovery *LogRecovery) Redo(txn *access.Transaction) (types.LSN, bool)
 			} else if log_record.Log_record_type == recovery.COMMIT {
 				// fmt.Println("found COMMIT log record")
 				delete(log_recovery.active_txn, log_record.Txn_id)
-			} else if log_record.Log_record_type == recovery.NEWPAGE {
+			} else if log_record.Log_record_type == recovery.NEW_TABLE_PAGE {
 				var page_id types.PageID
-				new_page := access.CastPageAsTablePage(log_recovery.buffer_pool_manager.NewPage())
+				//page, _ := log_recovery.buffer_pool_manager.NewPage()
+				new_page := access.CastPageAsTablePage(log_recovery.buffer_pool_manager.FetchPage(log_record.Page_id))
 				page_id = new_page.GetPageId()
 				// fmt.Printf("page_id: %d\n", page_id)
-				new_page.Init(page_id, log_record.Prev_page_id, log_recovery.log_manager, nil, txn)
+				new_page.Init(page_id, log_record.Prev_page_id, log_recovery.log_manager, nil, txn, true)
 				//log_recovery.buffer_pool_manager.FlushPage(page_id)
 				log_recovery.buffer_pool_manager.UnpinPage(page_id, true)
+			} else if log_record.Log_record_type == recovery.DEALLOCATE_PAGE {
+				page_id := log_record.Deallocate_page_id
+				reusablePageMap[page_id] = true
+			} else if log_record.Log_record_type == recovery.REUSE_PAGE {
+				page_id := log_record.Reuse_page_id
+				if _, ok := reusablePageMap[page_id]; ok {
+					delete(reusablePageMap, page_id)
+				}
+			} else if log_record.Log_record_type == recovery.GRACEFUL_SHUTDOWN {
+				// undo is not needed
+				isUndoNeeded = false
+				isGracefulShutdown = true
 			}
+
 			buffer_offset += log_record.Size
 		}
 		// incomplete log record
 		// fmt.Printf("buffer_offset %d\n", buffer_offset)
 		file_offset += buffer_offset
 	}
-	return types.LSN(greatestLSN), isRedoOccured
+
+	// recovery reusable page ids
+	reusablePageIds := maps.Keys[map[types.PageID]bool](reusablePageMap)
+	log_recovery.buffer_pool_manager.SetReusablePageIds(reusablePageIds)
+	// delete dummy txn
+	if _, ok := log_recovery.active_txn[math.MaxInt32]; ok {
+		delete(log_recovery.active_txn, math.MaxInt32)
+	}
+
+	return types.LSN(greatestLSN), isUndoNeeded, isGracefulShutdown
 }
 
 /*

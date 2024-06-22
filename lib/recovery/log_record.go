@@ -3,6 +3,7 @@ package recovery
 import (
 	"bytes"
 	"encoding/binary"
+	"math"
 	"unsafe"
 
 	"github.com/ryogrid/SamehadaDB/lib/storage/page"
@@ -26,7 +27,12 @@ const (
 	COMMIT
 	ABORT
 	/** Creating a new page in the table heap. */
-	NEWPAGE
+	NEW_TABLE_PAGE
+	DEALLOCATE_PAGE
+	REUSE_PAGE
+	// this log represents last shutdown of the system is graceful
+	// and this log is located at the end of log file
+	GRACEFUL_SHUTDOWN
 )
 
 /**
@@ -48,15 +54,23 @@ const (
  *-----------------------------------------------------------------------------------
  * | HEADER | tuple_rid | tuple_size | old_tuple_data | tuple_size | new_tuple_data |
  *-----------------------------------------------------------------------------------
- * For new page type log record
+ * For new table page type log record
  *--------------------------
  * | HEADER | prev_page_id |
  *--------------------------
- * For reserve space type log record
+ * For deallocate page type log record
  *--------------------------
- * | HEADER | tuple_rid |
+ * | HEADER | page_id |
  *--------------------------
- */
+* For reuse page type log record
+ *--------------------------
+ * | HEADER | page_id |
+ *--------------------------
+* For gracefull shutdown type log record
+ *--------------------------
+ * | HEADER | greatest_lsn |
+ *--------------------------
+*/
 
 type LogRecord struct {
 	// the length of log record(for serialization, in bytes)
@@ -80,12 +94,22 @@ type LogRecord struct {
 	Old_tuple  tuple.Tuple
 	New_tuple  tuple.Tuple
 
-	// case4: for new page opeartion
-	Prev_page_id types.PageID //INVALID_PAGE_ID
+	// case4: for new table page opeartion
+	Prev_page_id types.PageID
+	Page_id      types.PageID
 
-	// case5: for reserve space
-	Reserving_rid   page.RID
-	Reserving_tuple tuple.Tuple
+	// case5: for deallocate page operation
+	Deallocate_page_id types.PageID
+	// note: Lsn and Prev_lsn are -1 and txn_id is math.MaxInt32
+	//       and this type log is handled in redo phase only
+
+	// case6: for reuse page operation
+	Reuse_page_id types.PageID
+	// note: Lsn and Prev_lsn are -1 and txn_id is math.MaxInt32
+	//       and this type log is handled in redo phase only
+
+	// case7: for graceful shutdown operation
+	// nothing LSN is the greatest LSN in the log file
 }
 
 // constructor for Transaction type(BEGIN/COMMIT/ABORT)
@@ -131,16 +155,55 @@ func NewLogRecordUpdate(txn_id types.TxnID, prev_lsn types.LSN, log_record_type 
 	return ret
 }
 
-// constructor for NEWPAGE type
-func NewLogRecordNewPage(txn_id types.TxnID, prev_lsn types.LSN, log_record_type LogRecordType, page_id types.PageID) *LogRecord {
+// constructor for NEW_TABLE_PAGE type
+func NewLogRecordNewPage(txn_id types.TxnID, prev_lsn types.LSN, log_record_type LogRecordType, prev_page_id types.PageID, page_id types.PageID) *LogRecord {
 	ret := new(LogRecord)
 	ret.Size = HEADER_SIZE
 	ret.Txn_id = txn_id
 	ret.Prev_lsn = prev_lsn
 	ret.Log_record_type = log_record_type
-	ret.Prev_page_id = page_id
+	ret.Prev_page_id = prev_page_id
+	ret.Page_id = page_id
+	// calculate log record size
+	ret.Size = HEADER_SIZE + uint32(unsafe.Sizeof(prev_page_id)) + uint32(unsafe.Sizeof(page_id))
+	return ret
+}
+
+func NewLogRecordDeallocatePage(page_id types.PageID) *LogRecord {
+	ret := new(LogRecord)
+	ret.Size = HEADER_SIZE
+	ret.Txn_id = types.TxnID(math.MaxInt32)
+	ret.Prev_lsn = -1
+	ret.Lsn = -1
+	ret.Log_record_type = DEALLOCATE_PAGE
+	ret.Deallocate_page_id = page_id
 	// calculate log record size
 	ret.Size = HEADER_SIZE + uint32(unsafe.Sizeof(page_id))
+	return ret
+}
+
+func NewLogRecordReusePage(page_id types.PageID) *LogRecord {
+	ret := new(LogRecord)
+	ret.Size = HEADER_SIZE
+	ret.Txn_id = types.TxnID(math.MaxInt32)
+	ret.Prev_lsn = -1
+	ret.Lsn = -1
+	ret.Log_record_type = REUSE_PAGE
+	ret.Reuse_page_id = page_id
+	// calculate log record size
+	ret.Size = HEADER_SIZE + uint32(unsafe.Sizeof(page_id))
+	return ret
+}
+
+func NewLogRecordGracefulShutdown() *LogRecord {
+	ret := new(LogRecord)
+	ret.Size = HEADER_SIZE
+	ret.Txn_id = types.TxnID(math.MaxInt32)
+	ret.Prev_lsn = -1
+	ret.Lsn = math.MinInt32
+	ret.Log_record_type = GRACEFUL_SHUTDOWN
+	// calculate log record size
+	ret.Size = HEADER_SIZE
 	return ret
 }
 
