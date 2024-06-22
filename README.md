@@ -84,7 +84,7 @@
     - Alternative of B-tree Index
     - Parallel accesible
   - <del>B-tree Index</del>
-  - [ ] Logging Accesses And Recovery Of Index Data
+  - [ ] Logging And Recovery Of Index Data
 - [ ] JOIN
   - [x] INNER JOIN (Hash Join, Index Join, Nested Loop Join)
     - Condition specified at ON clause should be composed of single item and can use equal(==) operator only
