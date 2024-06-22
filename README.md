@@ -49,7 +49,9 @@
   - Please refer [Download and Install - The Go Programming Language](https://go.dev/doc/install)
 - Executing all unit tests which test several features and components of SamehadaDB except several tests taking long time
   - $ git clone https://github.com/ryogrid/SamehadaDB.git
-  - $ cd SamehadaDB
+  - $ cd SamehadaDB/lib
+  - $ go clean -testcache; go test ./... -short -v
+  - $ cd ../server
   - $ go clean -testcache; go test ./... -short -v
 
 ## Roadmap  
