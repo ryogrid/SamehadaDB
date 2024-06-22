@@ -51,8 +51,6 @@
   - $ git clone https://github.com/ryogrid/SamehadaDB.git
   - $ cd SamehadaDB/lib
   - $ go clean -testcache; go test ./... -short -v
-  - $ cd ../server
-  - $ go clean -testcache; go test ./... -short -v
 
 ## Roadmap  
 - [x] Predicates on Seq Scan
