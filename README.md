@@ -120,7 +120,9 @@
 - [x] Optimization of INSERT
   - <del>Current implementation searches a free space which is enough for insert data with sequential scan from head (this is slow on exsisting large amount of records situation) </del>
 - [ ] UNION clause
-- [ ] Materialization (implementation of component for temporal teble management)
+- [x] Materialization
+  - Classes which offers functionality for materialization exists
+  - Now, HashJoinExecutor only do materialization with the classes 
 - [ ] Authentication
 - [ ] Making Usable from OR Mapper of One Web Framework Such as Django (Python) on Simple Application Scope
   - implementation of DB driver/connector for Python is needed (Or supporting major RDBMS compatible NW I/F)  
