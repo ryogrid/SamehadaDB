@@ -302,7 +302,7 @@ func (sl *SkipList) Remove(key *types.Value, value uint64) (isDeleted_ bool) {
 		// lock and pin which is got FindNode are released on Remove method
 
 		if isNodeShouldBeDeleted {
-			sl.bpm.DeallocatePage(pageId)
+			sl.bpm.DeallocatePage(pageId, false)
 		}
 	}
 

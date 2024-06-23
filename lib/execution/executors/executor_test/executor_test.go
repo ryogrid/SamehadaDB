@@ -2766,7 +2766,7 @@ func TestDeallocatedPageReuseAfterRelaunchGraceful(t *testing.T) {
 	targetPage := bpm.NewPage()
 	targetPageId := targetPage.GetPageId()
 	targetPage.SetIsDeallocated(true)
-	bpm.DeallocatePage(targetPageId)
+	bpm.DeallocatePage(targetPageId, false)
 	bpm.UnpinPage(targetPageId, false)
 
 	txn_mgr.Commit(nil, txn)
@@ -2867,6 +2867,9 @@ func TestDeallocatedPageReuseAfterRelaunchGraceful(t *testing.T) {
 	txn_mgr.Commit(nil, txn)
 
 	testingpkg.Assert(t, types.NewVarchar("updated").CompareEquals(results[0].GetValue(outSchema, 0)), "value should be 'updated'")
+
+	common.TempSuppressOnMemStorage = false
+	common.TempSuppressOnMemStorageMutex.Unlock()
 }
 
 func TestDeallocatedPageReuseAfterRelaunchByCrash(t *testing.T) {
@@ -2920,7 +2923,7 @@ func TestDeallocatedPageReuseAfterRelaunchByCrash(t *testing.T) {
 	targetPage := bpm.NewPage()
 	targetPageId := targetPage.GetPageId()
 	targetPage.SetIsDeallocated(true)
-	bpm.DeallocatePage(targetPageId)
+	bpm.DeallocatePage(targetPageId, false)
 	bpm.UnpinPage(targetPageId, false)
 
 	txn_mgr.Commit(nil, txn)
@@ -3021,4 +3024,7 @@ func TestDeallocatedPageReuseAfterRelaunchByCrash(t *testing.T) {
 
 	// aborted update transaction should be rollbacked
 	testingpkg.Assert(t, types.NewVarchar("foo").CompareEquals(results[0].GetValue(outSchema, 0)), "value should be 'foo'")
+
+	common.TempSuppressOnMemStorage = false
+	common.TempSuppressOnMemStorageMutex.Unlock()
 }

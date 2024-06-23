@@ -273,7 +273,17 @@ func (b *BufferPoolManager) NewPage() *page.Page {
 }
 
 // DeallocatePage make disk space of db file which is idenfied by pageID
-func (b *BufferPoolManager) DeallocatePage(pageID types.PageID) error {
+func (b *BufferPoolManager) DeallocatePage(pageID types.PageID, isNoWait bool) error {
+	if isNoWait {
+		// in normal case, deallocation is done when the page becomes victim
+		// but, isNoWait is true, so deallocation is done immediately
+		b.mutex.Lock()
+		if _, ok := b.pageTable[pageID]; ok {
+			delete(b.pageTable, pageID)
+			b.reUsablePageList = append(b.reUsablePageList, pageID)
+		}
+		b.mutex.Unlock()
+	}
 	logRecord := recovery.NewLogRecordDeallocatePage(pageID)
 	b.log_manager.AppendLogRecord(logRecord)
 	b.log_manager.Flush()

@@ -1,8 +1,9 @@
-package hash
+package materialization
 
 import (
 	"bytes"
 	"encoding/binary"
+	"github.com/ryogrid/SamehadaDB/lib/storage/buffer"
 	"unsafe"
 
 	"github.com/ryogrid/SamehadaDB/lib/storage/page"
@@ -79,3 +80,14 @@ func (p *TmpTuplePage) SetFreeSpacePointer(size uint32) {
 }
 func (p *TmpTuplePage) GetNextPosToInsert() []byte { return p.GetData()[p.GetFreeSpacePointer():] }
 func (p *TmpTuplePage) GetOffset() uint32          { return p.GetFreeSpacePointer() }
+
+func FetchTupleFromTmpTuplePage(bpm *buffer.BufferPoolManager, tuple_ *tuple.Tuple, tmp_tuple *TmpTuple) {
+	tmp_page := CastPageAsTmpTuplePage(bpm.FetchPage(tmp_tuple.GetPageId()))
+	if tmp_page == nil {
+		panic("fail to fetch tmp page when doing hash join")
+	}
+	// tmp_page content is copied and accessed from currrent transaction only
+	// so tuple locking is not needed
+	tmp_page.Get(tuple_, tmp_tuple.GetOffset())
+	bpm.UnpinPage(tmp_tuple.GetPageId(), false)
+}
