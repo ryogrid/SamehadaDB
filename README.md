@@ -13,7 +13,7 @@
 - (Texts in this section is contributed by [ujihisa](https://github.com/ujihisa). Thanks ujihisa)
 
 # Motivation
-- RDBMS implementation which is simple but has almost of fundamental componets and functinality is needed for newbie of Database system domain
+- RDBMS implementation which is simple but has almost of fundamental componets and functinality is needed for newbie of database system development domain
 - SamehadaDB is developed to be a RDBMS like above
   - Golang has high readability
   - SamehadaDB is based on BusTab RDBMS which is used in educational purpose
