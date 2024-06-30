@@ -94,6 +94,9 @@
 - [x] Concurrent Execution of Transactions
   - Avoidance of phantom problem is not implemented yet
     - So, current transaction isolation level is **"REPEATABLE READ"**
+  - And when table has Indexes, dirty read can be occured
+    - So, when you use Indexes, isolation level is **"DIRTY READ"**
+      - Why dirty read occurs is lack of consistency between table record and Index entry at DELETE  
 - [ ] <del>Execution Planning from hard coded SQL like method call I/F (like some kind of embedded DB)</del>
 - [x] Execution of Query with SQL string
   - not supported multi queries on a request yet
