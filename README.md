@@ -12,6 +12,12 @@
 - We are proud to call SamehadaDB because the grid produces a pleasant taste and aroma with a nice harmony
 - (Texts in this section is contributed by [ujihisa](https://github.com/ujihisa). Thanks ujihisa)
 
+# Motivation
+- RDBMS implementation which is simple but has almost of fundamental componets and functinality is needed for newbie of Database system domain
+- SamehadaDB is developed to be a RDBMS like above
+  - Golang has high readability
+  - SamehadaDB is based on BusTab RDBMS which is used in educational purpose
+
 # Current Status
 - SamehadaDB can be used as simple embedded DB (library form)
   - [Simple Single Page Application Demo (TODO App)](http://ryogrid.net:8088/todo/)))
