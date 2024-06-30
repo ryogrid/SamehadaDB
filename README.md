@@ -94,6 +94,9 @@
 - [x] Concurrent Execution of Transactions
   - Avoidance of phantom problem is not implemented yet
     - So, current transaction isolation level is **"REPEATABLE READ"**
+  - And when table has Indexes, dirty read can be occured
+    - So, when you use Indexes, isolation level is **"DIRTY READ"**
+      - Why dirty read occurs is lack of consistency between table record and Index entry at DELETE  
 - [ ] <del>Execution Planning from hard coded SQL like method call I/F (like some kind of embedded DB)</del>
 - [x] Execution of Query with SQL string
   - not supported multi queries on a request yet
@@ -114,9 +117,7 @@
 - [ ] DB Connector (Driver) or Other Kind of Network Access Interface
   - [ ] MySQL or PostgreSQL Compatible Protocol
   - [x] REST
-- [x] Deallocate and Reuse Page (TEMPORAL)
-  - Current implementation forgets reusable pages info at system shutdown or crash
-  - **Addition of persistence is needed**
+- [x] Deallocate and Reuse Page
 - [x] Optimization of INSERT
   - <del>Current implementation searches a free space which is enough for insert data with sequential scan from head (this is slow on exsisting large amount of records situation) </del>
 - [ ] UNION clause
