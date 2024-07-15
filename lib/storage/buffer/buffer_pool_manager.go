@@ -29,6 +29,7 @@ type BufferPoolManager struct {
 
 // FetchPage fetches the requested page from the buffer pool.
 func (b *BufferPoolManager) FetchPage(pageID types.PageID) *page.Page {
+getFrame:
 	// if it is on buffer pool return it
 	b.mutex.Lock()
 	if frameID, ok := b.pageTable[pageID]; ok {
@@ -86,8 +87,13 @@ func (b *BufferPoolManager) FetchPage(pageID types.PageID) *page.Page {
 				common.ShPrintf(common.DEBUG_INFO, "FetchPage: page=%d is removed from pageTable.\n", currentPage.GetPageId())
 			}
 			delete(b.pageTable, currentPage.GetPageId())
+			b.freeList = append(b.freeList, *frameID)
+			b.pages[*frameID] = nil
+			b.mutex.Unlock()
+			goto getFrame
 		}
 	}
+	b.mutex.Unlock()
 
 	//data := make([]byte, common.PageSize)
 	data := directio.AlignedBlock(common.PageSize)
@@ -98,7 +104,7 @@ func (b *BufferPoolManager) FetchPage(pageID types.PageID) *page.Page {
 	if err != nil {
 		if err == types.DeallocatedPageErr {
 			// target page was already deallocated
-			b.mutex.Unlock()
+			//b.mutex.Unlock()
 			return nil
 		}
 		fmt.Println(err)
@@ -113,9 +119,11 @@ func (b *BufferPoolManager) FetchPage(pageID types.PageID) *page.Page {
 			fmt.Sprintf("BPM::FetchPage pin count must be one here when single thread execution!!!. pageId:%d", pg.GetPageId()))
 	}
 
+	b.mutex.Lock()
 	b.pageTable[pageID] = *frameID
 	b.pages[*frameID] = pg
 	b.mutex.Unlock()
+	//b.mutex.Unlock()
 
 	if common.EnableDebug {
 		common.ShPrintf(common.DEBUG_INFO, "FetchPage: PageId=%d PinCount=%d\n", pg.GetPageId(), pg.PinCount())

@@ -52,12 +52,12 @@ func NewWorkArray() *workArray {
 
 func (arr *workArray) Append(val *types.Value) {
 	arr.posForInit++
-	randVal := rand.Intn(10)
-	if randVal < 2 {
-		arr.arr[arr.posForInit] = &opTypeAndVal{skip_list.SKIP_LIST_OP_REMOVE, val}
-	} else {
-		arr.arr[arr.posForInit] = &opTypeAndVal{skip_list.SKIP_LIST_OP_GET, val}
-	}
+	//randVal := rand.Intn(10)
+	//if randVal < 2 {
+	//	arr.arr[arr.posForInit] = &opTypeAndVal{skip_list.SKIP_LIST_OP_REMOVE, val}
+	//} else {
+	arr.arr[arr.posForInit] = &opTypeAndVal{skip_list.SKIP_LIST_OP_GET, val}
+	//}
 }
 
 func (arr *workArray) Shuffle() {

@@ -3,6 +3,7 @@ package disk
 import (
 	"errors"
 	"fmt"
+	"runtime"
 	"strings"
 	"sync"
 
@@ -64,6 +65,7 @@ spin:
 			// accessing thread exists
 			// do spin
 			d.dbFileMutex.Unlock()
+			runtime.Gosched()
 			goto spin
 		}
 	} else {
