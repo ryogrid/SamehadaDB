@@ -74,11 +74,13 @@ func (b *BufferPoolManager) FetchPage(pageID types.PageID) *page.Page {
 			if currentPage.IsDeallocated() {
 				b.reUsablePageList = append(b.reUsablePageList, currentPage.GetPageId())
 			} else if currentPage.IsDirty() {
-				b.log_manager.Flush()
-				currentPage.WLatch()
-				data := currentPage.Data()
-				b.diskManager.WritePage(currentPage.GetPageId(), data[:])
-				currentPage.WUnlatch()
+				go func() {
+					b.log_manager.Flush()
+					currentPage.WLatch()
+					data := currentPage.Data()
+					b.diskManager.WritePage(currentPage.GetPageId(), data[:])
+					currentPage.WUnlatch()
+				}()
 			}
 			if common.EnableDebug {
 				common.ShPrintf(common.DEBUG_INFO, "FetchPage: page=%d is removed from pageTable.\n", currentPage.GetPageId())

@@ -13,20 +13,20 @@ import (
 
 // DiskManagerImpl is the disk implementation of DiskManager
 type VirtualDiskManagerImpl struct {
-	db              *memfile.File //[]byte
-	fileName        string
-	log             *memfile.File //[]byte
-	fileName_log    string
-	nextPageID      types.PageID
-	numWrites       uint64
-	size            int64
-	flush_log       bool
-	numFlushes      uint64
-	dbFileMutex     *sync.Mutex
-	logFileMutex    *sync.Mutex
-	reusableSpceIDs []types.PageID
-	spaceIDConvMap  map[types.PageID]types.PageID
-	deallocedIDMap  map[types.PageID]bool
+	db           *memfile.File //[]byte
+	fileName     string
+	log          *memfile.File //[]byte
+	fileName_log string
+	nextPageID   types.PageID
+	numWrites    uint64
+	size         int64
+	flush_log    bool
+	numFlushes   uint64
+	dbFileMutex  *sync.Mutex
+	// for avoiding same file location simultaneous access
+	dbFileFrameStateMap map[types.PageID]uint64
+	logFileMutex        *sync.Mutex
+	reusableSpceIDs     []types.PageID
 }
 
 func NewVirtualDiskManagerImpl(dbFilename string) DiskManager {
@@ -41,7 +41,7 @@ func NewVirtualDiskManagerImpl(dbFilename string) DiskManager {
 	fileSize := int64(0)
 	nextPageID := types.PageID(0)
 
-	return &VirtualDiskManagerImpl{file, dbFilename, file_1, logfname, nextPageID, 0, fileSize, false, 0, new(sync.Mutex), new(sync.Mutex), make([]types.PageID, 0), make(map[types.PageID]types.PageID), make(map[types.PageID]bool)}
+	return &VirtualDiskManagerImpl{file, dbFilename, file_1, logfname, nextPageID, 0, fileSize, false, 0, new(sync.Mutex), make(map[types.PageID]uint64, 0), new(sync.Mutex), make([]types.PageID, 0)}
 }
 
 // ShutDown closes of the database file
@@ -49,21 +49,47 @@ func (d *VirtualDiskManagerImpl) ShutDown() {
 	// do nothing
 }
 
-// spaceID(pageID) conversion for reuse of file space which is allocated to deallocated page
-func (d *VirtualDiskManagerImpl) convToSpaceID(pageID types.PageID) (spaceID types.PageID) {
-	if convedID, exist := d.spaceIDConvMap[pageID]; exist {
-		return convedID
+// LockDBFileFrame locks the frame of the database file
+// This is used for avoiding simultaneous access to the same file location
+func (d *VirtualDiskManagerImpl) lockDBFileFrame(pageId types.PageID) {
+spin:
+	d.dbFileMutex.Lock()
+
+	if val, ok := d.dbFileFrameStateMap[pageId]; ok {
+		if val == 0 {
+			// accessing thread does not exist
+			// accessing is OK
+			d.dbFileFrameStateMap[pageId] = 1
+		} else {
+			// accessing thread exists
+			// do spin
+			d.dbFileMutex.Unlock()
+			goto spin
+		}
 	} else {
-		return pageID
+		// accessing thread does not exist
+		// accessing is OK
+		d.dbFileFrameStateMap[pageId] = 1
 	}
+
+	d.dbFileMutex.Unlock()
+	return
+}
+
+// UnlockDBFileFrame unlocks the frame of the database file
+// This is used for avoiding simultaneous access to the same file location
+func (d *VirtualDiskManagerImpl) unlockDBFileFrame(pageId types.PageID) {
+	d.dbFileMutex.Lock()
+	d.dbFileFrameStateMap[pageId] -= 1
+	d.dbFileMutex.Unlock()
 }
 
 // Write a page to the database file
 func (d *VirtualDiskManagerImpl) WritePage(pageId types.PageID, pageData []byte) error {
-	d.dbFileMutex.Lock()
-	defer d.dbFileMutex.Unlock()
+	d.lockDBFileFrame(pageId)
+	defer d.unlockDBFileFrame(pageId)
 
-	offset := int64(d.convToSpaceID(pageId)) * int64(common.PageSize)
+	offset := int64(pageId) * int64(common.PageSize)
 	d.db.WriteAt(pageData, offset)
 
 	if offset >= d.size {
@@ -75,14 +101,10 @@ func (d *VirtualDiskManagerImpl) WritePage(pageId types.PageID, pageData []byte)
 
 // Read a page from the database file
 func (d *VirtualDiskManagerImpl) ReadPage(pageID types.PageID, pageData []byte) error {
-	d.dbFileMutex.Lock()
-	defer d.dbFileMutex.Unlock()
+	d.lockDBFileFrame(pageID)
+	defer d.unlockDBFileFrame(pageID)
 
-	if _, exist := d.deallocedIDMap[pageID]; exist {
-		return types.DeallocatedPageErr
-	}
-
-	offset := int64(d.convToSpaceID(pageID)) * int64(common.PageSize)
+	offset := int64(pageID) * int64(common.PageSize)
 
 	if offset > d.size || offset+int64(len(pageData)) > d.size {
 		return errors.New("I/O error past end of file")
@@ -99,21 +121,11 @@ func (d *VirtualDiskManagerImpl) ReadPage(pageID types.PageID, pageData []byte) 
 // AllocatePage allocates a new page
 func (d *VirtualDiskManagerImpl) AllocatePage() types.PageID {
 	d.dbFileMutex.Lock()
+	defer d.dbFileMutex.Unlock()
 
 	var ret types.PageID
 	ret = d.nextPageID
-	if len(d.reusableSpceIDs) > 0 {
-		reuseID := d.reusableSpceIDs[0]
-		if len(d.reusableSpceIDs) == 1 {
-			d.reusableSpceIDs = make([]types.PageID, 0)
-		} else {
-			d.reusableSpceIDs = d.reusableSpceIDs[1:]
-		}
-		d.spaceIDConvMap[ret] = reuseID
-	}
 	d.nextPageID++
-
-	defer d.dbFileMutex.Unlock()
 
 	return ret
 }
@@ -122,16 +134,7 @@ func (d *VirtualDiskManagerImpl) AllocatePage() types.PageID {
 // Need bitmap in header page for tracking pages
 // This does not actually need to do anything for now.
 func (d *VirtualDiskManagerImpl) DeallocatePage(pageID types.PageID) {
-	d.dbFileMutex.Lock()
-	defer d.dbFileMutex.Unlock()
-	d.deallocedIDMap[pageID] = true
-	if convedID, exist := d.spaceIDConvMap[pageID]; exist {
-		d.reusableSpceIDs = append(d.reusableSpceIDs, convedID)
-		delete(d.spaceIDConvMap, pageID)
-	} else {
-		d.reusableSpceIDs = append(d.reusableSpceIDs, pageID)
-	}
-
+	// do nothing
 }
 
 // GetNumWrites returns the number of disk writes
