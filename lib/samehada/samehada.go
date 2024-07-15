@@ -3,7 +3,6 @@ package samehada
 import (
 	"errors"
 	"fmt"
-	"github.com/ncw/directio"
 	"github.com/ryogrid/SamehadaDB/lib/catalog"
 	"github.com/ryogrid/SamehadaDB/lib/common"
 	"github.com/ryogrid/SamehadaDB/lib/concurrency"
@@ -46,8 +45,8 @@ func reconstructIndexDataOfATbl(t *catalog.TableMetadata, c *catalog.Catalog, dm
 	executionEngine := &executors.ExecutionEngine{}
 	executorContext := executors.NewExecutorContext(c, t.Table().GetBufferPoolManager(), txn)
 
-	//zeroClearedBuf := make([]byte, common.PageSize)
-	zeroClearedBuf := directio.AlignedBlock(common.PageSize)
+	zeroClearedBuf := make([]byte, common.PageSize)
+	//zeroClearedBuf := directio.AlignedBlock(common.PageSize)
 	bpm := t.Table().GetBufferPoolManager()
 
 	for colIdx, index_ := range t.Indexes() {
