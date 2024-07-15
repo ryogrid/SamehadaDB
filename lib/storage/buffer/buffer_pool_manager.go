@@ -5,7 +5,6 @@ package buffer
 
 import (
 	"fmt"
-	"github.com/ncw/directio"
 	"github.com/ryogrid/SamehadaDB/lib/common"
 	"github.com/ryogrid/SamehadaDB/lib/recovery"
 	"github.com/ryogrid/SamehadaDB/lib/storage/disk"
@@ -25,6 +24,28 @@ type BufferPoolManager struct {
 	pageTable        map[types.PageID]FrameID
 	log_manager      *recovery.LogManager
 	mutex            *sync.Mutex
+}
+
+// object pool of byte arry
+var pool = &sync.Pool{
+	New: func() interface{} {
+		return make([]byte, common.PageSize)
+	},
+}
+
+func GetBuffer() []byte {
+	return pool.Get().([]byte)
+}
+
+func memClr(data []byte) {
+	for ii := range data {
+		data[ii] = 0
+	}
+}
+
+func ReturnBuffer(page *page.Page) {
+	memClr(page.Data()[:])
+	pool.Put(page.Data()[:])
 }
 
 // FetchPage fetches the requested page from the buffer pool.
@@ -84,11 +105,13 @@ func (b *BufferPoolManager) FetchPage(pageID types.PageID) *page.Page {
 				common.ShPrintf(common.DEBUG_INFO, "FetchPage: page=%d is removed from pageTable.\n", currentPage.GetPageId())
 			}
 			delete(b.pageTable, currentPage.GetPageId())
+			ReturnBuffer(currentPage)
 		}
 	}
 
 	//data := make([]byte, common.PageSize)
-	data := directio.AlignedBlock(common.PageSize)
+	//data := directio.AlignedBlock(common.PageSize)
+	data := GetBuffer()
 	if common.EnableDebug && common.ActiveLogKindSetting&common.CACHE_OUT_IN_INFO > 0 {
 		fmt.Printf("BPM::FetchPage Cache in occurs! requested pageId:%d\n", pageID)
 	}
@@ -102,9 +125,9 @@ func (b *BufferPoolManager) FetchPage(pageID types.PageID) *page.Page {
 		fmt.Println(err)
 		return nil
 	}
-	var pageData [common.PageSize]byte
-	pageData = *(*[common.PageSize]byte)(data)
-	pg := page.New(pageID, false, &pageData)
+	var pageData *[common.PageSize]byte
+	pageData = (*[common.PageSize]byte)(data)
+	pg := page.New(pageID, false, pageData)
 
 	if common.EnableDebug && common.ActiveLogKindSetting&common.PIN_COUNT_ASSERT > 0 {
 		common.SH_Assert(pg.PinCount() == 1,
@@ -243,6 +266,7 @@ func (b *BufferPoolManager) NewPage() *page.Page {
 				common.ShPrintf(common.DEBUG_INFO, "NewPage: page=%d is removed from pageTable.\n", currentPage.GetPageId())
 			}
 			delete(b.pageTable, currentPage.GetPageId())
+			ReturnBuffer(currentPage)
 		}
 	}
 
@@ -258,7 +282,9 @@ func (b *BufferPoolManager) NewPage() *page.Page {
 		pageID = b.diskManager.AllocatePage()
 	}
 
-	pg := page.NewEmpty(pageID)
+	var pageData *[common.PageSize]byte
+	pageData = (*[common.PageSize]byte)(GetBuffer())
+	pg := page.NewEmpty(pageID, pageData)
 
 	b.pageTable[pageID] = *frameID
 	b.pages[*frameID] = pg

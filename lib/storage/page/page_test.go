@@ -29,7 +29,8 @@ func TestNewPage(t *testing.T) {
 }
 
 func TestEmptyPage(t *testing.T) {
-	p := NewEmpty(types.PageID(0))
+	var pageData [common.PageSize]byte
+	p := NewEmpty(types.PageID(0), &pageData)
 
 	testingpkg.Equals(t, types.PageID(0), p.GetPageId())
 	testingpkg.Equals(t, int32(1), p.PinCount())

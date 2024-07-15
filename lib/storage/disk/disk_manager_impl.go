@@ -12,7 +12,7 @@ import (
 	"strings"
 	"sync"
 
-	"github.com/ncw/directio"
+	//"github.com/ncw/directio"
 	"github.com/ryogrid/SamehadaDB/lib/common"
 	"github.com/ryogrid/SamehadaDB/lib/types"
 )
@@ -34,8 +34,8 @@ type DiskManagerImpl struct {
 
 // NewDiskManagerImpl returns a DiskManager instance
 func NewDiskManagerImpl(dbFilename string) DiskManager {
-	//file, err := os.OpenFile(dbFilename, os.O_RDWR|os.O_CREATE, 0666)
-	file, err := directio.OpenFile(dbFilename, os.O_RDWR|os.O_CREATE, 0666)
+	file, err := os.OpenFile(dbFilename, os.O_RDWR|os.O_CREATE, 0666)
+	//file, err := directio.OpenFile(dbFilename, os.O_RDWR|os.O_CREATE, 0666)
 	if err != nil {
 		log.Fatalln("can't open db file")
 		return nil
@@ -106,12 +106,15 @@ func (d *DiskManagerImpl) WritePage(pageId types.PageID, pageData []byte) error 
 		fmt.Println("WritePge: d.db.Write returns err!")
 		return errSeek
 	}
-	block := directio.AlignedBlock(directio.BlockSize)
-	copy(block, pageData)
-	//bytesWritten, errWrite := d.db.Write(pageData)
+	/*
+		//block := directio.AlignedBlock(directio.BlockSize)
+		//copy(block, pageData)
+		// this works because directio.BlockSize == common.PageSize
+		bytesWritten, errWrite := d.db.Write(block)
+	*/
 
-	// this works because directio.BlockSize == common.PageSize
-	bytesWritten, errWrite := d.db.Write(block)
+	bytesWritten, errWrite := d.db.Write(pageData)
+
 	if errWrite != nil {
 		fmt.Println(errWrite)
 		panic("WritePge: d.db.Write returns err!")

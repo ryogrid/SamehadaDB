@@ -104,8 +104,8 @@ func New(id types.PageID, isDirty bool, data *[common.PageSize]byte) *Page {
 }
 
 // New creates a new empty page
-func NewEmpty(id types.PageID) *Page {
-	return &Page{id, int32(1), false, false, &[common.PageSize]byte{}, common.NewRWLatch(), make(map[int32]bool, 0), make(map[int32]bool, 0), new(sync.Mutex)}
+func NewEmpty(id types.PageID, buf *[common.PageSize]byte) *Page {
+	return &Page{id, int32(1), false, false, buf, common.NewRWLatch(), make(map[int32]bool, 0), make(map[int32]bool, 0), new(sync.Mutex)}
 }
 
 /** @return the page LSN. */
