@@ -69,7 +69,7 @@ func TestSkipListBench8_2(t *testing.T) {
 		t.Skip("skip this in short mode.")
 	}
 
-	runtime.GOMAXPROCS(50)
+	runtime.GOMAXPROCS(8)
 
 	threadNumArr := []int{1, 2, 3, 4, 5, 6, 12, 20, 50, 100}
 
