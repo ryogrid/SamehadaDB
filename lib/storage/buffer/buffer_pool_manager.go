@@ -29,7 +29,6 @@ type BufferPoolManager struct {
 
 // FetchPage fetches the requested page from the buffer pool.
 func (b *BufferPoolManager) FetchPage(pageID types.PageID) *page.Page {
-getFrame:
 	// if it is on buffer pool return it
 	b.mutex.Lock()
 	if frameID, ok := b.pageTable[pageID]; ok {
@@ -74,6 +73,7 @@ getFrame:
 			}
 			if currentPage.IsDeallocated() {
 				b.reUsablePageList = append(b.reUsablePageList, currentPage.GetPageId())
+				delete(b.pageTable, currentPage.GetPageId())
 			} else if currentPage.IsDirty() {
 				go func() {
 					b.log_manager.Flush()
@@ -81,35 +81,34 @@ getFrame:
 					data := currentPage.Data()
 					b.diskManager.WritePage(currentPage.GetPageId(), data[:])
 					currentPage.WUnlatch()
+					b.mutex.Lock()
+					delete(b.pageTable, currentPage.GetPageId())
+					b.mutex.Unlock()
 				}()
 			}
 			if common.EnableDebug {
 				common.ShPrintf(common.DEBUG_INFO, "FetchPage: page=%d is removed from pageTable.\n", currentPage.GetPageId())
 			}
-			delete(b.pageTable, currentPage.GetPageId())
-			b.freeList = append(b.freeList, *frameID)
-			b.pages[*frameID] = nil
-			b.mutex.Unlock()
-			goto getFrame
 		}
 	}
-	b.mutex.Unlock()
 
-	//data := make([]byte, common.PageSize)
 	data := directio.AlignedBlock(common.PageSize)
 	if common.EnableDebug && common.ActiveLogKindSetting&common.CACHE_OUT_IN_INFO > 0 {
 		fmt.Printf("BPM::FetchPage Cache in occurs! requested pageId:%d\n", pageID)
 	}
 	err := b.diskManager.ReadPage(pageID, data)
+
 	if err != nil {
 		if err == types.DeallocatedPageErr {
 			// target page was already deallocated
-			//b.mutex.Unlock()
+			b.mutex.Unlock()
 			return nil
 		}
+		b.mutex.Unlock()
 		fmt.Println(err)
 		return nil
 	}
+
 	var pageData [common.PageSize]byte
 	pageData = *(*[common.PageSize]byte)(data)
 	pg := page.New(pageID, false, &pageData)
@@ -119,11 +118,9 @@ getFrame:
 			fmt.Sprintf("BPM::FetchPage pin count must be one here when single thread execution!!!. pageId:%d", pg.GetPageId()))
 	}
 
-	b.mutex.Lock()
 	b.pageTable[pageID] = *frameID
 	b.pages[*frameID] = pg
 	b.mutex.Unlock()
-	//b.mutex.Unlock()
 
 	if common.EnableDebug {
 		common.ShPrintf(common.DEBUG_INFO, "FetchPage: PageId=%d PinCount=%d\n", pg.GetPageId(), pg.PinCount())

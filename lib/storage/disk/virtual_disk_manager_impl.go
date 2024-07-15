@@ -1,7 +1,6 @@
 package disk
 
 import (
-	"errors"
 	"fmt"
 	"runtime"
 	"strings"
@@ -61,12 +60,14 @@ spin:
 			// accessing thread does not exist
 			// accessing is OK
 			d.dbFileFrameStateMap[pageId] = 1
-		} else {
+		} else if val > 0 {
 			// accessing thread exists
 			// do spin
 			d.dbFileMutex.Unlock()
 			runtime.Gosched()
 			goto spin
+		} else {
+			panic("unexpected value")
 		}
 	} else {
 		// accessing thread does not exist
@@ -109,11 +110,12 @@ func (d *VirtualDiskManagerImpl) ReadPage(pageID types.PageID, pageData []byte) 
 	offset := int64(pageID) * int64(common.PageSize)
 
 	if offset > d.size || offset+int64(len(pageData)) > d.size {
-		return errors.New("I/O error past end of file")
+		//return errors.New("I/O error past end of file")
+		panic("I/O error past end of file")
 	}
 
 	_, err := d.db.ReadAt(pageData, offset)
-	if err != nil {
+	if err != nil || len(pageData) != common.PageSize {
 		fmt.Println(err)
 		panic("file read error!")
 	}
