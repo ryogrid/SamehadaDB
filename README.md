@@ -136,8 +136,14 @@
   
 [^1]: Use on frontend is not supported now  
 
-## Limitations
-- to be wrote...
+## Specification (Limitation)
+- Supported Data Types
+  - Integer (int32)
+  - Float (float64)
+  - Varchar (variable length)
+    - Max length is a little less than 4KB now
+  - Boolean (bool/1byte)
+- **to be wrote...** 
 
 ## More Info
 - [Wiki on this repo](https://github.com/ryogrid/SamehadaDB/wiki)
