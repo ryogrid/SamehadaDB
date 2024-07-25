@@ -139,7 +139,7 @@
 ## Specification (Limitation)
 - Supported Data Types
   - Integer (int32)
-  - Float (float64)
+  - Float (float32)
   - Varchar (variable length)
     - Max length is a little less than 4KB now
   - Boolean (bool/1byte)
