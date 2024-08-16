@@ -23,9 +23,7 @@ func TestBLTree_insert_and_find_embedding(t *testing.T) {
 	lmgr := recovery.NewLogManager(&dm)
 	bpm := NewParentBufMgrImpl(buffer.NewBufferPoolManager(poolSize, dm, lmgr))
 
-	os.Remove("data/bltree_insert_and_find_embedding.db")
-
-	mgr := blink_tree.NewBufMgr("data/bltree_insert_and_find_embedding.db", 12, 20, bpm, nil)
+	mgr := blink_tree.NewBufMgr(12, 20, bpm, nil)
 	bltree := blink_tree.NewBLTree(mgr)
 	if valLen, _, _ := bltree.FindKey([]byte{1, 1, 1, 1}, blink_tree.BtId); valLen >= 0 {
 		t.Errorf("FindKey() = %v, want %v", valLen, -1)
@@ -48,7 +46,7 @@ func TestBLTree_insert_and_find_many_embedding(t *testing.T) {
 	lmgr := recovery.NewLogManager(&dm)
 	bpm := NewParentBufMgrImpl(buffer.NewBufferPoolManager(poolSize, dm, lmgr))
 
-	mgr := blink_tree.NewBufMgr("data/bltree_insert_and_find_many_embedding.db", 12, 36, bpm, nil)
+	mgr := blink_tree.NewBufMgr(12, 36, bpm, nil)
 	bltree := blink_tree.NewBLTree(mgr)
 
 	num := uint64(160000)
@@ -80,7 +78,7 @@ func TestBLTree_insert_and_find_concurrently_embedding(t *testing.T) {
 	lmgr := recovery.NewLogManager(&dm)
 	bpm := NewParentBufMgrImpl(buffer.NewBufferPoolManager(poolSize, dm, lmgr))
 
-	mgr := blink_tree.NewBufMgr("data/insert_and_find_concurrently_embedding.db", 12, blink_tree.HASH_TABLE_ENTRY_CHAIN_LEN*7, bpm, nil)
+	mgr := blink_tree.NewBufMgr(12, blink_tree.HASH_TABLE_ENTRY_CHAIN_LEN*7, bpm, nil)
 
 	keyTotal := 1600000
 
@@ -101,7 +99,7 @@ func TestBLTree_deleteMany_embedding(t *testing.T) {
 	lmgr := recovery.NewLogManager(&dm)
 	bpm := NewParentBufMgrImpl(buffer.NewBufferPoolManager(poolSize, dm, lmgr))
 
-	mgr := blink_tree.NewBufMgr("data/bltree_delete_many_embedding.db", 12, blink_tree.HASH_TABLE_ENTRY_CHAIN_LEN*7, bpm, nil)
+	mgr := blink_tree.NewBufMgr(12, blink_tree.HASH_TABLE_ENTRY_CHAIN_LEN*7, bpm, nil)
 	bltree := blink_tree.NewBLTree(mgr)
 
 	keyTotal := 160000
@@ -138,14 +136,12 @@ func TestBLTree_deleteMany_embedding(t *testing.T) {
 }
 
 func TestBLTree_deleteAll_embedding(t *testing.T) {
-	_ = os.Remove(`data/bltree_delete_all.db`)
-
 	poolSize := uint32(300)
 
 	dm := disk.NewVirtualDiskManagerImpl("TestBLTree_deleteAll_embedding.db")
 	lmgr := recovery.NewLogManager(&dm)
 	bpm := NewParentBufMgrImpl(buffer.NewBufferPoolManager(poolSize, dm, lmgr))
-	mgr := blink_tree.NewBufMgr("data/bltree_delete_all.db", 12, blink_tree.HASH_TABLE_ENTRY_CHAIN_LEN*7, bpm, nil)
+	mgr := blink_tree.NewBufMgr(12, blink_tree.HASH_TABLE_ENTRY_CHAIN_LEN*7, bpm, nil)
 	bltree := blink_tree.NewBLTree(mgr)
 
 	keyTotal := 1600000
@@ -181,7 +177,7 @@ func TestBLTree_deleteManyConcurrently_embedding(t *testing.T) {
 	dm := disk.NewVirtualDiskManagerImpl("TestBLTree_deleteManyConcurrently_embedding.db")
 	lmgr := recovery.NewLogManager(&dm)
 	bpm := NewParentBufMgrImpl(buffer.NewBufferPoolManager(poolSize, dm, lmgr))
-	mgr := blink_tree.NewBufMgr("data/bltree_delete_many_concurrently.db", 12, blink_tree.HASH_TABLE_ENTRY_CHAIN_LEN*16, bpm, nil)
+	mgr := blink_tree.NewBufMgr(12, blink_tree.HASH_TABLE_ENTRY_CHAIN_LEN*16, bpm, nil)
 
 	keyTotal := 1600000
 	routineNum := 16 //7
@@ -271,7 +267,7 @@ func TestBLTree_deleteInsertRangeScanConcurrently_embedding(t *testing.T) {
 	dm := disk.NewVirtualDiskManagerImpl("TestBLTree_deleteInsertRangeScanConcurrently_embedding.db")
 	lmgr := recovery.NewLogManager(&dm)
 	bpm := NewParentBufMgrImpl(buffer.NewBufferPoolManager(poolSize, dm, lmgr))
-	mgr := blink_tree.NewBufMgr("data/bltree_delete_insert_range_scan_many_concurrently.db", 12, blink_tree.HASH_TABLE_ENTRY_CHAIN_LEN*16, bpm, nil)
+	mgr := blink_tree.NewBufMgr(12, blink_tree.HASH_TABLE_ENTRY_CHAIN_LEN*16, bpm, nil)
 
 	keyTotal := 1600000
 	routineNum := 16
@@ -389,7 +385,7 @@ func TestBLTree_deleteManyConcurrentlyShuffle_embedding(t *testing.T) {
 	dm := disk.NewVirtualDiskManagerImpl("TestBLTree_deleteManyConcurrently_shuffle_embedding.db")
 	lmgr := recovery.NewLogManager(&dm)
 	bpm := NewParentBufMgrImpl(buffer.NewBufferPoolManager(poolSize, dm, lmgr))
-	mgr := blink_tree.NewBufMgr("data/bltree_delete_many_shuffle_concurrently.db", 12, blink_tree.HASH_TABLE_ENTRY_CHAIN_LEN*16, bpm, nil)
+	mgr := blink_tree.NewBufMgr(12, blink_tree.HASH_TABLE_ENTRY_CHAIN_LEN*16, bpm, nil)
 
 	keyTotal := 1600000
 	routineNum := 16
@@ -480,15 +476,13 @@ func TestBLTree_restart_embedding(t *testing.T) {
 
 	poolSize := uint32(100)
 
-	//dm := disk.NewDiskManagerImpl("TestBLTree_restart_embedding.db")
-
 	// use virtual disk manager which does file I/O on memory
 	dm := disk.NewVirtualDiskManagerImpl("TestBLTree_restart_embedding.db")
 	lmgr := recovery.NewLogManager(&dm)
 	orgBpm := buffer.NewBufferPoolManager(poolSize, dm, lmgr)
 	bpm := NewParentBufMgrImpl(orgBpm)
 
-	mgr := blink_tree.NewBufMgr("data/bltree_restart_embedding.db", 12, blink_tree.HASH_TABLE_ENTRY_CHAIN_LEN*2, bpm, nil)
+	mgr := blink_tree.NewBufMgr(12, blink_tree.HASH_TABLE_ENTRY_CHAIN_LEN*2, bpm, nil)
 	bltree := blink_tree.NewBLTree(mgr)
 
 	firstNum := uint64(100000)
@@ -525,7 +519,7 @@ func TestBLTree_restart_embedding(t *testing.T) {
 	//dm = disk.NewDiskManagerImpl("TestBLTree_restart_embedding.db")
 	lmgr = recovery.NewLogManager(&dm)
 	bpm = NewParentBufMgrImpl(buffer.NewBufferPoolManager(poolSize, dm, lmgr))
-	mgr = blink_tree.NewBufMgr("data/bltree_restart_embedding.db", 12, 48, bpm, &pageZeroShId)
+	mgr = blink_tree.NewBufMgr(12, 48, bpm, &pageZeroShId)
 	bltree = blink_tree.NewBLTree(mgr)
 
 	secondNum := firstNum * 2
@@ -574,7 +568,7 @@ func TestBLTree_insert_and_range_scan_embedding(t *testing.T) {
 	lmgr := recovery.NewLogManager(&dm)
 	bpm := NewParentBufMgrImpl(buffer.NewBufferPoolManager(poolSize, dm, lmgr))
 
-	mgr := blink_tree.NewBufMgr("TestBLTree_insert_and_range_scan_embedding.db", 12, 20, bpm, nil)
+	mgr := blink_tree.NewBufMgr(12, 20, bpm, nil)
 	bltree := blink_tree.NewBLTree(mgr)
 
 	keyTotal := 10
