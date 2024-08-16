@@ -31,7 +31,7 @@ jobs:
     steps:
       - uses: actions/checkout@v2
       - name: build
-        run: cd server; go build ./...
+        run: cd server; go build -o samehada-db-server main.go
 
   # exec unit tests
   test:
