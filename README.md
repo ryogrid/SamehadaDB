@@ -87,7 +87,8 @@
   - [x] SkipList Index
     - Alternative of B-tree Index
     - Parallel accesible
-  - <del>B-tree Index</del>
+  - [ ] B-tree Index
+    - Implementing now with [bltree-go-for-embedding](https://github.com/ryogrid/bltree-go-for-embedding) lib
   - [ ] Logging And Recovery Of Index Data
 - [ ] JOIN
   - [x] INNER JOIN (Hash Join, Index Join, Nested Loop Join)

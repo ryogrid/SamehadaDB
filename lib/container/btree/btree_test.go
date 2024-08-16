@@ -306,7 +306,7 @@ func TestBLTree_deleteInsertRangeScanConcurrently_embedding(t *testing.T) {
 					}
 					curNum = foundKey
 				}
-				fmt.Println(keyInts)
+				//fmt.Println(keyInts)
 			}
 
 			for i := 0; i < keyTotal; i++ {
@@ -590,6 +590,7 @@ func TestBLTree_insert_and_range_scan_embedding(t *testing.T) {
 		}
 	}
 
-	num, keyArr, valArr := bltree.RangeScan(nil, nil)
-	fmt.Println(num, keyArr, valArr)
+	_, _, _ = bltree.RangeScan(nil, nil)
+	//num, keyArr, valArr := bltree.RangeScan(nil, nil)
+	//fmt.Println(num, keyArr, valArr)
 }
