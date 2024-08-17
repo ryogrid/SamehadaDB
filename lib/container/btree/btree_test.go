@@ -512,7 +512,7 @@ func TestBLTree_restart_embedding(t *testing.T) {
 	mgr.Close()
 
 	// shutdown embedding db which own parent buffer manager of BufMgr
-	pageZeroShId := mgr.GetMappedShPageIdOfPageZero()
+	pageZeroShId := mgr.GetMappedPPageIdOfPageZero()
 	orgBpm.FlushAllPages()
 	//dm.ShutDown()
 
