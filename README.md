@@ -115,7 +115,7 @@
     - projection including aggregation
     - LIMIT, ORDER BY
 - [x] Statistics Data for Optimizer
-  - Updating continuously with full scan...
+  - Statistics data are updated continuously with full scan...
 - [ ] TRANSACTION Statement on SQL
   - This includes adding support of multi statements (multi statements is not suported on SQL now)
 - [ ] AS clause
