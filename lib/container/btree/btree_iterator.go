@@ -3,6 +3,7 @@ package btree
 import (
 	"github.com/ryogrid/SamehadaDB/lib/samehada/samehada_util"
 	"github.com/ryogrid/SamehadaDB/lib/storage/buffer"
+	"github.com/ryogrid/SamehadaDB/lib/storage/index/index_common"
 	"github.com/ryogrid/SamehadaDB/lib/storage/page"
 	"github.com/ryogrid/SamehadaDB/lib/storage/page/skip_list_page"
 	"github.com/ryogrid/SamehadaDB/lib/types"
@@ -12,11 +13,11 @@ type BTreeIterator struct {
 	bltw          *BLTreeWrapper
 	bpm           *buffer.BufferPoolManager
 	curNode       *skip_list_page.SkipListBlockPage
-	curEntry      *skip_list_page.SkipListPair
+	curEntry      *index_common.IndexEntry
 	rangeStartKey *types.Value
 	rangeEndKey   *types.Value
 	keyType       types.TypeID
-	entryList     []*skip_list_page.SkipListPair
+	entryList     []*index_common.IndexEntry
 	curEntryIdx   int32
 }
 
@@ -33,7 +34,7 @@ func NewSkipListIterator(bltr *BLTreeWrapper, rangeStartKey *types.Value, rangeE
 	//ret.rangeStartKey = rangeStartKey
 	//ret.rangeEndKey = rangeEndKey
 	//ret.keyType = headerPage.GetKeyType()
-	//ret.entryList = make([]*skip_list_page.SkipListPair, 0)
+	//ret.entryList = make([]*skip_list_page.IndexEntry, 0)
 	//
 	//ret.initRIDList(sl)
 

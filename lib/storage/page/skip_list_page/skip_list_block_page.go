@@ -6,6 +6,7 @@ import (
 	"fmt"
 	"github.com/ryogrid/SamehadaDB/lib/common"
 	"github.com/ryogrid/SamehadaDB/lib/storage/buffer"
+	"github.com/ryogrid/SamehadaDB/lib/storage/index/index_common"
 	"github.com/ryogrid/SamehadaDB/lib/storage/page"
 	"github.com/ryogrid/SamehadaDB/lib/types"
 	"unsafe"
@@ -61,43 +62,11 @@ const (
 	offsetForward                       = offsetEntryCnt + sizeEntryCnt
 	offsetFreeSpacePointer              = offsetForward + sizeForward
 	offsetEntryInfos                    = offsetFreeSpacePointer + sizeFreeSpacePointer
-	sizeEntryValue                      = uint32(8)
 )
-
-type SkipListPair struct {
-	Key   types.Value
-	Value uint64
-}
 
 type SkipListCornerInfo struct {
 	PageId        types.PageID
 	UpdateCounter types.LSN
-}
-
-func (sp SkipListPair) Serialize() []byte {
-	keyInBytes := sp.Key.Serialize()
-	valBuf := new(bytes.Buffer)
-	binary.Write(valBuf, binary.LittleEndian, sp.Value)
-	valInBytes := valBuf.Bytes()
-
-	retBuf := new(bytes.Buffer)
-	retBuf.Write(keyInBytes)
-	retBuf.Write(valInBytes)
-	return retBuf.Bytes()
-}
-
-func NewSkipListPairFromBytes(buf []byte, keyType types.TypeID) *SkipListPair {
-	dataLen := len(buf)
-	valPartOffset := dataLen - int(sizeEntryValue)
-	key := types.NewValueFromBytes(buf[:valPartOffset], keyType)
-	value := uint64(types.NewUInt64FromBytes(buf[valPartOffset:]))
-	return &SkipListPair{*key, value}
-}
-
-func (sp SkipListPair) GetDataSize() uint32 {
-	keyInBytes := sp.Key.Serialize()
-
-	return uint32(len(keyInBytes)) + sizeEntryValue
 }
 
 type SkipListBlockPage struct {
@@ -105,7 +74,7 @@ type SkipListBlockPage struct {
 }
 
 // ATTENTION: caller must call UnpinPage with appropriate dirty flag call to returned object
-func NewSkipListBlockPage(bpm *buffer.BufferPoolManager, level int32, smallestListPair SkipListPair) *SkipListBlockPage {
+func NewSkipListBlockPage(bpm *buffer.BufferPoolManager, level int32, smallestListPair index_common.IndexEntry) *SkipListBlockPage {
 	page_ := bpm.NewPage()
 	if page_ == nil {
 		panic("NewPage can't allocate more page!")
@@ -146,7 +115,7 @@ func (node *SkipListBlockPage) ValueAt(idx int32, keyType types.TypeID) uint64 {
 // if not found, returns info of nearest smaller key
 // binary search is used for search
 // https://www.cs.usfca.edu/~galles/visualization/Search.html
-func (node *SkipListBlockPage) FindEntryByKey(key *types.Value) (found bool, entry *SkipListPair, index int32) {
+func (node *SkipListBlockPage) FindEntryByKey(key *types.Value) (found bool, entry *index_common.IndexEntry, index int32) {
 	if node.GetEntryCnt() == 1 {
 		if node.GetEntry(0, key.ValueType()).Key.CompareEquals(*key) {
 			return true, node.GetEntry(0, key.ValueType()), 0
@@ -221,7 +190,7 @@ func (node *SkipListBlockPage) updateEntryInfosAtInsert(idx int, dataSize uint32
 // in contrast, new entry data is placed always tail of entries data area
 // idx==-1 -> data's inddx become 0 (insert to head of entries)
 // idx==entryCnt -> data's index become entryCnt (insert next of last entry)
-func (node *SkipListBlockPage) InsertInner(idx int, slp *SkipListPair) {
+func (node *SkipListBlockPage) InsertInner(idx int, slp *index_common.IndexEntry) {
 	// data copy of slp arg to tail of entry data space
 	// the tail is pointed by freeSpacePointer
 	insertData := slp.Serialize()
@@ -289,7 +258,7 @@ func (node *SkipListBlockPage) Insert(key *types.Value, value uint64, bpm *buffe
 		//	panic("key duplication is not supported yet!")
 		//}
 
-		node.SetEntry(int(foundIdx), &SkipListPair{*key, value})
+		node.SetEntry(int(foundIdx), &index_common.IndexEntry{*key, value})
 		//fmt.Printf("end of Insert of SkipListBlockPage called! : key=%d page.entryCnt=%d len(page.entries)=%d\n", key.ToInteger(), node.entryCnt, len(node.entries))
 
 		if node.GetEntry(int(foundIdx), key.ValueType()).Key.CompareEquals(*key) {
@@ -309,7 +278,7 @@ func (node *SkipListBlockPage) Insert(key *types.Value, value uint64, bpm *buffe
 		//fmt.Printf("Insert %v\n", key.ToIFValue())
 
 		//fmt.Printf("not found at Insert of SkipListBlockPage. foundIdx=%d\n", foundIdx)
-		if node.getFreeSpaceRemaining() < node.GetSpecifiedSLPNeedSpace(&SkipListPair{*key, value}) {
+		if node.getFreeSpaceRemaining() < node.GetSpecifiedSLPNeedSpace(&index_common.IndexEntry{*key, value}) {
 			// this node is full. so node split is needed
 
 			// first, split this node at center of entry list
@@ -345,7 +314,7 @@ func (node *SkipListBlockPage) Insert(key *types.Value, value uint64, bpm *buffe
 				// insert to new node
 				newSmallerIdx := foundIdx - splitIdx - 1
 
-				insEntry := &SkipListPair{*key, value}
+				insEntry := &index_common.IndexEntry{*key, value}
 				if key.ValueType() == types.Varchar && (newNode.GetSpecifiedSLPNeedSpace(insEntry) > newNode.getFreeSpaceRemaining()) {
 					panic("not enough space for insert (new node)")
 				}
@@ -364,7 +333,7 @@ func (node *SkipListBlockPage) Insert(key *types.Value, value uint64, bpm *buffe
 				// foundIdx is index of nearlest smaller key entry
 				// new entry is inserted next of the entry
 
-				insEntry := &SkipListPair{*key, value}
+				insEntry := &index_common.IndexEntry{*key, value}
 				if key.ValueType() == types.Varchar && (node.GetSpecifiedSLPNeedSpace(insEntry) > node.getFreeSpaceRemaining()) {
 					panic("not enough space for insert (parent node)")
 				}
@@ -390,7 +359,7 @@ func (node *SkipListBlockPage) Insert(key *types.Value, value uint64, bpm *buffe
 
 			node.SetLSN(node.GetLSN() + 1)
 
-			insEntry := &SkipListPair{*key, value}
+			insEntry := &index_common.IndexEntry{*key, value}
 			node.InsertInner(int(foundIdx), insEntry)
 
 			bpm.UnpinPage(node.GetPageId(), true)
@@ -662,7 +631,7 @@ func FindSLBPFromList(list []*SkipListBlockPage, pageID types.PageID) *SkipListB
 	return nil
 }
 
-func (node *SkipListBlockPage) newNodeAndUpdateChain(idx int32, bpm *buffer.BufferPoolManager, corners []SkipListCornerInfo, level int32, keyType types.TypeID, lockedAndPinnedNodes []*SkipListBlockPage, insertEntry *SkipListPair) *SkipListBlockPage {
+func (node *SkipListBlockPage) newNodeAndUpdateChain(idx int32, bpm *buffer.BufferPoolManager, corners []SkipListCornerInfo, level int32, keyType types.TypeID, lockedAndPinnedNodes []*SkipListBlockPage, insertEntry *index_common.IndexEntry) *SkipListBlockPage {
 	var newNode *SkipListBlockPage
 	if insertEntry != nil {
 		newNode = NewSkipListBlockPage(bpm, level, *insertEntry)
@@ -752,9 +721,9 @@ func (node *SkipListBlockPage) SetEntryCnt(cnt int32) {
 	copy(node.Data()[offsetEntryCnt:], cntInBytes)
 }
 
-func (node *SkipListBlockPage) GetEntries(keyType types.TypeID) []*SkipListPair {
+func (node *SkipListBlockPage) GetEntries(keyType types.TypeID) []*index_common.IndexEntry {
 	entryNum := int(node.GetEntryCnt())
-	retArr := make([]*SkipListPair, 0)
+	retArr := make([]*index_common.IndexEntry, 0)
 	for ii := 0; ii < entryNum; ii++ {
 		retArr = append(retArr, node.GetEntry(ii, keyType))
 	}
@@ -805,17 +774,17 @@ func (node *SkipListBlockPage) SetFreeSpacePointer(pointOffset uint32) {
 	copy(node.Data()[offset:], pointOffsetInBytes)
 }
 
-func (node *SkipListBlockPage) GetEntry(idx int, keyType types.TypeID) *SkipListPair {
+func (node *SkipListBlockPage) GetEntry(idx int, keyType types.TypeID) *index_common.IndexEntry {
 	offset := node.GetEntryOffset(idx)
 	entrySize := node.GetEntrySize(idx)
-	return NewSkipListPairFromBytes(node.Data()[offset:offset+entrySize], keyType)
+	return index_common.NewIndexEntryFromBytes(node.Data()[offset:offset+entrySize], keyType)
 }
 
 // ATTENTION:
 // this method can be called only when...
 //   - it is guranteed that new entry insert doesn't cause overflow of node space capacity
 //   - key of target entry doesn't exist in this node
-func (node *SkipListBlockPage) SetEntry(idx int, entry *SkipListPair) {
+func (node *SkipListBlockPage) SetEntry(idx int, entry *index_common.IndexEntry) {
 	// at current design,
 	// - duplicated key is not supported
 	// - this SkipList is used for index of RDBMS, so update of value part (stores record data offset at DB file)
@@ -832,7 +801,7 @@ func (node *SkipListBlockPage) SetEntry(idx int, entry *SkipListPair) {
 	node.SetEntryCnt(node.GetEntryCnt() + 1)
 }
 
-func (node *SkipListBlockPage) SetEntries(entries []*SkipListPair) {
+func (node *SkipListBlockPage) SetEntries(entries []*index_common.IndexEntry) {
 	buf := new(bytes.Buffer)
 	entryNum := len(entries)
 	// order of elements on buf becomes descending order in contrast with entries arg
@@ -867,8 +836,8 @@ func (node *SkipListBlockPage) SetEntries(entries []*SkipListPair) {
 }
 
 // since header space grow with insertion entry, memory size which is needed
-// for insertion is not same with size of SkipListPair object
-func (node *SkipListBlockPage) GetSpecifiedSLPNeedSpace(slp *SkipListPair) uint32 {
+// for insertion is not same with size of IndexEntry object
+func (node *SkipListBlockPage) GetSpecifiedSLPNeedSpace(slp *index_common.IndexEntry) uint32 {
 	return slp.GetDataSize() + sizeEntryInfo
 }
 

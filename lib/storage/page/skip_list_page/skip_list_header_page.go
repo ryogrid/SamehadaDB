@@ -4,6 +4,7 @@ import (
 	"bytes"
 	"encoding/binary"
 	"github.com/ryogrid/SamehadaDB/lib/storage/buffer"
+	"github.com/ryogrid/SamehadaDB/lib/storage/index/index_common"
 	"github.com/ryogrid/SamehadaDB/lib/storage/page"
 	"github.com/ryogrid/SamehadaDB/lib/types"
 	"math"
@@ -43,33 +44,33 @@ func NewSkipListStartBlockPage(bpm *buffer.BufferPoolManager, keyType types.Type
 	var startNode *SkipListBlockPage = nil
 	switch keyType {
 	case types.Integer:
-		startNode = NewSkipListBlockPage(bpm, MAX_FOWARD_LIST_LEN, SkipListPair{types.NewInteger(math.MinInt32), 0})
+		startNode = NewSkipListBlockPage(bpm, MAX_FOWARD_LIST_LEN, index_common.IndexEntry{types.NewInteger(math.MinInt32), 0})
 	case types.Float:
-		startNode = NewSkipListBlockPage(bpm, MAX_FOWARD_LIST_LEN, SkipListPair{types.NewFloat(-1.0 * math.MaxFloat32), 0})
+		startNode = NewSkipListBlockPage(bpm, MAX_FOWARD_LIST_LEN, index_common.IndexEntry{types.NewFloat(-1.0 * math.MaxFloat32), 0})
 	case types.Varchar:
 		v := types.NewVarchar("")
 		v.SetInfMin()
-		startNode = NewSkipListBlockPage(bpm, MAX_FOWARD_LIST_LEN, SkipListPair{v, 0})
+		startNode = NewSkipListBlockPage(bpm, MAX_FOWARD_LIST_LEN, index_common.IndexEntry{v, 0})
 	case types.Boolean:
-		startNode = NewSkipListBlockPage(bpm, MAX_FOWARD_LIST_LEN, SkipListPair{types.NewBoolean(false), 0})
+		startNode = NewSkipListBlockPage(bpm, MAX_FOWARD_LIST_LEN, index_common.IndexEntry{types.NewBoolean(false), 0})
 	}
 
 	var sentinelNode *SkipListBlockPage = nil
 	switch keyType {
 	case types.Integer:
-		pl := SkipListPair{types.NewInteger(0), 0}
+		pl := index_common.IndexEntry{types.NewInteger(0), 0}
 		pl.Key = *pl.Key.SetInfMax()
 		sentinelNode = NewSkipListBlockPage(bpm, MAX_FOWARD_LIST_LEN, pl)
 	case types.Float:
-		pl := SkipListPair{types.NewFloat(0), 0}
+		pl := index_common.IndexEntry{types.NewFloat(0), 0}
 		pl.Key = *pl.Key.SetInfMax()
 		sentinelNode = NewSkipListBlockPage(bpm, MAX_FOWARD_LIST_LEN, pl)
 	case types.Varchar:
-		pl := SkipListPair{types.NewVarchar(""), 0}
+		pl := index_common.IndexEntry{types.NewVarchar(""), 0}
 		pl.Key = *pl.Key.SetInfMax()
 		sentinelNode = NewSkipListBlockPage(bpm, MAX_FOWARD_LIST_LEN, pl)
 	case types.Boolean:
-		pl := SkipListPair{types.NewBoolean(false), 0}
+		pl := index_common.IndexEntry{types.NewBoolean(false), 0}
 		pl.Key = *pl.Key.SetInfMax()
 		sentinelNode = NewSkipListBlockPage(bpm, MAX_FOWARD_LIST_LEN, pl)
 	}
