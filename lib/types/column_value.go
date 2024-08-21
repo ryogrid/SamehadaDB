@@ -332,6 +332,27 @@ func (v Value) Serialize() []byte {
 	return []byte{}
 }
 
+// no length info and isNull info
+func (v Value) SerializeOnlyVal() []byte {
+	switch v.valueType {
+	case Integer:
+		buf := new(bytes.Buffer)
+		binary.Write(buf, binary.LittleEndian, v.ToInteger())
+		return buf.Bytes()
+	case Float:
+		buf := new(bytes.Buffer)
+		binary.Write(buf, binary.LittleEndian, v.ToFloat())
+		return buf.Bytes()
+	case Varchar:
+		return []byte(v.ToVarchar())
+	case Boolean:
+		buf := new(bytes.Buffer)
+		binary.Write(buf, binary.LittleEndian, v.ToBoolean())
+		return buf.Bytes()
+	}
+	return []byte{}
+}
+
 // Size returns the size in bytes that the type will occupy inside the tuple
 func (v Value) Size() uint32 {
 	// all type occupies the whether NULL or not + 1 byte for the info storage
