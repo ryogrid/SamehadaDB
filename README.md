@@ -152,6 +152,10 @@
 ## About Skip List Index SamehadaDB has
 - [Implementation of On-Disk Concurrent Skip List as an Alternative to B-Tree Index](https://ryogrid.github.io/articles/skiplist_en)
 
+## Related Project
+- [ryogrid/bltree-go-for-embedding](https://github.com/ryogrid/bltree-go-for-embedding)
+  - Customized [hmarui66/blink-tree-go](https://github.com/hmarui66/blink-tree-go) fork which is usable in other DBMS projects as library
+
 # Advisor
 - [kumagi](https://github.com/kumagi) and more!
 
