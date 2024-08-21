@@ -80,7 +80,7 @@ func (e *RangeScanWithIndexExecutor) Next() (*tuple.Tuple, Done, error) {
 				e.txn.SetState(access.ABORTED)
 				return nil, true, errors.New("detect value update after iterator created. changes transaction state to aborted.")
 			}
-		case *index.SkipListIndex:
+		case *index.BTreeIndex:
 			orgKey := samehada_util.ExtractOrgKeyFromDicOrderComparableEncodedVarchar(key, orgKeyType)
 			if !curKeyVal.CompareEquals(*orgKey) {
 				// column value corresponding index key is updated
