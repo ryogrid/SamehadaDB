@@ -63,6 +63,13 @@ func NewTableMetadata(schema *schema.Schema, name string, table *access.TableHea
 
 				indexes = append(indexes, slIdx)
 				//column_.SetIndexHeaderPageId(slIdx.GetHeaderPageId())
+			case index_constants.INDEX_KIND_BTREE:
+				// currently, BTree Index always use new pages even if relaunch
+				im := index.NewIndexMetadata(column_.GetColumnName()+"_index", name, schema, []uint32{uint32(idx)})
+				// TODO: (SDB) need to add index headae ID argument like HashIndex (NewTableMetadata)
+				slIdx := index.NewBTreeIndex(im, table.GetBufferPoolManager(), uint32(idx), log_manager)
+
+				indexes = append(indexes, slIdx)
 			default:
 				panic("illegal index kind!")
 			}
