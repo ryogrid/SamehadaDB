@@ -31,8 +31,9 @@ func NewBTreeIndex(metadata *IndexMetadata, buffer_pool_manager *buffer.BufferPo
 
 	// BTreeIndex uses special technique to support key duplication with SkipList supporting unique key only
 	// for the thechnique, key type is fixed to Varchar (comparison is done on dict order as byte array)
-	//ret.container = *skip_list.NewSkipList(buffer_pool_manager, types.Varchar, log_manager)
-	ret.container = btree.NewBLTreeWrapper(blink_tree.NewBLTree(blink_tree.NewBufMgr(12, blink_tree.HASH_TABLE_ENTRY_CHAIN_LEN*common.MaxTxnThreadNum*2, btree.NewParentBufMgrImpl(buffer_pool_manager), nil)))
+
+	bufMgr := blink_tree.NewBufMgr(12, blink_tree.HASH_TABLE_ENTRY_CHAIN_LEN*common.MaxTxnThreadNum*2, btree.NewParentBufMgrImpl(buffer_pool_manager), nil)
+	ret.container = btree.NewBLTreeWrapper(blink_tree.NewBLTree(bufMgr), bufMgr)
 	ret.col_idx = col_idx
 	ret.updateMtx = sync.RWMutex{}
 	ret.log_manager = log_manager
@@ -148,3 +149,9 @@ func (btidx *BTreeIndex) GetKeyAttrs() []uint32 { return btidx.metadata.GetKeyAt
 //func (slidx *BTreeIndex) GetHeaderPageId() types.PageID {
 //	return slidx.container.GetHeaderPageId()
 //}
+
+// call this at shutdown of the system
+// to write out the state and allocated pages of the container to BPM
+func (btidx *BTreeIndex) Close() {
+	btidx.container.WriteOutContainerStateToBPM()
+}
