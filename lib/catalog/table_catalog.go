@@ -62,7 +62,7 @@ func BootstrapCatalog(bpm *buffer.BufferPoolManager, log_manager *recovery.LogMa
 }
 
 // RecoveryCatalogFromCatalogPage get all information about tables and columns from disk and put it on memory
-func RecoveryCatalogFromCatalogPage(bpm *buffer.BufferPoolManager, log_manager *recovery.LogManager, lock_manager *access.LockManager, txn *access.Transaction) *Catalog {
+func RecoveryCatalogFromCatalogPage(bpm *buffer.BufferPoolManager, log_manager *recovery.LogManager, lock_manager *access.LockManager, txn *access.Transaction, isGracefulShutdown bool) *Catalog {
 	tableCatalogHeapIt := access.InitTableHeap(bpm, TableCatalogPageId, log_manager, lock_manager).Iterator(txn)
 
 	tableIds := make(map[uint32]*TableMetadata)
@@ -106,6 +106,7 @@ func RecoveryCatalogFromCatalogPage(bpm *buffer.BufferPoolManager, log_manager *
 			access.InitTableHeap(bpm, types.PageID(firstPage), log_manager, lock_manager),
 			uint32(oid),
 			log_manager,
+			isGracefulShutdown,
 		)
 
 		tableIds[uint32(oid)] = tableMetadata
@@ -171,7 +172,7 @@ func (c *Catalog) CreateTable(name string, schema_ *schema.Schema, txn *access.T
 	// attach table name as prefix to all columns name
 	attachTableNameToColumnsName(schema_, name_)
 
-	tableMetadata := NewTableMetadata(schema_, name_, tableHeap, oid, c.Log_manager)
+	tableMetadata := NewTableMetadata(schema_, name_, tableHeap, oid, c.Log_manager, true)
 
 	c.tableIdsMutex.Lock()
 	c.tableIds[oid] = tableMetadata

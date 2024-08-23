@@ -82,7 +82,19 @@ func (e *RangeScanWithIndexExecutor) Next() (*tuple.Tuple, Done, error) {
 			}
 		case *index.SkipListIndex:
 			orgKey := samehada_util.ExtractOrgKeyFromDicOrderComparableEncodedVarchar(key, orgKeyType)
+
 			if !curKeyVal.CompareEquals(*orgKey) {
+				// column value corresponding index key is updated
+				e.txn.SetState(access.ABORTED)
+				return nil, true, errors.New("detect value update after iterator created. changes transaction state to aborted.")
+			}
+		case *index.BTreeIndex:
+			//orgKey := samehada_util.ExtractOrgKeyFromDicOrderComparableEncodedVarchar(key, orgKeyType)
+
+			//if !curKeyVal.CompareEquals(*orgKey) {
+
+			// when BTreeIndex is used, key is original key
+			if !curKeyVal.CompareEquals(*key) {
 				// column value corresponding index key is updated
 				e.txn.SetState(access.ABORTED)
 				return nil, true, errors.New("detect value update after iterator created. changes transaction state to aborted.")

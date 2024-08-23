@@ -6,6 +6,7 @@ import (
 	"github.com/ryogrid/SamehadaDB/lib/container/skip_list"
 	"github.com/ryogrid/SamehadaDB/lib/samehada"
 	"github.com/ryogrid/SamehadaDB/lib/samehada/samehada_util"
+	"github.com/ryogrid/SamehadaDB/lib/storage/index/index_common"
 	"github.com/ryogrid/SamehadaDB/lib/storage/page/skip_list_page"
 	testingpkg "github.com/ryogrid/SamehadaDB/lib/testing/testing_assert"
 	"github.com/ryogrid/SamehadaDB/lib/types"
@@ -26,7 +27,7 @@ func TestSerializationOfSkipLisBlockPage(t *testing.T) {
 	shi := samehada.NewSamehadaInstance(t.Name(), common.BufferPoolMaxFrameNumForTest)
 	bpm := shi.GetBufferPoolManager()
 
-	bpage := skip_list_page.NewSkipListBlockPage(bpm, 1, skip_list_page.SkipListPair{
+	bpage := skip_list_page.NewSkipListBlockPage(bpm, 1, index_common.IndexEntry{
 		Key:   types.NewInteger(math.MinInt32),
 		Value: 0,
 	})
@@ -39,7 +40,7 @@ func TestSerializationOfSkipLisBlockPage(t *testing.T) {
 	bpage.SetFreeSpacePointer(common.PageSize - 9)
 	// EntryCnt is incremented to 2
 	// freeSpacePointer is decremented size of entry (1+2+7+8 => 18)
-	bpage.SetEntry(1, &skip_list_page.SkipListPair{types.NewVarchar("abcdeff"), 12345})
+	bpage.SetEntry(1, &index_common.IndexEntry{types.NewVarchar("abcdeff"), 12345})
 
 	testingpkg.SimpleAssert(t, bpage.GetPageId() == 7)
 	testingpkg.SimpleAssert(t, bpage.GetLSN() == 9)
@@ -90,26 +91,26 @@ func TestInnerInsertDeleteOfBlockPageSimple(t *testing.T) {
 
 	// ---------- test RemoveInner --------
 	// setup a page
-	bpage1 := skip_list_page.NewSkipListBlockPage(bpm, 1, skip_list_page.SkipListPair{
+	bpage1 := skip_list_page.NewSkipListBlockPage(bpm, 1, index_common.IndexEntry{
 		Key:   types.NewVarchar("abcd"),
 		Value: 1,
 	})
 
-	initialEntries := make([]*skip_list_page.SkipListPair, 0)
+	initialEntries := make([]*index_common.IndexEntry, 0)
 	initialEntries = append(initialEntries, bpage1.GetEntry(0, types.Varchar))
-	initialEntries = append(initialEntries, &skip_list_page.SkipListPair{
+	initialEntries = append(initialEntries, &index_common.IndexEntry{
 		Key:   types.NewVarchar("abcde"),
 		Value: 2,
 	})
-	initialEntries = append(initialEntries, &skip_list_page.SkipListPair{
+	initialEntries = append(initialEntries, &index_common.IndexEntry{
 		Key:   types.NewVarchar("abcdef"),
 		Value: 3,
 	})
-	initialEntries = append(initialEntries, &skip_list_page.SkipListPair{
+	initialEntries = append(initialEntries, &index_common.IndexEntry{
 		Key:   types.NewVarchar("abcdefg"),
 		Value: 4,
 	})
-	initialEntries = append(initialEntries, &skip_list_page.SkipListPair{
+	initialEntries = append(initialEntries, &index_common.IndexEntry{
 		Key:   types.NewVarchar("abcdefgh"),
 		Value: 5,
 	})
@@ -129,33 +130,33 @@ func TestInnerInsertDeleteOfBlockPageSimple(t *testing.T) {
 
 	// ---------- test InsertInner --------
 	// setup a page
-	bpage2 := skip_list_page.NewSkipListBlockPage(bpm, 1, skip_list_page.SkipListPair{
+	bpage2 := skip_list_page.NewSkipListBlockPage(bpm, 1, index_common.IndexEntry{
 		Key:   types.NewVarchar("abcd"),
 		Value: 0,
 	})
 
-	initialEntries = make([]*skip_list_page.SkipListPair, 0)
+	initialEntries = make([]*index_common.IndexEntry, 0)
 	initialEntries = append(initialEntries, bpage2.GetEntry(0, types.Varchar))
-	initialEntries = append(initialEntries, &skip_list_page.SkipListPair{
+	initialEntries = append(initialEntries, &index_common.IndexEntry{
 		Key:   types.NewVarchar("abcde"),
 		Value: 1,
 	})
-	initialEntries = append(initialEntries, &skip_list_page.SkipListPair{
+	initialEntries = append(initialEntries, &index_common.IndexEntry{
 		Key:   types.NewVarchar("abcdef"),
 		Value: 2,
 	})
 	bpage2.SetEntries(initialEntries)
 
 	// insert entries
-	bpage2.InsertInner(-1, &skip_list_page.SkipListPair{
+	bpage2.InsertInner(-1, &index_common.IndexEntry{
 		Key:   types.NewVarchar("abc"),
 		Value: 0,
 	})
-	bpage2.InsertInner(2, &skip_list_page.SkipListPair{
+	bpage2.InsertInner(2, &index_common.IndexEntry{
 		Key:   types.NewVarchar("abcdee"),
 		Value: 22,
 	})
-	bpage2.InsertInner(4, &skip_list_page.SkipListPair{
+	bpage2.InsertInner(4, &index_common.IndexEntry{
 		Key:   types.NewVarchar("abcdeff"),
 		Value: 33,
 	})
@@ -190,20 +191,20 @@ func TestBSearchOfSkipLisBlockPage(t *testing.T) {
 	shi := samehada.NewSamehadaInstance(t.Name(), common.BufferPoolMaxFrameNumForTest)
 	bpm := shi.GetBufferPoolManager()
 
-	bpage := skip_list_page.NewSkipListBlockPage(bpm, 1, skip_list_page.SkipListPair{
+	bpage := skip_list_page.NewSkipListBlockPage(bpm, 1, index_common.IndexEntry{
 		Key:   types.NewInteger(math.MinInt32),
 		Value: 0,
 	})
 
 	// ------- when element num is even number -----
-	bpage.SetEntries(make([]*skip_list_page.SkipListPair, 0))
-	bpage.SetEntries(append(bpage.GetEntries(types.Integer), &skip_list_page.SkipListPair{
+	bpage.SetEntries(make([]*index_common.IndexEntry, 0))
+	bpage.SetEntries(append(bpage.GetEntries(types.Integer), &index_common.IndexEntry{
 		Key:   types.NewInteger(math.MinInt32),
 		Value: 0,
 	}))
 	// set entries
 	for ii := 1; ii < 50; ii++ {
-		bpage.SetEntries(append(bpage.GetEntries(types.Integer), &skip_list_page.SkipListPair{types.NewInteger(int32(ii * 10)), uint64(ii * 10)}))
+		bpage.SetEntries(append(bpage.GetEntries(types.Integer), &index_common.IndexEntry{types.NewInteger(int32(ii * 10)), uint64(ii * 10)}))
 	}
 	bpage.SetEntryCnt(int32(len(bpage.GetEntries(types.Integer))))
 
@@ -218,14 +219,14 @@ func TestBSearchOfSkipLisBlockPage(t *testing.T) {
 	}
 
 	// ------- when element num is odd number -----
-	bpage.SetEntries(make([]*skip_list_page.SkipListPair, 0))
-	bpage.SetEntries(append(bpage.GetEntries(types.Integer), &skip_list_page.SkipListPair{
+	bpage.SetEntries(make([]*index_common.IndexEntry, 0))
+	bpage.SetEntries(append(bpage.GetEntries(types.Integer), &index_common.IndexEntry{
 		Key:   types.NewInteger(math.MinInt32),
 		Value: 0,
 	}))
 	// set entries
 	for ii := 1; ii < 51; ii++ {
-		bpage.SetEntries(append(bpage.GetEntries(types.Integer), &skip_list_page.SkipListPair{types.NewInteger(int32(ii * 10)), uint64(ii * 10)}))
+		bpage.SetEntries(append(bpage.GetEntries(types.Integer), &index_common.IndexEntry{types.NewInteger(int32(ii * 10)), uint64(ii * 10)}))
 	}
 	bpage.SetEntryCnt(int32(len(bpage.GetEntries(types.Integer))))
 
@@ -251,14 +252,14 @@ func TestBSearchOfSkipLisBlockPage2(t *testing.T) {
 	shi := samehada.NewSamehadaInstance(t.Name(), common.BufferPoolMaxFrameNumForTest)
 	bpm := shi.GetBufferPoolManager()
 
-	bpage := skip_list_page.NewSkipListBlockPage(bpm, 1, skip_list_page.SkipListPair{
+	bpage := skip_list_page.NewSkipListBlockPage(bpm, 1, index_common.IndexEntry{
 		Key:   types.NewInteger(math.MinInt32),
 		Value: 0,
 	})
 
 	// ------- when element num is even number -----
-	bpage.SetEntries(make([]*skip_list_page.SkipListPair, 0))
-	bpage.SetEntries(append(bpage.GetEntries(types.Integer), &skip_list_page.SkipListPair{
+	bpage.SetEntries(make([]*index_common.IndexEntry, 0))
+	bpage.SetEntries(append(bpage.GetEntries(types.Integer), &index_common.IndexEntry{
 		Key:   types.NewInteger(math.MinInt32),
 		Value: 0,
 	}))
@@ -284,8 +285,8 @@ func TestBSearchOfSkipLisBlockPage2(t *testing.T) {
 
 	// ------- when element num is odd number -----
 	bpage.WLatch()
-	bpage.SetEntries(make([]*skip_list_page.SkipListPair, 0))
-	bpage.SetEntries(append(bpage.GetEntries(types.Integer), &skip_list_page.SkipListPair{
+	bpage.SetEntries(make([]*index_common.IndexEntry, 0))
+	bpage.SetEntries(append(bpage.GetEntries(types.Integer), &index_common.IndexEntry{
 		Key:   types.NewInteger(math.MinInt32),
 		Value: 0,
 	}))

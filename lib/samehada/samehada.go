@@ -75,6 +75,10 @@ func reconstructIndexDataOfATbl(t *catalog.TableMetadata, c *catalog.Catalog, dm
 				// do nothing here
 				// (Since SkipList index can't reuse past allocated pages, data clear of allocated pages
 				//  are not needed...)
+			case index_constants.INDEX_KIND_BTREE:
+				// do nothing here
+				// (Since BTree index can't reuse past allocated pages, data clear of allocated pages
+				//  are not needed...)
 			default:
 				panic("invalid index kind!")
 			}
@@ -147,7 +151,7 @@ func NewSamehadaDB(dbName string, memKBytes int) *SamehadaDB {
 		}
 		shi.log_manager.Flush()
 
-		c = catalog.RecoveryCatalogFromCatalogPage(shi.GetBufferPoolManager(), shi.GetLogManager(), shi.GetLockManager(), txn)
+		c = catalog.RecoveryCatalogFromCatalogPage(shi.GetBufferPoolManager(), shi.GetLogManager(), shi.GetLockManager(), txn, isGracefulShutdown)
 
 		// if last shutdown is not gracefully done, all index data should be reconstructed
 		if !isGracefulShutdown {

@@ -45,7 +45,7 @@ func TestTableCatalogReload(t *testing.T) {
 
 	samehada_instance_new := samehada.NewSamehadaInstance(t.Name(), common.BufferPoolMaxFrameNumForTest)
 	txn_new := samehada_instance_new.GetTransactionManager().Begin(nil)
-	catalog_recov := catalog.RecoveryCatalogFromCatalogPage(samehada_instance_new.GetBufferPoolManager(), samehada_instance_new.GetLogManager(), samehada_instance_new.GetLockManager(), txn_new)
+	catalog_recov := catalog.RecoveryCatalogFromCatalogPage(samehada_instance_new.GetBufferPoolManager(), samehada_instance_new.GetLogManager(), samehada_instance_new.GetLockManager(), txn_new, true)
 
 	columnToCheck := catalog_recov.GetTableByOID(1).Schema().GetColumn(1)
 

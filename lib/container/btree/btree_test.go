@@ -112,7 +112,7 @@ func TestBLTree_deleteMany_embedding(t *testing.T) {
 	}
 
 	for i := range keys {
-		if err := bltree.InsertKey(keys[i], 0, [blink_tree.BtId]byte{0, 0, 0, 0, 0, 0}, true); err != blink_tree.BLTErrOk {
+		if err := bltree.InsertKey(keys[i], 0, [blink_tree.BtId]byte{0, 0, 0, 0, 0, 0, 0, 0}, true); err != blink_tree.BLTErrOk {
 			t.Errorf("InsertKey() = %v, want %v", err, blink_tree.BLTErrOk)
 		}
 		if i%2 == 0 {
@@ -128,8 +128,8 @@ func TestBLTree_deleteMany_embedding(t *testing.T) {
 				t.Errorf("FindKey() = %v, want %v, key %v", found, -1, keys[i])
 			}
 		} else {
-			if found, _, _ := bltree.FindKey(keys[i], blink_tree.BtId); found != 6 {
-				t.Errorf("FindKey() = %v, want %v, key %v", found, 6, keys[i])
+			if found, _, _ := bltree.FindKey(keys[i], blink_tree.BtId); found != 8 {
+				t.Errorf("FindKey() = %v, want %v, key %v", found, 8, keys[i])
 			}
 		}
 	}
@@ -154,7 +154,7 @@ func TestBLTree_deleteAll_embedding(t *testing.T) {
 	}
 
 	for i := range keys {
-		if err := bltree.InsertKey(keys[i], 0, [blink_tree.BtId]byte{0, 0, 0, 0, 0, 0}, true); err != blink_tree.BLTErrOk {
+		if err := bltree.InsertKey(keys[i], 0, [blink_tree.BtId]byte{0, 0, 0, 0, 0, 0, 0, 0}, true); err != blink_tree.BLTErrOk {
 			t.Errorf("InsertKey() = %v, want %v", err, blink_tree.BLTErrOk)
 		}
 	}
@@ -216,8 +216,8 @@ func TestBLTree_deleteManyConcurrently_embedding(t *testing.T) {
 						panic("FindKey() != -1")
 					}
 				} else {
-					if found, _, _ := bltree.FindKey(keys[i], blink_tree.BtId); found != 6 {
-						t.Errorf("FindKey() = %v, want %v, key %v", found, 6, keys[i])
+					if found, _, _ := bltree.FindKey(keys[i], blink_tree.BtId); found != 8 {
+						t.Errorf("FindKey() = %v, want %v, key %v", found, 8, keys[i])
 						panic("FindKey() != 6")
 					}
 				}
@@ -245,8 +245,8 @@ func TestBLTree_deleteManyConcurrently_embedding(t *testing.T) {
 						t.Errorf("FindKey() = %v, want %v, key %v", found, -1, keys[i])
 					}
 				} else {
-					if found, _, _ := bltree.FindKey(keys[i], blink_tree.BtId); found != 6 {
-						t.Errorf("FindKey() = %v, want %v, key %v", found, 6, keys[i])
+					if found, _, _ := bltree.FindKey(keys[i], blink_tree.BtId); found != 8 {
+						t.Errorf("FindKey() = %v, want %v, key %v", found, 8, keys[i])
 					}
 				}
 			}
@@ -330,8 +330,8 @@ func TestBLTree_deleteInsertRangeScanConcurrently_embedding(t *testing.T) {
 					}
 					rangeScanCheck(keys[i])
 				} else {
-					if found, _, _ := bltree.FindKey(keys[i], blink_tree.BtId); found != 6 {
-						t.Errorf("FindKey() = %v, want %v, key %v", found, 6, keys[i])
+					if found, _, _ := bltree.FindKey(keys[i], blink_tree.BtId); found != 8 {
+						t.Errorf("FindKey() = %v, want %v, key %v", found, 8, keys[i])
 						panic("FindKey() != 6")
 					}
 					rangeScanCheck(keys[i])
@@ -363,8 +363,8 @@ func TestBLTree_deleteInsertRangeScanConcurrently_embedding(t *testing.T) {
 						}
 					}
 				} else {
-					if found, _, _ := bltree.FindKey(keys[i], blink_tree.BtId); found != 6 {
-						t.Errorf("FindKey() = %v, want %v, key %v", found, 6, keys[i])
+					if found, _, _ := bltree.FindKey(keys[i], blink_tree.BtId); found != 8 {
+						t.Errorf("FindKey() = %v, want %v, key %v", found, 8, keys[i])
 					}
 				}
 			}
@@ -428,8 +428,8 @@ func TestBLTree_deleteManyConcurrentlyShuffle_embedding(t *testing.T) {
 						panic("FindKey() != -1")
 					}
 				} else {
-					if found, _, _ := bltree.FindKey(keys[i], blink_tree.BtId); found != 6 {
-						t.Errorf("FindKey() = %v, want %v, key %v", found, 6, keys[i])
+					if found, _, _ := bltree.FindKey(keys[i], blink_tree.BtId); found != 8 {
+						t.Errorf("FindKey() = %v, want %v, key %v", found, 8, keys[i])
 						panic("FindKey() != 6")
 					}
 				}
@@ -457,8 +457,8 @@ func TestBLTree_deleteManyConcurrentlyShuffle_embedding(t *testing.T) {
 						t.Errorf("FindKey() = %v, want %v, key %v", found, -1, keys[i])
 					}
 				} else {
-					if found, _, _ := bltree.FindKey(keys[i], blink_tree.BtId); found != 6 {
-						t.Errorf("FindKey() = %v, want %v, key %v", found, 6, keys[i])
+					if found, _, _ := bltree.FindKey(keys[i], blink_tree.BtId); found != 8 {
+						t.Errorf("FindKey() = %v, want %v, key %v", found, 8, keys[i])
 					}
 				}
 			}

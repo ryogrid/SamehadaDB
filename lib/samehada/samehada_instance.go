@@ -87,6 +87,7 @@ func (si *SamehadaInstance) Shutdown(shutdownPat ShutdownPattern) {
 		si.disk_manager.RemoveLogFile()
 	case ShutdownPatternCloseFiles:
 		si.log_manager.Flush()
+		// TODO: (SDB) need to finalize BTreeIndex objects
 		si.bpm.FlushAllDirtyPages()
 		logRecord := recovery.NewLogRecordGracefulShutdown()
 		si.log_manager.AppendLogRecord(logRecord)

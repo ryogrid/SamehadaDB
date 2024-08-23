@@ -24,7 +24,7 @@ type TableMetadata struct {
 	oid      uint32
 }
 
-func NewTableMetadata(schema *schema.Schema, name string, table *access.TableHeap, oid uint32, log_manager *recovery.LogManager) *TableMetadata {
+func NewTableMetadata(schema *schema.Schema, name string, table *access.TableHeap, oid uint32, log_manager *recovery.LogManager, isGracefulShutdown bool) *TableMetadata {
 	ret := new(TableMetadata)
 	ret.schema = schema
 	ret.name = name
@@ -42,6 +42,7 @@ func NewTableMetadata(schema *schema.Schema, name string, table *access.TableHea
 				//                   one page can store 512 key/value pair
 				im := index.NewIndexMetadata(column_.GetColumnName()+"_index", name, schema, []uint32{uint32(idx)})
 				hIdx := index.NewLinearProbeHashTableIndex(im, table.GetBufferPoolManager(), uint32(idx), common.BucketSizeOfHashIndex, column_.IndexHeaderPageId())
+
 				indexes = append(indexes, hIdx)
 				// at first allocation of pages for index, column's indexHeaderPageID is -1 at above code (column_.IndexHeaderPageId() == -1)
 				// because first allocation occurs when table creation is processed (not launched DB instace from existing db file which has difinition of this table)
@@ -63,6 +64,19 @@ func NewTableMetadata(schema *schema.Schema, name string, table *access.TableHea
 
 				indexes = append(indexes, slIdx)
 				//column_.SetIndexHeaderPageId(slIdx.GetHeaderPageId())
+			case index_constants.INDEX_KIND_BTREE:
+				im := index.NewIndexMetadata(column_.GetColumnName()+"_index", name, schema, []uint32{uint32(idx)})
+				// TODO: (SDB) need to avoid reuse of page zero when system shutdown was not graceful
+				var pageZeroId *int32 = nil
+				if column_.IndexHeaderPageId() != -1 && isGracefulShutdown {
+					pageZeroId = new(int32)
+					*pageZeroId = int32(column_.IndexHeaderPageId())
+				}
+
+				btrIdx := index.NewBTreeIndex(im, table.GetBufferPoolManager(), uint32(idx), log_manager, pageZeroId)
+
+				indexes = append(indexes, btrIdx)
+				column_.SetIndexHeaderPageId(btrIdx.GetHeaderPageId())
 			default:
 				panic("illegal index kind!")
 			}
