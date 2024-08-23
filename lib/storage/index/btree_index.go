@@ -42,8 +42,6 @@ func (btreeItr *BtreeIndexIterator) Next() (done bool, err error, key *types.Val
 	newKeyBytes = append(newKeyBytes, keyLenBuf...)
 	newKeyBytes = append(newKeyBytes, keyBytes...)
 
-	//decodedKey := samehada_util.ExtractOrgKeyFromDicOrderComparableEncodedVarchar(types.NewValueFromBytes(newKeyBytes, types.Varchar), btreeItr.valType)
-	//decodedKey := samehada_util.ExtractOrgKeyFromDicOrderComparableEncodedVarchar(samehada_util.GetPonterOfValue(types.NewVarchar(string(newKeyBytes))), btreeItr.valType)
 	decodedKey := samehada_util.ExtractOrgKeyFromDicOrderComparableEncodedBytes(newKeyBytes, btreeItr.valType)
 	return false, nil, decodedKey, &unpackedRID
 }

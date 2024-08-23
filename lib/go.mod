@@ -12,7 +12,7 @@ require (
 	github.com/notEpsilon/go-pair v0.0.0-20221220200415-e91ef28c6c0b
 	github.com/pingcap/parser v0.0.0-20200623164729-3a18f1e5dceb
 	github.com/pingcap/tidb v1.1.0-beta.0.20200630082100-328b6d0a955c
-	github.com/ryogrid/bltree-go-for-embedding v1.0.3
+	github.com/ryogrid/bltree-go-for-embedding v1.0.4
 	github.com/spaolacci/murmur3 v1.1.0
 	golang.org/x/exp v0.0.0-20230905200255-921286631fa9
 )
