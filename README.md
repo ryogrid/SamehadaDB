@@ -83,12 +83,12 @@
 - [x] Index
   - [x] Hash Index
     - Hash index can be used only equal(=) operator is specified to index having columns
-    - Access is serialized (not parallel)
+    - Thread safe but serialized (not supported concurrent access)
   - [x] SkipList Index
-    - Alternative of B-tree Index
-    - Parallel accesible
-  - [ ] B-tree Index
-    - Implementing now with [bltree-go-for-embedding](https://github.com/ryogrid/bltree-go-for-embedding) lib
+    - Concurrent access is supported
+  - [x] B-tree Index [^1]
+    - Using [bltree-go-for-embedding](https://github.com/ryogrid/bltree-go-for-embedding) lib
+    - Concurrent access is supported
   - [ ] Logging And Recovery Of Index Data
 - [ ] JOIN
   - [x] INNER JOIN (Hash Join, Index Join, Nested Loop Join)
