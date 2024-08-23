@@ -67,7 +67,9 @@ func testKeyDuplicateInsertDeleteWithBTreeIndex[T float32 | int32 | string](t *t
 
 	rangeScanP := createSpecifiedRangeScanPlanNode[T](c, tableMetadata, keyType, 0, nil, nil, index_constants.INDEX_KIND_BTREE)
 	results := executePlan(c, shi.GetBufferPoolManager(), txn, rangeScanP)
-	fmt.Println(results)
+	for _, foundVal := range results {
+		fmt.Println(foundVal.GetValue(tableMetadata.Schema(), 0).ToString())
+	}
 
 	//scanP := createSpecifiedPointScanPlanNode(accountId.(T), c, tableMetadata, keyType, index_constants.INDEX_KIND_BTREE)
 	//result = executePlan(c, shi.GetBufferPoolManager(), txn, scanP)

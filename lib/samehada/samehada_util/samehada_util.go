@@ -339,6 +339,22 @@ func ExtractOrgKeyFromDicOrderComparableEncodedVarchar(encodedVal *types.Value, 
 	}
 }
 
+func ExtractOrgKeyFromDicOrderComparableEncodedBytes(buf []byte, valType types.TypeID) *types.Value {
+	switch valType {
+	case types.Integer:
+		retVal := types.NewValue(decodeFromDicOrderComparableBytes(buf[3:len(buf)-8], valType).(int32))
+		return &retVal
+	case types.Float:
+		retVal := types.NewValue(decodeFromDicOrderComparableBytes(buf[3:len(buf)-8], valType).(float32))
+		return &retVal
+	case types.Varchar:
+		orgStr := string(buf[:len(buf)-(4+8)])
+		return GetPonterOfValue(types.NewVarchar(orgStr))
+	default:
+		panic("not supported type")
+	}
+}
+
 func SHAssert(cond bool, msg string) {
 	if !cond {
 		panic(msg)
