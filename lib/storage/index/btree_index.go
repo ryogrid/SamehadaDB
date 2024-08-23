@@ -32,7 +32,7 @@ func (btreeItr *BtreeIndexIterator) Next() (done bool, err error, key *types.Val
 	}
 	uintRID := binary.BigEndian.Uint64(packedRID)
 	unpackedRID := samehada_util.UnpackUint64toRID(uintRID)
-	decodedKey := samehada_util.ExtractOrgKeyFromDicOrderComparableEncodedVarchar(samehada_util.GetPonterOfValue(types.NewVarchar(string(keyBytes))), btreeItr.valType)
+	decodedKey := samehada_util.ExtractOrgKeyFromDicOrderComparableEncodedVarchar(types.NewValueFromBytes(keyBytes, types.Varchar), btreeItr.valType)
 	return false, nil, decodedKey, &unpackedRID
 }
 
@@ -78,7 +78,7 @@ func (btidx *BTreeIndex) insertEntryInner(key *tuple.Tuple, rid page.RID, txn in
 	packedRID := samehada_util.PackRIDtoUint64(&rid)
 	var valBuf [8]byte
 	binary.BigEndian.PutUint64(valBuf[:], packedRID)
-	btidx.container.InsertKey(convedKeyVal.SerializeOnlyVal(), 0, valBuf, true)
+	btidx.container.InsertKey(convedKeyVal.Serialize(), 0, valBuf, true)
 }
 
 func (btidx *BTreeIndex) InsertEntry(key *tuple.Tuple, rid page.RID, txn interface{}) {
@@ -95,7 +95,7 @@ func (btidx *BTreeIndex) deleteEntryInner(key *tuple.Tuple, rid page.RID, txn in
 		btidx.updateMtx.RLock()
 		defer btidx.updateMtx.RUnlock()
 	}
-	btidx.container.DeleteKey(convedKeyVal.SerializeOnlyVal(), 0)
+	btidx.container.DeleteKey(convedKeyVal.Serialize(), 0)
 }
 
 func (btidx *BTreeIndex) DeleteEntry(key *tuple.Tuple, rid page.RID, txn interface{}) {
@@ -110,7 +110,7 @@ func (btidx *BTreeIndex) ScanKey(key *tuple.Tuple, txn interface{}) []page.RID {
 
 	btidx.updateMtx.RLock()
 	// Attention: returned itr's containing keys are string type Value which is constructed with byte arr of concatenated  original key and value
-	rangeItr := btidx.container.GetRangeItr(smallestKeyVal.SerializeOnlyVal(), biggestKeyVal.SerializeOnlyVal())
+	rangeItr := btidx.container.GetRangeItr(smallestKeyVal.Serialize(), biggestKeyVal.Serialize())
 
 	retArr := make([]page.RID, 0)
 	for ok, _, packedRID := rangeItr.Next(); ok; ok, _, packedRID = rangeItr.Next() {
@@ -135,7 +135,6 @@ func (btidx *BTreeIndex) UpdateEntry(oldKey *tuple.Tuple, oldRID page.RID, newKe
 // Attention: returned itr's containing keys are string type Value which is constructed with byte arr of concatenated original key and value
 func (btidx *BTreeIndex) GetRangeScanIterator(start_key *tuple.Tuple, end_key *tuple.Tuple, transaction interface{}) IndexRangeScanIterator {
 	tupleSchema_ := btidx.GetTupleSchema()
-	// TODO: (SDB) need to handle start_key or/and end_key is nil case
 	var smallestKeyVal *types.Value = nil
 	if start_key != nil {
 		orgStartKeyVal := start_key.GetValue(tupleSchema_, btidx.col_idx)
@@ -150,7 +149,16 @@ func (btidx *BTreeIndex) GetRangeScanIterator(start_key *tuple.Tuple, end_key *t
 
 	btidx.updateMtx.RLock()
 	defer btidx.updateMtx.RUnlock()
-	return NewBtreeIndexIterator(btidx.container.GetRangeItr(smallestKeyVal.SerializeOnlyVal(), biggestKeyVal.SerializeOnlyVal()), btidx.metadata.tuple_schema.GetColumn(btidx.col_idx).GetType())
+	var smalledKeyBytes []byte
+	var biggestKeyBytes []byte
+
+	if smallestKeyVal != nil {
+		smalledKeyBytes = smallestKeyVal.Serialize()
+	}
+	if biggestKeyVal != nil {
+		biggestKeyBytes = biggestKeyVal.Serialize()
+	}
+	return NewBtreeIndexIterator(btidx.container.GetRangeItr(smalledKeyBytes, biggestKeyBytes), btidx.metadata.tuple_schema.GetColumn(btidx.col_idx).GetType())
 }
 
 // Return the metadata object associated with the index

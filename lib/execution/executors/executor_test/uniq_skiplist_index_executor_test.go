@@ -684,7 +684,7 @@ func createSpecifiedPointScanPlanNode[T int32 | float32 | string](getKeyVal T, c
 	switch indexKind {
 	case index_constants.INDEX_KIND_INVALID:
 		skipListPointScanP = plans.NewSeqScanPlanNode(c, tm.Schema(), expression_.(*expression.Comparison), tm.OID())
-	case index_constants.INDEX_KIND_UNIQ_SKIP_LIST, index_constants.INDEX_KIND_SKIP_LIST:
+	case index_constants.INDEX_KIND_UNIQ_SKIP_LIST, index_constants.INDEX_KIND_SKIP_LIST, index_constants.INDEX_KIND_BTREE:
 		skipListPointScanP = plans.NewPointScanWithIndexPlanNode(c, tm.Schema(), expression_.(*expression.Comparison), tm.OID())
 	default:
 		panic("not implemented!")
@@ -700,7 +700,7 @@ func createSpecifiedRangeScanPlanNode[T int32 | float32 | string](c *catalog.Cat
 	switch indexKind {
 	case index_constants.INDEX_KIND_INVALID:
 		skipListRangeScanP = plans.NewSeqScanPlanNode(c, tm.Schema(), nil, tm.OID())
-	case index_constants.INDEX_KIND_UNIQ_SKIP_LIST, index_constants.INDEX_KIND_SKIP_LIST:
+	case index_constants.INDEX_KIND_UNIQ_SKIP_LIST, index_constants.INDEX_KIND_SKIP_LIST, index_constants.INDEX_KIND_BTREE:
 		if rangeStartKey != nil {
 			startVal = samehada_util.GetPonterOfValue(types.NewValue(*rangeStartKey))
 		}

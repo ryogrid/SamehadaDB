@@ -241,7 +241,7 @@ func encodeToDicOrderComparableBytes(orgVal interface{}, valType types.TypeID) [
 		buf := new(bytes.Buffer)
 		binary.Write(buf, binary.BigEndian, u)
 		return buf.Bytes()
-	case valType:
+	case types.Integer:
 		i := orgVal.(int32)
 		u := uint32(i)
 		buf := new(bytes.Buffer)

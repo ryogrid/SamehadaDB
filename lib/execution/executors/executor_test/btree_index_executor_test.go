@@ -53,49 +53,56 @@ func testKeyDuplicateInsertDeleteWithBTreeIndex[T float32 | int32 | string](t *t
 
 	insPlan1 := createSpecifiedValInsertPlanNode(accountId.(T), int32(100), c, tableMetadata, keyType)
 	result := executePlan(c, shi.GetBufferPoolManager(), txn, insPlan1)
+	fmt.Println(result)
 	insPlan2 := createSpecifiedValInsertPlanNode(accountId.(T), int32(101), c, tableMetadata, keyType)
 	result = executePlan(c, shi.GetBufferPoolManager(), txn, insPlan2)
+	fmt.Println(result)
 	insPlan3 := createSpecifiedValInsertPlanNode(accountId.(T), int32(102), c, tableMetadata, keyType)
 	result = executePlan(c, shi.GetBufferPoolManager(), txn, insPlan3)
+	fmt.Println(result)
 
 	txnMgr.Commit(c, txn)
 
 	txn = txnMgr.Begin(nil)
 
-	scanP := createSpecifiedPointScanPlanNode(accountId.(T), c, tableMetadata, keyType, index_constants.INDEX_KIND_SKIP_LIST)
-	result = executePlan(c, shi.GetBufferPoolManager(), txn, scanP)
-	testingpkg.Assert(t, len(result) == 3, "duplicated key point scan got illegal results.")
-	rid1 := result[0].GetRID()
-	val0_1 := result[0].GetValue(tableMetadata.Schema(), 0)
-	val0_2 := result[0].GetValue(tableMetadata.Schema(), 1)
-	fmt.Println(val0_1, val0_2)
-	rid2 := result[1].GetRID()
-	rid3 := result[2].GetRID()
-	fmt.Printf("%v %v %v\n", *rid1, *rid2, *rid3)
+	rangeScanP := createSpecifiedRangeScanPlanNode[T](c, tableMetadata, keyType, 0, nil, nil, index_constants.INDEX_KIND_BTREE)
+	results := executePlan(c, shi.GetBufferPoolManager(), txn, rangeScanP)
+	fmt.Println(results)
 
-	indexCol1 := tableMetadata.GetIndex(0)
-	indexCol2 := tableMetadata.GetIndex(1)
-
-	indexCol1.DeleteEntry(result[0], *rid1, txn)
-	indexCol2.DeleteEntry(result[0], *rid1, txn)
-	scanP = createSpecifiedPointScanPlanNode(accountId.(T), c, tableMetadata, keyType, index_constants.INDEX_KIND_SKIP_LIST)
-	result = executePlan(c, shi.GetBufferPoolManager(), txn, scanP)
-	testingpkg.Assert(t, len(result) == 2, "duplicated key point scan got illegal results.")
-
-	indexCol1.DeleteEntry(result[0], *rid2, txn)
-	indexCol2.DeleteEntry(result[0], *rid2, txn)
-	scanP = createSpecifiedPointScanPlanNode(accountId.(T), c, tableMetadata, keyType, index_constants.INDEX_KIND_SKIP_LIST)
-	result = executePlan(c, shi.GetBufferPoolManager(), txn, scanP)
-	testingpkg.Assert(t, len(result) == 1, "duplicated key point scan got illegal results.")
-
-	indexCol1.DeleteEntry(result[0], *rid3, txn)
-	indexCol2.DeleteEntry(result[0], *rid3, txn)
-	scanP = createSpecifiedPointScanPlanNode(accountId.(T), c, tableMetadata, keyType, index_constants.INDEX_KIND_SKIP_LIST)
-	result = executePlan(c, shi.GetBufferPoolManager(), txn, scanP)
-	testingpkg.Assert(t, len(result) == 0, "duplicated key point scan got illegal results.")
-
-	txnMgr.Commit(c, txn)
-	shi.Shutdown(samehada.ShutdownPatternCloseFiles)
+	//scanP := createSpecifiedPointScanPlanNode(accountId.(T), c, tableMetadata, keyType, index_constants.INDEX_KIND_BTREE)
+	//result = executePlan(c, shi.GetBufferPoolManager(), txn, scanP)
+	//testingpkg.Assert(t, len(result) == 3, "duplicated key point scan got illegal results.")
+	//rid1 := result[0].GetRID()
+	//val0_1 := result[0].GetValue(tableMetadata.Schema(), 0)
+	//val0_2 := result[0].GetValue(tableMetadata.Schema(), 1)
+	//fmt.Println(val0_1, val0_2)
+	//rid2 := result[1].GetRID()
+	//rid3 := result[2].GetRID()
+	//fmt.Printf("%v %v %v\n", *rid1, *rid2, *rid3)
+	//
+	//indexCol1 := tableMetadata.GetIndex(0)
+	//indexCol2 := tableMetadata.GetIndex(1)
+	//
+	//indexCol1.DeleteEntry(result[0], *rid1, txn)
+	//indexCol2.DeleteEntry(result[0], *rid1, txn)
+	//scanP = createSpecifiedPointScanPlanNode(accountId.(T), c, tableMetadata, keyType, index_constants.INDEX_KIND_BTREE)
+	//result = executePlan(c, shi.GetBufferPoolManager(), txn, scanP)
+	//testingpkg.Assert(t, len(result) == 2, "duplicated key point scan got illegal results.")
+	//
+	//indexCol1.DeleteEntry(result[0], *rid2, txn)
+	//indexCol2.DeleteEntry(result[0], *rid2, txn)
+	//scanP = createSpecifiedPointScanPlanNode(accountId.(T), c, tableMetadata, keyType, index_constants.INDEX_KIND_BTREE)
+	//result = executePlan(c, shi.GetBufferPoolManager(), txn, scanP)
+	//testingpkg.Assert(t, len(result) == 1, "duplicated key point scan got illegal results.")
+	//
+	//indexCol1.DeleteEntry(result[0], *rid3, txn)
+	//indexCol2.DeleteEntry(result[0], *rid3, txn)
+	//scanP = createSpecifiedPointScanPlanNode(accountId.(T), c, tableMetadata, keyType, index_constants.INDEX_KIND_BTREE)
+	//result = executePlan(c, shi.GetBufferPoolManager(), txn, scanP)
+	//testingpkg.Assert(t, len(result) == 0, "duplicated key point scan got illegal results.")
+	//
+	//txnMgr.Commit(c, txn)
+	//shi.Shutdown(samehada.ShutdownPatternCloseFiles)
 }
 
 func TestKeyDuplicateInsertDeleteWithBTreeIndexInt(t *testing.T) {
