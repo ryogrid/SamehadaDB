@@ -7,10 +7,11 @@ import (
 	"github.com/ryogrid/SamehadaDB/lib/storage/page"
 	"github.com/ryogrid/SamehadaDB/lib/storage/page/skip_list_page"
 	"github.com/ryogrid/SamehadaDB/lib/types"
+	blink_tree "github.com/ryogrid/bltree-go-for-embedding"
 )
 
 type BTreeIterator struct {
-	bltw          *BLTreeWrapper
+	bltr          *blink_tree.BLTree
 	bpm           *buffer.BufferPoolManager
 	curNode       *skip_list_page.SkipListBlockPage
 	curEntry      *index_common.IndexEntry
@@ -21,7 +22,7 @@ type BTreeIterator struct {
 	curEntryIdx   int32
 }
 
-func NewSkipListIterator(bltr *BLTreeWrapper, rangeStartKey *types.Value, rangeEndKey *types.Value) *BTreeIterator {
+func NewSkipListIterator(bltr *blink_tree.BLTree, rangeStartKey *types.Value, rangeEndKey *types.Value) *BTreeIterator {
 	ret := new(BTreeIterator)
 
 	// TODO: (SDB) need to implement this
@@ -41,7 +42,7 @@ func NewSkipListIterator(bltr *BLTreeWrapper, rangeStartKey *types.Value, rangeE
 	return ret
 }
 
-func (itr *BTreeIterator) initRIDList(bltw *BLTreeWrapper) {
+func (itr *BTreeIterator) initRIDList(bltr *blink_tree.BLTree) {
 	// TODO: (SDB) need to implement this
 	panic("Not implemented yet")
 }

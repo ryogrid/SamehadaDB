@@ -95,6 +95,7 @@ func testKeyDuplicateInsertDeleteWithBTreeIndex[T float32 | int32 | string](t *t
 	testingpkg.Assert(t, len(result) == 0, "duplicated key point scan got illegal results.")
 
 	txnMgr.Commit(c, txn)
+	shi.Shutdown(samehada.ShutdownPatternCloseFiles)
 }
 
 func TestKeyDuplicateInsertDeleteWithBTreeIndexInt(t *testing.T) {

@@ -16,27 +16,30 @@ import (
 )
 
 type BTreeIndex struct {
-	container *btree.BLTreeWrapper
+	container *blink_tree.BLTree
 	metadata  *IndexMetadata
 	// idx of target column on table
 	col_idx     uint32
 	log_manager *recovery.LogManager
 	// UpdateEntry only get Write lock
 	updateMtx sync.RWMutex
+	// for call of Close method ....
+	bufMgr *blink_tree.BufMgr
 }
 
-func NewBTreeIndex(metadata *IndexMetadata, buffer_pool_manager *buffer.BufferPoolManager, col_idx uint32, log_manager *recovery.LogManager) *BTreeIndex {
+func NewBTreeIndex(metadata *IndexMetadata, buffer_pool_manager *buffer.BufferPoolManager, col_idx uint32, log_manager *recovery.LogManager, lastPageZeroId *int32) *BTreeIndex {
 	ret := new(BTreeIndex)
 	ret.metadata = metadata
 
 	// BTreeIndex uses special technique to support key duplication with SkipList supporting unique key only
 	// for the thechnique, key type is fixed to Varchar (comparison is done on dict order as byte array)
 
-	bufMgr := blink_tree.NewBufMgr(12, blink_tree.HASH_TABLE_ENTRY_CHAIN_LEN*common.MaxTxnThreadNum*2, btree.NewParentBufMgrImpl(buffer_pool_manager), nil)
-	ret.container = btree.NewBLTreeWrapper(blink_tree.NewBLTree(bufMgr), bufMgr)
+	bufMgr := blink_tree.NewBufMgr(12, blink_tree.HASH_TABLE_ENTRY_CHAIN_LEN*common.MaxTxnThreadNum*2, btree.NewParentBufMgrImpl(buffer_pool_manager), lastPageZeroId)
+	ret.container = blink_tree.NewBLTree(bufMgr)
 	ret.col_idx = col_idx
 	ret.updateMtx = sync.RWMutex{}
 	ret.log_manager = log_manager
+	ret.bufMgr = bufMgr
 	return ret
 }
 
@@ -62,11 +65,6 @@ func (btidx *BTreeIndex) deleteEntryInner(key *tuple.Tuple, rid page.RID, txn in
 	orgKeyVal := key.GetValue(tupleSchema_, btidx.col_idx)
 
 	convedKeyVal := samehada_util.EncodeValueAndRIDToDicOrderComparableVarchar(&orgKeyVal, &rid)
-
-	//revertedOrgKey := samehada_util.ExtractOrgKeyFromDicOrderComparableEncodedVarchar(convedKeyVal, orgKeyVal.ValueType())
-	//if !revertedOrgKey.CompareEquals(orgKeyVal) {
-	//	panic("key conversion may fail!")
-	//}
 
 	if isNoLock == false {
 		btidx.updateMtx.RLock()
@@ -146,12 +144,12 @@ func (btidx *BTreeIndex) GetTupleSchema() *schema.Schema {
 
 func (btidx *BTreeIndex) GetKeyAttrs() []uint32 { return btidx.metadata.GetKeyAttrs() }
 
-//func (slidx *BTreeIndex) GetHeaderPageId() types.PageID {
-//	return slidx.container.GetHeaderPageId()
-//}
+func (slidx *BTreeIndex) GetHeaderPageId() types.PageID {
+	return types.PageID(slidx.bufMgr.GetMappedPPageIdOfPageZero())
+}
 
 // call this at shutdown of the system
-// to write out the state and allocated pages of the container to BPM
-func (btidx *BTreeIndex) Close() {
-	btidx.container.WriteOutContainerStateToBPM()
+// to write out the state and allocated pages of the BLTree container to BPM
+func (btidx *BTreeIndex) WriteOutContainerStateToBPM() {
+	btidx.bufMgr.Close()
 }
