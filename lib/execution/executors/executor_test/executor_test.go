@@ -2221,7 +2221,7 @@ func TestInsertAndSpecifiedColumnUpdatePageMoveRecovery(t *testing.T) {
 		log_mgr)
 
 	txn = txn_mgr.Begin(nil)
-	c = catalog.RecoveryCatalogFromCatalogPage(bpm, log_mgr, lock_mgr, txn)
+	c = catalog.RecoveryCatalogFromCatalogPage(bpm, log_mgr, lock_mgr, txn, true)
 	tableMetadata = c.GetTableByName("test_1")
 
 	executorContext = executors.NewExecutorContext(c, bpm, txn)
@@ -2396,7 +2396,7 @@ func TestInsertAndSpecifiedColumnUpdatePageMoveOccurOnRecovery(t *testing.T) {
 		log_mgr)
 
 	txn = txn_mgr.Begin(nil)
-	c = catalog.RecoveryCatalogFromCatalogPage(bpm, log_mgr, lock_mgr, txn)
+	c = catalog.RecoveryCatalogFromCatalogPage(bpm, log_mgr, lock_mgr, txn, true)
 	tableMetadata = c.GetTableByName("test_1")
 
 	executorContext = executors.NewExecutorContext(c, bpm, txn)
@@ -2809,7 +2809,7 @@ func TestDeallocatedPageReuseAfterRelaunchGraceful(t *testing.T) {
 		log_mgr)
 
 	txn = txn_mgr.Begin(nil)
-	c = catalog.RecoveryCatalogFromCatalogPage(bpm, log_mgr, lock_mgr, txn)
+	c = catalog.RecoveryCatalogFromCatalogPage(bpm, log_mgr, lock_mgr, txn, true)
 	tableMetadata = c.GetTableByName("test_1")
 
 	executorContext = executors.NewExecutorContext(c, bpm, txn)
@@ -2964,7 +2964,7 @@ func TestDeallocatedPageReuseAfterRelaunchByCrash(t *testing.T) {
 		log_mgr)
 
 	txn = txn_mgr.Begin(nil)
-	c = catalog.RecoveryCatalogFromCatalogPage(bpm, log_mgr, lock_mgr, txn)
+	c = catalog.RecoveryCatalogFromCatalogPage(bpm, log_mgr, lock_mgr, txn, false)
 	tableMetadata = c.GetTableByName("test_1")
 
 	executorContext = executors.NewExecutorContext(c, bpm, txn)

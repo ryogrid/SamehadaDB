@@ -174,7 +174,7 @@ func TestRecounstructionOfHashIndex(t *testing.T) {
 	dman := shi.GetDiskManager()
 	dman.GCLogFile()
 	shi.GetLogManager().SetNextLSN(greatestLSN + 1)
-	c = catalog.RecoveryCatalogFromCatalogPage(shi.GetBufferPoolManager(), shi.GetLogManager(), shi.GetLockManager(), txn)
+	c = catalog.RecoveryCatalogFromCatalogPage(shi.GetBufferPoolManager(), shi.GetLogManager(), shi.GetLockManager(), txn, true)
 
 	// reconstruct all index data of all column
 	tableMetadata = c.GetTableByName("test_1")
