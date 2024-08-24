@@ -43,7 +43,7 @@ func NewHashJoinPlanNodeWithChilds(left_child Plan, left_hash_keys []expression.
 	if len(left_hash_keys) != 1 || len(right_hash_keys) != 1 {
 		panic("NewHashJoinPlanNodeWithChilds supports only one key for left and right now.")
 	}
-	// TODO: (SDB) one key pair only used on join even if multiple key pairs are passed
+	// one key pair only used on join even if multiple key pairs are passed
 	onPredicate := constructOnExpressionFromKeysInfo(left_hash_keys, right_hash_keys)
 	output_schema := makeMergedOutputSchema(left_child.OutputSchema(), right_child.OutputSchema())
 

@@ -398,7 +398,6 @@ func (v Value) ToBoolean() bool {
 // NULL value check is needed in general
 func (v Value) ToInteger() int32 {
 	if v.valueType != Integer {
-		// TODO: (SDB) temporal modification for Varchar (AddWLatchRecord, RemoveWLatchRecord...)
 		return math.MaxInt32
 	}
 	return *v.integer

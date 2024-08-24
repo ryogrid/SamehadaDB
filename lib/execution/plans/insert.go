@@ -39,12 +39,10 @@ func (p *InsertPlanNode) GetType() PlanType {
 }
 
 func (p *InsertPlanNode) AccessRowCount(c *catalog.Catalog) uint64 {
-	// TODO: (SDB) temporal impl
 	return uint64(len(p.rawValues))
 }
 
 func (p *InsertPlanNode) EmitRowCount(c *catalog.Catalog) uint64 {
-	// TODO: (SDB) temporal impl
 	return uint64(len(p.rawValues))
 }
 

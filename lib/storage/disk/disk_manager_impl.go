@@ -276,12 +276,12 @@ func (d *DiskManagerImpl) WriteLog(log_data []byte) error {
 	//	if err != nil {
 	//		fmt.Println("I/O error while writing log")
 	//		fmt.Println(err)
-	//		// TODO: (SDB) SHOULD BE FIXED: statistics update thread's call causes this error rarely
+	//		// Note: (SDB) SHOULD BE FIXED: statistics update thread's call causes this error rarely
 	//		return err
 	//	}
 	//}
 
-	// TODO: (SDB) writing log isn't using direct I/O now
+	// Note: (SDB) writing log isn't using direct I/O now
 
 	_, err := d.log.Write(log_data)
 	if err != nil {

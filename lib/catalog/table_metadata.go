@@ -37,9 +37,9 @@ func NewTableMetadata(schema *schema.Schema, name string, table *access.TableHea
 		if column_.HasIndex() {
 			switch column_.IndexKind() {
 			case index_constants.INDEX_KIND_HASH:
-				// TODO: (SDB) index bucket size is common.BucketSizeOfHashIndex (auto size extending is needed...)
-				//             note: one bucket is used pages for storing index key/value pairs for a column.
-				//                   one page can store 512 key/value pair
+				// index bucket size is common.BucketSizeOfHashIndex (auto size extending is needed...)
+				//       note: one bucket is used pages for storing index key/value pairs for a column.
+				//             one page can store 512 key/value pair
 				im := index.NewIndexMetadata(column_.GetColumnName()+"_index", name, schema, []uint32{uint32(idx)})
 				hIdx := index.NewLinearProbeHashTableIndex(im, table.GetBufferPoolManager(), uint32(idx), common.BucketSizeOfHashIndex, column_.IndexHeaderPageId())
 
@@ -66,7 +66,6 @@ func NewTableMetadata(schema *schema.Schema, name string, table *access.TableHea
 				//column_.SetIndexHeaderPageId(slIdx.GetHeaderPageId())
 			case index_constants.INDEX_KIND_BTREE:
 				im := index.NewIndexMetadata(column_.GetColumnName()+"_index", name, schema, []uint32{uint32(idx)})
-				// TODO: (SDB) need to avoid reuse of page zero when system shutdown was not graceful
 				var pageZeroId *int32 = nil
 				if column_.IndexHeaderPageId() != -1 && isGracefulShutdown {
 					pageZeroId = new(int32)

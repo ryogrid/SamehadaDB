@@ -60,10 +60,8 @@ func TestRedo(t *testing.T) {
 	val1_0 := tuple1_.GetValue(schema_, 0)
 
 	rid, _ = test_table.InsertTuple(tuple_, txn, math.MaxUint32, false)
-	// TODO: (SDB) insert index entry if needed
 	testingpkg.Assert(t, rid != nil, "")
 	rid1, _ = test_table.InsertTuple(tuple1_, txn, math.MaxUint32, false)
-	// TODO: (SDB) insert index entry if needed
 	testingpkg.Assert(t, rid != nil, "")
 
 	samehada_instance.GetTransactionManager().Commit(nil, txn)
@@ -216,7 +214,6 @@ func TestUndo(t *testing.T) {
 	tuple3 := ConstructTuple(schema_)
 	var rid3 *page.RID
 	rid3, _ = test_table.InsertTuple(tuple3, txn, math.MaxUint32, false)
-	// TODO: (SDB) insert index entry if needed
 	testingpkg.Assert(t, rid3 != nil, "")
 
 	af_insert_tuple2, _ := test_table.GetTuple(rid2, txn)
@@ -359,7 +356,6 @@ func TestCheckpoint(t *testing.T) {
 		if err != nil {
 			fmt.Println(err)
 		}
-		// TODO: (SDB) insert index entry if needed
 		testingpkg.Assert(t, rid != nil, "")
 	}
 	samehada_instance.GetTransactionManager().Commit(nil, txn1)

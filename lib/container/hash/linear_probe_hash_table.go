@@ -21,7 +21,6 @@ import (
  */
 
 // Limitation: current implementation contain BlockArraySize(252) * 1020 = 257,040 record info at most
-// TODO: (SDB) LinearProbeHashTable does not dynamically grows...
 type LinearProbeHashTable struct {
 	headerPageId types.PageID
 	bpm          *buffer.BufferPoolManager

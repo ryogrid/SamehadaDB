@@ -786,7 +786,6 @@ func TestDeleteWithSelctInsert(t *testing.T) {
 	bpm := buffer.NewBufferPoolManager(uint32(32), diskManager, log_mgr)
 	txn_mgr := access.NewTransactionManager(access.NewLockManager(access.REGULAR, access.DETECTION), log_mgr)
 	txn := txn_mgr.Begin(nil)
-	// TODO: (SDB) this is a hack to get around the fact that we don't have a recovery manager
 	txn.SetIsRecoveryPhase(true)
 
 	c := catalog.BootstrapCatalog(bpm, log_mgr, access.NewLockManager(access.REGULAR, access.PREVENTION), txn)
