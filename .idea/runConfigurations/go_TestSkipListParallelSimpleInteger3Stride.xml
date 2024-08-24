@@ -1,0 +1,16 @@
+<component name="ProjectRunConfigurationManager">
+  <configuration default="false" name="go TestSkipListParallelSimpleInteger3Stride" type="GoTestRunConfiguration" factoryName="Go Test">
+    <module name="SamehadaDB" />
+    <working_directory value="$PROJECT_DIR$/lib/container/skip_list/skip_list_test" />
+    <go_parameters value="-run TestSkipListParallelSimpleInteger3Stride -v" />
+    <kind value="PACKAGE" />
+    <package value="github.com/ryogrid/SamehadaDB/lib/container/skip_list/skip_list_test" />
+    <directory value="$PROJECT_DIR$/execution/executors" />
+    <filePath value="$PROJECT_DIR$/execution/executors/executor_test/skiplist_index_executor_test.go" />
+    <framework value="gotest" />
+    <pattern value="TestSkipListParallelSimpleInteger3Stride" />
+    <method v="2">
+      <option name="GoBeforeRunTask" command="clean -testcache" />
+    </method>
+  </configuration>
+</component>

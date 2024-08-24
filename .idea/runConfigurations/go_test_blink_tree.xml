@@ -1,0 +1,15 @@
+<component name="ProjectRunConfigurationManager">
+  <configuration default="false" name="go test blink_tree" type="GoTestRunConfiguration" factoryName="Go Test" singleton="false">
+    <module name="SamehadaDB" />
+    <working_directory value="$PROJECT_DIR$/lib/container/btree" />
+    <go_parameters value=". -v" />
+    <kind value="PACKAGE" />
+    <package value="github.com/ryogrid/SamehadaDB/lib/container/btree" />
+    <directory value="$PROJECT_DIR$/lib/execution/executors/executor_test" />
+    <filePath value="$PROJECT_DIR$" />
+    <framework value="gotest" />
+    <method v="2">
+      <option name="GoBeforeRunTask" command="clean -testcache" />
+    </method>
+  </configuration>
+</component>

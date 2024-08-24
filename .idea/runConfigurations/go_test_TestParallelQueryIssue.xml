@@ -1,0 +1,16 @@
+<component name="ProjectRunConfigurationManager">
+  <configuration default="false" name="go test TestParallelQueryIssue" type="GoTestRunConfiguration" factoryName="Go Test">
+    <module name="SamehadaDB" />
+    <working_directory value="$PROJECT_DIR$/samehada/samehada_test" />
+    <go_parameters value="-v" />
+    <kind value="PACKAGE" />
+    <package value="github.com/ryogrid/SamehadaDB/samehada/samehada_test" />
+    <directory value="$PROJECT_DIR$/execution/executors" />
+    <filePath value="$PROJECT_DIR$/../SamehadaDB|$PROJECT_DIR$/execution/executors/executor_test/executor_test.go" />
+    <framework value="gotest" />
+    <pattern value="TestParallelQueryIssue" />
+    <method v="2">
+      <option name="GoBeforeRunTask" command="clean -testcache" />
+    </method>
+  </configuration>
+</component>

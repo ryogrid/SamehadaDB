@@ -1,0 +1,11 @@
+<component name="ProjectRunConfigurationManager">
+  <configuration default="false" name="go build Samehada Server" type="GoApplicationRunConfiguration" factoryName="Go Application">
+    <module name="SamehadaDB" />
+    <working_directory value="$PROJECT_DIR$/server" />
+    <kind value="FILE" />
+    <package value="github.com/ryogrid/SamehadaDB/server" />
+    <directory value="$PROJECT_DIR$" />
+    <filePath value="$PROJECT_DIR$/server/main.go" />
+    <method v="2" />
+  </configuration>
+</component>

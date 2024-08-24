@@ -1,0 +1,13 @@
+<component name="ProjectRunConfigurationManager">
+  <configuration default="false" name="go test TestKeyDuplicateInsertDeleteWithSkipListIndexInt" type="GoTestRunConfiguration" factoryName="Go Test">
+    <module name="SamehadaDB" />
+    <working_directory value="$PROJECT_DIR$/execution/executors/executor_test" />
+    <go_parameters value="-run TestKeyDuplicateInsertDeleteWithSkipListIndexInt -v" />
+    <kind value="FILE" />
+    <package value="github.com/ryogrid/SamehadaDB/execution/executors/executor_test" />
+    <directory value="$PROJECT_DIR$/execution/executors" />
+    <filePath value="$PROJECT_DIR$/execution/executors/executor_test/skiplist_index_executor_test.go" />
+    <framework value="gotest" />
+    <method v="2" />
+  </configuration>
+</component>

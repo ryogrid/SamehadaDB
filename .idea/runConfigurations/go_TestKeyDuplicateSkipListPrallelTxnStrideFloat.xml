@@ -1,0 +1,16 @@
+<component name="ProjectRunConfigurationManager">
+  <configuration default="false" name="go TestKeyDuplicateSkipListPrallelTxnStrideFloat" type="GoTestRunConfiguration" factoryName="Go Test">
+    <module name="SamehadaDB" />
+    <working_directory value="$PROJECT_DIR$/lib/execution/executors/executor_test" />
+    <go_parameters value="-run TestKeyDuplicateSkipListPrallelTxnStrideFloat -v" />
+    <kind value="PACKAGE" />
+    <package value="github.com/ryogrid/SamehadaDB/lib/execution/executors/executor_test" />
+    <directory value="$PROJECT_DIR$/execution/executors" />
+    <filePath value="$PROJECT_DIR$/execution/executors/executor_test/skiplist_index_executor_test.go" />
+    <framework value="gotest" />
+    <pattern value="TestKeyDuplicateSkipListPrallelTxnStrideFloat" />
+    <method v="2">
+      <option name="GoBeforeRunTask" command="clean -testcache" />
+    </method>
+  </configuration>
+</component>
