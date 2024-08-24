@@ -4,9 +4,12 @@ import (
 	"bytes"
 	"encoding/binary"
 	"encoding/json"
+	"fmt"
 	"github.com/deckarep/golang-set/v2"
 	"github.com/ryogrid/SamehadaDB/lib/common"
 	"github.com/ryogrid/SamehadaDB/lib/storage/page"
+	"github.com/ryogrid/SamehadaDB/lib/storage/table/schema"
+	"github.com/ryogrid/SamehadaDB/lib/storage/tuple"
 	"github.com/ryogrid/SamehadaDB/lib/types"
 	"math"
 	"math/rand"
@@ -439,4 +442,53 @@ func DeepCopy(dst interface{}, src interface{}) (err error) {
 		return err
 	}
 	return nil
+}
+
+func ConvTupleListToValues(schema_ *schema.Schema, result []*tuple.Tuple) [][]*types.Value {
+	retVals := make([][]*types.Value, 0)
+	for _, tuple_ := range result {
+		rowVals := make([]*types.Value, 0)
+		colNum := int(schema_.GetColumnCount())
+		for idx := 0; idx < colNum; idx++ {
+			val := tuple_.GetValue(schema_, uint32(idx))
+			rowVals = append(rowVals, &val)
+		}
+		retVals = append(retVals, rowVals)
+	}
+	return retVals
+}
+
+func ConvValueListToIFs(vals [][]*types.Value) [][]interface{} {
+	retVals := make([][]interface{}, 0)
+	for _, valsRow := range vals {
+		ifsList := make([]interface{}, 0)
+		for _, val := range valsRow {
+			if val.IsNull() {
+				ifsList = append(ifsList, nil)
+			} else {
+				switch val.ValueType() {
+				case types.Integer:
+					ifsList = append(ifsList, val.ToInteger())
+				case types.Float:
+					ifsList = append(ifsList, val.ToFloat())
+				case types.Varchar:
+					ifsList = append(ifsList, val.ToString())
+				default:
+					panic("not supported Value object")
+				}
+			}
+		}
+		retVals = append(retVals, ifsList)
+	}
+	return retVals
+}
+
+func PrintExecuteResults(results [][]*types.Value) {
+	fmt.Println("----")
+	for _, valList := range results {
+		for _, val := range valList {
+			fmt.Printf("%s ", val.ToString())
+		}
+		fmt.Println("")
+	}
 }

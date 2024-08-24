@@ -4,6 +4,7 @@ import (
 	"fmt"
 	"github.com/ryogrid/SamehadaDB/lib/common"
 	"github.com/ryogrid/SamehadaDB/lib/samehada"
+	"github.com/ryogrid/SamehadaDB/lib/samehada/samehada_util"
 	testingpkg "github.com/ryogrid/SamehadaDB/lib/testing/testing_assert"
 	"math/rand"
 	"os"
@@ -32,15 +33,15 @@ func TestInsertAndMultiItemPredicateSelect(t *testing.T) {
 	db.ExecuteSQLRetValues("INSERT INTO name_age_list(name, age) VALUES ('加藤', 18);")
 	db.ExecuteSQLRetValues("INSERT INTO name_age_list(name, age) VALUES ('木村', 18);")
 	_, results1 := db.ExecuteSQLRetValues("SELECT * FROM name_age_list WHERE age >= 20;")
-	samehada.PrintExecuteResults(results1)
+	samehada_util.PrintExecuteResults(results1)
 	_, results2 := db.ExecuteSQLRetValues("SELECT age FROM name_age_list WHERE age >= 20;")
-	samehada.PrintExecuteResults(results2)
+	samehada_util.PrintExecuteResults(results2)
 	_, results3 := db.ExecuteSQLRetValues("SELECT name, age FROM name_age_list WHERE age >= 20;")
-	samehada.PrintExecuteResults(results3)
+	samehada_util.PrintExecuteResults(results3)
 	_, results4 := db.ExecuteSQLRetValues("SELECT name, age FROM name_age_list WHERE age <= 23 AND age >= 20;")
-	samehada.PrintExecuteResults(results4)
+	samehada_util.PrintExecuteResults(results4)
 	_, results5 := db.ExecuteSQLRetValues("SELECT * FROM name_age_list WHERE (age = 18 OR age >= 22) AND age < 25;")
-	samehada.PrintExecuteResults(results5)
+	samehada_util.PrintExecuteResults(results5)
 
 	common.TempSuppressOnMemStorage = false
 	db.Shutdown()
@@ -69,13 +70,13 @@ func TestHasJoinSelect(t *testing.T) {
 	db.ExecuteSQLRetValues("INSERT INTO id_buppin_list(id, buppin) VALUES (4, 'Scanner');")
 	db.ExecuteSQLRetValues("INSERT INTO id_buppin_list(id, buppin) VALUES (4, 'Network Switch');")
 	_, results1 := db.ExecuteSQLRetValues("SELECT * FROM id_name_list JOIN id_buppin_list ON id_name_list.id = id_buppin_list.id;")
-	samehada.PrintExecuteResults(results1)
+	samehada_util.PrintExecuteResults(results1)
 	_, results2 := db.ExecuteSQLRetValues("SELECT id_buppin_list.id, id_buppin_list.buppin FROM id_name_list JOIN id_buppin_list ON id_name_list.id = id_buppin_list.id;")
-	samehada.PrintExecuteResults(results2)
+	samehada_util.PrintExecuteResults(results2)
 	_, results3 := db.ExecuteSQLRetValues("SELECT * FROM id_name_list JOIN id_buppin_list ON id_name_list.id = id_buppin_list.id WHERE id_name_list.id > 1;")
-	samehada.PrintExecuteResults(results3)
+	samehada_util.PrintExecuteResults(results3)
 	_, results4 := db.ExecuteSQLRetValues("SELECT id_name_list.id, id_buppin_list.buppin FROM id_name_list JOIN id_buppin_list ON id_name_list.id = id_buppin_list.id WHERE id_name_list.id > 1 AND id_buppin_list.id < 4;")
-	samehada.PrintExecuteResults(results4)
+	samehada_util.PrintExecuteResults(results4)
 
 	db.Shutdown()
 }
@@ -125,7 +126,7 @@ func TestSimpleUpdate(t *testing.T) {
 
 	db.ExecuteSQLRetValues("UPDATE name_age_list SET name = '鮫肌' WHERE age <= 20;")
 	_, results1 := db.ExecuteSQLRetValues("SELECT * FROM name_age_list WHERE name = '鮫肌';")
-	samehada.PrintExecuteResults(results1)
+	samehada_util.PrintExecuteResults(results1)
 	testingpkg.SimpleAssert(t, len(results1) == 3)
 
 	common.TempSuppressOnMemStorage = false

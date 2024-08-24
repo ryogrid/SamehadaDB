@@ -2,7 +2,6 @@ package samehada
 
 import (
 	"errors"
-	"fmt"
 	"github.com/ryogrid/SamehadaDB/lib/catalog"
 	"github.com/ryogrid/SamehadaDB/lib/common"
 	"github.com/ryogrid/SamehadaDB/lib/concurrency"
@@ -18,7 +17,6 @@ import (
 	"github.com/ryogrid/SamehadaDB/lib/storage/disk"
 	"github.com/ryogrid/SamehadaDB/lib/storage/index/index_constants"
 	"github.com/ryogrid/SamehadaDB/lib/storage/page"
-	"github.com/ryogrid/SamehadaDB/lib/storage/table/schema"
 	"github.com/ryogrid/SamehadaDB/lib/storage/tuple"
 	"github.com/ryogrid/SamehadaDB/lib/types"
 	"math"
@@ -192,7 +190,7 @@ func (sdb *SamehadaDB) ExecuteSQLForTxnTh(ch *chan *reqResult, qr *queryRequest)
 		*ch <- &reqResult{err, nil, qr.reqId, qr.queryStr, qr.callerCh}
 		return
 	}
-	*ch <- &reqResult{nil, ConvValueListToIFs(results), qr.reqId, qr.queryStr, qr.callerCh}
+	*ch <- &reqResult{nil, samehada_util.ConvValueListToIFs(results), qr.reqId, qr.queryStr, qr.callerCh}
 }
 
 func (sdb *SamehadaDB) ExecuteSQL(sqlStr string) (error, [][]interface{}) {
@@ -249,7 +247,7 @@ func (sdb *SamehadaDB) ExecuteSQLRetValues(sqlStr string) (error, [][]*types.Val
 	}
 
 	//fmt.Println(result, outSchema)
-	retVals := ConvTupleListToValues(outSchema, result)
+	retVals := samehada_util.ConvTupleListToValues(outSchema, result)
 
 	return nil, retVals
 }
@@ -276,53 +274,4 @@ func (sdb *SamehadaDB) ShutdownForTescase() {
 func (sdb *SamehadaDB) ForceCheckpointingForTestcase() {
 	sdb.shi_.GetCheckpointManager().BeginCheckpoint()
 	sdb.shi_.GetCheckpointManager().EndCheckpoint()
-}
-
-func ConvTupleListToValues(schema_ *schema.Schema, result []*tuple.Tuple) [][]*types.Value {
-	retVals := make([][]*types.Value, 0)
-	for _, tuple_ := range result {
-		rowVals := make([]*types.Value, 0)
-		colNum := int(schema_.GetColumnCount())
-		for idx := 0; idx < colNum; idx++ {
-			val := tuple_.GetValue(schema_, uint32(idx))
-			rowVals = append(rowVals, &val)
-		}
-		retVals = append(retVals, rowVals)
-	}
-	return retVals
-}
-
-func ConvValueListToIFs(vals [][]*types.Value) [][]interface{} {
-	retVals := make([][]interface{}, 0)
-	for _, valsRow := range vals {
-		ifsList := make([]interface{}, 0)
-		for _, val := range valsRow {
-			if val.IsNull() {
-				ifsList = append(ifsList, nil)
-			} else {
-				switch val.ValueType() {
-				case types.Integer:
-					ifsList = append(ifsList, val.ToInteger())
-				case types.Float:
-					ifsList = append(ifsList, val.ToFloat())
-				case types.Varchar:
-					ifsList = append(ifsList, val.ToString())
-				default:
-					panic("not supported Value object")
-				}
-			}
-		}
-		retVals = append(retVals, ifsList)
-	}
-	return retVals
-}
-
-func PrintExecuteResults(results [][]*types.Value) {
-	fmt.Println("----")
-	for _, valList := range results {
-		for _, val := range valList {
-			fmt.Printf("%s ", val.ToString())
-		}
-		fmt.Println("")
-	}
 }
