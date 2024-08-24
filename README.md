@@ -81,7 +81,7 @@
   - [ ] Fuzzy Checkpointing (ARIES)
 - [x] Recovery from Logs
 - [x] Index
-  - [x] Hash Index
+  - [x] Hash Index [^1]
     - Hash index can be used only equal(=) operator is specified to index having columns
     - Thread safe but serialized (not supported concurrent access)
   - [x] SkipList Index
