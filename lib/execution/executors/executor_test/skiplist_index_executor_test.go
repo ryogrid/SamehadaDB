@@ -1259,8 +1259,7 @@ func InnerTestParallelTxnsQueryingIndexUsedColumns[T int32 | float32 | string](t
 }
 
 func testSkipListParallelTxnStrideRoot[T int32 | float32 | string](t *testing.T, keyType types.TypeID) {
-	//bpoolSize := int32(500)
-	bpoolSize := int32(100000)
+	bpoolSize := int32(500)
 
 	switch keyType {
 	case types.Integer:
@@ -1272,6 +1271,7 @@ func testSkipListParallelTxnStrideRoot[T int32 | float32 | string](t *testing.T,
 		//InnerTestParallelTxnsQueryingIndexUsedColumns[T](t, keyType, 400, 30000, 13, 0, bpoolSize, index_constants.INDEX_KIND_SKIP_LIST, SERIAL_EXEC, 20)
 		//InnerTestParallelTxnsQueryingIndexUsedColumns[T](t, keyType, 400, 300, 13, 0, bpoolSize, index_constants.INDEX_KIND_SKIP_LIST, SERIAL_EXEC, 20)
 		//InnerTestParallelTxnsQueryingIndexUsedColumns[T](t, keyType, 400, 3000, 13, 0, bpoolSize, index_constants.INDEX_KIND_SKIP_LIST, SERIAL_EXEC, 20)
+
 		InnerTestParallelTxnsQueryingIndexUsedColumns[T](t, keyType, 400, 3000, 13, 0, bpoolSize, index_constants.INDEX_KIND_SKIP_LIST, PARALLEL_EXEC, 20)
 
 		//InnerTestParallelTxnsQueryingIndexUsedColumns[T](t, keyType, 400, 3000, 13, 0, bpoolSize, index_constants.INDEX_KIND_SKIP_LIST, PARALLEL_EXEC, 20)
