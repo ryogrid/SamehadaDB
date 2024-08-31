@@ -27,7 +27,7 @@ func NewBtreeIndexIterator(itr *blink_tree.BLTreeItr, valType types.TypeID) *Btr
 
 func (btreeItr *BtreeIndexIterator) Next() (done bool, err error, key *types.Value, rid *page.RID) {
 	ok, keyBytes, packedRID := btreeItr.itr.Next()
-	if ok == false {
+	if ok == false || len(packedRID) != 8 {
 		return true, nil, nil, &page.RID{-1, 0}
 	}
 	uintRID := binary.BigEndian.Uint64(packedRID)

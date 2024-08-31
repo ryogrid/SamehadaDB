@@ -617,8 +617,8 @@ func InnerTestParallelTxnsQueryingIndexUsedColumns[T int32 | float32 | string](t
 		common.ShPrintf(common.DEBUGGING, "ii=%d\n", ii)
 
 		//// get 0-7
-		//get 0-6
 		//opType := rand.Intn(8)
+		//get 0-6
 		opType := rand.Intn(7)
 
 		switch opType {
@@ -765,9 +765,9 @@ func InnerTestParallelTxnsQueryingIndexUsedColumns[T int32 | float32 | string](t
 					common.ShPrintf(common.DEBUGGING, fmt.Sprintf("Insert op start. txnId:%v ii:%d jj:%d\n", txn_.GetTransactionId(), ii, jj))
 					insPlan := createSpecifiedValInsertPlanNode(insKeyVal, insBalanceVal, c, tableMetadata, keyType)
 
-					if jj == 22 {
-						fmt.Println("insKeyVal: 779212422?")
-					}
+					//if jj == 22 {
+					//	fmt.Println("insKeyVal: 779212422?")
+					//}
 					//// insert two same record
 					executePlan(c, shi.GetBufferPoolManager(), txn_, insPlan)
 					if txn_.GetState() == access.ABORTED {
@@ -858,22 +858,22 @@ func InnerTestParallelTxnsQueryingIndexUsedColumns[T int32 | float32 | string](t
 						common.ShPrintf(common.DEBUGGING, "Delete(success) op start %v.\n", delKeyVal)
 
 						delPlan := createSpecifiedValDeletePlanNode(delKeyVal, c, tableMetadata, keyType, indexKind)
-						if jj == 21 {
-							fmt.Println("delKeyVal: watch")
-						}
-						if jj == 22 {
-							fmt.Println("delKeyVal: 779212422")
-						}
-						results := executePlan(c, shi.GetBufferPoolManager(), txn_, delPlan)
-						//executePlan(c, shi.GetBufferPoolManager(), txn_, delPlan)
+						//if jj == 21 {
+						//	fmt.Println("delKeyVal: watch")
+						//}
+						//if jj == 22 {
+						//	fmt.Println("delKeyVal: 779212422")
+						//}
+						//results := executePlan(c, shi.GetBufferPoolManager(), txn_, delPlan)
+						executePlan(c, shi.GetBufferPoolManager(), txn_, delPlan)
 
 						if txn_.GetState() == access.ABORTED {
 							break
 						}
 
-						if results == nil || len(results) != 1 {
-							fmt.Println("results is nil or len(results) != 1")
-						}
+						//if results == nil || len(results) != 1 {
+						//	fmt.Println("results is nil or len(results) != 1")
+						//}
 						//common.SH_Assert(results != nil && len(results) == 2, "Delete(success) failed!")
 						//common.SH_Assert(results != nil && len(results) == 1, "Delete(success) failed!")
 					}
@@ -929,16 +929,16 @@ func InnerTestParallelTxnsQueryingIndexUsedColumns[T int32 | float32 | string](t
 					common.ShPrintf(common.DEBUGGING, "Update (random) op start.")
 
 					updatePlan1 := createAccountIdUpdatePlanNode(updateKeyVal, updateNewKeyVal, c, tableMetadata, keyType, indexKind)
-					results1 := executePlan(c, shi.GetBufferPoolManager(), txn_, updatePlan1)
-					//executePlan(c, shi.GetBufferPoolManager(), txn_, updatePlan1)
+					//results1 := executePlan(c, shi.GetBufferPoolManager(), txn_, updatePlan1)
+					executePlan(c, shi.GetBufferPoolManager(), txn_, updatePlan1)
 
 					if txn_.GetState() == access.ABORTED {
 						break
 					}
 
-					if results1 == nil || len(results1) != 2 {
-						fmt.Println("results1 is nil or len(results1) != 2")
-					}
+					//if results1 == nil || len(results1) != 2 {
+					//	fmt.Println("results1 is nil or len(results1) != 2")
+					//}
 					//common.SH_Assert(results1 != nil && len(results1) == 2, "Update failed!")
 					//common.SH_Assert(results1 != nil && len(results1) == 1, "Update failed!")
 
@@ -1026,16 +1026,16 @@ func InnerTestParallelTxnsQueryingIndexUsedColumns[T int32 | float32 | string](t
 
 						common.ShPrintf(common.DEBUGGING, "Select(success) op start.")
 						selectPlan := createSpecifiedPointScanPlanNode(getKeyVal, c, tableMetadata, keyType, indexKind)
-						results := executePlan(c, shi.GetBufferPoolManager(), txn_, selectPlan)
-						//executePlan(c, shi.GetBufferPoolManager(), txn_, selectPlan)
+						//results := executePlan(c, shi.GetBufferPoolManager(), txn_, selectPlan)
+						executePlan(c, shi.GetBufferPoolManager(), txn_, selectPlan)
 
 						if txn_.GetState() == access.ABORTED {
 							break
 						}
 
-						if results == nil || len(results) != 2 {
-							fmt.Println("results is nil or len(results) != 2")
-						}
+						//if results == nil || len(results) != 2 {
+						//	fmt.Println("results is nil or len(results) != 2")
+						//}
 						//common.SH_Assert(results != nil && len(results) == 2, "Select(success) should not be fail!")
 						//common.SH_Assert(results != nil && len(results) == 1, "Select(success) should not be fail!")
 						//collectVal := types.NewInteger(getInt32ValCorrespondToPassVal(getKeyVal))
