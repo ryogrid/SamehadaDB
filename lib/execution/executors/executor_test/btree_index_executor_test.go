@@ -109,6 +109,29 @@ func testKeyDuplicateInsertDeleteWithBTreeIndex[T float32 | int32 | string](t *t
 	shi.Shutdown(samehada.ShutdownPatternCloseFiles)
 }
 
+func testBTreeParallelTxnStrideRoot[T int32 | float32 | string](t *testing.T, keyType types.TypeID) {
+	bpoolSize := int32(500)
+
+	switch keyType {
+	case types.Integer:
+
+		//InnerTestParallelTxnsQueryingIndexUsedColumns[T](t, keyType, 400, 30000, 13, 0, bpoolSize, index_constants.INDEX_KIND_SKIP_LIST, PARALLEL_EXEC, 20)
+		//InnerTestParallelTxnsQueryingIndexUsedColumns[T](t, keyType, 400, 30000, 13, 0, bpoolSize, index_constants.INDEX_KIND_SKIP_LIST, SERIAL_EXEC, 20)
+		//InnerTestParallelTxnsQueryingIndexUsedColumns[T](t, keyType, 400, 300, 13, 0, bpoolSize, index_constants.INDEX_KIND_SKIP_LIST, SERIAL_EXEC, 20)
+		//InnerTestParallelTxnsQueryingIndexUsedColumns[T](t, keyType, 400, 3000, 13, 0, bpoolSize, index_constants.INDEX_KIND_SKIP_LIST, SERIAL_EXEC, 20)
+		InnerTestParallelTxnsQueryingIndexUsedColumns[T](t, keyType, 400, 3000, 13, 0, bpoolSize, index_constants.INDEX_KIND_BTREE, PARALLEL_EXEC, 20)
+
+		//InnerTestParallelTxnsQueryingIndexUsedColumns[T](t, keyType, 400, 3000, 13, 0, bpoolSize, index_constants.INDEX_KIND_SKIP_LIST, PARALLEL_EXEC, 20)
+	case types.Float:
+		InnerTestParallelTxnsQueryingIndexUsedColumns[T](t, keyType, 240, 1000, 13, 0, bpoolSize, index_constants.INDEX_KIND_BTREE, PARALLEL_EXEC, 20)
+	case types.Varchar:
+		//InnerTestParallelTxnsQueryingIndexUsedColumns[T](t, keyType, 400, 5000, 17, 0, bpoolSize, index_constants.INDEX_KIND_SKIP_LIST, PARALLEL_EXEC, 20)
+		InnerTestParallelTxnsQueryingIndexUsedColumns[T](t, keyType, 400, 5000, 17, 0, bpoolSize, index_constants.INDEX_KIND_BTREE, PARALLEL_EXEC, 20)
+	default:
+		panic("not implemented!")
+	}
+}
+
 func TestKeyDuplicateInsertDeleteWithBTreeIndexInt(t *testing.T) {
 	testKeyDuplicateInsertDeleteWithBTreeIndex[int32](t, types.Integer)
 }
@@ -119,4 +142,28 @@ func TestKeyDuplicateInsertDeleteWithBTreeIndexFloat(t *testing.T) {
 
 func TestKeyDuplicateInsertDeleteWithBTreeIndexVarchar(t *testing.T) {
 	testKeyDuplicateInsertDeleteWithBTreeIndex[string](t, types.Varchar)
+}
+
+func TestKeyDuplicateBTreePrallelTxnStrideInteger(t *testing.T) {
+	t.Parallel()
+	if testing.Short() {
+		t.Skip("skip this in short mode.")
+	}
+	testBTreeParallelTxnStrideRoot[int32](t, types.Integer)
+}
+
+func TestKeyDuplicateBTreePrallelTxnStrideFloat(t *testing.T) {
+	t.Parallel()
+	if testing.Short() {
+		t.Skip("skip this in short mode.")
+	}
+	testBTreeParallelTxnStrideRoot[float32](t, types.Float)
+}
+
+func TestKeyDuplicateBTreePrallelTxnStrideVarchar(t *testing.T) {
+	t.Parallel()
+	if testing.Short() {
+		t.Skip("skip this in short mode.")
+	}
+	testBTreeParallelTxnStrideRoot[string](t, types.Varchar)
 }
