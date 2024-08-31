@@ -111,7 +111,7 @@ func testKeyDuplicateInsertDeleteWithBTreeIndex[T float32 | int32 | string](t *t
 
 func testBTreeParallelTxnStrideRoot[T int32 | float32 | string](t *testing.T, keyType types.TypeID) {
 	//bpoolSize := int32(500)
-	bpoolSize := int32(10000)
+	bpoolSize := int32(1000)
 
 	switch keyType {
 	case types.Integer:

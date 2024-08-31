@@ -1303,6 +1303,12 @@ func testParallelTxnsQueryingUniqSkipListIndexUsedColumns[T int32 | float32 | st
 						common.ShPrintf(common.DEBUGGING, "Delete(success) op start %v.\n", delKeyVal)
 
 						delPlan := createSpecifiedValDeletePlanNode(delKeyVal, c, tableMetadata, keyType, indexKind)
+						if jj == 21 {
+							fmt.Println("watch")
+						}
+						if jj == 22 {
+							fmt.Println("delete 779212422")
+						}
 						results := executePlan(c, shi.GetBufferPoolManager(), txn_, delPlan)
 
 						if txn_.GetState() == access.ABORTED {
