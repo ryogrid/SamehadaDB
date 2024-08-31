@@ -806,14 +806,14 @@ func InnerTestParallelTxnsQueryingIndexUsedColumns[T int32 | float32 | string](t
 
 						common.ShPrintf(common.DEBUGGING, "Delete(fail) op start.\n")
 						delPlan := createSpecifiedValDeletePlanNode(delKeyVal, c, tableMetadata, keyType, indexKind)
-						//results := executePlan(c, shi.GetBufferPoolManager(), txn_, delPlan)
-						executePlan(c, shi.GetBufferPoolManager(), txn_, delPlan)
+						results := executePlan(c, shi.GetBufferPoolManager(), txn_, delPlan)
+						//executePlan(c, shi.GetBufferPoolManager(), txn_, delPlan)
 
 						if txn_.GetState() == access.ABORTED {
 							break
 						}
 
-						//common.SH_Assert(results != nil && len(results) == 0, "delete(fail) should be fail!")
+						common.SH_Assert(results != nil && len(results) == 0, "delete(fail) should be fail!")
 					}
 
 					finalizeRandomDeleteNotExistingTxn(txn_, delKeyValBase)
@@ -850,14 +850,14 @@ func InnerTestParallelTxnsQueryingIndexUsedColumns[T int32 | float32 | string](t
 						common.ShPrintf(common.DEBUGGING, "Delete(success) op start %v.\n", delKeyVal)
 
 						delPlan := createSpecifiedValDeletePlanNode(delKeyVal, c, tableMetadata, keyType, indexKind)
-						//results := executePlan(c, shi.GetBufferPoolManager(), txn_, delPlan)
-						executePlan(c, shi.GetBufferPoolManager(), txn_, delPlan)
+						results := executePlan(c, shi.GetBufferPoolManager(), txn_, delPlan)
+						//executePlan(c, shi.GetBufferPoolManager(), txn_, delPlan)
 
 						if txn_.GetState() == access.ABORTED {
 							break
 						}
 
-						//common.SH_Assert(results != nil && len(results) == 2, "Delete(success) failed!")
+						common.SH_Assert(results != nil && len(results) == 2, "Delete(success) failed!")
 					}
 
 					finalizeRandomDeleteExistingTxn(txn_, delKeyValBase)
@@ -911,8 +911,8 @@ func InnerTestParallelTxnsQueryingIndexUsedColumns[T int32 | float32 | string](t
 					common.ShPrintf(common.DEBUGGING, "Update (random) op start.")
 
 					updatePlan1 := createAccountIdUpdatePlanNode(updateKeyVal, updateNewKeyVal, c, tableMetadata, keyType, indexKind)
-					//results1 := executePlan(c, shi.GetBufferPoolManager(), txn_, updatePlan1)
-					executePlan(c, shi.GetBufferPoolManager(), txn_, updatePlan1)
+					results1 := executePlan(c, shi.GetBufferPoolManager(), txn_, updatePlan1)
+					//executePlan(c, shi.GetBufferPoolManager(), txn_, updatePlan1)
 
 					if txn_.GetState() == access.ABORTED {
 						break
@@ -921,18 +921,18 @@ func InnerTestParallelTxnsQueryingIndexUsedColumns[T int32 | float32 | string](t
 					//if results1 == nil || len(results1) != 2 {
 					//	fmt.Println("results1 is nil or len(results1) != 2")
 					//}
-					//common.SH_Assert(results1 != nil && len(results1) == 2, "Update failed!")
+					common.SH_Assert(results1 != nil && len(results1) == 2, "Update failed!")
 
 					updatePlan2 := createBalanceUpdatePlanNode(updateNewKeyVal, newBalanceVal, c, tableMetadata, keyType, indexKind)
 
-					//results2 := executePlan(c, shi.GetBufferPoolManager(), txn_, updatePlan2)
-					executePlan(c, shi.GetBufferPoolManager(), txn_, updatePlan2)
+					results2 := executePlan(c, shi.GetBufferPoolManager(), txn_, updatePlan2)
+					//executePlan(c, shi.GetBufferPoolManager(), txn_, updatePlan2)
 
 					if txn_.GetState() == access.ABORTED {
 						break
 					}
 
-					//common.SH_Assert(results2 != nil && len(results2) == 2, "Update failed!")
+					common.SH_Assert(results2 != nil && len(results2) == 2, "Update failed!")
 				}
 
 				finalizeRandomUpdateTxn(txn_, updateKeyValBase, updateNewKeyValBase)
@@ -967,14 +967,14 @@ func InnerTestParallelTxnsQueryingIndexUsedColumns[T int32 | float32 | string](t
 
 						common.ShPrintf(common.DEBUGGING, "Select(fail) op start.")
 						selectPlan := createSpecifiedPointScanPlanNode(getKeyVal, c, tableMetadata, keyType, indexKind)
-						//results := executePlan(c, shi.GetBufferPoolManager(), txn_, selectPlan)
-						executePlan(c, shi.GetBufferPoolManager(), txn_, selectPlan)
+						results := executePlan(c, shi.GetBufferPoolManager(), txn_, selectPlan)
+						//executePlan(c, shi.GetBufferPoolManager(), txn_, selectPlan)
 
 						if txn_.GetState() == access.ABORTED {
 							break
 						}
 
-						//common.SH_Assert(results != nil && len(results) == 0, "Select(fail) should be fail!")
+						common.SH_Assert(results != nil && len(results) == 0, "Select(fail) should be fail!")
 					}
 
 					finalizeSelectNotExistingTxn(txn_, getTgtBase)
@@ -1006,20 +1006,20 @@ func InnerTestParallelTxnsQueryingIndexUsedColumns[T int32 | float32 | string](t
 
 						common.ShPrintf(common.DEBUGGING, "Select(success) op start.")
 						selectPlan := createSpecifiedPointScanPlanNode(getKeyVal, c, tableMetadata, keyType, indexKind)
-						//results := executePlan(c, shi.GetBufferPoolManager(), txn_, selectPlan)
-						executePlan(c, shi.GetBufferPoolManager(), txn_, selectPlan)
+						results := executePlan(c, shi.GetBufferPoolManager(), txn_, selectPlan)
+						//executePlan(c, shi.GetBufferPoolManager(), txn_, selectPlan)
 
 						if txn_.GetState() == access.ABORTED {
 							break
 						}
 
-						//if results == nil || len(results) != 2 {
-						//	fmt.Println("results is nil or len(results) != 2")
-						//}
-						//common.SH_Assert(results != nil && len(results) == 2, "Select(success) should not be fail!")
-						//collectVal := types.NewInteger(getInt32ValCorrespondToPassVal(getKeyVal))
-						//gotVal := results[0].GetValue(tableMetadata.Schema(), 1)
-						//common.SH_Assert(gotVal.CompareEquals(collectVal), "value should be "+fmt.Sprintf("%d not %d", collectVal.ToInteger(), gotVal.ToInteger()))
+						if results == nil || len(results) != 2 {
+							fmt.Println("results is nil or len(results) != 2")
+						}
+						common.SH_Assert(results != nil && len(results) == 2, "Select(success) should not be fail!")
+						collectVal := types.NewInteger(getInt32ValCorrespondToPassVal(getKeyVal))
+						gotVal := results[0].GetValue(tableMetadata.Schema(), 1)
+						common.SH_Assert(gotVal.CompareEquals(collectVal), "value should be "+fmt.Sprintf("%d not %d", collectVal.ToInteger(), gotVal.ToInteger()))
 					}
 
 					finalizeSelectExistingTxn(txn_, getKeyValBase)
