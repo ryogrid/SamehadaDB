@@ -237,11 +237,11 @@ func TestBTreeIndexKeyDuplicateInsertDeleteStrideSerialInt(t *testing.T) {
 			//testingpkg.Assert(t, result1[0].PageId == types.PageID(idx*stride+jj) && result1[0].SlotNum == uint32(idx*stride+jj), fmt.Sprintf("duplicated key point scan got illegal value.(1) idx: %d, jj: %d", idx, jj))
 			testingpkg.Assert(t, len(result1) == 3, fmt.Sprintf("duplicated key point scan got illegal results.(1) idx: %d, jj: %d len(result1): %d", idx, jj, len(result1)))
 			//testingpkg.Assert(t, len(result1) != 0, fmt.Sprintf("duplicated key point scan got illegal results.(1) idx: %d, jj: %d len(result1): %d", idx, jj, len(result1)))
-			//for _, res := range result1 {
-			//	indexTest1.DeleteEntry(tuple1, res, nil)
-			//}
-			//result1 = indexTest1.ScanKey(tuple1, nil)
-			//testingpkg.Assert(t, len(result1) == 0, "deleted key point scan got illegal results. (1)")
+			for _, res := range result1 {
+				indexTest1.DeleteEntry(tuple1, res, nil)
+			}
+			result1 = indexTest1.ScanKey(tuple1, nil)
+			testingpkg.Assert(t, len(result1) == 0, "deleted key point scan got illegal results. (1)")
 
 			// index2
 			//tuple2 := tuple.NewTupleFromSchema([]types.Value{types.NewValue(int32(idx*stride + jj)), types.NewValue(int32(idx*stride + jj))}, schema_)
