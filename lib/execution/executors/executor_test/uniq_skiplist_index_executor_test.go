@@ -609,7 +609,7 @@ func createBalanceUpdatePlanNode[T int32 | float32 | string](keyColumnVal T, new
 	switch indexKind {
 	case index_constants.INDEX_KIND_INVALID:
 		skipListPointScanP = plans.NewSeqScanPlanNode(c, tm.Schema(), expression_.(*expression.Comparison), tm.OID())
-	case index_constants.INDEX_KIND_UNIQ_SKIP_LIST, index_constants.INDEX_KIND_SKIP_LIST:
+	case index_constants.INDEX_KIND_UNIQ_SKIP_LIST, index_constants.INDEX_KIND_SKIP_LIST, index_constants.INDEX_KIND_BTREE:
 		skipListPointScanP = plans.NewPointScanWithIndexPlanNode(c, tm.Schema(), expression_.(*expression.Comparison), tm.OID())
 	default:
 		panic("not implemented!")
@@ -641,7 +641,7 @@ func createSpecifiedValDeletePlanNode[T int32 | float32 | string](keyColumnVal T
 	switch indexKind {
 	case index_constants.INDEX_KIND_INVALID:
 		skipListPointScanP = plans.NewSeqScanPlanNode(c, tm.Schema(), expression_.(*expression.Comparison), tm.OID())
-	case index_constants.INDEX_KIND_UNIQ_SKIP_LIST, index_constants.INDEX_KIND_SKIP_LIST:
+	case index_constants.INDEX_KIND_UNIQ_SKIP_LIST, index_constants.INDEX_KIND_SKIP_LIST, index_constants.INDEX_KIND_BTREE:
 		skipListPointScanP = plans.NewPointScanWithIndexPlanNode(c, tm.Schema(), expression_.(*expression.Comparison), tm.OID())
 	default:
 		panic("not implemented!")
@@ -664,7 +664,7 @@ func createAccountIdUpdatePlanNode[T int32 | float32 | string](keyColumnVal T, n
 	switch indexKind {
 	case index_constants.INDEX_KIND_INVALID:
 		skipListPointScanP = plans.NewSeqScanPlanNode(c, tm.Schema(), expression_.(*expression.Comparison), tm.OID())
-	case index_constants.INDEX_KIND_UNIQ_SKIP_LIST, index_constants.INDEX_KIND_SKIP_LIST:
+	case index_constants.INDEX_KIND_UNIQ_SKIP_LIST, index_constants.INDEX_KIND_SKIP_LIST, index_constants.INDEX_KIND_BTREE:
 		skipListPointScanP = plans.NewPointScanWithIndexPlanNode(c, tm.Schema(), expression_.(*expression.Comparison), tm.OID())
 	default:
 		panic("not implemented!")
@@ -1303,6 +1303,12 @@ func testParallelTxnsQueryingUniqSkipListIndexUsedColumns[T int32 | float32 | st
 						common.ShPrintf(common.DEBUGGING, "Delete(success) op start %v.\n", delKeyVal)
 
 						delPlan := createSpecifiedValDeletePlanNode(delKeyVal, c, tableMetadata, keyType, indexKind)
+						if jj == 21 {
+							fmt.Println("watch")
+						}
+						if jj == 22 {
+							fmt.Println("delete 779212422")
+						}
 						results := executePlan(c, shi.GetBufferPoolManager(), txn_, delPlan)
 
 						if txn_.GetState() == access.ABORTED {
