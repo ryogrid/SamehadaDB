@@ -149,7 +149,7 @@ func TestBTreeIndexKeyDuplicateInsertDeleteStrideSerialInt(t *testing.T) {
 	r := rand.New(rand.NewSource(int64(seed)))
 
 	//shi := samehada.NewSamehadaInstance(t.Name(), 500)
-	shi := samehada.NewSamehadaInstance(t.Name(), 1000)
+	shi := samehada.NewSamehadaInstance(t.Name(), 4000)
 
 	shi.GetLogManager().ActivateLogging()
 	testingpkg.Assert(t, shi.GetLogManager().IsEnabledLogging(), "")
@@ -244,10 +244,10 @@ func TestBTreeIndexKeyDuplicateInsertDeleteStrideSerialInt(t *testing.T) {
 			testingpkg.Assert(t, len(result1) == 0, "deleted key point scan got illegal results. (1)")
 
 			// index2
-			//tuple2 := tuple.NewTupleFromSchema([]types.Value{types.NewValue(int32(idx*stride + jj)), types.NewValue(int32(idx*stride + jj))}, schema_)
-			//result2 := indexTest2.ScanKey(tuple2, nil)
-			//indexTest2.ScanKey(tuple2, nil)
-			//testingpkg.Assert(t, len(result2) == 3, fmt.Sprintf("duplicated key point scan got illegal results.(2) idx: %d, jj: %d len(result1): %d", idx, jj, len(result2)))
+			tuple2 := tuple.NewTupleFromSchema([]types.Value{types.NewValue(int32(idx*stride + jj)), types.NewValue(int32(idx*stride + jj))}, schema_)
+			result2 := indexTest2.ScanKey(tuple2, nil)
+			indexTest2.ScanKey(tuple2, nil)
+			testingpkg.Assert(t, len(result2) == 3, fmt.Sprintf("duplicated key point scan got illegal results.(2) idx: %d, jj: %d len(result1): %d", idx, jj, len(result2)))
 			//testingpkg.Assert(t, len(result2) != 0, fmt.Sprintf("duplicated key point scan got illegal results.(2) idx: %d, jj: %d len(result1): %d", idx, jj, len(result2)))
 			//for _, res := range result2 {
 			//	indexTest2.DeleteEntry(tuple2, res, nil)
