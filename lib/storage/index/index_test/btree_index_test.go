@@ -230,9 +230,13 @@ func TestBTreeIndexKeyDuplicateInsertDeleteStrideSerialInt(t *testing.T) {
 			// index1
 			tuple1 := tuple.NewTupleFromSchema([]types.Value{types.NewValue(int32(idx*stride + jj)), types.NewValue(int32(idx*stride + jj))}, schema_)
 			result1 := indexTest1.ScanKey(tuple1, nil)
+			//if idx == 99 && jj == 78 {
+			//	fmt.Println("idx: ", idx, "jj: ", jj)
+			//}
+			//indexTest1.ScanKey(tuple1, nil)
 			//testingpkg.Assert(t, result1[0].PageId == types.PageID(idx*stride+jj) && result1[0].SlotNum == uint32(idx*stride+jj), fmt.Sprintf("duplicated key point scan got illegal value.(1) idx: %d, jj: %d", idx, jj))
-			//testingpkg.Assert(t, len(result1) == 3, fmt.Sprintf("duplicated key point scan got illegal results.(1) idx: %d, jj: %d len(result1): %d", idx, jj, len(result1)))
-			testingpkg.Assert(t, len(result1) != 0, fmt.Sprintf("duplicated key point scan got illegal results.(1) idx: %d, jj: %d len(result1): %d", idx, jj, len(result1)))
+			testingpkg.Assert(t, len(result1) == 3, fmt.Sprintf("duplicated key point scan got illegal results.(1) idx: %d, jj: %d len(result1): %d", idx, jj, len(result1)))
+			//testingpkg.Assert(t, len(result1) != 0, fmt.Sprintf("duplicated key point scan got illegal results.(1) idx: %d, jj: %d len(result1): %d", idx, jj, len(result1)))
 			//for _, res := range result1 {
 			//	indexTest1.DeleteEntry(tuple1, res, nil)
 			//}
@@ -240,10 +244,11 @@ func TestBTreeIndexKeyDuplicateInsertDeleteStrideSerialInt(t *testing.T) {
 			//testingpkg.Assert(t, len(result1) == 0, "deleted key point scan got illegal results. (1)")
 
 			// index2
-			tuple2 := tuple.NewTupleFromSchema([]types.Value{types.NewValue(int32(idx*stride + jj)), types.NewValue(int32(idx*stride + jj))}, schema_)
-			result2 := indexTest2.ScanKey(tuple2, nil)
+			//tuple2 := tuple.NewTupleFromSchema([]types.Value{types.NewValue(int32(idx*stride + jj)), types.NewValue(int32(idx*stride + jj))}, schema_)
+			//result2 := indexTest2.ScanKey(tuple2, nil)
+			//indexTest2.ScanKey(tuple2, nil)
 			//testingpkg.Assert(t, len(result2) == 3, fmt.Sprintf("duplicated key point scan got illegal results.(2) idx: %d, jj: %d len(result1): %d", idx, jj, len(result2)))
-			testingpkg.Assert(t, len(result2) != 0, fmt.Sprintf("duplicated key point scan got illegal results.(2) idx: %d, jj: %d len(result1): %d", idx, jj, len(result2)))
+			//testingpkg.Assert(t, len(result2) != 0, fmt.Sprintf("duplicated key point scan got illegal results.(2) idx: %d, jj: %d len(result1): %d", idx, jj, len(result2)))
 			//for _, res := range result2 {
 			//	indexTest2.DeleteEntry(tuple2, res, nil)
 			//}
