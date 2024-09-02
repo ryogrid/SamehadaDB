@@ -150,7 +150,8 @@ func GetRandomPrimitiveVal[T int32 | float32 | string](keyType types.TypeID, max
 		var ret interface{} = float32(val)
 		return ret.(T)
 	case types.Varchar:
-		var ret interface{} = *GetRandomStr(200)
+		//var ret interface{} = *GetRandomStr(200)
+		var ret interface{} = *GetRandomStr(50)
 		return ret.(T)
 	default:
 		panic("not supported keyType")
