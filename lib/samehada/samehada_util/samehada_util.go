@@ -351,7 +351,7 @@ func ExtractOrgKeyFromDicOrderComparableEncodedBytes(buf []byte, valType types.T
 		retVal := types.NewValue(decodeFromDicOrderComparableBytes(buf[3:len(buf)-8], valType).(float32))
 		return &retVal
 	case types.Varchar:
-		orgStr := string(buf[:len(buf)-(4+8)])
+		orgStr := string(buf)
 		return GetPonterOfValue(types.NewVarchar(orgStr))
 	default:
 		panic("not supported type")

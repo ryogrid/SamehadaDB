@@ -39,13 +39,24 @@ func (btreeItr *BtreeIndexIterator) Next() (done bool, err error, key *types.Val
 	unpackedRID := samehada_util.UnpackUint64toRID(uintRID)
 
 	// attach isNull flag and length of value due to these info is not stored in BLTree
-	keyLen := uint16(len(keyBytes) - 8) // 8 is length of packedRID
-	keyLenBuf := make([]byte, 2)
-	binary.LittleEndian.PutUint16(keyLenBuf, keyLen)
-	newKeyBytes := make([]byte, 0, len(keyBytes)+3)
-	newKeyBytes = append(newKeyBytes, 0)
-	newKeyBytes = append(newKeyBytes, keyLenBuf...)
-	newKeyBytes = append(newKeyBytes, keyBytes...)
+	// and when Varchar, bytes to make comapreable is inserted
+	var newKeyBytes []byte
+	switch btreeItr.valType {
+	case types.Integer, types.Float:
+		keyLen := uint16(len(keyBytes) - 8) // 8 is length of packedRID
+		keyLenBuf := make([]byte, 2)
+		binary.LittleEndian.PutUint16(keyLenBuf, keyLen)
+		newKeyBytes = make([]byte, 0, len(keyBytes)+3+8)
+		newKeyBytes = append(newKeyBytes, 0)
+		newKeyBytes = append(newKeyBytes, keyLenBuf...)
+		newKeyBytes = append(newKeyBytes, keyBytes...)
+	case types.Varchar:
+		// 4 is {0, 0, 0, 0}
+		// 8 is length of packedRID
+		newKeyBytes = keyBytes[:len(keyBytes)-4-8]
+	default:
+		panic("not supported type")
+	}
 
 	decodedKey := samehada_util.ExtractOrgKeyFromDicOrderComparableEncodedBytes(newKeyBytes, btreeItr.valType)
 	return false, nil, decodedKey, &unpackedRID
