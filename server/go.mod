@@ -30,7 +30,7 @@ require (
 	github.com/pingcap/tidb v1.1.0-beta.0.20200630082100-328b6d0a955c // indirect
 	github.com/pingcap/tipb v0.0.0-20200522051215-f31a15d98fce // indirect
 	github.com/remyoudompheng/bigfft v0.0.0-20190728182440-6a916e37a237 // indirect
-	github.com/ryogrid/bltree-go-for-embedding v1.0.7 // indirect
+	github.com/ryogrid/bltree-go-for-embedding v1.0.9 // indirect
 	github.com/shirou/gopsutil v2.19.10+incompatible // indirect
 	github.com/sirupsen/logrus v1.6.0 // indirect
 	github.com/spaolacci/murmur3 v1.1.0 // indirect

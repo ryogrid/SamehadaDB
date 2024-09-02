@@ -112,7 +112,7 @@ func TestBLTree_deleteMany_embedding(t *testing.T) {
 	}
 
 	for i := range keys {
-		if err := bltree.InsertKey(keys[i], 0, [blink_tree.BtId]byte{0, 0, 0, 0, 0, 0, 0, 0}, true); err != blink_tree.BLTErrOk {
+		if err := bltree.InsertKey(keys[i], 0, [blink_tree.BtId]byte{0, 0, 0, 0, 0, 0}, true); err != blink_tree.BLTErrOk {
 			t.Errorf("InsertKey() = %v, want %v", err, blink_tree.BLTErrOk)
 		}
 		if i%2 == 0 {
@@ -128,8 +128,8 @@ func TestBLTree_deleteMany_embedding(t *testing.T) {
 				t.Errorf("FindKey() = %v, want %v, key %v", found, -1, keys[i])
 			}
 		} else {
-			if found, _, _ := bltree.FindKey(keys[i], blink_tree.BtId); found != 8 {
-				t.Errorf("FindKey() = %v, want %v, key %v", found, 8, keys[i])
+			if found, _, _ := bltree.FindKey(keys[i], blink_tree.BtId); found != 6 {
+				t.Errorf("FindKey() = %v, want %v, key %v", found, 6, keys[i])
 			}
 		}
 	}
@@ -154,7 +154,7 @@ func TestBLTree_deleteAll_embedding(t *testing.T) {
 	}
 
 	for i := range keys {
-		if err := bltree.InsertKey(keys[i], 0, [blink_tree.BtId]byte{0, 0, 0, 0, 0, 0, 0, 0}, true); err != blink_tree.BLTErrOk {
+		if err := bltree.InsertKey(keys[i], 0, [blink_tree.BtId]byte{0, 0, 0, 0, 0, 0}, true); err != blink_tree.BLTErrOk {
 			t.Errorf("InsertKey() = %v, want %v", err, blink_tree.BLTErrOk)
 		}
 	}
@@ -302,7 +302,7 @@ func TestBLTree_deleteInsertRangeScanConcurrently_embedding(t *testing.T) {
 					binary.Read(buf, binary.BigEndian, &foundKey)
 					keyInts = append(keyInts, foundKey)
 					if foundKey < curNum {
-						panic("foundKey < curNum")
+						panic(fmt.Sprintf("foundKey < curNum: %d < %d", foundKey, curNum))
 					}
 					curNum = foundKey
 				}
