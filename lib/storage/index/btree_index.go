@@ -68,8 +68,8 @@ type BTreeIndex struct {
 	// idx of target column on table
 	col_idx     uint32
 	log_manager *recovery.LogManager
-	// UpdateEntry only get Write lock
-	updateMtx sync.RWMutex
+	// write operations are mutually exclusive
+	rwMtx sync.RWMutex
 	// for call of Close method ....
 	bufMgr *blink_tree.BufMgr
 }
@@ -84,7 +84,7 @@ func NewBTreeIndex(metadata *IndexMetadata, buffer_pool_manager *buffer.BufferPo
 	bufMgr := blink_tree.NewBufMgr(12, blink_tree.HASH_TABLE_ENTRY_CHAIN_LEN*common.MaxTxnThreadNum*2, btree.NewParentBufMgrImpl(buffer_pool_manager), lastPageZeroId)
 	ret.container = blink_tree.NewBLTree(bufMgr)
 	ret.col_idx = col_idx
-	ret.updateMtx = sync.RWMutex{}
+	ret.rwMtx = sync.RWMutex{}
 	ret.log_manager = log_manager
 	ret.bufMgr = bufMgr
 	return ret
@@ -97,8 +97,8 @@ func (btidx *BTreeIndex) insertEntryInner(key *tuple.Tuple, rid page.RID, txn in
 	convedKeyVal := samehada_util.EncodeValueAndRIDToDicOrderComparableVarchar(&orgKeyVal, &rid)
 
 	if isNoLock == false {
-		btidx.updateMtx.Lock()
-		defer btidx.updateMtx.Unlock()
+		btidx.rwMtx.Lock()
+		defer btidx.rwMtx.Unlock()
 	}
 
 	packedRID := samehada_util.PackRIDtoUint64(&rid)
@@ -122,8 +122,8 @@ func (btidx *BTreeIndex) deleteEntryInner(key *tuple.Tuple, rid page.RID, txn in
 	convedKeyVal := samehada_util.EncodeValueAndRIDToDicOrderComparableVarchar(&orgKeyVal, &rid)
 
 	if isNoLock == false {
-		btidx.updateMtx.Lock()
-		defer btidx.updateMtx.Unlock()
+		btidx.rwMtx.Lock()
+		defer btidx.rwMtx.Unlock()
 	}
 	btidx.container.DeleteKey(convedKeyVal.SerializeOnlyVal(), 0)
 }
@@ -138,7 +138,7 @@ func (btidx *BTreeIndex) ScanKey(key *tuple.Tuple, txn interface{}) []page.RID {
 	smallestKeyVal := samehada_util.EncodeValueAndRIDToDicOrderComparableVarchar(&orgKeyVal, &page.RID{0, 0})
 	biggestKeyVal := samehada_util.EncodeValueAndRIDToDicOrderComparableVarchar(&orgKeyVal, &page.RID{math.MaxInt32, math.MaxUint32})
 
-	btidx.updateMtx.RLock()
+	//btidx.rwMtx.RLock()
 	// Attention: returned itr's containing keys are string type Value which is constructed with byte arr of concatenated  original key and value
 	rangeItr := btidx.container.GetRangeItr(smallestKeyVal.SerializeOnlyVal(), biggestKeyVal.SerializeOnlyVal())
 
@@ -149,14 +149,14 @@ func (btidx *BTreeIndex) ScanKey(key *tuple.Tuple, txn interface{}) []page.RID {
 		uintRID := binary.BigEndian.Uint64(eightBytesRID[:])
 		retArr = append(retArr, samehada_util.UnpackUint64toRID(uintRID))
 	}
-	btidx.updateMtx.RUnlock()
+	//btidx.rwMtx.RUnlock()
 
 	return retArr
 }
 
 func (btidx *BTreeIndex) UpdateEntry(oldKey *tuple.Tuple, oldRID page.RID, newKey *tuple.Tuple, newRID page.RID, txn interface{}) {
-	btidx.updateMtx.Lock()
-	defer btidx.updateMtx.Unlock()
+	btidx.rwMtx.Lock()
+	defer btidx.rwMtx.Unlock()
 	btidx.deleteEntryInner(oldKey, oldRID, txn, true)
 	btidx.insertEntryInner(newKey, newRID, txn, true)
 }
@@ -179,8 +179,8 @@ func (btidx *BTreeIndex) GetRangeScanIterator(start_key *tuple.Tuple, end_key *t
 		biggestKeyVal = samehada_util.EncodeValueAndRIDToDicOrderComparableVarchar(&orgEndKeyVal, &page.RID{math.MaxInt32, math.MaxUint32})
 	}
 
-	btidx.updateMtx.RLock()
-	defer btidx.updateMtx.RUnlock()
+	//btidx.rwMtx.RLock()
+	//defer btidx.rwMtx.RUnlock()
 	var smalledKeyBytes []byte
 	var biggestKeyBytes []byte
 
