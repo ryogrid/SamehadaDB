@@ -1315,6 +1315,8 @@ func testSkipListParallelTxnStrideRoot[T int32 | float32 | string](t *testing.T,
 		//InnerTestParallelTxnsQueryingIndexUsedColumns[T](t, keyType, 400, 5000, 17, 0, bpoolSize, index_constants.INDEX_KIND_SKIP_LIST, PARALLEL_EXEC, 20)
 		InnerTestParallelTxnsQueryingIndexUsedColumns[T](t, keyType, 400, 5000, 17, 0, bpoolSize, index_constants.INDEX_KIND_SKIP_LIST, PARALLEL_EXEC, 20)
 
+		//InnerTestParallelTxnsQueryingIndexUsedColumns[T](t, keyType, 800, 30000, 17, 0, bpoolSize, index_constants.INDEX_KIND_SKIP_LIST, PARALLEL_EXEC, 20)
+
 		//testParallelTxnsQueryingUniqSkipListIndexUsedColumns[T](t, keyType, 400, 50000, 17, 0, bpoolSize, index_constants.INDEX_KIND_UNIQ_SKIP_LIST, PARALLEL_EXEC, 20)
 		//testParallelTxnsQueryingUniqSkipListIndexUsedColumns[T](t, keyType, 400, 200000, 11, 0, bpoolSize, index_constants.INDEX_KIND_UNIQ_SKIP_LIST, PARALLEL_EXEC, 20)
 
