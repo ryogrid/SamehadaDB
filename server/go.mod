@@ -6,11 +6,15 @@ go 1.21
 
 toolchain go1.21.2
 
+replace github.com/ryogrid/bltree-go-for-embedding => ../../bltree-go-for-embedding
+
 require (
 	github.com/ant0ine/go-json-rest v3.3.2+incompatible
 	github.com/ryogrid/SamehadaDB/lib v0.0.0-20240725021953-263ea0c5c011
 	github.com/vmihailenco/msgpack/v5 v5.4.1
 )
+
+require github.com/ryogrid/bltree-go-for-embedding v0.0.0-00010101000000-000000000000 // indirect
 
 require (
 	github.com/StackExchange/wmi v0.0.0-20190523213315-cbe66965904d // indirect
@@ -30,7 +34,7 @@ require (
 	github.com/pingcap/tidb v1.1.0-beta.0.20200630082100-328b6d0a955c // indirect
 	github.com/pingcap/tipb v0.0.0-20200522051215-f31a15d98fce // indirect
 	github.com/remyoudompheng/bigfft v0.0.0-20190728182440-6a916e37a237 // indirect
-	github.com/ryogrid/bltree-go-for-embedding v1.0.9 // indirect
+	//github.com/ryogrid/bltree-go-for-embedding v1.0.9 // indirect
 	github.com/shirou/gopsutil v2.19.10+incompatible // indirect
 	github.com/sirupsen/logrus v1.6.0 // indirect
 	github.com/spaolacci/murmur3 v1.1.0 // indirect

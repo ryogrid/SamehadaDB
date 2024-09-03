@@ -117,6 +117,7 @@ func GetNotDupWithAccountRandomPrimitivVal[T int32 | float32 | string](keyType t
 	return retVal
 }
 
+// used for SkipListIndex and BTreeIndex
 func InnerTestParallelTxnsQueryingIndexUsedColumns[T int32 | float32 | string](t *testing.T, keyType types.TypeID, stride int32, opTimes int32, seedVal int32, initialEntryNum int32, bpoolSize int32, indexKind index_constants.IndexKind, execType int32, threadNum int) {
 	common.ShPrintf(common.DEBUG_INFO, "start of testParallelTxnsQueryingUniqSkipListIndexUsedColumns stride=%d opTimes=%d seedVal=%d initialEntryNum=%d bpoolSize=%d ====================================================\n",
 		stride, opTimes, seedVal, initialEntryNum, bpoolSize)
@@ -620,6 +621,11 @@ func InnerTestParallelTxnsQueryingIndexUsedColumns[T int32 | float32 | string](t
 		//opType := rand.Intn(8)
 		//get 0-6
 		opType := rand.Intn(7)
+
+		//// TODO: (SDB) DEBUG: update operation -> point scan operation
+		//if opType == 7 {
+		//	opType = 6
+		//}
 
 		switch opType {
 		case 0: // Update two account balance (move money)
