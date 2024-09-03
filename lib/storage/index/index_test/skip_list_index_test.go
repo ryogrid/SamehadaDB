@@ -122,7 +122,7 @@ func testKeyDuplicateInsDelSkipListIndex2Col[T float32 | int32 | string](t *test
 		case types.Float:
 			uniqueVal = rand.Float32()
 		case types.Varchar:
-			uniqueVal = samehada_util.GetRandomStr(10)
+			uniqueVal = samehada_util.GetRandomStr(10, false)
 		default:
 			panic("unsuppoted value type")
 		}

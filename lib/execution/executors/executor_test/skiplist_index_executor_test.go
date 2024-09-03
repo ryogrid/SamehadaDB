@@ -617,15 +617,15 @@ func InnerTestParallelTxnsQueryingIndexUsedColumns[T int32 | float32 | string](t
 		}
 		common.ShPrintf(common.DEBUGGING, "ii=%d\n", ii)
 
-		//// get 0-7
-		//opType := rand.Intn(8)
-		//get 0-6
-		opType := rand.Intn(7)
+		// get 0-7
+		opType := rand.Intn(8)
+		////get 0-6
+		//opType := rand.Intn(7)
 
-		// TODO: (SDB) DEBUG: update operation -> point scan operation
-		if opType == 7 {
-			opType = 6
-		}
+		//// TODO: (SDB) DEBUG: update operation -> point scan operation
+		//if opType == 7 {
+		//	opType = 6
+		//}
 
 		switch opType {
 		case 0: // Update two account balance (move money)

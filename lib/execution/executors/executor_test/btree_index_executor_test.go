@@ -136,9 +136,10 @@ func testBTreeParallelTxnStrideRoot[T int32 | float32 | string](t *testing.T, ke
 		//InnerTestParallelTxnsQueryingIndexUsedColumns[T](t, keyType, 400, 5000, 17, 0, bpoolSize, index_constants.INDEX_KIND_SKIP_LIST, PARALLEL_EXEC, 20)
 		//InnerTestParallelTxnsQueryingIndexUsedColumns[T](t, keyType, 400, 5000, 17, 0, bpoolSize, index_constants.INDEX_KIND_BTREE, PARALLEL_EXEC, 20)
 		//InnerTestParallelTxnsQueryingIndexUsedColumns[T](t, keyType, 400, 1000, 17, 0, bpoolSize, index_constants.INDEX_KIND_BTREE, SERIAL_EXEC, 1)
+		InnerTestParallelTxnsQueryingIndexUsedColumns[T](t, keyType, 800, 5000, 17, 0, bpoolSize, index_constants.INDEX_KIND_BTREE, SERIAL_EXEC, 1)
 
 		//InnerTestParallelTxnsQueryingIndexUsedColumns[T](t, keyType, 400, 3000, 17, 0, bpoolSize, index_constants.INDEX_KIND_BTREE, PARALLEL_EXEC, 20)
-		InnerTestParallelTxnsQueryingIndexUsedColumns[T](t, keyType, 800, 30000, 17, 0, bpoolSize, index_constants.INDEX_KIND_BTREE, PARALLEL_EXEC, 20)
+		//InnerTestParallelTxnsQueryingIndexUsedColumns[T](t, keyType, 800, 30000, 17, 0, bpoolSize, index_constants.INDEX_KIND_BTREE, PARALLEL_EXEC, 20)
 	default:
 		panic("not implemented!")
 	}

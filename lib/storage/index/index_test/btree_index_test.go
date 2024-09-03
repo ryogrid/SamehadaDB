@@ -68,7 +68,7 @@ func TestBTreeIndexKeyDuplicateInsertDeleteSerialInt(t *testing.T) {
 		case types.Float:
 			uniqueVal = rand.Float32()
 		case types.Varchar:
-			uniqueVal = samehada_util.GetRandomStr(10)
+			uniqueVal = samehada_util.GetRandomStr(10, false)
 		default:
 			panic("unsuppoted value type")
 		}
