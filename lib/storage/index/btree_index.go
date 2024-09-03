@@ -97,8 +97,8 @@ func (btidx *BTreeIndex) insertEntryInner(key *tuple.Tuple, rid page.RID, txn in
 	convedKeyVal := samehada_util.EncodeValueAndRIDToDicOrderComparableVarchar(&orgKeyVal, &rid)
 
 	if isNoLock == false {
-		btidx.updateMtx.RLock()
-		defer btidx.updateMtx.RUnlock()
+		btidx.updateMtx.Lock()
+		defer btidx.updateMtx.Unlock()
 	}
 
 	packedRID := samehada_util.PackRIDtoUint64(&rid)
@@ -122,8 +122,8 @@ func (btidx *BTreeIndex) deleteEntryInner(key *tuple.Tuple, rid page.RID, txn in
 	convedKeyVal := samehada_util.EncodeValueAndRIDToDicOrderComparableVarchar(&orgKeyVal, &rid)
 
 	if isNoLock == false {
-		btidx.updateMtx.RLock()
-		defer btidx.updateMtx.RUnlock()
+		btidx.updateMtx.Lock()
+		defer btidx.updateMtx.Unlock()
 	}
 	btidx.container.DeleteKey(convedKeyVal.SerializeOnlyVal(), 0)
 }
