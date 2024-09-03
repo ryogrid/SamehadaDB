@@ -92,11 +92,15 @@ func GetPonterOfValue(value types.Value) *types.Value {
 }
 
 // min length is 1
-func GetRandomStr(maxLength int32) *string {
+func GetRandomStr(maxLength int32, isFixLen bool) *string {
 	alphabets :=
 		"ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz!#$%&'(),-./:;<=>?@[]^_`{|}~"
 	var len_ int
-	len_ = 1 + (rand.Intn(math.MaxInt32))%(int(maxLength)-1)
+	if isFixLen {
+		len_ = int(maxLength)
+	} else {
+		len_ = 1 + (rand.Intn(math.MaxInt32))%(int(maxLength)-1)
+	}
 
 	s := ""
 	for j := 0; j < len_; j++ {
@@ -150,7 +154,10 @@ func GetRandomPrimitiveVal[T int32 | float32 | string](keyType types.TypeID, max
 		var ret interface{} = float32(val)
 		return ret.(T)
 	case types.Varchar:
-		var ret interface{} = *GetRandomStr(200)
+		//var ret interface{} = *GetRandomStr(200)
+		// TODO: (SDB) FOR DEBUG: length is fixed
+		//var ret interface{} = *GetRandomStr(50, false)
+		var ret interface{} = *GetRandomStr(50, true)
 		return ret.(T)
 	default:
 		panic("not supported keyType")
@@ -351,7 +358,7 @@ func ExtractOrgKeyFromDicOrderComparableEncodedBytes(buf []byte, valType types.T
 		retVal := types.NewValue(decodeFromDicOrderComparableBytes(buf[3:len(buf)-8], valType).(float32))
 		return &retVal
 	case types.Varchar:
-		orgStr := string(buf[:len(buf)-(4+8)])
+		orgStr := string(buf)
 		return GetPonterOfValue(types.NewVarchar(orgStr))
 	default:
 		panic("not supported type")

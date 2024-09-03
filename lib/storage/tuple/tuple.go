@@ -6,6 +6,7 @@ package tuple
 import (
 	"bytes"
 	"encoding/binary"
+	"fmt"
 	"github.com/ryogrid/SamehadaDB/lib/storage/page"
 	"github.com/ryogrid/SamehadaDB/lib/storage/table/schema"
 	"github.com/ryogrid/SamehadaDB/lib/types"
@@ -97,6 +98,9 @@ func (t *Tuple) GetValue(schema *schema.Schema, colIndex uint32) types.Value {
 		offset = uint32(types.NewUInt32FromBytes(t.data[offset : offset+column.FixedLength()]))
 	}
 
+	if int(offset) >= len(t.data) {
+		fmt.Println("Tuple::GetValue: offset is out of range", offset, len(t.data))
+	}
 	value := types.NewValueFromBytes(t.data[offset:], column.GetType())
 	if value == nil {
 		panic(value)
