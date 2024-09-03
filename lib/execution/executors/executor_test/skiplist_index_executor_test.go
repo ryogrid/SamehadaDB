@@ -1121,7 +1121,7 @@ func InnerTestParallelTxnsQueryingIndexUsedColumns[T int32 | float32 | string](t
 					return
 				}
 
-				if indexKind == index_constants.INDEX_KIND_SKIP_LIST {
+				if indexKind == index_constants.INDEX_KIND_SKIP_LIST || indexKind == index_constants.INDEX_KIND_BTREE {
 					resultsLen := len(results)
 					var prevVal *types.Value = nil
 					for jj := 0; jj < resultsLen; jj++ {
