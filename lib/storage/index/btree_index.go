@@ -31,12 +31,15 @@ func (btreeItr *BtreeIndexIterator) Next() (done bool, err error, key *types.Val
 		return true, nil, nil, &page.RID{-1, 0}
 	}
 	// packedRID is 6 bytes. so append 2 bytes of 0 to make it 8 bytes
+	//packedRID = []byte{packedRID[0], packedRID[1], packedRID[2], packedRID[3], 0, 0, packedRID[4], packedRID[5]}
 	packedRID = []byte{packedRID[0], packedRID[1], packedRID[2], packedRID[3], 0, 0, packedRID[4], packedRID[5]}
+
 	if ok == false {
 		return true, nil, nil, &page.RID{-1, 0}
 	}
-	uintRID := binary.BigEndian.Uint64(packedRID)
-	unpackedRID := samehada_util.UnpackUint64toRID(uintRID)
+	//uintRID := binary.BigEndian.Uint64(packedRID)
+	//unpackedRID := samehada_util.UnpackUint64toRID(uintRID)
+	unpackedRID := samehada_util.Unpack8BytesToRID(packedRID)
 
 	// attach isNull flag and length of value due to these info is not stored in BLTree
 	// and when Varchar, bytes to make comapreable is inserted
@@ -101,12 +104,11 @@ func (btidx *BTreeIndex) insertEntryInner(key *tuple.Tuple, rid page.RID, txn in
 		defer btidx.rwMtx.Unlock()
 	}
 
-	packedRID := samehada_util.PackRIDtoUint64(&rid)
-	var valBuf [8]byte
-	binary.BigEndian.PutUint64(valBuf[:], packedRID)
+	ridBytes := samehada_util.PackRIDto8bytes(&rid)
 
 	// slotNum is packed to 2 bytes
-	sixBytesVal := [6]byte{valBuf[0], valBuf[1], valBuf[2], valBuf[3], valBuf[6], valBuf[7]}
+	//sixBytesVal := [6]byte{valBuf[0], valBuf[1], valBuf[2], valBuf[3], valBuf[6], valBuf[7]}
+	sixBytesVal := [6]byte{ridBytes[0], ridBytes[1], ridBytes[2], ridBytes[3], ridBytes[6], ridBytes[7]}
 
 	btidx.container.InsertKey(convedKeyVal.SerializeOnlyVal(), 0, sixBytesVal, true)
 }
@@ -145,9 +147,10 @@ func (btidx *BTreeIndex) ScanKey(key *tuple.Tuple, txn interface{}) []page.RID {
 	retArr := make([]page.RID, 0)
 	for ok, _, packedRID := rangeItr.Next(); ok; ok, _, packedRID = rangeItr.Next() {
 		// packedRID is 6 bytes. so append 2 bytes of 0 to make it 8 bytes
+		//eightBytesRID := [8]byte{packedRID[0], packedRID[1], packedRID[2], packedRID[3], 0, 0, packedRID[4], packedRID[5]}
 		eightBytesRID := [8]byte{packedRID[0], packedRID[1], packedRID[2], packedRID[3], 0, 0, packedRID[4], packedRID[5]}
-		uintRID := binary.BigEndian.Uint64(eightBytesRID[:])
-		retArr = append(retArr, samehada_util.UnpackUint64toRID(uintRID))
+		//uintRID := binary.BigEndian.Uint64(eightBytesRID[:])
+		retArr = append(retArr, samehada_util.Unpack8BytesToRID(eightBytesRID[:]))
 	}
 	//btidx.rwMtx.RUnlock()
 

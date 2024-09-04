@@ -68,6 +68,19 @@ func PackRIDtoUint64(value *page.RID) uint64 {
 	return binary.BigEndian.Uint64(pack_buf)
 }
 
+func PackRIDto8bytes(value *page.RID) []byte {
+	buf1 := new(bytes.Buffer)
+	buf2 := new(bytes.Buffer)
+	pack_buf := make([]byte, 8)
+	binary.Write(buf1, binary.BigEndian, value.PageId)
+	binary.Write(buf2, binary.BigEndian, value.SlotNum)
+	pageIdInBytes := buf1.Bytes()
+	slotNumInBytes := buf2.Bytes()
+	copy(pack_buf[:4], pageIdInBytes[:])
+	copy(pack_buf[4:], slotNumInBytes[:])
+	return pack_buf
+}
+
 func UnpackUint64toRID(value uint64) page.RID {
 	packed_buf := new(bytes.Buffer)
 	binary.Write(packed_buf, binary.BigEndian, value)
@@ -83,6 +96,15 @@ func UnpackUint64toRID(value uint64) page.RID {
 	ret := new(page.RID)
 	ret.PageId = PageId
 	ret.SlotNum = SlotNum
+	return *ret
+}
+
+func Unpack8BytesToRID(buf []byte) page.RID {
+	pageId := binary.BigEndian.Uint32(buf[:4])
+	slotNum := binary.BigEndian.Uint32(buf[4:])
+	ret := new(page.RID)
+	ret.PageId = types.PageID(pageId)
+	ret.SlotNum = slotNum
 	return *ret
 }
 
@@ -157,7 +179,8 @@ func GetRandomPrimitiveVal[T int32 | float32 | string](keyType types.TypeID, max
 		//var ret interface{} = *GetRandomStr(200)
 		// TODO: (SDB) FOR DEBUG: length is fixed
 		//var ret interface{} = *GetRandomStr(50, false)
-		var ret interface{} = *GetRandomStr(50, true)
+		//var ret interface{} = *GetRandomStr(50, true)
+		var ret interface{} = *GetRandomStr(10, true)
 		return ret.(T)
 	default:
 		panic("not supported keyType")

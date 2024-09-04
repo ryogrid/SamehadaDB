@@ -175,10 +175,10 @@ func TestKeyDuplicateBTreePrallelTxnStrideFloat(t *testing.T) {
 
 // BTreeIndex doesn't support Varchar
 
-//func TestKeyDuplicateBTreePrallelTxnStrideVarchar(t *testing.T) {
-//	t.Parallel()
-//	if testing.Short() {
-//		t.Skip("skip this in short mode.")
-//	}
-//	testBTreeParallelTxnStrideRoot[string](t, types.Varchar)
-//}
+func TestKeyDuplicateBTreePrallelTxnStrideVarchar(t *testing.T) {
+	t.Parallel()
+	if testing.Short() {
+		t.Skip("skip this in short mode.")
+	}
+	testBTreeParallelTxnStrideRoot[string](t, types.Varchar)
+}
