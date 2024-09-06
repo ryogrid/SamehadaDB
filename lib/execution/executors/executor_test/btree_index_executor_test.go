@@ -127,9 +127,9 @@ func testBTreeParallelTxnStrideRoot[T int32 | float32 | string](t *testing.T, ke
 
 		//InnerTestParallelTxnsQueryingIndexUsedColumns[T](t, keyType, 800, 30000, 13, 0, bpoolSize, index_constants.INDEX_KIND_BTREE, PARALLEL_EXEC, 20)
 
-		InnerTestParallelTxnsQueryingIndexUsedColumns[T](t, keyType, 800, 1000, 13, 0, bpoolSize, index_constants.INDEX_KIND_BTREE, SERIAL_EXEC, 1)
+		//InnerTestParallelTxnsQueryingIndexUsedColumns[T](t, keyType, 800, 1000, 13, 0, bpoolSize, index_constants.INDEX_KIND_BTREE, SERIAL_EXEC, 1)
 
-		//InnerTestParallelTxnsQueryingIndexUsedColumns[T](t, keyType, 400, 3000, 13, 0, bpoolSize, index_constants.INDEX_KIND_SKIP_LIST, PARALLEL_EXEC, 20)
+		InnerTestParallelTxnsQueryingIndexUsedColumns[T](t, keyType, 800, 3000, 13, 0, bpoolSize, index_constants.INDEX_KIND_BTREE, PARALLEL_EXEC, 20)
 	case types.Float:
 		InnerTestParallelTxnsQueryingIndexUsedColumns[T](t, keyType, 240, 1000, 13, 0, bpoolSize, index_constants.INDEX_KIND_BTREE, PARALLEL_EXEC, 20)
 	case types.Varchar:

@@ -180,7 +180,7 @@ func GetRandomPrimitiveVal[T int32 | float32 | string](keyType types.TypeID, max
 		// TODO: (SDB) FOR DEBUG: length is fixed
 		//var ret interface{} = *GetRandomStr(50, false)
 		//var ret interface{} = *GetRandomStr(50, true)
-		var ret interface{} = *GetRandomStr(10, true)
+		var ret interface{} = *GetRandomStr(50, true)
 		return ret.(T)
 	default:
 		panic("not supported keyType")
