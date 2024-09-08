@@ -140,7 +140,7 @@ func (btidx *BTreeIndex) ScanKey(key *tuple.Tuple, txn interface{}) []page.RID {
 	smallestKeyVal := samehada_util.EncodeValueAndRIDToDicOrderComparableVarchar(&orgKeyVal, &page.RID{0, 0})
 	biggestKeyVal := samehada_util.EncodeValueAndRIDToDicOrderComparableVarchar(&orgKeyVal, &page.RID{math.MaxInt32, math.MaxUint32})
 
-	//btidx.rwMtx.RLock()
+	btidx.rwMtx.RLock()
 	// Attention: returned itr's containing keys are string type Value which is constructed with byte arr of concatenated  original key and value
 	rangeItr := btidx.container.GetRangeItr(smallestKeyVal.SerializeOnlyVal(), biggestKeyVal.SerializeOnlyVal())
 
@@ -152,7 +152,7 @@ func (btidx *BTreeIndex) ScanKey(key *tuple.Tuple, txn interface{}) []page.RID {
 		//uintRID := binary.BigEndian.Uint64(eightBytesRID[:])
 		retArr = append(retArr, samehada_util.Unpack8BytesToRID(eightBytesRID[:]))
 	}
-	//btidx.rwMtx.RUnlock()
+	btidx.rwMtx.RUnlock()
 
 	return retArr
 }
@@ -182,8 +182,8 @@ func (btidx *BTreeIndex) GetRangeScanIterator(start_key *tuple.Tuple, end_key *t
 		biggestKeyVal = samehada_util.EncodeValueAndRIDToDicOrderComparableVarchar(&orgEndKeyVal, &page.RID{math.MaxInt32, math.MaxUint32})
 	}
 
-	//btidx.rwMtx.RLock()
-	//defer btidx.rwMtx.RUnlock()
+	btidx.rwMtx.RLock()
+	defer btidx.rwMtx.RUnlock()
 	var smalledKeyBytes []byte
 	var biggestKeyBytes []byte
 
