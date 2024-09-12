@@ -177,10 +177,9 @@ func GetRandomPrimitiveVal[T int32 | float32 | string](keyType types.TypeID, max
 		return ret.(T)
 	case types.Varchar:
 		//var ret interface{} = *GetRandomStr(200)
-		// TODO: (SDB) FOR DEBUG: length is fixed
 		//var ret interface{} = *GetRandomStr(50, false)
 		//var ret interface{} = *GetRandomStr(50, true)
-		var ret interface{} = *GetRandomStr(10, true)
+		var ret interface{} = *GetRandomStr(10, false)
 		return ret.(T)
 	default:
 		panic("not supported keyType")
@@ -521,4 +520,21 @@ func PrintExecuteResults(results [][]*types.Value) {
 		}
 		fmt.Println("")
 	}
+}
+
+func FillZeroValues(key []byte, maxKeyLen int) []byte {
+	if len(key) > maxKeyLen-12-2 {
+		panic("key length is too long")
+	}
+	ret := append(key, make([]byte, maxKeyLen-len(key)-2)...)
+	paddingLen := uint16(maxKeyLen - len(key) - 2)
+	paddingLenBytes := make([]byte, 2)
+	binary.BigEndian.PutUint16(paddingLenBytes, paddingLen)
+	ret = append(ret, paddingLenBytes...)
+	return ret
+}
+
+func EliminateZeroValues(key []byte) []byte {
+	zeroPaddingLen := binary.BigEndian.Uint16(key[len(key)-2:])
+	return key[:len(key)-int(zeroPaddingLen)-2]
 }

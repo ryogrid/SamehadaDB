@@ -16,6 +16,8 @@ import (
 	"sync"
 )
 
+const MaxKeyLen = 50
+
 type BtreeIndexIterator struct {
 	itr     *blink_tree.BLTreeItr
 	valType types.TypeID
@@ -54,6 +56,7 @@ func (btreeItr *BtreeIndexIterator) Next() (done bool, err error, key *types.Val
 		newKeyBytes = append(newKeyBytes, keyLenBuf...)
 		newKeyBytes = append(newKeyBytes, keyBytes...)
 	case types.Varchar:
+		keyBytes = samehada_util.EliminateZeroValues(keyBytes)
 		// 4 is {0, 0, 0, 0}
 		// 8 is length of packedRID
 		newKeyBytes = keyBytes[:len(keyBytes)-4-8]
@@ -65,6 +68,9 @@ func (btreeItr *BtreeIndexIterator) Next() (done bool, err error, key *types.Val
 	return false, nil, decodedKey, &unpackedRID
 }
 
+// Attention: when column type is Varchar, key length should be less than (MaxKeyLen - 12 - 2)
+//
+//	12 is {0, 0, 0, 0} and 8bytes of packedRID, 2byte is for length of zero padding
 type BTreeIndex struct {
 	container *blink_tree.BLTree
 	metadata  *IndexMetadata
@@ -100,8 +106,8 @@ func (btidx *BTreeIndex) insertEntryInner(key *tuple.Tuple, rid page.RID, txn in
 	convedKeyVal := samehada_util.EncodeValueAndRIDToDicOrderComparableVarchar(&orgKeyVal, &rid)
 
 	if isNoLock == false {
-		btidx.rwMtx.Lock()
-		defer btidx.rwMtx.Unlock()
+		btidx.rwMtx.RLock()
+		defer btidx.rwMtx.RUnlock()
 	}
 
 	ridBytes := samehada_util.PackRIDto8bytes(&rid)
@@ -110,7 +116,13 @@ func (btidx *BTreeIndex) insertEntryInner(key *tuple.Tuple, rid page.RID, txn in
 	//sixBytesVal := [6]byte{valBuf[0], valBuf[1], valBuf[2], valBuf[3], valBuf[6], valBuf[7]}
 	sixBytesVal := [6]byte{ridBytes[0], ridBytes[1], ridBytes[2], ridBytes[3], ridBytes[6], ridBytes[7]}
 
-	btidx.container.InsertKey(convedKeyVal.SerializeOnlyVal(), 0, sixBytesVal, true)
+	keyBytes := convedKeyVal.SerializeOnlyVal()
+	if orgKeyVal.ValueType() == types.Varchar {
+		// fill 0 to make keyBytes length to MaxKeyLen for avoiding bug of BLTree
+		keyBytes = samehada_util.FillZeroValues(keyBytes, MaxKeyLen)
+	}
+
+	btidx.container.InsertKey(keyBytes, 0, sixBytesVal, true)
 }
 
 func (btidx *BTreeIndex) InsertEntry(key *tuple.Tuple, rid page.RID, txn interface{}) {
@@ -124,10 +136,16 @@ func (btidx *BTreeIndex) deleteEntryInner(key *tuple.Tuple, rid page.RID, txn in
 	convedKeyVal := samehada_util.EncodeValueAndRIDToDicOrderComparableVarchar(&orgKeyVal, &rid)
 
 	if isNoLock == false {
-		btidx.rwMtx.Lock()
-		defer btidx.rwMtx.Unlock()
+		btidx.rwMtx.RLock()
+		defer btidx.rwMtx.RUnlock()
 	}
-	btidx.container.DeleteKey(convedKeyVal.SerializeOnlyVal(), 0)
+	keyBytes := convedKeyVal.SerializeOnlyVal()
+	if orgKeyVal.ValueType() == types.Varchar {
+		// fill 0 to make keyBytes length to MaxKeyLen for avoiding bug of BLTree
+		keyBytes = samehada_util.FillZeroValues(keyBytes, MaxKeyLen)
+	}
+
+	btidx.container.DeleteKey(keyBytes, 0)
 }
 
 func (btidx *BTreeIndex) DeleteEntry(key *tuple.Tuple, rid page.RID, txn interface{}) {
@@ -140,7 +158,7 @@ func (btidx *BTreeIndex) ScanKey(key *tuple.Tuple, txn interface{}) []page.RID {
 	smallestKeyVal := samehada_util.EncodeValueAndRIDToDicOrderComparableVarchar(&orgKeyVal, &page.RID{0, 0})
 	biggestKeyVal := samehada_util.EncodeValueAndRIDToDicOrderComparableVarchar(&orgKeyVal, &page.RID{math.MaxInt32, math.MaxUint32})
 
-	//btidx.rwMtx.RLock()
+	btidx.rwMtx.RLock()
 	// Attention: returned itr's containing keys are string type Value which is constructed with byte arr of concatenated  original key and value
 	rangeItr := btidx.container.GetRangeItr(smallestKeyVal.SerializeOnlyVal(), biggestKeyVal.SerializeOnlyVal())
 
@@ -152,7 +170,7 @@ func (btidx *BTreeIndex) ScanKey(key *tuple.Tuple, txn interface{}) []page.RID {
 		//uintRID := binary.BigEndian.Uint64(eightBytesRID[:])
 		retArr = append(retArr, samehada_util.Unpack8BytesToRID(eightBytesRID[:]))
 	}
-	//btidx.rwMtx.RUnlock()
+	btidx.rwMtx.RUnlock()
 
 	return retArr
 }
@@ -182,8 +200,9 @@ func (btidx *BTreeIndex) GetRangeScanIterator(start_key *tuple.Tuple, end_key *t
 		biggestKeyVal = samehada_util.EncodeValueAndRIDToDicOrderComparableVarchar(&orgEndKeyVal, &page.RID{math.MaxInt32, math.MaxUint32})
 	}
 
-	//btidx.rwMtx.RLock()
-	//defer btidx.rwMtx.RUnlock()
+	btidx.rwMtx.RLock()
+	defer btidx.rwMtx.RUnlock()
+
 	var smalledKeyBytes []byte
 	var biggestKeyBytes []byte
 
