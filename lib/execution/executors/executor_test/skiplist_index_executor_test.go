@@ -1071,7 +1071,7 @@ func InnerTestParallelTxnsQueryingIndexUsedColumns[T int32 | float32 | string](t
 					return
 				}
 				common.ShPrintf(common.DEBUGGING, "Select(success) op start.\n")
-				//diffToMakeNoExist := int32(10)
+				diffToMakeNoExist := int32(10)
 			rangeSelectRetry:
 				var rangeStartKey = samehada_util.ChoiceKeyFromMap(insVals)
 				var rangeEndKey = samehada_util.ChoiceKeyFromMap(insVals)
@@ -1079,10 +1079,8 @@ func InnerTestParallelTxnsQueryingIndexUsedColumns[T int32 | float32 | string](t
 					goto rangeSelectRetry
 				}
 				insValsMutex.RUnlock()
-				//// get 0-8 value
-				//tmpRand := rand.Intn(9)
-				// get 0-3 value
-				tmpRand := rand.Intn(4)
+				// get 0-8 value
+				tmpRand := rand.Intn(9)
 				var rangeScanPlan plans.Plan
 				switch tmpRand {
 				case 0: // start only
@@ -1093,22 +1091,22 @@ func InnerTestParallelTxnsQueryingIndexUsedColumns[T int32 | float32 | string](t
 					rangeScanPlan = createSpecifiedRangeScanPlanNode[T](c, tableMetadata, keyType, 0, &rangeStartKey, &rangeEndKey, indexKind)
 				case 3: // not specified both
 					rangeScanPlan = createSpecifiedRangeScanPlanNode[T](c, tableMetadata, keyType, 0, nil, nil, indexKind)
-					//case 4: // start only (not exisiting val)
-					//	tmpStartKey := samehada_util.StrideAdd(rangeStartKey, diffToMakeNoExist).(T)
-					//	rangeScanPlan = createSpecifiedRangeScanPlanNode[T](c, tableMetadata, keyType, 0, &tmpStartKey, nil, indexKind)
-					//case 5: // end only (not existing val)
-					//	tmpEndKey := samehada_util.StrideAdd(rangeEndKey, diffToMakeNoExist).(T)
-					//	rangeScanPlan = createSpecifiedRangeScanPlanNode[T](c, tableMetadata, keyType, 0, nil, &tmpEndKey, indexKind)
-					//case 6: // start and end (start val is not existing one)
-					//	tmpStartKey := samehada_util.StrideAdd(rangeStartKey, diffToMakeNoExist).(T)
-					//	rangeScanPlan = createSpecifiedRangeScanPlanNode[T](c, tableMetadata, keyType, 0, &tmpStartKey, &rangeEndKey, indexKind)
-					//case 7: // start and end (start val is not existing one)
-					//	tmpEndKey := samehada_util.StrideAdd(rangeEndKey, diffToMakeNoExist).(T)
-					//	rangeScanPlan = createSpecifiedRangeScanPlanNode[T](c, tableMetadata, keyType, 0, &rangeStartKey, &tmpEndKey, indexKind)
-					//case 8: // start and end (end val is not existing one)
-					//	tmpStartKey := samehada_util.StrideAdd(rangeStartKey, diffToMakeNoExist).(T)
-					//	tmpEndKey := samehada_util.StrideAdd(rangeEndKey, diffToMakeNoExist).(T)
-					//	rangeScanPlan = createSpecifiedRangeScanPlanNode[T](c, tableMetadata, keyType, 0, &tmpStartKey, &tmpEndKey, indexKind)
+				case 4: // start only (not exisiting val)
+					tmpStartKey := samehada_util.StrideAdd(rangeStartKey, diffToMakeNoExist).(T)
+					rangeScanPlan = createSpecifiedRangeScanPlanNode[T](c, tableMetadata, keyType, 0, &tmpStartKey, nil, indexKind)
+				case 5: // end only (not existing val)
+					tmpEndKey := samehada_util.StrideAdd(rangeEndKey, diffToMakeNoExist).(T)
+					rangeScanPlan = createSpecifiedRangeScanPlanNode[T](c, tableMetadata, keyType, 0, nil, &tmpEndKey, indexKind)
+				case 6: // start and end (start val is not existing one)
+					tmpStartKey := samehada_util.StrideAdd(rangeStartKey, diffToMakeNoExist).(T)
+					rangeScanPlan = createSpecifiedRangeScanPlanNode[T](c, tableMetadata, keyType, 0, &tmpStartKey, &rangeEndKey, indexKind)
+				case 7: // start and end (start val is not existing one)
+					tmpEndKey := samehada_util.StrideAdd(rangeEndKey, diffToMakeNoExist).(T)
+					rangeScanPlan = createSpecifiedRangeScanPlanNode[T](c, tableMetadata, keyType, 0, &rangeStartKey, &tmpEndKey, indexKind)
+				case 8: // start and end (end val is not existing one)
+					tmpStartKey := samehada_util.StrideAdd(rangeStartKey, diffToMakeNoExist).(T)
+					tmpEndKey := samehada_util.StrideAdd(rangeEndKey, diffToMakeNoExist).(T)
+					rangeScanPlan = createSpecifiedRangeScanPlanNode[T](c, tableMetadata, keyType, 0, &tmpStartKey, &tmpEndKey, indexKind)
 				}
 
 				txn_ := txnMgr.Begin(nil)
