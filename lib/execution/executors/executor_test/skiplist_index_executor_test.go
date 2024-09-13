@@ -1357,8 +1357,8 @@ func TestKeyDuplicateSkipListPrallelTxnStrideFloat(t *testing.T) {
 
 func TestKeyDuplicateSkipListPrallelTxnStrideVarchar(t *testing.T) {
 	t.Parallel()
-	if testing.Short() {
-		t.Skip("skip this in short mode.")
-	}
+	//if testing.Short() {
+	//	t.Skip("skip this in short mode.")
+	//}
 	testSkipListParallelTxnStrideRoot[string](t, types.Varchar)
 }

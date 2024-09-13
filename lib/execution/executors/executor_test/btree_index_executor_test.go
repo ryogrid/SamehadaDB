@@ -182,8 +182,8 @@ func TestKeyDuplicateBTreePrallelTxnStrideFloat(t *testing.T) {
 
 func TestKeyDuplicateBTreePrallelTxnStrideVarchar(t *testing.T) {
 	t.Parallel()
-	if testing.Short() {
-		t.Skip("skip this in short mode.")
-	}
+	//if testing.Short() {
+	//	t.Skip("skip this in short mode.")
+	//}
 	testBTreeParallelTxnStrideRoot[string](t, types.Varchar)
 }
