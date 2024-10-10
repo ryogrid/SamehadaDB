@@ -97,13 +97,13 @@
   - [x] CROSS JOIN
 - [x] Aggregations (COUNT, MAX, MIN, SUM on SELECT clause including Group by and Having) [^1]
 - [x] Sort (ORDER BY clause) [^1]
-- [x] Tuple Level Locking With Strong Strict 2-Phase Locking (SS2PL) Protocol
 - [x] Concurrent Execution of Transactions
+  - Concurrecy control protcol is Strong Strict 2-Phase Locking (SS2PL) and locking granularity is tuple level (record level)
   - Avoidance of phantom problem is not implemented yet
     - So, current transaction isolation level is **"REPEATABLE READ"**
   - And when table has Indexes, dirty read can be occured
     - So, when you use Indexes, isolation level is **"DIRTY READ"**
-      - Why dirty read occurs is lack of consistency between table record and Index entry at DELETE  
+      - Why dirty read occurs is lack of consistency between table record and index entry at DELETE  
 - [ ] <del>Execution Planning from hard coded SQL like method call I/F (like some kind of embedded DB)</del>
 - [x] Execution of Query with SQL string
   - not supported multi queries on a request yet
