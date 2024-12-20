@@ -15,6 +15,7 @@ import (
 	"github.com/ryogrid/SamehadaDB/lib/samehada/samehada_util"
 	"github.com/ryogrid/SamehadaDB/lib/storage/access"
 	"github.com/ryogrid/SamehadaDB/lib/storage/disk"
+	"github.com/ryogrid/SamehadaDB/lib/storage/index"
 	"github.com/ryogrid/SamehadaDB/lib/storage/index/index_constants"
 	"github.com/ryogrid/SamehadaDB/lib/storage/page"
 	"github.com/ryogrid/SamehadaDB/lib/storage/tuple"
@@ -252,11 +253,31 @@ func (sdb *SamehadaDB) ExecuteSQLRetValues(sqlStr string) (error, [][]*types.Val
 	return nil, retVals
 }
 
+// use this when shutdown DB
+// and before flush of page buffer
+func (si *SamehadaDB) finalizeIndexesInternalState() {
+	allTables := si.catalog_.GetAllTables()
+	for _, table := range allTables {
+		for _, index_ := range table.Indexes() {
+			if index_ != nil {
+				switch index_.(type) {
+				case *index.BTreeIndex:
+					// serialize internal page mapping entries to pages
+					index_.(*index.BTreeIndex).WriteOutContainerStateToBPM()
+				default:
+					//do nothing
+				}
+			}
+		}
+	}
+}
+
 func (sdb *SamehadaDB) Shutdown() {
 	// set a flag which is checked by checkpointing thread
 	sdb.statistics_updator.StopStatsUpdateTh()
 	sdb.shi_.GetCheckpointManager().StopCheckpointTh()
 	sdb.request_manager.StopTh()
+	sdb.finalizeIndexesInternalState()
 	logRecord := recovery.NewLogRecordGracefulShutdown()
 	sdb.shi_.log_manager.AppendLogRecord(logRecord)
 	sdb.shi_.Shutdown(ShutdownPatternCloseFiles)
