@@ -40,6 +40,11 @@ type reqResult struct {
 	callerCh *chan *reqResult
 }
 
+// return internal object (for testing)
+func (sdb *SamehadaDB) GetSamehadaInstance() *SamehadaInstance {
+	return sdb.shi_
+}
+
 func reconstructIndexDataOfATbl(t *catalog.TableMetadata, c *catalog.Catalog, dman disk.DiskManager, txn *access.Transaction) {
 	executionEngine := &executors.ExecutionEngine{}
 	executorContext := executors.NewExecutorContext(c, t.Table().GetBufferPoolManager(), txn)
@@ -289,10 +294,16 @@ func (sdb *SamehadaDB) ShutdownForTescase() {
 	sdb.shi_.GetCheckpointManager().StopCheckpointTh()
 	sdb.statistics_updator.StopStatsUpdateTh()
 	sdb.request_manager.StopTh()
+	sdb.finalizeIndexesInternalState()
 	sdb.shi_.CloseFilesForTesting()
 }
 
 func (sdb *SamehadaDB) ForceCheckpointingForTestcase() {
 	sdb.shi_.GetCheckpointManager().BeginCheckpoint()
 	sdb.shi_.GetCheckpointManager().EndCheckpoint()
+}
+
+// for internal unit testing
+func (sdb *SamehadaDB) GetCatalogForTesting() *catalog.Catalog {
+	return sdb.catalog_
 }

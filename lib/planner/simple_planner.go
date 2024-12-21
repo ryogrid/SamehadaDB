@@ -266,6 +266,7 @@ func (pner *SimplePlanner) MakeCreateTablePlan() (error, plans.Plan) {
 	columns := make([]*column.Column, 0)
 	for _, cdefExp := range pner.qi.ColDefExpressions_ {
 		columns = append(columns, column.NewColumn(*cdefExp.ColName_, *cdefExp.ColType_, true, index_constants.INDEX_KIND_SKIP_LIST, types.PageID(-1), nil))
+		//columns = append(columns, column.NewColumn(*cdefExp.ColName_, *cdefExp.ColType_, true, index_constants.INDEX_KIND_BTREE, types.PageID(-1), nil))
 	}
 	schema_ := schema.NewSchema(columns)
 
