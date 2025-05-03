@@ -160,7 +160,11 @@
 - [kumagi](https://github.com/kumagi) and more!
 
 # Acknowledgement
-- 2022 May - present: SamehadaDB project is assisted by OSS community support program of JetBrains s.r.o with offering development tools such as GoLand IDE
+- 2022 May - 2025 April: SamehadaDB project is assisted by OSS community support program of JetBrains s.r.o with offering development tools such as GoLand IDE
 
 # Past work
 - [FunnelKVS: Rust implementation of autonomous distributed key-value store which has REST interfaces](https://github.com/ryogrid/rust_dkvs)
+
+# Star History
+
+[![Star History Chart](https://api.star-history.com/svg?repos=ryogrid/SamehadaDB&type=Date)](https://star-history.com/#ryogrid/SamehadaDB&Date)
