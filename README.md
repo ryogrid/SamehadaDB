@@ -18,6 +18,9 @@
   - Golang has high readability
   - SamehadaDB is based on BusTub RDBMS which is used in educational purpose
 
+# DeepWiki about this repo
+- [here](https://deepwiki.com/ryogrid/SamehadaDB)
+
 # Current Status
 - SamehadaDB can be used as simple embedded DB (library form)
   - [Simple Single Page Application Demo (TODO App)](http://ryogrid.net:8088/todo/)))
