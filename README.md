@@ -92,7 +92,7 @@
   - [x] B-tree Index [^1]
     - Using [bltree-go-for-embedding](https://github.com/ryogrid/bltree-go-for-embedding) lib
     - Concurrent access is supported
-  - [ ] Logging And Recovery Of Index Data
+  - [ ] Logging And Recovery of Indexes
 - [ ] JOIN
   - [x] INNER JOIN (Hash Join, Index Join, Nested Loop Join)
     - Condition specified at ON clause should be composed of single item and can use equal(==) operator only
@@ -101,7 +101,8 @@
 - [x] Aggregations (COUNT, MAX, MIN, SUM on SELECT clause including Group by and Having) [^1]
 - [x] Sort (ORDER BY clause) [^1]
 - [x] Concurrent Execution of Transactions
-  - Concurrecy control protcol is Strong Strict 2-Phase Locking (SS2PL) and locking granularity is tuple level (record level)
+  - Concurrecy control protcol is SS2PL-NW (Strong Strict 2-Phase Locking - No Wait) and locking granularity is tuple level (record level)
+    - a.k.a 2PL-NW, No-Wait 2PL
   - Avoidance of phantom problem is not implemented yet
     - So, current transaction isolation level is **"REPEATABLE READ"**
   - And when table has Indexes, dirty read can be occured
