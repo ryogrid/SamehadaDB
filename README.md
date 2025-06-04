@@ -3,7 +3,7 @@
 <img src="samehada_logo2.webp" width="500px" />
 
 # Overview
-- Compact Relational Database Management System Implementation Wrote in Golang
+- Learning-oriented Compact Relational Database Management System Implementation in Golang
 - Origin of SamehadaDB is Golang ported [BusTub](https://github.com/cmu-db/bustub) RDBMS: [go-bustub](https://github.com/brunocalza/go-bustub)
 
 # What is Samehada?
