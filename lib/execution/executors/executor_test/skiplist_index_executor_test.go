@@ -2,6 +2,13 @@ package executor_test
 
 import (
 	"fmt"
+	"math"
+	"math/rand"
+	"os"
+	"sync"
+	"sync/atomic"
+	"testing"
+
 	"github.com/ryogrid/SamehadaDB/lib/catalog"
 	"github.com/ryogrid/SamehadaDB/lib/common"
 	"github.com/ryogrid/SamehadaDB/lib/container/hash"
@@ -14,12 +21,6 @@ import (
 	"github.com/ryogrid/SamehadaDB/lib/storage/table/schema"
 	testingpkg "github.com/ryogrid/SamehadaDB/lib/testing/testing_assert"
 	"github.com/ryogrid/SamehadaDB/lib/types"
-	"math"
-	"math/rand"
-	"os"
-	"sync"
-	"sync/atomic"
-	"testing"
 )
 
 func testKeyDuplicateInsertDeleteWithSkipListIndex[T float32 | int32 | string](t *testing.T, keyType types.TypeID) {

@@ -1,11 +1,12 @@
 package parser
 
 import (
+	"testing"
+
 	"github.com/ryogrid/SamehadaDB/lib/execution/expression"
 	"github.com/ryogrid/SamehadaDB/lib/execution/plans"
 	testingpkg "github.com/ryogrid/SamehadaDB/lib/testing/testing_assert"
 	"github.com/ryogrid/SamehadaDB/lib/types"
-	"testing"
 )
 
 func TestSinglePredicateSelectQuery(t *testing.T) {

@@ -2,6 +2,9 @@ package executor_test
 
 import (
 	"fmt"
+	"os"
+	"testing"
+
 	"github.com/ryogrid/SamehadaDB/lib/catalog"
 	"github.com/ryogrid/SamehadaDB/lib/common"
 	"github.com/ryogrid/SamehadaDB/lib/execution/executors"
@@ -14,8 +17,6 @@ import (
 	testingpkg "github.com/ryogrid/SamehadaDB/lib/testing/testing_assert"
 	"github.com/ryogrid/SamehadaDB/lib/testing/testing_pattern_fw"
 	"github.com/ryogrid/SamehadaDB/lib/types"
-	"os"
-	"testing"
 )
 
 func testKeyDuplicateInsertDeleteWithBTreeIndex[T float32 | int32 | string](t *testing.T, keyType types.TypeID) {

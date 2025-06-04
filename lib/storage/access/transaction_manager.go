@@ -2,9 +2,10 @@ package access
 
 import (
 	"fmt"
+	"sync"
+
 	"github.com/ryogrid/SamehadaDB/lib/catalog/catalog_interface"
 	"github.com/ryogrid/SamehadaDB/lib/storage/index"
-	"sync"
 
 	"github.com/ryogrid/SamehadaDB/lib/common"
 	"github.com/ryogrid/SamehadaDB/lib/recovery"
@@ -24,7 +25,8 @@ type TransactionManager struct {
 	mutex            *sync.Mutex
 }
 
-var txn_map = make(map[types.TxnID]*Transaction)
+// var txn_map = make(map[types.TxnID]*Transaction)
+var txn_map = sync.Map{}
 
 func NewTransactionManager(lock_manager *LockManager, log_manager *recovery.LogManager) *TransactionManager {
 	return &TransactionManager{0, lock_manager, log_manager, common.NewRWLatch(), new(sync.Mutex)}
@@ -49,9 +51,10 @@ func (transaction_manager *TransactionManager) Begin(txn *Transaction) *Transact
 		txn_ret.SetPrevLSN(lsn)
 	}
 
-	transaction_manager.mutex.Lock()
-	txn_map[txn_ret.GetTransactionId()] = txn_ret
-	transaction_manager.mutex.Unlock()
+	//transaction_manager.mutex.Lock()
+	//txn_map[txn_ret.GetTransactionId()] = txn_ret
+	//transaction_manager.mutex.Unlock()
+	txn_map.Store(txn_ret.GetTransactionId(), txn_ret)
 	return txn_ret
 }
 
