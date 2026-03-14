@@ -23,6 +23,9 @@
 - Exported struct fields `Log_manager` → `LogManager`, `Lock_manager` → `LockManager` (PascalCase for exported identifiers)
 - `tableIds` → `tableIDs`, `nextTableId` → `nextTableID`, `tableIdsMutex` → `tableIDsMutex` (Id → ID acronym rule)
 - `col_idx` → `colIdx` (snake_case params → camelCase)
+- CAUTION: `log_recovery` is a package name — don't bulk-rename it when renaming `log_recovery` local vars
+- `NEW_TABLE_PAGE` → `NewTablePage`, `DEALLOCATE_PAGE` → `DeallocatePage`, `REUSE_PAGE` → `ReusePage`, `GRACEFUL_SHUTDOWN` → `GracefulShutdown` (multi-word ALL_CAPS → PascalCase)
+- `HEADER_SIZE` → `HeaderSize` (multi-word ALL_CAPS → PascalCase)
 
 ---
 
@@ -150,4 +153,23 @@
   - Test function names with underscores (e.g., `TestBLTree_insert_and_find_embedding`) are Go convention — do NOT rename
   - `hash_util.go`, `hash_table_test.go`, `hash_table_page_test.go` were already clean
   - All identifiers in container/ are unexported except the SKIP_LIST_OP_* and SKIP_LIST_UTIL_* constants, so cross-package impact was limited to the bench test
+---
+
+## 2026-03-14 - US-009
+- What was implemented: Renamed all snake_case identifiers in lib/recovery/ (log_record.go, log_manager.go, log_recovery/log_recovery.go, recovery_test/) and lib/concurrency/ (checkpoint_manager.go, statistics_updater.go)
+- Key renames:
+  - log_record.go: Exported struct fields `Txn_id` → `TxnID`, `Prev_lsn` → `PrevLSN`, `Log_record_type` → `LogRecordType`, `Delete_rid` → `DeleteRID`, `Insert_rid` → `InsertRID`, `Update_rid` → `UpdateRID`, `Old_tuple` → `OldTuple`, `New_tuple` → `NewTuple`, `Prev_page_id` → `PrevPageID`, `Page_id` → `PageID`, `Deallocate_page_id` → `DeallocatePageID`, `Reuse_page_id` → `ReusePageID`, `Delete_tuple` → `DeleteTuple`, `Insert_tuple` → `InsertTuple`; `GetTxnId` → `GetTxnID`; receiver `log_record` → `lr`
+  - log_record.go constants: `HEADER_SIZE` → `HeaderSize`, `NEW_TABLE_PAGE` → `NewTablePage`, `DEALLOCATE_PAGE` → `DeallocatePage`, `REUSE_PAGE` → `ReusePage`, `GRACEFUL_SHUTDOWN` → `GracefulShutdown`
+  - log_manager.go: struct fields `log_buffer_lsn` → `logBufferLSN`, `next_lsn` → `nextLSN`, `persistent_lsn` → `persistentLSN`, `log_buffer` → `logBuffer`, `flush_buffer` → `flushBuffer`, `wlog_mutex` → `wlogMutex`, `disk_manager` → `diskManager`; receiver `log_manager` → `logMgr`; local `tmp_p` → `tmpP`
+  - log_recovery.go: struct fields `disk_manager` → `diskManager`, `buffer_pool_manager` → `bufferPoolManager`, `log_manager` → `logManager`, `active_txn` → `activeTxn`, `lsn_mapping` → `lsnMapping`, `log_buffer` → `logBuffer`; receiver `log_recovery` → `logRecov`; locals renamed
+  - checkpoint_manager.go: struct fields + receiver `checkpoint_manager` → `cm`; params renamed
+  - statistics_updater.go: `transaction_manager` → `transactionManager`, `table_` → `tbl`
+- Cross-package: `NEW_TABLE_PAGE`, `DEALLOCATE_PAGE`, `REUSE_PAGE`, `GRACEFUL_SHUTDOWN` constants renamed in lib/storage/access/table_page.go
+- Files changed: 7 files (4 in recovery/, 2 in concurrency/, 1 in storage/access/)
+- **Learnings for future iterations:**
+  - CAUTION: `log_recovery` is both a package name and commonly used as a local variable name in tests — bulk renaming `log_recovery` → anything will also rename package declarations and import paths. Always exclude package/import lines from bulk renames
+  - LogRecord exported struct fields (e.g., `Txn_id`, `Prev_lsn`) are only accessed within the recovery/ package tree, not cross-package
+  - Multi-word ALL_CAPS constants like `NEW_TABLE_PAGE` are used cross-package (in table_page.go) — check for `recovery.CONSTANT_NAME` references
+  - Single-word ALL_CAPS constants (`INVALID`, `INSERT`, `COMMIT`, etc.) are NOT renamed per project convention
+  - Having a struct field name match its type name (e.g., `LogRecordType LogRecordType`) is valid Go
 ---

@@ -162,7 +162,7 @@
         "cd server && go build -o samehada-db-server main.go succeeds"
       ],
       "priority": 9,
-      "passes": false,
+      "passes": true,
       "notes": "Phase 8 — recovery and concurrency control."
     },
     {
