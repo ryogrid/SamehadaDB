@@ -180,7 +180,7 @@
         "cd server && go build -o samehada-db-server main.go succeeds"
       ],
       "priority": 10,
-      "passes": false,
+      "passes": true,
       "notes": "Phase 9a — frontend packages. Split from execution due to size."
     },
     {

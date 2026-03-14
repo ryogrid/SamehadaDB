@@ -173,3 +173,25 @@
   - Single-word ALL_CAPS constants (`INVALID`, `INSERT`, `COMMIT`, etc.) are NOT renamed per project convention
   - Having a struct field name match its type name (e.g., `LogRecordType LogRecordType`) is valid Go
 ---
+
+## 2026-03-14 - US-010
+- What was implemented: Renamed all snake_case identifiers in lib/parser/ and lib/planner/ (including optimizer/)
+- Key renames:
+  - Parser exported struct fields: All trailing underscore fields renamed (e.g., `QueryType_` → `QueryType`, `SelectFields_` → `SelectFields`, `WhereExpression_` → `WhereExpression`, `Left_` → `Left`, `Right_` → `Right`, `LogicalOperationType_` → `LogicalOperationType`, `ComparisonOperationType_` → `ComparisonOperationType`)
+  - Parser constant: `CREATE_TABLE` → `CreateTable`
+  - Parser local vars: `l_visitor` → `lVisitor`, `r_visitor` → `rVisitor`, `null_val` → `nullVal`, `left_val` → `leftVal`, `col_type` → `colType`, `left_side_pred` → `leftSidePred`, `right_side_pred` → `rightSidePred`, `val_str` → `valStr`, `target_str` → `targetStr`
+  - Parser param: `opcode_` → `op`, `schema_` → `sc`
+  - Planner struct member: `catalog_` → `cat`
+  - Planner local vars: `left_keys` → `leftKeys`, `right_keys` → `rightKeys`, `scanPlans_` → `scanPlans`, `schema_` → `sc`, `expression_` → `expr`
+  - Optimizer constants: `DIR_RIGHT` → `DirRight`, `DIR_LEFT` → `DirLeft`
+  - Optimizer local vars: `stack_` → `stk`, `left_cols` → `leftCols`, `right_cols` → `rightCols`, `index_idx` → `indexIdx`, `right_index` → `rightIndex`, `exp_` → `e`, `plan_` → `p`
+  - Optimizer test vars: `log_mgr` → `logMgr`, `lock_mgr` → `lockMgr`, `txn_mgr` → `txnMgr`, `exec_ctx` → `execCtx`, `schema_` → `sc`, `tuple_` → `tpl`, `stat1_2` → `stat1Copy`, `txn_` → `txnExec`
+- Cross-codebase: Parser struct fields referenced in lib/planner/, lib/samehada/samehada.go — all updated
+- Files changed: 15 files (11 parser, 3 planner, 1 samehada)
+- **Learnings for future iterations:**
+  - Parser struct fields with trailing underscores are extensively referenced across planner/ and samehada/ — wide blast radius
+  - Having a struct field name match its type name (e.g., `QueryType *QueryType`) is valid Go
+  - Don't forget parser_test.go when renaming parser struct fields — it's in the same package
+  - `new_visitor` in root_sql_visitor.go was a local variable, not related to the `NewRootSQLVisitor` constructor
+  - Struct literal initialization like `&BinaryOpExpression{expression.AND, -1, expr, expr2}` uses positional args, so field renames don't affect these
+---
