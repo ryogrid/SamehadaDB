@@ -457,7 +457,16 @@ func InnerTestParallelTxnsQueryingIndexUsedColumns[T int32 | float32 | string](t
 			//if results == nil || len(results) == 0 {
 			//	goto retry
 			//}
-			common.SHAssert(results != nil && len(results) == 1, fmt.Sprintf("point scan result count is not 1 (%d)!\n", len(results)))
+			if !(results != nil && len(results) == 1) {
+				fmt.Printf("DIAG checkBalance FAILED: accountID=%v got %d results:\n", accountIDs[ii], len(results))
+				for jj, r := range results {
+					fmt.Printf("  result[%d]: RID=%v account_id=%v balance=%v\n",
+						jj, r.GetRID(),
+						r.GetValue(tableMetadata.Schema(), 0).ToIFValue(),
+						r.GetValue(tableMetadata.Schema(), 1).ToIFValue())
+				}
+				common.SHAssert(false, fmt.Sprintf("point scan result count is not 1 (%d)!", len(results)))
+			}
 			sumOfAllAccountBalanceAfterTest += results[0].GetValue(tableMetadata.Schema(), 1).ToInteger()
 		}
 		common.SHAssert(sumOfAllAccountBalanceAfterTest == sumOfAllAccountBalanceAtStart, fmt.Sprintf("total account volume is changed! %d != %d\n", sumOfAllAccountBalanceAfterTest, sumOfAllAccountBalanceAtStart))
@@ -1341,7 +1350,7 @@ func TestKeyDuplicateInsertDeleteWithSkipListIndexVarchar(t *testing.T) {
 }
 
 func TestKeyDuplicateSkipListPrallelTxnStrideInteger(t *testing.T) {
-	t.Parallel()
+	//t.Parallel()
 	if testing.Short() {
 		t.Skip("skip this in short mode.")
 	}
@@ -1349,7 +1358,7 @@ func TestKeyDuplicateSkipListPrallelTxnStrideInteger(t *testing.T) {
 }
 
 func TestKeyDuplicateSkipListPrallelTxnStrideFloat(t *testing.T) {
-	t.Parallel()
+	//t.Parallel()
 	if testing.Short() {
 		t.Skip("skip this in short mode.")
 	}
@@ -1357,7 +1366,7 @@ func TestKeyDuplicateSkipListPrallelTxnStrideFloat(t *testing.T) {
 }
 
 func TestKeyDuplicateSkipListPrallelTxnStrideVarchar(t *testing.T) {
-	t.Parallel()
+	//t.Parallel()
 	//if testing.Short() {
 	//	t.Skip("skip this in short mode.")
 	//}

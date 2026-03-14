@@ -1,6 +1,7 @@
 package index
 
 import (
+	"fmt"
 	"github.com/ryogrid/SamehadaDB/lib/container/skip_list"
 	"github.com/ryogrid/SamehadaDB/lib/recovery"
 	"github.com/ryogrid/SamehadaDB/lib/samehada/samehada_util"
@@ -70,6 +71,7 @@ func (slidx *SkipListIndex) deleteEntryInner(key *tuple.Tuple, rid page.RID, txn
 	}
 	isSuccess := slidx.container.Remove(convedKeyVal, 0)
 	if isSuccess == false {
+		fmt.Printf("DIAG SkipListIndex::deleteEntryInner FAILED: key=%v rid=%v\n", orgKeyVal.ToIFValue(), rid)
 		//panic(fmt.Sprintf("SkipListIndex::deleteEntryInner: %v %v\n", convedKeyVal.ToIFValue(), rid))
 	}
 }
