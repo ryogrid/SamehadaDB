@@ -126,7 +126,7 @@
         "cd server && go build -o samehada-db-server main.go succeeds"
       ],
       "priority": 7,
-      "passes": false,
+      "passes": true,
       "notes": "Phase 6 — catalog management. See PRD Before/After example for Catalog struct. Exported members Log_manager and Lock_manager affect external consumers."
     },
     {

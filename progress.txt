@@ -20,6 +20,9 @@
 - Named return trailing underscores: `new_rid_` → `newRIDVal`, `err_` → `errVal`, `update_tuple_` → `updateTupleVal`
 - `INDEX_KIND_INVALID` → `IndexKindInvalid`, `INDEX_KIND_SKIP_LIST` → `IndexKindSkipList`, etc. (multi-word ALL_CAPS → PascalCase)
 - `tupleSchema_` → `tupleSchema` (trailing underscore on local vars → remove underscore)
+- Exported struct fields `Log_manager` → `LogManager`, `Lock_manager` → `LockManager` (PascalCase for exported identifiers)
+- `tableIds` → `tableIDs`, `nextTableId` → `nextTableID`, `tableIdsMutex` → `tableIDsMutex` (Id → ID acronym rule)
+- `col_idx` → `colIdx` (snake_case params → camelCase)
 
 ---
 
@@ -115,4 +118,18 @@
   - When replacing substrings like `packed_val`, `unpacked_val` gets renamed too (contains substring) — can be useful but needs awareness
   - index_common/index_common.go and index_range_scan_iterator.go were already clean
   - All struct fields in the index package are unexported, so cross-package impact is limited to the constants
+---
+
+## 2026-03-14 - US-007
+- What was implemented: Renamed all snake_case identifiers in lib/catalog/ (table_catalog.go, table_metadata.go, statistics.go, catalog_test/)
+- Key renames:
+  - table_catalog.go: `Log_manager` → `LogManager`, `Lock_manager` → `LockManager` (exported struct fields), `tableIds` → `tableIDs`, `nextTableId` → `nextTableID`, `tableIdsMutex` → `tableIDsMutex`, `log_manager`/`lock_manager` params → `logManager`/`lockManager`, `tuple_outer`/`tuple_inner` → `tupleOuter`/`tupleInner`, `column_` → `col`, `table_` → `tbl`, `schema_` → `sc`, `name_` → `lowerName`, `first_tuple` → `firstTuple`, `new_tuple` → `newTuple`, `indexes_` → `idxs`, `tuple_` → `tpl`
+  - table_metadata.go: `log_manager` → `logManager`, `column_` → `col`, `pageZeroId` → `pageZeroID`
+  - statistics.go: `col_idx` → `colIdx`, `schema_` → `sc`
+  - catalog_test/: `samehada_instance` → `samehadaInstance`, `catalog_old` → `catalogOld`, `schema_` → `sc`, `samehada_instance_new` → `samehadaInstanceNew`, `txn_new` → `txnNew`, `catalog_recov` → `catalogRecov`
+- Files changed: 4 files (all within lib/catalog/)
+- **Learnings for future iterations:**
+  - `Log_manager` and `Lock_manager` are exported struct fields on `Catalog` but only accessed within the catalog package itself — no cross-package reference updates needed
+  - All other identifiers in catalog/ are unexported, so cross-package impact was zero
+  - schemas.go and catalog_interface.go were already clean — no snake_case found
 ---
