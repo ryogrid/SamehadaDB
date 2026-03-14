@@ -18,6 +18,8 @@
 - Receiver names like `lock_manager` → `lockManager`, `transaction_manager` → `transactionManager` (snake_case → camelCase)
 - `catalog_` → `cat`, `page_` → `pg`, `index_` → `idx`, `list_` → `lst` (trailing underscore → short names)
 - Named return trailing underscores: `new_rid_` → `newRIDVal`, `err_` → `errVal`, `update_tuple_` → `updateTupleVal`
+- `INDEX_KIND_INVALID` → `IndexKindInvalid`, `INDEX_KIND_SKIP_LIST` → `IndexKindSkipList`, etc. (multi-word ALL_CAPS → PascalCase)
+- `tupleSchema_` → `tupleSchema` (trailing underscore on local vars → remove underscore)
 
 ---
 
@@ -94,4 +96,23 @@
   - Use perl with `\b` word boundaries for reliable bulk renames across multiple files
   - Order sed/perl patterns from longest to shortest to avoid partial matches (e.g., `exclusive_lock_table` before `lock_table`)
   - Named return trailing underscores (`err_`, `new_rid_`) need to be processed before their non-underscore counterparts
+---
+
+## 2026-03-14 - US-006
+- What was implemented: Renamed all snake_case identifiers in lib/storage/index/ (including index_constants/, index_common/, index_test/)
+- Key renames:
+  - index_constants.go: `INDEX_KIND_INVALID` → `IndexKindInvalid`, `INDEX_KIND_UNIQ_SKIP_LIST` → `IndexKindUniqSkipList`, `INDEX_KIND_SKIP_LIST` → `IndexKindSkipList`, `INDEX_KIND_HASH` → `IndexKindHash`, `INDEX_KIND_BTREE` → `IndexKindBtree`
+  - index.go: struct members `table_name` → `tableName`, `key_attrs` → `keyAttrs`, `tuple_schema` → `tupleSchema`; params renamed
+  - btree_index.go: `col_idx` → `colIdx`, `log_manager` → `logManager`, `buffer_pool_manager` → `bufferPoolManager`, `start_key`/`end_key` → `startKey`/`endKey`, `tupleSchema_` → `tupleSchema`
+  - linear_probe_hash_table_index.go: `col_idx` → `colIdx`, `buffer_pool_manager` → `bufferPoolManager`, `num_buckets` → `numBuckets`, `packed_values` → `packedValues`, `ret_arr` → `retArr`, `packed_val` → `packedVal`
+  - skip_list_index.go: same pattern as btree_index
+  - uniq_skip_list_index.go: `col_idx` → `colIdx`, `start_val`/`end_val` → `startVal`/`endVal`, `ret_arr` → `retArr`, `packed_value` → `packedValue`
+  - Test files: `schema_` → `tableSchema`, `tuple_` → `tpl`, `txn_mgr` → `txnMgr`, `packed_val`/`unpacked_val` → `packedVal`/`unpackedVal`, `log_recovery` → `logRecovery`
+- Cross-codebase: INDEX_KIND_* constants renamed in 17 files across catalog/, execution/, parser/, planner/, recovery/, samehada/, testing/, storage/
+- Files changed: 27 files total
+- **Learnings for future iterations:**
+  - INDEX_KIND_* constants are used in 21 files across the codebase — wide blast radius
+  - When replacing substrings like `packed_val`, `unpacked_val` gets renamed too (contains substring) — can be useful but needs awareness
+  - index_common/index_common.go and index_range_scan_iterator.go were already clean
+  - All struct fields in the index package are unexported, so cross-package impact is limited to the constants
 ---
