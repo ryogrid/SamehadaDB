@@ -57,7 +57,7 @@ func reconstructIndexDataOfATbl(t *catalog.TableMetadata, c *catalog.Catalog, dm
 		if index_ != nil {
 			column_ := t.Schema().GetColumn(uint32(colIdx))
 			switch column_.IndexKind() {
-			case index_constants.INDEX_KIND_HASH:
+			case index_constants.IndexKindHash:
 				// clear pages for HashTableBlockPage for avoiding conflict with reconstruction
 				// due to there may be pages (on disk) which has old index entries data in current design...
 				// note: when this method is called, the pages are not fetched yet (= are not in memory)
@@ -71,15 +71,15 @@ func reconstructIndexDataOfATbl(t *catalog.TableMetadata, c *catalog.Catalog, dm
 					// zero clear specifed space of db file
 					dman.WritePage(blockPageID, zeroClearedBuf)
 				}
-			case index_constants.INDEX_KIND_UNIQ_SKIP_LIST:
+			case index_constants.IndexKindUniqSkipList:
 				// do nothing here
 				// (Since SkipList index can't reuse past allocated pages, data clear of allocated pages
 				//  are not needed...)
-			case index_constants.INDEX_KIND_SKIP_LIST:
+			case index_constants.IndexKindSkipList:
 				// do nothing here
 				// (Since SkipList index can't reuse past allocated pages, data clear of allocated pages
 				//  are not needed...)
-			case index_constants.INDEX_KIND_BTREE:
+			case index_constants.IndexKindBtree:
 				// do nothing here
 				// (Since BTree index can't reuse past allocated pages, data clear of allocated pages
 				//  are not needed...)

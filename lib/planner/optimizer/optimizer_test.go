@@ -42,7 +42,7 @@ func SetupTableWithMetadata(exec_ctx *executors.ExecutorContext, tableMeta *Setu
 
 	cols := make([]*column.Column, 0)
 	for _, colMeta := range tableMeta.Columns {
-		if colMeta.IdxKind != index_constants.INDEX_KIND_INVALID {
+		if colMeta.IdxKind != index_constants.IndexKindInvalid {
 			col := column.NewColumn(colMeta.Name, colMeta.ColumnType, true, colMeta.IdxKind, types.PageID(-1), nil)
 			cols = append(cols, col)
 		} else {
@@ -61,7 +61,7 @@ func SetupTableWithMetadata(exec_ctx *executors.ExecutorContext, tableMeta *Setu
 		tuple_ := tuple.NewTupleFromSchema(vals, schema_)
 		rid, _ := tm.Table().InsertTuple(tuple_, txn, tm.OID(), false)
 		for jj, colMeta := range tableMeta.Columns {
-			if colMeta.IdxKind != index_constants.INDEX_KIND_INVALID {
+			if colMeta.IdxKind != index_constants.IndexKindInvalid {
 				tm.GetIndex(jj).InsertEntry(tuple_, *rid, txn)
 			}
 		}
@@ -75,9 +75,9 @@ func setupTablesAndStatisticsData(exec_ctx *executors.ExecutorContext) (*catalog
 		"Sc1",
 		100,
 		[]*ColumnMeta{
-			{"c1", types.Integer, index_constants.INDEX_KIND_INVALID},
-			{"c2", types.Varchar, index_constants.INDEX_KIND_SKIP_LIST},
-			{"c3", types.Float, index_constants.INDEX_KIND_INVALID},
+			{"c1", types.Integer, index_constants.IndexKindInvalid},
+			{"c2", types.Varchar, index_constants.IndexKindSkipList},
+			{"c3", types.Float, index_constants.IndexKindInvalid},
 		},
 		[]ColValGenFunc{
 			func(idx int) interface{} { return int32(idx) },
@@ -91,10 +91,10 @@ func setupTablesAndStatisticsData(exec_ctx *executors.ExecutorContext) (*catalog
 		"Sc2",
 		200,
 		[]*ColumnMeta{
-			{"d1", types.Integer, index_constants.INDEX_KIND_INVALID},
-			{"d2", types.Float, index_constants.INDEX_KIND_INVALID},
-			{"d3", types.Varchar, index_constants.INDEX_KIND_SKIP_LIST},
-			{"d4", types.Integer, index_constants.INDEX_KIND_INVALID},
+			{"d1", types.Integer, index_constants.IndexKindInvalid},
+			{"d2", types.Float, index_constants.IndexKindInvalid},
+			{"d3", types.Varchar, index_constants.IndexKindSkipList},
+			{"d4", types.Integer, index_constants.IndexKindInvalid},
 		},
 		[]ColValGenFunc{
 			func(idx int) interface{} { return int32(idx) },
@@ -109,8 +109,8 @@ func setupTablesAndStatisticsData(exec_ctx *executors.ExecutorContext) (*catalog
 		"Sc3",
 		20,
 		[]*ColumnMeta{
-			{"e1", types.Integer, index_constants.INDEX_KIND_INVALID},
-			{"e2", types.Float, index_constants.INDEX_KIND_INVALID},
+			{"e1", types.Integer, index_constants.IndexKindInvalid},
+			{"e2", types.Float, index_constants.IndexKindInvalid},
 		},
 		[]ColValGenFunc{
 			func(idx int) interface{} { return int32(idx + 1) },
@@ -123,9 +123,9 @@ func setupTablesAndStatisticsData(exec_ctx *executors.ExecutorContext) (*catalog
 		"Sc4",
 		100,
 		[]*ColumnMeta{
-			{"c1", types.Integer, index_constants.INDEX_KIND_INVALID},
-			{"c2", types.Varchar, index_constants.INDEX_KIND_SKIP_LIST},
-			{"c3", types.Integer, index_constants.INDEX_KIND_SKIP_LIST},
+			{"c1", types.Integer, index_constants.IndexKindInvalid},
+			{"c2", types.Varchar, index_constants.IndexKindSkipList},
+			{"c3", types.Integer, index_constants.IndexKindSkipList},
 		},
 		[]ColValGenFunc{
 			func(idx int) interface{} { return int32(idx + 1) },

@@ -16,15 +16,15 @@ type LinearProbeHashTableIndex struct {
 	container hash.LinearProbeHashTable
 	metadata  *IndexMetadata
 	// idx of target column on table
-	col_idx uint32
+	colIdx uint32
 }
 
-func NewLinearProbeHashTableIndex(metadata *IndexMetadata, buffer_pool_manager *buffer.BufferPoolManager, col_idx uint32,
-	num_buckets int, headerPageID types.PageID) *LinearProbeHashTableIndex {
+func NewLinearProbeHashTableIndex(metadata *IndexMetadata, bufferPoolManager *buffer.BufferPoolManager, colIdx uint32,
+	numBuckets int, headerPageID types.PageID) *LinearProbeHashTableIndex {
 	ret := new(LinearProbeHashTableIndex)
 	ret.metadata = metadata
-	ret.container = *hash.NewLinearProbeHashTable(buffer_pool_manager, num_buckets, headerPageID)
-	ret.col_idx = col_idx
+	ret.container = *hash.NewLinearProbeHashTable(bufferPoolManager, numBuckets, headerPageID)
+	ret.colIdx = colIdx
 	return ret
 }
 
@@ -41,29 +41,29 @@ func (htidx *LinearProbeHashTableIndex) GetTupleSchema() *schema.Schema {
 func (htidx *LinearProbeHashTableIndex) GetKeyAttrs() []uint32 { return htidx.metadata.GetKeyAttrs() }
 
 func (htidx *LinearProbeHashTableIndex) InsertEntry(key *tuple.Tuple, rid page.RID, transaction interface{}) {
-	tupleSchema_ := htidx.GetTupleSchema()
-	keyDataInBytes := key.GetValueInBytes(tupleSchema_, htidx.col_idx)
+	tupleSchema := htidx.GetTupleSchema()
+	keyDataInBytes := key.GetValueInBytes(tupleSchema, htidx.colIdx)
 
 	htidx.container.Insert(keyDataInBytes, samehada_util.PackRIDtoUint64(&rid))
 }
 
 func (htidx *LinearProbeHashTableIndex) DeleteEntry(key *tuple.Tuple, rid page.RID, transaction interface{}) {
-	tupleSchema_ := htidx.GetTupleSchema()
-	keyDataInBytes := key.GetValueInBytes(tupleSchema_, htidx.col_idx)
+	tupleSchema := htidx.GetTupleSchema()
+	keyDataInBytes := key.GetValueInBytes(tupleSchema, htidx.colIdx)
 
 	htidx.container.Remove(keyDataInBytes, samehada_util.PackRIDtoUint64(&rid))
 }
 
 func (htidx *LinearProbeHashTableIndex) ScanKey(key *tuple.Tuple, transaction interface{}) []page.RID {
-	tupleSchema_ := htidx.GetTupleSchema()
-	keyDataInBytes := key.GetValueInBytes(tupleSchema_, htidx.col_idx)
+	tupleSchema := htidx.GetTupleSchema()
+	keyDataInBytes := key.GetValueInBytes(tupleSchema, htidx.colIdx)
 
-	packed_values := htidx.container.GetValue(keyDataInBytes)
-	var ret_arr []page.RID
-	for _, packed_val := range packed_values {
-		ret_arr = append(ret_arr, samehada_util.UnpackUint64toRID(packed_val))
+	packedValues := htidx.container.GetValue(keyDataInBytes)
+	var retArr []page.RID
+	for _, packedVal := range packedValues {
+		retArr = append(retArr, samehada_util.UnpackUint64toRID(packedVal))
 	}
-	return ret_arr
+	return retArr
 }
 
 func (htidx *LinearProbeHashTableIndex) UpdateEntry(oldKey *tuple.Tuple, oldRID page.RID, newKey *tuple.Tuple, newRID page.RID, transaction interface{}) {

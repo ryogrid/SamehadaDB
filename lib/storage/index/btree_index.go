@@ -75,33 +75,33 @@ type BTreeIndex struct {
 	container *blink_tree.BLTree
 	metadata  *IndexMetadata
 	// idx of target column on table
-	col_idx     uint32
-	log_manager *recovery.LogManager
+	colIdx     uint32
+	logManager *recovery.LogManager
 	// write operations are mutually exclusive
 	rwMtx sync.RWMutex
 	// for call of Close method ....
 	bufMgr *blink_tree.BufMgr
 }
 
-func NewBTreeIndex(metadata *IndexMetadata, buffer_pool_manager *buffer.BufferPoolManager, col_idx uint32, log_manager *recovery.LogManager, lastPageZeroId *int32) *BTreeIndex {
+func NewBTreeIndex(metadata *IndexMetadata, bufferPoolManager *buffer.BufferPoolManager, colIdx uint32, logManager *recovery.LogManager, lastPageZeroId *int32) *BTreeIndex {
 	ret := new(BTreeIndex)
 	ret.metadata = metadata
 
 	// BTreeIndex uses special technique to support key duplication with SkipList supporting unique key only
 	// for the thechnique, key type is fixed to Varchar (comparison is done on dict order as byte array)
 
-	bufMgr := blink_tree.NewBufMgr(12, blink_tree.HASH_TABLE_ENTRY_CHAIN_LEN*common.MaxTxnThreadNum*2, btree.NewParentBufMgrImpl(buffer_pool_manager), lastPageZeroId)
+	bufMgr := blink_tree.NewBufMgr(12, blink_tree.HASH_TABLE_ENTRY_CHAIN_LEN*common.MaxTxnThreadNum*2, btree.NewParentBufMgrImpl(bufferPoolManager), lastPageZeroId)
 	ret.container = blink_tree.NewBLTree(bufMgr)
-	ret.col_idx = col_idx
+	ret.colIdx = colIdx
 	ret.rwMtx = sync.RWMutex{}
-	ret.log_manager = log_manager
+	ret.logManager = logManager
 	ret.bufMgr = bufMgr
 	return ret
 }
 
 func (btidx *BTreeIndex) insertEntryInner(key *tuple.Tuple, rid page.RID, txn interface{}, isNoLock bool) {
-	tupleSchema_ := btidx.GetTupleSchema()
-	orgKeyVal := key.GetValue(tupleSchema_, btidx.col_idx)
+	tupleSchema := btidx.GetTupleSchema()
+	orgKeyVal := key.GetValue(tupleSchema, btidx.colIdx)
 
 	convedKeyVal := samehada_util.EncodeValueAndRIDToDicOrderComparableVarchar(&orgKeyVal, &rid)
 
@@ -130,8 +130,8 @@ func (btidx *BTreeIndex) InsertEntry(key *tuple.Tuple, rid page.RID, txn interfa
 }
 
 func (btidx *BTreeIndex) deleteEntryInner(key *tuple.Tuple, rid page.RID, txn interface{}, isNoLock bool) {
-	tupleSchema_ := btidx.GetTupleSchema()
-	orgKeyVal := key.GetValue(tupleSchema_, btidx.col_idx)
+	tupleSchema := btidx.GetTupleSchema()
+	orgKeyVal := key.GetValue(tupleSchema, btidx.colIdx)
 
 	convedKeyVal := samehada_util.EncodeValueAndRIDToDicOrderComparableVarchar(&orgKeyVal, &rid)
 
@@ -153,8 +153,8 @@ func (btidx *BTreeIndex) DeleteEntry(key *tuple.Tuple, rid page.RID, txn interfa
 }
 
 func (btidx *BTreeIndex) ScanKey(key *tuple.Tuple, txn interface{}) []page.RID {
-	tupleSchema_ := btidx.GetTupleSchema()
-	orgKeyVal := key.GetValue(tupleSchema_, btidx.col_idx)
+	tupleSchema := btidx.GetTupleSchema()
+	orgKeyVal := key.GetValue(tupleSchema, btidx.colIdx)
 	smallestKeyVal := samehada_util.EncodeValueAndRIDToDicOrderComparableVarchar(&orgKeyVal, &page.RID{0, 0})
 	biggestKeyVal := samehada_util.EncodeValueAndRIDToDicOrderComparableVarchar(&orgKeyVal, &page.RID{math.MaxInt32, math.MaxUint32})
 
@@ -184,19 +184,19 @@ func (btidx *BTreeIndex) UpdateEntry(oldKey *tuple.Tuple, oldRID page.RID, newKe
 
 // get iterator which iterates entry in key sorted order
 // and iterates specified key range.
-// when start_key arg is nil , start point is head of entry list. when end_key, end point is tail of the list
+// when startKey arg is nil , start point is head of entry list. when endKey, end point is tail of the list
 // Attention: returned itr's containing keys are string type Value which is constructed with byte arr of concatenated original key and value
-func (btidx *BTreeIndex) GetRangeScanIterator(start_key *tuple.Tuple, end_key *tuple.Tuple, transaction interface{}) IndexRangeScanIterator {
-	tupleSchema_ := btidx.GetTupleSchema()
+func (btidx *BTreeIndex) GetRangeScanIterator(startKey *tuple.Tuple, endKey *tuple.Tuple, transaction interface{}) IndexRangeScanIterator {
+	tupleSchema := btidx.GetTupleSchema()
 	var smallestKeyVal *types.Value = nil
-	if start_key != nil {
-		orgStartKeyVal := start_key.GetValue(tupleSchema_, btidx.col_idx)
+	if startKey != nil {
+		orgStartKeyVal := startKey.GetValue(tupleSchema, btidx.colIdx)
 		smallestKeyVal = samehada_util.EncodeValueAndRIDToDicOrderComparableVarchar(&orgStartKeyVal, &page.RID{0, 0})
 	}
 
 	var biggestKeyVal *types.Value = nil
-	if end_key != nil {
-		orgEndKeyVal := end_key.GetValue(tupleSchema_, btidx.col_idx)
+	if endKey != nil {
+		orgEndKeyVal := endKey.GetValue(tupleSchema, btidx.colIdx)
 		biggestKeyVal = samehada_util.EncodeValueAndRIDToDicOrderComparableVarchar(&orgEndKeyVal, &page.RID{math.MaxInt32, math.MaxUint32})
 	}
 
@@ -212,7 +212,7 @@ func (btidx *BTreeIndex) GetRangeScanIterator(start_key *tuple.Tuple, end_key *t
 	if biggestKeyVal != nil {
 		biggestKeyBytes = biggestKeyVal.SerializeOnlyVal()
 	}
-	return NewBtreeIndexIterator(btidx.container.GetRangeItr(smalledKeyBytes, biggestKeyBytes), btidx.metadata.tuple_schema.GetColumn(btidx.col_idx).GetType())
+	return NewBtreeIndexIterator(btidx.container.GetRangeItr(smalledKeyBytes, biggestKeyBytes), btidx.metadata.tupleSchema.GetColumn(btidx.colIdx).GetType())
 }
 
 // Return the metadata object associated with the index

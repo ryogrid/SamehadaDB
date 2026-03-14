@@ -14,11 +14,11 @@ import (
 )
 
 func TestTuple(t *testing.T) {
-	columnA := column.NewColumn("a", types.Integer, false, index_constants.INDEX_KIND_INVALID, types.PageID(-1), nil)
-	columnB := column.NewColumn("b", types.Varchar, false, index_constants.INDEX_KIND_INVALID, types.PageID(-1), nil)
-	columnC := column.NewColumn("c", types.Integer, false, index_constants.INDEX_KIND_INVALID, types.PageID(-1), nil)
-	columnD := column.NewColumn("d", types.Varchar, false, index_constants.INDEX_KIND_INVALID, types.PageID(-1), nil)
-	columnE := column.NewColumn("e", types.Varchar, false, index_constants.INDEX_KIND_INVALID, types.PageID(-1), nil)
+	columnA := column.NewColumn("a", types.Integer, false, index_constants.IndexKindInvalid, types.PageID(-1), nil)
+	columnB := column.NewColumn("b", types.Varchar, false, index_constants.IndexKindInvalid, types.PageID(-1), nil)
+	columnC := column.NewColumn("c", types.Integer, false, index_constants.IndexKindInvalid, types.PageID(-1), nil)
+	columnD := column.NewColumn("d", types.Varchar, false, index_constants.IndexKindInvalid, types.PageID(-1), nil)
+	columnE := column.NewColumn("e", types.Varchar, false, index_constants.IndexKindInvalid, types.PageID(-1), nil)
 
 	schema := schema.NewSchema([]*column.Column{columnA, columnB, columnC, columnD, columnE})
 

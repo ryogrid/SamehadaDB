@@ -35,8 +35,8 @@ func testKeyDuplicateInsertDeleteWithBTreeIndex[T float32 | int32 | string](t *t
 
 	c := catalog.BootstrapCatalog(shi.GetBufferPoolManager(), shi.GetLogManager(), shi.GetLockManager(), txn)
 
-	columnA := column.NewColumn("account_id", keyType, true, index_constants.INDEX_KIND_BTREE, types.PageID(-1), nil)
-	columnB := column.NewColumn("balance", types.Integer, true, index_constants.INDEX_KIND_BTREE, types.PageID(-1), nil)
+	columnA := column.NewColumn("account_id", keyType, true, index_constants.IndexKindBtree, types.PageID(-1), nil)
+	columnB := column.NewColumn("balance", types.Integer, true, index_constants.IndexKindBtree, types.PageID(-1), nil)
 	schema_ := schema.NewSchema([]*column.Column{columnA, columnB})
 	tableMetadata := c.CreateTable("test_1", schema_, txn)
 
@@ -67,13 +67,13 @@ func testKeyDuplicateInsertDeleteWithBTreeIndex[T float32 | int32 | string](t *t
 
 	txn = txnMgr.Begin(nil)
 
-	//rangeScanP := createSpecifiedRangeScanPlanNode[T](c, tableMetadata, keyType, 0, nil, nil, index_constants.INDEX_KIND_BTREE)
+	//rangeScanP := createSpecifiedRangeScanPlanNode[T](c, tableMetadata, keyType, 0, nil, nil, index_constants.IndexKindBtree)
 	//results := executePlan(c, shi.GetBufferPoolManager(), txn, rangeScanP)
 	//for _, foundVal := range results {
 	//	fmt.Println(foundVal.GetValue(tableMetadata.Schema(), 0).ToString())
 	//}
 
-	scanP := createSpecifiedPointScanPlanNode(accountId.(T), c, tableMetadata, keyType, index_constants.INDEX_KIND_BTREE)
+	scanP := createSpecifiedPointScanPlanNode(accountId.(T), c, tableMetadata, keyType, index_constants.IndexKindBtree)
 	result = executePlan(c, shi.GetBufferPoolManager(), txn, scanP)
 	testingpkg.Assert(t, len(result) == 3, "duplicated key point scan got illegal results.")
 	rid1 := result[0].GetRID()
@@ -94,19 +94,19 @@ func testKeyDuplicateInsertDeleteWithBTreeIndex[T float32 | int32 | string](t *t
 
 	indexCol1.DeleteEntry(result[0], *rid1, txn)
 	indexCol2.DeleteEntry(result[0], *rid1, txn)
-	scanP = createSpecifiedPointScanPlanNode(accountId.(T), c, tableMetadata, keyType, index_constants.INDEX_KIND_BTREE)
+	scanP = createSpecifiedPointScanPlanNode(accountId.(T), c, tableMetadata, keyType, index_constants.IndexKindBtree)
 	result = executePlan(c, shi.GetBufferPoolManager(), txn, scanP)
 	testingpkg.Assert(t, len(result) == 2, "duplicated key point scan got illegal results.")
 
 	indexCol1.DeleteEntry(result[0], *rid2, txn)
 	indexCol2.DeleteEntry(result[0], *rid2, txn)
-	scanP = createSpecifiedPointScanPlanNode(accountId.(T), c, tableMetadata, keyType, index_constants.INDEX_KIND_BTREE)
+	scanP = createSpecifiedPointScanPlanNode(accountId.(T), c, tableMetadata, keyType, index_constants.IndexKindBtree)
 	result = executePlan(c, shi.GetBufferPoolManager(), txn, scanP)
 	testingpkg.Assert(t, len(result) == 1, "duplicated key point scan got illegal results.")
 
 	indexCol1.DeleteEntry(result[0], *rid3, txn)
 	indexCol2.DeleteEntry(result[0], *rid3, txn)
-	scanP = createSpecifiedPointScanPlanNode(accountId.(T), c, tableMetadata, keyType, index_constants.INDEX_KIND_BTREE)
+	scanP = createSpecifiedPointScanPlanNode(accountId.(T), c, tableMetadata, keyType, index_constants.IndexKindBtree)
 	result = executePlan(c, shi.GetBufferPoolManager(), txn, scanP)
 	testingpkg.Assert(t, len(result) == 0, "duplicated key point scan got illegal results.")
 
@@ -123,33 +123,33 @@ func testBTreeParallelTxnStrideRoot[T int32 | float32 | string](t *testing.T, ke
 	switch keyType {
 	case types.Integer:
 
-		//InnerTestParallelTxnsQueryingIndexUsedColumns[T](t, keyType, 400, 30000, 13, 0, bpoolSize, index_constants.INDEX_KIND_SKIP_LIST, PARALLEL_EXEC, 20)
-		//InnerTestParallelTxnsQueryingIndexUsedColumns[T](t, keyType, 400, 30000, 13, 0, bpoolSize, index_constants.INDEX_KIND_SKIP_LIST, SERIAL_EXEC, 20)
-		//InnerTestParallelTxnsQueryingIndexUsedColumns[T](t, keyType, 400, 300, 13, 0, bpoolSize, index_constants.INDEX_KIND_SKIP_LIST, SERIAL_EXEC, 20)
-		//InnerTestParallelTxnsQueryingIndexUsedColumns[T](t, keyType, 400, 3000, 13, 0, bpoolSize, index_constants.INDEX_KIND_SKIP_LIST, SERIAL_EXEC, 20)
+		//InnerTestParallelTxnsQueryingIndexUsedColumns[T](t, keyType, 400, 30000, 13, 0, bpoolSize, index_constants.IndexKindSkipList, PARALLEL_EXEC, 20)
+		//InnerTestParallelTxnsQueryingIndexUsedColumns[T](t, keyType, 400, 30000, 13, 0, bpoolSize, index_constants.IndexKindSkipList, SERIAL_EXEC, 20)
+		//InnerTestParallelTxnsQueryingIndexUsedColumns[T](t, keyType, 400, 300, 13, 0, bpoolSize, index_constants.IndexKindSkipList, SERIAL_EXEC, 20)
+		//InnerTestParallelTxnsQueryingIndexUsedColumns[T](t, keyType, 400, 3000, 13, 0, bpoolSize, index_constants.IndexKindSkipList, SERIAL_EXEC, 20)
 
-		//InnerTestParallelTxnsQueryingIndexUsedColumns[T](t, keyType, 400, 3000, 13, 0, bpoolSize, index_constants.INDEX_KIND_BTREE, PARALLEL_EXEC, 20)
+		//InnerTestParallelTxnsQueryingIndexUsedColumns[T](t, keyType, 400, 3000, 13, 0, bpoolSize, index_constants.IndexKindBtree, PARALLEL_EXEC, 20)
 
-		//InnerTestParallelTxnsQueryingIndexUsedColumns[T](t, keyType, 800, 30000, 13, 0, bpoolSize, index_constants.INDEX_KIND_BTREE, PARALLEL_EXEC, 20)
+		//InnerTestParallelTxnsQueryingIndexUsedColumns[T](t, keyType, 800, 30000, 13, 0, bpoolSize, index_constants.IndexKindBtree, PARALLEL_EXEC, 20)
 
-		//InnerTestParallelTxnsQueryingIndexUsedColumns[T](t, keyType, 800, 30000, 13, 0, bpoolSize, index_constants.INDEX_KIND_BTREE, SERIAL_EXEC, 1)
+		//InnerTestParallelTxnsQueryingIndexUsedColumns[T](t, keyType, 800, 30000, 13, 0, bpoolSize, index_constants.IndexKindBtree, SERIAL_EXEC, 1)
 
-		//InnerTestParallelTxnsQueryingIndexUsedColumns[T](t, keyType, 800, 30000, 13, 0, bpoolSize, index_constants.INDEX_KIND_BTREE, PARALLEL_EXEC, 20)
-		InnerTestParallelTxnsQueryingIndexUsedColumns[T](t, keyType, 200, 10000, 13, 0, bpoolSize, index_constants.INDEX_KIND_BTREE, PARALLEL_EXEC, 20)
+		//InnerTestParallelTxnsQueryingIndexUsedColumns[T](t, keyType, 800, 30000, 13, 0, bpoolSize, index_constants.IndexKindBtree, PARALLEL_EXEC, 20)
+		InnerTestParallelTxnsQueryingIndexUsedColumns[T](t, keyType, 200, 10000, 13, 0, bpoolSize, index_constants.IndexKindBtree, PARALLEL_EXEC, 20)
 	case types.Float:
-		//InnerTestParallelTxnsQueryingIndexUsedColumns[T](t, keyType, 240, 1000, 13, 0, bpoolSize, index_constants.INDEX_KIND_BTREE, PARALLEL_EXEC, 20)
-		InnerTestParallelTxnsQueryingIndexUsedColumns[T](t, keyType, 200, 10000, 13, 0, bpoolSize, index_constants.INDEX_KIND_BTREE, PARALLEL_EXEC, 20)
+		//InnerTestParallelTxnsQueryingIndexUsedColumns[T](t, keyType, 240, 1000, 13, 0, bpoolSize, index_constants.IndexKindBtree, PARALLEL_EXEC, 20)
+		InnerTestParallelTxnsQueryingIndexUsedColumns[T](t, keyType, 200, 10000, 13, 0, bpoolSize, index_constants.IndexKindBtree, PARALLEL_EXEC, 20)
 	case types.Varchar:
-		//InnerTestParallelTxnsQueryingIndexUsedColumns[T](t, keyType, 400, 5000, 17, 0, bpoolSize, index_constants.INDEX_KIND_SKIP_LIST, PARALLEL_EXEC, 20)
-		//InnerTestParallelTxnsQueryingIndexUsedColumns[T](t, keyType, 400, 5000, 17, 0, bpoolSize, index_constants.INDEX_KIND_BTREE, PARALLEL_EXEC, 20)
-		//InnerTestParallelTxnsQueryingIndexUsedColumns[T](t, keyType, 400, 1000, 17, 0, bpoolSize, index_constants.INDEX_KIND_BTREE, SERIAL_EXEC, 1)
-		//InnerTestParallelTxnsQueryingIndexUsedColumns[T](t, keyType, 800, 5000, 17, 0, bpoolSize, index_constants.INDEX_KIND_BTREE, SERIAL_EXEC, 1)
+		//InnerTestParallelTxnsQueryingIndexUsedColumns[T](t, keyType, 400, 5000, 17, 0, bpoolSize, index_constants.IndexKindSkipList, PARALLEL_EXEC, 20)
+		//InnerTestParallelTxnsQueryingIndexUsedColumns[T](t, keyType, 400, 5000, 17, 0, bpoolSize, index_constants.IndexKindBtree, PARALLEL_EXEC, 20)
+		//InnerTestParallelTxnsQueryingIndexUsedColumns[T](t, keyType, 400, 1000, 17, 0, bpoolSize, index_constants.IndexKindBtree, SERIAL_EXEC, 1)
+		//InnerTestParallelTxnsQueryingIndexUsedColumns[T](t, keyType, 800, 5000, 17, 0, bpoolSize, index_constants.IndexKindBtree, SERIAL_EXEC, 1)
 
-		//InnerTestParallelTxnsQueryingIndexUsedColumns[T](t, keyType, 800, 3000, 17, 0, bpoolSize, index_constants.INDEX_KIND_BTREE, SERIAL_EXEC, 1)
-		//InnerTestParallelTxnsQueryingIndexUsedColumns[T](t, keyType, 800, 30000, 17, 0, bpoolSize, index_constants.INDEX_KIND_BTREE, PARALLEL_EXEC, 20)
-		//InnerTestParallelTxnsQueryingIndexUsedColumns[T](t, keyType, 200, 10000, 17, 0, bpoolSize, index_constants.INDEX_KIND_BTREE, PARALLEL_EXEC, 20)
-		InnerTestParallelTxnsQueryingIndexUsedColumns[T](t, keyType, 400, 1000, 17, 0, bpoolSize, index_constants.INDEX_KIND_BTREE, PARALLEL_EXEC, 20)
-		//InnerTestParallelTxnsQueryingIndexUsedColumns[T](t, keyType, 800, 30000, 17, 0, bpoolSize, index_constants.INDEX_KIND_BTREE, SERIAL_EXEC, 1)
+		//InnerTestParallelTxnsQueryingIndexUsedColumns[T](t, keyType, 800, 3000, 17, 0, bpoolSize, index_constants.IndexKindBtree, SERIAL_EXEC, 1)
+		//InnerTestParallelTxnsQueryingIndexUsedColumns[T](t, keyType, 800, 30000, 17, 0, bpoolSize, index_constants.IndexKindBtree, PARALLEL_EXEC, 20)
+		//InnerTestParallelTxnsQueryingIndexUsedColumns[T](t, keyType, 200, 10000, 17, 0, bpoolSize, index_constants.IndexKindBtree, PARALLEL_EXEC, 20)
+		InnerTestParallelTxnsQueryingIndexUsedColumns[T](t, keyType, 400, 1000, 17, 0, bpoolSize, index_constants.IndexKindBtree, PARALLEL_EXEC, 20)
+		//InnerTestParallelTxnsQueryingIndexUsedColumns[T](t, keyType, 800, 30000, 17, 0, bpoolSize, index_constants.IndexKindBtree, SERIAL_EXEC, 1)
 	default:
 		panic("not implemented!")
 	}
@@ -213,9 +213,9 @@ func TestRecounstructionOfBtreeIndex(t *testing.T) {
 	bpm := shi.GetBufferPoolManager()
 	txn := txn_mgr.Begin(nil)
 
-	columnA := column.NewColumn("a", types.Integer, true, index_constants.INDEX_KIND_BTREE, types.PageID(-1), nil)
-	columnB := column.NewColumn("b", types.Integer, true, index_constants.INDEX_KIND_BTREE, types.PageID(-1), nil)
-	columnC := column.NewColumn("c", types.Varchar, true, index_constants.INDEX_KIND_BTREE, types.PageID(-1), nil)
+	columnA := column.NewColumn("a", types.Integer, true, index_constants.IndexKindBtree, types.PageID(-1), nil)
+	columnB := column.NewColumn("b", types.Integer, true, index_constants.IndexKindBtree, types.PageID(-1), nil)
+	columnC := column.NewColumn("c", types.Varchar, true, index_constants.IndexKindBtree, types.PageID(-1), nil)
 	schema_ := schema.NewSchema([]*column.Column{columnA, columnB, columnC})
 
 	tableMetadata := c.CreateTable("test_1", schema_, txn)
@@ -296,7 +296,7 @@ func TestRecounstructionOfBtreeIndex(t *testing.T) {
 
 	for _, test := range cases {
 		t.Run(test.Description, func(t *testing.T) {
-			testing_pattern_fw.ExecuteIndexPointScanTestCase(t, test, index_constants.INDEX_KIND_BTREE)
+			testing_pattern_fw.ExecuteIndexPointScanTestCase(t, test, index_constants.IndexKindBtree)
 		})
 	}
 
@@ -363,7 +363,7 @@ func TestRecounstructionOfBtreeIndex(t *testing.T) {
 
 	for _, test := range cases {
 		t.Run(test.Description, func(t *testing.T) {
-			testing_pattern_fw.ExecuteIndexPointScanTestCase(t, test, index_constants.INDEX_KIND_BTREE)
+			testing_pattern_fw.ExecuteIndexPointScanTestCase(t, test, index_constants.IndexKindBtree)
 		})
 	}
 

@@ -39,8 +39,8 @@ func testKeyDuplicateInsertDeleteWithSkipListIndex[T float32 | int32 | string](t
 
 	c := catalog.BootstrapCatalog(shi.GetBufferPoolManager(), shi.GetLogManager(), shi.GetLockManager(), txn)
 
-	columnA := column.NewColumn("account_id", keyType, true, index_constants.INDEX_KIND_SKIP_LIST, types.PageID(-1), nil)
-	columnB := column.NewColumn("balance", types.Integer, true, index_constants.INDEX_KIND_SKIP_LIST, types.PageID(-1), nil)
+	columnA := column.NewColumn("account_id", keyType, true, index_constants.IndexKindSkipList, types.PageID(-1), nil)
+	columnB := column.NewColumn("balance", types.Integer, true, index_constants.IndexKindSkipList, types.PageID(-1), nil)
 	schema_ := schema.NewSchema([]*column.Column{columnA, columnB})
 	tableMetadata := c.CreateTable("test_1", schema_, txn)
 
@@ -71,7 +71,7 @@ func testKeyDuplicateInsertDeleteWithSkipListIndex[T float32 | int32 | string](t
 
 	txn = txnMgr.Begin(nil)
 
-	scanP := createSpecifiedPointScanPlanNode(accountId.(T), c, tableMetadata, keyType, index_constants.INDEX_KIND_SKIP_LIST)
+	scanP := createSpecifiedPointScanPlanNode(accountId.(T), c, tableMetadata, keyType, index_constants.IndexKindSkipList)
 	result = executePlan(c, shi.GetBufferPoolManager(), txn, scanP)
 	testingpkg.Assert(t, len(result) == 3, "duplicated key point scan got illegal results.")
 	rid1 := result[0].GetRID()
@@ -87,19 +87,19 @@ func testKeyDuplicateInsertDeleteWithSkipListIndex[T float32 | int32 | string](t
 
 	indexCol1.DeleteEntry(result[0], *rid1, txn)
 	indexCol2.DeleteEntry(result[0], *rid1, txn)
-	scanP = createSpecifiedPointScanPlanNode(accountId.(T), c, tableMetadata, keyType, index_constants.INDEX_KIND_SKIP_LIST)
+	scanP = createSpecifiedPointScanPlanNode(accountId.(T), c, tableMetadata, keyType, index_constants.IndexKindSkipList)
 	result = executePlan(c, shi.GetBufferPoolManager(), txn, scanP)
 	testingpkg.Assert(t, len(result) == 2, "duplicated key point scan got illegal results.")
 
 	indexCol1.DeleteEntry(result[0], *rid2, txn)
 	indexCol2.DeleteEntry(result[0], *rid2, txn)
-	scanP = createSpecifiedPointScanPlanNode(accountId.(T), c, tableMetadata, keyType, index_constants.INDEX_KIND_SKIP_LIST)
+	scanP = createSpecifiedPointScanPlanNode(accountId.(T), c, tableMetadata, keyType, index_constants.IndexKindSkipList)
 	result = executePlan(c, shi.GetBufferPoolManager(), txn, scanP)
 	testingpkg.Assert(t, len(result) == 1, "duplicated key point scan got illegal results.")
 
 	indexCol1.DeleteEntry(result[0], *rid3, txn)
 	indexCol2.DeleteEntry(result[0], *rid3, txn)
-	scanP = createSpecifiedPointScanPlanNode(accountId.(T), c, tableMetadata, keyType, index_constants.INDEX_KIND_SKIP_LIST)
+	scanP = createSpecifiedPointScanPlanNode(accountId.(T), c, tableMetadata, keyType, index_constants.IndexKindSkipList)
 	result = executePlan(c, shi.GetBufferPoolManager(), txn, scanP)
 	testingpkg.Assert(t, len(result) == 0, "duplicated key point scan got illegal results.")
 
@@ -141,15 +141,15 @@ func InnerTestParallelTxnsQueryingIndexUsedColumns[T int32 | float32 | string](t
 	var columnA *column.Column
 	var columnB *column.Column
 	switch indexKind {
-	case index_constants.INDEX_KIND_INVALID:
-		columnA = column.NewColumn("account_id", keyType, false, index_constants.INDEX_KIND_INVALID, types.PageID(-1), nil)
-		columnB = column.NewColumn("balance", types.Integer, false, index_constants.INDEX_KIND_INVALID, types.PageID(-1), nil)
-	case index_constants.INDEX_KIND_SKIP_LIST:
-		columnA = column.NewColumn("account_id", keyType, true, index_constants.INDEX_KIND_SKIP_LIST, types.PageID(-1), nil)
-		columnB = column.NewColumn("balance", types.Integer, true, index_constants.INDEX_KIND_SKIP_LIST, types.PageID(-1), nil)
-	case index_constants.INDEX_KIND_BTREE:
-		columnA = column.NewColumn("account_id", keyType, true, index_constants.INDEX_KIND_BTREE, types.PageID(-1), nil)
-		columnB = column.NewColumn("balance", types.Integer, true, index_constants.INDEX_KIND_BTREE, types.PageID(-1), nil)
+	case index_constants.IndexKindInvalid:
+		columnA = column.NewColumn("account_id", keyType, false, index_constants.IndexKindInvalid, types.PageID(-1), nil)
+		columnB = column.NewColumn("balance", types.Integer, false, index_constants.IndexKindInvalid, types.PageID(-1), nil)
+	case index_constants.IndexKindSkipList:
+		columnA = column.NewColumn("account_id", keyType, true, index_constants.IndexKindSkipList, types.PageID(-1), nil)
+		columnB = column.NewColumn("balance", types.Integer, true, index_constants.IndexKindSkipList, types.PageID(-1), nil)
+	case index_constants.IndexKindBtree:
+		columnA = column.NewColumn("account_id", keyType, true, index_constants.IndexKindBtree, types.PageID(-1), nil)
+		columnB = column.NewColumn("balance", types.Integer, true, index_constants.IndexKindBtree, types.PageID(-1), nil)
 	default:
 		panic("not implemented!")
 	}
@@ -1122,7 +1122,7 @@ func InnerTestParallelTxnsQueryingIndexUsedColumns[T int32 | float32 | string](t
 					return
 				}
 
-				if indexKind == index_constants.INDEX_KIND_SKIP_LIST || indexKind == index_constants.INDEX_KIND_BTREE {
+				if indexKind == index_constants.IndexKindSkipList || indexKind == index_constants.IndexKindBtree {
 					resultsLen := len(results)
 					var prevVal *types.Value = nil
 					for jj := 0; jj < resultsLen; jj++ {
@@ -1200,7 +1200,7 @@ func InnerTestParallelTxnsQueryingIndexUsedColumns[T int32 | float32 | string](t
 	common.SHAssert(collectNum == int32(resultsLen1), "records count is not matched with assumed num "+fmt.Sprintf("%d != %d", collectNum, resultsLen1))
 	finalizeRandomNoSideEffectTxn(txn_)
 
-	if indexKind == index_constants.INDEX_KIND_SKIP_LIST || indexKind == index_constants.INDEX_KIND_BTREE {
+	if indexKind == index_constants.IndexKindSkipList || indexKind == index_constants.IndexKindBtree {
 		// check order (col1 when index of it is used)
 		//txn_ = txnMgr.Begin(nil)
 		//txn_.MakeNotAbortable()
@@ -1228,7 +1228,7 @@ func InnerTestParallelTxnsQueryingIndexUsedColumns[T int32 | float32 | string](t
 	fmt.Printf("collectNum:%d == resultsLen2:%d\n", collectNum, resultsLen2)
 	finalizeRandomNoSideEffectTxn(txn_)
 
-	if indexKind == index_constants.INDEX_KIND_SKIP_LIST || indexKind == index_constants.INDEX_KIND_BTREE {
+	if indexKind == index_constants.IndexKindSkipList || indexKind == index_constants.IndexKindBtree {
 		// check order (col2 when index of it is used)
 		//txn_ = txnMgr.Begin(nil)
 		//txn_.MakeNotAbortable()
@@ -1272,7 +1272,7 @@ func InnerTestParallelTxnsQueryingIndexUsedColumns[T int32 | float32 | string](t
 
 	txn_ = txnMgr.Begin(nil)
 	txn_.MakeNotAbortable()
-	fullScanPlan := createSpecifiedRangeScanPlanNode[T](c, tableMetadata, keyType, -1, nil, nil, index_constants.INDEX_KIND_INVALID)
+	fullScanPlan := createSpecifiedRangeScanPlanNode[T](c, tableMetadata, keyType, -1, nil, nil, index_constants.IndexKindInvalid)
 	results3 := executePlan(c, shi.GetBufferPoolManager(), txn_, fullScanPlan)
 	resultsLen3 := len(results3)
 	common.SHAssert(txn_.GetState() != access.ABORTED, "last tuple count check is aborted!(3)")
@@ -1292,37 +1292,37 @@ func testSkipListParallelTxnStrideRoot[T int32 | float32 | string](t *testing.T,
 
 	switch keyType {
 	case types.Integer:
-		//testParallelTxnsQueryingUniqSkipListIndexUsedColumns[T](t, keyType, 400, 3000, 13, 0, bpoolSize, index_constants.INDEX_KIND_UNIQ_SKIP_LIST, PARALLEL_EXEC, 20)
-		//testParallelTxnsQueryingUniqSkipListIndexUsedColumns[T](t, keyType, 400, 30000, 13, 0, bpoolSize, index_constants.INDEX_KIND_UNIQ_SKIP_LIST, PARALLEL_EXEC, 20)
-		//testParallelTxnsQueryingUniqSkipListIndexUsedColumns[T](t, keyType, 400, 30000, 13, 0, bpoolSize, index_constants.INDEX_KIND_UNIQ_SKIP_LIST, PARALLEL_EXEC, 20)
+		//testParallelTxnsQueryingUniqSkipListIndexUsedColumns[T](t, keyType, 400, 3000, 13, 0, bpoolSize, index_constants.IndexKindUniqSkipList, PARALLEL_EXEC, 20)
+		//testParallelTxnsQueryingUniqSkipListIndexUsedColumns[T](t, keyType, 400, 30000, 13, 0, bpoolSize, index_constants.IndexKindUniqSkipList, PARALLEL_EXEC, 20)
+		//testParallelTxnsQueryingUniqSkipListIndexUsedColumns[T](t, keyType, 400, 30000, 13, 0, bpoolSize, index_constants.IndexKindUniqSkipList, PARALLEL_EXEC, 20)
 
-		//InnerTestParallelTxnsQueryingIndexUsedColumns[T](t, keyType, 400, 30000, 13, 0, bpoolSize, index_constants.INDEX_KIND_SKIP_LIST, PARALLEL_EXEC, 20)
-		//InnerTestParallelTxnsQueryingIndexUsedColumns[T](t, keyType, 400, 30000, 13, 0, bpoolSize, index_constants.INDEX_KIND_SKIP_LIST, SERIAL_EXEC, 20)
-		//InnerTestParallelTxnsQueryingIndexUsedColumns[T](t, keyType, 400, 300, 13, 0, bpoolSize, index_constants.INDEX_KIND_SKIP_LIST, SERIAL_EXEC, 20)
-		//InnerTestParallelTxnsQueryingIndexUsedColumns[T](t, keyType, 400, 3000, 13, 0, bpoolSize, index_constants.INDEX_KIND_SKIP_LIST, SERIAL_EXEC, 20)
+		//InnerTestParallelTxnsQueryingIndexUsedColumns[T](t, keyType, 400, 30000, 13, 0, bpoolSize, index_constants.IndexKindSkipList, PARALLEL_EXEC, 20)
+		//InnerTestParallelTxnsQueryingIndexUsedColumns[T](t, keyType, 400, 30000, 13, 0, bpoolSize, index_constants.IndexKindSkipList, SERIAL_EXEC, 20)
+		//InnerTestParallelTxnsQueryingIndexUsedColumns[T](t, keyType, 400, 300, 13, 0, bpoolSize, index_constants.IndexKindSkipList, SERIAL_EXEC, 20)
+		//InnerTestParallelTxnsQueryingIndexUsedColumns[T](t, keyType, 400, 3000, 13, 0, bpoolSize, index_constants.IndexKindSkipList, SERIAL_EXEC, 20)
 
-		InnerTestParallelTxnsQueryingIndexUsedColumns[T](t, keyType, 400, 3000, 13, 0, bpoolSize, index_constants.INDEX_KIND_SKIP_LIST, PARALLEL_EXEC, 20)
+		InnerTestParallelTxnsQueryingIndexUsedColumns[T](t, keyType, 400, 3000, 13, 0, bpoolSize, index_constants.IndexKindSkipList, PARALLEL_EXEC, 20)
 
-		//InnerTestParallelTxnsQueryingIndexUsedColumns[T](t, keyType, 400, 3000, 13, 0, bpoolSize, index_constants.INDEX_KIND_SKIP_LIST, PARALLEL_EXEC, 20)
+		//InnerTestParallelTxnsQueryingIndexUsedColumns[T](t, keyType, 400, 3000, 13, 0, bpoolSize, index_constants.IndexKindSkipList, PARALLEL_EXEC, 20)
 	case types.Float:
-		//testParallelTxnsQueryingUniqSkipListIndexUsedColumns[T](t, keyType, 400, 30000, 13, 0, bpoolSize, index_constants.INDEX_KIND_UNIQ_SKIP_LIST, PARALLEL_EXEC, 20)
-		InnerTestParallelTxnsQueryingIndexUsedColumns[T](t, keyType, 240, 1000, 13, 0, bpoolSize, index_constants.INDEX_KIND_SKIP_LIST, PARALLEL_EXEC, 20)
+		//testParallelTxnsQueryingUniqSkipListIndexUsedColumns[T](t, keyType, 400, 30000, 13, 0, bpoolSize, index_constants.IndexKindUniqSkipList, PARALLEL_EXEC, 20)
+		InnerTestParallelTxnsQueryingIndexUsedColumns[T](t, keyType, 240, 1000, 13, 0, bpoolSize, index_constants.IndexKindSkipList, PARALLEL_EXEC, 20)
 	case types.Varchar:
-		//testParallelTxnsQueryingUniqSkipListIndexUsedColumns[T](t, keyType, 400, 400, 13, 0, bpoolSize, index_constants.INDEX_KIND_INVALID, PARALLEL_EXEC, 20)
-		//testParallelTxnsQueryingUniqSkipListIndexUsedColumns[T](t, keyType, 400, 3000, 13, 0, bpoolSize, index_constants.INDEX_KIND_UNIQ_SKIP_LIST, PARALLEL_EXEC, 20)
+		//testParallelTxnsQueryingUniqSkipListIndexUsedColumns[T](t, keyType, 400, 400, 13, 0, bpoolSize, index_constants.IndexKindInvalid, PARALLEL_EXEC, 20)
+		//testParallelTxnsQueryingUniqSkipListIndexUsedColumns[T](t, keyType, 400, 3000, 13, 0, bpoolSize, index_constants.IndexKindUniqSkipList, PARALLEL_EXEC, 20)
 
-		//testParallelTxnsQueryingUniqSkipListIndexUsedColumns[T](t, keyType, 400, 90000, 17, 0, bpoolSize, index_constants.INDEX_KIND_UNIQ_SKIP_LIST, PARALLEL_EXEC, 20)
+		//testParallelTxnsQueryingUniqSkipListIndexUsedColumns[T](t, keyType, 400, 90000, 17, 0, bpoolSize, index_constants.IndexKindUniqSkipList, PARALLEL_EXEC, 20)
 
-		//InnerTestParallelTxnsQueryingIndexUsedColumns[T](t, keyType, 400, 5000, 17, 0, bpoolSize, index_constants.INDEX_KIND_SKIP_LIST, PARALLEL_EXEC, 20)
-		InnerTestParallelTxnsQueryingIndexUsedColumns[T](t, keyType, 400, 1000, 17, 0, bpoolSize, index_constants.INDEX_KIND_SKIP_LIST, PARALLEL_EXEC, 20)
+		//InnerTestParallelTxnsQueryingIndexUsedColumns[T](t, keyType, 400, 5000, 17, 0, bpoolSize, index_constants.IndexKindSkipList, PARALLEL_EXEC, 20)
+		InnerTestParallelTxnsQueryingIndexUsedColumns[T](t, keyType, 400, 1000, 17, 0, bpoolSize, index_constants.IndexKindSkipList, PARALLEL_EXEC, 20)
 
-		//InnerTestParallelTxnsQueryingIndexUsedColumns[T](t, keyType, 800, 30000, 17, 0, bpoolSize, index_constants.INDEX_KIND_SKIP_LIST, PARALLEL_EXEC, 20)
+		//InnerTestParallelTxnsQueryingIndexUsedColumns[T](t, keyType, 800, 30000, 17, 0, bpoolSize, index_constants.IndexKindSkipList, PARALLEL_EXEC, 20)
 
-		//testParallelTxnsQueryingUniqSkipListIndexUsedColumns[T](t, keyType, 400, 50000, 17, 0, bpoolSize, index_constants.INDEX_KIND_UNIQ_SKIP_LIST, PARALLEL_EXEC, 20)
-		//testParallelTxnsQueryingUniqSkipListIndexUsedColumns[T](t, keyType, 400, 200000, 11, 0, bpoolSize, index_constants.INDEX_KIND_UNIQ_SKIP_LIST, PARALLEL_EXEC, 20)
+		//testParallelTxnsQueryingUniqSkipListIndexUsedColumns[T](t, keyType, 400, 50000, 17, 0, bpoolSize, index_constants.IndexKindUniqSkipList, PARALLEL_EXEC, 20)
+		//testParallelTxnsQueryingUniqSkipListIndexUsedColumns[T](t, keyType, 400, 200000, 11, 0, bpoolSize, index_constants.IndexKindUniqSkipList, PARALLEL_EXEC, 20)
 
-		//testParallelTxnsQueryingUniqSkipListIndexUsedColumns[T](t, keyType, 400, 300, 17, 0, bpoolSize, index_constants.INDEX_KIND_UNIQ_SKIP_LIST, PARALLEL_EXEC, 20)
-		//testParallelTxnsQueryingUniqSkipListIndexUsedColumns[T](t, keyType, 400, 500, 17, 0, bpoolSize, index_constants.INDEX_KIND_UNIQ_SKIP_LIST, SERIAL_EXEC, 20)
+		//testParallelTxnsQueryingUniqSkipListIndexUsedColumns[T](t, keyType, 400, 300, 17, 0, bpoolSize, index_constants.IndexKindUniqSkipList, PARALLEL_EXEC, 20)
+		//testParallelTxnsQueryingUniqSkipListIndexUsedColumns[T](t, keyType, 400, 500, 17, 0, bpoolSize, index_constants.IndexKindUniqSkipList, SERIAL_EXEC, 20)
 	default:
 		panic("not implemented!")
 	}

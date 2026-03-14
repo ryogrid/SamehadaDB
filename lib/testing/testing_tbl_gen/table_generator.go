@@ -178,7 +178,7 @@ func MakeConstantValueExpression(val *types.Value) expression.Expression {
 func MakeOutputSchema(exprs []MakeSchemaMeta) *schema.Schema {
 	var cols = make([]*column.Column, 0)
 	for _, input := range exprs {
-		cols = append(cols, column.NewColumn(input.Col_name_, input.Expr_.GetReturnType(), false, index_constants.INDEX_KIND_INVALID, types.PageID(-1), input.Expr_))
+		cols = append(cols, column.NewColumn(input.Col_name_, input.Expr_.GetReturnType(), false, index_constants.IndexKindInvalid, types.PageID(-1), input.Expr_))
 	}
 	return schema.NewSchema(cols)
 }
@@ -186,24 +186,24 @@ func MakeOutputSchema(exprs []MakeSchemaMeta) *schema.Schema {
 func MakeOutputSchemaAgg(exprs []MakeSchemaMetaAgg) *schema.Schema {
 	var cols = make([]*column.Column, 0)
 	for _, input := range exprs {
-		cols = append(cols, column.NewColumn(input.Col_name_, input.Expr_.GetReturnType(), false, index_constants.INDEX_KIND_INVALID, types.PageID(-1), input.Expr_))
+		cols = append(cols, column.NewColumn(input.Col_name_, input.Expr_.GetReturnType(), false, index_constants.IndexKindInvalid, types.PageID(-1), input.Expr_))
 	}
 	return schema.NewSchema(cols)
 }
 
 func GenerateTestTabls(c *catalog.Catalog, exec_ctx *executors.ExecutorContext,
 	txn *access.Transaction) (*catalog.TableMetadata, *catalog.TableMetadata) {
-	columnA := column.NewColumn("colA", types.Integer, false, index_constants.INDEX_KIND_INVALID, types.PageID(-1), nil)
-	columnB := column.NewColumn("colB", types.Integer, false, index_constants.INDEX_KIND_INVALID, types.PageID(-1), nil)
-	columnC := column.NewColumn("colC", types.Integer, false, index_constants.INDEX_KIND_INVALID, types.PageID(-1), nil)
-	columnD := column.NewColumn("colD", types.Integer, false, index_constants.INDEX_KIND_INVALID, types.PageID(-1), nil)
+	columnA := column.NewColumn("colA", types.Integer, false, index_constants.IndexKindInvalid, types.PageID(-1), nil)
+	columnB := column.NewColumn("colB", types.Integer, false, index_constants.IndexKindInvalid, types.PageID(-1), nil)
+	columnC := column.NewColumn("colC", types.Integer, false, index_constants.IndexKindInvalid, types.PageID(-1), nil)
+	columnD := column.NewColumn("colD", types.Integer, false, index_constants.IndexKindInvalid, types.PageID(-1), nil)
 	schema_ := schema.NewSchema([]*column.Column{columnA, columnB, columnC, columnD})
 	tableMetadata1 := c.CreateTable("test_1", schema_, txn)
 
-	column1 := column.NewColumn("col1", types.Integer, false, index_constants.INDEX_KIND_INVALID, types.PageID(-1), nil)
-	column2 := column.NewColumn("col2", types.Integer, false, index_constants.INDEX_KIND_INVALID, types.PageID(-1), nil)
-	column3 := column.NewColumn("col3", types.Integer, false, index_constants.INDEX_KIND_INVALID, types.PageID(-1), nil)
-	column4 := column.NewColumn("col3", types.Integer, false, index_constants.INDEX_KIND_INVALID, types.PageID(-1), nil)
+	column1 := column.NewColumn("col1", types.Integer, false, index_constants.IndexKindInvalid, types.PageID(-1), nil)
+	column2 := column.NewColumn("col2", types.Integer, false, index_constants.IndexKindInvalid, types.PageID(-1), nil)
+	column3 := column.NewColumn("col3", types.Integer, false, index_constants.IndexKindInvalid, types.PageID(-1), nil)
+	column4 := column.NewColumn("col3", types.Integer, false, index_constants.IndexKindInvalid, types.PageID(-1), nil)
 	schema_ = schema.NewSchema([]*column.Column{column1, column2, column3, column4})
 	tableMetadata2 := c.CreateTable("test_2", schema_, txn)
 

@@ -43,9 +43,9 @@ func TestUniqSkipListIndexPointScan(t *testing.T) {
 
 	c := catalog.BootstrapCatalog(bpm, log_mgr, access.NewLockManager(access.REGULAR, access.PREVENTION), txn)
 
-	columnA := column.NewColumn("a", types.Integer, true, index_constants.INDEX_KIND_UNIQ_SKIP_LIST, types.PageID(-1), nil)
-	columnB := column.NewColumn("b", types.Integer, true, index_constants.INDEX_KIND_UNIQ_SKIP_LIST, types.PageID(-1), nil)
-	columnC := column.NewColumn("c", types.Varchar, true, index_constants.INDEX_KIND_UNIQ_SKIP_LIST, types.PageID(-1), nil)
+	columnA := column.NewColumn("a", types.Integer, true, index_constants.IndexKindUniqSkipList, types.PageID(-1), nil)
+	columnB := column.NewColumn("b", types.Integer, true, index_constants.IndexKindUniqSkipList, types.PageID(-1), nil)
+	columnC := column.NewColumn("c", types.Varchar, true, index_constants.IndexKindUniqSkipList, types.PageID(-1), nil)
 	schema_ := schema.NewSchema([]*column.Column{columnA, columnB, columnC})
 
 	tableMetadata := c.CreateTable("test_1", schema_, txn)
@@ -162,7 +162,7 @@ func TestUniqSkipListIndexPointScan(t *testing.T) {
 
 	for _, test := range cases {
 		t.Run(test.Description, func(t *testing.T) {
-			testing_pattern_fw.ExecuteIndexPointScanTestCase(t, test, index_constants.INDEX_KIND_UNIQ_SKIP_LIST)
+			testing_pattern_fw.ExecuteIndexPointScanTestCase(t, test, index_constants.IndexKindUniqSkipList)
 		})
 	}
 
@@ -184,9 +184,9 @@ func TestUniqSkipListSerialIndexRangeScan(t *testing.T) {
 
 	c := catalog.BootstrapCatalog(bpm, log_mgr, access.NewLockManager(access.REGULAR, access.PREVENTION), txn)
 
-	columnA := column.NewColumn("a", types.Integer, true, index_constants.INDEX_KIND_UNIQ_SKIP_LIST, types.PageID(-1), nil)
-	columnB := column.NewColumn("b", types.Integer, true, index_constants.INDEX_KIND_UNIQ_SKIP_LIST, types.PageID(-1), nil)
-	columnC := column.NewColumn("c", types.Varchar, true, index_constants.INDEX_KIND_UNIQ_SKIP_LIST, types.PageID(-1), nil)
+	columnA := column.NewColumn("a", types.Integer, true, index_constants.IndexKindUniqSkipList, types.PageID(-1), nil)
+	columnB := column.NewColumn("b", types.Integer, true, index_constants.IndexKindUniqSkipList, types.PageID(-1), nil)
+	columnC := column.NewColumn("c", types.Varchar, true, index_constants.IndexKindUniqSkipList, types.PageID(-1), nil)
 	schema_ := schema.NewSchema([]*column.Column{columnA, columnB, columnC})
 
 	tableMetadata := c.CreateTable("test_1", schema_, txn)
@@ -291,7 +291,7 @@ func TestUniqSkipListSerialIndexRangeScan(t *testing.T) {
 
 	for _, test := range cases {
 		t.Run(test.Description, func(t *testing.T) {
-			testing_pattern_fw.ExecuteIndexRangeScanTestCase(t, test, index_constants.INDEX_KIND_UNIQ_SKIP_LIST)
+			testing_pattern_fw.ExecuteIndexRangeScanTestCase(t, test, index_constants.IndexKindUniqSkipList)
 		})
 	}
 
@@ -311,8 +311,8 @@ func TestUniqSkipListSerialIndexRangeScan(t *testing.T) {
 
 		c := catalog.BootstrapCatalog(bpm, log_mgr, access.NewLockManager(access.REGULAR, access.PREVENTION), txn)
 
-		columnA := column.NewColumn("a", types.Integer, true, index_constants.INDEX_KIND_UNIQ_SKIP_LIST, types.PageID(-1), nil)
-		columnB := column.NewColumn("b", types.Varchar, true, index_constants.INDEX_KIND_UNIQ_SKIP_LIST, types.PageID(-1), nil)
+		columnA := column.NewColumn("a", types.Integer, true, index_constants.IndexKindUniqSkipList, types.PageID(-1), nil)
+		columnB := column.NewColumn("b", types.Varchar, true, index_constants.IndexKindUniqSkipList, types.PageID(-1), nil)
 		schema_ := schema.NewSchema([]*column.Column{columnA, columnB})
 
 		tableMetadata := c.CreateTable("test_1", schema_, txn)
@@ -382,7 +382,7 @@ func TestUniqSkipListSerialIndexRangeScan(t *testing.T) {
 		fmt.Println("select and check value before Abort...")
 
 		// check updated row
-		outColumnB := column.NewColumn("b", types.Varchar, false, index_constants.INDEX_KIND_INVALID, types.PageID(-1), nil)
+		outColumnB := column.NewColumn("b", types.Varchar, false, index_constants.IndexKindInvalid, types.PageID(-1), nil)
 		outSchema := schema.NewSchema([]*column.Column{outColumnB})
 
 		pred = testing_pattern_fw.Predicate{"a", expression.Equal, 99}
@@ -398,7 +398,7 @@ func TestUniqSkipListSerialIndexRangeScan(t *testing.T) {
 		testingpkg.Assert(t, types.NewVarchar("updated").CompareEquals(results[0].GetValue(outSchema, 0)), "value should be 'updated'")
 
 		// check deleted row
-		outColumnB = column.NewColumn("b", types.Integer, false, index_constants.INDEX_KIND_INVALID, types.PageID(-1), nil)
+		outColumnB = column.NewColumn("b", types.Integer, false, index_constants.IndexKindInvalid, types.PageID(-1), nil)
 		outSchema = schema.NewSchema([]*column.Column{outColumnB})
 
 		pred = testing_pattern_fw.Predicate{"b", expression.Equal, "bar"}
@@ -422,7 +422,7 @@ func TestUniqSkipListSerialIndexRangeScan(t *testing.T) {
 		executorContext.SetTransaction(txn)
 
 		// check updated row
-		outColumnB = column.NewColumn("b", types.Varchar, false, index_constants.INDEX_KIND_INVALID, types.PageID(-1), nil)
+		outColumnB = column.NewColumn("b", types.Varchar, false, index_constants.IndexKindInvalid, types.PageID(-1), nil)
 		outSchema = schema.NewSchema([]*column.Column{outColumnB})
 
 		pred = testing_pattern_fw.Predicate{"a", expression.Equal, 99}
@@ -438,7 +438,7 @@ func TestUniqSkipListSerialIndexRangeScan(t *testing.T) {
 		testingpkg.Assert(t, types.NewVarchar("foo").CompareEquals(results[0].GetValue(outSchema, 0)), "value should be 'foo'")
 
 		// check deleted row
-		outColumnB = column.NewColumn("b", types.Integer, false, index_constants.INDEX_KIND_INVALID, types.PageID(-1), nil)
+		outColumnB = column.NewColumn("b", types.Integer, false, index_constants.IndexKindInvalid, types.PageID(-1), nil)
 		outSchema = schema.NewSchema([]*column.Column{outColumnB})
 
 		pred = testing_pattern_fw.Predicate{"b", expression.Equal, "bar"}
@@ -464,8 +464,8 @@ func TestUniqSkipListSerialIndexRangeScan(t *testing.T) {
 
 		c := catalog.BootstrapCatalog(bpm, log_mgr, access.NewLockManager(access.REGULAR, access.PREVENTION), txn)
 
-		columnA := column.NewColumn("a", types.Integer, true, index_constants.INDEX_KIND_UNIQ_SKIP_LIST, types.PageID(-1), nil)
-		columnB := column.NewColumn("b", types.Varchar, true, index_constants.INDEX_KIND_UNIQ_SKIP_LIST, types.PageID(-1), nil)
+		columnA := column.NewColumn("a", types.Integer, true, index_constants.IndexKindUniqSkipList, types.PageID(-1), nil)
+		columnB := column.NewColumn("b", types.Varchar, true, index_constants.IndexKindUniqSkipList, types.PageID(-1), nil)
 		schema_ := schema.NewSchema([]*column.Column{columnA, columnB})
 
 		tableMetadata := c.CreateTable("test_1", schema_, txn)
@@ -531,7 +531,7 @@ func TestUniqSkipListSerialIndexRangeScan(t *testing.T) {
 		fmt.Println("select and check value before Abort...")
 
 		// --------- Check Updated row before rollback ----------
-		outColumnB := column.NewColumn("b", types.Varchar, false, index_constants.INDEX_KIND_INVALID, types.PageID(-1), nil)
+		outColumnB := column.NewColumn("b", types.Varchar, false, index_constants.IndexKindInvalid, types.PageID(-1), nil)
 		outSchema := schema.NewSchema([]*column.Column{outColumnB})
 
 		skipListRangeScanP = plans.NewRangeScanWithIndexPlanNode(c, outSchema, tableMetadata.OID(), int32(tableMetadata.Schema().GetColIndex("a")), nil, samehada_util.GetPonterOfValue(types.NewInteger(99)), samehada_util.GetPonterOfValue(types.NewInteger(99)))
@@ -541,7 +541,7 @@ func TestUniqSkipListSerialIndexRangeScan(t *testing.T) {
 		testingpkg.Assert(t, types.NewVarchar("updated").CompareEquals(results[0].GetValue(outSchema, 0)), "value should be 'updated'")
 
 		// --------- Check Deleted row before rollback -----------
-		outColumnB = column.NewColumn("b", types.Integer, false, index_constants.INDEX_KIND_INVALID, types.PageID(-1), nil)
+		outColumnB = column.NewColumn("b", types.Integer, false, index_constants.IndexKindInvalid, types.PageID(-1), nil)
 		outSchema = schema.NewSchema([]*column.Column{outColumnB})
 
 		skipListRangeScanP = plans.NewRangeScanWithIndexPlanNode(c, outSchema, tableMetadata.OID(), int32(tableMetadata.Schema().GetColIndex("a")), nil, samehada_util.GetPonterOfValue(types.NewInteger(200)), nil)
@@ -558,7 +558,7 @@ func TestUniqSkipListSerialIndexRangeScan(t *testing.T) {
 		executorContext.SetTransaction(txn)
 
 		// -------- Check Rollback of Updated row -------------
-		outColumnB = column.NewColumn("b", types.Varchar, false, index_constants.INDEX_KIND_INVALID, types.PageID(-1), nil)
+		outColumnB = column.NewColumn("b", types.Varchar, false, index_constants.IndexKindInvalid, types.PageID(-1), nil)
 		outSchema = schema.NewSchema([]*column.Column{outColumnB})
 
 		skipListRangeScanP = plans.NewRangeScanWithIndexPlanNode(c, outSchema, tableMetadata.OID(), int32(tableMetadata.Schema().GetColIndex("b")), nil, samehada_util.GetPonterOfValue(types.NewVarchar("foo")), samehada_util.GetPonterOfValue(types.NewVarchar("foo")))
@@ -567,7 +567,7 @@ func TestUniqSkipListSerialIndexRangeScan(t *testing.T) {
 		testingpkg.Assert(t, types.NewVarchar("foo").CompareEquals(results[0].GetValue(outSchema, 0)), "value should be 'foo'")
 
 		// -------- Check Rollback of Deleted row --------------
-		//outColumnB = column.NewColumn("b", types.Integer, false, index_constants.INDEX_KIND_INVALID, types.PageID(-1), nil)
+		//outColumnB = column.NewColumn("b", types.Integer, false, index_constants.IndexKindInvalid, types.PageID(-1), nil)
 		//outSchema = schema.NewSchema([]*column.Column{outColumnB})
 
 		skipListRangeScanP = plans.NewRangeScanWithIndexPlanNode(c, tableMetadata.Schema(), tableMetadata.OID(), int32(tableMetadata.Schema().GetColIndex("b")), expression_.(*expression.Comparison), samehada_util.GetPonterOfValue(types.NewVarchar("bar")), samehada_util.GetPonterOfValue(types.NewVarchar("bar")))
@@ -607,9 +607,9 @@ func createBalanceUpdatePlanNode[T int32 | float32 | string](keyColumnVal T, new
 
 	var skipListPointScanP plans.Plan
 	switch indexKind {
-	case index_constants.INDEX_KIND_INVALID:
+	case index_constants.IndexKindInvalid:
 		skipListPointScanP = plans.NewSeqScanPlanNode(c, tm.Schema(), expression_.(*expression.Comparison), tm.OID())
-	case index_constants.INDEX_KIND_UNIQ_SKIP_LIST, index_constants.INDEX_KIND_SKIP_LIST, index_constants.INDEX_KIND_BTREE:
+	case index_constants.IndexKindUniqSkipList, index_constants.IndexKindSkipList, index_constants.IndexKindBtree:
 		skipListPointScanP = plans.NewPointScanWithIndexPlanNode(c, tm.Schema(), expression_.(*expression.Comparison), tm.OID())
 	default:
 		panic("not implemented!")
@@ -639,9 +639,9 @@ func createSpecifiedValDeletePlanNode[T int32 | float32 | string](keyColumnVal T
 
 	var skipListPointScanP plans.Plan
 	switch indexKind {
-	case index_constants.INDEX_KIND_INVALID:
+	case index_constants.IndexKindInvalid:
 		skipListPointScanP = plans.NewSeqScanPlanNode(c, tm.Schema(), expression_.(*expression.Comparison), tm.OID())
-	case index_constants.INDEX_KIND_UNIQ_SKIP_LIST, index_constants.INDEX_KIND_SKIP_LIST, index_constants.INDEX_KIND_BTREE:
+	case index_constants.IndexKindUniqSkipList, index_constants.IndexKindSkipList, index_constants.IndexKindBtree:
 		skipListPointScanP = plans.NewPointScanWithIndexPlanNode(c, tm.Schema(), expression_.(*expression.Comparison), tm.OID())
 	default:
 		panic("not implemented!")
@@ -662,9 +662,9 @@ func createAccountIdUpdatePlanNode[T int32 | float32 | string](keyColumnVal T, n
 
 	var skipListPointScanP plans.Plan
 	switch indexKind {
-	case index_constants.INDEX_KIND_INVALID:
+	case index_constants.IndexKindInvalid:
 		skipListPointScanP = plans.NewSeqScanPlanNode(c, tm.Schema(), expression_.(*expression.Comparison), tm.OID())
-	case index_constants.INDEX_KIND_UNIQ_SKIP_LIST, index_constants.INDEX_KIND_SKIP_LIST, index_constants.INDEX_KIND_BTREE:
+	case index_constants.IndexKindUniqSkipList, index_constants.IndexKindSkipList, index_constants.IndexKindBtree:
 		skipListPointScanP = plans.NewPointScanWithIndexPlanNode(c, tm.Schema(), expression_.(*expression.Comparison), tm.OID())
 	default:
 		panic("not implemented!")
@@ -682,9 +682,9 @@ func createSpecifiedPointScanPlanNode[T int32 | float32 | string](getKeyVal T, c
 
 	var skipListPointScanP plans.Plan
 	switch indexKind {
-	case index_constants.INDEX_KIND_INVALID:
+	case index_constants.IndexKindInvalid:
 		skipListPointScanP = plans.NewSeqScanPlanNode(c, tm.Schema(), expression_.(*expression.Comparison), tm.OID())
-	case index_constants.INDEX_KIND_UNIQ_SKIP_LIST, index_constants.INDEX_KIND_SKIP_LIST, index_constants.INDEX_KIND_BTREE:
+	case index_constants.IndexKindUniqSkipList, index_constants.IndexKindSkipList, index_constants.IndexKindBtree:
 		skipListPointScanP = plans.NewPointScanWithIndexPlanNode(c, tm.Schema(), expression_.(*expression.Comparison), tm.OID())
 	default:
 		panic("not implemented!")
@@ -698,9 +698,9 @@ func createSpecifiedRangeScanPlanNode[T int32 | float32 | string](c *catalog.Cat
 
 	var skipListRangeScanP plans.Plan
 	switch indexKind {
-	case index_constants.INDEX_KIND_INVALID:
+	case index_constants.IndexKindInvalid:
 		skipListRangeScanP = plans.NewSeqScanPlanNode(c, tm.Schema(), nil, tm.OID())
-	case index_constants.INDEX_KIND_UNIQ_SKIP_LIST, index_constants.INDEX_KIND_SKIP_LIST, index_constants.INDEX_KIND_BTREE:
+	case index_constants.IndexKindUniqSkipList, index_constants.IndexKindSkipList, index_constants.IndexKindBtree:
 		if rangeStartKey != nil {
 			startVal = samehada_util.GetPonterOfValue(types.NewValue(*rangeStartKey))
 		}
@@ -743,15 +743,15 @@ func testParallelTxnsQueryingUniqSkipListIndexUsedColumns[T int32 | float32 | st
 	var columnA *column.Column
 	var columnB *column.Column
 	switch indexKind {
-	case index_constants.INDEX_KIND_INVALID:
-		columnA = column.NewColumn("account_id", keyType, false, index_constants.INDEX_KIND_INVALID, types.PageID(-1), nil)
-		columnB = column.NewColumn("balance", types.Integer, false, index_constants.INDEX_KIND_INVALID, types.PageID(-1), nil)
-	case index_constants.INDEX_KIND_UNIQ_SKIP_LIST:
-		columnA = column.NewColumn("account_id", keyType, true, index_constants.INDEX_KIND_UNIQ_SKIP_LIST, types.PageID(-1), nil)
-		columnB = column.NewColumn("balance", types.Integer, true, index_constants.INDEX_KIND_UNIQ_SKIP_LIST, types.PageID(-1), nil)
-	case index_constants.INDEX_KIND_SKIP_LIST:
-		columnA = column.NewColumn("account_id", keyType, true, index_constants.INDEX_KIND_SKIP_LIST, types.PageID(-1), nil)
-		columnB = column.NewColumn("balance", types.Integer, true, index_constants.INDEX_KIND_SKIP_LIST, types.PageID(-1), nil)
+	case index_constants.IndexKindInvalid:
+		columnA = column.NewColumn("account_id", keyType, false, index_constants.IndexKindInvalid, types.PageID(-1), nil)
+		columnB = column.NewColumn("balance", types.Integer, false, index_constants.IndexKindInvalid, types.PageID(-1), nil)
+	case index_constants.IndexKindUniqSkipList:
+		columnA = column.NewColumn("account_id", keyType, true, index_constants.IndexKindUniqSkipList, types.PageID(-1), nil)
+		columnB = column.NewColumn("balance", types.Integer, true, index_constants.IndexKindUniqSkipList, types.PageID(-1), nil)
+	case index_constants.IndexKindSkipList:
+		columnA = column.NewColumn("account_id", keyType, true, index_constants.IndexKindSkipList, types.PageID(-1), nil)
+		columnB = column.NewColumn("balance", types.Integer, true, index_constants.IndexKindSkipList, types.PageID(-1), nil)
 	default:
 		panic("not implemented!")
 	}
@@ -1554,7 +1554,7 @@ func testParallelTxnsQueryingUniqSkipListIndexUsedColumns[T int32 | float32 | st
 					return
 				}
 
-				if indexKind == index_constants.INDEX_KIND_UNIQ_SKIP_LIST || indexKind == index_constants.INDEX_KIND_SKIP_LIST {
+				if indexKind == index_constants.IndexKindUniqSkipList || indexKind == index_constants.IndexKindSkipList {
 					resultsLen := len(results)
 					var prevVal *types.Value = nil
 					for jj := 0; jj < resultsLen; jj++ {
@@ -1643,7 +1643,7 @@ func testParallelTxnsQueryingUniqSkipListIndexUsedColumns[T int32 | float32 | st
 	common.SHAssert(collectNumMaybe == int32(resultsLen1), "records count is not matched with assumed num "+fmt.Sprintf("%d != %d", collectNumMaybe, resultsLen1))
 	finalizeRandomNoSideEffectTxn(txn_)
 
-	if indexKind == index_constants.INDEX_KIND_UNIQ_SKIP_LIST || indexKind == index_constants.INDEX_KIND_SKIP_LIST {
+	if indexKind == index_constants.IndexKindUniqSkipList || indexKind == index_constants.IndexKindSkipList {
 		// check order (col1 when index of it is used)
 		txn_ = txnMgr.Begin(nil)
 		txn_.MakeNotAbortable()
@@ -1672,7 +1672,7 @@ func testParallelTxnsQueryingUniqSkipListIndexUsedColumns[T int32 | float32 | st
 	fmt.Printf("collectNumMaybe:%d == resultsLen2:%d\n", collectNumMaybe, resultsLen2)
 	finalizeRandomNoSideEffectTxn(txn_)
 
-	if indexKind == index_constants.INDEX_KIND_UNIQ_SKIP_LIST || indexKind == index_constants.INDEX_KIND_SKIP_LIST {
+	if indexKind == index_constants.IndexKindUniqSkipList || indexKind == index_constants.IndexKindSkipList {
 		// check order (col2 when index of it is used)
 		txn_ = txnMgr.Begin(nil)
 		txn_.MakeNotAbortable()
@@ -1695,7 +1695,7 @@ func testParallelTxnsQueryingUniqSkipListIndexUsedColumns[T int32 | float32 | st
 
 	txn_ = txnMgr.Begin(nil)
 	txn_.MakeNotAbortable()
-	fullScanPlan := createSpecifiedRangeScanPlanNode[T](c, tableMetadata, keyType, -1, nil, nil, index_constants.INDEX_KIND_INVALID)
+	fullScanPlan := createSpecifiedRangeScanPlanNode[T](c, tableMetadata, keyType, -1, nil, nil, index_constants.IndexKindInvalid)
 	results3 := executePlan(c, shi.GetBufferPoolManager(), txn_, fullScanPlan)
 	resultsLen3 := len(results3)
 	common.SHAssert(txn_.GetState() != access.ABORTED, "last tuple count check is aborted!(3)")
@@ -1717,23 +1717,23 @@ func testUniqSkipListParallelTxnStrideRoot[T int32 | float32 | string](t *testin
 
 	switch keyType {
 	case types.Integer:
-		//testParallelTxnsQueryingUniqSkipListIndexUsedColumns[T](t, keyType, 400, 3000, 13, 0, bpoolSize, index_constants.INDEX_KIND_UNIQ_SKIP_LIST, PARALLEL_EXEC, 20)
-		//testParallelTxnsQueryingUniqSkipListIndexUsedColumns[T](t, keyType, 400, 30000, 13, 0, bpoolSize, index_constants.INDEX_KIND_UNIQ_SKIP_LIST, PARALLEL_EXEC, 20)
-		//testParallelTxnsQueryingUniqSkipListIndexUsedColumns[T](t, keyType, 400, 30000, 13, 0, bpoolSize, index_constants.INDEX_KIND_UNIQ_SKIP_LIST, PARALLEL_EXEC, 20)
-		testParallelTxnsQueryingUniqSkipListIndexUsedColumns[T](t, keyType, 400, 30000, 13, 0, bpoolSize, index_constants.INDEX_KIND_SKIP_LIST, PARALLEL_EXEC, 20)
+		//testParallelTxnsQueryingUniqSkipListIndexUsedColumns[T](t, keyType, 400, 3000, 13, 0, bpoolSize, index_constants.IndexKindUniqSkipList, PARALLEL_EXEC, 20)
+		//testParallelTxnsQueryingUniqSkipListIndexUsedColumns[T](t, keyType, 400, 30000, 13, 0, bpoolSize, index_constants.IndexKindUniqSkipList, PARALLEL_EXEC, 20)
+		//testParallelTxnsQueryingUniqSkipListIndexUsedColumns[T](t, keyType, 400, 30000, 13, 0, bpoolSize, index_constants.IndexKindUniqSkipList, PARALLEL_EXEC, 20)
+		testParallelTxnsQueryingUniqSkipListIndexUsedColumns[T](t, keyType, 400, 30000, 13, 0, bpoolSize, index_constants.IndexKindSkipList, PARALLEL_EXEC, 20)
 	case types.Float:
-		//testParallelTxnsQueryingUniqSkipListIndexUsedColumns[T](t, keyType, 400, 30000, 13, 0, bpoolSize, index_constants.INDEX_KIND_UNIQ_SKIP_LIST, PARALLEL_EXEC, 20)
-		testParallelTxnsQueryingUniqSkipListIndexUsedColumns[T](t, keyType, 240, 1000, 13, 0, bpoolSize, index_constants.INDEX_KIND_UNIQ_SKIP_LIST, PARALLEL_EXEC, 20)
+		//testParallelTxnsQueryingUniqSkipListIndexUsedColumns[T](t, keyType, 400, 30000, 13, 0, bpoolSize, index_constants.IndexKindUniqSkipList, PARALLEL_EXEC, 20)
+		testParallelTxnsQueryingUniqSkipListIndexUsedColumns[T](t, keyType, 240, 1000, 13, 0, bpoolSize, index_constants.IndexKindUniqSkipList, PARALLEL_EXEC, 20)
 	case types.Varchar:
-		//testParallelTxnsQueryingUniqSkipListIndexUsedColumns[T](t, keyType, 400, 400, 13, 0, bpoolSize, index_constants.INDEX_KIND_INVALID, PARALLEL_EXEC, 20)
-		//testParallelTxnsQueryingUniqSkipListIndexUsedColumns[T](t, keyType, 400, 3000, 13, 0, bpoolSize, index_constants.INDEX_KIND_UNIQ_SKIP_LIST, PARALLEL_EXEC, 20)
+		//testParallelTxnsQueryingUniqSkipListIndexUsedColumns[T](t, keyType, 400, 400, 13, 0, bpoolSize, index_constants.IndexKindInvalid, PARALLEL_EXEC, 20)
+		//testParallelTxnsQueryingUniqSkipListIndexUsedColumns[T](t, keyType, 400, 3000, 13, 0, bpoolSize, index_constants.IndexKindUniqSkipList, PARALLEL_EXEC, 20)
 
-		//testParallelTxnsQueryingUniqSkipListIndexUsedColumns[T](t, keyType, 400, 90000, 17, 0, bpoolSize, index_constants.INDEX_KIND_UNIQ_SKIP_LIST, PARALLEL_EXEC, 20)
-		testParallelTxnsQueryingUniqSkipListIndexUsedColumns[T](t, keyType, 400, 9000, 17, 0, bpoolSize, index_constants.INDEX_KIND_UNIQ_SKIP_LIST, PARALLEL_EXEC, 20)
-		//testParallelTxnsQueryingUniqSkipListIndexUsedColumns[T](t, keyType, 400, 50000, 17, 0, bpoolSize, index_constants.INDEX_KIND_UNIQ_SKIP_LIST, PARALLEL_EXEC, 20)
+		//testParallelTxnsQueryingUniqSkipListIndexUsedColumns[T](t, keyType, 400, 90000, 17, 0, bpoolSize, index_constants.IndexKindUniqSkipList, PARALLEL_EXEC, 20)
+		testParallelTxnsQueryingUniqSkipListIndexUsedColumns[T](t, keyType, 400, 9000, 17, 0, bpoolSize, index_constants.IndexKindUniqSkipList, PARALLEL_EXEC, 20)
+		//testParallelTxnsQueryingUniqSkipListIndexUsedColumns[T](t, keyType, 400, 50000, 17, 0, bpoolSize, index_constants.IndexKindUniqSkipList, PARALLEL_EXEC, 20)
 
-		//testParallelTxnsQueryingUniqSkipListIndexUsedColumns[T](t, keyType, 400, 300, 17, 0, bpoolSize, index_constants.INDEX_KIND_UNIQ_SKIP_LIST, PARALLEL_EXEC, 20)
-		//testParallelTxnsQueryingUniqSkipListIndexUsedColumns[T](t, keyType, 400, 500, 17, 0, bpoolSize, index_constants.INDEX_KIND_UNIQ_SKIP_LIST, SERIAL_EXEC, 20)
+		//testParallelTxnsQueryingUniqSkipListIndexUsedColumns[T](t, keyType, 400, 300, 17, 0, bpoolSize, index_constants.IndexKindUniqSkipList, PARALLEL_EXEC, 20)
+		//testParallelTxnsQueryingUniqSkipListIndexUsedColumns[T](t, keyType, 400, 500, 17, 0, bpoolSize, index_constants.IndexKindUniqSkipList, SERIAL_EXEC, 20)
 	default:
 		panic("not implemented!")
 	}

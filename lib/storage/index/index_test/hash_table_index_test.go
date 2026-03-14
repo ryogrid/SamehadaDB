@@ -27,11 +27,11 @@ func TestPackAndUnpackRID32(t *testing.T) {
 	rid.PageID = 55
 	rid.SlotNum = 1027
 
-	packed_val := samehada_util.PackRIDtoUint32(rid)
-	unpacked_val := samehada_util.UnpackUint32toRID(packed_val)
+	packedVal := samehada_util.PackRIDtoUint32(rid)
+	unpackedVal := samehada_util.UnpackUint32toRID(packedVal)
 
-	testingpkg.Assert(t, unpacked_val.PageID == 55, "")
-	testingpkg.Assert(t, unpacked_val.SlotNum == 1027, "")
+	testingpkg.Assert(t, unpackedVal.PageID == 55, "")
+	testingpkg.Assert(t, unpackedVal.SlotNum == 1027, "")
 }
 
 func TestPackAndUnpackRID64(t *testing.T) {
@@ -39,11 +39,11 @@ func TestPackAndUnpackRID64(t *testing.T) {
 	rid.PageID = 55
 	rid.SlotNum = 1027
 
-	packed_val := samehada_util.PackRIDtoUint64(rid)
-	unpacked_val := samehada_util.UnpackUint64toRID(packed_val)
+	packedVal := samehada_util.PackRIDtoUint64(rid)
+	unpackedVal := samehada_util.UnpackUint64toRID(packedVal)
 
-	testingpkg.Assert(t, unpacked_val.PageID == 55, "")
-	testingpkg.Assert(t, unpacked_val.SlotNum == 1027, "")
+	testingpkg.Assert(t, unpackedVal.PageID == 55, "")
+	testingpkg.Assert(t, unpackedVal.SlotNum == 1027, "")
 }
 
 func TestRecounstructionOfHashIndex(t *testing.T) {
@@ -60,17 +60,17 @@ func TestRecounstructionOfHashIndex(t *testing.T) {
 	testingpkg.Assert(t, shi.GetLogManager().IsEnabledLogging(), "")
 	fmt.Println("System logging is active.")
 
-	txn_mgr := shi.GetTransactionManager()
+	txnMgr := shi.GetTransactionManager()
 	bpm := shi.GetBufferPoolManager()
-	txn := txn_mgr.Begin(nil)
+	txn := txnMgr.Begin(nil)
 
 	c := catalog.BootstrapCatalog(bpm, shi.GetLogManager(), shi.GetLockManager(), txn)
-	columnA := column.NewColumn("a", types.Integer, true, index_constants.INDEX_KIND_HASH, types.PageID(-1), nil)
-	columnB := column.NewColumn("b", types.Integer, true, index_constants.INDEX_KIND_HASH, types.PageID(-1), nil)
-	columnC := column.NewColumn("c", types.Varchar, true, index_constants.INDEX_KIND_HASH, types.PageID(-1), nil)
-	schema_ := schema.NewSchema([]*column.Column{columnA, columnB, columnC})
+	columnA := column.NewColumn("a", types.Integer, true, index_constants.IndexKindHash, types.PageID(-1), nil)
+	columnB := column.NewColumn("b", types.Integer, true, index_constants.IndexKindHash, types.PageID(-1), nil)
+	columnC := column.NewColumn("c", types.Varchar, true, index_constants.IndexKindHash, types.PageID(-1), nil)
+	tableSchema := schema.NewSchema([]*column.Column{columnA, columnB, columnC})
 
-	tableMetadata := c.CreateTable("test_1", schema_, txn)
+	tableMetadata := c.CreateTable("test_1", tableSchema, txn)
 
 	row1 := make([]types.Value, 0)
 	row1 = append(row1, types.NewInteger(20))
@@ -105,7 +105,7 @@ func TestRecounstructionOfHashIndex(t *testing.T) {
 	executionEngine.Execute(insertPlanNode, executorContext)
 
 	//bpm.FlushAllPages()
-	txn_mgr.Commit(nil, txn)
+	txnMgr.Commit(nil, txn)
 
 	txn = shi.GetTransactionManager().Begin(nil)
 
@@ -149,7 +149,7 @@ func TestRecounstructionOfHashIndex(t *testing.T) {
 
 	for _, test := range cases {
 		t.Run(test.Description, func(t *testing.T) {
-			testing_pattern_fw.ExecuteIndexPointScanTestCase(t, test, index_constants.INDEX_KIND_HASH)
+			testing_pattern_fw.ExecuteIndexPointScanTestCase(t, test, index_constants.IndexKindHash)
 		})
 	}
 
@@ -164,12 +164,12 @@ func TestRecounstructionOfHashIndex(t *testing.T) {
 	txn = shi.GetTransactionManager().Begin(nil)
 	txn.SetIsRecoveryPhase(true)
 
-	log_recovery := log_recovery.NewLogRecovery(
+	logRecovery := log_recovery.NewLogRecovery(
 		shi.GetDiskManager(),
 		shi.GetBufferPoolManager(),
 		shi.GetLogManager())
-	greatestLSN, _, _ := log_recovery.Redo(txn)
-	log_recovery.Undo(txn)
+	greatestLSN, _, _ := logRecovery.Redo(txn)
+	logRecovery.Undo(txn)
 
 	dman := shi.GetDiskManager()
 	dman.GCLogFile()
@@ -232,7 +232,7 @@ func TestRecounstructionOfHashIndex(t *testing.T) {
 
 	for _, test := range cases {
 		t.Run(test.Description, func(t *testing.T) {
-			testing_pattern_fw.ExecuteIndexPointScanTestCase(t, test, index_constants.INDEX_KIND_HASH)
+			testing_pattern_fw.ExecuteIndexPointScanTestCase(t, test, index_constants.IndexKindHash)
 		})
 	}
 

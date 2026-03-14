@@ -51,7 +51,7 @@ type SeqScanTestCase struct {
 func ExecuteSeqScanTestCase(t *testing.T, testCase SeqScanTestCase) {
 	columns := []*column.Column{}
 	for _, c := range testCase.Columns {
-		columns = append(columns, column.NewColumn(*testCase.TableMetadata.GetTableName()+"."+c.Name, c.Kind, false, index_constants.INDEX_KIND_INVALID, types.PageID(-1), nil))
+		columns = append(columns, column.NewColumn(*testCase.TableMetadata.GetTableName()+"."+c.Name, c.Kind, false, index_constants.IndexKindInvalid, types.PageID(-1), nil))
 	}
 	outSchema := schema.NewSchema(columns)
 
@@ -167,7 +167,7 @@ func ExecuteDeleteTestCase(t *testing.T, testCase DeleteTestCase) {
 
 	columns := []*column.Column{}
 	for _, c := range testCase.Columns {
-		columns = append(columns, column.NewColumn(*testCase.TableMetadata.GetTableName()+"."+c.Name, c.Kind, false, index_constants.INDEX_KIND_INVALID, types.PageID(-1), nil))
+		columns = append(columns, column.NewColumn(*testCase.TableMetadata.GetTableName()+"."+c.Name, c.Kind, false, index_constants.IndexKindInvalid, types.PageID(-1), nil))
 	}
 	outSchema := schema.NewSchema(columns)
 

@@ -68,7 +68,7 @@ func (pner *SimplePlanner) MakeSelectPlanWithoutJoin() (error, plans.Plan) {
 			for _, existCol := range tgtTblColumns {
 				if strings.Split(existCol.GetColumnName(), ".")[1] == *colName {
 					isOk = true
-					outColDefs = append(outColDefs, column.NewColumn(*colName, existCol.GetType(), false, index_constants.INDEX_KIND_INVALID, types.PageID(-1), existCol.GetExpr()))
+					outColDefs = append(outColDefs, column.NewColumn(*colName, existCol.GetType(), false, index_constants.IndexKindInvalid, types.PageID(-1), existCol.GetExpr()))
 					break
 				}
 			}
@@ -113,7 +113,7 @@ func (pner *SimplePlanner) MakeSelectPlanWithJoin() (error, plans.Plan) {
 	{
 		var columns = make([]*column.Column, 0)
 		for _, col := range tgtTblColumnsL {
-			columns = append(columns, column.NewColumn(col.GetColumnName(), col.GetType(), false, index_constants.INDEX_KIND_INVALID, types.PageID(-1), col.GetExpr()))
+			columns = append(columns, column.NewColumn(col.GetColumnName(), col.GetType(), false, index_constants.IndexKindInvalid, types.PageID(-1), col.GetExpr()))
 		}
 		outSchemaL = schema.NewSchema(columns)
 		scanPlanL = plans.NewSeqScanPlanNode(pner.catalog_, outSchemaL, nil, tableMetadataL.OID())
@@ -124,7 +124,7 @@ func (pner *SimplePlanner) MakeSelectPlanWithJoin() (error, plans.Plan) {
 	{
 		var columns = make([]*column.Column, 0)
 		for _, col := range tgtTblColumnsR {
-			columns = append(columns, column.NewColumn(col.GetColumnName(), col.GetType(), false, index_constants.INDEX_KIND_INVALID, types.PageID(-1), col.GetExpr()))
+			columns = append(columns, column.NewColumn(col.GetColumnName(), col.GetType(), false, index_constants.IndexKindInvalid, types.PageID(-1), col.GetExpr()))
 		}
 		outSchemaR = schema.NewSchema(columns)
 		scanPlanR = plans.NewSeqScanPlanNode(pner.catalog_, outSchemaR, nil, tableMetadataR.OID())
@@ -142,12 +142,12 @@ func (pner *SimplePlanner) MakeSelectPlanWithJoin() (error, plans.Plan) {
 		colValR := expression.MakeColumnValueExpression(outSchemaR, 1, *pner.qi.OnExpressions_.Right_.(*string))
 
 		for _, colDef := range tgtTblColumnsL {
-			col := column.NewColumn(colDef.GetColumnName(), colDef.GetType(), false, index_constants.INDEX_KIND_INVALID, types.PageID(-1), colDef.GetExpr())
+			col := column.NewColumn(colDef.GetColumnName(), colDef.GetType(), false, index_constants.IndexKindInvalid, types.PageID(-1), colDef.GetExpr())
 			col.SetIsLeft(true)
 			finalOutCols = append(finalOutCols, col)
 		}
 		for _, colDef := range tgtTblColumnsR {
-			col := column.NewColumn(colDef.GetColumnName(), colDef.GetType(), false, index_constants.INDEX_KIND_INVALID, types.PageID(-1), colDef.GetExpr())
+			col := column.NewColumn(colDef.GetColumnName(), colDef.GetType(), false, index_constants.IndexKindInvalid, types.PageID(-1), colDef.GetExpr())
 			col.SetIsLeft(false)
 			finalOutCols = append(finalOutCols, col)
 		}
@@ -181,7 +181,7 @@ func (pner *SimplePlanner) MakeSelectPlanWithJoin() (error, plans.Plan) {
 					}
 
 					colDef := tmpSchema.GetColumn(colIdx)
-					col := column.NewColumn(*tblName+"."+*colName, colDef.GetType(), false, index_constants.INDEX_KIND_INVALID, types.PageID(-1), colDef.GetExpr())
+					col := column.NewColumn(*tblName+"."+*colName, colDef.GetType(), false, index_constants.IndexKindInvalid, types.PageID(-1), colDef.GetExpr())
 					if *tblName == tblNameL {
 						col.SetIsLeft(true)
 					} else { // Right
@@ -265,8 +265,8 @@ func (pner *SimplePlanner) MakeCreateTablePlan() (error, plans.Plan) {
 
 	columns := make([]*column.Column, 0)
 	for _, cdefExp := range pner.qi.ColDefExpressions_ {
-		columns = append(columns, column.NewColumn(*cdefExp.ColName_, *cdefExp.ColType_, true, index_constants.INDEX_KIND_SKIP_LIST, types.PageID(-1), nil))
-		//columns = append(columns, column.NewColumn(*cdefExp.ColName_, *cdefExp.ColType_, true, index_constants.INDEX_KIND_BTREE, types.PageID(-1), nil))
+		columns = append(columns, column.NewColumn(*cdefExp.ColName_, *cdefExp.ColType_, true, index_constants.IndexKindSkipList, types.PageID(-1), nil))
+		//columns = append(columns, column.NewColumn(*cdefExp.ColName_, *cdefExp.ColType_, true, index_constants.IndexKindBtree, types.PageID(-1), nil))
 	}
 	schema_ := schema.NewSchema(columns)
 

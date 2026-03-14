@@ -39,8 +39,8 @@ func TestSimpleInsertAndSeqScan(t *testing.T) {
 
 	c := catalog.BootstrapCatalog(bpm, log_mgr, access.NewLockManager(access.REGULAR, access.PREVENTION), txn)
 
-	columnA := column.NewColumn("a", types.Integer, false, index_constants.INDEX_KIND_INVALID, types.PageID(-1), nil)
-	columnB := column.NewColumn("b", types.Integer, false, index_constants.INDEX_KIND_INVALID, types.PageID(-1), nil)
+	columnA := column.NewColumn("a", types.Integer, false, index_constants.IndexKindInvalid, types.PageID(-1), nil)
+	columnB := column.NewColumn("b", types.Integer, false, index_constants.IndexKindInvalid, types.PageID(-1), nil)
 	schema_ := schema.NewSchema([]*column.Column{columnA, columnB})
 
 	tableMetadata := c.CreateTable("test_1", schema_, txn)
@@ -65,7 +65,7 @@ func TestSimpleInsertAndSeqScan(t *testing.T) {
 
 	bpm.FlushAllPages()
 
-	outColumnA := column.NewColumn("a", types.Integer, false, index_constants.INDEX_KIND_INVALID, types.PageID(-1), nil)
+	outColumnA := column.NewColumn("a", types.Integer, false, index_constants.IndexKindInvalid, types.PageID(-1), nil)
 	outSchema := schema.NewSchema([]*column.Column{outColumnA})
 
 	seqPlan := plans.NewSeqScanPlanNode(c, outSchema, nil, tableMetadata.OID())
@@ -88,8 +88,8 @@ func TestSimpleInsertAndSeqScanFloat(t *testing.T) {
 
 	c := catalog.BootstrapCatalog(bpm, log_mgr, access.NewLockManager(access.REGULAR, access.PREVENTION), txn)
 
-	columnA := column.NewColumn("a", types.Float, false, index_constants.INDEX_KIND_INVALID, types.PageID(-1), nil)
-	columnB := column.NewColumn("b", types.Float, false, index_constants.INDEX_KIND_INVALID, types.PageID(-1), nil)
+	columnA := column.NewColumn("a", types.Float, false, index_constants.IndexKindInvalid, types.PageID(-1), nil)
+	columnB := column.NewColumn("b", types.Float, false, index_constants.IndexKindInvalid, types.PageID(-1), nil)
 	schema_ := schema.NewSchema([]*column.Column{columnA, columnB})
 
 	tableMetadata := c.CreateTable("test_1", schema_, txn)
@@ -114,7 +114,7 @@ func TestSimpleInsertAndSeqScanFloat(t *testing.T) {
 
 	bpm.FlushAllPages()
 
-	outColumnA := column.NewColumn("a", types.Float, false, index_constants.INDEX_KIND_INVALID, types.PageID(-1), nil)
+	outColumnA := column.NewColumn("a", types.Float, false, index_constants.IndexKindInvalid, types.PageID(-1), nil)
 	outSchema := schema.NewSchema([]*column.Column{outColumnA})
 
 	seqPlan := plans.NewSeqScanPlanNode(c, outSchema, nil, tableMetadata.OID())
@@ -137,9 +137,9 @@ func TestSimpleInsertAndSeqScanWithPredicateComparison(t *testing.T) {
 
 	c := catalog.BootstrapCatalog(bpm, log_mgr, access.NewLockManager(access.REGULAR, access.PREVENTION), txn)
 
-	columnA := column.NewColumn("a", types.Integer, false, index_constants.INDEX_KIND_INVALID, types.PageID(-1), nil)
-	columnB := column.NewColumn("b", types.Integer, false, index_constants.INDEX_KIND_INVALID, types.PageID(-1), nil)
-	columnC := column.NewColumn("c", types.Varchar, false, index_constants.INDEX_KIND_INVALID, types.PageID(-1), nil)
+	columnA := column.NewColumn("a", types.Integer, false, index_constants.IndexKindInvalid, types.PageID(-1), nil)
+	columnB := column.NewColumn("b", types.Integer, false, index_constants.IndexKindInvalid, types.PageID(-1), nil)
+	columnC := column.NewColumn("c", types.Varchar, false, index_constants.IndexKindInvalid, types.PageID(-1), nil)
 	schema_ := schema.NewSchema([]*column.Column{columnA, columnB, columnC})
 
 	tableMetadata := c.CreateTable("test_1", schema_, txn)
@@ -259,9 +259,9 @@ func TestInsertBoolAndSeqScanWithComparison(t *testing.T) {
 
 	c := catalog.BootstrapCatalog(bpm, log_mgr, access.NewLockManager(access.REGULAR, access.PREVENTION), txn)
 
-	columnA := column.NewColumn("a", types.Integer, false, index_constants.INDEX_KIND_INVALID, types.PageID(-1), nil)
-	columnB := column.NewColumn("b", types.Boolean, false, index_constants.INDEX_KIND_INVALID, types.PageID(-1), nil)
-	columnC := column.NewColumn("c", types.Varchar, false, index_constants.INDEX_KIND_INVALID, types.PageID(-1), nil)
+	columnA := column.NewColumn("a", types.Integer, false, index_constants.IndexKindInvalid, types.PageID(-1), nil)
+	columnB := column.NewColumn("b", types.Boolean, false, index_constants.IndexKindInvalid, types.PageID(-1), nil)
+	columnC := column.NewColumn("c", types.Varchar, false, index_constants.IndexKindInvalid, types.PageID(-1), nil)
 	schema_ := schema.NewSchema([]*column.Column{columnA, columnB, columnC})
 
 	tableMetadata := c.CreateTable("test_1", schema_, txn)
@@ -327,8 +327,8 @@ func TestSimpleInsertAndLimitExecution(t *testing.T) {
 
 	c := catalog.BootstrapCatalog(bpm, log_mgr, access.NewLockManager(access.REGULAR, access.PREVENTION), txn)
 
-	columnA := column.NewColumn("a", types.Integer, false, index_constants.INDEX_KIND_INVALID, types.PageID(-1), nil)
-	columnB := column.NewColumn("b", types.Integer, false, index_constants.INDEX_KIND_INVALID, types.PageID(-1), nil)
+	columnA := column.NewColumn("a", types.Integer, false, index_constants.IndexKindInvalid, types.PageID(-1), nil)
+	columnB := column.NewColumn("b", types.Integer, false, index_constants.IndexKindInvalid, types.PageID(-1), nil)
 	schema_ := schema.NewSchema([]*column.Column{columnA, columnB})
 
 	tableMetadata := c.CreateTable("test_1", schema_, txn)
@@ -367,8 +367,8 @@ func TestSimpleInsertAndLimitExecution(t *testing.T) {
 
 	// TEST 1: select a, b ... LIMIT 1
 	func() {
-		a := column.NewColumn("a", types.Integer, false, index_constants.INDEX_KIND_INVALID, types.PageID(-1), nil)
-		b := column.NewColumn("b", types.Integer, false, index_constants.INDEX_KIND_INVALID, types.PageID(-1), nil)
+		a := column.NewColumn("a", types.Integer, false, index_constants.IndexKindInvalid, types.PageID(-1), nil)
+		b := column.NewColumn("b", types.Integer, false, index_constants.IndexKindInvalid, types.PageID(-1), nil)
 		outSchema := schema.NewSchema([]*column.Column{a, b})
 		seqPlan := plans.NewSeqScanPlanNode(c, outSchema, nil, tableMetadata.OID())
 		limitPlan := plans.NewLimitPlanNode(seqPlan, 1, 1)
@@ -382,8 +382,8 @@ func TestSimpleInsertAndLimitExecution(t *testing.T) {
 
 	// TEST 1: select a, b ... LIMIT 2
 	func() {
-		a := column.NewColumn("a", types.Integer, false, index_constants.INDEX_KIND_INVALID, types.PageID(-1), nil)
-		b := column.NewColumn("b", types.Integer, false, index_constants.INDEX_KIND_INVALID, types.PageID(-1), nil)
+		a := column.NewColumn("a", types.Integer, false, index_constants.IndexKindInvalid, types.PageID(-1), nil)
+		b := column.NewColumn("b", types.Integer, false, index_constants.IndexKindInvalid, types.PageID(-1), nil)
 		outSchema := schema.NewSchema([]*column.Column{a, b})
 		seqPlan := plans.NewSeqScanPlanNode(c, outSchema, nil, tableMetadata.OID())
 		limitPlan := plans.NewLimitPlanNode(seqPlan, 2, 0)
@@ -395,8 +395,8 @@ func TestSimpleInsertAndLimitExecution(t *testing.T) {
 
 	// TEST 1: select a, b ... LIMIT 3
 	func() {
-		a := column.NewColumn("a", types.Integer, false, index_constants.INDEX_KIND_INVALID, types.PageID(-1), nil)
-		b := column.NewColumn("b", types.Integer, false, index_constants.INDEX_KIND_INVALID, types.PageID(-1), nil)
+		a := column.NewColumn("a", types.Integer, false, index_constants.IndexKindInvalid, types.PageID(-1), nil)
+		b := column.NewColumn("b", types.Integer, false, index_constants.IndexKindInvalid, types.PageID(-1), nil)
 		outSchema := schema.NewSchema([]*column.Column{a, b})
 		seqPlan := plans.NewSeqScanPlanNode(c, outSchema, nil, tableMetadata.OID())
 		limitPlan := plans.NewLimitPlanNode(seqPlan, 3, 0)
@@ -417,8 +417,8 @@ func TestSimpleInsertAndLimitExecutionMultiTable(t *testing.T) {
 
 	c := catalog.BootstrapCatalog(bpm, log_mgr, access.NewLockManager(access.REGULAR, access.PREVENTION), txn)
 
-	columnA := column.NewColumn("a", types.Integer, false, index_constants.INDEX_KIND_INVALID, types.PageID(-1), nil)
-	columnB := column.NewColumn("b", types.Integer, false, index_constants.INDEX_KIND_INVALID, types.PageID(-1), nil)
+	columnA := column.NewColumn("a", types.Integer, false, index_constants.IndexKindInvalid, types.PageID(-1), nil)
+	columnB := column.NewColumn("b", types.Integer, false, index_constants.IndexKindInvalid, types.PageID(-1), nil)
 	schema_ := schema.NewSchema([]*column.Column{columnA, columnB})
 
 	tableMetadata := c.CreateTable("test_1", schema_, txn)
@@ -453,8 +453,8 @@ func TestSimpleInsertAndLimitExecutionMultiTable(t *testing.T) {
 
 	// construct second table
 
-	columnA = column.NewColumn("a", types.Integer, false, index_constants.INDEX_KIND_INVALID, types.PageID(-1), nil)
-	columnB = column.NewColumn("b", types.Integer, false, index_constants.INDEX_KIND_INVALID, types.PageID(-1), nil)
+	columnA = column.NewColumn("a", types.Integer, false, index_constants.IndexKindInvalid, types.PageID(-1), nil)
+	columnB = column.NewColumn("b", types.Integer, false, index_constants.IndexKindInvalid, types.PageID(-1), nil)
 	schema_ = schema.NewSchema([]*column.Column{columnA, columnB})
 
 	tableMetadata2 := c.CreateTable("test_2", schema_, txn)
@@ -491,8 +491,8 @@ func TestSimpleInsertAndLimitExecutionMultiTable(t *testing.T) {
 
 	// TEST 1: select a, b ... LIMIT 1
 	func() {
-		a := column.NewColumn("a", types.Integer, false, index_constants.INDEX_KIND_INVALID, types.PageID(-1), nil)
-		b := column.NewColumn("b", types.Integer, false, index_constants.INDEX_KIND_INVALID, types.PageID(-1), nil)
+		a := column.NewColumn("a", types.Integer, false, index_constants.IndexKindInvalid, types.PageID(-1), nil)
+		b := column.NewColumn("b", types.Integer, false, index_constants.IndexKindInvalid, types.PageID(-1), nil)
 		outSchema := schema.NewSchema([]*column.Column{a, b})
 		seqPlan := plans.NewSeqScanPlanNode(c, outSchema, nil, tableMetadata.OID())
 		limitPlan := plans.NewLimitPlanNode(seqPlan, 1, 1)
@@ -506,8 +506,8 @@ func TestSimpleInsertAndLimitExecutionMultiTable(t *testing.T) {
 
 	// TEST 1: select a, b ... LIMIT 2
 	func() {
-		a := column.NewColumn("a", types.Integer, false, index_constants.INDEX_KIND_INVALID, types.PageID(-1), nil)
-		b := column.NewColumn("b", types.Integer, false, index_constants.INDEX_KIND_INVALID, types.PageID(-1), nil)
+		a := column.NewColumn("a", types.Integer, false, index_constants.IndexKindInvalid, types.PageID(-1), nil)
+		b := column.NewColumn("b", types.Integer, false, index_constants.IndexKindInvalid, types.PageID(-1), nil)
 		outSchema := schema.NewSchema([]*column.Column{a, b})
 		seqPlan := plans.NewSeqScanPlanNode(c, outSchema, nil, tableMetadata.OID())
 		limitPlan := plans.NewLimitPlanNode(seqPlan, 2, 0)
@@ -519,8 +519,8 @@ func TestSimpleInsertAndLimitExecutionMultiTable(t *testing.T) {
 
 	// TEST 1: select a, b ... LIMIT 1
 	func() {
-		a := column.NewColumn("a", types.Integer, false, index_constants.INDEX_KIND_INVALID, types.PageID(-1), nil)
-		b := column.NewColumn("b", types.Integer, false, index_constants.INDEX_KIND_INVALID, types.PageID(-1), nil)
+		a := column.NewColumn("a", types.Integer, false, index_constants.IndexKindInvalid, types.PageID(-1), nil)
+		b := column.NewColumn("b", types.Integer, false, index_constants.IndexKindInvalid, types.PageID(-1), nil)
 		outSchema := schema.NewSchema([]*column.Column{a, b})
 		seqPlan := plans.NewSeqScanPlanNode(c, outSchema, nil, tableMetadata2.OID())
 		limitPlan := plans.NewLimitPlanNode(seqPlan, 1, 1)
@@ -534,8 +534,8 @@ func TestSimpleInsertAndLimitExecutionMultiTable(t *testing.T) {
 
 	// TEST 1: select a, b ... LIMIT 3
 	func() {
-		a := column.NewColumn("a", types.Integer, false, index_constants.INDEX_KIND_INVALID, types.PageID(-1), nil)
-		b := column.NewColumn("b", types.Integer, false, index_constants.INDEX_KIND_INVALID, types.PageID(-1), nil)
+		a := column.NewColumn("a", types.Integer, false, index_constants.IndexKindInvalid, types.PageID(-1), nil)
+		b := column.NewColumn("b", types.Integer, false, index_constants.IndexKindInvalid, types.PageID(-1), nil)
 		outSchema := schema.NewSchema([]*column.Column{a, b})
 		seqPlan := plans.NewSeqScanPlanNode(c, outSchema, nil, tableMetadata2.OID())
 		limitPlan := plans.NewLimitPlanNode(seqPlan, 3, 0)
@@ -559,9 +559,9 @@ func TestHashTableIndex(t *testing.T) {
 
 	c := catalog.BootstrapCatalog(bpm, log_mgr, access.NewLockManager(access.REGULAR, access.PREVENTION), txn)
 
-	columnA := column.NewColumn("a", types.Integer, true, index_constants.INDEX_KIND_HASH, types.PageID(-1), nil)
-	columnB := column.NewColumn("b", types.Integer, true, index_constants.INDEX_KIND_HASH, types.PageID(-1), nil)
-	columnC := column.NewColumn("c", types.Varchar, true, index_constants.INDEX_KIND_HASH, types.PageID(-1), nil)
+	columnA := column.NewColumn("a", types.Integer, true, index_constants.IndexKindHash, types.PageID(-1), nil)
+	columnB := column.NewColumn("b", types.Integer, true, index_constants.IndexKindHash, types.PageID(-1), nil)
+	columnC := column.NewColumn("c", types.Varchar, true, index_constants.IndexKindHash, types.PageID(-1), nil)
 	schema_ := schema.NewSchema([]*column.Column{columnA, columnB, columnC})
 
 	tableMetadata := c.CreateTable("test_1", schema_, txn)
@@ -678,7 +678,7 @@ func TestHashTableIndex(t *testing.T) {
 
 	for _, test := range cases {
 		t.Run(test.Description, func(t *testing.T) {
-			testing_pattern_fw.ExecuteIndexPointScanTestCase(t, test, index_constants.INDEX_KIND_HASH)
+			testing_pattern_fw.ExecuteIndexPointScanTestCase(t, test, index_constants.IndexKindHash)
 		})
 	}
 
@@ -697,9 +697,9 @@ func TestSimpleDelete(t *testing.T) {
 
 	c := catalog.BootstrapCatalog(bpm, log_mgr, access.NewLockManager(access.REGULAR, access.PREVENTION), txn)
 
-	columnA := column.NewColumn("a", types.Integer, false, index_constants.INDEX_KIND_INVALID, types.PageID(-1), nil)
-	columnB := column.NewColumn("b", types.Integer, false, index_constants.INDEX_KIND_INVALID, types.PageID(-1), nil)
-	columnC := column.NewColumn("c", types.Varchar, false, index_constants.INDEX_KIND_INVALID, types.PageID(-1), nil)
+	columnA := column.NewColumn("a", types.Integer, false, index_constants.IndexKindInvalid, types.PageID(-1), nil)
+	columnB := column.NewColumn("b", types.Integer, false, index_constants.IndexKindInvalid, types.PageID(-1), nil)
+	columnC := column.NewColumn("c", types.Varchar, false, index_constants.IndexKindInvalid, types.PageID(-1), nil)
 	schema_ := schema.NewSchema([]*column.Column{columnA, columnB, columnC})
 
 	tableMetadata := c.CreateTable("test_1", schema_, txn)
@@ -790,9 +790,9 @@ func TestDeleteWithSelctInsert(t *testing.T) {
 
 	c := catalog.BootstrapCatalog(bpm, log_mgr, access.NewLockManager(access.REGULAR, access.PREVENTION), txn)
 
-	columnA := column.NewColumn("a", types.Integer, false, index_constants.INDEX_KIND_INVALID, types.PageID(-1), nil)
-	columnB := column.NewColumn("b", types.Integer, false, index_constants.INDEX_KIND_INVALID, types.PageID(-1), nil)
-	columnC := column.NewColumn("c", types.Varchar, false, index_constants.INDEX_KIND_INVALID, types.PageID(-1), nil)
+	columnA := column.NewColumn("a", types.Integer, false, index_constants.IndexKindInvalid, types.PageID(-1), nil)
+	columnB := column.NewColumn("b", types.Integer, false, index_constants.IndexKindInvalid, types.PageID(-1), nil)
+	columnC := column.NewColumn("c", types.Varchar, false, index_constants.IndexKindInvalid, types.PageID(-1), nil)
 	schema_ := schema.NewSchema([]*column.Column{columnA, columnB, columnC})
 
 	tableMetadata := c.CreateTable("test_1", schema_, txn)
@@ -922,8 +922,8 @@ func TestSimpleInsertAndUpdate(t *testing.T) {
 
 	c := catalog.BootstrapCatalog(bpm, log_mgr, access.NewLockManager(access.REGULAR, access.PREVENTION), txn)
 
-	columnA := column.NewColumn("a", types.Integer, false, index_constants.INDEX_KIND_INVALID, types.PageID(-1), nil)
-	columnB := column.NewColumn("b", types.Varchar, false, index_constants.INDEX_KIND_INVALID, types.PageID(-1), nil)
+	columnA := column.NewColumn("a", types.Integer, false, index_constants.IndexKindInvalid, types.PageID(-1), nil)
+	columnB := column.NewColumn("b", types.Varchar, false, index_constants.IndexKindInvalid, types.PageID(-1), nil)
 	schema_ := schema.NewSchema([]*column.Column{columnA, columnB})
 
 	tableMetadata := c.CreateTable("test_1", schema_, txn)
@@ -970,7 +970,7 @@ func TestSimpleInsertAndUpdate(t *testing.T) {
 	fmt.Println("select and check value...")
 	txn = txn_mgr.Begin(nil)
 
-	outColumnB := column.NewColumn("b", types.Varchar, false, index_constants.INDEX_KIND_INVALID, types.PageID(-1), nil)
+	outColumnB := column.NewColumn("b", types.Varchar, false, index_constants.IndexKindInvalid, types.PageID(-1), nil)
 	outSchema := schema.NewSchema([]*column.Column{outColumnB})
 
 	pred = testing_pattern_fw.Predicate{"a", expression.Equal, 99}
@@ -997,8 +997,8 @@ func TestInsertUpdateMix(t *testing.T) {
 
 	c := catalog.BootstrapCatalog(bpm, log_mgr, access.NewLockManager(access.REGULAR, access.PREVENTION), txn)
 
-	columnA := column.NewColumn("a", types.Integer, false, index_constants.INDEX_KIND_INVALID, types.PageID(-1), nil)
-	columnB := column.NewColumn("b", types.Varchar, false, index_constants.INDEX_KIND_INVALID, types.PageID(-1), nil)
+	columnA := column.NewColumn("a", types.Integer, false, index_constants.IndexKindInvalid, types.PageID(-1), nil)
+	columnB := column.NewColumn("b", types.Varchar, false, index_constants.IndexKindInvalid, types.PageID(-1), nil)
 	schema_ := schema.NewSchema([]*column.Column{columnA, columnB})
 
 	tableMetadata := c.CreateTable("test_1", schema_, txn)
@@ -1045,7 +1045,7 @@ func TestInsertUpdateMix(t *testing.T) {
 	fmt.Println("select and check value...")
 	txn = txn_mgr.Begin(nil)
 
-	outColumnB := column.NewColumn("b", types.Varchar, false, index_constants.INDEX_KIND_INVALID, types.PageID(-1), nil)
+	outColumnB := column.NewColumn("b", types.Varchar, false, index_constants.IndexKindInvalid, types.PageID(-1), nil)
 	outSchema := schema.NewSchema([]*column.Column{outColumnB})
 
 	pred = testing_pattern_fw.Predicate{"a", expression.Equal, 99}
@@ -1086,7 +1086,7 @@ func TestInsertUpdateMix(t *testing.T) {
 	fmt.Println("select inserted row and check value...")
 	txn = txn_mgr.Begin(nil)
 
-	outColumnA := column.NewColumn("a", types.Integer, false, index_constants.INDEX_KIND_INVALID, types.PageID(-1), nil)
+	outColumnA := column.NewColumn("a", types.Integer, false, index_constants.IndexKindInvalid, types.PageID(-1), nil)
 	outSchema = schema.NewSchema([]*column.Column{outColumnA})
 
 	pred = testing_pattern_fw.Predicate{"b", expression.Equal, "hage"}
@@ -1115,8 +1115,8 @@ func TestAbortWIthDeleteUpdate(t *testing.T) {
 
 	c := catalog.BootstrapCatalog(bpm, log_mgr, access.NewLockManager(access.REGULAR, access.PREVENTION), txn)
 
-	columnA := column.NewColumn("a", types.Integer, false, index_constants.INDEX_KIND_INVALID, types.PageID(-1), nil)
-	columnB := column.NewColumn("b", types.Varchar, false, index_constants.INDEX_KIND_INVALID, types.PageID(-1), nil)
+	columnA := column.NewColumn("a", types.Integer, false, index_constants.IndexKindInvalid, types.PageID(-1), nil)
+	columnB := column.NewColumn("b", types.Varchar, false, index_constants.IndexKindInvalid, types.PageID(-1), nil)
 	schema_ := schema.NewSchema([]*column.Column{columnA, columnB})
 
 	tableMetadata := c.CreateTable("test_1", schema_, txn)
@@ -1183,7 +1183,7 @@ func TestAbortWIthDeleteUpdate(t *testing.T) {
 	fmt.Println("select and check value before Abort...")
 
 	// check updated row
-	outColumnB := column.NewColumn("b", types.Varchar, false, index_constants.INDEX_KIND_INVALID, types.PageID(-1), nil)
+	outColumnB := column.NewColumn("b", types.Varchar, false, index_constants.IndexKindInvalid, types.PageID(-1), nil)
 	outSchema := schema.NewSchema([]*column.Column{outColumnB})
 
 	pred = testing_pattern_fw.Predicate{"a", expression.Equal, 99}
@@ -1198,7 +1198,7 @@ func TestAbortWIthDeleteUpdate(t *testing.T) {
 	testingpkg.Assert(t, types.NewVarchar("updated").CompareEquals(results[0].GetValue(outSchema, 0)), "value should be 'updated'")
 
 	// check deleted row
-	outColumnB = column.NewColumn("b", types.Integer, false, index_constants.INDEX_KIND_INVALID, types.PageID(-1), nil)
+	outColumnB = column.NewColumn("b", types.Integer, false, index_constants.IndexKindInvalid, types.PageID(-1), nil)
 	outSchema = schema.NewSchema([]*column.Column{outColumnB})
 
 	pred = testing_pattern_fw.Predicate{"b", expression.Equal, "bar"}
@@ -1224,7 +1224,7 @@ func TestAbortWIthDeleteUpdate(t *testing.T) {
 	executorContext.SetTransaction(txn)
 
 	// check updated row
-	outColumnB = column.NewColumn("b", types.Varchar, false, index_constants.INDEX_KIND_INVALID, types.PageID(-1), nil)
+	outColumnB = column.NewColumn("b", types.Varchar, false, index_constants.IndexKindInvalid, types.PageID(-1), nil)
 	outSchema = schema.NewSchema([]*column.Column{outColumnB})
 
 	pred = testing_pattern_fw.Predicate{"a", expression.Equal, 99}
@@ -1239,7 +1239,7 @@ func TestAbortWIthDeleteUpdate(t *testing.T) {
 	testingpkg.Assert(t, types.NewVarchar("foo").CompareEquals(results[0].GetValue(outSchema, 0)), "value should be 'foo'")
 
 	// check deleted row
-	outColumnB = column.NewColumn("b", types.Integer, false, index_constants.INDEX_KIND_INVALID, types.PageID(-1), nil)
+	outColumnB = column.NewColumn("b", types.Integer, false, index_constants.IndexKindInvalid, types.PageID(-1), nil)
 	outSchema = schema.NewSchema([]*column.Column{outColumnB})
 
 	pred = testing_pattern_fw.Predicate{"b", expression.Equal, "bar"}
@@ -1264,17 +1264,17 @@ func TestSimpleHashJoin(t *testing.T) {
 	c := catalog.BootstrapCatalog(bpm, log_mgr, access.NewLockManager(access.REGULAR, access.PREVENTION), txn)
 	executorContext := executors.NewExecutorContext(c, bpm, txn)
 
-	columnA := column.NewColumn("colA", types.Integer, false, index_constants.INDEX_KIND_INVALID, types.PageID(-1), nil)
-	columnB := column.NewColumn("colB", types.Integer, false, index_constants.INDEX_KIND_INVALID, types.PageID(-1), nil)
-	columnC := column.NewColumn("colC", types.Integer, false, index_constants.INDEX_KIND_INVALID, types.PageID(-1), nil)
-	columnD := column.NewColumn("colD", types.Integer, false, index_constants.INDEX_KIND_INVALID, types.PageID(-1), nil)
+	columnA := column.NewColumn("colA", types.Integer, false, index_constants.IndexKindInvalid, types.PageID(-1), nil)
+	columnB := column.NewColumn("colB", types.Integer, false, index_constants.IndexKindInvalid, types.PageID(-1), nil)
+	columnC := column.NewColumn("colC", types.Integer, false, index_constants.IndexKindInvalid, types.PageID(-1), nil)
+	columnD := column.NewColumn("colD", types.Integer, false, index_constants.IndexKindInvalid, types.PageID(-1), nil)
 	schema_ := schema.NewSchema([]*column.Column{columnA, columnB, columnC, columnD})
 	tableMetadata1 := c.CreateTable("test_1", schema_, txn)
 
-	column1 := column.NewColumn("col1", types.Integer, false, index_constants.INDEX_KIND_INVALID, types.PageID(-1), nil)
-	column2 := column.NewColumn("col2", types.Integer, false, index_constants.INDEX_KIND_INVALID, types.PageID(-1), nil)
-	column3 := column.NewColumn("col3", types.Integer, false, index_constants.INDEX_KIND_INVALID, types.PageID(-1), nil)
-	column4 := column.NewColumn("col3", types.Integer, false, index_constants.INDEX_KIND_INVALID, types.PageID(-1), nil)
+	column1 := column.NewColumn("col1", types.Integer, false, index_constants.IndexKindInvalid, types.PageID(-1), nil)
+	column2 := column.NewColumn("col2", types.Integer, false, index_constants.IndexKindInvalid, types.PageID(-1), nil)
+	column3 := column.NewColumn("col3", types.Integer, false, index_constants.IndexKindInvalid, types.PageID(-1), nil)
+	column4 := column.NewColumn("col3", types.Integer, false, index_constants.IndexKindInvalid, types.PageID(-1), nil)
 	schema_ = schema.NewSchema([]*column.Column{column1, column2, column3, column4})
 	tableMetadata2 := c.CreateTable("test_2", schema_, txn)
 
@@ -1303,8 +1303,8 @@ func TestSimpleHashJoin(t *testing.T) {
 	var out_schema1 *schema.Schema
 	{
 		table_info := executorContext.GetCatalog().GetTableByName("test_1")
-		colA := column.NewColumn("test_1.colA", types.Integer, false, index_constants.INDEX_KIND_INVALID, types.PageID(-1), nil)
-		colB := column.NewColumn("test_1.colB", types.Integer, false, index_constants.INDEX_KIND_INVALID, types.PageID(-1), nil)
+		colA := column.NewColumn("test_1.colA", types.Integer, false, index_constants.IndexKindInvalid, types.PageID(-1), nil)
+		colB := column.NewColumn("test_1.colB", types.Integer, false, index_constants.IndexKindInvalid, types.PageID(-1), nil)
 		out_schema1 = schema.NewSchema([]*column.Column{colA, colB})
 		scan_plan1 = plans.NewSeqScanPlanNode(c, out_schema1, nil, table_info.OID())
 	}
@@ -1312,8 +1312,8 @@ func TestSimpleHashJoin(t *testing.T) {
 	var out_schema2 *schema.Schema
 	{
 		table_info := executorContext.GetCatalog().GetTableByName("test_2")
-		col1 := column.NewColumn("test_2.col1", types.Integer, false, index_constants.INDEX_KIND_INVALID, types.PageID(-1), nil)
-		col2 := column.NewColumn("test_2.col2", types.Integer, false, index_constants.INDEX_KIND_INVALID, types.PageID(-1), nil)
+		col1 := column.NewColumn("test_2.col1", types.Integer, false, index_constants.IndexKindInvalid, types.PageID(-1), nil)
+		col2 := column.NewColumn("test_2.col2", types.Integer, false, index_constants.IndexKindInvalid, types.PageID(-1), nil)
 		out_schema2 = schema.NewSchema([]*column.Column{col1, col2})
 		scan_plan2 = plans.NewSeqScanPlanNode(c, out_schema2, nil, table_info.OID())
 	}
@@ -1323,15 +1323,15 @@ func TestSimpleHashJoin(t *testing.T) {
 		// colA and colB have a tuple index of 0 because they are the left side of the join
 		//var allocated_exprs []*expression.ColumnValue
 		colA := expression.MakeColumnValueExpression(out_schema1, 0, "test_1.colA")
-		colA_c := column.NewColumn("colA", types.Integer, false, index_constants.INDEX_KIND_INVALID, types.PageID(-1), nil)
+		colA_c := column.NewColumn("colA", types.Integer, false, index_constants.IndexKindInvalid, types.PageID(-1), nil)
 		colA_c.SetIsLeft(true)
-		colB_c := column.NewColumn("colB", types.Integer, false, index_constants.INDEX_KIND_INVALID, types.PageID(-1), nil)
+		colB_c := column.NewColumn("colB", types.Integer, false, index_constants.IndexKindInvalid, types.PageID(-1), nil)
 		colB_c.SetIsLeft(true)
 		// col1 and col2 have a tuple index of 1 because they are the right side of the join
 		col1 := expression.MakeColumnValueExpression(out_schema2, 1, "test_2.col1")
-		col1_c := column.NewColumn("col1", types.Integer, false, index_constants.INDEX_KIND_INVALID, types.PageID(-1), nil)
+		col1_c := column.NewColumn("col1", types.Integer, false, index_constants.IndexKindInvalid, types.PageID(-1), nil)
 		col1_c.SetIsLeft(false)
-		col2_c := column.NewColumn("col2", types.Integer, false, index_constants.INDEX_KIND_INVALID, types.PageID(-1), nil)
+		col2_c := column.NewColumn("col2", types.Integer, false, index_constants.IndexKindInvalid, types.PageID(-1), nil)
 		col2_c.SetIsLeft(false)
 		var left_keys []expression.Expression
 		left_keys = append(left_keys, colA)
@@ -1366,17 +1366,17 @@ func TestSimpleNestedLoopJoin(t *testing.T) {
 	c := catalog.BootstrapCatalog(bpm, log_mgr, access.NewLockManager(access.REGULAR, access.PREVENTION), txn)
 	executorContext := executors.NewExecutorContext(c, bpm, txn)
 
-	columnA := column.NewColumn("colA", types.Integer, false, index_constants.INDEX_KIND_INVALID, types.PageID(-1), nil)
-	columnB := column.NewColumn("colB", types.Integer, false, index_constants.INDEX_KIND_INVALID, types.PageID(-1), nil)
-	columnC := column.NewColumn("colC", types.Integer, false, index_constants.INDEX_KIND_INVALID, types.PageID(-1), nil)
-	columnD := column.NewColumn("colD", types.Integer, false, index_constants.INDEX_KIND_INVALID, types.PageID(-1), nil)
+	columnA := column.NewColumn("colA", types.Integer, false, index_constants.IndexKindInvalid, types.PageID(-1), nil)
+	columnB := column.NewColumn("colB", types.Integer, false, index_constants.IndexKindInvalid, types.PageID(-1), nil)
+	columnC := column.NewColumn("colC", types.Integer, false, index_constants.IndexKindInvalid, types.PageID(-1), nil)
+	columnD := column.NewColumn("colD", types.Integer, false, index_constants.IndexKindInvalid, types.PageID(-1), nil)
 	schema_ := schema.NewSchema([]*column.Column{columnA, columnB, columnC, columnD})
 	tableMetadata1 := c.CreateTable("test_1", schema_, txn)
 
-	column1 := column.NewColumn("col1", types.Integer, false, index_constants.INDEX_KIND_INVALID, types.PageID(-1), nil)
-	column2 := column.NewColumn("col2", types.Integer, false, index_constants.INDEX_KIND_INVALID, types.PageID(-1), nil)
-	column3 := column.NewColumn("col3", types.Integer, false, index_constants.INDEX_KIND_INVALID, types.PageID(-1), nil)
-	column4 := column.NewColumn("col4", types.Integer, false, index_constants.INDEX_KIND_INVALID, types.PageID(-1), nil)
+	column1 := column.NewColumn("col1", types.Integer, false, index_constants.IndexKindInvalid, types.PageID(-1), nil)
+	column2 := column.NewColumn("col2", types.Integer, false, index_constants.IndexKindInvalid, types.PageID(-1), nil)
+	column3 := column.NewColumn("col3", types.Integer, false, index_constants.IndexKindInvalid, types.PageID(-1), nil)
+	column4 := column.NewColumn("col4", types.Integer, false, index_constants.IndexKindInvalid, types.PageID(-1), nil)
 	schema_ = schema.NewSchema([]*column.Column{column1, column2, column3, column4})
 	tableMetadata2 := c.CreateTable("test_2", schema_, txn)
 
@@ -1405,8 +1405,8 @@ func TestSimpleNestedLoopJoin(t *testing.T) {
 	var out_schema1 *schema.Schema
 	{
 		table_info := executorContext.GetCatalog().GetTableByName("test_1")
-		colA := column.NewColumn("test_1.colA", types.Integer, false, index_constants.INDEX_KIND_INVALID, types.PageID(-1), nil)
-		colB := column.NewColumn("test_1.colB", types.Integer, false, index_constants.INDEX_KIND_INVALID, types.PageID(-1), nil)
+		colA := column.NewColumn("test_1.colA", types.Integer, false, index_constants.IndexKindInvalid, types.PageID(-1), nil)
+		colB := column.NewColumn("test_1.colB", types.Integer, false, index_constants.IndexKindInvalid, types.PageID(-1), nil)
 		out_schema1 = schema.NewSchema([]*column.Column{colA, colB})
 		scan_plan1 = plans.NewSeqScanPlanNode(c, out_schema1, nil, table_info.OID())
 	}
@@ -1414,8 +1414,8 @@ func TestSimpleNestedLoopJoin(t *testing.T) {
 	var out_schema2 *schema.Schema
 	{
 		table_info := executorContext.GetCatalog().GetTableByName("test_2")
-		col1 := column.NewColumn("test_2.col1", types.Integer, false, index_constants.INDEX_KIND_INVALID, types.PageID(-1), nil)
-		col2 := column.NewColumn("test_2.col2", types.Integer, false, index_constants.INDEX_KIND_INVALID, types.PageID(-1), nil)
+		col1 := column.NewColumn("test_2.col1", types.Integer, false, index_constants.IndexKindInvalid, types.PageID(-1), nil)
+		col2 := column.NewColumn("test_2.col2", types.Integer, false, index_constants.IndexKindInvalid, types.PageID(-1), nil)
 		out_schema2 = schema.NewSchema([]*column.Column{col1, col2})
 		scan_plan2 = plans.NewSeqScanPlanNode(c, out_schema2, nil, table_info.OID())
 	}
@@ -1443,17 +1443,17 @@ func TestSimpleIndexJoin(t *testing.T) {
 	c := catalog.BootstrapCatalog(bpm, log_mgr, access.NewLockManager(access.REGULAR, access.PREVENTION), txn)
 	executorContext := executors.NewExecutorContext(c, bpm, txn)
 
-	columnA := column.NewColumn("colA", types.Integer, false, index_constants.INDEX_KIND_INVALID, types.PageID(-1), nil)
-	columnB := column.NewColumn("colB", types.Integer, false, index_constants.INDEX_KIND_INVALID, types.PageID(-1), nil)
-	columnC := column.NewColumn("colC", types.Integer, false, index_constants.INDEX_KIND_INVALID, types.PageID(-1), nil)
-	columnD := column.NewColumn("colD", types.Integer, false, index_constants.INDEX_KIND_INVALID, types.PageID(-1), nil)
+	columnA := column.NewColumn("colA", types.Integer, false, index_constants.IndexKindInvalid, types.PageID(-1), nil)
+	columnB := column.NewColumn("colB", types.Integer, false, index_constants.IndexKindInvalid, types.PageID(-1), nil)
+	columnC := column.NewColumn("colC", types.Integer, false, index_constants.IndexKindInvalid, types.PageID(-1), nil)
+	columnD := column.NewColumn("colD", types.Integer, false, index_constants.IndexKindInvalid, types.PageID(-1), nil)
 	schema_ := schema.NewSchema([]*column.Column{columnA, columnB, columnC, columnD})
 	tableMetadata1 := c.CreateTable("test_1", schema_, txn)
 
-	column1 := column.NewColumn("col1", types.Integer, true, index_constants.INDEX_KIND_SKIP_LIST, types.PageID(-1), nil)
-	column2 := column.NewColumn("col2", types.Integer, true, index_constants.INDEX_KIND_SKIP_LIST, types.PageID(-1), nil)
-	column3 := column.NewColumn("col3", types.Integer, false, index_constants.INDEX_KIND_INVALID, types.PageID(-1), nil)
-	column4 := column.NewColumn("col4", types.Integer, false, index_constants.INDEX_KIND_INVALID, types.PageID(-1), nil)
+	column1 := column.NewColumn("col1", types.Integer, true, index_constants.IndexKindSkipList, types.PageID(-1), nil)
+	column2 := column.NewColumn("col2", types.Integer, true, index_constants.IndexKindSkipList, types.PageID(-1), nil)
+	column3 := column.NewColumn("col3", types.Integer, false, index_constants.IndexKindInvalid, types.PageID(-1), nil)
+	column4 := column.NewColumn("col4", types.Integer, false, index_constants.IndexKindInvalid, types.PageID(-1), nil)
 	schema_ = schema.NewSchema([]*column.Column{column1, column2, column3, column4})
 	tableMetadata2 := c.CreateTable("test_2", schema_, txn)
 
@@ -1482,8 +1482,8 @@ func TestSimpleIndexJoin(t *testing.T) {
 	var out_schema1 *schema.Schema
 	{
 		table_info := executorContext.GetCatalog().GetTableByName("test_1")
-		colA := column.NewColumn("test_1.colA", types.Integer, false, index_constants.INDEX_KIND_INVALID, types.PageID(-1), nil)
-		colB := column.NewColumn("test_1.colB", types.Integer, false, index_constants.INDEX_KIND_INVALID, types.PageID(-1), nil)
+		colA := column.NewColumn("test_1.colA", types.Integer, false, index_constants.IndexKindInvalid, types.PageID(-1), nil)
+		colB := column.NewColumn("test_1.colB", types.Integer, false, index_constants.IndexKindInvalid, types.PageID(-1), nil)
 		out_schema1 = schema.NewSchema([]*column.Column{colA, colB})
 		scan_plan1 = plans.NewSeqScanPlanNode(c, out_schema1, nil, table_info.OID())
 	}
@@ -1491,8 +1491,8 @@ func TestSimpleIndexJoin(t *testing.T) {
 	var out_schema2 *schema.Schema
 	{
 		table_info := executorContext.GetCatalog().GetTableByName("test_2")
-		col1 := column.NewColumn("test_2.col1", types.Integer, false, index_constants.INDEX_KIND_INVALID, types.PageID(-1), nil)
-		col2 := column.NewColumn("test_2.col2", types.Integer, false, index_constants.INDEX_KIND_INVALID, types.PageID(-1), nil)
+		col1 := column.NewColumn("test_2.col1", types.Integer, false, index_constants.IndexKindInvalid, types.PageID(-1), nil)
+		col2 := column.NewColumn("test_2.col2", types.Integer, false, index_constants.IndexKindInvalid, types.PageID(-1), nil)
 		out_schema2 = schema.NewSchema([]*column.Column{col1, col2})
 		scan_plan2 = plans.NewSeqScanPlanNode(c, out_schema2, nil, table_info.OID())
 	}
@@ -1532,9 +1532,9 @@ func TestInsertAndSeqScanWithComplexPredicateComparison(t *testing.T) {
 
 	c := catalog.BootstrapCatalog(bpm, log_mgr, access.NewLockManager(access.REGULAR, access.PREVENTION), txn)
 
-	columnA := column.NewColumn("a", types.Integer, false, index_constants.INDEX_KIND_INVALID, types.PageID(-1), nil)
-	columnB := column.NewColumn("b", types.Integer, false, index_constants.INDEX_KIND_INVALID, types.PageID(-1), nil)
-	columnC := column.NewColumn("c", types.Varchar, false, index_constants.INDEX_KIND_INVALID, types.PageID(-1), nil)
+	columnA := column.NewColumn("a", types.Integer, false, index_constants.IndexKindInvalid, types.PageID(-1), nil)
+	columnB := column.NewColumn("b", types.Integer, false, index_constants.IndexKindInvalid, types.PageID(-1), nil)
+	columnC := column.NewColumn("c", types.Varchar, false, index_constants.IndexKindInvalid, types.PageID(-1), nil)
 	schema_ := schema.NewSchema([]*column.Column{columnA, columnB, columnC})
 
 	tableMetadata := c.CreateTable("test_1", schema_, txn)
@@ -1712,7 +1712,7 @@ func deleteAllRowTransaction(t *testing.T, shi *samehada.SamehadaInstance, c *ca
 func selectAllRowTransaction(t *testing.T, shi *samehada.SamehadaInstance, c *catalog.Catalog, tm *catalog.TableMetadata, master_ch chan int32) {
 	txn := shi.GetTransactionManager().Begin(nil)
 
-	outColumnA := column.NewColumn("a", types.Integer, false, index_constants.INDEX_KIND_INVALID, types.PageID(-1), nil)
+	outColumnA := column.NewColumn("a", types.Integer, false, index_constants.IndexKindInvalid, types.PageID(-1), nil)
 	outSchema := schema.NewSchema([]*column.Column{outColumnA})
 
 	seqPlan := plans.NewSeqScanPlanNode(c, outSchema, nil, tm.OID())
@@ -1980,8 +1980,8 @@ func TestInsertAndSpecifiedColumnUpdate(t *testing.T) {
 
 	c := catalog.BootstrapCatalog(bpm, log_mgr, lock_mgr, txn)
 
-	columnA := column.NewColumn("a", types.Integer, false, index_constants.INDEX_KIND_INVALID, types.PageID(-1), nil)
-	columnB := column.NewColumn("b", types.Varchar, false, index_constants.INDEX_KIND_INVALID, types.PageID(-1), nil)
+	columnA := column.NewColumn("a", types.Integer, false, index_constants.IndexKindInvalid, types.PageID(-1), nil)
+	columnB := column.NewColumn("b", types.Varchar, false, index_constants.IndexKindInvalid, types.PageID(-1), nil)
 	schema_ := schema.NewSchema([]*column.Column{columnA, columnB})
 
 	tableMetadata := c.CreateTable("test_1", schema_, txn)
@@ -2030,8 +2030,8 @@ func TestInsertAndSpecifiedColumnUpdate(t *testing.T) {
 	txn = txn_mgr.Begin(nil)
 	executorContext.SetTransaction(txn)
 
-	outColumnA := column.NewColumn("a", types.Integer, false, index_constants.INDEX_KIND_INVALID, types.PageID(-1), nil)
-	outColumnB := column.NewColumn("b", types.Varchar, false, index_constants.INDEX_KIND_INVALID, types.PageID(-1), nil)
+	outColumnA := column.NewColumn("a", types.Integer, false, index_constants.IndexKindInvalid, types.PageID(-1), nil)
+	outColumnB := column.NewColumn("b", types.Varchar, false, index_constants.IndexKindInvalid, types.PageID(-1), nil)
 	outSchema := schema.NewSchema([]*column.Column{outColumnA, outColumnB})
 
 	pred = testing_pattern_fw.Predicate{"a", expression.Equal, 99}
@@ -2071,8 +2071,8 @@ func TestInsertAndSpecifiedColumnUpdatePageMoveCase(t *testing.T) {
 
 	c := catalog.BootstrapCatalog(bpm, log_mgr, lock_mgr, txn)
 
-	columnA := column.NewColumn("a", types.Integer, false, index_constants.INDEX_KIND_INVALID, types.PageID(-1), nil)
-	columnB := column.NewColumn("b", types.Varchar, false, index_constants.INDEX_KIND_INVALID, types.PageID(-1), nil)
+	columnA := column.NewColumn("a", types.Integer, false, index_constants.IndexKindInvalid, types.PageID(-1), nil)
+	columnB := column.NewColumn("b", types.Varchar, false, index_constants.IndexKindInvalid, types.PageID(-1), nil)
 	schema_ := schema.NewSchema([]*column.Column{columnA, columnB})
 
 	tableMetadata := c.CreateTable("test_1", schema_, txn)
@@ -2117,8 +2117,8 @@ func TestInsertAndSpecifiedColumnUpdatePageMoveCase(t *testing.T) {
 	txn = txn_mgr.Begin(nil)
 	executorContext.SetTransaction(txn)
 
-	outColumnA := column.NewColumn("a", types.Integer, false, index_constants.INDEX_KIND_INVALID, types.PageID(-1), nil)
-	outColumnB := column.NewColumn("b", types.Varchar, false, index_constants.INDEX_KIND_INVALID, types.PageID(-1), nil)
+	outColumnA := column.NewColumn("a", types.Integer, false, index_constants.IndexKindInvalid, types.PageID(-1), nil)
+	outColumnB := column.NewColumn("b", types.Varchar, false, index_constants.IndexKindInvalid, types.PageID(-1), nil)
 	outSchema := schema.NewSchema([]*column.Column{outColumnA, outColumnB})
 
 	pred = testing_pattern_fw.Predicate{"a", expression.Equal, 99}
@@ -2164,8 +2164,8 @@ func TestInsertAndSpecifiedColumnUpdatePageMoveRecovery(t *testing.T) {
 
 	c := catalog.BootstrapCatalog(bpm, log_mgr, lock_mgr, txn)
 
-	columnA := column.NewColumn("a", types.Integer, false, index_constants.INDEX_KIND_INVALID, types.PageID(-1), nil)
-	columnB := column.NewColumn("b", types.Varchar, false, index_constants.INDEX_KIND_INVALID, types.PageID(-1), nil)
+	columnA := column.NewColumn("a", types.Integer, false, index_constants.IndexKindInvalid, types.PageID(-1), nil)
+	columnB := column.NewColumn("b", types.Varchar, false, index_constants.IndexKindInvalid, types.PageID(-1), nil)
 	schema_ := schema.NewSchema([]*column.Column{columnA, columnB})
 
 	tableMetadata := c.CreateTable("test_1", schema_, txn)
@@ -2226,8 +2226,8 @@ func TestInsertAndSpecifiedColumnUpdatePageMoveRecovery(t *testing.T) {
 	executorContext = executors.NewExecutorContext(c, bpm, txn)
 	executorContext.SetTransaction(txn)
 
-	outColumnA := column.NewColumn("a", types.Integer, false, index_constants.INDEX_KIND_INVALID, types.PageID(-1), nil)
-	outColumnB := column.NewColumn("b", types.Varchar, false, index_constants.INDEX_KIND_INVALID, types.PageID(-1), nil)
+	outColumnA := column.NewColumn("a", types.Integer, false, index_constants.IndexKindInvalid, types.PageID(-1), nil)
+	outColumnB := column.NewColumn("b", types.Varchar, false, index_constants.IndexKindInvalid, types.PageID(-1), nil)
 	outSchema := schema.NewSchema([]*column.Column{outColumnA, outColumnB})
 
 	// disable logging
@@ -2298,8 +2298,8 @@ func TestInsertAndSpecifiedColumnUpdatePageMoveOccurOnRecovery(t *testing.T) {
 
 	c := catalog.BootstrapCatalog(bpm, log_mgr, lock_mgr, txn)
 
-	columnA := column.NewColumn("a", types.Integer, false, index_constants.INDEX_KIND_INVALID, types.PageID(-1), nil)
-	columnB := column.NewColumn("b", types.Varchar, false, index_constants.INDEX_KIND_INVALID, types.PageID(-1), nil)
+	columnA := column.NewColumn("a", types.Integer, false, index_constants.IndexKindInvalid, types.PageID(-1), nil)
+	columnB := column.NewColumn("b", types.Varchar, false, index_constants.IndexKindInvalid, types.PageID(-1), nil)
 	schema_ := schema.NewSchema([]*column.Column{columnA, columnB})
 
 	tableMetadata := c.CreateTable("test_1", schema_, txn)
@@ -2401,8 +2401,8 @@ func TestInsertAndSpecifiedColumnUpdatePageMoveOccurOnRecovery(t *testing.T) {
 	executorContext = executors.NewExecutorContext(c, bpm, txn)
 	executorContext.SetTransaction(txn)
 
-	outColumnA := column.NewColumn("a", types.Integer, false, index_constants.INDEX_KIND_INVALID, types.PageID(-1), nil)
-	outColumnB := column.NewColumn("b", types.Varchar, false, index_constants.INDEX_KIND_INVALID, types.PageID(-1), nil)
+	outColumnA := column.NewColumn("a", types.Integer, false, index_constants.IndexKindInvalid, types.PageID(-1), nil)
+	outColumnB := column.NewColumn("b", types.Varchar, false, index_constants.IndexKindInvalid, types.PageID(-1), nil)
 	outSchema := schema.NewSchema([]*column.Column{outColumnA, outColumnB})
 
 	// disable logging
@@ -2467,8 +2467,8 @@ func TestSimpleSeqScanAndOrderBy(t *testing.T) {
 	c := catalog.BootstrapCatalog(shi.GetBufferPoolManager(), shi.GetLogManager(), shi.GetLockManager(), txn)
 	exec_ctx := executors.NewExecutorContext(c, shi.GetBufferPoolManager(), txn)
 
-	columnA := column.NewColumn("a", types.Integer, false, index_constants.INDEX_KIND_INVALID, types.PageID(-1), nil)
-	columnB := column.NewColumn("b", types.Varchar, false, index_constants.INDEX_KIND_INVALID, types.PageID(-1), nil)
+	columnA := column.NewColumn("a", types.Integer, false, index_constants.IndexKindInvalid, types.PageID(-1), nil)
+	columnB := column.NewColumn("b", types.Varchar, false, index_constants.IndexKindInvalid, types.PageID(-1), nil)
 	schema_ := schema.NewSchema([]*column.Column{columnA, columnB})
 
 	tableMetadata := c.CreateTable("test_1", schema_, txn)
@@ -2575,8 +2575,8 @@ func TestSimpleSetNullToVarchar(t *testing.T) {
 	c := catalog.BootstrapCatalog(shi.GetBufferPoolManager(), shi.GetLogManager(), shi.GetLockManager(), txn)
 	exec_ctx := executors.NewExecutorContext(c, shi.GetBufferPoolManager(), txn)
 
-	columnA := column.NewColumn("a", types.Integer, false, index_constants.INDEX_KIND_INVALID, types.PageID(-1), nil)
-	columnB := column.NewColumn("b", types.Varchar, false, index_constants.INDEX_KIND_INVALID, types.PageID(-1), nil)
+	columnA := column.NewColumn("a", types.Integer, false, index_constants.IndexKindInvalid, types.PageID(-1), nil)
+	columnB := column.NewColumn("b", types.Varchar, false, index_constants.IndexKindInvalid, types.PageID(-1), nil)
 	schema_ := schema.NewSchema([]*column.Column{columnA, columnB})
 
 	tableMetadata := c.CreateTable("test_1", schema_, txn)
@@ -2652,8 +2652,8 @@ func TestInsertNullValueAndSeqScanWithNullComparison(t *testing.T) {
 
 	c := catalog.BootstrapCatalog(bpm, log_mgr, access.NewLockManager(access.REGULAR, access.PREVENTION), txn)
 
-	columnA := column.NewColumn("a", types.Integer, false, index_constants.INDEX_KIND_INVALID, types.PageID(-1), nil)
-	columnB := column.NewColumn("b", types.Varchar, false, index_constants.INDEX_KIND_INVALID, types.PageID(-1), nil)
+	columnA := column.NewColumn("a", types.Integer, false, index_constants.IndexKindInvalid, types.PageID(-1), nil)
+	columnB := column.NewColumn("b", types.Varchar, false, index_constants.IndexKindInvalid, types.PageID(-1), nil)
 	schema_ := schema.NewSchema([]*column.Column{columnA, columnB})
 
 	tableMetadata := c.CreateTable("test_1", schema_, txn)
@@ -2738,8 +2738,8 @@ func TestDeallocatedPageReuseAfterRelaunchGraceful(t *testing.T) {
 
 	c := catalog.BootstrapCatalog(bpm, log_mgr, lock_mgr, txn)
 
-	columnA := column.NewColumn("a", types.Integer, false, index_constants.INDEX_KIND_SKIP_LIST, types.PageID(-1), nil)
-	columnB := column.NewColumn("b", types.Varchar, false, index_constants.INDEX_KIND_SKIP_LIST, types.PageID(-1), nil)
+	columnA := column.NewColumn("a", types.Integer, false, index_constants.IndexKindSkipList, types.PageID(-1), nil)
+	columnB := column.NewColumn("b", types.Varchar, false, index_constants.IndexKindSkipList, types.PageID(-1), nil)
 	schema_ := schema.NewSchema([]*column.Column{columnA, columnB})
 
 	tableMetadata := c.CreateTable("test_1", schema_, txn)
@@ -2851,7 +2851,7 @@ func TestDeallocatedPageReuseAfterRelaunchGraceful(t *testing.T) {
 	fmt.Println("check table content...")
 	txn = txn_mgr.Begin(nil)
 
-	outColumnB := column.NewColumn("b", types.Varchar, false, index_constants.INDEX_KIND_INVALID, types.PageID(-1), nil)
+	outColumnB := column.NewColumn("b", types.Varchar, false, index_constants.IndexKindInvalid, types.PageID(-1), nil)
 	outSchema := schema.NewSchema([]*column.Column{outColumnB})
 
 	pred = testing_pattern_fw.Predicate{"a", expression.Equal, 99}
@@ -2895,8 +2895,8 @@ func TestDeallocatedPageReuseAfterRelaunchByCrash(t *testing.T) {
 
 	c := catalog.BootstrapCatalog(bpm, log_mgr, lock_mgr, txn)
 
-	columnA := column.NewColumn("a", types.Integer, false, index_constants.INDEX_KIND_SKIP_LIST, types.PageID(-1), nil)
-	columnB := column.NewColumn("b", types.Varchar, false, index_constants.INDEX_KIND_SKIP_LIST, types.PageID(-1), nil)
+	columnA := column.NewColumn("a", types.Integer, false, index_constants.IndexKindSkipList, types.PageID(-1), nil)
+	columnB := column.NewColumn("b", types.Varchar, false, index_constants.IndexKindSkipList, types.PageID(-1), nil)
 	schema_ := schema.NewSchema([]*column.Column{columnA, columnB})
 
 	tableMetadata := c.CreateTable("test_1", schema_, txn)
@@ -3007,7 +3007,7 @@ func TestDeallocatedPageReuseAfterRelaunchByCrash(t *testing.T) {
 	fmt.Println("check table content...")
 	txn = txn_mgr.Begin(nil)
 
-	outColumnB := column.NewColumn("b", types.Varchar, false, index_constants.INDEX_KIND_INVALID, types.PageID(-1), nil)
+	outColumnB := column.NewColumn("b", types.Varchar, false, index_constants.IndexKindInvalid, types.PageID(-1), nil)
 	outSchema := schema.NewSchema([]*column.Column{outColumnB})
 
 	pred = testing_pattern_fw.Predicate{"a", expression.Equal, 99}

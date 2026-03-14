@@ -17,37 +17,37 @@ import (
 
 type IndexMetadata struct {
 	name       string
-	table_name string
+	tableName  string
 	// The mapping relation between key schema and tuple schema
-	key_attrs []uint32
+	keyAttrs []uint32
 	// schema of the indexed key
-	tuple_schema *schema.Schema
+	tupleSchema *schema.Schema
 }
 
-func NewIndexMetadata(index_name string, table_name string, tuple_schema *schema.Schema,
-	key_attrs []uint32) *IndexMetadata {
+func NewIndexMetadata(indexName string, tableName string, tupleSchema *schema.Schema,
+	keyAttrs []uint32) *IndexMetadata {
 	ret := new(IndexMetadata)
-	ret.name = index_name
-	ret.table_name = table_name
-	ret.key_attrs = key_attrs
-	ret.tuple_schema = tuple_schema
+	ret.name = indexName
+	ret.tableName = tableName
+	ret.keyAttrs = keyAttrs
+	ret.tupleSchema = tupleSchema
 	return ret
 }
 
 func (im *IndexMetadata) GetName() *string      { return &im.name }
-func (im *IndexMetadata) GetTableName() *string { return &im.table_name }
+func (im *IndexMetadata) GetTableName() *string { return &im.tableName }
 
 // Returns a schema object pointer that represents the indexed key
-func (im *IndexMetadata) GetTupleSchema() *schema.Schema { return im.tuple_schema }
+func (im *IndexMetadata) GetTupleSchema() *schema.Schema { return im.tupleSchema }
 
 // Return the number of columns inside index key (not in tuple key)
 // Note that this must be defined inside the cpp source file
 // because it uses the member of catalog::Schema which is not known here
-func (im *IndexMetadata) GetIndexColumnCount() uint32 { return uint32(len(im.key_attrs)) }
+func (im *IndexMetadata) GetIndexColumnCount() uint32 { return uint32(len(im.keyAttrs)) }
 
 // Returns the mapping relation between indexed columns  and base table
 // columns
-func (im *IndexMetadata) GetKeyAttrs() []uint32 { return im.key_attrs }
+func (im *IndexMetadata) GetKeyAttrs() []uint32 { return im.keyAttrs }
 
 /////////////////////////////////////////////////////////////////////
 // Index class definition
