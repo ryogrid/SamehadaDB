@@ -76,6 +76,7 @@ func (transactionManager *TransactionManager) Commit(cat catalog_interface.Catal
 		}
 		common.ShPrintf(common.RDBOpFuncCall, "TransactionManager::Commit txn.txnID:%v dbgInfo:%s writeSet:%s\n", txn.txnID, txn.dbgInfo, writeSetStr)
 	}
+	indexMap := make(map[uint32][]index.Index, 0)
 	for len(writeSet) != 0 {
 		item := writeSet[len(writeSet)-1]
 		table := item.table
@@ -92,6 +93,15 @@ func (transactionManager *TransactionManager) Commit(cat catalog_interface.Catal
 			table.bpm.UnpinPage(tpage.GetPageID(), true)
 			tpage.RemoveWLatchRecord(int32(txn.txnID))
 			tpage.WUnlatch()
+			// delete index entries now that the delete is committed
+			if cat != nil {
+				indexes := cat.GetRollbackNeededIndexes(indexMap, item.oid)
+				for _, idx := range indexes {
+					if idx != nil {
+						idx.DeleteEntry(item.tuple1, *item.rid1, txn)
+					}
+				}
+			}
 		} else if item.wtype == UPDATE {
 			if common.EnableDebug && common.ActiveLogKindSetting&common.CommitAbortHandleInfo > 0 {
 				fmt.Printf("TransactionManager::Commit handle UPDATE write log. txn.txnID:%v dbgInfo:%s rid1:%v\n", txn.txnID, txn.dbgInfo, rid)
@@ -171,14 +181,7 @@ func (transactionManager *TransactionManager) Abort(cat catalog_interface.Catalo
 
 			// rollback record data
 			table.RollbackDelete(item.rid1, txn)
-
-			// rollback index data
-			indexes := cat.GetRollbackNeededIndexes(indexMap, item.oid)
-			for _, idx := range indexes {
-				if idx != nil {
-					idx.InsertEntry(item.tuple1, *item.rid1, txn)
-				}
-			}
+			// index entries were never deleted (deferred to commit), so no index rollback needed
 		} else if item.wtype == INSERT {
 			if common.EnableDebug && common.ActiveLogKindSetting&common.CommitAbortHandleInfo > 0 {
 				fmt.Printf("TransactionManager::Abort handle INSERT write log. txn.txnID:%v dbgInfo:%s rid1:%v\n", txn.txnID, txn.dbgInfo, item.rid1)
