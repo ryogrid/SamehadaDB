@@ -41,7 +41,7 @@ func (p *OrderbyPlanNode) GetType() PlanType { return Orderby }
 
 /** @return the child of this aggregation plan node */
 func (p *OrderbyPlanNode) GetChildPlan() Plan {
-	common.SH_Assert(len(p.GetChildren()) == 1, "OrderBy expected to only have one child.")
+	common.SHAssert(len(p.GetChildren()) == 1, "OrderBy expected to only have one child.")
 	return p.GetChildAt(0)
 }
 

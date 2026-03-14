@@ -56,13 +56,13 @@ func (p *HashJoinPlanNode) OnPredicate() expression.Expression { return p.onPred
 
 /** @return the left plan node of the hash join, by convention this is used to build the table */
 func (p *HashJoinPlanNode) GetLeftPlan() Plan {
-	common.SH_Assert(len(p.GetChildren()) == 2, "Hash joins should have exactly two children plans.")
+	common.SHAssert(len(p.GetChildren()) == 2, "Hash joins should have exactly two children plans.")
 	return p.GetChildAt(0)
 }
 
 /** @return the right plan node of the hash join */
 func (p *HashJoinPlanNode) GetRightPlan() Plan {
-	common.SH_Assert(len(p.GetChildren()) == 2, "Hash joins should have exactly two children plans.")
+	common.SHAssert(len(p.GetChildren()) == 2, "Hash joins should have exactly two children plans.")
 	return p.GetChildAt(1)
 }
 

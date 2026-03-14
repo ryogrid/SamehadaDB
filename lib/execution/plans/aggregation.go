@@ -52,7 +52,7 @@ func (p *AggregationPlanNode) GetType() PlanType { return Aggregation }
 
 /** @return the child of this aggregation plan node */
 func (p *AggregationPlanNode) GetChildPlan() Plan {
-	common.SH_Assert(len(p.GetChildren()) == 1, "Aggregation expected to only have one child.")
+	common.SHAssert(len(p.GetChildren()) == 1, "Aggregation expected to only have one child.")
 	return p.GetChildAt(0)
 }
 

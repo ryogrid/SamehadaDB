@@ -30,12 +30,12 @@ func NewNestedLoopJoinPlanNode(children []Plan) *NestedLoopJoinPlanNode {
 func (p *NestedLoopJoinPlanNode) GetType() PlanType { return NestedLoopJoin }
 
 func (p *NestedLoopJoinPlanNode) GetLeftPlan() Plan {
-	common.SH_Assert(len(p.GetChildren()) == 2, "nested loop joins should have exactly two children plans.")
+	common.SHAssert(len(p.GetChildren()) == 2, "nested loop joins should have exactly two children plans.")
 	return p.GetChildAt(0)
 }
 
 func (p *NestedLoopJoinPlanNode) GetRightPlan() Plan {
-	common.SH_Assert(len(p.GetChildren()) == 2, "nested loop joins should have exactly two children plans.")
+	common.SHAssert(len(p.GetChildren()) == 2, "nested loop joins should have exactly two children plans.")
 	return p.GetChildAt(1)
 }
 

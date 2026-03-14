@@ -60,7 +60,7 @@ func (transaction_manager *TransactionManager) Begin(txn *Transaction) *Transact
 
 func (transaction_manager *TransactionManager) Commit(catalog_ catalog_interface.CatalogInterface, txn *Transaction) {
 	if common.EnableDebug {
-		common.ShPrintf(common.RDB_OP_FUNC_CALL, "TransactionManager::Commit called. txn.txn_id:%v dbgInfo:%s\n", txn.txn_id, txn.dbgInfo)
+		common.ShPrintf(common.RDBOpFuncCall, "TransactionManager::Commit called. txn.txn_id:%v dbgInfo:%s\n", txn.txn_id, txn.dbgInfo)
 	}
 	// on Commit, call of Transaction::SetState(ABORT) panics
 	txn.MakeNotAbortable()
@@ -71,17 +71,17 @@ func (transaction_manager *TransactionManager) Commit(catalog_ catalog_interface
 	if common.EnableDebug {
 		writeSetStr := ""
 		for _, writeItem := range write_set {
-			//common.ShPrintf(common.RDB_OP_FUNC_CALL, "%v ", *writeItem)
+			//common.ShPrintf(common.RDBOpFuncCall, "%v ", *writeItem)
 			writeSetStr += fmt.Sprintf("%v ", *writeItem)
 		}
-		common.ShPrintf(common.RDB_OP_FUNC_CALL, "TransactionManager::Commit txn.txn_id:%v dbgInfo:%s write_set:%s\n", txn.txn_id, txn.dbgInfo, writeSetStr)
+		common.ShPrintf(common.RDBOpFuncCall, "TransactionManager::Commit txn.txn_id:%v dbgInfo:%s write_set:%s\n", txn.txn_id, txn.dbgInfo, writeSetStr)
 	}
 	for len(write_set) != 0 {
 		item := write_set[len(write_set)-1]
 		table := item.table
 		rid := item.rid1
 		if item.wtype == DELETE {
-			if common.EnableDebug && common.ActiveLogKindSetting&common.COMMIT_ABORT_HANDLE_INFO > 0 {
+			if common.EnableDebug && common.ActiveLogKindSetting&common.CommitAbortHandleInfo > 0 {
 				fmt.Printf("TransactionManager::Commit handle DELETE write log. txn.txn_id:%v dbgInfo:%s rid1:%v\n", txn.txn_id, txn.dbgInfo, rid)
 			}
 			pageID := rid.GetPageId()
@@ -93,7 +93,7 @@ func (transaction_manager *TransactionManager) Commit(catalog_ catalog_interface
 			tpage.RemoveWLatchRecord(int32(txn.txn_id))
 			tpage.WUnlatch()
 		} else if item.wtype == UPDATE {
-			if common.EnableDebug && common.ActiveLogKindSetting&common.COMMIT_ABORT_HANDLE_INFO > 0 {
+			if common.EnableDebug && common.ActiveLogKindSetting&common.CommitAbortHandleInfo > 0 {
 				fmt.Printf("TransactionManager::Commit handle UPDATE write log. txn.txn_id:%v dbgInfo:%s rid1:%v\n", txn.txn_id, txn.dbgInfo, rid)
 			}
 
@@ -132,7 +132,7 @@ func (transaction_manager *TransactionManager) Commit(catalog_ catalog_interface
 
 func (transaction_manager *TransactionManager) Abort(catalog_ catalog_interface.CatalogInterface, txn *Transaction) {
 	if common.EnableDebug {
-		common.ShPrintf(common.RDB_OP_FUNC_CALL, "TransactionManager::Abort called. txn.txn_id:%v dbgInfo:%s\n", txn.txn_id, txn.dbgInfo)
+		common.ShPrintf(common.RDBOpFuncCall, "TransactionManager::Abort called. txn.txn_id:%v dbgInfo:%s\n", txn.txn_id, txn.dbgInfo)
 	}
 
 	//fmt.Printf("debuginfo: %s\n", txn.dbgInfo)
@@ -152,7 +152,7 @@ func (transaction_manager *TransactionManager) Abort(catalog_ catalog_interface.
 	indexMap := make(map[uint32][]index.Index, 0)
 
 	write_set := txn.GetWriteSet()
-	if common.EnableDebug && common.ActiveLogKindSetting&common.RDB_OP_FUNC_CALL > 0 {
+	if common.EnableDebug && common.ActiveLogKindSetting&common.RDBOpFuncCall > 0 {
 		writeSetStr := ""
 		for _, writeItem := range write_set {
 			writeSetStr += fmt.Sprintf("%v ", *writeItem)
@@ -165,7 +165,7 @@ func (transaction_manager *TransactionManager) Abort(catalog_ catalog_interface.
 		item := write_set[len(write_set)-1]
 		table := item.table
 		if item.wtype == DELETE {
-			if common.EnableDebug && common.ActiveLogKindSetting&common.COMMIT_ABORT_HANDLE_INFO > 0 {
+			if common.EnableDebug && common.ActiveLogKindSetting&common.CommitAbortHandleInfo > 0 {
 				fmt.Printf("TransactionManager::Abort handle DELETE write log. txn.txn_id:%v dbgInfo:%s rid1:%v\n", txn.txn_id, txn.dbgInfo, item.rid1)
 			}
 
@@ -180,7 +180,7 @@ func (transaction_manager *TransactionManager) Abort(catalog_ catalog_interface.
 				}
 			}
 		} else if item.wtype == INSERT {
-			if common.EnableDebug && common.ActiveLogKindSetting&common.COMMIT_ABORT_HANDLE_INFO > 0 {
+			if common.EnableDebug && common.ActiveLogKindSetting&common.CommitAbortHandleInfo > 0 {
 				fmt.Printf("TransactionManager::Abort handle INSERT write log. txn.txn_id:%v dbgInfo:%s rid1:%v\n", txn.txn_id, txn.dbgInfo, item.rid1)
 			}
 
@@ -203,7 +203,7 @@ func (transaction_manager *TransactionManager) Abort(catalog_ catalog_interface.
 				}
 			}
 		} else if item.wtype == UPDATE {
-			if common.EnableDebug && common.ActiveLogKindSetting&common.COMMIT_ABORT_HANDLE_INFO > 0 {
+			if common.EnableDebug && common.ActiveLogKindSetting&common.CommitAbortHandleInfo > 0 {
 				fmt.Printf("TransactionManager::Abort handle UPDATE write log. txn.txn_id:%v dbgInfo:%s rid1:%v tuple1.Size()=%d \n", txn.txn_id, txn.dbgInfo, item.rid1, item.tuple1.Size())
 			}
 

@@ -88,10 +88,10 @@ func latchOpWithOpType(node *skip_list_page.SkipListBlockPage, getOrUnlatch Latc
 // (when corners_[0] is startNode, having pin count is two, but caller does not have to consider the difference)
 func (sl *SkipList) FindNode(key *types.Value, opType SkipListOpType) (isSuccess bool, foundNode *skip_list_page.SkipListBlockPage, predOfCorners_ []skip_list_page.SkipListCornerInfo, corners_ []skip_list_page.SkipListCornerInfo) {
 	if common.EnableDebug {
-		if common.ActiveLogKindSetting&common.DEBUG_INFO > 0 {
-			common.ShPrintf(common.DEBUG_INFO, "FindNode: start. key=%v opType=%d\n", key.ToIFValue(), opType)
+		if common.ActiveLogKindSetting&common.DebugInfo > 0 {
+			common.ShPrintf(common.DebugInfo, "FindNode: start. key=%v opType=%d\n", key.ToIFValue(), opType)
 		}
-		if common.ActiveLogKindSetting&common.BUFFER_INTERNAL_STATE > 0 {
+		if common.ActiveLogKindSetting&common.BufferInternalState > 0 {
 			sl.bpm.PrintBufferUsageState("SkipList::FindNode start. ")
 			defer func() {
 				sl.bpm.PrintBufferUsageState("SkipList::FindNode end. ")
@@ -137,7 +137,7 @@ func (sl *SkipList) FindNode(key *types.Value, opType SkipListOpType) (isSuccess
 		}
 		if opType == SKIP_LIST_OP_REMOVE && ii != 0 && pred.GetEntryCnt() == 1 && key.CompareEquals(pred.GetSmallestKey(key.ValueType())) {
 			// pred is already reached goal, so change pred to appropriate node
-			common.ShPrintf(common.DEBUG_INFO, "SkipList::FindNode: node should be removed found!\n")
+			common.ShPrintf(common.DebugInfo, "SkipList::FindNode: node should be removed found!\n")
 			predOfCorners[ii] = skip_list_page.SkipListCornerInfo{types.InvalidPageID, -1}
 			corners[ii] = skip_list_page.SkipListCornerInfo{predOfPredId, predOfPredLSN}
 
@@ -164,10 +164,10 @@ func (sl *SkipList) FindNode(key *types.Value, opType SkipListOpType) (isSuccess
 				sl.bpm.UnpinPage(pred.GetPageId(), false)
 				latchOpWithOpType(pred, SKIP_LIST_UTIL_UNLATCH, opType)
 				if common.EnableDebug {
-					common.ShPrintf(common.DEBUG_INFO, "FindNode: finished with rety. key=%v opType=%d\n", key.ToIFValue(), opType)
-					common.ShPrintf(common.DEBUG_INFO, "pred: ")
+					common.ShPrintf(common.DebugInfo, "FindNode: finished with rety. key=%v opType=%d\n", key.ToIFValue(), opType)
+					common.ShPrintf(common.DebugInfo, "pred: ")
 					pred.PrintMutexDebugInfo()
-					common.ShPrintf(common.DEBUG_INFO, "curr: ")
+					common.ShPrintf(common.DebugInfo, "curr: ")
 					curr.PrintMutexDebugInfo()
 				}
 				return false, nil, nil, nil
@@ -183,11 +183,11 @@ func (sl *SkipList) FindNode(key *types.Value, opType SkipListOpType) (isSuccess
 	}
 
 	if common.EnableDebug {
-		common.ShPrintf(common.DEBUG_INFO, "FindNode: finished without rety. key=%v opType=%d\n", key.ToIFValue(), opType)
-		common.ShPrintf(common.DEBUG_INFO, "pred: ")
+		common.ShPrintf(common.DebugInfo, "FindNode: finished without rety. key=%v opType=%d\n", key.ToIFValue(), opType)
+		common.ShPrintf(common.DebugInfo, "pred: ")
 		pred.PrintMutexDebugInfo()
 		pred.PrintPinCount()
-		common.ShPrintf(common.DEBUG_INFO, "curr: ")
+		common.ShPrintf(common.DebugInfo, "curr: ")
 		if curr != nil {
 			curr.PrintMutexDebugInfo()
 		}
@@ -210,11 +210,11 @@ func (sl *SkipList) FindNodeWithEntryIdxForItr(key *types.Value) (found_ bool, n
 
 func (sl *SkipList) GetValue(key *types.Value) uint64 {
 	if common.EnableDebug {
-		if common.ActiveLogKindSetting&common.RDB_OP_FUNC_CALL > 0 {
-			common.ShPrintf(common.DEBUG_INFO, "SkipList::GetValue: start. key=%v\n", key.ToIFValue())
+		if common.ActiveLogKindSetting&common.RDBOpFuncCall > 0 {
+			common.ShPrintf(common.DebugInfo, "SkipList::GetValue: start. key=%v\n", key.ToIFValue())
 		}
 
-		if common.ActiveLogKindSetting&common.BUFFER_INTERNAL_STATE > 0 {
+		if common.ActiveLogKindSetting&common.BufferInternalState > 0 {
 			sl.bpm.PrintBufferUsageState("SkipList::GetValue start. ")
 			defer func() {
 				sl.bpm.PrintBufferUsageState("SkipList::GetValue end. ")
@@ -229,7 +229,7 @@ func (sl *SkipList) GetValue(key *types.Value) uint64 {
 	node.RUnlatch()
 
 	if common.EnableDebug {
-		common.ShPrintf(common.DEBUG_INFO, "SkipList::GetValue: finish. key=%v\n", key.ToIFValue())
+		common.ShPrintf(common.DebugInfo, "SkipList::GetValue: finish. key=%v\n", key.ToIFValue())
 	}
 	if found {
 		return entry.Value
@@ -240,10 +240,10 @@ func (sl *SkipList) GetValue(key *types.Value) uint64 {
 
 func (sl *SkipList) Insert(key *types.Value, value uint64) (err error) {
 	if common.EnableDebug {
-		if common.ActiveLogKindSetting&common.RDB_OP_FUNC_CALL > 0 {
+		if common.ActiveLogKindSetting&common.RDBOpFuncCall > 0 {
 			fmt.Printf("SkipList::Insert: start. key=%v\n", key.ToIFValue())
 		}
-		if common.ActiveLogKindSetting&common.BUFFER_INTERNAL_STATE > 0 {
+		if common.ActiveLogKindSetting&common.BufferInternalState > 0 {
 			sl.bpm.PrintBufferUsageState("SkipList::Insert start. ")
 			defer func() {
 				sl.bpm.PrintBufferUsageState("SkipList::Insert end. ")
@@ -256,7 +256,7 @@ func (sl *SkipList) Insert(key *types.Value, value uint64) (err error) {
 		isSuccess, node, _, corners := sl.FindNode(key, SKIP_LIST_OP_INSERT)
 		if !isSuccess {
 			// when isSuccess == false, all latch and pin is released already
-			common.ShPrintf(common.DEBUG_INFO, "SkipList::Insert: retry. key=%v\n", key.ToIFValue())
+			common.ShPrintf(common.DebugInfo, "SkipList::Insert: retry. key=%v\n", key.ToIFValue())
 			continue
 		}
 		levelWhenNodeSplitOccur := sl.GetNodeLevel()
@@ -267,17 +267,17 @@ func (sl *SkipList) Insert(key *types.Value, value uint64) (err error) {
 	}
 
 	if common.EnableDebug {
-		common.ShPrintf(common.DEBUG_INFO, "SkipList::Insert: finish. key=%v\n", key.ToIFValue())
+		common.ShPrintf(common.DebugInfo, "SkipList::Insert: finish. key=%v\n", key.ToIFValue())
 	}
 	return nil
 }
 
 func (sl *SkipList) Remove(key *types.Value, value uint64) (isDeleted_ bool) {
 	if common.EnableDebug {
-		if common.ActiveLogKindSetting&common.RDB_OP_FUNC_CALL > 0 {
+		if common.ActiveLogKindSetting&common.RDBOpFuncCall > 0 {
 			fmt.Printf("SkipList::Remove: start. key=%v\n", key.ToIFValue())
 		}
-		if common.ActiveLogKindSetting&common.BUFFER_INTERNAL_STATE > 0 {
+		if common.ActiveLogKindSetting&common.BufferInternalState > 0 {
 			sl.bpm.PrintBufferUsageState("SkipList::Remove start. ")
 			defer func() {
 				sl.bpm.PrintBufferUsageState("SkipList::Remove end. ")
@@ -307,17 +307,17 @@ func (sl *SkipList) Remove(key *types.Value, value uint64) (isDeleted_ bool) {
 	}
 
 	if common.EnableDebug {
-		common.ShPrintf(common.DEBUG_INFO, "SkipList::Remove: finish. key=%v\n", key.ToIFValue())
+		common.ShPrintf(common.DebugInfo, "SkipList::Remove: finish. key=%v\n", key.ToIFValue())
 	}
 	return isDeleted
 }
 
 func (sl *SkipList) Iterator(rangeStartKey *types.Value, rangeEndKey *types.Value) *SkipListIterator {
 	if common.EnableDebug {
-		if common.ActiveLogKindSetting&common.RDB_OP_FUNC_CALL > 0 {
+		if common.ActiveLogKindSetting&common.RDBOpFuncCall > 0 {
 			fmt.Printf("SkipList::Remove: start.\n")
 		}
-		if common.ActiveLogKindSetting&common.BUFFER_INTERNAL_STATE > 0 {
+		if common.ActiveLogKindSetting&common.BufferInternalState > 0 {
 			sl.bpm.PrintBufferUsageState("SkipList::Iterator start. ")
 			defer func() {
 				sl.bpm.PrintBufferUsageState("SkipList::Iterator end. ")

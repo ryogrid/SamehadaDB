@@ -1,0 +1,255 @@
+{
+  "project": "SamehadaDB Naming Convention Unification",
+  "branchName": "ralph/camelcase-refactoring",
+  "description": "Unify all naming conventions in SamehadaDB to camelCase (lowerCamelCase / PascalCase) per Effective Go standards. Rename snake_case struct members, function parameters, local variables, and constants across the entire codebase while maintaining zero functional degradation.",
+  "userStories": [
+    {
+      "id": "US-001",
+      "title": "Rename snake_case identifiers in lib/types/ and lib/common/",
+      "description": "As a developer, I want all identifiers in the foundational types and common packages to follow camelCase so that downstream packages can depend on consistent naming.",
+      "acceptanceCriteria": [
+        "All snake_case struct members, function parameters, and local variables in lib/types/ and lib/common/ are renamed to lowerCamelCase (e.g., log_manager → logManager, first_tuple → firstTuple)",
+        "All exported snake_case identifiers (e.g., Log_manager → LogManager) are renamed to PascalCase",
+        "Acronyms follow Effective Go rules: Id → ID, Url → URL, etc. (e.g., tableId → tableID, PageId → PageID)",
+        "snake_case constants are renamed to PascalCase",
+        "All references to renamed identifiers are updated across the ENTIRE codebase (not just these packages)",
+        "Do NOT modify EnableOnMemStorage in lib/common/config.go — it must remain true",
+        "cd lib && go build ./... succeeds",
+        "cd lib && go test ./... -short passes",
+        "cd server && go build -o samehada-db-server main.go succeeds"
+      ],
+      "priority": 1,
+      "passes": false,
+      "notes": "Phase 1 — foundational packages imported by nearly everything. Must be done first. When renaming, search the entire codebase for all references to each renamed identifier."
+    },
+    {
+      "id": "US-002",
+      "title": "Rename snake_case identifiers in lib/errors/ and lib/storage/page/",
+      "description": "As a developer, I want all identifiers in error definitions and page management to follow camelCase.",
+      "acceptanceCriteria": [
+        "All snake_case struct members, function parameters, and local variables in lib/errors/ and lib/storage/page/ are renamed to lowerCamelCase",
+        "All exported snake_case identifiers are renamed to PascalCase",
+        "Acronyms follow Effective Go rules: Id → ID, Url → URL, etc.",
+        "snake_case constants are renamed to PascalCase",
+        "All references to renamed identifiers are updated across the ENTIRE codebase",
+        "cd lib && go build ./... succeeds",
+        "cd lib && go test ./... -short passes",
+        "cd server && go build -o samehada-db-server main.go succeeds"
+      ],
+      "priority": 2,
+      "passes": false,
+      "notes": "Phase 2 — low-level building blocks for storage."
+    },
+    {
+      "id": "US-003",
+      "title": "Rename snake_case identifiers in lib/storage/disk/ and lib/storage/buffer/",
+      "description": "As a developer, I want all identifiers in the disk and buffer layers to follow camelCase.",
+      "acceptanceCriteria": [
+        "All snake_case struct members, function parameters, and local variables in lib/storage/disk/ and lib/storage/buffer/ are renamed to lowerCamelCase (e.g., log_manager → logManager)",
+        "All exported snake_case identifiers are renamed to PascalCase",
+        "Acronyms follow Effective Go rules: Id → ID, Url → URL, etc.",
+        "snake_case constants are renamed to PascalCase",
+        "All references to renamed identifiers are updated across the ENTIRE codebase",
+        "cd lib && go build ./... succeeds",
+        "cd lib && go test ./... -short passes",
+        "cd server && go build -o samehada-db-server main.go succeeds"
+      ],
+      "priority": 3,
+      "passes": false,
+      "notes": "Phase 3 — disk and buffer layers. Example: BufferPoolManager.log_manager → logManager. See PRD Before/After examples."
+    },
+    {
+      "id": "US-004",
+      "title": "Rename snake_case identifiers in lib/storage/table/ and lib/storage/tuple/",
+      "description": "As a developer, I want all identifiers in the table and tuple layers to follow camelCase.",
+      "acceptanceCriteria": [
+        "All snake_case struct members, function parameters, and local variables in lib/storage/table/ and lib/storage/tuple/ are renamed to lowerCamelCase",
+        "All exported snake_case identifiers are renamed to PascalCase",
+        "Acronyms follow Effective Go rules: Id → ID, Url → URL, etc.",
+        "snake_case constants are renamed to PascalCase",
+        "All references to renamed identifiers are updated across the ENTIRE codebase",
+        "cd lib && go build ./... succeeds",
+        "cd lib && go test ./... -short passes",
+        "cd server && go build -o samehada-db-server main.go succeeds"
+      ],
+      "priority": 4,
+      "passes": false,
+      "notes": "Phase 4 — table and tuple layers. Depend on page and buffer."
+    },
+    {
+      "id": "US-005",
+      "title": "Rename snake_case identifiers in lib/storage/access/",
+      "description": "As a developer, I want all identifiers in the access layer (table heap, transactions, lock management) to follow camelCase.",
+      "acceptanceCriteria": [
+        "All snake_case struct members, function parameters, and local variables in lib/storage/access/ are renamed to lowerCamelCase",
+        "All exported snake_case identifiers are renamed to PascalCase",
+        "Acronyms follow Effective Go rules: Id → ID, Url → URL, etc.",
+        "snake_case constants are renamed to PascalCase",
+        "All references to renamed identifiers are updated across the ENTIRE codebase",
+        "cd lib && go build ./... succeeds",
+        "cd lib && go test ./... -short passes",
+        "cd server && go build -o samehada-db-server main.go succeeds"
+      ],
+      "priority": 5,
+      "passes": false,
+      "notes": "Phase 5a — access layer. Split from index due to size. Depends on table, tuple, and buffer."
+    },
+    {
+      "id": "US-006",
+      "title": "Rename snake_case identifiers in lib/storage/index/",
+      "description": "As a developer, I want all identifiers in the index implementations to follow camelCase.",
+      "acceptanceCriteria": [
+        "All snake_case struct members, function parameters, and local variables in lib/storage/index/ are renamed to lowerCamelCase",
+        "All exported snake_case identifiers are renamed to PascalCase",
+        "Acronyms follow Effective Go rules: Id → ID, Url → URL, etc.",
+        "snake_case constants are renamed to PascalCase",
+        "All references to renamed identifiers are updated across the ENTIRE codebase",
+        "cd lib && go build ./... succeeds",
+        "cd lib && go test ./... -short passes",
+        "cd server && go build -o samehada-db-server main.go succeeds"
+      ],
+      "priority": 6,
+      "passes": false,
+      "notes": "Phase 5b — index layer. Split from access due to size."
+    },
+    {
+      "id": "US-007",
+      "title": "Rename snake_case identifiers in lib/catalog/",
+      "description": "As a developer, I want all identifiers in the catalog management package to follow camelCase.",
+      "acceptanceCriteria": [
+        "All snake_case struct members, function parameters, and local variables in lib/catalog/ are renamed to lowerCamelCase",
+        "All exported snake_case identifiers are renamed to PascalCase (e.g., Log_manager → LogManager, Lock_manager → LockManager)",
+        "Acronyms follow Effective Go rules: tableIds → tableIDs, nextTableId → nextTableID, tableIdsMutex → tableIDsMutex",
+        "All references to renamed identifiers are updated across the ENTIRE codebase",
+        "cd lib && go build ./... succeeds",
+        "cd lib && go test ./... -short passes",
+        "cd server && go build -o samehada-db-server main.go succeeds"
+      ],
+      "priority": 7,
+      "passes": false,
+      "notes": "Phase 6 — catalog management. See PRD Before/After example for Catalog struct. Exported members Log_manager and Lock_manager affect external consumers."
+    },
+    {
+      "id": "US-008",
+      "title": "Rename snake_case identifiers in lib/container/ (hash, skip_list, btree)",
+      "description": "As a developer, I want all identifiers in data structure packages to follow camelCase.",
+      "acceptanceCriteria": [
+        "All snake_case struct members, function parameters, and local variables in lib/container/hash/, lib/container/skip_list/, and lib/container/btree/ are renamed to lowerCamelCase",
+        "All exported snake_case identifiers are renamed to PascalCase",
+        "Acronyms follow Effective Go rules: Id → ID, Url → URL, etc.",
+        "snake_case constants are renamed to PascalCase",
+        "All references to renamed identifiers are updated across the ENTIRE codebase",
+        "cd lib && go build ./... succeeds",
+        "cd lib && go test ./... -short passes",
+        "cd server && go build -o samehada-db-server main.go succeeds"
+      ],
+      "priority": 8,
+      "passes": false,
+      "notes": "Phase 7 — data structures. Relatively self-contained."
+    },
+    {
+      "id": "US-009",
+      "title": "Rename snake_case identifiers in lib/recovery/ and lib/concurrency/",
+      "description": "As a developer, I want all identifiers in recovery and concurrency control packages to follow camelCase.",
+      "acceptanceCriteria": [
+        "All snake_case struct members, function parameters, and local variables in lib/recovery/ and lib/concurrency/ are renamed to lowerCamelCase",
+        "All exported snake_case identifiers are renamed to PascalCase",
+        "Acronyms follow Effective Go rules: Id → ID, Url → URL, etc.",
+        "snake_case constants are renamed to PascalCase",
+        "All references to renamed identifiers are updated across the ENTIRE codebase",
+        "cd lib && go build ./... succeeds",
+        "cd lib && go test ./... -short passes",
+        "cd server && go build -o samehada-db-server main.go succeeds"
+      ],
+      "priority": 9,
+      "passes": false,
+      "notes": "Phase 8 — recovery and concurrency control."
+    },
+    {
+      "id": "US-010",
+      "title": "Rename snake_case identifiers in lib/parser/ and lib/planner/",
+      "description": "As a developer, I want all identifiers in the SQL parser and query planner to follow camelCase.",
+      "acceptanceCriteria": [
+        "All snake_case struct members, function parameters, and local variables in lib/parser/ and lib/planner/ are renamed to lowerCamelCase",
+        "All exported snake_case identifiers are renamed to PascalCase",
+        "Acronyms follow Effective Go rules: Id → ID, Url → URL, etc.",
+        "snake_case constants are renamed to PascalCase",
+        "All references to renamed identifiers are updated across the ENTIRE codebase",
+        "cd lib && go build ./... succeeds",
+        "cd lib && go test ./... -short passes",
+        "cd server && go build -o samehada-db-server main.go succeeds"
+      ],
+      "priority": 10,
+      "passes": false,
+      "notes": "Phase 9a — frontend packages. Split from execution due to size."
+    },
+    {
+      "id": "US-011",
+      "title": "Rename snake_case identifiers in lib/execution/",
+      "description": "As a developer, I want all identifiers in the execution engine (executors, expressions, plans) to follow camelCase.",
+      "acceptanceCriteria": [
+        "All snake_case struct members, function parameters, and local variables in lib/execution/ are renamed to lowerCamelCase",
+        "All exported snake_case identifiers are renamed to PascalCase",
+        "Acronyms follow Effective Go rules: Id → ID, Url → URL, etc.",
+        "snake_case constants are renamed to PascalCase",
+        "All references to renamed identifiers are updated across the ENTIRE codebase",
+        "cd lib && go build ./... succeeds",
+        "cd lib && go test ./... -short passes",
+        "cd server && go build -o samehada-db-server main.go succeeds"
+      ],
+      "priority": 11,
+      "passes": false,
+      "notes": "Phase 9b — execution engine. Split from parser/planner due to size."
+    },
+    {
+      "id": "US-012",
+      "title": "Rename snake_case identifiers in lib/samehada/, lib/materialization/, and lib/testing/",
+      "description": "As a developer, I want all identifiers in remaining lib packages to follow camelCase.",
+      "acceptanceCriteria": [
+        "All snake_case struct members, function parameters, and local variables in lib/samehada/, lib/materialization/, and lib/testing/ are renamed to lowerCamelCase",
+        "All exported snake_case identifiers are renamed to PascalCase",
+        "Acronyms follow Effective Go rules: Id → ID, Url → URL, etc.",
+        "snake_case constants are renamed to PascalCase",
+        "All references to renamed identifiers are updated across the ENTIRE codebase",
+        "cd lib && go build ./... succeeds",
+        "cd lib && go test ./... -short passes",
+        "cd server && go build -o samehada-db-server main.go succeeds"
+      ],
+      "priority": 12,
+      "passes": false,
+      "notes": "Phase 10 — miscellaneous lib packages."
+    },
+    {
+      "id": "US-013",
+      "title": "Rename snake_case identifiers in server/",
+      "description": "As a developer, I want all identifiers in the REST API server to follow camelCase.",
+      "acceptanceCriteria": [
+        "All snake_case struct members, function parameters, and local variables in server/ are renamed to lowerCamelCase",
+        "All exported snake_case identifiers are renamed to PascalCase",
+        "Acronyms follow Effective Go rules: Id → ID, Url → URL, etc.",
+        "snake_case constants are renamed to PascalCase",
+        "cd server && go build -o samehada-db-server main.go succeeds",
+        "cd lib && go build ./... succeeds",
+        "cd lib && go test ./... -short passes"
+      ],
+      "priority": 13,
+      "passes": false,
+      "notes": "Phase 11 — final phase. REST API server depends on lib/ packages."
+    },
+    {
+      "id": "US-014",
+      "title": "Final verification — no snake_case remains and all tests pass",
+      "description": "As a developer, I want to confirm the entire refactoring is complete with zero functional regression.",
+      "acceptanceCriteria": [
+        "Search entire codebase and confirm no snake_case variable names, struct members, or parameter names remain in .go files (exclude vendor/, go.mod, go.sum, and string literals)",
+        "cd lib && go test ./... -v -short passes with all tests succeeding",
+        "cd server && go build -o samehada-db-server main.go succeeds",
+        "EnableOnMemStorage in lib/common/config.go is still true",
+        "go vet ./... reports no naming-related warnings"
+      ],
+      "priority": 14,
+      "passes": false,
+      "notes": "Final verification story. No code changes expected — just audit and confirm completeness."
+    }
+  ]
+}

@@ -120,7 +120,7 @@ func GetNotDupWithAccountRandomPrimitivVal[T int32 | float32 | string](keyType t
 
 // used for SkipListIndex and BTreeIndex
 func InnerTestParallelTxnsQueryingIndexUsedColumns[T int32 | float32 | string](t *testing.T, keyType types.TypeID, stride int32, opTimes int32, seedVal int32, initialEntryNum int32, bpoolSize int32, indexKind index_constants.IndexKind, execType int32, threadNum int) {
-	common.ShPrintf(common.DEBUG_INFO, "start of testParallelTxnsQueryingUniqSkipListIndexUsedColumns stride=%d opTimes=%d seedVal=%d initialEntryNum=%d bpoolSize=%d ====================================================\n",
+	common.ShPrintf(common.DebugInfo, "start of testParallelTxnsQueryingUniqSkipListIndexUsedColumns stride=%d opTimes=%d seedVal=%d initialEntryNum=%d bpoolSize=%d ====================================================\n",
 		stride, opTimes, seedVal, initialEntryNum, bpoolSize)
 
 	if !common.EnableOnMemStorage {
@@ -449,7 +449,7 @@ func InnerTestParallelTxnsQueryingIndexUsedColumns[T int32 | float32 | string](t
 			//retry:
 			selPlan := createSpecifiedPointScanPlanNode(accountIds[ii], c, tableMetadata, keyType, indexKind)
 			results := executePlan(c, shi.GetBufferPoolManager(), txn_, selPlan)
-			//common.SH_Assert(txn_.GetState() != access.ABORTED, "txn state should not be ABORTED!")
+			//common.SHAssert(txn_.GetState() != access.ABORTED, "txn state should not be ABORTED!")
 			if txn_.GetState() == access.ABORTED {
 				handleFnishedTxn(c, txnMgr, txn_)
 				return
@@ -457,10 +457,10 @@ func InnerTestParallelTxnsQueryingIndexUsedColumns[T int32 | float32 | string](t
 			//if results == nil || len(results) == 0 {
 			//	goto retry
 			//}
-			common.SH_Assert(results != nil && len(results) == 1, fmt.Sprintf("point scan result count is not 1 (%d)!\n", len(results)))
+			common.SHAssert(results != nil && len(results) == 1, fmt.Sprintf("point scan result count is not 1 (%d)!\n", len(results)))
 			sumOfAllAccountBalanceAfterTest += results[0].GetValue(tableMetadata.Schema(), 1).ToInteger()
 		}
-		common.SH_Assert(sumOfAllAccountBalanceAfterTest == sumOfAllAccountBalanceAtStart, fmt.Sprintf("total account volume is changed! %d != %d\n", sumOfAllAccountBalanceAfterTest, sumOfAllAccountBalanceAtStart))
+		common.SHAssert(sumOfAllAccountBalanceAfterTest == sumOfAllAccountBalanceAtStart, fmt.Sprintf("total account volume is changed! %d != %d\n", sumOfAllAccountBalanceAfterTest, sumOfAllAccountBalanceAtStart))
 		finalizeRandomNoSideEffectTxn(txn_)
 	}
 
@@ -712,7 +712,7 @@ func InnerTestParallelTxnsQueryingIndexUsedColumns[T int32 | float32 | string](t
 					return
 				}
 
-				common.SH_Assert(len(updateRslt1) == 1 && txn_.GetState() != access.ABORTED, fmt.Sprintf("account update fails!(1) txn_.txn_id:%v", txn_.GetTransactionId()))
+				common.SHAssert(len(updateRslt1) == 1 && txn_.GetState() != access.ABORTED, fmt.Sprintf("account update fails!(1) txn_.txn_id:%v", txn_.GetTransactionId()))
 
 				if newBalance2 > sumOfAllAccountBalanceAtStart || newBalance2 < 0 {
 					fmt.Printf("money move op: newBalance2 is broken. %d\n", newBalance2)
@@ -728,7 +728,7 @@ func InnerTestParallelTxnsQueryingIndexUsedColumns[T int32 | float32 | string](t
 					return
 				}
 
-				common.SH_Assert(len(updateRslt2) == 1 && txn_.GetState() != access.ABORTED, fmt.Sprintf("account update fails!(2) txn_.txn_id:%v", txn_.GetTransactionId()))
+				common.SHAssert(len(updateRslt2) == 1 && txn_.GetState() != access.ABORTED, fmt.Sprintf("account update fails!(2) txn_.txn_id:%v", txn_.GetTransactionId()))
 
 				finalizeAccountUpdateTxn(txn_)
 				if execType == PARALLEL_EXEC {
@@ -828,7 +828,7 @@ func InnerTestParallelTxnsQueryingIndexUsedColumns[T int32 | float32 | string](t
 							break
 						}
 
-						common.SH_Assert(results != nil && len(results) == 0, "delete(fail) should be fail!")
+						common.SHAssert(results != nil && len(results) == 0, "delete(fail) should be fail!")
 					}
 
 					finalizeRandomDeleteNotExistingTxn(txn_, delKeyValBase)
@@ -881,8 +881,8 @@ func InnerTestParallelTxnsQueryingIndexUsedColumns[T int32 | float32 | string](t
 						//if results == nil || len(results) != 1 {
 						//	fmt.Println("results is nil or len(results) != 1")
 						//}
-						common.SH_Assert(results != nil && len(results) == 2, "Delete(success) failed!")
-						//common.SH_Assert(results != nil && len(results) == 1, "Delete(success) failed!")
+						common.SHAssert(results != nil && len(results) == 2, "Delete(success) failed!")
+						//common.SHAssert(results != nil && len(results) == 1, "Delete(success) failed!")
 					}
 
 					finalizeRandomDeleteExistingTxn(txn_, delKeyValBase)
@@ -946,8 +946,8 @@ func InnerTestParallelTxnsQueryingIndexUsedColumns[T int32 | float32 | string](t
 					//if results1 == nil || len(results1) != 2 {
 					//	fmt.Println("results1 is nil or len(results1) != 2")
 					//}
-					common.SH_Assert(results1 != nil && len(results1) == 2, "Update failed!")
-					//common.SH_Assert(results1 != nil && len(results1) == 1, "Update failed!")
+					common.SHAssert(results1 != nil && len(results1) == 2, "Update failed!")
+					//common.SHAssert(results1 != nil && len(results1) == 1, "Update failed!")
 
 					updatePlan2 := createBalanceUpdatePlanNode(updateNewKeyVal, newBalanceVal, c, tableMetadata, keyType, indexKind)
 
@@ -958,8 +958,8 @@ func InnerTestParallelTxnsQueryingIndexUsedColumns[T int32 | float32 | string](t
 						break
 					}
 
-					common.SH_Assert(results2 != nil && len(results2) == 2, "Update failed!")
-					//common.SH_Assert(results2 != nil && len(results2) == 1, "Update failed!")
+					common.SHAssert(results2 != nil && len(results2) == 2, "Update failed!")
+					//common.SHAssert(results2 != nil && len(results2) == 1, "Update failed!")
 				}
 
 				finalizeRandomUpdateTxn(txn_, updateKeyValBase, updateNewKeyValBase)
@@ -1001,7 +1001,7 @@ func InnerTestParallelTxnsQueryingIndexUsedColumns[T int32 | float32 | string](t
 							break
 						}
 
-						common.SH_Assert(results != nil && len(results) == 0, "Select(fail) should be fail!")
+						common.SHAssert(results != nil && len(results) == 0, "Select(fail) should be fail!")
 					}
 
 					finalizeSelectNotExistingTxn(txn_, getTgtBase)
@@ -1043,11 +1043,11 @@ func InnerTestParallelTxnsQueryingIndexUsedColumns[T int32 | float32 | string](t
 						//if results == nil || len(results) != 2 {
 						//	fmt.Println("results is nil or len(results) != 2")
 						//}
-						common.SH_Assert(results != nil && len(results) == 2, "Select(success) should not be fail!")
-						//common.SH_Assert(results != nil && len(results) == 1, "Select(success) should not be fail!")
+						common.SHAssert(results != nil && len(results) == 2, "Select(success) should not be fail!")
+						//common.SHAssert(results != nil && len(results) == 1, "Select(success) should not be fail!")
 						//collectVal := types.NewInteger(getInt32ValCorrespondToPassVal(getKeyVal))
 						//gotVal := results[0].GetValue(tableMetadata.Schema(), 1)
-						//common.SH_Assert(gotVal.CompareEquals(collectVal), "value should be "+fmt.Sprintf("%d not %d", collectVal.ToInteger(), gotVal.ToInteger()))
+						//common.SHAssert(gotVal.CompareEquals(collectVal), "value should be "+fmt.Sprintf("%d not %d", collectVal.ToInteger(), gotVal.ToInteger()))
 					}
 
 					finalizeSelectExistingTxn(txn_, getKeyValBase)
@@ -1129,7 +1129,7 @@ func InnerTestParallelTxnsQueryingIndexUsedColumns[T int32 | float32 | string](t
 						curVal := results[jj].GetValue(tableMetadata.Schema(), 0)
 
 						if prevVal != nil {
-							common.SH_Assert(curVal.CompareGreaterThanOrEqual(*prevVal), "values should be "+fmt.Sprintf("%v > %v", curVal.ToIFValue(), (*prevVal).ToIFValue()))
+							common.SHAssert(curVal.CompareGreaterThanOrEqual(*prevVal), "values should be "+fmt.Sprintf("%v > %v", curVal.ToIFValue(), (*prevVal).ToIFValue()))
 						}
 						prevVal = &curVal
 					}
@@ -1152,7 +1152,7 @@ func InnerTestParallelTxnsQueryingIndexUsedColumns[T int32 | float32 | string](t
 	// below, txns are execurted serial. so, txn abort due to CC protocol doesn't occur
 
 	// check txn finished state and print these statistics
-	common.SH_Assert(commitedTxnCnt+abortedTxnCnt == executedTxnCnt, "txn counting has bug(1)!")
+	common.SHAssert(commitedTxnCnt+abortedTxnCnt == executedTxnCnt, "txn counting has bug(1)!")
 	fmt.Printf("commited: %d aborted: %d all: %d (1)\n", commitedTxnCnt, abortedTxnCnt, executedTxnCnt)
 	fmt.Printf("len(insVals):%d len(checkKeyColDupMap):%d\n", len(insVals), len(checkKeyColDupMap))
 
@@ -1172,9 +1172,9 @@ func InnerTestParallelTxnsQueryingIndexUsedColumns[T int32 | float32 | string](t
 	rangeScanPlan1 := createSpecifiedRangeScanPlanNode[T](c, tableMetadata, keyType, 0, nil, nil, indexKind)
 	results1 := executePlan(c, shi.GetBufferPoolManager(), txn_, rangeScanPlan1)
 	resultsLen1 := len(results1)
-	common.SH_Assert(txn_.GetState() != access.ABORTED, "last tuple count check is aborted!(1)")
+	common.SHAssert(txn_.GetState() != access.ABORTED, "last tuple count check is aborted!(1)")
 	for idx, tuple_ := range results1 {
-		common.SH_Assert(tuple_.Size() != 0, fmt.Sprintf("checked tuple's size is zero!!! idx=%d", idx))
+		common.SHAssert(tuple_.Size() != 0, fmt.Sprintf("checked tuple's size is zero!!! idx=%d", idx))
 	}
 
 	// detect tuple which has illegal value at first column (unknown key based value)
@@ -1197,7 +1197,7 @@ func InnerTestParallelTxnsQueryingIndexUsedColumns[T int32 | float32 | string](t
 		}
 	}
 
-	common.SH_Assert(collectNum == int32(resultsLen1), "records count is not matched with assumed num "+fmt.Sprintf("%d != %d", collectNum, resultsLen1))
+	common.SHAssert(collectNum == int32(resultsLen1), "records count is not matched with assumed num "+fmt.Sprintf("%d != %d", collectNum, resultsLen1))
 	finalizeRandomNoSideEffectTxn(txn_)
 
 	if indexKind == index_constants.INDEX_KIND_SKIP_LIST || indexKind == index_constants.INDEX_KIND_BTREE {
@@ -1208,7 +1208,7 @@ func InnerTestParallelTxnsQueryingIndexUsedColumns[T int32 | float32 | string](t
 		for jj := 0; jj < resultsLen1; jj++ {
 			curVal1 := results1[jj].GetValue(tableMetadata.Schema(), 0)
 			if prevVal1 != nil {
-				common.SH_Assert(curVal1.CompareGreaterThanOrEqual(*prevVal1), "values should be "+fmt.Sprintf("%v > %v", curVal1.ToIFValue(), (*prevVal1).ToIFValue()))
+				common.SHAssert(curVal1.CompareGreaterThanOrEqual(*prevVal1), "values should be "+fmt.Sprintf("%v > %v", curVal1.ToIFValue(), (*prevVal1).ToIFValue()))
 			}
 			prevVal1 = &curVal1
 		}
@@ -1224,7 +1224,7 @@ func InnerTestParallelTxnsQueryingIndexUsedColumns[T int32 | float32 | string](t
 	rangeScanPlan2 := createSpecifiedRangeScanPlanNode[T](c, tableMetadata, keyType, 1, nil, nil, indexKind)
 	results2 := executePlan(c, shi.GetBufferPoolManager(), txn_, rangeScanPlan2)
 	resultsLen2 := len(results2)
-	common.SH_Assert(txn_.GetState() != access.ABORTED, "last tuple count check is aborted!(2)")
+	common.SHAssert(txn_.GetState() != access.ABORTED, "last tuple count check is aborted!(2)")
 	fmt.Printf("collectNum:%d == resultsLen2:%d\n", collectNum, resultsLen2)
 	finalizeRandomNoSideEffectTxn(txn_)
 
@@ -1236,7 +1236,7 @@ func InnerTestParallelTxnsQueryingIndexUsedColumns[T int32 | float32 | string](t
 		for jj := 0; jj < resultsLen2; jj++ {
 			curVal2 := results2[jj].GetValue(tableMetadata.Schema(), 1)
 			if prevVal2 != nil {
-				common.SH_Assert(curVal2.CompareGreaterThanOrEqual(*prevVal2), "values should be "+fmt.Sprintf("%v > %v", curVal2.ToIFValue(), (*prevVal2).ToIFValue()))
+				common.SHAssert(curVal2.CompareGreaterThanOrEqual(*prevVal2), "values should be "+fmt.Sprintf("%v > %v", curVal2.ToIFValue(), (*prevVal2).ToIFValue()))
 			}
 			prevVal2 = &curVal2
 		}
@@ -1275,13 +1275,13 @@ func InnerTestParallelTxnsQueryingIndexUsedColumns[T int32 | float32 | string](t
 	fullScanPlan := createSpecifiedRangeScanPlanNode[T](c, tableMetadata, keyType, -1, nil, nil, index_constants.INDEX_KIND_INVALID)
 	results3 := executePlan(c, shi.GetBufferPoolManager(), txn_, fullScanPlan)
 	resultsLen3 := len(results3)
-	common.SH_Assert(txn_.GetState() != access.ABORTED, "last tuple count check is aborted!(3)")
+	common.SHAssert(txn_.GetState() != access.ABORTED, "last tuple count check is aborted!(3)")
 	fmt.Printf("resultsLen3: %d\n", resultsLen3)
 	finalizeRandomNoSideEffectTxn(txn_)
 
 	//----
 
-	common.SH_Assert(commitedTxnCnt+abortedTxnCnt == executedTxnCnt, "txn counting has bug(2)!")
+	common.SHAssert(commitedTxnCnt+abortedTxnCnt == executedTxnCnt, "txn counting has bug(2)!")
 	fmt.Printf("commited: %d aborted: %d all: %d (2)\n", commitedTxnCnt, abortedTxnCnt, executedTxnCnt)
 
 	shi.CloseFilesForTesting()

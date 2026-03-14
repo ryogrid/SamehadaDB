@@ -59,15 +59,15 @@ func (b *BufferPoolManager) FetchPage(pageID types.PageID) *page.Page {
 		}
 
 		pg := b.pages[frameID]
-		if common.EnableDebug && common.ActiveLogKindSetting&common.PIN_COUNT_ASSERT > 0 {
-			common.SH_Assert(pg.PinCount() == 0 || (pg.GetPageId() == 4 || pg.GetPageId() == 5 || pg.GetPageId() == 7 || pg.GetPageId() == 8),
+		if common.EnableDebug && common.ActiveLogKindSetting&common.PinCountAssert > 0 {
+			common.SHAssert(pg.PinCount() == 0 || (pg.GetPageId() == 4 || pg.GetPageId() == 5 || pg.GetPageId() == 7 || pg.GetPageId() == 8),
 				fmt.Sprintf("BPM::FetchPage pin count must be zero here when single thread execution!!!. pageId:%d PinCount:%d", pg.GetPageId(), pg.PinCount()))
 		}
 		pg.IncPinCount()
 		(*b.replacer).Pin(frameID)
 		b.mutex.Unlock()
 		if common.EnableDebug {
-			common.ShPrintf(common.DEBUG_INFO, "FetchPage: PageId=%d PinCount=%d\n", pg.GetPageId(), pg.PinCount())
+			common.ShPrintf(common.DebugInfo, "FetchPage: PageId=%d PinCount=%d\n", pg.GetPageId(), pg.PinCount())
 		}
 		return pg
 	}
@@ -82,14 +82,14 @@ func (b *BufferPoolManager) FetchPage(pageID types.PageID) *page.Page {
 	if !isFromFreeList {
 		// remove page from current frame
 		currentPage := b.pages[*frameID]
-		//common.SH_Assert(currentPage.PinCount() >= 0, "BPM::FetchPage Victim page's pin count is not zero!!!")
+		//common.SHAssert(currentPage.PinCount() >= 0, "BPM::FetchPage Victim page's pin count is not zero!!!")
 		if currentPage != nil {
 			if currentPage.PinCount() != 0 {
 				fmt.Printf("BPM::FetchPage WLatch:%v RLatch:%v\n", currentPage.WLatchMap, currentPage.RLatchMap)
 				panic(fmt.Sprintf("BPM::FetchPage pin count of page to be cache out must be zero!!!. pageId:%d PinCount:%d", currentPage.GetPageId(), currentPage.PinCount()))
 			}
 
-			if common.EnableDebug && common.ActiveLogKindSetting&common.CACHE_OUT_IN_INFO > 0 {
+			if common.EnableDebug && common.ActiveLogKindSetting&common.CacheOutInInfo > 0 {
 				fmt.Printf("BPM::FetchPage Cache out occurs! pageId:%d requested pageId:%d\n", currentPage.GetPageId(), pageID)
 			}
 			if currentPage.IsDeallocated() {
@@ -102,7 +102,7 @@ func (b *BufferPoolManager) FetchPage(pageID types.PageID) *page.Page {
 				currentPage.WUnlatch()
 			}
 			if common.EnableDebug {
-				common.ShPrintf(common.DEBUG_INFO, "FetchPage: page=%d is removed from pageTable.\n", currentPage.GetPageId())
+				common.ShPrintf(common.DebugInfo, "FetchPage: page=%d is removed from pageTable.\n", currentPage.GetPageId())
 			}
 			delete(b.pageTable, currentPage.GetPageId())
 			ReturnBuffer(currentPage)
@@ -112,7 +112,7 @@ func (b *BufferPoolManager) FetchPage(pageID types.PageID) *page.Page {
 	//data := make([]byte, common.PageSize)
 	//data := directio.AlignedBlock(common.PageSize)
 	data := GetBuffer()
-	if common.EnableDebug && common.ActiveLogKindSetting&common.CACHE_OUT_IN_INFO > 0 {
+	if common.EnableDebug && common.ActiveLogKindSetting&common.CacheOutInInfo > 0 {
 		fmt.Printf("BPM::FetchPage Cache in occurs! requested pageId:%d\n", pageID)
 	}
 	err := b.diskManager.ReadPage(pageID, data)
@@ -129,8 +129,8 @@ func (b *BufferPoolManager) FetchPage(pageID types.PageID) *page.Page {
 	pageData = (*[common.PageSize]byte)(data)
 	pg := page.New(pageID, false, pageData)
 
-	if common.EnableDebug && common.ActiveLogKindSetting&common.PIN_COUNT_ASSERT > 0 {
-		common.SH_Assert(pg.PinCount() == 1,
+	if common.EnableDebug && common.ActiveLogKindSetting&common.PinCountAssert > 0 {
+		common.SHAssert(pg.PinCount() == 1,
 			fmt.Sprintf("BPM::FetchPage pin count must be one here when single thread execution!!!. pageId:%d", pg.GetPageId()))
 	}
 
@@ -139,7 +139,7 @@ func (b *BufferPoolManager) FetchPage(pageID types.PageID) *page.Page {
 	b.mutex.Unlock()
 
 	if common.EnableDebug {
-		common.ShPrintf(common.DEBUG_INFO, "FetchPage: PageId=%d PinCount=%d\n", pg.GetPageId(), pg.PinCount())
+		common.ShPrintf(common.DebugInfo, "FetchPage: PageId=%d PinCount=%d\n", pg.GetPageId(), pg.PinCount())
 	}
 	return pg
 }
@@ -159,8 +159,8 @@ func (b *BufferPoolManager) UnpinPage(pageID types.PageID, isDirty bool) error {
 		pg := b.pages[frameID]
 		pg.DecPinCount()
 
-		if common.EnableDebug && common.ActiveLogKindSetting&common.PIN_COUNT_ASSERT > 0 {
-			common.SH_Assert(pg.PinCount() == 0 || (pg.GetPageId() == 4 || pg.GetPageId() == 5 || pg.GetPageId() == 7 || pg.GetPageId() == 8),
+		if common.EnableDebug && common.ActiveLogKindSetting&common.PinCountAssert > 0 {
+			common.SHAssert(pg.PinCount() == 0 || (pg.GetPageId() == 4 || pg.GetPageId() == 5 || pg.GetPageId() == 7 || pg.GetPageId() == 8),
 				fmt.Sprintf("BPM::UnpinPage pin count must be zero here when single thread execution!!!. pageId:%d PinCount:%d", pg.GetPageId(), pg.PinCount()))
 		}
 
@@ -180,14 +180,14 @@ func (b *BufferPoolManager) UnpinPage(pageID types.PageID, isDirty bool) error {
 		b.mutex.Unlock()
 
 		if common.EnableDebug {
-			common.ShPrintf(common.DEBUG_INFO, "UnpinPage: PageId=%d PinCount=%d\n", pg.GetPageId(), pg.PinCount())
+			common.ShPrintf(common.DebugInfo, "UnpinPage: PageId=%d PinCount=%d\n", pg.GetPageId(), pg.PinCount())
 		}
 		return nil
 	}
 	b.mutex.Unlock()
 
 	if common.EnableDebug {
-		common.ShPrintf(common.DEBUG_INFO, "UnpinPage: could not find page! PageId=%d\n", pageID)
+		common.ShPrintf(common.DebugInfo, "UnpinPage: could not find page! PageId=%d\n", pageID)
 		panic("could not find page")
 	}
 	panic("could not find page")
@@ -243,7 +243,7 @@ func (b *BufferPoolManager) NewPage() *page.Page {
 		// remove page from current frame
 		currentPage := b.pages[*frameID]
 		if currentPage != nil {
-			if common.EnableDebug && common.ActiveLogKindSetting&common.CACHE_OUT_IN_INFO > 0 {
+			if common.EnableDebug && common.ActiveLogKindSetting&common.CacheOutInInfo > 0 {
 				fmt.Println("BPM::NewPage Cache out occurs!")
 			}
 			if currentPage.PinCount() != 0 {
@@ -263,7 +263,7 @@ func (b *BufferPoolManager) NewPage() *page.Page {
 			}
 
 			if common.EnableDebug {
-				common.ShPrintf(common.DEBUG_INFO, "NewPage: page=%d is removed from pageTable.\n", currentPage.GetPageId())
+				common.ShPrintf(common.DebugInfo, "NewPage: page=%d is removed from pageTable.\n", currentPage.GetPageId())
 			}
 			delete(b.pageTable, currentPage.GetPageId())
 			ReturnBuffer(currentPage)
@@ -292,7 +292,7 @@ func (b *BufferPoolManager) NewPage() *page.Page {
 	b.mutex.Unlock()
 
 	if common.EnableDebug {
-		common.ShPrintf(common.DEBUG_INFO, "NewPage: returned pageID: %d\n", pageID)
+		common.ShPrintf(common.DebugInfo, "NewPage: returned pageID: %d\n", pageID)
 	}
 
 	return pg

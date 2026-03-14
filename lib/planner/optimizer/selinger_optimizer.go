@@ -415,7 +415,7 @@ func (so *SelingerOptimizer) findBestJoin(optimalPlans map[string]CostAndPlan) p
 				bestJoinPlan, _ := so.findBestJoinInner(so.qi.WhereExpression_.GetDeepCopy(), baseTableCP.plan, joinTableCP.plan, so.c)
 
 				joinedTables := baseTableFrom.Union(joinTableFrom)
-				common.SH_Assert(1 < joinedTables.Cardinality(), "joinedTables.Cardinality() is illegal!")
+				common.SHAssert(1 < joinedTables.Cardinality(), "joinedTables.Cardinality() is illegal!")
 				cost := bestJoinPlan.AccessRowCount(so.c)
 
 				if existedPlan, ok := optimalPlans[samehada_util.StrSetToString(joinedTables)]; !ok {

@@ -165,14 +165,14 @@ func (txn *Transaction) GetState() TransactionState { return txn.state }
 * @param state new state
  */
 func (txn *Transaction) SetState(state TransactionState) {
-	if common.EnableDebug && common.ActiveLogKindSetting&common.RDB_OP_FUNC_CALL > 0 {
+	if common.EnableDebug && common.ActiveLogKindSetting&common.RDBOpFuncCall > 0 {
 		if state == ABORTED {
 			fmt.Printf("Transaction::SetState called. txn.txn_id:%d dbgInfo:%s state:ABORTED\n", txn.txn_id, txn.dbgInfo)
 
 		}
 	}
 
-	if common.ActiveLogKindSetting&common.NOT_ABORABLE_TXN_FEATURE > 0 {
+	if common.ActiveLogKindSetting&common.NotAborableTxnFeature > 0 {
 		if state == ABORTED && txn.abortable == false {
 			fmt.Printf("debuginfo: %s\n", txn.dbgInfo)
 			for _, wr := range txn.GetWriteSet() {
