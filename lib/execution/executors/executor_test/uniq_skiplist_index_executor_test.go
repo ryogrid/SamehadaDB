@@ -1177,6 +1177,15 @@ func testParallelTxnsQueryingUniqSkipListIndexUsedColumns[T int32 | float32 | st
 				}
 
 				insKeyValBase := getUniqRandomPrimitivVal(keyType, checkKeyColDupMap, checkKeyColDupMapMutex, tmpMax)
+				// avoid reusing a base key that was previously deleted
+				// (short Varchar keys like single-char strings can collide)
+				deletedValsForDeleteMutex.RLock()
+				_, wasDeleted := deletedValsForDelete[insKeyValBase]
+				deletedValsForDeleteMutex.RUnlock()
+				if wasDeleted {
+					checkKeyColDupMapDeleteWithLock(insKeyValBase)
+					goto retry2
+				}
 				balanceVal := getInt32ValCorrespondToPassVal(insKeyValBase)
 				checkBalanceColDupMapMutex.RLock()
 				if _, exist := checkBalanceColDupMap[balanceVal]; exist {
@@ -1358,6 +1367,15 @@ func testParallelTxnsQueryingUniqSkipListIndexUsedColumns[T int32 | float32 | st
 					tmpMax = math.MaxInt32 / stride
 				}
 				updateNewKeyValBase := getUniqRandomPrimitivVal(keyType, checkKeyColDupMap, checkKeyColDupMapMutex, &tmpMax)
+
+				// avoid reusing a base key that was previously deleted
+				deletedValsForDeleteMutex.RLock()
+				_, wasDeletedUpd := deletedValsForDelete[updateNewKeyValBase]
+				deletedValsForDeleteMutex.RUnlock()
+				if wasDeletedUpd {
+					checkKeyColDupMapDeleteWithLock(updateNewKeyValBase)
+					goto retry3
+				}
 
 				newBalanceVal := getInt32ValCorrespondToPassVal(updateNewKeyValBase)
 				checkBalanceColDupMapMutex.RLock()
