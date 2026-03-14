@@ -224,7 +224,7 @@ func (ts *TableStatistics) Update(target *TableMetadata, txn *access.Transaction
 }
 
 func isBinaryExp(exp expression.Expression) bool {
-	return exp.GetType() == expression.EXPRESSION_TYPE_COMPARISON || exp.GetType() == expression.EXPRESSION_TYPE_LOGICAL_OP
+	return exp.GetType() == expression.ExpressionTypeComparison || exp.GetType() == expression.ExpressionTypeLogicalOp
 }
 
 func guardNotZeroReturn(val float64) float64 {
@@ -242,8 +242,8 @@ func (ts *TableStatistics) ReductionFactor(sc *schema.Schema, predicate expressi
 	if isBinaryExp(predicate) {
 		boCmp, okCmp := predicate.(*expression.Comparison)
 		if okCmp && boCmp.GetComparisonType() == expression.Equal {
-			if boCmp.GetChildAt(0).GetType() == expression.EXPRESSION_TYPE_COLUMN_VALUE &&
-				boCmp.GetChildAt(1).GetType() == expression.EXPRESSION_TYPE_COLUMN_VALUE {
+			if boCmp.GetChildAt(0).GetType() == expression.ExpressionTypeColumnValue &&
+				boCmp.GetChildAt(1).GetType() == expression.ExpressionTypeColumnValue {
 				lcv := boCmp.GetChildAt(0).(*expression.ColumnValue)
 				rcv := boCmp.GetChildAt(1).(*expression.ColumnValue)
 				colIndexLeft := lcv.GetColIndex()
@@ -252,20 +252,20 @@ func (ts *TableStatistics) ReductionFactor(sc *schema.Schema, predicate expressi
 				samehada_util.SHAssert(colIndexRight >= 0 && int(colIndexRight) < len(ts.colStats), "invalid column index (Right)")
 				return guardNotZeroReturn(math.Min(float64(ts.colStats[colIndexLeft].Distinct()), float64(ts.colStats[colIndexRight].Distinct())))
 			}
-			if boCmp.GetChildAt(0).GetType() == expression.EXPRESSION_TYPE_COLUMN_VALUE {
+			if boCmp.GetChildAt(0).GetType() == expression.ExpressionTypeColumnValue {
 				lcv := boCmp.GetChildAt(0).(*expression.ColumnValue)
 				colIndexLeft := lcv.GetColIndex()
 				samehada_util.SHAssert(colIndexLeft >= 0 && int(colIndexLeft) < len(ts.colStats), "invalid column index (Left)")
 				return guardNotZeroReturn(float64(ts.colStats[colIndexLeft].Distinct()))
 			}
-			if boCmp.GetChildAt(1).GetType() == expression.EXPRESSION_TYPE_COLUMN_VALUE {
+			if boCmp.GetChildAt(1).GetType() == expression.ExpressionTypeColumnValue {
 				rcv := boCmp.GetChildAt(1).(*expression.ColumnValue)
 				colIndexRight := rcv.GetColIndex()
 				samehada_util.SHAssert(colIndexRight >= 0 && int(colIndexRight) < len(ts.colStats), "invalid column index (Right)")
 				return guardNotZeroReturn(float64(ts.colStats[colIndexRight].Distinct()))
 			}
-			if boCmp.GetChildAt(0).GetType() == expression.EXPRESSION_TYPE_CONSTANT_VALUE &&
-				boCmp.GetChildAt(1).GetType() == expression.EXPRESSION_TYPE_CONSTANT_VALUE {
+			if boCmp.GetChildAt(0).GetType() == expression.ExpressionTypeConstantValue &&
+				boCmp.GetChildAt(1).GetType() == expression.ExpressionTypeConstantValue {
 				left := boCmp.GetChildAt(0).(*expression.ConstantValue).GetValue()
 				right := boCmp.GetChildAt(1).(*expression.ConstantValue).GetValue()
 				if left.CompareEquals(*right) {

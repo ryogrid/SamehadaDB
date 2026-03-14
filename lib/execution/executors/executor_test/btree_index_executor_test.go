@@ -37,30 +37,30 @@ func testKeyDuplicateInsertDeleteWithBTreeIndex[T float32 | int32 | string](t *t
 
 	columnA := column.NewColumn("account_id", keyType, true, index_constants.IndexKindBtree, types.PageID(-1), nil)
 	columnB := column.NewColumn("balance", types.Integer, true, index_constants.IndexKindBtree, types.PageID(-1), nil)
-	schema_ := schema.NewSchema([]*column.Column{columnA, columnB})
-	tableMetadata := c.CreateTable("test_1", schema_, txn)
+	sch := schema.NewSchema([]*column.Column{columnA, columnB})
+	tableMetadata := c.CreateTable("test_1", sch, txn)
 
 	txnMgr.Commit(c, txn)
 
 	txn = txnMgr.Begin(nil)
 
-	var accountId interface{}
+	var accountID interface{}
 	switch keyType {
 	case types.Integer:
-		accountId = int32(10)
+		accountID = int32(10)
 	case types.Float:
-		accountId = float32(-5.2)
+		accountID = float32(-5.2)
 	case types.Varchar:
-		accountId = "duplicateTest"
+		accountID = "duplicateTest"
 	default:
 		panic("unsuppoted value type")
 	}
 
-	insPlan1 := createSpecifiedValInsertPlanNode(accountId.(T), int32(100), c, tableMetadata, keyType)
+	insPlan1 := createSpecifiedValInsertPlanNode(accountID.(T), int32(100), c, tableMetadata, keyType)
 	result := executePlan(c, shi.GetBufferPoolManager(), txn, insPlan1)
-	insPlan2 := createSpecifiedValInsertPlanNode(accountId.(T), int32(101), c, tableMetadata, keyType)
+	insPlan2 := createSpecifiedValInsertPlanNode(accountID.(T), int32(101), c, tableMetadata, keyType)
 	result = executePlan(c, shi.GetBufferPoolManager(), txn, insPlan2)
-	insPlan3 := createSpecifiedValInsertPlanNode(accountId.(T), int32(102), c, tableMetadata, keyType)
+	insPlan3 := createSpecifiedValInsertPlanNode(accountID.(T), int32(102), c, tableMetadata, keyType)
 	result = executePlan(c, shi.GetBufferPoolManager(), txn, insPlan3)
 
 	txnMgr.Commit(c, txn)
@@ -73,7 +73,7 @@ func testKeyDuplicateInsertDeleteWithBTreeIndex[T float32 | int32 | string](t *t
 	//	fmt.Println(foundVal.GetValue(tableMetadata.Schema(), 0).ToString())
 	//}
 
-	scanP := createSpecifiedPointScanPlanNode(accountId.(T), c, tableMetadata, keyType, index_constants.IndexKindBtree)
+	scanP := createSpecifiedPointScanPlanNode(accountID.(T), c, tableMetadata, keyType, index_constants.IndexKindBtree)
 	result = executePlan(c, shi.GetBufferPoolManager(), txn, scanP)
 	testingpkg.Assert(t, len(result) == 3, "duplicated key point scan got illegal results.")
 	rid1 := result[0].GetRID()
@@ -94,19 +94,19 @@ func testKeyDuplicateInsertDeleteWithBTreeIndex[T float32 | int32 | string](t *t
 
 	indexCol1.DeleteEntry(result[0], *rid1, txn)
 	indexCol2.DeleteEntry(result[0], *rid1, txn)
-	scanP = createSpecifiedPointScanPlanNode(accountId.(T), c, tableMetadata, keyType, index_constants.IndexKindBtree)
+	scanP = createSpecifiedPointScanPlanNode(accountID.(T), c, tableMetadata, keyType, index_constants.IndexKindBtree)
 	result = executePlan(c, shi.GetBufferPoolManager(), txn, scanP)
 	testingpkg.Assert(t, len(result) == 2, "duplicated key point scan got illegal results.")
 
 	indexCol1.DeleteEntry(result[0], *rid2, txn)
 	indexCol2.DeleteEntry(result[0], *rid2, txn)
-	scanP = createSpecifiedPointScanPlanNode(accountId.(T), c, tableMetadata, keyType, index_constants.IndexKindBtree)
+	scanP = createSpecifiedPointScanPlanNode(accountID.(T), c, tableMetadata, keyType, index_constants.IndexKindBtree)
 	result = executePlan(c, shi.GetBufferPoolManager(), txn, scanP)
 	testingpkg.Assert(t, len(result) == 1, "duplicated key point scan got illegal results.")
 
 	indexCol1.DeleteEntry(result[0], *rid3, txn)
 	indexCol2.DeleteEntry(result[0], *rid3, txn)
-	scanP = createSpecifiedPointScanPlanNode(accountId.(T), c, tableMetadata, keyType, index_constants.IndexKindBtree)
+	scanP = createSpecifiedPointScanPlanNode(accountID.(T), c, tableMetadata, keyType, index_constants.IndexKindBtree)
 	result = executePlan(c, shi.GetBufferPoolManager(), txn, scanP)
 	testingpkg.Assert(t, len(result) == 0, "duplicated key point scan got illegal results.")
 
@@ -209,16 +209,16 @@ func TestRecounstructionOfBtreeIndex(t *testing.T) {
 	testingpkg.Assert(t, shi.GetLogManager().IsEnabledLogging(), "")
 	fmt.Println("System logging is active.")
 
-	txn_mgr := shi.GetTransactionManager()
+	txnMgr := shi.GetTransactionManager()
 	bpm := shi.GetBufferPoolManager()
-	txn := txn_mgr.Begin(nil)
+	txn := txnMgr.Begin(nil)
 
 	columnA := column.NewColumn("a", types.Integer, true, index_constants.IndexKindBtree, types.PageID(-1), nil)
 	columnB := column.NewColumn("b", types.Integer, true, index_constants.IndexKindBtree, types.PageID(-1), nil)
 	columnC := column.NewColumn("c", types.Varchar, true, index_constants.IndexKindBtree, types.PageID(-1), nil)
-	schema_ := schema.NewSchema([]*column.Column{columnA, columnB, columnC})
+	sch := schema.NewSchema([]*column.Column{columnA, columnB, columnC})
 
-	tableMetadata := c.CreateTable("test_1", schema_, txn)
+	tableMetadata := c.CreateTable("test_1", sch, txn)
 
 	row1 := make([]types.Value, 0)
 	row1 = append(row1, types.NewInteger(20))
@@ -252,7 +252,7 @@ func TestRecounstructionOfBtreeIndex(t *testing.T) {
 	executorContext := executors.NewExecutorContext(c, bpm, txn)
 	executionEngine.Execute(insertPlanNode, executorContext)
 
-	txn_mgr.Commit(nil, txn)
+	txnMgr.Commit(nil, txn)
 
 	txn = shi.GetTransactionManager().Begin(nil)
 

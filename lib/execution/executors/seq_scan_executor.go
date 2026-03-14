@@ -70,7 +70,7 @@ func (e *SeqScanExecutor) selects(tuple *tuple.Tuple, predicate expression.Expre
 }
 
 // project applies the projection operator defined by the output schema
-func (e *SeqScanExecutor) projects(tuple_ *tuple.Tuple) *tuple.Tuple {
+func (e *SeqScanExecutor) projects(tpl *tuple.Tuple) *tuple.Tuple {
 	outputSchema := e.plan.OutputSchema()
 
 	values := []types.Value{}
@@ -78,7 +78,7 @@ func (e *SeqScanExecutor) projects(tuple_ *tuple.Tuple) *tuple.Tuple {
 		colName := outputSchema.GetColumns()[i].GetColumnName()
 
 		colIndex := e.tableMetadata.Schema().GetColIndex(colName)
-		values = append(values, tuple_.GetValue(e.tableMetadata.Schema(), colIndex))
+		values = append(values, tpl.GetValue(e.tableMetadata.Schema(), colIndex))
 	}
 
 	return tuple.NewTupleFromSchema(values, outputSchema)

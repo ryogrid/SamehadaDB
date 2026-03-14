@@ -13,7 +13,7 @@ type IndexJoinPlanNode struct {
 	onPredicate    expression.Expression
 	rigthTableOID  uint32
 	rightOutSchema *schema.Schema
-	stats_         *catalog.TableStatistics
+	stats         *catalog.TableStatistics
 }
 
 func GenIndexJoinStats(c *catalog.Catalog, leftPlan Plan, rightTableOID uint32) *catalog.TableStatistics {
@@ -76,7 +76,7 @@ func (p *IndexJoinPlanNode) GetDebugStr() string {
 }
 
 func (p *IndexJoinPlanNode) GetStatistics() *catalog.TableStatistics {
-	return p.stats_
+	return p.stats
 }
 
 func (p *IndexJoinPlanNode) EmitRowCount(c *catalog.Catalog) uint64 {

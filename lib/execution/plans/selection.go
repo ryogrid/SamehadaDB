@@ -11,7 +11,7 @@ import (
 type SelectionPlanNode struct {
 	*AbstractPlanNode
 	predicate expression.Expression
-	stats_    *catalog.TableStatistics
+	stats    *catalog.TableStatistics
 }
 
 func NewSelectionPlanNode(child Plan, predicate expression.Expression) Plan {
@@ -46,5 +46,5 @@ func (p *SelectionPlanNode) GetDebugStr() string {
 }
 
 func (p *SelectionPlanNode) GetStatistics() *catalog.TableStatistics {
-	return p.stats_
+	return p.stats
 }

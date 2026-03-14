@@ -8,7 +8,7 @@ import (
 
 type ProjectionPlanNode struct {
 	*AbstractPlanNode
-	stats_ *catalog.TableStatistics
+	stats *catalog.TableStatistics
 }
 
 func NewProjectionPlanNode(child Plan, projectColumns *schema.Schema) Plan {
@@ -40,5 +40,5 @@ func (p *ProjectionPlanNode) GetDebugStr() string {
 }
 
 func (p *ProjectionPlanNode) GetStatistics() *catalog.TableStatistics {
-	return p.stats_
+	return p.stats
 }

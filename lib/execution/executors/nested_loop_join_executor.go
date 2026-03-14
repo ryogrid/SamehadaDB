@@ -18,13 +18,13 @@ type NestedLoopJoinExecutor struct {
 	curIdx    int32
 }
 
-func NewNestedLoopJoinExecutor(exec_ctx *ExecutorContext, plan *plans.NestedLoopJoinPlanNode, left Executor,
+func NewNestedLoopJoinExecutor(execCtx *ExecutorContext, plan *plans.NestedLoopJoinPlanNode, left Executor,
 	right Executor) *NestedLoopJoinExecutor {
 	ret := new(NestedLoopJoinExecutor)
 	ret.plan = plan
 	ret.left = left
 	ret.right = right
-	ret.context = exec_ctx
+	ret.context = execCtx
 	ret.retTuples = make([]*tuple.Tuple, 0)
 	return ret
 }
@@ -65,15 +65,15 @@ func (e *NestedLoopJoinExecutor) Next() (*tuple.Tuple, Done, error) {
 	return ret, false, nil
 }
 
-func (e *NestedLoopJoinExecutor) MakeOutputTuple(left_tuple *tuple.Tuple, right_tuple *tuple.Tuple) *tuple.Tuple {
+func (e *NestedLoopJoinExecutor) MakeOutputTuple(leftTuple *tuple.Tuple, rightTuple *tuple.Tuple) *tuple.Tuple {
 	outputColumnCnt := int(e.GetOutputSchema().GetColumnCount())
 	leftColumnCnt := int(e.left.GetOutputSchema().GetColumnCount())
 	values := make([]types.Value, outputColumnCnt)
 	for ii := 0; ii < outputColumnCnt; ii++ {
 		if ii < leftColumnCnt {
-			values[ii] = left_tuple.GetValue(e.left.GetOutputSchema(), uint32(ii))
+			values[ii] = leftTuple.GetValue(e.left.GetOutputSchema(), uint32(ii))
 		} else {
-			values[ii] = right_tuple.GetValue(e.right.GetOutputSchema(), uint32(ii-leftColumnCnt))
+			values[ii] = rightTuple.GetValue(e.right.GetOutputSchema(), uint32(ii-leftColumnCnt))
 		}
 	}
 	return tuple.NewTupleFromSchema(values, e.GetOutputSchema())

@@ -46,14 +46,14 @@ func (e *ProjectionExecutor) GetOutputSchema() *schema.Schema {
 }
 
 // project applies the projection operator defined by the output schema
-func (e *ProjectionExecutor) projects(tuple_ *tuple.Tuple) *tuple.Tuple {
+func (e *ProjectionExecutor) projects(tpl *tuple.Tuple) *tuple.Tuple {
 	srcOutSchema := e.plan.GetChildAt(0).OutputSchema()
 	projectSchema := e.plan.OutputSchema()
 
 	values := []types.Value{}
 	for i := uint32(0); i < projectSchema.GetColumnCount(); i++ {
 		colIndex := srcOutSchema.GetColIndex(projectSchema.GetColumns()[i].GetColumnName())
-		values = append(values, tuple_.GetValue(srcOutSchema, colIndex))
+		values = append(values, tpl.GetValue(srcOutSchema, colIndex))
 	}
 
 	return tuple.NewTupleFromSchema(values, projectSchema)

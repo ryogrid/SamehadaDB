@@ -22,7 +22,7 @@ type RangeScanWithIndexPlanNode struct {
 	colIdx     int32 // column idx which has index to be used
 	startRange *types.Value
 	endRange   *types.Value
-	stats_     *catalog.TableStatistics
+	stats     *catalog.TableStatistics
 }
 
 func NewRangeScanWithIndexPlanNode(c *catalog.Catalog, schema *schema.Schema, tableOID uint32, colIdx int32, predicate expression.Expression, startRange *types.Value, endRange *types.Value) Plan {
@@ -31,7 +31,7 @@ func NewRangeScanWithIndexPlanNode(c *catalog.Catalog, schema *schema.Schema, ta
 	if startRange != nil && endRange != nil {
 		// when caller is optimizer, both startRange and endRange are not nil
 		// when not optimizer, this call is not needed
-		ret.stats_ = ret.stats_.TransformBy(colIdx, startRange, endRange)
+		ret.stats = ret.stats.TransformBy(colIdx, startRange, endRange)
 	}
 	return ret
 }
@@ -77,5 +77,5 @@ func (p *RangeScanWithIndexPlanNode) GetDebugStr() string {
 }
 
 func (p *RangeScanWithIndexPlanNode) GetStatistics() *catalog.TableStatistics {
-	return p.stats_
+	return p.stats
 }

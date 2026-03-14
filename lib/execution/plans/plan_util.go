@@ -8,18 +8,18 @@ import (
 	"github.com/ryogrid/SamehadaDB/lib/types"
 )
 
-func makeMergedOutputSchema(left_schema *schema.Schema, right_schema *schema.Schema) *schema.Schema {
+func makeMergedOutputSchema(leftSchema *schema.Schema, rightSchema *schema.Schema) *schema.Schema {
 	var ret *schema.Schema
 	columns := make([]*column.Column, 0)
-	for _, col := range left_schema.GetColumns() {
-		col_ := *col
-		col_.SetIsLeft(true)
-		columns = append(columns, &col_)
+	for _, col := range leftSchema.GetColumns() {
+		colCopy := *col
+		colCopy.SetIsLeft(true)
+		columns = append(columns, &colCopy)
 	}
-	for _, col := range right_schema.GetColumns() {
-		col_ := *col
-		col_.SetIsLeft(false)
-		columns = append(columns, &col_)
+	for _, col := range rightSchema.GetColumns() {
+		colCopy := *col
+		colCopy.SetIsLeft(false)
+		columns = append(columns, &colCopy)
 	}
 	ret = schema.NewSchema(columns)
 	return ret

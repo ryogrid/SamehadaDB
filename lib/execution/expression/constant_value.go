@@ -25,23 +25,23 @@ func (c *ConstantValue) Evaluate(tuple *tuple.Tuple, schema *schema.Schema) type
 	return c.value
 }
 
-func (c *ConstantValue) EvaluateJoin(left_tuple *tuple.Tuple, left_schema *schema.Schema, right_tuple *tuple.Tuple, right_schema *schema.Schema) types.Value {
+func (c *ConstantValue) EvaluateJoin(leftTuple *tuple.Tuple, leftSchema *schema.Schema, rightTuple *tuple.Tuple, rightSchema *schema.Schema) types.Value {
 	return c.value
 }
 
-func (c *ConstantValue) EvaluateAggregate(group_bys []*types.Value, aggregates []*types.Value) types.Value {
+func (c *ConstantValue) EvaluateAggregate(groupBys []*types.Value, aggregates []*types.Value) types.Value {
 	return c.value
 }
 
-func (c *ConstantValue) GetChildAt(child_idx uint32) Expression {
-	if int(child_idx) >= len(c.children) {
+func (c *ConstantValue) GetChildAt(childIdx uint32) Expression {
+	if int(childIdx) >= len(c.children) {
 		return nil
 	}
-	return c.children[child_idx]
+	return c.children[childIdx]
 }
 
 func (c *ConstantValue) GetType() ExpressionType {
-	return EXPRESSION_TYPE_CONSTANT_VALUE
+	return ExpressionTypeConstantValue
 }
 
 func (c *ConstantValue) GetValue() *types.Value {

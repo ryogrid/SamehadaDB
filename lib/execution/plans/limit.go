@@ -11,7 +11,7 @@ type LimitPlanNode struct {
 	*AbstractPlanNode
 	limit  uint32
 	offset uint32
-	stats_ *catalog.TableStatistics
+	stats *catalog.TableStatistics
 }
 
 func NewLimitPlanNode(child Plan, limit uint32, offset uint32) Plan {
@@ -48,5 +48,5 @@ func (p *LimitPlanNode) GetDebugStr() string {
 }
 
 func (p *LimitPlanNode) GetStatistics() *catalog.TableStatistics {
-	return p.stats_
+	return p.stats
 }

@@ -23,8 +23,8 @@ const (
 type LogicalOp struct {
 	*AbstractExpression
 	logicalOpType  LogicalOpType
-	children_left  Expression // referenced as children[0] after struct init...
-	children_right Expression // referenced as children[1] after struct init...
+	childrenLeft  Expression // referenced as children[0] after struct init...
+	childrenRight Expression // referenced as children[1] after struct init...
 }
 
 // if logicalOpType is "NOT", right value must be nil
@@ -65,37 +65,37 @@ func (c *LogicalOp) GetLogicalOpType() LogicalOpType {
 	return c.logicalOpType
 }
 
-func (c *LogicalOp) EvaluateJoin(left_tuple *tuple.Tuple, left_schema *schema.Schema, right_tuple *tuple.Tuple, right_schema *schema.Schema) types.Value {
+func (c *LogicalOp) EvaluateJoin(leftTuple *tuple.Tuple, leftSchema *schema.Schema, rightTuple *tuple.Tuple, rightSchema *schema.Schema) types.Value {
 	if c.logicalOpType == NOT {
-		lhs := c.GetChildAt(0).EvaluateJoin(left_tuple, left_schema, right_tuple, left_schema)
+		lhs := c.GetChildAt(0).EvaluateJoin(leftTuple, leftSchema, rightTuple, leftSchema)
 		return types.NewBoolean(!lhs.ToBoolean())
 	} else {
-		lhs := c.GetChildAt(0).EvaluateJoin(left_tuple, left_schema, right_tuple, left_schema)
-		rhs := c.GetChildAt(1).EvaluateJoin(left_tuple, left_schema, right_tuple, right_schema)
+		lhs := c.GetChildAt(0).EvaluateJoin(leftTuple, leftSchema, rightTuple, leftSchema)
+		rhs := c.GetChildAt(1).EvaluateJoin(leftTuple, leftSchema, rightTuple, rightSchema)
 		return types.NewBoolean(c.performLogicalOp(lhs, rhs))
 	}
 }
 
-func (c *LogicalOp) EvaluateAggregate(group_bys []*types.Value, aggregates []*types.Value) types.Value {
+func (c *LogicalOp) EvaluateAggregate(groupBys []*types.Value, aggregates []*types.Value) types.Value {
 	if c.logicalOpType == NOT {
-		lhs := c.GetChildAt(0).EvaluateAggregate(group_bys, aggregates)
+		lhs := c.GetChildAt(0).EvaluateAggregate(groupBys, aggregates)
 		return types.NewBoolean(!lhs.ToBoolean())
 	} else {
-		lhs := c.GetChildAt(0).EvaluateAggregate(group_bys, aggregates)
-		rhs := c.GetChildAt(1).EvaluateAggregate(group_bys, aggregates)
+		lhs := c.GetChildAt(0).EvaluateAggregate(groupBys, aggregates)
+		rhs := c.GetChildAt(1).EvaluateAggregate(groupBys, aggregates)
 		return types.NewBoolean(c.performLogicalOp(lhs, rhs))
 	}
 }
 
-func (c *LogicalOp) GetChildAt(child_idx uint32) Expression {
-	if int(child_idx) >= len(c.children) {
+func (c *LogicalOp) GetChildAt(childIdx uint32) Expression {
+	if int(childIdx) >= len(c.children) {
 		return nil
 	}
-	return c.children[child_idx]
+	return c.children[childIdx]
 }
 
-func (c *LogicalOp) SetChildAt(child_idx uint32, child Expression) {
-	c.children[child_idx] = child
+func (c *LogicalOp) SetChildAt(childIdx uint32, child Expression) {
+	c.children[childIdx] = child
 }
 
 func AppendLogicalCondition(baseConds Expression, opType LogicalOpType, addCond Expression) Expression {
@@ -104,5 +104,5 @@ func AppendLogicalCondition(baseConds Expression, opType LogicalOpType, addCond 
 }
 
 func (c *LogicalOp) GetType() ExpressionType {
-	return EXPRESSION_TYPE_LOGICAL_OP
+	return ExpressionTypeLogicalOp
 }

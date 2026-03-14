@@ -38,9 +38,9 @@ func (e *DeleteExecutor) Next() (*tuple.Tuple, Done, error) {
 	// iterates through the table heap trying to select a tuple that matches the predicate
 	for t, done, err := e.child.Next(); !done; t, done, err = e.child.Next() {
 		if t == nil {
-			err_ := errors.New("e.it.Next returned nil")
+			wrapErr := errors.New("e.it.Next returned nil")
 			e.txn.SetState(access.ABORTED)
-			return nil, true, err_
+			return nil, true, wrapErr
 		}
 		if err != nil {
 			e.txn.SetState(access.ABORTED)
@@ -52,8 +52,8 @@ func (e *DeleteExecutor) Next() (*tuple.Tuple, Done, error) {
 
 		rid := t.GetRID()
 		tableMetadata := e.child.GetTableMetaData()
-		is_marked := tableMetadata.Table().MarkDelete(rid, tableMetadata.OID(), e.txn, false)
-		if !is_marked {
+		isMarked := tableMetadata.Table().MarkDelete(rid, tableMetadata.OID(), e.txn, false)
+		if !isMarked {
 			err := errors.New("marking tuple deleted failed. PageID:SlotNum = " + string(rid.GetPageID()) + ":" + fmt.Sprint(rid.GetSlotNum()))
 			e.txn.SetState(access.ABORTED)
 			return nil, false, err
@@ -67,8 +67,8 @@ func (e *DeleteExecutor) Next() (*tuple.Tuple, Done, error) {
 			if ret == nil {
 				continue
 			} else {
-				index_ := ret
-				index_.DeleteEntry(t, *rid, e.txn)
+				idx := ret
+				idx.DeleteEntry(t, *rid, e.txn)
 			}
 		}
 

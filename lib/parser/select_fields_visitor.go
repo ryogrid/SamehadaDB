@@ -41,13 +41,13 @@ func (v *SelectFieldsVisitor) Enter(in ast.Node) (ast.Node, bool) {
 		aggTypeStr := node.F
 		switch aggTypeStr {
 		case "count":
-			sfield = &SelectFieldExpression{true, plans.COUNT_AGGREGATE, av.TableName, av.ColumnName}
+			sfield = &SelectFieldExpression{true, plans.CountAggregate, av.TableName, av.ColumnName}
 		case "max":
-			sfield = &SelectFieldExpression{true, plans.MAX_AGGREGATE, av.TableName, av.ColumnName}
+			sfield = &SelectFieldExpression{true, plans.MaxAggregate, av.TableName, av.ColumnName}
 		case "min":
-			sfield = &SelectFieldExpression{true, plans.MIN_AGGREGATE, av.TableName, av.ColumnName}
+			sfield = &SelectFieldExpression{true, plans.MinAggregate, av.TableName, av.ColumnName}
 		case "sum":
-			sfield = &SelectFieldExpression{true, plans.SUM_AGGREGATE, av.TableName, av.ColumnName}
+			sfield = &SelectFieldExpression{true, plans.SumAggregate, av.TableName, av.ColumnName}
 		}
 
 		v.QueryInfo.SelectFields = append(v.QueryInfo.SelectFields, sfield)

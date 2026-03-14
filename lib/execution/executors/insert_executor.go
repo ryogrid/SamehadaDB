@@ -37,9 +37,9 @@ func (e *InsertExecutor) Next() (*tuple.Tuple, Done, error) {
 	// let's assume it is raw insert
 
 	for _, values := range e.plan.GetRawValues() {
-		tuple_ := tuple.NewTupleFromSchema(values, e.tableMetadata.Schema())
+		tpl := tuple.NewTupleFromSchema(values, e.tableMetadata.Schema())
 		tableHeap := e.tableMetadata.Table()
-		rid, err := tableHeap.InsertTuple(tuple_, e.context.txn, e.tableMetadata.OID(), false)
+		rid, err := tableHeap.InsertTuple(tpl, e.context.txn, e.tableMetadata.OID(), false)
 		if err != nil {
 			return nil, true, err
 		}
@@ -50,8 +50,8 @@ func (e *InsertExecutor) Next() (*tuple.Tuple, Done, error) {
 			if ret == nil {
 				continue
 			} else {
-				index_ := ret
-				index_.InsertEntry(tuple_, *rid, e.context.txn)
+				idx := ret
+				idx.InsertEntry(tpl, *rid, e.context.txn)
 			}
 		}
 	}

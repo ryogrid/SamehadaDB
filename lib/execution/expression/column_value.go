@@ -39,41 +39,41 @@ func (c *ColumnValue) GetColIndex() uint32 {
 	return c.colIndex
 }
 
-func (c *ColumnValue) EvaluateJoin(left_tuple *tuple.Tuple, left_schema *schema.Schema, right_tuple *tuple.Tuple, right_schema *schema.Schema) types.Value {
+func (c *ColumnValue) EvaluateJoin(leftTuple *tuple.Tuple, leftSchema *schema.Schema, rightTuple *tuple.Tuple, rightSchema *schema.Schema) types.Value {
 	if c.tupleIndexForJoin == 0 {
-		return left_tuple.GetValue(left_schema, c.colIndex)
+		return leftTuple.GetValue(leftSchema, c.colIndex)
 	} else {
-		return right_tuple.GetValue(right_schema, c.colIndex)
+		return rightTuple.GetValue(rightSchema, c.colIndex)
 	}
 }
 
-func (c *ColumnValue) EvaluateAggregate(group_bys []*types.Value, aggregates []*types.Value) types.Value {
+func (c *ColumnValue) EvaluateAggregate(groupBys []*types.Value, aggregates []*types.Value) types.Value {
 	panic("Aggregation should only refer to group-by and aggregates.")
 }
 
-func (c *ColumnValue) GetChildAt(child_idx uint32) Expression {
-	if int(child_idx) >= len(c.children) {
+func (c *ColumnValue) GetChildAt(childIdx uint32) Expression {
+	if int(childIdx) >= len(c.children) {
 		return nil
 	}
-	return c.children[child_idx]
+	return c.children[childIdx]
 }
 
-func (c *ColumnValue) GetReturnType() types.TypeID { return c.ret_type }
+func (c *ColumnValue) GetReturnType() types.TypeID { return c.retType }
 
 func (c *ColumnValue) SetReturnType(valueType types.TypeID) {
-	c.ret_type = valueType
+	c.retType = valueType
 }
 
-func MakeColumnValueExpression(schema_ *schema.Schema, tuple_idx_on_join uint32,
-	col_name string) Expression {
+func MakeColumnValueExpression(sch *schema.Schema, tupleIdxOnJoin uint32,
+	colName string) Expression {
 	// note: alphabets on column name is stored in lowercase
 
-	col_idx := schema_.GetColIndex(strings.ToLower(col_name))
-	col_type := schema_.GetColumn(col_idx).GetType()
-	col_val := NewColumnValue(tuple_idx_on_join, col_idx, col_type)
-	return col_val
+	colIdx := sch.GetColIndex(strings.ToLower(colName))
+	colType := sch.GetColumn(colIdx).GetType()
+	colVal := NewColumnValue(tupleIdxOnJoin, colIdx, colType)
+	return colVal
 }
 
 func (c *ColumnValue) GetType() ExpressionType {
-	return EXPRESSION_TYPE_COLUMN_VALUE
+	return ExpressionTypeColumnValue
 }

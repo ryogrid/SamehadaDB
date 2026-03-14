@@ -142,10 +142,10 @@ func containsAny(map1 mapset.Set[string], map2 mapset.Set[string]) bool {
 }
 
 func touchOnly(from *catalog.TableMetadata, where expression.Expression, colName string) bool {
-	if where.GetType() == expression.EXPRESSION_TYPE_COLUMN_VALUE {
+	if where.GetType() == expression.ExpressionTypeColumnValue {
 		cv := where.(*expression.ColumnValue)
 		return from.Schema().GetColumn(cv.GetColIndex()).GetColumnName() == colName
-	} else if where.GetType() == expression.EXPRESSION_TYPE_LOGICAL_OP || where.GetType() == expression.EXPRESSION_TYPE_COMPARISON {
+	} else if where.GetType() == expression.ExpressionTypeLogicalOp || where.GetType() == expression.ExpressionTypeComparison {
 		return touchOnly(from, where.GetChildAt(0), colName) && touchOnly(from, where.GetChildAt(1), colName)
 	}
 	return true

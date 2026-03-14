@@ -32,18 +32,18 @@ import (
 func TestSimpleInsertAndSeqScan(t *testing.T) {
 	diskManager := disk.NewDiskManagerTest()
 	defer diskManager.ShutDown()
-	log_mgr := recovery.NewLogManager(&diskManager)
-	bpm := buffer.NewBufferPoolManager(uint32(32), diskManager, log_mgr)
-	txn_mgr := access.NewTransactionManager(access.NewLockManager(access.REGULAR, access.DETECTION), log_mgr)
-	txn := txn_mgr.Begin(nil)
+	logMgr := recovery.NewLogManager(&diskManager)
+	bpm := buffer.NewBufferPoolManager(uint32(32), diskManager, logMgr)
+	txnMgr := access.NewTransactionManager(access.NewLockManager(access.REGULAR, access.DETECTION), logMgr)
+	txn := txnMgr.Begin(nil)
 
-	c := catalog.BootstrapCatalog(bpm, log_mgr, access.NewLockManager(access.REGULAR, access.PREVENTION), txn)
+	c := catalog.BootstrapCatalog(bpm, logMgr, access.NewLockManager(access.REGULAR, access.PREVENTION), txn)
 
 	columnA := column.NewColumn("a", types.Integer, false, index_constants.IndexKindInvalid, types.PageID(-1), nil)
 	columnB := column.NewColumn("b", types.Integer, false, index_constants.IndexKindInvalid, types.PageID(-1), nil)
-	schema_ := schema.NewSchema([]*column.Column{columnA, columnB})
+	sch := schema.NewSchema([]*column.Column{columnA, columnB})
 
-	tableMetadata := c.CreateTable("test_1", schema_, txn)
+	tableMetadata := c.CreateTable("test_1", sch, txn)
 
 	row1 := make([]types.Value, 0)
 	row1 = append(row1, types.NewInteger(20))
@@ -72,7 +72,7 @@ func TestSimpleInsertAndSeqScan(t *testing.T) {
 
 	results := executionEngine.Execute(seqPlan, executorContext)
 
-	txn_mgr.Commit(nil, txn)
+	txnMgr.Commit(nil, txn)
 
 	testingpkg.Assert(t, types.NewInteger(20).CompareEquals(results[0].GetValue(outSchema, 0)), "value should be 20")
 	testingpkg.Assert(t, types.NewInteger(99).CompareEquals(results[1].GetValue(outSchema, 0)), "value should be 99")
@@ -81,18 +81,18 @@ func TestSimpleInsertAndSeqScan(t *testing.T) {
 func TestSimpleInsertAndSeqScanFloat(t *testing.T) {
 	diskManager := disk.NewDiskManagerTest()
 	defer diskManager.ShutDown()
-	log_mgr := recovery.NewLogManager(&diskManager)
-	bpm := buffer.NewBufferPoolManager(uint32(32), diskManager, log_mgr)
-	txn_mgr := access.NewTransactionManager(access.NewLockManager(access.REGULAR, access.DETECTION), log_mgr)
-	txn := txn_mgr.Begin(nil)
+	logMgr := recovery.NewLogManager(&diskManager)
+	bpm := buffer.NewBufferPoolManager(uint32(32), diskManager, logMgr)
+	txnMgr := access.NewTransactionManager(access.NewLockManager(access.REGULAR, access.DETECTION), logMgr)
+	txn := txnMgr.Begin(nil)
 
-	c := catalog.BootstrapCatalog(bpm, log_mgr, access.NewLockManager(access.REGULAR, access.PREVENTION), txn)
+	c := catalog.BootstrapCatalog(bpm, logMgr, access.NewLockManager(access.REGULAR, access.PREVENTION), txn)
 
 	columnA := column.NewColumn("a", types.Float, false, index_constants.IndexKindInvalid, types.PageID(-1), nil)
 	columnB := column.NewColumn("b", types.Float, false, index_constants.IndexKindInvalid, types.PageID(-1), nil)
-	schema_ := schema.NewSchema([]*column.Column{columnA, columnB})
+	sch := schema.NewSchema([]*column.Column{columnA, columnB})
 
-	tableMetadata := c.CreateTable("test_1", schema_, txn)
+	tableMetadata := c.CreateTable("test_1", sch, txn)
 
 	row1 := make([]types.Value, 0)
 	row1 = append(row1, types.NewFloat(0.5))
@@ -121,7 +121,7 @@ func TestSimpleInsertAndSeqScanFloat(t *testing.T) {
 
 	results := executionEngine.Execute(seqPlan, executorContext)
 
-	txn_mgr.Commit(nil, txn)
+	txnMgr.Commit(nil, txn)
 
 	testingpkg.Assert(t, types.NewFloat(0.5).CompareEquals(results[0].GetValue(outSchema, 0)), "value should be 0.5")
 	testingpkg.Assert(t, types.NewFloat(0.99).CompareEquals(results[1].GetValue(outSchema, 0)), "value should be 0.99")
@@ -130,19 +130,19 @@ func TestSimpleInsertAndSeqScanFloat(t *testing.T) {
 func TestSimpleInsertAndSeqScanWithPredicateComparison(t *testing.T) {
 	diskManager := disk.NewDiskManagerTest()
 	defer diskManager.ShutDown()
-	log_mgr := recovery.NewLogManager(&diskManager)
-	bpm := buffer.NewBufferPoolManager(uint32(32), diskManager, log_mgr)
-	txn_mgr := access.NewTransactionManager(access.NewLockManager(access.REGULAR, access.DETECTION), log_mgr)
-	txn := txn_mgr.Begin(nil)
+	logMgr := recovery.NewLogManager(&diskManager)
+	bpm := buffer.NewBufferPoolManager(uint32(32), diskManager, logMgr)
+	txnMgr := access.NewTransactionManager(access.NewLockManager(access.REGULAR, access.DETECTION), logMgr)
+	txn := txnMgr.Begin(nil)
 
-	c := catalog.BootstrapCatalog(bpm, log_mgr, access.NewLockManager(access.REGULAR, access.PREVENTION), txn)
+	c := catalog.BootstrapCatalog(bpm, logMgr, access.NewLockManager(access.REGULAR, access.PREVENTION), txn)
 
 	columnA := column.NewColumn("a", types.Integer, false, index_constants.IndexKindInvalid, types.PageID(-1), nil)
 	columnB := column.NewColumn("b", types.Integer, false, index_constants.IndexKindInvalid, types.PageID(-1), nil)
 	columnC := column.NewColumn("c", types.Varchar, false, index_constants.IndexKindInvalid, types.PageID(-1), nil)
-	schema_ := schema.NewSchema([]*column.Column{columnA, columnB, columnC})
+	sch := schema.NewSchema([]*column.Column{columnA, columnB, columnC})
 
-	tableMetadata := c.CreateTable("test_1", schema_, txn)
+	tableMetadata := c.CreateTable("test_1", sch, txn)
 
 	row1 := make([]types.Value, 0)
 	row1 = append(row1, types.NewInteger(20))
@@ -166,7 +166,7 @@ func TestSimpleInsertAndSeqScanWithPredicateComparison(t *testing.T) {
 
 	bpm.FlushAllPages()
 
-	txn_mgr.Commit(nil, txn)
+	txnMgr.Commit(nil, txn)
 
 	cases := []testing_pattern_fw.SeqScanTestCase{{
 		"select a ... WHERE b = 55",
@@ -252,19 +252,19 @@ func TestSimpleInsertAndSeqScanWithPredicateComparison(t *testing.T) {
 func TestInsertBoolAndSeqScanWithComparison(t *testing.T) {
 	diskManager := disk.NewDiskManagerTest()
 	defer diskManager.ShutDown()
-	log_mgr := recovery.NewLogManager(&diskManager)
-	bpm := buffer.NewBufferPoolManager(uint32(32), diskManager, log_mgr)
-	txn_mgr := access.NewTransactionManager(access.NewLockManager(access.REGULAR, access.DETECTION), log_mgr)
-	txn := txn_mgr.Begin(nil)
+	logMgr := recovery.NewLogManager(&diskManager)
+	bpm := buffer.NewBufferPoolManager(uint32(32), diskManager, logMgr)
+	txnMgr := access.NewTransactionManager(access.NewLockManager(access.REGULAR, access.DETECTION), logMgr)
+	txn := txnMgr.Begin(nil)
 
-	c := catalog.BootstrapCatalog(bpm, log_mgr, access.NewLockManager(access.REGULAR, access.PREVENTION), txn)
+	c := catalog.BootstrapCatalog(bpm, logMgr, access.NewLockManager(access.REGULAR, access.PREVENTION), txn)
 
 	columnA := column.NewColumn("a", types.Integer, false, index_constants.IndexKindInvalid, types.PageID(-1), nil)
 	columnB := column.NewColumn("b", types.Boolean, false, index_constants.IndexKindInvalid, types.PageID(-1), nil)
 	columnC := column.NewColumn("c", types.Varchar, false, index_constants.IndexKindInvalid, types.PageID(-1), nil)
-	schema_ := schema.NewSchema([]*column.Column{columnA, columnB, columnC})
+	sch := schema.NewSchema([]*column.Column{columnA, columnB, columnC})
 
-	tableMetadata := c.CreateTable("test_1", schema_, txn)
+	tableMetadata := c.CreateTable("test_1", sch, txn)
 
 	row1 := make([]types.Value, 0)
 	row1 = append(row1, types.NewInteger(20))
@@ -288,7 +288,7 @@ func TestInsertBoolAndSeqScanWithComparison(t *testing.T) {
 
 	bpm.FlushAllPages()
 
-	txn_mgr.Commit(nil, txn)
+	txnMgr.Commit(nil, txn)
 
 	cases := []testing_pattern_fw.SeqScanTestCase{{
 		"select a ... WHERE b = true",
@@ -320,18 +320,18 @@ func TestInsertBoolAndSeqScanWithComparison(t *testing.T) {
 func TestSimpleInsertAndLimitExecution(t *testing.T) {
 	diskManager := disk.NewDiskManagerTest()
 	defer diskManager.ShutDown()
-	log_mgr := recovery.NewLogManager(&diskManager)
-	bpm := buffer.NewBufferPoolManager(uint32(32), diskManager, log_mgr)
-	txn_mgr := access.NewTransactionManager(access.NewLockManager(access.REGULAR, access.DETECTION), log_mgr)
-	txn := txn_mgr.Begin(nil)
+	logMgr := recovery.NewLogManager(&diskManager)
+	bpm := buffer.NewBufferPoolManager(uint32(32), diskManager, logMgr)
+	txnMgr := access.NewTransactionManager(access.NewLockManager(access.REGULAR, access.DETECTION), logMgr)
+	txn := txnMgr.Begin(nil)
 
-	c := catalog.BootstrapCatalog(bpm, log_mgr, access.NewLockManager(access.REGULAR, access.PREVENTION), txn)
+	c := catalog.BootstrapCatalog(bpm, logMgr, access.NewLockManager(access.REGULAR, access.PREVENTION), txn)
 
 	columnA := column.NewColumn("a", types.Integer, false, index_constants.IndexKindInvalid, types.PageID(-1), nil)
 	columnB := column.NewColumn("b", types.Integer, false, index_constants.IndexKindInvalid, types.PageID(-1), nil)
-	schema_ := schema.NewSchema([]*column.Column{columnA, columnB})
+	sch := schema.NewSchema([]*column.Column{columnA, columnB})
 
-	tableMetadata := c.CreateTable("test_1", schema_, txn)
+	tableMetadata := c.CreateTable("test_1", sch, txn)
 
 	row1 := make([]types.Value, 0)
 	row1 = append(row1, types.NewInteger(20))
@@ -363,7 +363,7 @@ func TestSimpleInsertAndLimitExecution(t *testing.T) {
 
 	bpm.FlushAllPages()
 
-	txn_mgr.Commit(nil, txn)
+	txnMgr.Commit(nil, txn)
 
 	// TEST 1: select a, b ... LIMIT 1
 	func() {
@@ -410,18 +410,18 @@ func TestSimpleInsertAndLimitExecution(t *testing.T) {
 func TestSimpleInsertAndLimitExecutionMultiTable(t *testing.T) {
 	diskManager := disk.NewDiskManagerTest()
 	defer diskManager.ShutDown()
-	log_mgr := recovery.NewLogManager(&diskManager)
-	bpm := buffer.NewBufferPoolManager(uint32(32), diskManager, log_mgr)
-	txn_mgr := access.NewTransactionManager(access.NewLockManager(access.REGULAR, access.DETECTION), log_mgr)
-	txn := txn_mgr.Begin(nil)
+	logMgr := recovery.NewLogManager(&diskManager)
+	bpm := buffer.NewBufferPoolManager(uint32(32), diskManager, logMgr)
+	txnMgr := access.NewTransactionManager(access.NewLockManager(access.REGULAR, access.DETECTION), logMgr)
+	txn := txnMgr.Begin(nil)
 
-	c := catalog.BootstrapCatalog(bpm, log_mgr, access.NewLockManager(access.REGULAR, access.PREVENTION), txn)
+	c := catalog.BootstrapCatalog(bpm, logMgr, access.NewLockManager(access.REGULAR, access.PREVENTION), txn)
 
 	columnA := column.NewColumn("a", types.Integer, false, index_constants.IndexKindInvalid, types.PageID(-1), nil)
 	columnB := column.NewColumn("b", types.Integer, false, index_constants.IndexKindInvalid, types.PageID(-1), nil)
-	schema_ := schema.NewSchema([]*column.Column{columnA, columnB})
+	sch := schema.NewSchema([]*column.Column{columnA, columnB})
 
-	tableMetadata := c.CreateTable("test_1", schema_, txn)
+	tableMetadata := c.CreateTable("test_1", sch, txn)
 
 	row1 := make([]types.Value, 0)
 	row1 = append(row1, types.NewInteger(20))
@@ -455,9 +455,9 @@ func TestSimpleInsertAndLimitExecutionMultiTable(t *testing.T) {
 
 	columnA = column.NewColumn("a", types.Integer, false, index_constants.IndexKindInvalid, types.PageID(-1), nil)
 	columnB = column.NewColumn("b", types.Integer, false, index_constants.IndexKindInvalid, types.PageID(-1), nil)
-	schema_ = schema.NewSchema([]*column.Column{columnA, columnB})
+	sch = schema.NewSchema([]*column.Column{columnA, columnB})
 
-	tableMetadata2 := c.CreateTable("test_2", schema_, txn)
+	tableMetadata2 := c.CreateTable("test_2", sch, txn)
 
 	row1 = make([]types.Value, 0)
 	row1 = append(row1, types.NewInteger(20))
@@ -487,7 +487,7 @@ func TestSimpleInsertAndLimitExecutionMultiTable(t *testing.T) {
 
 	bpm.FlushAllPages()
 
-	txn_mgr.Commit(nil, txn)
+	txnMgr.Commit(nil, txn)
 
 	// TEST 1: select a, b ... LIMIT 1
 	func() {
@@ -551,20 +551,20 @@ func TestHashTableIndex(t *testing.T) {
 	common.TempSuppressOnMemStorage = true
 
 	diskManager := disk.NewDiskManagerTest()
-	log_mgr := recovery.NewLogManager(&diskManager)
-	bpm := buffer.NewBufferPoolManager(uint32(32), diskManager, log_mgr)
+	logMgr := recovery.NewLogManager(&diskManager)
+	bpm := buffer.NewBufferPoolManager(uint32(32), diskManager, logMgr)
 
-	txn_mgr := access.NewTransactionManager(access.NewLockManager(access.REGULAR, access.DETECTION), log_mgr)
-	txn := txn_mgr.Begin(nil)
+	txnMgr := access.NewTransactionManager(access.NewLockManager(access.REGULAR, access.DETECTION), logMgr)
+	txn := txnMgr.Begin(nil)
 
-	c := catalog.BootstrapCatalog(bpm, log_mgr, access.NewLockManager(access.REGULAR, access.PREVENTION), txn)
+	c := catalog.BootstrapCatalog(bpm, logMgr, access.NewLockManager(access.REGULAR, access.PREVENTION), txn)
 
 	columnA := column.NewColumn("a", types.Integer, true, index_constants.IndexKindHash, types.PageID(-1), nil)
 	columnB := column.NewColumn("b", types.Integer, true, index_constants.IndexKindHash, types.PageID(-1), nil)
 	columnC := column.NewColumn("c", types.Varchar, true, index_constants.IndexKindHash, types.PageID(-1), nil)
-	schema_ := schema.NewSchema([]*column.Column{columnA, columnB, columnC})
+	sch := schema.NewSchema([]*column.Column{columnA, columnB, columnC})
 
-	tableMetadata := c.CreateTable("test_1", schema_, txn)
+	tableMetadata := c.CreateTable("test_1", sch, txn)
 
 	row1 := make([]types.Value, 0)
 	row1 = append(row1, types.NewInteger(20))
@@ -600,7 +600,7 @@ func TestHashTableIndex(t *testing.T) {
 
 	bpm.FlushAllPages()
 
-	txn_mgr.Commit(nil, txn)
+	txnMgr.Commit(nil, txn)
 
 	cases := []testing_pattern_fw.IndexPointScanTestCase{{
 		"select a ... WHERE b = 55",
@@ -690,19 +690,19 @@ func TestHashTableIndex(t *testing.T) {
 func TestSimpleDelete(t *testing.T) {
 	diskManager := disk.NewDiskManagerTest()
 	defer diskManager.ShutDown()
-	log_mgr := recovery.NewLogManager(&diskManager)
-	bpm := buffer.NewBufferPoolManager(uint32(32), diskManager, log_mgr)
-	txn_mgr := access.NewTransactionManager(access.NewLockManager(access.REGULAR, access.DETECTION), log_mgr)
-	txn := txn_mgr.Begin(nil)
+	logMgr := recovery.NewLogManager(&diskManager)
+	bpm := buffer.NewBufferPoolManager(uint32(32), diskManager, logMgr)
+	txnMgr := access.NewTransactionManager(access.NewLockManager(access.REGULAR, access.DETECTION), logMgr)
+	txn := txnMgr.Begin(nil)
 
-	c := catalog.BootstrapCatalog(bpm, log_mgr, access.NewLockManager(access.REGULAR, access.PREVENTION), txn)
+	c := catalog.BootstrapCatalog(bpm, logMgr, access.NewLockManager(access.REGULAR, access.PREVENTION), txn)
 
 	columnA := column.NewColumn("a", types.Integer, false, index_constants.IndexKindInvalid, types.PageID(-1), nil)
 	columnB := column.NewColumn("b", types.Integer, false, index_constants.IndexKindInvalid, types.PageID(-1), nil)
 	columnC := column.NewColumn("c", types.Varchar, false, index_constants.IndexKindInvalid, types.PageID(-1), nil)
-	schema_ := schema.NewSchema([]*column.Column{columnA, columnB, columnC})
+	sch := schema.NewSchema([]*column.Column{columnA, columnB, columnC})
 
-	tableMetadata := c.CreateTable("test_1", schema_, txn)
+	tableMetadata := c.CreateTable("test_1", sch, txn)
 
 	row1 := make([]types.Value, 0)
 	row1 = append(row1, types.NewInteger(20))
@@ -738,11 +738,11 @@ func TestSimpleDelete(t *testing.T) {
 
 	bpm.FlushAllPages()
 
-	txn_mgr.Commit(nil, txn)
+	txnMgr.Commit(nil, txn)
 
 	cases := []testing_pattern_fw.DeleteTestCase{{
 		"delete ... WHERE c = 'baz'",
-		txn_mgr,
+		txnMgr,
 		executionEngine,
 		executorContext,
 		tableMetadata,
@@ -752,7 +752,7 @@ func TestSimpleDelete(t *testing.T) {
 		2,
 	}, {
 		"delete ... WHERE b = 55",
-		txn_mgr,
+		txnMgr,
 		executionEngine,
 		executorContext,
 		tableMetadata,
@@ -762,7 +762,7 @@ func TestSimpleDelete(t *testing.T) {
 		1,
 	}, {
 		"delete ... WHERE a = 20",
-		txn_mgr,
+		txnMgr,
 		executionEngine,
 		executorContext,
 		tableMetadata,
@@ -782,20 +782,20 @@ func TestSimpleDelete(t *testing.T) {
 func TestDeleteWithSelctInsert(t *testing.T) {
 	diskManager := disk.NewDiskManagerTest()
 	defer diskManager.ShutDown()
-	log_mgr := recovery.NewLogManager(&diskManager)
-	bpm := buffer.NewBufferPoolManager(uint32(32), diskManager, log_mgr)
-	txn_mgr := access.NewTransactionManager(access.NewLockManager(access.REGULAR, access.DETECTION), log_mgr)
-	txn := txn_mgr.Begin(nil)
+	logMgr := recovery.NewLogManager(&diskManager)
+	bpm := buffer.NewBufferPoolManager(uint32(32), diskManager, logMgr)
+	txnMgr := access.NewTransactionManager(access.NewLockManager(access.REGULAR, access.DETECTION), logMgr)
+	txn := txnMgr.Begin(nil)
 	txn.SetIsRecoveryPhase(true)
 
-	c := catalog.BootstrapCatalog(bpm, log_mgr, access.NewLockManager(access.REGULAR, access.PREVENTION), txn)
+	c := catalog.BootstrapCatalog(bpm, logMgr, access.NewLockManager(access.REGULAR, access.PREVENTION), txn)
 
 	columnA := column.NewColumn("a", types.Integer, false, index_constants.IndexKindInvalid, types.PageID(-1), nil)
 	columnB := column.NewColumn("b", types.Integer, false, index_constants.IndexKindInvalid, types.PageID(-1), nil)
 	columnC := column.NewColumn("c", types.Varchar, false, index_constants.IndexKindInvalid, types.PageID(-1), nil)
-	schema_ := schema.NewSchema([]*column.Column{columnA, columnB, columnC})
+	sch := schema.NewSchema([]*column.Column{columnA, columnB, columnC})
 
-	tableMetadata := c.CreateTable("test_1", schema_, txn)
+	tableMetadata := c.CreateTable("test_1", sch, txn)
 
 	row1 := make([]types.Value, 0)
 	row1 = append(row1, types.NewInteger(20))
@@ -831,11 +831,11 @@ func TestDeleteWithSelctInsert(t *testing.T) {
 
 	bpm.FlushAllPages()
 
-	txn_mgr.Commit(nil, txn)
+	txnMgr.Commit(nil, txn)
 
 	cases := []testing_pattern_fw.DeleteTestCase{{
 		"delete ... WHERE c = 'baz'",
-		txn_mgr,
+		txnMgr,
 		executionEngine,
 		executorContext,
 		tableMetadata,
@@ -878,7 +878,7 @@ func TestDeleteWithSelctInsert(t *testing.T) {
 	}
 
 	// insert new records
-	txn = txn_mgr.Begin(nil)
+	txn = txnMgr.Begin(nil)
 	row1 = make([]types.Value, 0)
 	row1 = append(row1, types.NewInteger(666))
 	row1 = append(row1, types.NewInteger(777))
@@ -892,7 +892,7 @@ func TestDeleteWithSelctInsert(t *testing.T) {
 	executorContext = executors.NewExecutorContext(c, bpm, txn)
 	executionEngine.Execute(insertPlanNode, executorContext)
 	bpm.FlushAllPages()
-	txn_mgr.Commit(nil, txn)
+	txnMgr.Commit(nil, txn)
 
 	cases3 := []testing_pattern_fw.SeqScanTestCase{{
 		"select a,c ... WHERE b = 777",
@@ -915,18 +915,18 @@ func TestDeleteWithSelctInsert(t *testing.T) {
 func TestSimpleInsertAndUpdate(t *testing.T) {
 	diskManager := disk.NewDiskManagerTest()
 	defer diskManager.ShutDown()
-	log_mgr := recovery.NewLogManager(&diskManager)
-	bpm := buffer.NewBufferPoolManager(uint32(32), diskManager, log_mgr)
-	txn_mgr := access.NewTransactionManager(access.NewLockManager(access.REGULAR, access.DETECTION), log_mgr)
-	txn := txn_mgr.Begin(nil)
+	logMgr := recovery.NewLogManager(&diskManager)
+	bpm := buffer.NewBufferPoolManager(uint32(32), diskManager, logMgr)
+	txnMgr := access.NewTransactionManager(access.NewLockManager(access.REGULAR, access.DETECTION), logMgr)
+	txn := txnMgr.Begin(nil)
 
-	c := catalog.BootstrapCatalog(bpm, log_mgr, access.NewLockManager(access.REGULAR, access.PREVENTION), txn)
+	c := catalog.BootstrapCatalog(bpm, logMgr, access.NewLockManager(access.REGULAR, access.PREVENTION), txn)
 
 	columnA := column.NewColumn("a", types.Integer, false, index_constants.IndexKindInvalid, types.PageID(-1), nil)
 	columnB := column.NewColumn("b", types.Varchar, false, index_constants.IndexKindInvalid, types.PageID(-1), nil)
-	schema_ := schema.NewSchema([]*column.Column{columnA, columnB})
+	sch := schema.NewSchema([]*column.Column{columnA, columnB})
 
-	tableMetadata := c.CreateTable("test_1", schema_, txn)
+	tableMetadata := c.CreateTable("test_1", sch, txn)
 
 	row1 := make([]types.Value, 0)
 	row1 = append(row1, types.NewInteger(20))
@@ -946,10 +946,10 @@ func TestSimpleInsertAndUpdate(t *testing.T) {
 	executorContext := executors.NewExecutorContext(c, bpm, txn)
 	executionEngine.Execute(insertPlanNode, executorContext)
 
-	txn_mgr.Commit(nil, txn)
+	txnMgr.Commit(nil, txn)
 
 	fmt.Println("update a row...")
-	txn = txn_mgr.Begin(nil)
+	txn = txnMgr.Begin(nil)
 
 	row1 = make([]types.Value, 0)
 	row1 = append(row1, types.NewInteger(99))
@@ -959,16 +959,16 @@ func TestSimpleInsertAndUpdate(t *testing.T) {
 	tmpColVal := new(expression.ColumnValue)
 	tmpColVal.SetTupleIndex(0)
 	tmpColVal.SetColIndex(tableMetadata.Schema().GetColIndex(pred.LeftColumn))
-	expression_ := expression.NewComparison(tmpColVal, expression.NewConstantValue(testing_util.GetValue(pred.RightColumn), testing_util.GetValueType(pred.LeftColumn)), pred.Operator, types.Boolean)
+	expr := expression.NewComparison(tmpColVal, expression.NewConstantValue(testing_util.GetValue(pred.RightColumn), testing_util.GetValueType(pred.LeftColumn)), pred.Operator, types.Boolean)
 
-	seqScanPlan := plans.NewSeqScanPlanNode(c, tableMetadata.Schema(), expression_, tableMetadata.OID())
+	seqScanPlan := plans.NewSeqScanPlanNode(c, tableMetadata.Schema(), expr, tableMetadata.OID())
 	updatePlanNode := plans.NewUpdatePlanNode(row1, []int{0, 1}, seqScanPlan)
 	executionEngine.Execute(updatePlanNode, executorContext)
 
-	txn_mgr.Commit(nil, txn)
+	txnMgr.Commit(nil, txn)
 
 	fmt.Println("select and check value...")
-	txn = txn_mgr.Begin(nil)
+	txn = txnMgr.Begin(nil)
 
 	outColumnB := column.NewColumn("b", types.Varchar, false, index_constants.IndexKindInvalid, types.PageID(-1), nil)
 	outSchema := schema.NewSchema([]*column.Column{outColumnB})
@@ -977,12 +977,12 @@ func TestSimpleInsertAndUpdate(t *testing.T) {
 	tmpColVal = new(expression.ColumnValue)
 	tmpColVal.SetTupleIndex(0)
 	tmpColVal.SetColIndex(tableMetadata.Schema().GetColIndex(pred.LeftColumn))
-	expression_ = expression.NewComparison(tmpColVal, expression.NewConstantValue(testing_util.GetValue(pred.RightColumn), testing_util.GetValueType(pred.RightColumn)), pred.Operator, types.Boolean)
+	expr = expression.NewComparison(tmpColVal, expression.NewConstantValue(testing_util.GetValue(pred.RightColumn), testing_util.GetValueType(pred.RightColumn)), pred.Operator, types.Boolean)
 
-	seqPlan := plans.NewSeqScanPlanNode(c, outSchema, expression_, tableMetadata.OID())
+	seqPlan := plans.NewSeqScanPlanNode(c, outSchema, expr, tableMetadata.OID())
 	results := executionEngine.Execute(seqPlan, executorContext)
 
-	txn_mgr.Commit(nil, txn)
+	txnMgr.Commit(nil, txn)
 
 	testingpkg.Assert(t, types.NewVarchar("updated").CompareEquals(results[0].GetValue(outSchema, 0)), "value should be 'updated'")
 }
@@ -990,18 +990,18 @@ func TestSimpleInsertAndUpdate(t *testing.T) {
 func TestInsertUpdateMix(t *testing.T) {
 	diskManager := disk.NewDiskManagerTest()
 	defer diskManager.ShutDown()
-	log_mgr := recovery.NewLogManager(&diskManager)
-	bpm := buffer.NewBufferPoolManager(uint32(32), diskManager, log_mgr)
-	txn_mgr := access.NewTransactionManager(access.NewLockManager(access.REGULAR, access.DETECTION), log_mgr)
-	txn := txn_mgr.Begin(nil)
+	logMgr := recovery.NewLogManager(&diskManager)
+	bpm := buffer.NewBufferPoolManager(uint32(32), diskManager, logMgr)
+	txnMgr := access.NewTransactionManager(access.NewLockManager(access.REGULAR, access.DETECTION), logMgr)
+	txn := txnMgr.Begin(nil)
 
-	c := catalog.BootstrapCatalog(bpm, log_mgr, access.NewLockManager(access.REGULAR, access.PREVENTION), txn)
+	c := catalog.BootstrapCatalog(bpm, logMgr, access.NewLockManager(access.REGULAR, access.PREVENTION), txn)
 
 	columnA := column.NewColumn("a", types.Integer, false, index_constants.IndexKindInvalid, types.PageID(-1), nil)
 	columnB := column.NewColumn("b", types.Varchar, false, index_constants.IndexKindInvalid, types.PageID(-1), nil)
-	schema_ := schema.NewSchema([]*column.Column{columnA, columnB})
+	sch := schema.NewSchema([]*column.Column{columnA, columnB})
 
-	tableMetadata := c.CreateTable("test_1", schema_, txn)
+	tableMetadata := c.CreateTable("test_1", sch, txn)
 
 	row1 := make([]types.Value, 0)
 	row1 = append(row1, types.NewInteger(20))
@@ -1021,10 +1021,10 @@ func TestInsertUpdateMix(t *testing.T) {
 	executorContext := executors.NewExecutorContext(c, bpm, txn)
 	executionEngine.Execute(insertPlanNode, executorContext)
 
-	txn_mgr.Commit(nil, txn)
+	txnMgr.Commit(nil, txn)
 
 	fmt.Println("update a row...")
-	txn = txn_mgr.Begin(nil)
+	txn = txnMgr.Begin(nil)
 
 	row1 = make([]types.Value, 0)
 	row1 = append(row1, types.NewInteger(99))
@@ -1034,16 +1034,16 @@ func TestInsertUpdateMix(t *testing.T) {
 	tmpColVal := new(expression.ColumnValue)
 	tmpColVal.SetTupleIndex(0)
 	tmpColVal.SetColIndex(tableMetadata.Schema().GetColIndex(pred.LeftColumn))
-	expression_ := expression.NewComparison(tmpColVal, expression.NewConstantValue(testing_util.GetValue(pred.RightColumn), testing_util.GetValueType(pred.RightColumn)), pred.Operator, types.Boolean)
+	expr := expression.NewComparison(tmpColVal, expression.NewConstantValue(testing_util.GetValue(pred.RightColumn), testing_util.GetValueType(pred.RightColumn)), pred.Operator, types.Boolean)
 
-	seqScanPlan := plans.NewSeqScanPlanNode(c, tableMetadata.Schema(), expression_, tableMetadata.OID())
+	seqScanPlan := plans.NewSeqScanPlanNode(c, tableMetadata.Schema(), expr, tableMetadata.OID())
 	updatePlanNode := plans.NewUpdatePlanNode(row1, []int{0, 1}, seqScanPlan)
 	executionEngine.Execute(updatePlanNode, executorContext)
 
-	txn_mgr.Commit(nil, txn)
+	txnMgr.Commit(nil, txn)
 
 	fmt.Println("select and check value...")
-	txn = txn_mgr.Begin(nil)
+	txn = txnMgr.Begin(nil)
 
 	outColumnB := column.NewColumn("b", types.Varchar, false, index_constants.IndexKindInvalid, types.PageID(-1), nil)
 	outSchema := schema.NewSchema([]*column.Column{outColumnB})
@@ -1052,18 +1052,18 @@ func TestInsertUpdateMix(t *testing.T) {
 	tmpColVal = new(expression.ColumnValue)
 	tmpColVal.SetTupleIndex(0)
 	tmpColVal.SetColIndex(tableMetadata.Schema().GetColIndex(pred.LeftColumn))
-	expression_ = expression.NewComparison(tmpColVal, expression.NewConstantValue(testing_util.GetValue(pred.RightColumn), testing_util.GetValueType(pred.RightColumn)), pred.Operator, types.Boolean)
+	expr = expression.NewComparison(tmpColVal, expression.NewConstantValue(testing_util.GetValue(pred.RightColumn), testing_util.GetValueType(pred.RightColumn)), pred.Operator, types.Boolean)
 
-	seqPlan := plans.NewSeqScanPlanNode(c, outSchema, expression_, tableMetadata.OID())
+	seqPlan := plans.NewSeqScanPlanNode(c, outSchema, expr, tableMetadata.OID())
 	results := executionEngine.Execute(seqPlan, executorContext)
 
-	txn_mgr.Commit(nil, txn)
+	txnMgr.Commit(nil, txn)
 
 	testingpkg.Assert(t, types.NewVarchar("updated").CompareEquals(results[0].GetValue(outSchema, 0)), "value should be 'updated'")
 
 	fmt.Println("insert after update...")
 
-	txn = txn_mgr.Begin(nil)
+	txn = txnMgr.Begin(nil)
 
 	row1 = make([]types.Value, 0)
 	row1 = append(row1, types.NewInteger(77))
@@ -1081,10 +1081,10 @@ func TestInsertUpdateMix(t *testing.T) {
 
 	executionEngine.Execute(insertPlanNode, executorContext)
 
-	txn_mgr.Commit(nil, txn)
+	txnMgr.Commit(nil, txn)
 
 	fmt.Println("select inserted row and check value...")
-	txn = txn_mgr.Begin(nil)
+	txn = txnMgr.Begin(nil)
 
 	outColumnA := column.NewColumn("a", types.Integer, false, index_constants.IndexKindInvalid, types.PageID(-1), nil)
 	outSchema = schema.NewSchema([]*column.Column{outColumnA})
@@ -1093,12 +1093,12 @@ func TestInsertUpdateMix(t *testing.T) {
 	tmpColVal = new(expression.ColumnValue)
 	tmpColVal.SetTupleIndex(0)
 	tmpColVal.SetColIndex(tableMetadata.Schema().GetColIndex(pred.LeftColumn))
-	expression_ = expression.NewComparison(tmpColVal, expression.NewConstantValue(testing_util.GetValue(pred.RightColumn), testing_util.GetValueType(pred.RightColumn)), pred.Operator, types.Boolean)
+	expr = expression.NewComparison(tmpColVal, expression.NewConstantValue(testing_util.GetValue(pred.RightColumn), testing_util.GetValueType(pred.RightColumn)), pred.Operator, types.Boolean)
 
-	seqPlan = plans.NewSeqScanPlanNode(c, outSchema, expression_, tableMetadata.OID())
+	seqPlan = plans.NewSeqScanPlanNode(c, outSchema, expr, tableMetadata.OID())
 	results = executionEngine.Execute(seqPlan, executorContext)
 
-	txn_mgr.Commit(nil, txn)
+	txnMgr.Commit(nil, txn)
 
 	testingpkg.Assert(t, types.NewInteger(77).CompareEquals(results[0].GetValue(outSchema, 0)), "value should be 777")
 }
@@ -1106,20 +1106,20 @@ func TestInsertUpdateMix(t *testing.T) {
 func TestAbortWIthDeleteUpdate(t *testing.T) {
 	diskManager := disk.NewDiskManagerTest()
 	defer diskManager.ShutDown()
-	log_mgr := recovery.NewLogManager(&diskManager)
-	bpm := buffer.NewBufferPoolManager(uint32(32), diskManager, log_mgr)
-	txn_mgr := access.NewTransactionManager(access.NewLockManager(access.REGULAR, access.DETECTION), log_mgr)
-	txn := txn_mgr.Begin(nil)
+	logMgr := recovery.NewLogManager(&diskManager)
+	bpm := buffer.NewBufferPoolManager(uint32(32), diskManager, logMgr)
+	txnMgr := access.NewTransactionManager(access.NewLockManager(access.REGULAR, access.DETECTION), logMgr)
+	txn := txnMgr.Begin(nil)
 	// TODO: (SDB) for avoiding crash
 	txn.SetIsRecoveryPhase(true)
 
-	c := catalog.BootstrapCatalog(bpm, log_mgr, access.NewLockManager(access.REGULAR, access.PREVENTION), txn)
+	c := catalog.BootstrapCatalog(bpm, logMgr, access.NewLockManager(access.REGULAR, access.PREVENTION), txn)
 
 	columnA := column.NewColumn("a", types.Integer, false, index_constants.IndexKindInvalid, types.PageID(-1), nil)
 	columnB := column.NewColumn("b", types.Varchar, false, index_constants.IndexKindInvalid, types.PageID(-1), nil)
-	schema_ := schema.NewSchema([]*column.Column{columnA, columnB})
+	sch := schema.NewSchema([]*column.Column{columnA, columnB})
 
-	tableMetadata := c.CreateTable("test_1", schema_, txn)
+	tableMetadata := c.CreateTable("test_1", sch, txn)
 
 	row1 := make([]types.Value, 0)
 	row1 = append(row1, types.NewInteger(20))
@@ -1144,10 +1144,10 @@ func TestAbortWIthDeleteUpdate(t *testing.T) {
 	executorContext := executors.NewExecutorContext(c, bpm, txn)
 	executionEngine.Execute(insertPlanNode, executorContext)
 
-	txn_mgr.Commit(nil, txn)
+	txnMgr.Commit(nil, txn)
 
 	fmt.Println("update and delete rows...")
-	txn = txn_mgr.Begin(nil)
+	txn = txnMgr.Begin(nil)
 	// TODO: (SDB) for avoiding crash...
 	txn.SetIsRecoveryPhase(true)
 	executorContext.SetTransaction(txn)
@@ -1161,9 +1161,9 @@ func TestAbortWIthDeleteUpdate(t *testing.T) {
 	tmpColVal := new(expression.ColumnValue)
 	tmpColVal.SetTupleIndex(0)
 	tmpColVal.SetColIndex(tableMetadata.Schema().GetColIndex(pred.LeftColumn))
-	expression_ := expression.NewComparison(tmpColVal, expression.NewConstantValue(testing_util.GetValue(pred.RightColumn), testing_util.GetValueType(pred.RightColumn)), pred.Operator, types.Boolean)
+	expr := expression.NewComparison(tmpColVal, expression.NewConstantValue(testing_util.GetValue(pred.RightColumn), testing_util.GetValueType(pred.RightColumn)), pred.Operator, types.Boolean)
 
-	seqScanPlan := plans.NewSeqScanPlanNode(c, tableMetadata.Schema(), expression_, tableMetadata.OID())
+	seqScanPlan := plans.NewSeqScanPlanNode(c, tableMetadata.Schema(), expr, tableMetadata.OID())
 	updatePlanNode := plans.NewUpdatePlanNode(row1, []int{0, 1}, seqScanPlan)
 	executionEngine.Execute(updatePlanNode, executorContext)
 
@@ -1172,13 +1172,13 @@ func TestAbortWIthDeleteUpdate(t *testing.T) {
 	tmpColVal = new(expression.ColumnValue)
 	tmpColVal.SetTupleIndex(0)
 	tmpColVal.SetColIndex(tableMetadata.Schema().GetColIndex(pred.LeftColumn))
-	expression_ = expression.NewComparison(tmpColVal, expression.NewConstantValue(testing_util.GetValue(pred.RightColumn), testing_util.GetValueType(pred.RightColumn)), pred.Operator, types.Boolean)
+	expr = expression.NewComparison(tmpColVal, expression.NewConstantValue(testing_util.GetValue(pred.RightColumn), testing_util.GetValueType(pred.RightColumn)), pred.Operator, types.Boolean)
 
-	childSeqScanP := plans.NewSeqScanPlanNode(c, tableMetadata.Schema(), expression_, tableMetadata.OID())
+	childSeqScanP := plans.NewSeqScanPlanNode(c, tableMetadata.Schema(), expr, tableMetadata.OID())
 	deletePlanNode := plans.NewDeletePlanNode(childSeqScanP)
 	executionEngine.Execute(deletePlanNode, executorContext)
 
-	log_mgr.DeactivateLogging()
+	logMgr.DeactivateLogging()
 
 	fmt.Println("select and check value before Abort...")
 
@@ -1190,9 +1190,9 @@ func TestAbortWIthDeleteUpdate(t *testing.T) {
 	tmpColVal = new(expression.ColumnValue)
 	tmpColVal.SetTupleIndex(0)
 	tmpColVal.SetColIndex(tableMetadata.Schema().GetColIndex(pred.LeftColumn))
-	expression_ = expression.NewComparison(tmpColVal, expression.NewConstantValue(testing_util.GetValue(pred.RightColumn), testing_util.GetValueType(pred.RightColumn)), pred.Operator, types.Boolean)
+	expr = expression.NewComparison(tmpColVal, expression.NewConstantValue(testing_util.GetValue(pred.RightColumn), testing_util.GetValueType(pred.RightColumn)), pred.Operator, types.Boolean)
 
-	seqPlan := plans.NewSeqScanPlanNode(c, outSchema, expression_, tableMetadata.OID())
+	seqPlan := plans.NewSeqScanPlanNode(c, outSchema, expr, tableMetadata.OID())
 	results := executionEngine.Execute(seqPlan, executorContext)
 
 	testingpkg.Assert(t, types.NewVarchar("updated").CompareEquals(results[0].GetValue(outSchema, 0)), "value should be 'updated'")
@@ -1205,20 +1205,20 @@ func TestAbortWIthDeleteUpdate(t *testing.T) {
 	tmpColVal = new(expression.ColumnValue)
 	tmpColVal.SetTupleIndex(0)
 	tmpColVal.SetColIndex(tableMetadata.Schema().GetColIndex(pred.LeftColumn))
-	expression_ = expression.NewComparison(tmpColVal, expression.NewConstantValue(testing_util.GetValue(pred.RightColumn), testing_util.GetValueType(pred.RightColumn)), pred.Operator, types.Boolean)
+	expr = expression.NewComparison(tmpColVal, expression.NewConstantValue(testing_util.GetValue(pred.RightColumn), testing_util.GetValueType(pred.RightColumn)), pred.Operator, types.Boolean)
 
-	seqPlan = plans.NewSeqScanPlanNode(c, outSchema, expression_, tableMetadata.OID())
+	seqPlan = plans.NewSeqScanPlanNode(c, outSchema, expr, tableMetadata.OID())
 	results = executionEngine.Execute(seqPlan, executorContext)
 
 	// TODO: this assertion is comment-outed due to temporal modification of testee for passing TestUniqSkipListPrallelTxnStrideInteger
 	//       this should be reverted at appropriate timing
 	testingpkg.Assert(t, len(results) == 0, "")
 
-	txn_mgr.Abort(c, txn)
+	txnMgr.Abort(c, txn)
 
 	fmt.Println("select and check value after Abort...")
 
-	txn = txn_mgr.Begin(nil)
+	txn = txnMgr.Begin(nil)
 	// TODO: (SDB) for avoiding crash...
 	txn.SetIsRecoveryPhase(true)
 	executorContext.SetTransaction(txn)
@@ -1231,9 +1231,9 @@ func TestAbortWIthDeleteUpdate(t *testing.T) {
 	tmpColVal = new(expression.ColumnValue)
 	tmpColVal.SetTupleIndex(0)
 	tmpColVal.SetColIndex(tableMetadata.Schema().GetColIndex(pred.LeftColumn))
-	expression_ = expression.NewComparison(tmpColVal, expression.NewConstantValue(testing_util.GetValue(pred.RightColumn), testing_util.GetValueType(pred.RightColumn)), pred.Operator, types.Boolean)
+	expr = expression.NewComparison(tmpColVal, expression.NewConstantValue(testing_util.GetValue(pred.RightColumn), testing_util.GetValueType(pred.RightColumn)), pred.Operator, types.Boolean)
 
-	seqPlan = plans.NewSeqScanPlanNode(c, outSchema, expression_, tableMetadata.OID())
+	seqPlan = plans.NewSeqScanPlanNode(c, outSchema, expr, tableMetadata.OID())
 	results = executionEngine.Execute(seqPlan, executorContext)
 
 	testingpkg.Assert(t, types.NewVarchar("foo").CompareEquals(results[0].GetValue(outSchema, 0)), "value should be 'foo'")
@@ -1246,9 +1246,9 @@ func TestAbortWIthDeleteUpdate(t *testing.T) {
 	tmpColVal = new(expression.ColumnValue)
 	tmpColVal.SetTupleIndex(0)
 	tmpColVal.SetColIndex(tableMetadata.Schema().GetColIndex(pred.LeftColumn))
-	expression_ = expression.NewComparison(tmpColVal, expression.NewConstantValue(testing_util.GetValue(pred.RightColumn), testing_util.GetValueType(pred.RightColumn)), pred.Operator, types.Boolean)
+	expr = expression.NewComparison(tmpColVal, expression.NewConstantValue(testing_util.GetValue(pred.RightColumn), testing_util.GetValueType(pred.RightColumn)), pred.Operator, types.Boolean)
 
-	seqPlan = plans.NewSeqScanPlanNode(c, outSchema, expression_, tableMetadata.OID())
+	seqPlan = plans.NewSeqScanPlanNode(c, outSchema, expr, tableMetadata.OID())
 	results = executionEngine.Execute(seqPlan, executorContext)
 
 	testingpkg.Assert(t, len(results) == 1, "")
@@ -1257,26 +1257,26 @@ func TestAbortWIthDeleteUpdate(t *testing.T) {
 func TestSimpleHashJoin(t *testing.T) {
 	diskManager := disk.NewDiskManagerTest()
 	defer diskManager.ShutDown()
-	log_mgr := recovery.NewLogManager(&diskManager)
-	bpm := buffer.NewBufferPoolManager(uint32(32), diskManager, log_mgr)
-	txn_mgr := access.NewTransactionManager(access.NewLockManager(access.REGULAR, access.DETECTION), log_mgr)
-	txn := txn_mgr.Begin(nil)
-	c := catalog.BootstrapCatalog(bpm, log_mgr, access.NewLockManager(access.REGULAR, access.PREVENTION), txn)
+	logMgr := recovery.NewLogManager(&diskManager)
+	bpm := buffer.NewBufferPoolManager(uint32(32), diskManager, logMgr)
+	txnMgr := access.NewTransactionManager(access.NewLockManager(access.REGULAR, access.DETECTION), logMgr)
+	txn := txnMgr.Begin(nil)
+	c := catalog.BootstrapCatalog(bpm, logMgr, access.NewLockManager(access.REGULAR, access.PREVENTION), txn)
 	executorContext := executors.NewExecutorContext(c, bpm, txn)
 
 	columnA := column.NewColumn("colA", types.Integer, false, index_constants.IndexKindInvalid, types.PageID(-1), nil)
 	columnB := column.NewColumn("colB", types.Integer, false, index_constants.IndexKindInvalid, types.PageID(-1), nil)
 	columnC := column.NewColumn("colC", types.Integer, false, index_constants.IndexKindInvalid, types.PageID(-1), nil)
 	columnD := column.NewColumn("colD", types.Integer, false, index_constants.IndexKindInvalid, types.PageID(-1), nil)
-	schema_ := schema.NewSchema([]*column.Column{columnA, columnB, columnC, columnD})
-	tableMetadata1 := c.CreateTable("test_1", schema_, txn)
+	sch := schema.NewSchema([]*column.Column{columnA, columnB, columnC, columnD})
+	tableMetadata1 := c.CreateTable("test_1", sch, txn)
 
 	column1 := column.NewColumn("col1", types.Integer, false, index_constants.IndexKindInvalid, types.PageID(-1), nil)
 	column2 := column.NewColumn("col2", types.Integer, false, index_constants.IndexKindInvalid, types.PageID(-1), nil)
 	column3 := column.NewColumn("col3", types.Integer, false, index_constants.IndexKindInvalid, types.PageID(-1), nil)
 	column4 := column.NewColumn("col3", types.Integer, false, index_constants.IndexKindInvalid, types.PageID(-1), nil)
-	schema_ = schema.NewSchema([]*column.Column{column1, column2, column3, column4})
-	tableMetadata2 := c.CreateTable("test_2", schema_, txn)
+	sch = schema.NewSchema([]*column.Column{column1, column2, column3, column4})
+	tableMetadata2 := c.CreateTable("test_2", sch, txn)
 
 	tableMeta1 := &testing_tbl_gen.TableInsertMeta{"test_1",
 		100,
@@ -1297,88 +1297,88 @@ func TestSimpleHashJoin(t *testing.T) {
 	testing_tbl_gen.FillTable(tableMetadata1, tableMeta1, txn)
 	testing_tbl_gen.FillTable(tableMetadata2, tableMeta2, txn)
 
-	txn_mgr.Commit(nil, txn)
+	txnMgr.Commit(nil, txn)
 
-	var scan_plan1 plans.Plan
-	var out_schema1 *schema.Schema
+	var scanPlan1 plans.Plan
+	var outSchema1 *schema.Schema
 	{
-		table_info := executorContext.GetCatalog().GetTableByName("test_1")
+		tableInfo := executorContext.GetCatalog().GetTableByName("test_1")
 		colA := column.NewColumn("test_1.colA", types.Integer, false, index_constants.IndexKindInvalid, types.PageID(-1), nil)
 		colB := column.NewColumn("test_1.colB", types.Integer, false, index_constants.IndexKindInvalid, types.PageID(-1), nil)
-		out_schema1 = schema.NewSchema([]*column.Column{colA, colB})
-		scan_plan1 = plans.NewSeqScanPlanNode(c, out_schema1, nil, table_info.OID())
+		outSchema1 = schema.NewSchema([]*column.Column{colA, colB})
+		scanPlan1 = plans.NewSeqScanPlanNode(c, outSchema1, nil, tableInfo.OID())
 	}
-	var scan_plan2 plans.Plan
-	var out_schema2 *schema.Schema
+	var scanPlan2 plans.Plan
+	var outSchema2 *schema.Schema
 	{
-		table_info := executorContext.GetCatalog().GetTableByName("test_2")
+		tableInfo := executorContext.GetCatalog().GetTableByName("test_2")
 		col1 := column.NewColumn("test_2.col1", types.Integer, false, index_constants.IndexKindInvalid, types.PageID(-1), nil)
 		col2 := column.NewColumn("test_2.col2", types.Integer, false, index_constants.IndexKindInvalid, types.PageID(-1), nil)
-		out_schema2 = schema.NewSchema([]*column.Column{col1, col2})
-		scan_plan2 = plans.NewSeqScanPlanNode(c, out_schema2, nil, table_info.OID())
+		outSchema2 = schema.NewSchema([]*column.Column{col1, col2})
+		scanPlan2 = plans.NewSeqScanPlanNode(c, outSchema2, nil, tableInfo.OID())
 	}
-	var join_plan *plans.HashJoinPlanNode
-	var out_final *schema.Schema
+	var joinPlan *plans.HashJoinPlanNode
+	var outFinal *schema.Schema
 	{
 		// colA and colB have a tuple index of 0 because they are the left side of the join
 		//var allocated_exprs []*expression.ColumnValue
-		colA := expression.MakeColumnValueExpression(out_schema1, 0, "test_1.colA")
-		colA_c := column.NewColumn("colA", types.Integer, false, index_constants.IndexKindInvalid, types.PageID(-1), nil)
-		colA_c.SetIsLeft(true)
-		colB_c := column.NewColumn("colB", types.Integer, false, index_constants.IndexKindInvalid, types.PageID(-1), nil)
-		colB_c.SetIsLeft(true)
+		colA := expression.MakeColumnValueExpression(outSchema1, 0, "test_1.colA")
+		colAC := column.NewColumn("colA", types.Integer, false, index_constants.IndexKindInvalid, types.PageID(-1), nil)
+		colAC.SetIsLeft(true)
+		colBC := column.NewColumn("colB", types.Integer, false, index_constants.IndexKindInvalid, types.PageID(-1), nil)
+		colBC.SetIsLeft(true)
 		// col1 and col2 have a tuple index of 1 because they are the right side of the join
-		col1 := expression.MakeColumnValueExpression(out_schema2, 1, "test_2.col1")
-		col1_c := column.NewColumn("col1", types.Integer, false, index_constants.IndexKindInvalid, types.PageID(-1), nil)
-		col1_c.SetIsLeft(false)
-		col2_c := column.NewColumn("col2", types.Integer, false, index_constants.IndexKindInvalid, types.PageID(-1), nil)
-		col2_c.SetIsLeft(false)
-		var left_keys []expression.Expression
-		left_keys = append(left_keys, colA)
-		var right_keys []expression.Expression
-		right_keys = append(right_keys, col1)
+		col1 := expression.MakeColumnValueExpression(outSchema2, 1, "test_2.col1")
+		col1C := column.NewColumn("col1", types.Integer, false, index_constants.IndexKindInvalid, types.PageID(-1), nil)
+		col1C.SetIsLeft(false)
+		col2C := column.NewColumn("col2", types.Integer, false, index_constants.IndexKindInvalid, types.PageID(-1), nil)
+		col2C.SetIsLeft(false)
+		var leftKeys []expression.Expression
+		leftKeys = append(leftKeys, colA)
+		var rightKeys []expression.Expression
+		rightKeys = append(rightKeys, col1)
 		predicate := testing_tbl_gen.MakeComparisonExpression(colA, col1, expression.Equal)
-		out_final = schema.NewSchema([]*column.Column{colA_c, colB_c, col1_c, col2_c})
-		plans_ := []plans.Plan{scan_plan1, scan_plan2}
-		join_plan = plans.NewHashJoinPlanNode(out_final, plans_, predicate,
-			left_keys, right_keys)
+		outFinal = schema.NewSchema([]*column.Column{colAC, colBC, col1C, col2C})
+		plansList := []plans.Plan{scanPlan1, scanPlan2}
+		joinPlan = plans.NewHashJoinPlanNode(outFinal, plansList, predicate,
+			leftKeys, rightKeys)
 	}
 
 	executionEngine := &executors.ExecutionEngine{}
-	results := executionEngine.Execute(join_plan, executorContext)
+	results := executionEngine.Execute(joinPlan, executorContext)
 
-	num_tuples := len(results)
-	testingpkg.Assert(t, num_tuples == 100, "")
+	numTuples := len(results)
+	testingpkg.Assert(t, numTuples == 100, "")
 	for ii := 0; ii < 20; ii++ {
 		fmt.Println(results[ii])
 	}
 	fmt.Println("...")
-	fmt.Printf("results length = %d\n", num_tuples)
+	fmt.Printf("results length = %d\n", numTuples)
 }
 
 func TestSimpleNestedLoopJoin(t *testing.T) {
 	diskManager := disk.NewDiskManagerTest()
 	defer diskManager.ShutDown()
-	log_mgr := recovery.NewLogManager(&diskManager)
-	bpm := buffer.NewBufferPoolManager(uint32(32), diskManager, log_mgr)
-	txn_mgr := access.NewTransactionManager(access.NewLockManager(access.REGULAR, access.DETECTION), log_mgr)
-	txn := txn_mgr.Begin(nil)
-	c := catalog.BootstrapCatalog(bpm, log_mgr, access.NewLockManager(access.REGULAR, access.PREVENTION), txn)
+	logMgr := recovery.NewLogManager(&diskManager)
+	bpm := buffer.NewBufferPoolManager(uint32(32), diskManager, logMgr)
+	txnMgr := access.NewTransactionManager(access.NewLockManager(access.REGULAR, access.DETECTION), logMgr)
+	txn := txnMgr.Begin(nil)
+	c := catalog.BootstrapCatalog(bpm, logMgr, access.NewLockManager(access.REGULAR, access.PREVENTION), txn)
 	executorContext := executors.NewExecutorContext(c, bpm, txn)
 
 	columnA := column.NewColumn("colA", types.Integer, false, index_constants.IndexKindInvalid, types.PageID(-1), nil)
 	columnB := column.NewColumn("colB", types.Integer, false, index_constants.IndexKindInvalid, types.PageID(-1), nil)
 	columnC := column.NewColumn("colC", types.Integer, false, index_constants.IndexKindInvalid, types.PageID(-1), nil)
 	columnD := column.NewColumn("colD", types.Integer, false, index_constants.IndexKindInvalid, types.PageID(-1), nil)
-	schema_ := schema.NewSchema([]*column.Column{columnA, columnB, columnC, columnD})
-	tableMetadata1 := c.CreateTable("test_1", schema_, txn)
+	sch := schema.NewSchema([]*column.Column{columnA, columnB, columnC, columnD})
+	tableMetadata1 := c.CreateTable("test_1", sch, txn)
 
 	column1 := column.NewColumn("col1", types.Integer, false, index_constants.IndexKindInvalid, types.PageID(-1), nil)
 	column2 := column.NewColumn("col2", types.Integer, false, index_constants.IndexKindInvalid, types.PageID(-1), nil)
 	column3 := column.NewColumn("col3", types.Integer, false, index_constants.IndexKindInvalid, types.PageID(-1), nil)
 	column4 := column.NewColumn("col4", types.Integer, false, index_constants.IndexKindInvalid, types.PageID(-1), nil)
-	schema_ = schema.NewSchema([]*column.Column{column1, column2, column3, column4})
-	tableMetadata2 := c.CreateTable("test_2", schema_, txn)
+	sch = schema.NewSchema([]*column.Column{column1, column2, column3, column4})
+	tableMetadata2 := c.CreateTable("test_2", sch, txn)
 
 	tableMeta1 := &testing_tbl_gen.TableInsertMeta{"test_1",
 		100,
@@ -1399,63 +1399,63 @@ func TestSimpleNestedLoopJoin(t *testing.T) {
 	testing_tbl_gen.FillTable(tableMetadata1, tableMeta1, txn)
 	testing_tbl_gen.FillTable(tableMetadata2, tableMeta2, txn)
 
-	txn_mgr.Commit(nil, txn)
+	txnMgr.Commit(nil, txn)
 
-	var scan_plan1 plans.Plan
-	var out_schema1 *schema.Schema
+	var scanPlan1 plans.Plan
+	var outSchema1 *schema.Schema
 	{
-		table_info := executorContext.GetCatalog().GetTableByName("test_1")
+		tableInfo := executorContext.GetCatalog().GetTableByName("test_1")
 		colA := column.NewColumn("test_1.colA", types.Integer, false, index_constants.IndexKindInvalid, types.PageID(-1), nil)
 		colB := column.NewColumn("test_1.colB", types.Integer, false, index_constants.IndexKindInvalid, types.PageID(-1), nil)
-		out_schema1 = schema.NewSchema([]*column.Column{colA, colB})
-		scan_plan1 = plans.NewSeqScanPlanNode(c, out_schema1, nil, table_info.OID())
+		outSchema1 = schema.NewSchema([]*column.Column{colA, colB})
+		scanPlan1 = plans.NewSeqScanPlanNode(c, outSchema1, nil, tableInfo.OID())
 	}
-	var scan_plan2 plans.Plan
-	var out_schema2 *schema.Schema
+	var scanPlan2 plans.Plan
+	var outSchema2 *schema.Schema
 	{
-		table_info := executorContext.GetCatalog().GetTableByName("test_2")
+		tableInfo := executorContext.GetCatalog().GetTableByName("test_2")
 		col1 := column.NewColumn("test_2.col1", types.Integer, false, index_constants.IndexKindInvalid, types.PageID(-1), nil)
 		col2 := column.NewColumn("test_2.col2", types.Integer, false, index_constants.IndexKindInvalid, types.PageID(-1), nil)
-		out_schema2 = schema.NewSchema([]*column.Column{col1, col2})
-		scan_plan2 = plans.NewSeqScanPlanNode(c, out_schema2, nil, table_info.OID())
+		outSchema2 = schema.NewSchema([]*column.Column{col1, col2})
+		scanPlan2 = plans.NewSeqScanPlanNode(c, outSchema2, nil, tableInfo.OID())
 	}
-	join_plan := plans.NewNestedLoopJoinPlanNode([]plans.Plan{scan_plan1, scan_plan2})
+	joinPlan := plans.NewNestedLoopJoinPlanNode([]plans.Plan{scanPlan1, scanPlan2})
 
 	executionEngine := &executors.ExecutionEngine{}
-	results := executionEngine.Execute(join_plan, executorContext)
+	results := executionEngine.Execute(joinPlan, executorContext)
 
-	num_tuples := len(results)
-	testingpkg.Assert(t, num_tuples == 100000, "")
+	numTuples := len(results)
+	testingpkg.Assert(t, numTuples == 100000, "")
 	for ii := 0; ii < 20; ii++ {
 		fmt.Println(results[ii])
 	}
 	fmt.Println("...")
-	fmt.Printf("results length = %d\n", num_tuples)
+	fmt.Printf("results length = %d\n", numTuples)
 }
 
 func TestSimpleIndexJoin(t *testing.T) {
 	diskManager := disk.NewDiskManagerTest()
 	defer diskManager.ShutDown()
-	log_mgr := recovery.NewLogManager(&diskManager)
-	bpm := buffer.NewBufferPoolManager(uint32(32), diskManager, log_mgr)
-	txn_mgr := access.NewTransactionManager(access.NewLockManager(access.REGULAR, access.DETECTION), log_mgr)
-	txn := txn_mgr.Begin(nil)
-	c := catalog.BootstrapCatalog(bpm, log_mgr, access.NewLockManager(access.REGULAR, access.PREVENTION), txn)
+	logMgr := recovery.NewLogManager(&diskManager)
+	bpm := buffer.NewBufferPoolManager(uint32(32), diskManager, logMgr)
+	txnMgr := access.NewTransactionManager(access.NewLockManager(access.REGULAR, access.DETECTION), logMgr)
+	txn := txnMgr.Begin(nil)
+	c := catalog.BootstrapCatalog(bpm, logMgr, access.NewLockManager(access.REGULAR, access.PREVENTION), txn)
 	executorContext := executors.NewExecutorContext(c, bpm, txn)
 
 	columnA := column.NewColumn("colA", types.Integer, false, index_constants.IndexKindInvalid, types.PageID(-1), nil)
 	columnB := column.NewColumn("colB", types.Integer, false, index_constants.IndexKindInvalid, types.PageID(-1), nil)
 	columnC := column.NewColumn("colC", types.Integer, false, index_constants.IndexKindInvalid, types.PageID(-1), nil)
 	columnD := column.NewColumn("colD", types.Integer, false, index_constants.IndexKindInvalid, types.PageID(-1), nil)
-	schema_ := schema.NewSchema([]*column.Column{columnA, columnB, columnC, columnD})
-	tableMetadata1 := c.CreateTable("test_1", schema_, txn)
+	sch := schema.NewSchema([]*column.Column{columnA, columnB, columnC, columnD})
+	tableMetadata1 := c.CreateTable("test_1", sch, txn)
 
 	column1 := column.NewColumn("col1", types.Integer, true, index_constants.IndexKindSkipList, types.PageID(-1), nil)
 	column2 := column.NewColumn("col2", types.Integer, true, index_constants.IndexKindSkipList, types.PageID(-1), nil)
 	column3 := column.NewColumn("col3", types.Integer, false, index_constants.IndexKindInvalid, types.PageID(-1), nil)
 	column4 := column.NewColumn("col4", types.Integer, false, index_constants.IndexKindInvalid, types.PageID(-1), nil)
-	schema_ = schema.NewSchema([]*column.Column{column1, column2, column3, column4})
-	tableMetadata2 := c.CreateTable("test_2", schema_, txn)
+	sch = schema.NewSchema([]*column.Column{column1, column2, column3, column4})
+	tableMetadata2 := c.CreateTable("test_2", sch, txn)
 
 	tableMeta1 := &testing_tbl_gen.TableInsertMeta{"test_1",
 		100,
@@ -1476,68 +1476,68 @@ func TestSimpleIndexJoin(t *testing.T) {
 	testing_tbl_gen.FillTable(tableMetadata1, tableMeta1, txn)
 	testing_tbl_gen.FillTable(tableMetadata2, tableMeta2, txn)
 
-	txn_mgr.Commit(nil, txn)
+	txnMgr.Commit(nil, txn)
 
-	var scan_plan1 plans.Plan
-	var out_schema1 *schema.Schema
+	var scanPlan1 plans.Plan
+	var outSchema1 *schema.Schema
 	{
-		table_info := executorContext.GetCatalog().GetTableByName("test_1")
+		tableInfo := executorContext.GetCatalog().GetTableByName("test_1")
 		colA := column.NewColumn("test_1.colA", types.Integer, false, index_constants.IndexKindInvalid, types.PageID(-1), nil)
 		colB := column.NewColumn("test_1.colB", types.Integer, false, index_constants.IndexKindInvalid, types.PageID(-1), nil)
-		out_schema1 = schema.NewSchema([]*column.Column{colA, colB})
-		scan_plan1 = plans.NewSeqScanPlanNode(c, out_schema1, nil, table_info.OID())
+		outSchema1 = schema.NewSchema([]*column.Column{colA, colB})
+		scanPlan1 = plans.NewSeqScanPlanNode(c, outSchema1, nil, tableInfo.OID())
 	}
-	var scan_plan2 plans.Plan
-	var out_schema2 *schema.Schema
+	var scanPlan2 plans.Plan
+	var outSchema2 *schema.Schema
 	{
-		table_info := executorContext.GetCatalog().GetTableByName("test_2")
+		tableInfo := executorContext.GetCatalog().GetTableByName("test_2")
 		col1 := column.NewColumn("test_2.col1", types.Integer, false, index_constants.IndexKindInvalid, types.PageID(-1), nil)
 		col2 := column.NewColumn("test_2.col2", types.Integer, false, index_constants.IndexKindInvalid, types.PageID(-1), nil)
-		out_schema2 = schema.NewSchema([]*column.Column{col1, col2})
-		scan_plan2 = plans.NewSeqScanPlanNode(c, out_schema2, nil, table_info.OID())
+		outSchema2 = schema.NewSchema([]*column.Column{col1, col2})
+		scanPlan2 = plans.NewSeqScanPlanNode(c, outSchema2, nil, tableInfo.OID())
 	}
 
-	var join_plan *plans.IndexJoinPlanNode
+	var joinPlan *plans.IndexJoinPlanNode
 	{
 		// colA and colB have a tuple index of 0 because they are the left side of the join
-		colA := expression.MakeColumnValueExpression(out_schema1, 0, "test_1.colA")
+		colA := expression.MakeColumnValueExpression(outSchema1, 0, "test_1.colA")
 		// col1 and col2 have a tuple index of 1 because they are the right side of the join
-		col2 := expression.MakeColumnValueExpression(out_schema2, 1, "test_2.col2")
-		var left_keys []expression.Expression
-		left_keys = append(left_keys, colA)
-		var right_keys []expression.Expression
-		right_keys = append(right_keys, col2)
-		join_plan = plans.NewIndexJoinPlanNode(c, scan_plan1, left_keys, scan_plan2.OutputSchema(), scan_plan2.GetTableOID(), right_keys)
+		col2 := expression.MakeColumnValueExpression(outSchema2, 1, "test_2.col2")
+		var leftKeys []expression.Expression
+		leftKeys = append(leftKeys, colA)
+		var rightKeys []expression.Expression
+		rightKeys = append(rightKeys, col2)
+		joinPlan = plans.NewIndexJoinPlanNode(c, scanPlan1, leftKeys, scanPlan2.OutputSchema(), scanPlan2.GetTableOID(), rightKeys)
 	}
 
 	executionEngine := &executors.ExecutionEngine{}
-	results := executionEngine.Execute(join_plan, executorContext)
+	results := executionEngine.Execute(joinPlan, executorContext)
 
-	num_tuples := len(results)
-	testingpkg.Assert(t, num_tuples == 1000, "len(results) != 1000. Got %d", num_tuples)
+	numTuples := len(results)
+	testingpkg.Assert(t, numTuples == 1000, "len(results) != 1000. Got %d", numTuples)
 	for ii := 0; ii < 20; ii++ {
 		fmt.Println(results[ii])
 	}
 	fmt.Println("...")
-	fmt.Printf("results length = %d\n", num_tuples)
+	fmt.Printf("results length = %d\n", numTuples)
 }
 
 func TestInsertAndSeqScanWithComplexPredicateComparison(t *testing.T) {
 	diskManager := disk.NewDiskManagerTest()
 	defer diskManager.ShutDown()
-	log_mgr := recovery.NewLogManager(&diskManager)
-	bpm := buffer.NewBufferPoolManager(uint32(32), diskManager, log_mgr)
-	txn_mgr := access.NewTransactionManager(access.NewLockManager(access.REGULAR, access.DETECTION), log_mgr)
-	txn := txn_mgr.Begin(nil)
+	logMgr := recovery.NewLogManager(&diskManager)
+	bpm := buffer.NewBufferPoolManager(uint32(32), diskManager, logMgr)
+	txnMgr := access.NewTransactionManager(access.NewLockManager(access.REGULAR, access.DETECTION), logMgr)
+	txn := txnMgr.Begin(nil)
 
-	c := catalog.BootstrapCatalog(bpm, log_mgr, access.NewLockManager(access.REGULAR, access.PREVENTION), txn)
+	c := catalog.BootstrapCatalog(bpm, logMgr, access.NewLockManager(access.REGULAR, access.PREVENTION), txn)
 
 	columnA := column.NewColumn("a", types.Integer, false, index_constants.IndexKindInvalid, types.PageID(-1), nil)
 	columnB := column.NewColumn("b", types.Integer, false, index_constants.IndexKindInvalid, types.PageID(-1), nil)
 	columnC := column.NewColumn("c", types.Varchar, false, index_constants.IndexKindInvalid, types.PageID(-1), nil)
-	schema_ := schema.NewSchema([]*column.Column{columnA, columnB, columnC})
+	sch := schema.NewSchema([]*column.Column{columnA, columnB, columnC})
 
-	tableMetadata := c.CreateTable("test_1", schema_, txn)
+	tableMetadata := c.CreateTable("test_1", sch, txn)
 
 	row1 := make([]types.Value, 0)
 	row1 = append(row1, types.NewInteger(20))
@@ -1561,7 +1561,7 @@ func TestInsertAndSeqScanWithComplexPredicateComparison(t *testing.T) {
 
 	bpm.FlushAllPages()
 
-	txn_mgr.Commit(nil, txn)
+	txnMgr.Commit(nil, txn)
 
 	cases := []testing_pattern_fw.SeqScanTestCase{{
 		"select a ... WHERE b = 55",
@@ -1653,7 +1653,7 @@ func TestInsertAndSeqScanWithComplexPredicateComparison(t *testing.T) {
 	}
 }
 
-func rowInsertTransaction(t *testing.T, shi *samehada.SamehadaInstance, c *catalog.Catalog, tm *catalog.TableMetadata, master_ch chan int32) {
+func rowInsertTransaction(t *testing.T, shi *samehada.SamehadaInstance, c *catalog.Catalog, tm *catalog.TableMetadata, masterCh chan int32) {
 	txn := shi.GetTransactionManager().Begin(nil)
 
 	row1 := make([]types.Value, 0)
@@ -1693,10 +1693,10 @@ func rowInsertTransaction(t *testing.T, shi *samehada.SamehadaInstance, c *catal
 	executionEngine.Execute(insertPlanNode, executorContext)
 
 	ret := handleFnishTxn(c, shi.GetTransactionManager(), txn)
-	master_ch <- ret
+	masterCh <- ret
 }
 
-func deleteAllRowTransaction(t *testing.T, shi *samehada.SamehadaInstance, c *catalog.Catalog, tm *catalog.TableMetadata, master_ch chan int32) {
+func deleteAllRowTransaction(t *testing.T, shi *samehada.SamehadaInstance, c *catalog.Catalog, tm *catalog.TableMetadata, masterCh chan int32) {
 	txn := shi.GetTransactionManager().Begin(nil)
 	childSeqScanPlan := plans.NewSeqScanPlanNode(c, tm.Schema(), nil, tm.OID())
 	deletePlan := plans.NewDeletePlanNode(childSeqScanPlan)
@@ -1706,10 +1706,10 @@ func deleteAllRowTransaction(t *testing.T, shi *samehada.SamehadaInstance, c *ca
 	executionEngine.Execute(deletePlan, executorContext)
 
 	ret := handleFnishTxn(c, shi.GetTransactionManager(), txn)
-	master_ch <- ret
+	masterCh <- ret
 }
 
-func selectAllRowTransaction(t *testing.T, shi *samehada.SamehadaInstance, c *catalog.Catalog, tm *catalog.TableMetadata, master_ch chan int32) {
+func selectAllRowTransaction(t *testing.T, shi *samehada.SamehadaInstance, c *catalog.Catalog, tm *catalog.TableMetadata, masterCh chan int32) {
 	txn := shi.GetTransactionManager().Begin(nil)
 
 	outColumnA := column.NewColumn("a", types.Integer, false, index_constants.IndexKindInvalid, types.PageID(-1), nil)
@@ -1722,20 +1722,20 @@ func selectAllRowTransaction(t *testing.T, shi *samehada.SamehadaInstance, c *ca
 	executionEngine.Execute(seqPlan, executorContext)
 
 	ret := handleFnishTxn(c, shi.GetTransactionManager(), txn)
-	master_ch <- ret
+	masterCh <- ret
 }
 
-func handleFnishTxn(catalog_ *catalog.Catalog, txn_mgr *access.TransactionManager, txn *access.Transaction) int32 {
+func handleFnishTxn(cat *catalog.Catalog, txnMgr *access.TransactionManager, txn *access.Transaction) int32 {
 	// fmt.Println(txn.GetState())
 	if txn.GetState() == access.ABORTED {
 		// fmt.Println(txn.GetSharedLockSet())
 		// fmt.Println(txn.GetExclusiveLockSet())
-		txn_mgr.Abort(catalog_, txn)
+		txnMgr.Abort(cat, txn)
 		return 0
 	} else {
 		// fmt.Println(txn.GetSharedLockSet())
 		// fmt.Println(txn.GetExclusiveLockSet())
-		txn_mgr.Commit(nil, txn)
+		txnMgr.Commit(nil, txn)
 		return 1
 	}
 }
@@ -1752,62 +1752,62 @@ func TestSimpleAggregation(t *testing.T) {
 	testingpkg.Assert(t, shi.GetLogManager().IsEnabledLogging(), "")
 	fmt.Println("System logging is active.")
 
-	txn_mgr := shi.GetTransactionManager()
-	txn := txn_mgr.Begin(nil)
+	txnMgr := shi.GetTransactionManager()
+	txn := txnMgr.Begin(nil)
 
 	c := catalog.BootstrapCatalog(shi.GetBufferPoolManager(), shi.GetLogManager(), shi.GetLockManager(), txn)
-	exec_ctx := executors.NewExecutorContext(c, shi.GetBufferPoolManager(), txn)
+	execCtx := executors.NewExecutorContext(c, shi.GetBufferPoolManager(), txn)
 
-	table_info, _ := testing_tbl_gen.GenerateTestTabls(c, exec_ctx, txn)
+	tableInfo, _ := testing_tbl_gen.GenerateTestTabls(c, execCtx, txn)
 
-	var scan_plan *plans.SeqScanPlanNode
-	var scan_schema *schema.Schema
+	var scanPlan *plans.SeqScanPlanNode
+	var scanSchema *schema.Schema
 	{
-		schema_ := table_info.Schema()
-		colA := expression.MakeColumnValueExpression(schema_, 0, "test_1.colA").(*expression.ColumnValue)
-		scan_schema = testing_tbl_gen.MakeOutputSchema([]testing_tbl_gen.MakeSchemaMeta{{"test_1.colA", *colA}})
-		scan_plan = plans.NewSeqScanPlanNode(c, scan_schema, nil, table_info.OID()).(*plans.SeqScanPlanNode)
+		sch := tableInfo.Schema()
+		colA := expression.MakeColumnValueExpression(sch, 0, "test_1.colA").(*expression.ColumnValue)
+		scanSchema = testing_tbl_gen.MakeOutputSchema([]testing_tbl_gen.MakeSchemaMeta{{"test_1.colA", *colA}})
+		scanPlan = plans.NewSeqScanPlanNode(c, scanSchema, nil, tableInfo.OID()).(*plans.SeqScanPlanNode)
 	}
 
-	var agg_plan *plans.AggregationPlanNode
-	var agg_schema *schema.Schema
+	var aggPlan *plans.AggregationPlanNode
+	var aggSchema *schema.Schema
 	{
-		colA := expression.MakeColumnValueExpression(scan_schema, 0, "test_1.colA")
+		colA := expression.MakeColumnValueExpression(scanSchema, 0, "test_1.colA")
 		countA := *testing_tbl_gen.MakeAggregateValueExpression(false, 0).(*expression.AggregateValueExpression)
 		sumA := *testing_tbl_gen.MakeAggregateValueExpression(false, 1).(*expression.AggregateValueExpression)
 		minA := *testing_tbl_gen.MakeAggregateValueExpression(false, 2).(*expression.AggregateValueExpression)
 		maxA := *testing_tbl_gen.MakeAggregateValueExpression(false, 3).(*expression.AggregateValueExpression)
 
-		agg_schema = testing_tbl_gen.MakeOutputSchemaAgg([]testing_tbl_gen.MakeSchemaMetaAgg{{"countA", countA}, {"sumA", sumA}, {"minA", minA}, {"maxA", maxA}})
-		agg_plan = plans.NewAggregationPlanNode(
-			agg_schema, scan_plan, nil, []expression.Expression{},
+		aggSchema = testing_tbl_gen.MakeOutputSchemaAgg([]testing_tbl_gen.MakeSchemaMetaAgg{{"countA", countA}, {"sumA", sumA}, {"minA", minA}, {"maxA", maxA}})
+		aggPlan = plans.NewAggregationPlanNode(
+			aggSchema, scanPlan, nil, []expression.Expression{},
 			[]expression.Expression{colA, colA, colA, colA},
-			[]plans.AggregationType{plans.COUNT_AGGREGATE, plans.SUM_AGGREGATE,
-				plans.MIN_AGGREGATE, plans.MAX_AGGREGATE})
+			[]plans.AggregationType{plans.CountAggregate, plans.SumAggregate,
+				plans.MinAggregate, plans.MaxAggregate})
 	}
 
 	executionEngine := &executors.ExecutionEngine{}
-	executor := executionEngine.CreateExecutor(agg_plan, exec_ctx)
+	executor := executionEngine.CreateExecutor(aggPlan, execCtx)
 	executor.Init()
 	tuple_, _, err := executor.Next()
 	testingpkg.Assert(t, tuple_ != nil && err == nil, "first call of AggregationExecutor.Next() failed")
-	countA_val := tuple_.GetValue(agg_schema, agg_schema.GetColIndex("countA")).ToInteger()
-	sumA_val := tuple_.GetValue(agg_schema, agg_schema.GetColIndex("sumA")).ToInteger()
-	minA_val := tuple_.GetValue(agg_schema, agg_schema.GetColIndex("minA")).ToInteger()
-	maxA_val := tuple_.GetValue(agg_schema, agg_schema.GetColIndex("maxA")).ToInteger()
+	countAVal := tuple_.GetValue(aggSchema, aggSchema.GetColIndex("countA")).ToInteger()
+	sumAVal := tuple_.GetValue(aggSchema, aggSchema.GetColIndex("sumA")).ToInteger()
+	minAVal := tuple_.GetValue(aggSchema, aggSchema.GetColIndex("minA")).ToInteger()
+	maxAVal := tuple_.GetValue(aggSchema, aggSchema.GetColIndex("maxA")).ToInteger()
 	// Should count all tuples
-	fmt.Printf("%v %v %v %v\n", countA_val, sumA_val, minA_val, maxA_val)
-	testingpkg.Assert(t, countA_val == int32(testing_tbl_gen.TEST1_SIZE), "countA_val is not expected value.")
+	fmt.Printf("%v %v %v %v\n", countAVal, sumAVal, minAVal, maxAVal)
+	testingpkg.Assert(t, countAVal == int32(testing_tbl_gen.TEST1_SIZE), "countAVal is not expected value.")
 	// Should sum from 0 to TEST1_SIZE
-	testingpkg.Assert(t, sumA_val == int32(testing_tbl_gen.TEST1_SIZE*(testing_tbl_gen.TEST1_SIZE-1)/2), "sumA_val is not expected value.")
+	testingpkg.Assert(t, sumAVal == int32(testing_tbl_gen.TEST1_SIZE*(testing_tbl_gen.TEST1_SIZE-1)/2), "sumAVal is not expected value.")
 	// Minimum should be 0
-	testingpkg.Assert(t, minA_val == int32(0), "minA_val is not expected value.")
+	testingpkg.Assert(t, minAVal == int32(0), "minAVal is not expected value.")
 	// Maximum should be TEST1_SIZE - 1
-	testingpkg.Assert(t, maxA_val == int32(testing_tbl_gen.TEST1_SIZE-1), "maxA_val is not expected value.")
+	testingpkg.Assert(t, maxAVal == int32(testing_tbl_gen.TEST1_SIZE-1), "maxAVal is not expected value.")
 	tuple_, done, err := executor.Next()
 	testingpkg.Assert(t, tuple_ == nil && done == true && err == nil, "second call of AggregationExecutor::Next() failed")
 
-	txn_mgr.Commit(nil, txn)
+	txnMgr.Commit(nil, txn)
 	shi.Shutdown(samehada.ShutdownPatternRemoveFiles)
 }
 
@@ -1823,57 +1823,57 @@ func TestSimpleGroupByAggregation(t *testing.T) {
 	testingpkg.Assert(t, shi.GetLogManager().IsEnabledLogging(), "")
 	fmt.Println("System logging is active.")
 
-	txn_mgr := shi.GetTransactionManager()
-	txn := txn_mgr.Begin(nil)
+	txnMgr := shi.GetTransactionManager()
+	txn := txnMgr.Begin(nil)
 
 	c := catalog.BootstrapCatalog(shi.GetBufferPoolManager(), shi.GetLogManager(), shi.GetLockManager(), txn)
-	exec_ctx := executors.NewExecutorContext(c, shi.GetBufferPoolManager(), txn)
+	execCtx := executors.NewExecutorContext(c, shi.GetBufferPoolManager(), txn)
 
-	table_info, _ := testing_tbl_gen.GenerateTestTabls(c, exec_ctx, txn)
+	tableInfo, _ := testing_tbl_gen.GenerateTestTabls(c, execCtx, txn)
 
-	var scan_plan *plans.SeqScanPlanNode
-	var scan_schema *schema.Schema
+	var scanPlan *plans.SeqScanPlanNode
+	var scanSchema *schema.Schema
 	{
-		schema_ := table_info.Schema()
-		colA := expression.MakeColumnValueExpression(schema_, 0, "colA").(*expression.ColumnValue)
-		colB := expression.MakeColumnValueExpression(schema_, 0, "colB").(*expression.ColumnValue)
-		colC := expression.MakeColumnValueExpression(schema_, 0, "colC").(*expression.ColumnValue)
-		scan_schema = testing_tbl_gen.MakeOutputSchema([]testing_tbl_gen.MakeSchemaMeta{{"colA", *colA}, {"colB", *colB}, {"colC", *colC}})
-		scan_plan = plans.NewSeqScanPlanNode(c, scan_schema, nil, table_info.OID()).(*plans.SeqScanPlanNode)
+		sch := tableInfo.Schema()
+		colA := expression.MakeColumnValueExpression(sch, 0, "colA").(*expression.ColumnValue)
+		colB := expression.MakeColumnValueExpression(sch, 0, "colB").(*expression.ColumnValue)
+		colC := expression.MakeColumnValueExpression(sch, 0, "colC").(*expression.ColumnValue)
+		scanSchema = testing_tbl_gen.MakeOutputSchema([]testing_tbl_gen.MakeSchemaMeta{{"colA", *colA}, {"colB", *colB}, {"colC", *colC}})
+		scanPlan = plans.NewSeqScanPlanNode(c, scanSchema, nil, tableInfo.OID()).(*plans.SeqScanPlanNode)
 	}
 
-	var agg_plan *plans.AggregationPlanNode
-	var agg_schema *schema.Schema
+	var aggPlan *plans.AggregationPlanNode
+	var aggSchema *schema.Schema
 	{
-		colA := expression.MakeColumnValueExpression(scan_schema, 0, "colA").(*expression.ColumnValue)
-		colB := expression.MakeColumnValueExpression(scan_schema, 0, "colB").(*expression.ColumnValue)
-		colC := expression.MakeColumnValueExpression(scan_schema, 0, "colC").(*expression.ColumnValue)
+		colA := expression.MakeColumnValueExpression(scanSchema, 0, "colA").(*expression.ColumnValue)
+		colB := expression.MakeColumnValueExpression(scanSchema, 0, "colB").(*expression.ColumnValue)
+		colC := expression.MakeColumnValueExpression(scanSchema, 0, "colC").(*expression.ColumnValue)
 		// Make group by
 		groupbyB := *testing_tbl_gen.MakeAggregateValueExpression(true, 0).(*expression.AggregateValueExpression)
 		// Make aggregates
 		countA := *testing_tbl_gen.MakeAggregateValueExpression(false, 0).(*expression.AggregateValueExpression)
 		sumC := *testing_tbl_gen.MakeAggregateValueExpression(false, 1).(*expression.AggregateValueExpression)
 		// Make having clause
-		pred_const := types.NewInteger(int32(testing_tbl_gen.TEST1_SIZE / 10))
-		having := testing_tbl_gen.MakeComparisonExpression(&countA, testing_tbl_gen.MakeConstantValueExpression(&pred_const), expression.GreaterThan)
+		predConst := types.NewInteger(int32(testing_tbl_gen.TEST1_SIZE / 10))
+		having := testing_tbl_gen.MakeComparisonExpression(&countA, testing_tbl_gen.MakeConstantValueExpression(&predConst), expression.GreaterThan)
 
-		agg_schema = testing_tbl_gen.MakeOutputSchemaAgg([]testing_tbl_gen.MakeSchemaMetaAgg{{"countA", countA}, {"colB", groupbyB}, {"sumC", sumC}})
-		agg_plan = plans.NewAggregationPlanNode(
-			agg_schema, scan_plan, having, []expression.Expression{colB},
+		aggSchema = testing_tbl_gen.MakeOutputSchemaAgg([]testing_tbl_gen.MakeSchemaMetaAgg{{"countA", countA}, {"colB", groupbyB}, {"sumC", sumC}})
+		aggPlan = plans.NewAggregationPlanNode(
+			aggSchema, scanPlan, having, []expression.Expression{colB},
 			[]expression.Expression{colA, colC},
-			[]plans.AggregationType{plans.COUNT_AGGREGATE, plans.SUM_AGGREGATE})
+			[]plans.AggregationType{plans.CountAggregate, plans.SumAggregate})
 	}
 
 	executionEngine := &executors.ExecutionEngine{}
-	executor := executionEngine.CreateExecutor(agg_plan, exec_ctx)
+	executor := executionEngine.CreateExecutor(aggPlan, execCtx)
 	executor.Init()
 
 	var encountered = make(map[int32]int32, 0)
 	for tuple_, done, _ := executor.Next(); !done; tuple_, done, _ = executor.Next() {
 		// Should have countA > 100
-		countA := tuple_.GetValue(agg_schema, agg_schema.GetColIndex("countA")).ToInteger()
-		colB := tuple_.GetValue(agg_schema, agg_schema.GetColIndex("colB")).ToInteger()
-		sumC := tuple_.GetValue(agg_schema, agg_schema.GetColIndex("sumC")).ToInteger()
+		countA := tuple_.GetValue(aggSchema, aggSchema.GetColIndex("countA")).ToInteger()
+		colB := tuple_.GetValue(aggSchema, aggSchema.GetColIndex("colB")).ToInteger()
+		sumC := tuple_.GetValue(aggSchema, aggSchema.GetColIndex("sumC")).ToInteger()
 
 		fmt.Printf("%d %d %d\n", countA, colB, sumC)
 
@@ -1887,7 +1887,7 @@ func TestSimpleGroupByAggregation(t *testing.T) {
 		testingpkg.Assert(t, 0 <= colB && colB < 10, "sanity check of colB failed")
 	}
 
-	txn_mgr.Commit(nil, txn)
+	txnMgr.Commit(nil, txn)
 	shi.Shutdown(samehada.ShutdownPatternRemoveFiles)
 }
 
@@ -1903,64 +1903,64 @@ func TestSeqScanWithMultiItemPredicate(t *testing.T) {
 	testingpkg.Assert(t, shi.GetLogManager().IsEnabledLogging(), "")
 	fmt.Println("System logging is active.")
 
-	txn_mgr := shi.GetTransactionManager()
-	txn := txn_mgr.Begin(nil)
+	txnMgr := shi.GetTransactionManager()
+	txn := txnMgr.Begin(nil)
 
 	c := catalog.BootstrapCatalog(shi.GetBufferPoolManager(), shi.GetLogManager(), shi.GetLockManager(), txn)
-	exec_ctx := executors.NewExecutorContext(c, shi.GetBufferPoolManager(), txn)
+	execCtx := executors.NewExecutorContext(c, shi.GetBufferPoolManager(), txn)
 
-	table_info, _ := testing_tbl_gen.GenerateTestTabls(c, exec_ctx, txn)
+	tableInfo, _ := testing_tbl_gen.GenerateTestTabls(c, execCtx, txn)
 
-	txn_mgr.Commit(nil, txn)
+	txnMgr.Commit(nil, txn)
 	shi.GetBufferPoolManager().FlushAllPages()
 
-	txn = txn_mgr.Begin(nil)
-	exec_ctx.SetTransaction(txn)
+	txn = txnMgr.Begin(nil)
+	execCtx.SetTransaction(txn)
 
-	var scan_plan *plans.SeqScanPlanNode
-	var scan_schema *schema.Schema
+	var scanPlan *plans.SeqScanPlanNode
+	var scanSchema *schema.Schema
 	{
 		// setup predicates and a execution plan
-		schema_ := table_info.Schema()
-		colA_val := expression.MakeColumnValueExpression(schema_, 0, "colA").(*expression.ColumnValue)
-		colB_val := expression.MakeColumnValueExpression(schema_, 0, "colB").(*expression.ColumnValue)
-		colC_val := expression.MakeColumnValueExpression(schema_, 0, "colC").(*expression.ColumnValue)
+		sch := tableInfo.Schema()
+		colAVal := expression.MakeColumnValueExpression(sch, 0, "colA").(*expression.ColumnValue)
+		colBVal := expression.MakeColumnValueExpression(sch, 0, "colB").(*expression.ColumnValue)
+		colCVal := expression.MakeColumnValueExpression(sch, 0, "colC").(*expression.ColumnValue)
 
-		pred_constA := types.NewInteger(int32(500))
-		comp_predA := testing_tbl_gen.MakeComparisonExpression(colA_val, testing_tbl_gen.MakeConstantValueExpression(&pred_constA), expression.GreaterThan)
+		predConstA := types.NewInteger(int32(500))
+		compPredA := testing_tbl_gen.MakeComparisonExpression(colAVal, testing_tbl_gen.MakeConstantValueExpression(&predConstA), expression.GreaterThan)
 
-		pred_constB := types.NewInteger(int32(5))
-		comp_predB := testing_tbl_gen.MakeComparisonExpression(colB_val, testing_tbl_gen.MakeConstantValueExpression(&pred_constB), expression.LessThan)
+		predConstB := types.NewInteger(int32(5))
+		compPredB := testing_tbl_gen.MakeComparisonExpression(colBVal, testing_tbl_gen.MakeConstantValueExpression(&predConstB), expression.LessThan)
 
-		pred_constC := types.NewInteger(int32(1000))
-		comp_predC := testing_tbl_gen.MakeComparisonExpression(colC_val, testing_tbl_gen.MakeConstantValueExpression(&pred_constC), expression.GreaterThanOrEqual)
+		predConstC := types.NewInteger(int32(1000))
+		compPredC := testing_tbl_gen.MakeComparisonExpression(colCVal, testing_tbl_gen.MakeConstantValueExpression(&predConstC), expression.GreaterThanOrEqual)
 
 		// (colA > 500 AND colB < 5)
-		left_side_pred := expression.NewLogicalOp(comp_predA, comp_predB, expression.AND, types.Boolean)
+		leftSidePred := expression.NewLogicalOp(compPredA, compPredB, expression.AND, types.Boolean)
 		// (NOT colC >= 1000)
-		right_side_pred := expression.NewLogicalOp(comp_predC, nil, expression.NOT, types.Boolean)
+		rightSidePred := expression.NewLogicalOp(compPredC, nil, expression.NOT, types.Boolean)
 
 		// root of predicate
 		// (colA > 500 AND colB < 5) OR (NOT colC >= 1000)
-		root_pred := expression.NewLogicalOp(left_side_pred, right_side_pred, expression.OR, types.Boolean)
+		rootPred := expression.NewLogicalOp(leftSidePred, rightSidePred, expression.OR, types.Boolean)
 
-		scan_schema = testing_tbl_gen.MakeOutputSchema([]testing_tbl_gen.MakeSchemaMeta{{"colA", *colA_val}, {"colB", *colB_val}, {"colC", *colC_val}})
-		scan_plan = plans.NewSeqScanPlanNode(c, scan_schema, root_pred, table_info.OID()).(*plans.SeqScanPlanNode)
+		scanSchema = testing_tbl_gen.MakeOutputSchema([]testing_tbl_gen.MakeSchemaMeta{{"colA", *colAVal}, {"colB", *colBVal}, {"colC", *colCVal}})
+		scanPlan = plans.NewSeqScanPlanNode(c, scanSchema, rootPred, tableInfo.OID()).(*plans.SeqScanPlanNode)
 	}
 
 	executionEngine := &executors.ExecutionEngine{}
-	results := executionEngine.Execute(scan_plan, exec_ctx)
+	results := executionEngine.Execute(scanPlan, execCtx)
 	fmt.Println(len(results))
 
 	for _, tuple_ := range results {
-		colA_val := tuple_.GetValue(scan_schema, scan_schema.GetColIndex("colA")).ToInteger()
-		colB_val := tuple_.GetValue(scan_schema, scan_schema.GetColIndex("colB")).ToInteger()
-		colC_val := tuple_.GetValue(scan_schema, scan_schema.GetColIndex("colC")).ToInteger()
+		colAVal := tuple_.GetValue(scanSchema, scanSchema.GetColIndex("colA")).ToInteger()
+		colBVal := tuple_.GetValue(scanSchema, scanSchema.GetColIndex("colB")).ToInteger()
+		colCVal := tuple_.GetValue(scanSchema, scanSchema.GetColIndex("colC")).ToInteger()
 
-		testingpkg.Assert(t, (colA_val > 500 && colB_val < 5) || !(colC_val >= 1000), "return tuple violates predicate!")
+		testingpkg.Assert(t, (colAVal > 500 && colBVal < 5) || !(colCVal >= 1000), "return tuple violates predicate!")
 	}
 
-	txn_mgr.Commit(nil, txn)
+	txnMgr.Commit(nil, txn)
 
 	shi.Shutdown(samehada.ShutdownPatternRemoveFiles)
 }
@@ -1968,23 +1968,23 @@ func TestSeqScanWithMultiItemPredicate(t *testing.T) {
 func TestInsertAndSpecifiedColumnUpdate(t *testing.T) {
 	diskManager := disk.NewDiskManagerTest()
 	defer diskManager.ShutDown()
-	log_mgr := recovery.NewLogManager(&diskManager)
+	logMgr := recovery.NewLogManager(&diskManager)
 
-	log_mgr.ActivateLogging()
-	testingpkg.Assert(t, log_mgr.IsEnabledLogging(), "")
+	logMgr.ActivateLogging()
+	testingpkg.Assert(t, logMgr.IsEnabledLogging(), "")
 
-	bpm := buffer.NewBufferPoolManager(uint32(32), diskManager, log_mgr)
-	lock_mgr := access.NewLockManager(access.REGULAR, access.SS2PL_MODE)
-	txn_mgr := access.NewTransactionManager(lock_mgr, log_mgr)
-	txn := txn_mgr.Begin(nil)
+	bpm := buffer.NewBufferPoolManager(uint32(32), diskManager, logMgr)
+	lockMgr := access.NewLockManager(access.REGULAR, access.SS2PL_MODE)
+	txnMgr := access.NewTransactionManager(lockMgr, logMgr)
+	txn := txnMgr.Begin(nil)
 
-	c := catalog.BootstrapCatalog(bpm, log_mgr, lock_mgr, txn)
+	c := catalog.BootstrapCatalog(bpm, logMgr, lockMgr, txn)
 
 	columnA := column.NewColumn("a", types.Integer, false, index_constants.IndexKindInvalid, types.PageID(-1), nil)
 	columnB := column.NewColumn("b", types.Varchar, false, index_constants.IndexKindInvalid, types.PageID(-1), nil)
-	schema_ := schema.NewSchema([]*column.Column{columnA, columnB})
+	sch := schema.NewSchema([]*column.Column{columnA, columnB})
 
-	tableMetadata := c.CreateTable("test_1", schema_, txn)
+	tableMetadata := c.CreateTable("test_1", sch, txn)
 
 	row1 := make([]types.Value, 0)
 	row1 = append(row1, types.NewInteger(20))
@@ -2004,10 +2004,10 @@ func TestInsertAndSpecifiedColumnUpdate(t *testing.T) {
 	executorContext := executors.NewExecutorContext(c, bpm, txn)
 	executionEngine.Execute(insertPlanNode, executorContext)
 
-	txn_mgr.Commit(nil, txn)
+	txnMgr.Commit(nil, txn)
 
 	fmt.Println("update a row...")
-	txn = txn_mgr.Begin(nil)
+	txn = txnMgr.Begin(nil)
 	executorContext.SetTransaction(txn)
 
 	row1 = make([]types.Value, 0)
@@ -2018,16 +2018,16 @@ func TestInsertAndSpecifiedColumnUpdate(t *testing.T) {
 	tmpColVal := new(expression.ColumnValue)
 	tmpColVal.SetTupleIndex(0)
 	tmpColVal.SetColIndex(tableMetadata.Schema().GetColIndex(pred.LeftColumn))
-	expression_ := expression.NewComparison(tmpColVal, expression.NewConstantValue(testing_util.GetValue(pred.RightColumn), testing_util.GetValueType(pred.LeftColumn)), pred.Operator, types.Boolean)
+	expr := expression.NewComparison(tmpColVal, expression.NewConstantValue(testing_util.GetValue(pred.RightColumn), testing_util.GetValueType(pred.LeftColumn)), pred.Operator, types.Boolean)
 
-	seqScanPlan := plans.NewSeqScanPlanNode(c, tableMetadata.Schema(), expression_, tableMetadata.OID())
+	seqScanPlan := plans.NewSeqScanPlanNode(c, tableMetadata.Schema(), expr, tableMetadata.OID())
 	updatePlanNode := plans.NewUpdatePlanNode(row1, []int{1}, seqScanPlan)
 	executionEngine.Execute(updatePlanNode, executorContext)
 
-	txn_mgr.Commit(nil, txn)
+	txnMgr.Commit(nil, txn)
 
 	fmt.Println("select and check value...")
-	txn = txn_mgr.Begin(nil)
+	txn = txnMgr.Begin(nil)
 	executorContext.SetTransaction(txn)
 
 	outColumnA := column.NewColumn("a", types.Integer, false, index_constants.IndexKindInvalid, types.PageID(-1), nil)
@@ -2038,14 +2038,14 @@ func TestInsertAndSpecifiedColumnUpdate(t *testing.T) {
 	tmpColVal = new(expression.ColumnValue)
 	tmpColVal.SetTupleIndex(0)
 	tmpColVal.SetColIndex(tableMetadata.Schema().GetColIndex(pred.LeftColumn))
-	expression_ = expression.NewComparison(tmpColVal, expression.NewConstantValue(testing_util.GetValue(pred.RightColumn), testing_util.GetValueType(pred.RightColumn)), pred.Operator, types.Boolean)
+	expr = expression.NewComparison(tmpColVal, expression.NewConstantValue(testing_util.GetValue(pred.RightColumn), testing_util.GetValueType(pred.RightColumn)), pred.Operator, types.Boolean)
 
-	seqPlan := plans.NewSeqScanPlanNode(c, outSchema, expression_, tableMetadata.OID())
+	seqPlan := plans.NewSeqScanPlanNode(c, outSchema, expr, tableMetadata.OID())
 	results := executionEngine.Execute(seqPlan, executorContext)
 
-	//lock_mgr.PrintLockTables()
+	//lockMgr.PrintLockTables()
 
-	txn_mgr.Commit(nil, txn)
+	txnMgr.Commit(nil, txn)
 
 	testingpkg.Assert(t, types.NewInteger(99).CompareEquals(results[0].GetValue(outSchema, 0)), "value should be 99")
 	testingpkg.Assert(t, types.NewVarchar("updated").CompareEquals(results[0].GetValue(outSchema, 1)), "value should be 'updated'")
@@ -2062,20 +2062,20 @@ func TestInsertAndSpecifiedColumnUpdatePageMoveCase(t *testing.T) {
 	testingpkg.Assert(t, shi.GetLogManager().IsEnabledLogging(), "")
 	fmt.Println("System logging is active.")
 
-	log_mgr := shi.GetLogManager()
-	txn_mgr := shi.GetTransactionManager()
+	logMgr := shi.GetLogManager()
+	txnMgr := shi.GetTransactionManager()
 	bpm := shi.GetBufferPoolManager()
-	lock_mgr := shi.GetLockManager()
+	lockMgr := shi.GetLockManager()
 
-	txn := txn_mgr.Begin(nil)
+	txn := txnMgr.Begin(nil)
 
-	c := catalog.BootstrapCatalog(bpm, log_mgr, lock_mgr, txn)
+	c := catalog.BootstrapCatalog(bpm, logMgr, lockMgr, txn)
 
 	columnA := column.NewColumn("a", types.Integer, false, index_constants.IndexKindInvalid, types.PageID(-1), nil)
 	columnB := column.NewColumn("b", types.Varchar, false, index_constants.IndexKindInvalid, types.PageID(-1), nil)
-	schema_ := schema.NewSchema([]*column.Column{columnA, columnB})
+	sch := schema.NewSchema([]*column.Column{columnA, columnB})
 
-	tableMetadata := c.CreateTable("test_1", schema_, txn)
+	tableMetadata := c.CreateTable("test_1", sch, txn)
 
 	// fill tuples around max amount of a page
 	rows := make([][]types.Value, 0)
@@ -2091,10 +2091,10 @@ func TestInsertAndSpecifiedColumnUpdatePageMoveCase(t *testing.T) {
 	insertPlanNode := plans.NewInsertPlanNode(rows, tableMetadata.OID())
 	executionEngine.Execute(insertPlanNode, executorContext)
 
-	txn_mgr.Commit(nil, txn)
+	txnMgr.Commit(nil, txn)
 
 	fmt.Println("update a row...")
-	txn = txn_mgr.Begin(nil)
+	txn = txnMgr.Begin(nil)
 	executorContext.SetTransaction(txn)
 
 	row := make([]types.Value, 0)
@@ -2105,16 +2105,16 @@ func TestInsertAndSpecifiedColumnUpdatePageMoveCase(t *testing.T) {
 	tmpColVal := new(expression.ColumnValue)
 	tmpColVal.SetTupleIndex(0)
 	tmpColVal.SetColIndex(tableMetadata.Schema().GetColIndex(pred.LeftColumn))
-	expression_ := expression.NewComparison(tmpColVal, expression.NewConstantValue(testing_util.GetValue(pred.RightColumn), testing_util.GetValueType(pred.LeftColumn)), pred.Operator, types.Boolean)
+	expr := expression.NewComparison(tmpColVal, expression.NewConstantValue(testing_util.GetValue(pred.RightColumn), testing_util.GetValueType(pred.LeftColumn)), pred.Operator, types.Boolean)
 
-	seqScanPlan := plans.NewSeqScanPlanNode(c, tableMetadata.Schema(), expression_, tableMetadata.OID())
+	seqScanPlan := plans.NewSeqScanPlanNode(c, tableMetadata.Schema(), expr, tableMetadata.OID())
 	updatePlanNode := plans.NewUpdatePlanNode(row, []int{1}, seqScanPlan)
 	executionEngine.Execute(updatePlanNode, executorContext)
 
-	txn_mgr.Commit(nil, txn)
+	txnMgr.Commit(nil, txn)
 
 	fmt.Println("select and check value...")
-	txn = txn_mgr.Begin(nil)
+	txn = txnMgr.Begin(nil)
 	executorContext.SetTransaction(txn)
 
 	outColumnA := column.NewColumn("a", types.Integer, false, index_constants.IndexKindInvalid, types.PageID(-1), nil)
@@ -2125,12 +2125,12 @@ func TestInsertAndSpecifiedColumnUpdatePageMoveCase(t *testing.T) {
 	tmpColVal = new(expression.ColumnValue)
 	tmpColVal.SetTupleIndex(0)
 	tmpColVal.SetColIndex(tableMetadata.Schema().GetColIndex(pred.LeftColumn))
-	expression_ = expression.NewComparison(tmpColVal, expression.NewConstantValue(testing_util.GetValue(pred.RightColumn), testing_util.GetValueType(pred.RightColumn)), pred.Operator, types.Boolean)
+	expr = expression.NewComparison(tmpColVal, expression.NewConstantValue(testing_util.GetValue(pred.RightColumn), testing_util.GetValueType(pred.RightColumn)), pred.Operator, types.Boolean)
 
-	seqPlan := plans.NewSeqScanPlanNode(c, outSchema, expression_, tableMetadata.OID())
+	seqPlan := plans.NewSeqScanPlanNode(c, outSchema, expr, tableMetadata.OID())
 	results := executionEngine.Execute(seqPlan, executorContext)
 
-	txn_mgr.Commit(nil, txn)
+	txnMgr.Commit(nil, txn)
 
 	bpm.FlushAllPages()
 
@@ -2155,20 +2155,20 @@ func TestInsertAndSpecifiedColumnUpdatePageMoveRecovery(t *testing.T) {
 	testingpkg.Assert(t, shi.GetLogManager().IsEnabledLogging(), "")
 	fmt.Println("System logging is active.")
 
-	log_mgr := shi.GetLogManager()
-	txn_mgr := shi.GetTransactionManager()
+	logMgr := shi.GetLogManager()
+	txnMgr := shi.GetTransactionManager()
 	bpm := shi.GetBufferPoolManager()
-	lock_mgr := shi.GetLockManager()
+	lockMgr := shi.GetLockManager()
 
-	txn := txn_mgr.Begin(nil)
+	txn := txnMgr.Begin(nil)
 
-	c := catalog.BootstrapCatalog(bpm, log_mgr, lock_mgr, txn)
+	c := catalog.BootstrapCatalog(bpm, logMgr, lockMgr, txn)
 
 	columnA := column.NewColumn("a", types.Integer, false, index_constants.IndexKindInvalid, types.PageID(-1), nil)
 	columnB := column.NewColumn("b", types.Varchar, false, index_constants.IndexKindInvalid, types.PageID(-1), nil)
-	schema_ := schema.NewSchema([]*column.Column{columnA, columnB})
+	sch := schema.NewSchema([]*column.Column{columnA, columnB})
 
-	tableMetadata := c.CreateTable("test_1", schema_, txn)
+	tableMetadata := c.CreateTable("test_1", sch, txn)
 
 	// fill tuples around max amount of a page
 	rows := make([][]types.Value, 0)
@@ -2184,10 +2184,10 @@ func TestInsertAndSpecifiedColumnUpdatePageMoveRecovery(t *testing.T) {
 	insertPlanNode := plans.NewInsertPlanNode(rows, tableMetadata.OID())
 	executionEngine.Execute(insertPlanNode, executorContext)
 
-	txn_mgr.Commit(nil, txn)
+	txnMgr.Commit(nil, txn)
 
 	fmt.Println("update a row...")
-	txn = txn_mgr.Begin(nil)
+	txn = txnMgr.Begin(nil)
 	executorContext.SetTransaction(txn)
 
 	row := make([]types.Value, 0)
@@ -2198,9 +2198,9 @@ func TestInsertAndSpecifiedColumnUpdatePageMoveRecovery(t *testing.T) {
 	tmpColVal := new(expression.ColumnValue)
 	tmpColVal.SetTupleIndex(0)
 	tmpColVal.SetColIndex(tableMetadata.Schema().GetColIndex(pred.LeftColumn))
-	expression_ := expression.NewComparison(tmpColVal, expression.NewConstantValue(testing_util.GetValue(pred.RightColumn), testing_util.GetValueType(pred.LeftColumn)), pred.Operator, types.Boolean)
+	expr := expression.NewComparison(tmpColVal, expression.NewConstantValue(testing_util.GetValue(pred.RightColumn), testing_util.GetValueType(pred.LeftColumn)), pred.Operator, types.Boolean)
 
-	seqScanPlan := plans.NewSeqScanPlanNode(c, tableMetadata.Schema(), expression_, tableMetadata.OID())
+	seqScanPlan := plans.NewSeqScanPlanNode(c, tableMetadata.Schema(), expr, tableMetadata.OID())
 	updatePlanNode := plans.NewUpdatePlanNode(row, []int{0, 1}, seqScanPlan)
 	executionEngine.Execute(updatePlanNode, executorContext)
 
@@ -2209,18 +2209,18 @@ func TestInsertAndSpecifiedColumnUpdatePageMoveRecovery(t *testing.T) {
 
 	// restart system
 	shi = samehada.NewSamehadaInstance(t.Name(), common.BufferPoolMaxFrameNumForTest)
-	log_mgr = shi.GetLogManager()
-	lock_mgr = shi.GetLockManager()
-	txn_mgr = shi.GetTransactionManager()
+	logMgr = shi.GetLogManager()
+	lockMgr = shi.GetLockManager()
+	txnMgr = shi.GetTransactionManager()
 	bpm = shi.GetBufferPoolManager()
 
 	log_recovery := log_recovery.NewLogRecovery(
 		shi.GetDiskManager(),
 		bpm,
-		log_mgr)
+		logMgr)
 
-	txn = txn_mgr.Begin(nil)
-	c = catalog.RecoveryCatalogFromCatalogPage(bpm, log_mgr, lock_mgr, txn, true)
+	txn = txnMgr.Begin(nil)
+	c = catalog.RecoveryCatalogFromCatalogPage(bpm, logMgr, lockMgr, txn, true)
 	tableMetadata = c.GetTableByName("test_1")
 
 	executorContext = executors.NewExecutorContext(c, bpm, txn)
@@ -2231,7 +2231,7 @@ func TestInsertAndSpecifiedColumnUpdatePageMoveRecovery(t *testing.T) {
 	outSchema := schema.NewSchema([]*column.Column{outColumnA, outColumnB})
 
 	// disable logging
-	log_mgr.DeactivateLogging()
+	logMgr.DeactivateLogging()
 	txn.SetIsRecoveryPhase(true)
 
 	// do recovery from Log
@@ -2240,7 +2240,7 @@ func TestInsertAndSpecifiedColumnUpdatePageMoveRecovery(t *testing.T) {
 
 	txn.SetIsRecoveryPhase(false)
 	// reactivate logging
-	log_mgr.ActivateLogging()
+	logMgr.ActivateLogging()
 
 	// check updated value does not exist (a = 300)
 	fmt.Println("select and check value (2) ...")
@@ -2248,9 +2248,9 @@ func TestInsertAndSpecifiedColumnUpdatePageMoveRecovery(t *testing.T) {
 	tmpColVal = new(expression.ColumnValue)
 	tmpColVal.SetTupleIndex(0)
 	tmpColVal.SetColIndex(tableMetadata.Schema().GetColIndex(pred.LeftColumn))
-	expression_ = expression.NewComparison(tmpColVal, expression.NewConstantValue(testing_util.GetValue(pred.RightColumn), testing_util.GetValueType(pred.LeftColumn)), pred.Operator, types.Boolean)
+	expr = expression.NewComparison(tmpColVal, expression.NewConstantValue(testing_util.GetValue(pred.RightColumn), testing_util.GetValueType(pred.LeftColumn)), pred.Operator, types.Boolean)
 
-	seqPlan := plans.NewSeqScanPlanNode(c, outSchema, expression_, tableMetadata.OID())
+	seqPlan := plans.NewSeqScanPlanNode(c, outSchema, expr, tableMetadata.OID())
 	results := executionEngine.Execute(seqPlan, executorContext)
 	testingpkg.Assert(t, len(results) == 0, "updated value should not be exist")
 
@@ -2260,9 +2260,9 @@ func TestInsertAndSpecifiedColumnUpdatePageMoveRecovery(t *testing.T) {
 	tmpColVal = new(expression.ColumnValue)
 	tmpColVal.SetTupleIndex(0)
 	tmpColVal.SetColIndex(tableMetadata.Schema().GetColIndex(pred.LeftColumn))
-	expression_ = expression.NewComparison(tmpColVal, expression.NewConstantValue(testing_util.GetValue(pred.RightColumn), testing_util.GetValueType(pred.RightColumn)), pred.Operator, types.Boolean)
+	expr = expression.NewComparison(tmpColVal, expression.NewConstantValue(testing_util.GetValue(pred.RightColumn), testing_util.GetValueType(pred.RightColumn)), pred.Operator, types.Boolean)
 
-	seqPlan = plans.NewSeqScanPlanNode(c, outSchema, expression_, tableMetadata.OID())
+	seqPlan = plans.NewSeqScanPlanNode(c, outSchema, expr, tableMetadata.OID())
 	results = executionEngine.Execute(seqPlan, executorContext)
 
 	testingpkg.Assert(t, types.NewInteger(99).CompareEquals(results[0].GetValue(outSchema, 0)), "value should be 99")
@@ -2289,20 +2289,20 @@ func TestInsertAndSpecifiedColumnUpdatePageMoveOccurOnRecovery(t *testing.T) {
 	testingpkg.Assert(t, shi.GetLogManager().IsEnabledLogging(), "")
 	fmt.Println("System logging is active.")
 
-	log_mgr := shi.GetLogManager()
-	txn_mgr := shi.GetTransactionManager()
+	logMgr := shi.GetLogManager()
+	txnMgr := shi.GetTransactionManager()
 	bpm := shi.GetBufferPoolManager()
-	lock_mgr := shi.GetLockManager()
+	lockMgr := shi.GetLockManager()
 
-	txn := txn_mgr.Begin(nil)
+	txn := txnMgr.Begin(nil)
 
-	c := catalog.BootstrapCatalog(bpm, log_mgr, lock_mgr, txn)
+	c := catalog.BootstrapCatalog(bpm, logMgr, lockMgr, txn)
 
 	columnA := column.NewColumn("a", types.Integer, false, index_constants.IndexKindInvalid, types.PageID(-1), nil)
 	columnB := column.NewColumn("b", types.Varchar, false, index_constants.IndexKindInvalid, types.PageID(-1), nil)
-	schema_ := schema.NewSchema([]*column.Column{columnA, columnB})
+	sch := schema.NewSchema([]*column.Column{columnA, columnB})
 
-	tableMetadata := c.CreateTable("test_1", schema_, txn)
+	tableMetadata := c.CreateTable("test_1", sch, txn)
 
 	// fill tuples around max amount of a page
 	rows := make([][]types.Value, 0)
@@ -2323,23 +2323,23 @@ func TestInsertAndSpecifiedColumnUpdatePageMoveOccurOnRecovery(t *testing.T) {
 	insertPlanNode := plans.NewInsertPlanNode(rows, tableMetadata.OID())
 	executionEngine.Execute(insertPlanNode, executorContext)
 
-	txn_mgr.Commit(nil, txn)
+	txnMgr.Commit(nil, txn)
 
 	fmt.Println("a update operation which does not change data size and a update operation which changes datasize...")
-	txn = txn_mgr.Begin(nil)
+	txn = txnMgr.Begin(nil)
 	executorContext.SetTransaction(txn)
 
 	pred := testing_pattern_fw.Predicate{"a", expression.Equal, 180}
 	tmpColVal := new(expression.ColumnValue)
 	tmpColVal.SetTupleIndex(0)
 	tmpColVal.SetColIndex(tableMetadata.Schema().GetColIndex(pred.LeftColumn))
-	expression_ := expression.NewComparison(tmpColVal, expression.NewConstantValue(testing_util.GetValue(pred.RightColumn), testing_util.GetValueType(pred.LeftColumn)), pred.Operator, types.Boolean)
+	expr := expression.NewComparison(tmpColVal, expression.NewConstantValue(testing_util.GetValue(pred.RightColumn), testing_util.GetValueType(pred.LeftColumn)), pred.Operator, types.Boolean)
 
 	row = make([]types.Value, 0)
 	row = append(row, types.NewInteger(180))
 	row = append(row, types.NewVarchar("kkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkka")) //target column
 
-	seqScanPlan := plans.NewSeqScanPlanNode(c, tableMetadata.Schema(), expression_, tableMetadata.OID())
+	seqScanPlan := plans.NewSeqScanPlanNode(c, tableMetadata.Schema(), expr, tableMetadata.OID())
 	updatePlanNode := plans.NewUpdatePlanNode(row, []int{0, 1}, seqScanPlan)
 	executionEngine.Execute(updatePlanNode, executorContext)
 
@@ -2347,20 +2347,20 @@ func TestInsertAndSpecifiedColumnUpdatePageMoveOccurOnRecovery(t *testing.T) {
 	tmpColVal = new(expression.ColumnValue)
 	tmpColVal.SetTupleIndex(0)
 	tmpColVal.SetColIndex(tableMetadata.Schema().GetColIndex(pred.LeftColumn))
-	expression_ = expression.NewComparison(tmpColVal, expression.NewConstantValue(testing_util.GetValue(pred.RightColumn), testing_util.GetValueType(pred.LeftColumn)), pred.Operator, types.Boolean)
+	expr = expression.NewComparison(tmpColVal, expression.NewConstantValue(testing_util.GetValue(pred.RightColumn), testing_util.GetValueType(pred.LeftColumn)), pred.Operator, types.Boolean)
 
 	row = make([]types.Value, 0)
 	row = append(row, types.NewInteger(300))
 	row = append(row, types.NewVarchar("k")) //target column
 
-	seqScanPlan = plans.NewSeqScanPlanNode(c, tableMetadata.Schema(), expression_, tableMetadata.OID())
+	seqScanPlan = plans.NewSeqScanPlanNode(c, tableMetadata.Schema(), expr, tableMetadata.OID())
 	updatePlanNode = plans.NewUpdatePlanNode(row, []int{0, 1}, seqScanPlan)
 	executionEngine.Execute(updatePlanNode, executorContext)
 
 	// not commit "txn"
 
 	fmt.Println("filling a row...")
-	txn2 := txn_mgr.Begin(nil)
+	txn2 := txnMgr.Begin(nil)
 
 	rows2 := make([][]types.Value, 0)
 	for ii := 0; ii < 30; ii++ {
@@ -2377,25 +2377,25 @@ func TestInsertAndSpecifiedColumnUpdatePageMoveOccurOnRecovery(t *testing.T) {
 	executionEngine.Execute(insertPlanNode, executorContext)
 
 	// commit filling "txn2"
-	txn_mgr.Commit(nil, txn2)
+	txnMgr.Commit(nil, txn2)
 
 	// system crash before finish "txn"
 	shi.Shutdown(samehada.ShutdownPatternCloseFiles)
 
 	// restart system
 	shi = samehada.NewSamehadaInstance(t.Name(), common.BufferPoolMaxFrameNumForTest)
-	log_mgr = shi.GetLogManager()
-	lock_mgr = shi.GetLockManager()
-	txn_mgr = shi.GetTransactionManager()
+	logMgr = shi.GetLogManager()
+	lockMgr = shi.GetLockManager()
+	txnMgr = shi.GetTransactionManager()
 	bpm = shi.GetBufferPoolManager()
 
 	log_recovery := log_recovery.NewLogRecovery(
 		shi.GetDiskManager(),
 		bpm,
-		log_mgr)
+		logMgr)
 
-	txn = txn_mgr.Begin(nil)
-	c = catalog.RecoveryCatalogFromCatalogPage(bpm, log_mgr, lock_mgr, txn, true)
+	txn = txnMgr.Begin(nil)
+	c = catalog.RecoveryCatalogFromCatalogPage(bpm, logMgr, lockMgr, txn, true)
 	tableMetadata = c.GetTableByName("test_1")
 
 	executorContext = executors.NewExecutorContext(c, bpm, txn)
@@ -2406,7 +2406,7 @@ func TestInsertAndSpecifiedColumnUpdatePageMoveOccurOnRecovery(t *testing.T) {
 	outSchema := schema.NewSchema([]*column.Column{outColumnA, outColumnB})
 
 	// disable logging
-	log_mgr.DeactivateLogging()
+	logMgr.DeactivateLogging()
 	txn.SetIsRecoveryPhase(true)
 
 	// do recovery from Log
@@ -2415,7 +2415,7 @@ func TestInsertAndSpecifiedColumnUpdatePageMoveOccurOnRecovery(t *testing.T) {
 
 	txn.SetIsRecoveryPhase(false)
 	// reactivate logging
-	log_mgr.ActivateLogging()
+	logMgr.ActivateLogging()
 
 	// check updated value does not exist (a = 300)
 	fmt.Println("select and check value (2) ...")
@@ -2423,9 +2423,9 @@ func TestInsertAndSpecifiedColumnUpdatePageMoveOccurOnRecovery(t *testing.T) {
 	tmpColVal = new(expression.ColumnValue)
 	tmpColVal.SetTupleIndex(0)
 	tmpColVal.SetColIndex(tableMetadata.Schema().GetColIndex(pred.LeftColumn))
-	expression_ = expression.NewComparison(tmpColVal, expression.NewConstantValue(testing_util.GetValue(pred.RightColumn), testing_util.GetValueType(pred.LeftColumn)), pred.Operator, types.Boolean)
+	expr = expression.NewComparison(tmpColVal, expression.NewConstantValue(testing_util.GetValue(pred.RightColumn), testing_util.GetValueType(pred.LeftColumn)), pred.Operator, types.Boolean)
 
-	seqPlan := plans.NewSeqScanPlanNode(c, outSchema, expression_, tableMetadata.OID())
+	seqPlan := plans.NewSeqScanPlanNode(c, outSchema, expr, tableMetadata.OID())
 	results := executionEngine.Execute(seqPlan, executorContext)
 	testingpkg.Assert(t, len(results) == 0, "updated value should not be exist")
 
@@ -2435,9 +2435,9 @@ func TestInsertAndSpecifiedColumnUpdatePageMoveOccurOnRecovery(t *testing.T) {
 	tmpColVal = new(expression.ColumnValue)
 	tmpColVal.SetTupleIndex(0)
 	tmpColVal.SetColIndex(tableMetadata.Schema().GetColIndex(pred.LeftColumn))
-	expression_ = expression.NewComparison(tmpColVal, expression.NewConstantValue(testing_util.GetValue(pred.RightColumn), testing_util.GetValueType(pred.RightColumn)), pred.Operator, types.Boolean)
+	expr = expression.NewComparison(tmpColVal, expression.NewConstantValue(testing_util.GetValue(pred.RightColumn), testing_util.GetValueType(pred.RightColumn)), pred.Operator, types.Boolean)
 
-	seqPlan = plans.NewSeqScanPlanNode(c, outSchema, expression_, tableMetadata.OID())
+	seqPlan = plans.NewSeqScanPlanNode(c, outSchema, expr, tableMetadata.OID())
 	results = executionEngine.Execute(seqPlan, executorContext)
 
 	testingpkg.Assert(t, types.NewInteger(180).CompareEquals(results[0].GetValue(outSchema, 0)), "value should be 180")
@@ -2461,17 +2461,17 @@ func TestSimpleSeqScanAndOrderBy(t *testing.T) {
 	testingpkg.Assert(t, shi.GetLogManager().IsEnabledLogging(), "")
 	fmt.Println("System logging is active.")
 
-	txn_mgr := shi.GetTransactionManager()
-	txn := txn_mgr.Begin(nil)
+	txnMgr := shi.GetTransactionManager()
+	txn := txnMgr.Begin(nil)
 
 	c := catalog.BootstrapCatalog(shi.GetBufferPoolManager(), shi.GetLogManager(), shi.GetLockManager(), txn)
-	exec_ctx := executors.NewExecutorContext(c, shi.GetBufferPoolManager(), txn)
+	execCtx := executors.NewExecutorContext(c, shi.GetBufferPoolManager(), txn)
 
 	columnA := column.NewColumn("a", types.Integer, false, index_constants.IndexKindInvalid, types.PageID(-1), nil)
 	columnB := column.NewColumn("b", types.Varchar, false, index_constants.IndexKindInvalid, types.PageID(-1), nil)
-	schema_ := schema.NewSchema([]*column.Column{columnA, columnB})
+	sch := schema.NewSchema([]*column.Column{columnA, columnB})
 
-	tableMetadata := c.CreateTable("test_1", schema_, txn)
+	tableMetadata := c.CreateTable("test_1", sch, txn)
 
 	row1 := make([]types.Value, 0)
 	row1 = append(row1, types.NewInteger(20))
@@ -2492,69 +2492,69 @@ func TestSimpleSeqScanAndOrderBy(t *testing.T) {
 
 	insertPlanNode := plans.NewInsertPlanNode(rows, tableMetadata.OID())
 	executionEngine := &executors.ExecutionEngine{}
-	executionEngine.Execute(insertPlanNode, exec_ctx)
+	executionEngine.Execute(insertPlanNode, execCtx)
 
-	txn_mgr.Commit(nil, txn)
+	txnMgr.Commit(nil, txn)
 
-	txn = txn_mgr.Begin(nil)
-	exec_ctx.SetTransaction(txn)
+	txn = txnMgr.Begin(nil)
+	execCtx.SetTransaction(txn)
 
-	var scan_plan *plans.SeqScanPlanNode
-	var scan_schema *schema.Schema
+	var scanPlan *plans.SeqScanPlanNode
+	var scanSchema *schema.Schema
 	{
-		schema_ := tableMetadata.Schema()
-		colA := expression.MakeColumnValueExpression(schema_, 0, "a").(*expression.ColumnValue)
-		colB := expression.MakeColumnValueExpression(schema_, 0, "b").(*expression.ColumnValue)
-		scan_schema = testing_tbl_gen.MakeOutputSchema([]testing_tbl_gen.MakeSchemaMeta{{"a", *colA}, {"b", *colB}})
-		scan_plan = plans.NewSeqScanPlanNode(c, scan_schema, nil, tableMetadata.OID()).(*plans.SeqScanPlanNode)
+		sch := tableMetadata.Schema()
+		colA := expression.MakeColumnValueExpression(sch, 0, "a").(*expression.ColumnValue)
+		colB := expression.MakeColumnValueExpression(sch, 0, "b").(*expression.ColumnValue)
+		scanSchema = testing_tbl_gen.MakeOutputSchema([]testing_tbl_gen.MakeSchemaMeta{{"a", *colA}, {"b", *colB}})
+		scanPlan = plans.NewSeqScanPlanNode(c, scanSchema, nil, tableMetadata.OID()).(*plans.SeqScanPlanNode)
 	}
 
 	orderby_plan := plans.NewOrderbyPlanNode(
-		nil, scan_plan, []int{0, 1},
+		nil, scanPlan, []int{0, 1},
 		[]plans.OrderbyType{plans.ASC, plans.ASC})
 
-	results := executionEngine.Execute(orderby_plan, exec_ctx)
+	results := executionEngine.Execute(orderby_plan, execCtx)
 
-	fmt.Println(results[0].GetValue(scan_schema, 0).ToInteger())
-	fmt.Println(results[0].GetValue(scan_schema, 1).ToVarchar())
-	fmt.Println(results[1].GetValue(scan_schema, 0).ToInteger())
-	fmt.Println(results[1].GetValue(scan_schema, 1).ToVarchar())
-	fmt.Println(results[2].GetValue(scan_schema, 0).ToInteger())
-	fmt.Println(results[2].GetValue(scan_schema, 1).ToVarchar())
+	fmt.Println(results[0].GetValue(scanSchema, 0).ToInteger())
+	fmt.Println(results[0].GetValue(scanSchema, 1).ToVarchar())
+	fmt.Println(results[1].GetValue(scanSchema, 0).ToInteger())
+	fmt.Println(results[1].GetValue(scanSchema, 1).ToVarchar())
+	fmt.Println(results[2].GetValue(scanSchema, 0).ToInteger())
+	fmt.Println(results[2].GetValue(scanSchema, 1).ToVarchar())
 
-	testingpkg.Assert(t, types.NewInteger(10).CompareEquals(results[0].GetValue(scan_schema, 0)), "value should be 10")
-	testingpkg.Assert(t, types.NewVarchar("daylight").CompareEquals(results[0].GetValue(scan_schema, 1)), "value should be 'daylight'")
+	testingpkg.Assert(t, types.NewInteger(10).CompareEquals(results[0].GetValue(scanSchema, 0)), "value should be 10")
+	testingpkg.Assert(t, types.NewVarchar("daylight").CompareEquals(results[0].GetValue(scanSchema, 1)), "value should be 'daylight'")
 
-	testingpkg.Assert(t, types.NewInteger(20).CompareEquals(results[1].GetValue(scan_schema, 0)), "value should be 20")
-	testingpkg.Assert(t, types.NewVarchar("boo").CompareEquals(results[1].GetValue(scan_schema, 1)), "value should be 'boo'")
+	testingpkg.Assert(t, types.NewInteger(20).CompareEquals(results[1].GetValue(scanSchema, 0)), "value should be 20")
+	testingpkg.Assert(t, types.NewVarchar("boo").CompareEquals(results[1].GetValue(scanSchema, 1)), "value should be 'boo'")
 
-	testingpkg.Assert(t, types.NewInteger(20).CompareEquals(results[2].GetValue(scan_schema, 0)), "value should be 20")
-	testingpkg.Assert(t, types.NewVarchar("celemony").CompareEquals(results[2].GetValue(scan_schema, 1)), "value should be 'celemony'")
+	testingpkg.Assert(t, types.NewInteger(20).CompareEquals(results[2].GetValue(scanSchema, 0)), "value should be 20")
+	testingpkg.Assert(t, types.NewVarchar("celemony").CompareEquals(results[2].GetValue(scanSchema, 1)), "value should be 'celemony'")
 
 	// test other order
 	orderby_plan = plans.NewOrderbyPlanNode(
-		nil, scan_plan, []int{0, 1},
+		nil, scanPlan, []int{0, 1},
 		[]plans.OrderbyType{plans.DESC, plans.DESC})
 
-	results = executionEngine.Execute(orderby_plan, exec_ctx)
+	results = executionEngine.Execute(orderby_plan, execCtx)
 
-	fmt.Println(results[0].GetValue(scan_schema, 0).ToInteger())
-	fmt.Println(results[0].GetValue(scan_schema, 1).ToVarchar())
-	fmt.Println(results[1].GetValue(scan_schema, 0).ToInteger())
-	fmt.Println(results[1].GetValue(scan_schema, 1).ToVarchar())
-	fmt.Println(results[2].GetValue(scan_schema, 0).ToInteger())
-	fmt.Println(results[2].GetValue(scan_schema, 1).ToVarchar())
+	fmt.Println(results[0].GetValue(scanSchema, 0).ToInteger())
+	fmt.Println(results[0].GetValue(scanSchema, 1).ToVarchar())
+	fmt.Println(results[1].GetValue(scanSchema, 0).ToInteger())
+	fmt.Println(results[1].GetValue(scanSchema, 1).ToVarchar())
+	fmt.Println(results[2].GetValue(scanSchema, 0).ToInteger())
+	fmt.Println(results[2].GetValue(scanSchema, 1).ToVarchar())
 
-	testingpkg.Assert(t, types.NewInteger(20).CompareEquals(results[0].GetValue(scan_schema, 0)), "value should be 20")
-	testingpkg.Assert(t, types.NewVarchar("celemony").CompareEquals(results[0].GetValue(scan_schema, 1)), "value should be 'celemony'")
+	testingpkg.Assert(t, types.NewInteger(20).CompareEquals(results[0].GetValue(scanSchema, 0)), "value should be 20")
+	testingpkg.Assert(t, types.NewVarchar("celemony").CompareEquals(results[0].GetValue(scanSchema, 1)), "value should be 'celemony'")
 
-	testingpkg.Assert(t, types.NewInteger(20).CompareEquals(results[1].GetValue(scan_schema, 0)), "value should be 20")
-	testingpkg.Assert(t, types.NewVarchar("boo").CompareEquals(results[1].GetValue(scan_schema, 1)), "value should be 'boo'")
+	testingpkg.Assert(t, types.NewInteger(20).CompareEquals(results[1].GetValue(scanSchema, 0)), "value should be 20")
+	testingpkg.Assert(t, types.NewVarchar("boo").CompareEquals(results[1].GetValue(scanSchema, 1)), "value should be 'boo'")
 
-	testingpkg.Assert(t, types.NewInteger(10).CompareEquals(results[2].GetValue(scan_schema, 0)), "value should be 10")
-	testingpkg.Assert(t, types.NewVarchar("daylight").CompareEquals(results[2].GetValue(scan_schema, 1)), "value should be 'daylight'")
+	testingpkg.Assert(t, types.NewInteger(10).CompareEquals(results[2].GetValue(scanSchema, 0)), "value should be 10")
+	testingpkg.Assert(t, types.NewVarchar("daylight").CompareEquals(results[2].GetValue(scanSchema, 1)), "value should be 'daylight'")
 
-	txn_mgr.Commit(nil, txn)
+	txnMgr.Commit(nil, txn)
 	shi.Shutdown(samehada.ShutdownPatternRemoveFiles)
 }
 
@@ -2569,17 +2569,17 @@ func TestSimpleSetNullToVarchar(t *testing.T) {
 	testingpkg.Assert(t, shi.GetLogManager().IsEnabledLogging(), "")
 	fmt.Println("System logging is active.")
 
-	txn_mgr := shi.GetTransactionManager()
-	txn := txn_mgr.Begin(nil)
+	txnMgr := shi.GetTransactionManager()
+	txn := txnMgr.Begin(nil)
 
 	c := catalog.BootstrapCatalog(shi.GetBufferPoolManager(), shi.GetLogManager(), shi.GetLockManager(), txn)
-	exec_ctx := executors.NewExecutorContext(c, shi.GetBufferPoolManager(), txn)
+	execCtx := executors.NewExecutorContext(c, shi.GetBufferPoolManager(), txn)
 
 	columnA := column.NewColumn("a", types.Integer, false, index_constants.IndexKindInvalid, types.PageID(-1), nil)
 	columnB := column.NewColumn("b", types.Varchar, false, index_constants.IndexKindInvalid, types.PageID(-1), nil)
-	schema_ := schema.NewSchema([]*column.Column{columnA, columnB})
+	sch := schema.NewSchema([]*column.Column{columnA, columnB})
 
-	tableMetadata := c.CreateTable("test_1", schema_, txn)
+	tableMetadata := c.CreateTable("test_1", sch, txn)
 
 	row1 := make([]types.Value, 0)
 	row1 = append(row1, types.NewInteger(20))
@@ -2602,61 +2602,61 @@ func TestSimpleSetNullToVarchar(t *testing.T) {
 
 	insertPlanNode := plans.NewInsertPlanNode(rows, tableMetadata.OID())
 	executionEngine := &executors.ExecutionEngine{}
-	executionEngine.Execute(insertPlanNode, exec_ctx)
+	executionEngine.Execute(insertPlanNode, execCtx)
 
-	txn_mgr.Commit(nil, txn)
+	txnMgr.Commit(nil, txn)
 
-	txn = txn_mgr.Begin(nil)
-	exec_ctx.SetTransaction(txn)
+	txn = txnMgr.Begin(nil)
+	execCtx.SetTransaction(txn)
 
-	var scan_plan *plans.SeqScanPlanNode
-	var scan_schema *schema.Schema
+	var scanPlan *plans.SeqScanPlanNode
+	var scanSchema *schema.Schema
 	{
-		schema_ := tableMetadata.Schema()
-		colA := expression.MakeColumnValueExpression(schema_, 0, "a").(*expression.ColumnValue)
-		colB := expression.MakeColumnValueExpression(schema_, 0, "b").(*expression.ColumnValue)
-		scan_schema = testing_tbl_gen.MakeOutputSchema([]testing_tbl_gen.MakeSchemaMeta{{"a", *colA}, {"b", *colB}})
-		scan_plan = plans.NewSeqScanPlanNode(c, scan_schema, nil, tableMetadata.OID()).(*plans.SeqScanPlanNode)
+		sch := tableMetadata.Schema()
+		colA := expression.MakeColumnValueExpression(sch, 0, "a").(*expression.ColumnValue)
+		colB := expression.MakeColumnValueExpression(sch, 0, "b").(*expression.ColumnValue)
+		scanSchema = testing_tbl_gen.MakeOutputSchema([]testing_tbl_gen.MakeSchemaMeta{{"a", *colA}, {"b", *colB}})
+		scanPlan = plans.NewSeqScanPlanNode(c, scanSchema, nil, tableMetadata.OID()).(*plans.SeqScanPlanNode)
 	}
 
-	results := executionEngine.Execute(scan_plan, exec_ctx)
+	results := executionEngine.Execute(scanPlan, execCtx)
 
-	fmt.Println(results[0].GetValue(scan_schema, 0).ToInteger())
-	fmt.Println(results[0].GetValue(scan_schema, 1).ToVarchar())
-	fmt.Println(results[1].GetValue(scan_schema, 0).ToInteger())
-	fmt.Println(results[1].GetValue(scan_schema, 1).ToVarchar())
-	fmt.Println(results[2].GetValue(scan_schema, 0).ToInteger())
-	fmt.Println(results[2].GetValue(scan_schema, 1).ToVarchar())
+	fmt.Println(results[0].GetValue(scanSchema, 0).ToInteger())
+	fmt.Println(results[0].GetValue(scanSchema, 1).ToVarchar())
+	fmt.Println(results[1].GetValue(scanSchema, 0).ToInteger())
+	fmt.Println(results[1].GetValue(scanSchema, 1).ToVarchar())
+	fmt.Println(results[2].GetValue(scanSchema, 0).ToInteger())
+	fmt.Println(results[2].GetValue(scanSchema, 1).ToVarchar())
 
-	testingpkg.Assert(t, types.NewInteger(20).CompareEquals(results[0].GetValue(scan_schema, 0)), "value should be 20")
-	testingpkg.Assert(t, types.NewVarchar("").CompareEquals(results[0].GetValue(scan_schema, 1)) == false, "compared result should be false")
-	testingpkg.Assert(t, results[0].GetValue(scan_schema, 1).IsNull() == true, "IsNull() of column at 1 value should be true")
+	testingpkg.Assert(t, types.NewInteger(20).CompareEquals(results[0].GetValue(scanSchema, 0)), "value should be 20")
+	testingpkg.Assert(t, types.NewVarchar("").CompareEquals(results[0].GetValue(scanSchema, 1)) == false, "compared result should be false")
+	testingpkg.Assert(t, results[0].GetValue(scanSchema, 1).IsNull() == true, "IsNull() of column at 1 value should be true")
 
-	testingpkg.Assert(t, types.NewInteger(20).CompareEquals(results[1].GetValue(scan_schema, 0)), "value should be 20")
-	testingpkg.Assert(t, types.NewVarchar("boo").CompareEquals(results[1].GetValue(scan_schema, 1)), "value should be 'boo'")
+	testingpkg.Assert(t, types.NewInteger(20).CompareEquals(results[1].GetValue(scanSchema, 0)), "value should be 20")
+	testingpkg.Assert(t, types.NewVarchar("boo").CompareEquals(results[1].GetValue(scanSchema, 1)), "value should be 'boo'")
 
-	testingpkg.Assert(t, types.NewInteger(10).CompareEquals(results[2].GetValue(scan_schema, 0)), "value should be 10")
-	testingpkg.Assert(t, types.NewVarchar("daylight").CompareEquals(results[2].GetValue(scan_schema, 1)), "value should be 'daylight'")
+	testingpkg.Assert(t, types.NewInteger(10).CompareEquals(results[2].GetValue(scanSchema, 0)), "value should be 10")
+	testingpkg.Assert(t, types.NewVarchar("daylight").CompareEquals(results[2].GetValue(scanSchema, 1)), "value should be 'daylight'")
 
-	txn_mgr.Commit(nil, txn)
+	txnMgr.Commit(nil, txn)
 	shi.Shutdown(samehada.ShutdownPatternRemoveFiles)
 }
 
 func TestInsertNullValueAndSeqScanWithNullComparison(t *testing.T) {
 	diskManager := disk.NewDiskManagerTest()
 	defer diskManager.ShutDown()
-	log_mgr := recovery.NewLogManager(&diskManager)
-	bpm := buffer.NewBufferPoolManager(uint32(32), diskManager, log_mgr)
-	txn_mgr := access.NewTransactionManager(access.NewLockManager(access.REGULAR, access.DETECTION), log_mgr)
-	txn := txn_mgr.Begin(nil)
+	logMgr := recovery.NewLogManager(&diskManager)
+	bpm := buffer.NewBufferPoolManager(uint32(32), diskManager, logMgr)
+	txnMgr := access.NewTransactionManager(access.NewLockManager(access.REGULAR, access.DETECTION), logMgr)
+	txn := txnMgr.Begin(nil)
 
-	c := catalog.BootstrapCatalog(bpm, log_mgr, access.NewLockManager(access.REGULAR, access.PREVENTION), txn)
+	c := catalog.BootstrapCatalog(bpm, logMgr, access.NewLockManager(access.REGULAR, access.PREVENTION), txn)
 
 	columnA := column.NewColumn("a", types.Integer, false, index_constants.IndexKindInvalid, types.PageID(-1), nil)
 	columnB := column.NewColumn("b", types.Varchar, false, index_constants.IndexKindInvalid, types.PageID(-1), nil)
-	schema_ := schema.NewSchema([]*column.Column{columnA, columnB})
+	sch := schema.NewSchema([]*column.Column{columnA, columnB})
 
-	tableMetadata := c.CreateTable("test_1", schema_, txn)
+	tableMetadata := c.CreateTable("test_1", sch, txn)
 
 	row1 := make([]types.Value, 0)
 	row1 = append(row1, types.NewInteger(20))
@@ -2685,7 +2685,7 @@ func TestInsertNullValueAndSeqScanWithNullComparison(t *testing.T) {
 
 	bpm.FlushAllPages()
 
-	txn_mgr.Commit(nil, txn)
+	txnMgr.Commit(nil, txn)
 
 	cases := []testing_pattern_fw.SeqScanTestCase{{
 		"select a, b ... WHERE b = NULL",
@@ -2729,20 +2729,20 @@ func TestDeallocatedPageReuseAfterRelaunchGraceful(t *testing.T) {
 	testingpkg.Assert(t, shi.GetLogManager().IsEnabledLogging(), "")
 	fmt.Println("System logging is active.")
 
-	log_mgr := shi.GetLogManager()
-	txn_mgr := shi.GetTransactionManager()
+	logMgr := shi.GetLogManager()
+	txnMgr := shi.GetTransactionManager()
 	bpm := shi.GetBufferPoolManager()
-	lock_mgr := shi.GetLockManager()
+	lockMgr := shi.GetLockManager()
 
-	txn := txn_mgr.Begin(nil)
+	txn := txnMgr.Begin(nil)
 
-	c := catalog.BootstrapCatalog(bpm, log_mgr, lock_mgr, txn)
+	c := catalog.BootstrapCatalog(bpm, logMgr, lockMgr, txn)
 
 	columnA := column.NewColumn("a", types.Integer, false, index_constants.IndexKindSkipList, types.PageID(-1), nil)
 	columnB := column.NewColumn("b", types.Varchar, false, index_constants.IndexKindSkipList, types.PageID(-1), nil)
-	schema_ := schema.NewSchema([]*column.Column{columnA, columnB})
+	sch := schema.NewSchema([]*column.Column{columnA, columnB})
 
-	tableMetadata := c.CreateTable("test_1", schema_, txn)
+	tableMetadata := c.CreateTable("test_1", sch, txn)
 
 	row1 := make([]types.Value, 0)
 	row1 = append(row1, types.NewInteger(20))
@@ -2768,10 +2768,10 @@ func TestDeallocatedPageReuseAfterRelaunchGraceful(t *testing.T) {
 	bpm.DeallocatePage(targetPageID, false)
 	bpm.UnpinPage(targetPageID, false)
 
-	txn_mgr.Commit(nil, txn)
+	txnMgr.Commit(nil, txn)
 
 	fmt.Println("update a row...")
-	txn = txn_mgr.Begin(nil)
+	txn = txnMgr.Begin(nil)
 
 	row1 = make([]types.Value, 0)
 	row1 = append(row1, types.NewInteger(99))
@@ -2781,13 +2781,13 @@ func TestDeallocatedPageReuseAfterRelaunchGraceful(t *testing.T) {
 	tmpColVal := new(expression.ColumnValue)
 	tmpColVal.SetTupleIndex(0)
 	tmpColVal.SetColIndex(tableMetadata.Schema().GetColIndex(pred.LeftColumn))
-	expression_ := expression.NewComparison(tmpColVal, expression.NewConstantValue(testing_util.GetValue(pred.RightColumn), testing_util.GetValueType(pred.LeftColumn)), pred.Operator, types.Boolean)
+	expr := expression.NewComparison(tmpColVal, expression.NewConstantValue(testing_util.GetValue(pred.RightColumn), testing_util.GetValueType(pred.LeftColumn)), pred.Operator, types.Boolean)
 
-	seqScanPlan := plans.NewSeqScanPlanNode(c, tableMetadata.Schema(), expression_, tableMetadata.OID())
+	seqScanPlan := plans.NewSeqScanPlanNode(c, tableMetadata.Schema(), expr, tableMetadata.OID())
 	updatePlanNode := plans.NewUpdatePlanNode(row1, []int{0, 1}, seqScanPlan)
 	executionEngine.Execute(updatePlanNode, executorContext)
 
-	txn_mgr.Commit(nil, txn)
+	txnMgr.Commit(nil, txn)
 
 	testingpkg.Assert(t, bpm.GetReusablePageIDs()[0] == targetPageID, "reusable page list is not expected state!")
 	fmt.Println("reusable page list before relaunch: ", bpm.GetReusablePageIDs(), targetPageID)
@@ -2797,25 +2797,25 @@ func TestDeallocatedPageReuseAfterRelaunchGraceful(t *testing.T) {
 
 	// restart system
 	shi = samehada.NewSamehadaInstance(t.Name(), 2)
-	log_mgr = shi.GetLogManager()
-	lock_mgr = shi.GetLockManager()
-	txn_mgr = shi.GetTransactionManager()
+	logMgr = shi.GetLogManager()
+	lockMgr = shi.GetLockManager()
+	txnMgr = shi.GetTransactionManager()
 	bpm = shi.GetBufferPoolManager()
 
 	log_recovery := log_recovery.NewLogRecovery(
 		shi.GetDiskManager(),
 		bpm,
-		log_mgr)
+		logMgr)
 
-	txn = txn_mgr.Begin(nil)
-	c = catalog.RecoveryCatalogFromCatalogPage(bpm, log_mgr, lock_mgr, txn, true)
+	txn = txnMgr.Begin(nil)
+	c = catalog.RecoveryCatalogFromCatalogPage(bpm, logMgr, lockMgr, txn, true)
 	tableMetadata = c.GetTableByName("test_1")
 
 	executorContext = executors.NewExecutorContext(c, bpm, txn)
 	executorContext.SetTransaction(txn)
 
 	// disable logging
-	log_mgr.DeactivateLogging()
+	logMgr.DeactivateLogging()
 	txn.SetIsRecoveryPhase(true)
 
 	// do recovery from Log
@@ -2831,7 +2831,7 @@ func TestDeallocatedPageReuseAfterRelaunchGraceful(t *testing.T) {
 
 	txn.SetIsRecoveryPhase(false)
 	// reactivate logging
-	log_mgr.ActivateLogging()
+	logMgr.ActivateLogging()
 
 	// rewrite reusable page id log because it is not wrote to log file after launch
 	// but the information is needed next launch also
@@ -2839,17 +2839,17 @@ func TestDeallocatedPageReuseAfterRelaunchGraceful(t *testing.T) {
 	if len(reusablePageIDs) > 0 {
 		for _, pageID := range reusablePageIDs {
 			logRecord := recovery.NewLogRecordDeallocatePage(pageID)
-			log_mgr.AppendLogRecord(logRecord)
+			logMgr.AppendLogRecord(logRecord)
 		}
 	}
-	log_mgr.Flush()
+	logMgr.Flush()
 
 	// check reusable page list is recovered expected state
 	testingpkg.Assert(t, bpm.GetReusablePageIDs()[0] == targetPageID, "reusable page list is not expected state!")
 	fmt.Println("reusable page list after relaunch: ", bpm.GetReusablePageIDs(), targetPageID)
 
 	fmt.Println("check table content...")
-	txn = txn_mgr.Begin(nil)
+	txn = txnMgr.Begin(nil)
 
 	outColumnB := column.NewColumn("b", types.Varchar, false, index_constants.IndexKindInvalid, types.PageID(-1), nil)
 	outSchema := schema.NewSchema([]*column.Column{outColumnB})
@@ -2858,12 +2858,12 @@ func TestDeallocatedPageReuseAfterRelaunchGraceful(t *testing.T) {
 	tmpColVal = new(expression.ColumnValue)
 	tmpColVal.SetTupleIndex(0)
 	tmpColVal.SetColIndex(tableMetadata.Schema().GetColIndex(pred.LeftColumn))
-	expression_ = expression.NewComparison(tmpColVal, expression.NewConstantValue(testing_util.GetValue(pred.RightColumn), testing_util.GetValueType(pred.RightColumn)), pred.Operator, types.Boolean)
+	expr = expression.NewComparison(tmpColVal, expression.NewConstantValue(testing_util.GetValue(pred.RightColumn), testing_util.GetValueType(pred.RightColumn)), pred.Operator, types.Boolean)
 
-	seqPlan := plans.NewSeqScanPlanNode(c, outSchema, expression_, tableMetadata.OID())
+	seqPlan := plans.NewSeqScanPlanNode(c, outSchema, expr, tableMetadata.OID())
 	results := executionEngine.Execute(seqPlan, executorContext)
 
-	txn_mgr.Commit(nil, txn)
+	txnMgr.Commit(nil, txn)
 
 	testingpkg.Assert(t, types.NewVarchar("updated").CompareEquals(results[0].GetValue(outSchema, 0)), "value should be 'updated'")
 
@@ -2886,20 +2886,20 @@ func TestDeallocatedPageReuseAfterRelaunchByCrash(t *testing.T) {
 	testingpkg.Assert(t, shi.GetLogManager().IsEnabledLogging(), "")
 	fmt.Println("System logging is active.")
 
-	log_mgr := shi.GetLogManager()
-	txn_mgr := shi.GetTransactionManager()
+	logMgr := shi.GetLogManager()
+	txnMgr := shi.GetTransactionManager()
 	bpm := shi.GetBufferPoolManager()
-	lock_mgr := shi.GetLockManager()
+	lockMgr := shi.GetLockManager()
 
-	txn := txn_mgr.Begin(nil)
+	txn := txnMgr.Begin(nil)
 
-	c := catalog.BootstrapCatalog(bpm, log_mgr, lock_mgr, txn)
+	c := catalog.BootstrapCatalog(bpm, logMgr, lockMgr, txn)
 
 	columnA := column.NewColumn("a", types.Integer, false, index_constants.IndexKindSkipList, types.PageID(-1), nil)
 	columnB := column.NewColumn("b", types.Varchar, false, index_constants.IndexKindSkipList, types.PageID(-1), nil)
-	schema_ := schema.NewSchema([]*column.Column{columnA, columnB})
+	sch := schema.NewSchema([]*column.Column{columnA, columnB})
 
-	tableMetadata := c.CreateTable("test_1", schema_, txn)
+	tableMetadata := c.CreateTable("test_1", sch, txn)
 
 	row1 := make([]types.Value, 0)
 	row1 = append(row1, types.NewInteger(20))
@@ -2925,10 +2925,10 @@ func TestDeallocatedPageReuseAfterRelaunchByCrash(t *testing.T) {
 	bpm.DeallocatePage(targetPageID, false)
 	bpm.UnpinPage(targetPageID, false)
 
-	txn_mgr.Commit(nil, txn)
+	txnMgr.Commit(nil, txn)
 
 	fmt.Println("update a row...")
-	txn = txn_mgr.Begin(nil)
+	txn = txnMgr.Begin(nil)
 
 	row1 = make([]types.Value, 0)
 	row1 = append(row1, types.NewInteger(99))
@@ -2938,9 +2938,9 @@ func TestDeallocatedPageReuseAfterRelaunchByCrash(t *testing.T) {
 	tmpColVal := new(expression.ColumnValue)
 	tmpColVal.SetTupleIndex(0)
 	tmpColVal.SetColIndex(tableMetadata.Schema().GetColIndex(pred.LeftColumn))
-	expression_ := expression.NewComparison(tmpColVal, expression.NewConstantValue(testing_util.GetValue(pred.RightColumn), testing_util.GetValueType(pred.LeftColumn)), pred.Operator, types.Boolean)
+	expr := expression.NewComparison(tmpColVal, expression.NewConstantValue(testing_util.GetValue(pred.RightColumn), testing_util.GetValueType(pred.LeftColumn)), pred.Operator, types.Boolean)
 
-	seqScanPlan := plans.NewSeqScanPlanNode(c, tableMetadata.Schema(), expression_, tableMetadata.OID())
+	seqScanPlan := plans.NewSeqScanPlanNode(c, tableMetadata.Schema(), expr, tableMetadata.OID())
 	updatePlanNode := plans.NewUpdatePlanNode(row1, []int{0, 1}, seqScanPlan)
 	executionEngine.Execute(updatePlanNode, executorContext)
 
@@ -2952,25 +2952,25 @@ func TestDeallocatedPageReuseAfterRelaunchByCrash(t *testing.T) {
 
 	// restart system
 	shi = samehada.NewSamehadaInstance(t.Name(), 2)
-	log_mgr = shi.GetLogManager()
-	lock_mgr = shi.GetLockManager()
-	txn_mgr = shi.GetTransactionManager()
+	logMgr = shi.GetLogManager()
+	lockMgr = shi.GetLockManager()
+	txnMgr = shi.GetTransactionManager()
 	bpm = shi.GetBufferPoolManager()
 
 	log_recovery := log_recovery.NewLogRecovery(
 		shi.GetDiskManager(),
 		bpm,
-		log_mgr)
+		logMgr)
 
-	txn = txn_mgr.Begin(nil)
-	c = catalog.RecoveryCatalogFromCatalogPage(bpm, log_mgr, lock_mgr, txn, false)
+	txn = txnMgr.Begin(nil)
+	c = catalog.RecoveryCatalogFromCatalogPage(bpm, logMgr, lockMgr, txn, false)
 	tableMetadata = c.GetTableByName("test_1")
 
 	executorContext = executors.NewExecutorContext(c, bpm, txn)
 	executorContext.SetTransaction(txn)
 
 	// disable logging
-	log_mgr.DeactivateLogging()
+	logMgr.DeactivateLogging()
 	txn.SetIsRecoveryPhase(true)
 
 	// do recovery from Log
@@ -2987,7 +2987,7 @@ func TestDeallocatedPageReuseAfterRelaunchByCrash(t *testing.T) {
 
 	txn.SetIsRecoveryPhase(false)
 	// reactivate logging
-	log_mgr.ActivateLogging()
+	logMgr.ActivateLogging()
 
 	// rewrite reusable page id log because it is not wrote to log file after launch
 	// but the information is needed next launch also
@@ -2995,17 +2995,17 @@ func TestDeallocatedPageReuseAfterRelaunchByCrash(t *testing.T) {
 	if len(reusablePageIDs) > 0 {
 		for _, pageID := range reusablePageIDs {
 			logRecord := recovery.NewLogRecordDeallocatePage(pageID)
-			log_mgr.AppendLogRecord(logRecord)
+			logMgr.AppendLogRecord(logRecord)
 		}
 	}
-	log_mgr.Flush()
+	logMgr.Flush()
 
 	// check reusable page list is recovered expected state
 	testingpkg.Assert(t, bpm.GetReusablePageIDs()[0] == targetPageID, "reusable page list is not expected state!")
 	fmt.Println("reusable page list after relaunch: ", bpm.GetReusablePageIDs(), targetPageID)
 
 	fmt.Println("check table content...")
-	txn = txn_mgr.Begin(nil)
+	txn = txnMgr.Begin(nil)
 
 	outColumnB := column.NewColumn("b", types.Varchar, false, index_constants.IndexKindInvalid, types.PageID(-1), nil)
 	outSchema := schema.NewSchema([]*column.Column{outColumnB})
@@ -3014,12 +3014,12 @@ func TestDeallocatedPageReuseAfterRelaunchByCrash(t *testing.T) {
 	tmpColVal = new(expression.ColumnValue)
 	tmpColVal.SetTupleIndex(0)
 	tmpColVal.SetColIndex(tableMetadata.Schema().GetColIndex(pred.LeftColumn))
-	expression_ = expression.NewComparison(tmpColVal, expression.NewConstantValue(testing_util.GetValue(pred.RightColumn), testing_util.GetValueType(pred.RightColumn)), pred.Operator, types.Boolean)
+	expr = expression.NewComparison(tmpColVal, expression.NewConstantValue(testing_util.GetValue(pred.RightColumn), testing_util.GetValueType(pred.RightColumn)), pred.Operator, types.Boolean)
 
-	seqPlan := plans.NewSeqScanPlanNode(c, outSchema, expression_, tableMetadata.OID())
+	seqPlan := plans.NewSeqScanPlanNode(c, outSchema, expr, tableMetadata.OID())
 	results := executionEngine.Execute(seqPlan, executorContext)
 
-	txn_mgr.Commit(nil, txn)
+	txnMgr.Commit(nil, txn)
 
 	// aborted update transaction should be rollbacked
 	testingpkg.Assert(t, types.NewVarchar("foo").CompareEquals(results[0].GetValue(outSchema, 0)), "value should be 'foo'")

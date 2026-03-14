@@ -8,7 +8,7 @@ import (
 
 type NestedLoopJoinPlanNode struct {
 	*AbstractPlanNode
-	stats_ *catalog.TableStatistics
+	stats *catalog.TableStatistics
 }
 
 func GenNestedLoopJoinStats(leftPlan Plan, rightPlan Plan) *catalog.TableStatistics {
@@ -54,7 +54,7 @@ func (p *NestedLoopJoinPlanNode) EmitRowCount(c *catalog.Catalog) uint64 {
 }
 
 func (p *NestedLoopJoinPlanNode) GetStatistics() *catalog.TableStatistics {
-	return p.stats_
+	return p.stats
 }
 
 func (p *NestedLoopJoinPlanNode) GetDebugStr() string {

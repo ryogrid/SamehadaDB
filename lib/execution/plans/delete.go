@@ -9,7 +9,7 @@ import (
  */
 type DeletePlanNode struct {
 	*AbstractPlanNode
-	stats_ *catalog.TableStatistics
+	stats *catalog.TableStatistics
 }
 
 func NewDeletePlanNode(child Plan) Plan {
@@ -34,7 +34,7 @@ func (p *DeletePlanNode) GetDebugStr() string {
 }
 
 func (p *DeletePlanNode) GetStatistics() *catalog.TableStatistics {
-	return p.stats_
+	return p.stats
 }
 
 func (p *DeletePlanNode) GetType() PlanType {
