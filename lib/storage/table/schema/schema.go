@@ -57,15 +57,15 @@ func (s *Schema) Length() uint32 {
 
 func (s *Schema) GetColIndex(columnName string) uint32 {
 	// note: alphabets on column name is stored in lowercase
-	columnName_ := strings.ToLower(columnName)
+	colName := strings.ToLower(columnName)
 
 	for i := uint32(0); i < s.GetColumnCount(); i++ {
-		if strings.Contains(columnName_, ".") && s.columns[i].GetColumnName() == columnName_ {
+		if strings.Contains(colName, ".") && s.columns[i].GetColumnName() == colName {
 			return i
-		} else if !strings.Contains(columnName_, ".") {
-			if s.columns[i].GetColumnName() == columnName_ {
+		} else if !strings.Contains(colName, ".") {
+			if s.columns[i].GetColumnName() == colName {
 				return i
-			} else if strings.Contains(s.columns[i].GetColumnName(), ".") && strings.Split(s.columns[i].GetColumnName(), ".")[1] == columnName_ {
+			} else if strings.Contains(s.columns[i].GetColumnName(), ".") && strings.Split(s.columns[i].GetColumnName(), ".")[1] == colName {
 				return i
 			}
 		}
@@ -91,16 +91,16 @@ func (s *Schema) IsHaveColumn(columnName *string) bool {
 }
 
 func CopySchema(from *Schema, attrs []uint32) *Schema {
-	var cols_obj []column.Column
-	var cols_p []*column.Column
+	var colsObj []column.Column
+	var colsP []*column.Column
 	for _, col := range from.columns {
-		cols_obj = append(cols_obj, *col)
+		colsObj = append(colsObj, *col)
 	}
-	for _, col := range cols_obj {
-		cols_p = append(cols_p, &col)
+	for _, col := range colsObj {
+		colsP = append(colsP, &col)
 	}
 
 	ret := new(Schema)
-	ret.columns = cols_p
+	ret.columns = colsP
 	return ret
 }

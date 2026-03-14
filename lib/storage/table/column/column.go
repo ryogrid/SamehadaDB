@@ -23,7 +23,7 @@ type Column struct {
 	isLeft            bool // when temporal schema, this is used for join
 	// should be pointer of subtype of expression.Expression
 	// this member is used and needed at temporarily created table (schema) on query execution
-	expr_ interface{}
+	expr interface{}
 }
 
 // indexHeaderPageID should be types.PageID(-1) if there is no special reason
@@ -113,9 +113,9 @@ func (c *Column) SetIsLeft(isLeft bool) {
 
 // returned value should be used with type validation at expression.Expression
 func (c *Column) GetExpr() interface{} {
-	return c.expr_
+	return c.expr
 }
 
 func (c *Column) SetExpr(expr interface{}) {
-	c.expr_ = expr
+	c.expr = expr
 }
