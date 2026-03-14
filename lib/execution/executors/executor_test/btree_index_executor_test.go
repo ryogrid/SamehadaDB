@@ -168,7 +168,7 @@ func TestKeyDuplicateInsertDeleteWithBTreeIndexVarchar(t *testing.T) {
 }
 
 func TestKeyDuplicateBTreePrallelTxnStrideInteger(t *testing.T) {
-	t.Parallel()
+	//t.Parallel()
 	if testing.Short() {
 		t.Skip("skip this in short mode.")
 	}
@@ -176,7 +176,7 @@ func TestKeyDuplicateBTreePrallelTxnStrideInteger(t *testing.T) {
 }
 
 func TestKeyDuplicateBTreePrallelTxnStrideFloat(t *testing.T) {
-	t.Parallel()
+	//t.Parallel()
 	if testing.Short() {
 		t.Skip("skip this in short mode.")
 	}
@@ -186,7 +186,7 @@ func TestKeyDuplicateBTreePrallelTxnStrideFloat(t *testing.T) {
 // BTreeIndex doesn't support Varchar
 
 func TestKeyDuplicateBTreePrallelTxnStrideVarchar(t *testing.T) {
-	t.Parallel()
+	//t.Parallel()
 	//if testing.Short() {
 	//	t.Skip("skip this in short mode.")
 	//}
