@@ -53,3 +53,17 @@
   - circular_list.go and clock_replacer.go were already clean — no snake_case found
   - `reUsablePageList` and `supportMap` are camelCase (no underscore), so they don't need renaming
 ---
+
+## 2026-03-14 - US-004
+- What was implemented: Renamed all snake_case identifiers in lib/storage/table/ and lib/storage/tuple/
+- Key renames:
+  - column.go: `expr_` → `expr` (struct member)
+  - schema.go: `columnName_` → `colName`, `cols_obj` → `colsObj`, `cols_p` → `colsP` (local vars)
+  - tuple.go: `schema_` → `sc` (params), `tuple_` → `tpl`/`t` (local vars/receivers), `copied_rid` → `copiedRID`, `colmuns` → `columns` (typo fix)
+- Files changed: column.go, schema.go, tuple.go (3 files)
+- **Learnings for future iterations:**
+  - All snake_case identifiers in table/ and tuple/ were private (unexported), so no cross-package reference updates were needed
+  - Trailing underscore params like `schema_` and `tuple_` exist to avoid shadowing the package import name — rename to short forms like `sc`, `tpl`, or `t`
+  - `copied_rid` → `copiedRID` (RID is an acronym, should be all caps per Effective Go)
+  - tuple_test.go was already clean — no snake_case found
+---

@@ -73,7 +73,7 @@
         "cd server && go build -o samehada-db-server main.go succeeds"
       ],
       "priority": 4,
-      "passes": false,
+      "passes": true,
       "notes": "Phase 4 — table and tuple layers. Depend on page and buffer."
     },
     {
