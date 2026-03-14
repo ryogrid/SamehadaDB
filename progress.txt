@@ -195,3 +195,34 @@
   - `new_visitor` in root_sql_visitor.go was a local variable, not related to the `NewRootSQLVisitor` constructor
   - Struct literal initialization like `&BinaryOpExpression{expression.AND, -1, expr, expr2}` uses positional args, so field renames don't affect these
 ---
+
+## 2026-03-14 - US-011
+- What was implemented: Renamed all snake_case identifiers in lib/execution/ (expression/, plans/, executors/, executor_test/)
+- Key renames:
+  - expression/expression.go: `EXPRESSION_TYPE_*` constants → `ExpressionType*` (PascalCase)
+  - expression/abstract_expression.go: `ret_type` → `retType`
+  - expression/aggregate_value.go: `is_group_by_term_` → `isGroupByTerm`, `term_idx_` → `termIdx`
+  - expression/column_value.go: `left_tuple`/`left_schema`/`right_tuple`/`right_schema` → camelCase params, `MakeColumnValueExpression` params renamed
+  - expression/loggical_op.go: `children_left` → `childrenLeft`, `children_right` → `childrenRight`
+  - plans/aggregation.go: `COUNT_AGGREGATE` → `CountAggregate`, `SUM_AGGREGATE` → `SumAggregate`, etc.; struct fields `having_`/`group_bys_`/`aggregates_`/`agg_types_`/`stats_` → camelCase; `Group_bys_` → `GroupBys`, `Aggregates_` → `Aggregates` (exported)
+  - plans/hash_join.go: `left_hash_keys` → `leftHashKeys`, `right_hash_keys` → `rightHashKeys`
+  - plans/orderby.go: `col_idxs_` → `colIdxs`, `orderby_types_` → `orderbyTypes`
+  - plans/update.go: `update_col_idxs` → `updateColIdxs`
+  - All plans/ files: `stats_` → `stats`
+  - executors/hash_join_executor.go: All struct fields renamed (plan_, jht_, left_, right_, etc.)
+  - executors/aggregation_executor.go: `ht_val`/`ht_key` → `htVal`/`htKey`, `agg_exprs_`/`agg_types_` → camelCase
+  - executors/orderby_executor.go: `sort_tuples_` → `sortTuples`, `cur_idx_` → `curIdx`
+  - executors/index_join_executor.go: struct fields and params renamed
+  - executors/delete_executor.go: `err_` → `wrapErr`, `is_marked` → `isMarked`, `index_` → `idx`
+  - executors/update_executor.go: `err_` → `wrapErr`, `new_tuple` → `newTuple`, `is_updated` → `isUpdated`, `new_rid` → `newRID`
+  - Test files: `log_mgr`/`txn_mgr`/`lock_mgr` → camelCase, `schema_` → `sch`, `accountId` → `accountID`, `createAccountIdUpdatePlanNode` → `createAccountIDUpdatePlanNode`
+- Cross-package: EXPRESSION_TYPE_* renamed in catalog/statistics.go, planner/optimizer/; *_AGGREGATE renamed in parser/; Group_bys_/Aggregates_ renamed in plans+executors
+- Files changed: 42 files
+- **Learnings for future iterations:**
+  - `EXPRESSION_TYPE_*` constants are used in catalog/statistics.go and planner/optimizer — check cross-package references
+  - `*_AGGREGATE` constants are used in parser/ (select_fields_visitor.go, parser_test.go)
+  - `Group_bys_` and `Aggregates_` exported struct fields on `AggregateKey`/`AggregateValue` are only used within the execution package tree
+  - `createAccountIdUpdatePlanNode` is defined in uniq_skiplist_index_executor_test.go but called from skiplist_index_executor_test.go — cross-file function references in tests
+  - The `stats_` → `stats` rename touches nearly all plan node files (12+ files) since every plan node has a statistics field
+  - expression/ params like `left_tuple`, `right_tuple`, `group_bys`, `child_idx` appear in interface method signatures across all expression types — rename them all consistently
+---

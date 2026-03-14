@@ -198,7 +198,7 @@
         "cd server && go build -o samehada-db-server main.go succeeds"
       ],
       "priority": 11,
-      "passes": false,
+      "passes": true,
       "notes": "Phase 9b — execution engine. Split from parser/planner due to size."
     },
     {
