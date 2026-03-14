@@ -226,3 +226,24 @@
   - The `stats_` → `stats` rename touches nearly all plan node files (12+ files) since every plan node has a statistics field
   - expression/ params like `left_tuple`, `right_tuple`, `group_bys`, `child_idx` appear in interface method signatures across all expression types — rename them all consistently
 ---
+
+## 2026-03-14 - US-012
+- What was implemented: Renamed all snake_case identifiers in lib/samehada/, lib/materialization/, and lib/testing/
+- Key renames:
+  - samehada_instance.go: struct fields `disk_manager` → `diskManager`, `log_manager` → `logManager`, `lock_manager` → `lockManager`, `transaction_manager` → `transactionManager`, `checkpoint_manger` → `checkpointManager` (also fixed typo); local vars renamed
+  - samehada.go: struct fields `shi_` → `shi`, `catalog_` → `cat`, `exec_engine_` → `execEngine`, `statistics_updator` → `statisticsUpdr`, `request_manager` → `requestMgr`; `reqId` → `reqID` (Effective Go acronym); `index_` → `idx`, `tuple_` → `tpl`, `column_` → `col`, `log_recovery` → `logRecov`, `exec_engine` → `execEngine`
+  - request_manager.go: `reqId` → `reqID`, `nextReqId` → `nextReqID`, `tmpId` → `tmpID`
+  - samehada_util.go: `pack_buf` → `packBuf`, `packed_buf` → `packedBuf`, `SIGN_MASK_BIG` → `SignMaskBig`, `SIGN_MASK_SMALL` → `SignMaskSmall`, `schema_` → `sc`, `tuple_` → `tpl`, `len_` → `strLen`, `list_` → `result`, `convedArr_` → `convedArrCopy`
+  - tmp_tuple.go: `page_id` → `pageID` (struct field + param)
+  - tmp_tuple_page.go: `page_id` → `pageID`, `tuple_` → `tpl`, `tmp_tuple` → `tmpTuple`, `free_offset` → `freeOffset`, `need_size` → `needSize`, `tmp_page` → `tmpPage`, `page_size` → `pageSize`
+  - table_generator.go: exported struct fields `Name_` → `Name`, `Type_` → `Type`, `Nullable_` → `Nullable`, `Dist_` → `Dist`, `Min_` → `Min`, `Max_` → `Max`, `Serial_counter_` → `SerialCounter`, `Num_rows_` → `NumRows`, `Col_meta_` → `ColMeta`, `Col_name_` → `ColName`, `Expr_` → `Expr`; constants `TEST1_SIZE` → `Test1Size`, `TEST2_SIZE` → `Test2Size`, `TEST_VARLEN_SIZE` → `TestVarlenSize`; params `col_meta` → `colMeta`, `table_meta` → `tableMeta`, `is_group_by_term` → `isGroupByTerm`, `col_index` → `colIndex`, `exec_ctx` → `execCtx`; locals `num_inserted` → `numInserted`, `batch_size` → `batchSize`, `num_values` → `numValues`, `comp_type` → `compType`, `ret_exp` → `retExp`, `schema_` → `sc`
+  - test_petternize_fw.go: `tmpColVal_` → `tmpColVal` + `castedColVal`, `expression_` → `expr`
+- Cross-package: `TEST1_SIZE` → `Test1Size` in executor_test.go (6 references)
+- Files changed: 9 files
+- **Learnings for future iterations:**
+  - All struct fields in samehada/ and materialization/ are unexported except the testing_tbl_gen exported struct fields — cross-package impact is limited to constants
+  - `TEST1_SIZE`, `TEST2_SIZE`, `TEST_VARLEN_SIZE` are used in executor_test.go — check cross-package refs for exported constants
+  - `SIGN_MASK_BIG` and `SIGN_MASK_SMALL` are only used within samehada_util.go itself — no cross-package refs
+  - Struct literals using positional initialization (e.g., `&TableInsertMeta{"test_1", ...}`) are not affected by field name changes
+  - `checkpoint_manger` was a typo in the original code (missing 'a') — fixed to `checkpointManager`
+---
