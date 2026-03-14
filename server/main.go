@@ -4,7 +4,7 @@ import (
 	"fmt"
 	"github.com/ant0ine/go-json-rest/rest"
 	"github.com/ryogrid/SamehadaDB/lib/samehada"
-	"github.com/ryogrid/SamehadaDB/server/signal_handle"
+	"github.com/ryogrid/SamehadaDB/server/signalhandle"
 	"github.com/vmihailenco/msgpack/v5"
 	"log"
 	"net/http"
@@ -28,7 +28,7 @@ var db = samehada.NewSamehadaDB("default", 5000) //5MB
 var IsStopped = false
 
 func postQuery(w rest.ResponseWriter, req *rest.Request) {
-	if signal_handle.IsStopped {
+	if signalhandle.IsStopped {
 		rest.Error(w, "Server is stopped", http.StatusGone)
 		return
 	}
@@ -64,7 +64,7 @@ func postQuery(w rest.ResponseWriter, req *rest.Request) {
 }
 
 func postQueryMsgPack(w rest.ResponseWriter, req *rest.Request) {
-	if signal_handle.IsStopped {
+	if signalhandle.IsStopped {
 		http.Error(w.(http.ResponseWriter), "Server is stopped", http.StatusGone)
 		return
 	}
@@ -150,7 +150,7 @@ func main() {
 	exitNotifyCh := make(chan bool, 1)
 
 	// start signal handler thread
-	go signal_handle.SignalHandlerTh(db, &exitNotifyCh)
+	go signalhandle.SignalHandlerTh(db, &exitNotifyCh)
 
 	// start server
 	go launchDBAndListen()

@@ -32,14 +32,14 @@ func NewRangeScanWithIndexExecutor(context *ExecutorContext, plan *plans.RangeSc
 }
 
 func (e *RangeScanWithIndexExecutor) Init() {
-	schema_ := e.tableMetadata.Schema()
+	sch := e.tableMetadata.Schema()
 
 	indexColNum := int(e.plan.GetColIdx())
-	index_ := e.tableMetadata.GetIndex(indexColNum)
+	idx := e.tableMetadata.GetIndex(indexColNum)
 
-	dummyTupleStart := tuple.GenTupleForIndexSearch(schema_, uint32(indexColNum), e.plan.GetStartRange())
-	dummyTupleEnd := tuple.GenTupleForIndexSearch(schema_, uint32(indexColNum), e.plan.GetEndRange())
-	e.ridItr = index_.GetRangeScanIterator(dummyTupleStart, dummyTupleEnd, e.txn)
+	dummyTupleStart := tuple.GenTupleForIndexSearch(sch, uint32(indexColNum), e.plan.GetStartRange())
+	dummyTupleEnd := tuple.GenTupleForIndexSearch(sch, uint32(indexColNum), e.plan.GetEndRange())
+	e.ridItr = idx.GetRangeScanIterator(dummyTupleStart, dummyTupleEnd, e.txn)
 }
 
 // Next implements the next method for the sequential scan operator
@@ -47,16 +47,16 @@ func (e *RangeScanWithIndexExecutor) Init() {
 // tyring to find a tuple. It performs selection and projection on-the-fly
 func (e *RangeScanWithIndexExecutor) Next() (*tuple.Tuple, Done, error) {
 	// iterates through the RIDs got from index
-	var tuple_ *tuple.Tuple = nil
+	var tpl *tuple.Tuple = nil
 	var err error = nil
 
 	indexColNum := int(e.plan.GetColIdx())
-	index_ := e.tableMetadata.GetIndex(indexColNum)
-	orgKeyType := index_.GetMetadata().GetTupleSchema().GetColumn(uint32(indexColNum)).GetType()
+	idx := e.tableMetadata.GetIndex(indexColNum)
+	orgKeyType := idx.GetMetadata().GetTupleSchema().GetColumn(uint32(indexColNum)).GetType()
 
 	for done, _, key, rid := e.ridItr.Next(); !done; done, _, key, rid = e.ridItr.Next() {
-		tuple_, err = e.tableMetadata.Table().GetTuple(rid, e.txn)
-		if tuple_ == nil && (err == nil || err == access.ErrGeneral) {
+		tpl, err = e.tableMetadata.Table().GetTuple(rid, e.txn)
+		if tpl == nil && (err == nil || err == access.ErrGeneral) {
 			err := errors.New("e.ridItr.Next returned nil")
 			e.txn.SetState(access.ABORTED)
 			return nil, true, err
@@ -72,8 +72,8 @@ func (e *RangeScanWithIndexExecutor) Next() (*tuple.Tuple, Done, error) {
 		}
 
 		// check value update after getting iterator which contains snapshot of RIDs and Keys which were stored in Index
-		curKeyVal := tuple_.GetValue(e.tableMetadata.Schema(), uint32(e.plan.GetColIdx()))
-		switch index_.(type) {
+		curKeyVal := tpl.GetValue(e.tableMetadata.Schema(), uint32(e.plan.GetColIdx()))
+		switch idx.(type) {
 		case *index.UniqSkipListIndex:
 			if !curKeyVal.CompareEquals(*key) {
 				// column value corresponding index key is updated
@@ -102,20 +102,20 @@ func (e *RangeScanWithIndexExecutor) Next() (*tuple.Tuple, Done, error) {
 		}
 
 		// check predicate
-		if e.selects(tuple_, e.plan.GetPredicate()) {
-			tuple_.SetRID(rid)
+		if e.selects(tpl, e.plan.GetPredicate()) {
+			tpl.SetRID(rid)
 			break
 		}
 	}
 
 	// roop above passed because done is true
-	if tuple_ == nil {
+	if tpl == nil {
 		return nil, true, nil
 	}
 
-	// tuple_ is projected to OutputSchema
-	ret := e.projects(tuple_)
-	ret.SetRID(tuple_.GetRID())
+	// tpl is projected to OutputSchema
+	ret := e.projects(tpl)
+	ret.SetRID(tpl.GetRID())
 
 	return ret, false, nil
 }
@@ -126,17 +126,17 @@ func (e *RangeScanWithIndexExecutor) selects(tuple *tuple.Tuple, predicate expre
 }
 
 // project applies the projection operator defined by the output schema
-func (e *RangeScanWithIndexExecutor) projects(tuple_ *tuple.Tuple) *tuple.Tuple {
+func (e *RangeScanWithIndexExecutor) projects(tpl *tuple.Tuple) *tuple.Tuple {
 	outputSchema := e.plan.OutputSchema()
 
 	values := []types.Value{}
 	for i := uint32(0); i < outputSchema.GetColumnCount(); i++ {
 		colIndex := e.tableMetadata.Schema().GetColIndex(outputSchema.GetColumns()[i].GetColumnName())
-		values = append(values, tuple_.GetValue(e.tableMetadata.Schema(), colIndex))
+		values = append(values, tpl.GetValue(e.tableMetadata.Schema(), colIndex))
 	}
 
 	ret := tuple.NewTupleFromSchema(values, outputSchema)
-	ret.SetRID(tuple_.GetRID())
+	ret.SetRID(tpl.GetRID())
 	return ret
 }
 

@@ -9,26 +9,26 @@ import (
 )
 
 type QueryInfo struct {
-	QueryType_           *QueryType
-	SelectFields_        []*SelectFieldExpression // SELECT
-	SetExpressions_      []*SetExpression         // UPDATE
-	NewTable_            *string                  // CREATE TABLE
-	ColDefExpressions_   []*ColDefExpression      // CREATE TABLE
-	IndexDefExpressions_ []*IndexDefExpression    // CREATE TABLE
-	TargetCols_          []*string                // INSERT
-	Values_              []*types.Value           // INSERT
-	OnExpressions_       *BinaryOpExpression      // SELECT (with JOIN)
+	QueryType           *QueryType
+	SelectFields        []*SelectFieldExpression // SELECT
+	SetExpressions      []*SetExpression         // UPDATE
+	NewTable            *string                  // CREATE TABLE
+	ColDefExpressions   []*ColDefExpression      // CREATE TABLE
+	IndexDefExpressions []*IndexDefExpression    // CREATE TABLE
+	TargetCols          []*string                // INSERT
+	Values              []*types.Value           // INSERT
+	OnExpressions       *BinaryOpExpression      // SELECT (with JOIN)
 	JoinTables_          []*string                // SELECT
-	WhereExpression_     *BinaryOpExpression      // SELECT, UPDATE, DELETE
-	LimitNum_            int32                    // SELECT
-	OffsetNum_           int32                    // SELECT
-	OrderByExpressions_  []*OrderByExpression     // SELECT
+	WhereExpression     *BinaryOpExpression      // SELECT, UPDATE, DELETE
+	LimitNum            int32                    // SELECT
+	OffsetNum           int32                    // SELECT
+	OrderByExpressions  []*OrderByExpression     // SELECT
 }
 
 func extractInfoFromAST(rootNode *ast.StmtNode) *QueryInfo {
 	v := NewRootSQLVisitor()
 	(*rootNode).Accept(v)
-	return v.QueryInfo_
+	return v.QueryInfo
 }
 
 func parse(sqlStr *string) (*ast.StmtNode, error) {

@@ -1,0 +1,283 @@
+## Codebase Patterns
+- Use `SHAssert` (not `SH_Assert`) for assertions — renamed from snake_case
+- Logger constants use PascalCase: `DebugInfoDetail`, `DebugInfo`, `CommitAbortHandleInfo`, `NotAborableTxnFeature`, etc.
+- `SHMutex` / `NewSHMutex` for the custom mutex type (renamed from `SH_Mutex` / `NewSH_Mutex`)
+- Single-word ALL_CAPS constants (`INFO`, `WARN`, `ERROR`, `FATAL`, `DEBUGGING`) were NOT renamed (not snake_case)
+- `EnableOnMemStorage` in lib/common/config.go must remain `true` — do NOT change it
+- Build verification: `cd lib && go build ./...`, `cd lib && go test ./... -short`, `cd server && go build -o samehada-db-server main.go`
+- Named return variables with trailing underscore (`ret_`) renamed to `retVal` to eliminate underscores
+- `PageId` → `PageID`, `pageId` → `pageID` per Effective Go acronym rules (Id → ID)
+- `GetPageId` → `GetPageID`, `SetPageId` → `SetPageID` etc.
+- `MAX_FOWARD_LIST_LEN` → `MaxForwardListLen`
+- `rwlatch_` → `rwLatch` (trailing underscore removed, camelCase applied)
+- CAUTION: External package `bltree-go-for-embedding` uses `GetPPageId`, `GetMappedPPageIdOfPageZero`, `GetPageIdConvMap` — do NOT rename these (interface contract)
+- Trailing underscore params like `schema_`, `tuple_` exist to avoid shadowing package names — rename to short forms (`sc`, `tpl`, `t`)
+- `RID` is an acronym → `copiedRID` not `copiedRid` per Effective Go
+- `GetTransactionId` → `GetTransactionID` (exported method, Id → ID acronym rule, cross-package references updated)
+- `txn_id` → `txnID`, `prev_lsn` → `prevLSN` (acronyms stay uppercase)
+- Receiver names like `lock_manager` → `lockManager`, `transaction_manager` → `transactionManager` (snake_case → camelCase)
+- `catalog_` → `cat`, `page_` → `pg`, `index_` → `idx`, `list_` → `lst` (trailing underscore → short names)
+- Named return trailing underscores: `new_rid_` → `newRIDVal`, `err_` → `errVal`, `update_tuple_` → `updateTupleVal`
+- `INDEX_KIND_INVALID` → `IndexKindInvalid`, `INDEX_KIND_SKIP_LIST` → `IndexKindSkipList`, etc. (multi-word ALL_CAPS → PascalCase)
+- `tupleSchema_` → `tupleSchema` (trailing underscore on local vars → remove underscore)
+- Exported struct fields `Log_manager` → `LogManager`, `Lock_manager` → `LockManager` (PascalCase for exported identifiers)
+- `tableIds` → `tableIDs`, `nextTableId` → `nextTableID`, `tableIdsMutex` → `tableIDsMutex` (Id → ID acronym rule)
+- `col_idx` → `colIdx` (snake_case params → camelCase)
+- CAUTION: `log_recovery` is a package name — don't bulk-rename it when renaming `log_recovery` local vars
+- `NEW_TABLE_PAGE` → `NewTablePage`, `DEALLOCATE_PAGE` → `DeallocatePage`, `REUSE_PAGE` → `ReusePage`, `GRACEFUL_SHUTDOWN` → `GracefulShutdown` (multi-word ALL_CAPS → PascalCase)
+- `HEADER_SIZE` → `HeaderSize` (multi-word ALL_CAPS → PascalCase)
+- `DEALLOCATED_FRAME` → `DeallocatedFrame`, `ACCOUNT_NUM` → `AccountNum`, `BALANCE_AT_START` → `BalanceAtStart`, `THREAD_NUM` → `ThreadNum`, `SS2PL_MODE` → `SS2PLMode`, `RESERVE_SPACE` → `ReserveSpace` (stragglers caught in final audit)
+
+---
+
+## 2026-03-14 - US-001
+- What was implemented: Renamed all snake_case identifiers in lib/types/ and lib/common/ to camelCase/PascalCase
+- Files changed:
+  - lib/common/assert.go: `SH_Assert` → `SHAssert`, `SH_Mutex` → `SHMutex`, `NewSH_Mutex` → `NewSHMutex`
+  - lib/common/logger.go: `DEBUG_INFO_DETAIL` → `DebugInfoDetail`, `DEBUG_INFO` → `DebugInfo`, `CACHE_OUT_IN_INFO` → `CacheOutInInfo`, `RDB_OP_FUNC_CALL` → `RDBOpFuncCall`, `BUFFER_INTERNAL_STATE` → `BufferInternalState`, `PIN_COUNT_ASSERT` → `PinCountAssert`, `COMMIT_ABORT_HANDLE_INFO` → `CommitAbortHandleInfo`, `NOT_ABORABLE_TXN_FEATURE` → `NotAborableTxnFeature`
+  - lib/common/config.go: References to renamed constants updated
+  - lib/types/uint32.go: `ret_` named returns → `retVal`
+  - 18+ other files with cross-codebase reference updates
+- **Learnings for future iterations:**
+  - The prior commit `04b727b` already contained these renames — the user had started the work
+  - Use `find | xargs sed` for bulk cross-codebase renames, but do longer names first to avoid partial matches (e.g., `DEBUG_INFO_DETAIL` before `DEBUG_INFO`)
+  - All builds and tests pass after renaming
+---
+
+## 2026-03-14 - US-002
+- What was implemented: Renamed all snake_case identifiers in lib/errors/ and lib/storage/page/ (including skip_list_page/)
+- Key renames: `PageId` → `PageID`, `GetPageId` → `GetPageID`, `SetPageId` → `SetPageID`, `MAX_FOWARD_LIST_LEN` → `MaxForwardListLen`, `rwlatch_` → `rwLatch`, trailing underscore named returns
+- 49 files changed across the entire codebase (references updated everywhere)
+- **Learnings for future iterations:**
+  - External package `bltree-go-for-embedding` has methods like `GetPPageId`, `GetMappedPPageIdOfPageZero`, `GetPageIdConvMap` that must NOT be renamed — they're interface contracts from an external dependency
+  - When doing `PageId` → `PageID` renames, watch for `PPageId` which should also stay as-is due to external interface
+  - `lib/errors/type.go` had no snake_case identifiers — it was already clean
+---
+
+## 2026-03-14 - US-003
+- What was implemented: Renamed all snake_case identifiers in lib/storage/disk/ and lib/storage/buffer/
+- Key renames:
+  - `fileName_log` → `fileNameLog`, `flush_log` → `flushLog` (struct members in both DiskManagerImpl and VirtualDiskManagerImpl)
+  - `period_idx` → `periodIdx`, `logfname_base` → `logFnameBase`, `file_1` → `logFile`, `fileInfo_1` → `logFileInfo` (local vars)
+  - `log_data` → `logData` (params in WriteLog/ReadLog)
+  - `file_` → `f` (local var in GCLogFile)
+  - `log_manager` → `logManager` (BufferPoolManager struct member and NewBufferPoolManager param)
+  - `page_` → `pg` (params in IncPinOfPage/DecPinOfPage)
+- Files changed: disk_manager_impl.go, virtual_disk_manager_impl.go, buffer_pool_manager.go
+- **Learnings for future iterations:**
+  - All snake_case identifiers in disk/ and buffer/ were private (unexported), so no cross-package reference updates needed
+  - circular_list.go and clock_replacer.go were already clean — no snake_case found
+  - `reUsablePageList` and `supportMap` are camelCase (no underscore), so they don't need renaming
+---
+
+## 2026-03-14 - US-004
+- What was implemented: Renamed all snake_case identifiers in lib/storage/table/ and lib/storage/tuple/
+- Key renames:
+  - column.go: `expr_` → `expr` (struct member)
+  - schema.go: `columnName_` → `colName`, `cols_obj` → `colsObj`, `cols_p` → `colsP` (local vars)
+  - tuple.go: `schema_` → `sc` (params), `tuple_` → `tpl`/`t` (local vars/receivers), `copied_rid` → `copiedRID`, `colmuns` → `columns` (typo fix)
+- Files changed: column.go, schema.go, tuple.go (3 files)
+- **Learnings for future iterations:**
+  - All snake_case identifiers in table/ and tuple/ were private (unexported), so no cross-package reference updates were needed
+  - Trailing underscore params like `schema_` and `tuple_` exist to avoid shadowing the package import name — rename to short forms like `sc`, `tpl`, or `t`
+  - `copied_rid` → `copiedRID` (RID is an acronym, should be all caps per Effective Go)
+  - tuple_test.go was already clean — no snake_case found
+---
+
+## 2026-03-14 - US-005
+- What was implemented: Renamed all snake_case identifiers in lib/storage/access/
+- Key renames:
+  - transaction.go: `txn_id` → `txnID`, `write_set` → `writeSet`, `prev_lsn` → `prevLSN`, `shared_lock_set` → `sharedLockSet`, `exclusive_lock_set` → `exclusiveLockSet`, `GetTransactionId` → `GetTransactionID`
+  - lock_manager.go: `two_pl_mode` → `twoPLMode`, `deadlock_mode` → `deadlockMode`, `shared_lock_table` → `sharedLockTable`, `exclusive_lock_table` → `exclusiveLockTable`, `lock_mode` → `lockMode`, receivers renamed
+  - transaction_manager.go: `next_txn_id` → `nextTxnID`, `lock_manager` → `lockManager`, `log_manager` → `logManager`, `global_txn_latch` → `globalTxnLatch`, `catalog_` → `cat`, `index_` → `idx`
+  - table_page.go: `slot_num` → `slotNum`, `tuple_size` → `tupleSize`, `tuple_offset` → `tupleOffset`, `free_space_pointer` → `freeSpacePointer`, `schema_` → `sc`, `new_tuple` → `newTuple`, `old_tuple` → `oldTuple`, `update_col_idxs` → `updateColIdxs`
+  - table_heap.go: struct members + params renamed, `page_` → `pg`, `is_updated` → `isUpdated`, `new_rid` → `newRID`, named returns renamed
+  - table_heap_iterator.go: `lock_manager` → `lockManager`
+  - table_heap_test.go: local vars renamed (`log_manager`, `lock_manager`, `txn_mgr`, `schema_`, `tuple_`, `tuple_cnt`)
+- Cross-package references updated: `GetTransactionId` → `GetTransactionID` in 2 executor test files
+- Files changed: 9 files (7 in access/, 2 in executor_test/)
+- **Learnings for future iterations:**
+  - `GetTransactionId` is the only exported identifier changed in this package — uses Effective Go `Id` → `ID` rule
+  - Most identifiers in access/ are unexported, so cross-package impact is minimal
+  - `txn_map` package-level var (sync.Map) renamed to `txnMap`
+  - Use perl with `\b` word boundaries for reliable bulk renames across multiple files
+  - Order sed/perl patterns from longest to shortest to avoid partial matches (e.g., `exclusive_lock_table` before `lock_table`)
+  - Named return trailing underscores (`err_`, `new_rid_`) need to be processed before their non-underscore counterparts
+---
+
+## 2026-03-14 - US-006
+- What was implemented: Renamed all snake_case identifiers in lib/storage/index/ (including index_constants/, index_common/, index_test/)
+- Key renames:
+  - index_constants.go: `INDEX_KIND_INVALID` → `IndexKindInvalid`, `INDEX_KIND_UNIQ_SKIP_LIST` → `IndexKindUniqSkipList`, `INDEX_KIND_SKIP_LIST` → `IndexKindSkipList`, `INDEX_KIND_HASH` → `IndexKindHash`, `INDEX_KIND_BTREE` → `IndexKindBtree`
+  - index.go: struct members `table_name` → `tableName`, `key_attrs` → `keyAttrs`, `tuple_schema` → `tupleSchema`; params renamed
+  - btree_index.go: `col_idx` → `colIdx`, `log_manager` → `logManager`, `buffer_pool_manager` → `bufferPoolManager`, `start_key`/`end_key` → `startKey`/`endKey`, `tupleSchema_` → `tupleSchema`
+  - linear_probe_hash_table_index.go: `col_idx` → `colIdx`, `buffer_pool_manager` → `bufferPoolManager`, `num_buckets` → `numBuckets`, `packed_values` → `packedValues`, `ret_arr` → `retArr`, `packed_val` → `packedVal`
+  - skip_list_index.go: same pattern as btree_index
+  - uniq_skip_list_index.go: `col_idx` → `colIdx`, `start_val`/`end_val` → `startVal`/`endVal`, `ret_arr` → `retArr`, `packed_value` → `packedValue`
+  - Test files: `schema_` → `tableSchema`, `tuple_` → `tpl`, `txn_mgr` → `txnMgr`, `packed_val`/`unpacked_val` → `packedVal`/`unpackedVal`, `log_recovery` → `logRecovery`
+- Cross-codebase: INDEX_KIND_* constants renamed in 17 files across catalog/, execution/, parser/, planner/, recovery/, samehada/, testing/, storage/
+- Files changed: 27 files total
+- **Learnings for future iterations:**
+  - INDEX_KIND_* constants are used in 21 files across the codebase — wide blast radius
+  - When replacing substrings like `packed_val`, `unpacked_val` gets renamed too (contains substring) — can be useful but needs awareness
+  - index_common/index_common.go and index_range_scan_iterator.go were already clean
+  - All struct fields in the index package are unexported, so cross-package impact is limited to the constants
+---
+
+## 2026-03-14 - US-007
+- What was implemented: Renamed all snake_case identifiers in lib/catalog/ (table_catalog.go, table_metadata.go, statistics.go, catalog_test/)
+- Key renames:
+  - table_catalog.go: `Log_manager` → `LogManager`, `Lock_manager` → `LockManager` (exported struct fields), `tableIds` → `tableIDs`, `nextTableId` → `nextTableID`, `tableIdsMutex` → `tableIDsMutex`, `log_manager`/`lock_manager` params → `logManager`/`lockManager`, `tuple_outer`/`tuple_inner` → `tupleOuter`/`tupleInner`, `column_` → `col`, `table_` → `tbl`, `schema_` → `sc`, `name_` → `lowerName`, `first_tuple` → `firstTuple`, `new_tuple` → `newTuple`, `indexes_` → `idxs`, `tuple_` → `tpl`
+  - table_metadata.go: `log_manager` → `logManager`, `column_` → `col`, `pageZeroId` → `pageZeroID`
+  - statistics.go: `col_idx` → `colIdx`, `schema_` → `sc`
+  - catalog_test/: `samehada_instance` → `samehadaInstance`, `catalog_old` → `catalogOld`, `schema_` → `sc`, `samehada_instance_new` → `samehadaInstanceNew`, `txn_new` → `txnNew`, `catalog_recov` → `catalogRecov`
+- Files changed: 4 files (all within lib/catalog/)
+- **Learnings for future iterations:**
+  - `Log_manager` and `Lock_manager` are exported struct fields on `Catalog` but only accessed within the catalog package itself — no cross-package reference updates needed
+  - All other identifiers in catalog/ are unexported, so cross-package impact was zero
+  - schemas.go and catalog_interface.go were already clean — no snake_case found
+---
+
+## 2026-03-14 - US-008
+- What was implemented: Renamed all snake_case identifiers in lib/container/hash/, lib/container/skip_list/, and lib/container/btree/
+- Key renames:
+  - linear_probe_hash_table.go: `table_latch` → `tableLatch` (struct field)
+  - linear_probe_hash_table_iterator.go: `blockId` → `blockID` (struct field, Effective Go acronym rule)
+  - linear_probe_hash_table.go: `iterator.blockId` → `iterator.blockID` (references)
+  - skip_list.go: `log_manager` → `logManager` (struct field + param), `SKIP_LIST_OP_GET` → `SkipListOpGet`, `SKIP_LIST_OP_REMOVE` → `SkipListOpRemove`, `SKIP_LIST_OP_INSERT` → `SkipListOpInsert`, `SKIP_LIST_UTIL_GET_LATCH` → `SkipListUtilGetLatch`, `SKIP_LIST_UTIL_UNLATCH` → `SkipListUtilUnlatch`
+  - skip_list.go: named returns `predOfCorners_` → `predOfCornersVal`, `corners_` → `cornersVal`, `found_` → `foundVal`, `node_` → `nodeVal`, `idx_` → `idxVal`, `isDeleted_` → `isDeletedVal`
+  - skip_list_iterator.go: `prevNodeId` → `prevNodeID`, `nextNodeId` → `nextNodeID` (Effective Go acronym rule)
+  - skip_list_bench_test.go: `INITIAL_VAL_NUM` → `InitialValNum`, `WORK_NUM` → `WorkNum`, constant references updated
+- Files changed: 5 files (all within lib/container/)
+- **Learnings for future iterations:**
+  - btree/ files (`parent_bufmgr_impl.go`, `parent_page_impl.go`, `btree_test.go`) had no snake_case identifiers to rename — `GetPPageId` is an external interface contract from `bltree-go-for-embedding`
+  - Test function names with underscores (e.g., `TestBLTree_insert_and_find_embedding`) are Go convention — do NOT rename
+  - `hash_util.go`, `hash_table_test.go`, `hash_table_page_test.go` were already clean
+  - All identifiers in container/ are unexported except the SKIP_LIST_OP_* and SKIP_LIST_UTIL_* constants, so cross-package impact was limited to the bench test
+---
+
+## 2026-03-14 - US-009
+- What was implemented: Renamed all snake_case identifiers in lib/recovery/ (log_record.go, log_manager.go, log_recovery/log_recovery.go, recovery_test/) and lib/concurrency/ (checkpoint_manager.go, statistics_updater.go)
+- Key renames:
+  - log_record.go: Exported struct fields `Txn_id` → `TxnID`, `Prev_lsn` → `PrevLSN`, `Log_record_type` → `LogRecordType`, `Delete_rid` → `DeleteRID`, `Insert_rid` → `InsertRID`, `Update_rid` → `UpdateRID`, `Old_tuple` → `OldTuple`, `New_tuple` → `NewTuple`, `Prev_page_id` → `PrevPageID`, `Page_id` → `PageID`, `Deallocate_page_id` → `DeallocatePageID`, `Reuse_page_id` → `ReusePageID`, `Delete_tuple` → `DeleteTuple`, `Insert_tuple` → `InsertTuple`; `GetTxnId` → `GetTxnID`; receiver `log_record` → `lr`
+  - log_record.go constants: `HEADER_SIZE` → `HeaderSize`, `NEW_TABLE_PAGE` → `NewTablePage`, `DEALLOCATE_PAGE` → `DeallocatePage`, `REUSE_PAGE` → `ReusePage`, `GRACEFUL_SHUTDOWN` → `GracefulShutdown`
+  - log_manager.go: struct fields `log_buffer_lsn` → `logBufferLSN`, `next_lsn` → `nextLSN`, `persistent_lsn` → `persistentLSN`, `log_buffer` → `logBuffer`, `flush_buffer` → `flushBuffer`, `wlog_mutex` → `wlogMutex`, `disk_manager` → `diskManager`; receiver `log_manager` → `logMgr`; local `tmp_p` → `tmpP`
+  - log_recovery.go: struct fields `disk_manager` → `diskManager`, `buffer_pool_manager` → `bufferPoolManager`, `log_manager` → `logManager`, `active_txn` → `activeTxn`, `lsn_mapping` → `lsnMapping`, `log_buffer` → `logBuffer`; receiver `log_recovery` → `logRecov`; locals renamed
+  - checkpoint_manager.go: struct fields + receiver `checkpoint_manager` → `cm`; params renamed
+  - statistics_updater.go: `transaction_manager` → `transactionManager`, `table_` → `tbl`
+- Cross-package: `NEW_TABLE_PAGE`, `DEALLOCATE_PAGE`, `REUSE_PAGE`, `GRACEFUL_SHUTDOWN` constants renamed in lib/storage/access/table_page.go
+- Files changed: 7 files (4 in recovery/, 2 in concurrency/, 1 in storage/access/)
+- **Learnings for future iterations:**
+  - CAUTION: `log_recovery` is both a package name and commonly used as a local variable name in tests — bulk renaming `log_recovery` → anything will also rename package declarations and import paths. Always exclude package/import lines from bulk renames
+  - LogRecord exported struct fields (e.g., `Txn_id`, `Prev_lsn`) are only accessed within the recovery/ package tree, not cross-package
+  - Multi-word ALL_CAPS constants like `NEW_TABLE_PAGE` are used cross-package (in table_page.go) — check for `recovery.CONSTANT_NAME` references
+  - Single-word ALL_CAPS constants (`INVALID`, `INSERT`, `COMMIT`, etc.) are NOT renamed per project convention
+  - Having a struct field name match its type name (e.g., `LogRecordType LogRecordType`) is valid Go
+---
+
+## 2026-03-14 - US-010
+- What was implemented: Renamed all snake_case identifiers in lib/parser/ and lib/planner/ (including optimizer/)
+- Key renames:
+  - Parser exported struct fields: All trailing underscore fields renamed (e.g., `QueryType_` → `QueryType`, `SelectFields_` → `SelectFields`, `WhereExpression_` → `WhereExpression`, `Left_` → `Left`, `Right_` → `Right`, `LogicalOperationType_` → `LogicalOperationType`, `ComparisonOperationType_` → `ComparisonOperationType`)
+  - Parser constant: `CREATE_TABLE` → `CreateTable`
+  - Parser local vars: `l_visitor` → `lVisitor`, `r_visitor` → `rVisitor`, `null_val` → `nullVal`, `left_val` → `leftVal`, `col_type` → `colType`, `left_side_pred` → `leftSidePred`, `right_side_pred` → `rightSidePred`, `val_str` → `valStr`, `target_str` → `targetStr`
+  - Parser param: `opcode_` → `op`, `schema_` → `sc`
+  - Planner struct member: `catalog_` → `cat`
+  - Planner local vars: `left_keys` → `leftKeys`, `right_keys` → `rightKeys`, `scanPlans_` → `scanPlans`, `schema_` → `sc`, `expression_` → `expr`
+  - Optimizer constants: `DIR_RIGHT` → `DirRight`, `DIR_LEFT` → `DirLeft`
+  - Optimizer local vars: `stack_` → `stk`, `left_cols` → `leftCols`, `right_cols` → `rightCols`, `index_idx` → `indexIdx`, `right_index` → `rightIndex`, `exp_` → `e`, `plan_` → `p`
+  - Optimizer test vars: `log_mgr` → `logMgr`, `lock_mgr` → `lockMgr`, `txn_mgr` → `txnMgr`, `exec_ctx` → `execCtx`, `schema_` → `sc`, `tuple_` → `tpl`, `stat1_2` → `stat1Copy`, `txn_` → `txnExec`
+- Cross-codebase: Parser struct fields referenced in lib/planner/, lib/samehada/samehada.go — all updated
+- Files changed: 15 files (11 parser, 3 planner, 1 samehada)
+- **Learnings for future iterations:**
+  - Parser struct fields with trailing underscores are extensively referenced across planner/ and samehada/ — wide blast radius
+  - Having a struct field name match its type name (e.g., `QueryType *QueryType`) is valid Go
+  - Don't forget parser_test.go when renaming parser struct fields — it's in the same package
+  - `new_visitor` in root_sql_visitor.go was a local variable, not related to the `NewRootSQLVisitor` constructor
+  - Struct literal initialization like `&BinaryOpExpression{expression.AND, -1, expr, expr2}` uses positional args, so field renames don't affect these
+---
+
+## 2026-03-14 - US-011
+- What was implemented: Renamed all snake_case identifiers in lib/execution/ (expression/, plans/, executors/, executor_test/)
+- Key renames:
+  - expression/expression.go: `EXPRESSION_TYPE_*` constants → `ExpressionType*` (PascalCase)
+  - expression/abstract_expression.go: `ret_type` → `retType`
+  - expression/aggregate_value.go: `is_group_by_term_` → `isGroupByTerm`, `term_idx_` → `termIdx`
+  - expression/column_value.go: `left_tuple`/`left_schema`/`right_tuple`/`right_schema` → camelCase params, `MakeColumnValueExpression` params renamed
+  - expression/loggical_op.go: `children_left` → `childrenLeft`, `children_right` → `childrenRight`
+  - plans/aggregation.go: `COUNT_AGGREGATE` → `CountAggregate`, `SUM_AGGREGATE` → `SumAggregate`, etc.; struct fields `having_`/`group_bys_`/`aggregates_`/`agg_types_`/`stats_` → camelCase; `Group_bys_` → `GroupBys`, `Aggregates_` → `Aggregates` (exported)
+  - plans/hash_join.go: `left_hash_keys` → `leftHashKeys`, `right_hash_keys` → `rightHashKeys`
+  - plans/orderby.go: `col_idxs_` → `colIdxs`, `orderby_types_` → `orderbyTypes`
+  - plans/update.go: `update_col_idxs` → `updateColIdxs`
+  - All plans/ files: `stats_` → `stats`
+  - executors/hash_join_executor.go: All struct fields renamed (plan_, jht_, left_, right_, etc.)
+  - executors/aggregation_executor.go: `ht_val`/`ht_key` → `htVal`/`htKey`, `agg_exprs_`/`agg_types_` → camelCase
+  - executors/orderby_executor.go: `sort_tuples_` → `sortTuples`, `cur_idx_` → `curIdx`
+  - executors/index_join_executor.go: struct fields and params renamed
+  - executors/delete_executor.go: `err_` → `wrapErr`, `is_marked` → `isMarked`, `index_` → `idx`
+  - executors/update_executor.go: `err_` → `wrapErr`, `new_tuple` → `newTuple`, `is_updated` → `isUpdated`, `new_rid` → `newRID`
+  - Test files: `log_mgr`/`txn_mgr`/`lock_mgr` → camelCase, `schema_` → `sch`, `accountId` → `accountID`, `createAccountIdUpdatePlanNode` → `createAccountIDUpdatePlanNode`
+- Cross-package: EXPRESSION_TYPE_* renamed in catalog/statistics.go, planner/optimizer/; *_AGGREGATE renamed in parser/; Group_bys_/Aggregates_ renamed in plans+executors
+- Files changed: 42 files
+- **Learnings for future iterations:**
+  - `EXPRESSION_TYPE_*` constants are used in catalog/statistics.go and planner/optimizer — check cross-package references
+  - `*_AGGREGATE` constants are used in parser/ (select_fields_visitor.go, parser_test.go)
+  - `Group_bys_` and `Aggregates_` exported struct fields on `AggregateKey`/`AggregateValue` are only used within the execution package tree
+  - `createAccountIdUpdatePlanNode` is defined in uniq_skiplist_index_executor_test.go but called from skiplist_index_executor_test.go — cross-file function references in tests
+  - The `stats_` → `stats` rename touches nearly all plan node files (12+ files) since every plan node has a statistics field
+  - expression/ params like `left_tuple`, `right_tuple`, `group_bys`, `child_idx` appear in interface method signatures across all expression types — rename them all consistently
+---
+
+## 2026-03-14 - US-012
+- What was implemented: Renamed all snake_case identifiers in lib/samehada/, lib/materialization/, and lib/testing/
+- Key renames:
+  - samehada_instance.go: struct fields `disk_manager` → `diskManager`, `log_manager` → `logManager`, `lock_manager` → `lockManager`, `transaction_manager` → `transactionManager`, `checkpoint_manger` → `checkpointManager` (also fixed typo); local vars renamed
+  - samehada.go: struct fields `shi_` → `shi`, `catalog_` → `cat`, `exec_engine_` → `execEngine`, `statistics_updator` → `statisticsUpdr`, `request_manager` → `requestMgr`; `reqId` → `reqID` (Effective Go acronym); `index_` → `idx`, `tuple_` → `tpl`, `column_` → `col`, `log_recovery` → `logRecov`, `exec_engine` → `execEngine`
+  - request_manager.go: `reqId` → `reqID`, `nextReqId` → `nextReqID`, `tmpId` → `tmpID`
+  - samehada_util.go: `pack_buf` → `packBuf`, `packed_buf` → `packedBuf`, `SIGN_MASK_BIG` → `SignMaskBig`, `SIGN_MASK_SMALL` → `SignMaskSmall`, `schema_` → `sc`, `tuple_` → `tpl`, `len_` → `strLen`, `list_` → `result`, `convedArr_` → `convedArrCopy`
+  - tmp_tuple.go: `page_id` → `pageID` (struct field + param)
+  - tmp_tuple_page.go: `page_id` → `pageID`, `tuple_` → `tpl`, `tmp_tuple` → `tmpTuple`, `free_offset` → `freeOffset`, `need_size` → `needSize`, `tmp_page` → `tmpPage`, `page_size` → `pageSize`
+  - table_generator.go: exported struct fields `Name_` → `Name`, `Type_` → `Type`, `Nullable_` → `Nullable`, `Dist_` → `Dist`, `Min_` → `Min`, `Max_` → `Max`, `Serial_counter_` → `SerialCounter`, `Num_rows_` → `NumRows`, `Col_meta_` → `ColMeta`, `Col_name_` → `ColName`, `Expr_` → `Expr`; constants `TEST1_SIZE` → `Test1Size`, `TEST2_SIZE` → `Test2Size`, `TEST_VARLEN_SIZE` → `TestVarlenSize`; params `col_meta` → `colMeta`, `table_meta` → `tableMeta`, `is_group_by_term` → `isGroupByTerm`, `col_index` → `colIndex`, `exec_ctx` → `execCtx`; locals `num_inserted` → `numInserted`, `batch_size` → `batchSize`, `num_values` → `numValues`, `comp_type` → `compType`, `ret_exp` → `retExp`, `schema_` → `sc`
+  - test_petternize_fw.go: `tmpColVal_` → `tmpColVal` + `castedColVal`, `expression_` → `expr`
+- Cross-package: `TEST1_SIZE` → `Test1Size` in executor_test.go (6 references)
+- Files changed: 9 files
+- **Learnings for future iterations:**
+  - All struct fields in samehada/ and materialization/ are unexported except the testing_tbl_gen exported struct fields — cross-package impact is limited to constants
+  - `TEST1_SIZE`, `TEST2_SIZE`, `TEST_VARLEN_SIZE` are used in executor_test.go — check cross-package refs for exported constants
+  - `SIGN_MASK_BIG` and `SIGN_MASK_SMALL` are only used within samehada_util.go itself — no cross-package refs
+  - Struct literals using positional initialization (e.g., `&TableInsertMeta{"test_1", ...}`) are not affected by field name changes
+  - `checkpoint_manger` was a typo in the original code (missing 'a') — fixed to `checkpointManager`
+---
+
+## 2026-03-14 - US-013
+- What was implemented: Renamed snake_case package name `signal_handle` → `signalhandle` in server/
+- Key renames:
+  - Directory `server/signal_handle/` → `server/signalhandle/`
+  - Package declaration `package signal_handle` → `package signalhandle`
+  - Import path and all `signal_handle.` references → `signalhandle.`
+- Files changed: 2 files (main.go, signalhandle/signal_handler.go)
+- **Learnings for future iterations:**
+  - The server/ code had no snake_case struct members, function parameters, or local variables — only the package/directory name `signal_handle` used snake_case
+  - Go convention for multi-word packages is to concatenate without underscores (e.g., `signalhandle` not `signal_handle`)
+  - The `server/samehada-db-server` binary file shows as modified in git status but should NOT be committed (it's a build artifact)
+---
+
+## 2026-03-14 - US-014
+- What was implemented: Final verification audit — found and renamed remaining ALL_CAPS multi-word constants and one snake_case local variable
+- Remaining items found and fixed:
+  - `DEALLOCATED_FRAME` → `DeallocatedFrame` (clock_replacer.go, buffer_pool_manager.go)
+  - `ACCOUNT_NUM` → `AccountNum`, `BALANCE_AT_START` → `BalanceAtStart` (executor test files)
+  - `THREAD_NUM` → `ThreadNum` (skip_list_test.go, samehada_test.go, executor tests)
+  - `SS2PL_MODE` → `SS2PLMode` (lock_manager.go + references)
+  - `RESERVE_SPACE` → `ReserveSpace` (transaction.go)
+  - `agg_expr` → `aggExpr` (aggregation_executor.go)
+  - `orderby_plan` → `orderbyPlan` (executor_test.go)
+- Verified: `EnableOnMemStorage` is still `true`
+- Verified: `go vet ./...` has no naming-related warnings (only pre-existing unkeyed struct literal warnings)
+- Verified: all builds pass, all tests pass
+- Files changed: 12 files
+- **Learnings for future iterations:**
+  - Even after thorough renaming passes, a few straggler constants and variables can slip through — always do a final grep audit
+  - Package name references like `samehada_util.Foo` are NOT snake_case identifiers — they're just how Go references packages with underscores in directory names
+  - `go vet` warnings about "unkeyed struct literals" are pre-existing and not naming-related
+---

@@ -13,7 +13,7 @@ type IndexJoinPlanNode struct {
 	onPredicate    expression.Expression
 	rigthTableOID  uint32
 	rightOutSchema *schema.Schema
-	stats_         *catalog.TableStatistics
+	stats         *catalog.TableStatistics
 }
 
 func GenIndexJoinStats(c *catalog.Catalog, leftPlan Plan, rightTableOID uint32) *catalog.TableStatistics {
@@ -37,7 +37,7 @@ func NewIndexJoinPlanNode(c *catalog.Catalog, leftChild Plan, leftKeys []express
 }
 
 func (p *IndexJoinPlanNode) GetLeftPlan() Plan {
-	common.SH_Assert(len(p.GetChildren()) == 1, "Index joins should have exactly one children plans.")
+	common.SHAssert(len(p.GetChildren()) == 1, "Index joins should have exactly one children plans.")
 	return p.GetChildAt(0)
 }
 
@@ -76,7 +76,7 @@ func (p *IndexJoinPlanNode) GetDebugStr() string {
 }
 
 func (p *IndexJoinPlanNode) GetStatistics() *catalog.TableStatistics {
-	return p.stats_
+	return p.stats
 }
 
 func (p *IndexJoinPlanNode) EmitRowCount(c *catalog.Catalog) uint64 {

@@ -11,7 +11,7 @@ import (
 	"github.com/ryogrid/SamehadaDB/lib/types"
 )
 
-const HEADER_SIZE uint32 = 20
+const HeaderSize uint32 = 20
 
 type LogRecordType int32
 
@@ -27,12 +27,12 @@ const (
 	COMMIT
 	ABORT
 	/** Creating a new page in the table heap. */
-	NEW_TABLE_PAGE
-	DEALLOCATE_PAGE
-	REUSE_PAGE
+	NewTablePage
+	DeallocatePage
+	ReusePage
 	// this log represents last shutdown of the system is graceful
 	// and this log is located at the end of log file
-	GRACEFUL_SHUTDOWN
+	GracefulShutdown
 )
 
 /**
@@ -56,15 +56,15 @@ const (
  *-----------------------------------------------------------------------------------
  * For new table page type log record
  *--------------------------
- * | HEADER | prev_page_id |
+ * | HEADER | prevPageID |
  *--------------------------
  * For deallocate page type log record
  *--------------------------
- * | HEADER | page_id |
+ * | HEADER | pageID |
  *--------------------------
 * For reuse page type log record
  *--------------------------
- * | HEADER | page_id |
+ * | HEADER | pageID |
  *--------------------------
 * For gracefull shutdown type log record
  *--------------------------
@@ -77,35 +77,35 @@ type LogRecord struct {
 	Size uint32 //0
 	// must have fields
 	Lsn             types.LSN     //INVALID_LSN
-	Txn_id          types.TxnID   //INVALID_TXN_ID
-	Prev_lsn        types.LSN     //INVALID_LSN
-	Log_record_type LogRecordType // {LogRecordType::INVALID}
+	TxnID          types.TxnID   //INVALID_TXN_ID
+	PrevLSN        types.LSN     //INVALID_LSN
+	LogRecordType LogRecordType // {LogRecordType::INVALID}
 
 	// case1: for delete opeartion, delete_tuple for UNDO opeartion
-	Delete_rid   page.RID
-	Delete_tuple tuple.Tuple
+	DeleteRID   page.RID
+	DeleteTuple tuple.Tuple
 
 	// case2: for insert opeartion
-	Insert_rid   page.RID
-	Insert_tuple tuple.Tuple
+	InsertRID   page.RID
+	InsertTuple tuple.Tuple
 
 	// case3: for update opeartion
-	Update_rid page.RID
-	Old_tuple  tuple.Tuple
-	New_tuple  tuple.Tuple
+	UpdateRID page.RID
+	OldTuple  tuple.Tuple
+	NewTuple  tuple.Tuple
 
 	// case4: for new table page opeartion
-	Prev_page_id types.PageID
-	Page_id      types.PageID
+	PrevPageID types.PageID
+	PageID      types.PageID
 
 	// case5: for deallocate page operation
-	Deallocate_page_id types.PageID
-	// note: Lsn and Prev_lsn are -1 and txn_id is math.MaxInt32
+	DeallocatePageID types.PageID
+	// note: Lsn and PrevLSN are -1 and txnID is math.MaxInt32
 	//       and this type log is handled in redo phase only
 
 	// case6: for reuse page operation
-	Reuse_page_id types.PageID
-	// note: Lsn and Prev_lsn are -1 and txn_id is math.MaxInt32
+	ReusePageID types.PageID
+	// note: Lsn and PrevLSN are -1 and txnID is math.MaxInt32
 	//       and this type log is handled in redo phase only
 
 	// case7: for graceful shutdown operation
@@ -113,124 +113,124 @@ type LogRecord struct {
 }
 
 // constructor for Transaction type(BEGIN/COMMIT/ABORT)
-func NewLogRecordTxn(txn_id types.TxnID, prev_lsn types.LSN, log_record_type LogRecordType) *LogRecord {
+func NewLogRecordTxn(txnID types.TxnID, prevLSN types.LSN, logRecordType LogRecordType) *LogRecord {
 	ret := new(LogRecord)
-	ret.Size = HEADER_SIZE
-	ret.Txn_id = txn_id
-	ret.Prev_lsn = prev_lsn
-	ret.Log_record_type = log_record_type
+	ret.Size = HeaderSize
+	ret.TxnID = txnID
+	ret.PrevLSN = prevLSN
+	ret.LogRecordType = logRecordType
 	return ret
 }
 
 // constructor for INSERT/DELETE type
-func NewLogRecordInsertDelete(txn_id types.TxnID, prev_lsn types.LSN, log_record_type LogRecordType, rid page.RID, tuple *tuple.Tuple) *LogRecord {
+func NewLogRecordInsertDelete(txnID types.TxnID, prevLSN types.LSN, logRecordType LogRecordType, rid page.RID, tuple *tuple.Tuple) *LogRecord {
 	ret := new(LogRecord)
-	ret.Txn_id = txn_id
-	ret.Prev_lsn = prev_lsn
-	ret.Log_record_type = log_record_type
-	if log_record_type == INSERT {
-		ret.Insert_rid = rid
-		ret.Insert_tuple = *tuple
+	ret.TxnID = txnID
+	ret.PrevLSN = prevLSN
+	ret.LogRecordType = logRecordType
+	if logRecordType == INSERT {
+		ret.InsertRID = rid
+		ret.InsertTuple = *tuple
 	} else {
-		ret.Delete_rid = rid
-		ret.Delete_tuple = *tuple
+		ret.DeleteRID = rid
+		ret.DeleteTuple = *tuple
 	}
 	// calculate log record size
-	ret.Size = HEADER_SIZE + uint32(unsafe.Sizeof(rid)) + uint32(unsafe.Sizeof(int32(0))) + tuple.Size()
+	ret.Size = HeaderSize + uint32(unsafe.Sizeof(rid)) + uint32(unsafe.Sizeof(int32(0))) + tuple.Size()
 	return ret
 }
 
 // constructor for UPDATE type
-func NewLogRecordUpdate(txn_id types.TxnID, prev_lsn types.LSN, log_record_type LogRecordType, update_rid page.RID,
-	old_tuple tuple.Tuple, new_tuple tuple.Tuple) *LogRecord {
+func NewLogRecordUpdate(txnID types.TxnID, prevLSN types.LSN, logRecordType LogRecordType, updateRID page.RID,
+	oldTuple tuple.Tuple, newTuple tuple.Tuple) *LogRecord {
 	ret := new(LogRecord)
-	ret.Txn_id = txn_id
-	ret.Prev_lsn = prev_lsn
-	ret.Log_record_type = log_record_type
-	ret.Update_rid = update_rid
-	ret.Old_tuple = old_tuple
-	ret.New_tuple = new_tuple
+	ret.TxnID = txnID
+	ret.PrevLSN = prevLSN
+	ret.LogRecordType = logRecordType
+	ret.UpdateRID = updateRID
+	ret.OldTuple = oldTuple
+	ret.NewTuple = newTuple
 	// calculate log record size
-	ret.Size = HEADER_SIZE + uint32(unsafe.Sizeof(update_rid)) + old_tuple.Size() + new_tuple.Size() + 2*uint32(unsafe.Sizeof(int32(0)))
+	ret.Size = HeaderSize + uint32(unsafe.Sizeof(updateRID)) + oldTuple.Size() + newTuple.Size() + 2*uint32(unsafe.Sizeof(int32(0)))
 	return ret
 }
 
-// constructor for NEW_TABLE_PAGE type
-func NewLogRecordNewPage(txn_id types.TxnID, prev_lsn types.LSN, log_record_type LogRecordType, prev_page_id types.PageID, page_id types.PageID) *LogRecord {
+// constructor for NewTablePage type
+func NewLogRecordNewPage(txnID types.TxnID, prevLSN types.LSN, logRecordType LogRecordType, prevPageID types.PageID, pageID types.PageID) *LogRecord {
 	ret := new(LogRecord)
-	ret.Size = HEADER_SIZE
-	ret.Txn_id = txn_id
-	ret.Prev_lsn = prev_lsn
-	ret.Log_record_type = log_record_type
-	ret.Prev_page_id = prev_page_id
-	ret.Page_id = page_id
+	ret.Size = HeaderSize
+	ret.TxnID = txnID
+	ret.PrevLSN = prevLSN
+	ret.LogRecordType = logRecordType
+	ret.PrevPageID = prevPageID
+	ret.PageID = pageID
 	// calculate log record size
-	ret.Size = HEADER_SIZE + uint32(unsafe.Sizeof(prev_page_id)) + uint32(unsafe.Sizeof(page_id))
+	ret.Size = HeaderSize + uint32(unsafe.Sizeof(prevPageID)) + uint32(unsafe.Sizeof(pageID))
 	return ret
 }
 
-func NewLogRecordDeallocatePage(page_id types.PageID) *LogRecord {
+func NewLogRecordDeallocatePage(pageID types.PageID) *LogRecord {
 	ret := new(LogRecord)
-	ret.Size = HEADER_SIZE
-	ret.Txn_id = types.TxnID(math.MaxInt32)
-	ret.Prev_lsn = -1
+	ret.Size = HeaderSize
+	ret.TxnID = types.TxnID(math.MaxInt32)
+	ret.PrevLSN = -1
 	ret.Lsn = -1
-	ret.Log_record_type = DEALLOCATE_PAGE
-	ret.Deallocate_page_id = page_id
+	ret.LogRecordType = DeallocatePage
+	ret.DeallocatePageID = pageID
 	// calculate log record size
-	ret.Size = HEADER_SIZE + uint32(unsafe.Sizeof(page_id))
+	ret.Size = HeaderSize + uint32(unsafe.Sizeof(pageID))
 	return ret
 }
 
-func NewLogRecordReusePage(page_id types.PageID) *LogRecord {
+func NewLogRecordReusePage(pageID types.PageID) *LogRecord {
 	ret := new(LogRecord)
-	ret.Size = HEADER_SIZE
-	ret.Txn_id = types.TxnID(math.MaxInt32)
-	ret.Prev_lsn = -1
+	ret.Size = HeaderSize
+	ret.TxnID = types.TxnID(math.MaxInt32)
+	ret.PrevLSN = -1
 	ret.Lsn = -1
-	ret.Log_record_type = REUSE_PAGE
-	ret.Reuse_page_id = page_id
+	ret.LogRecordType = ReusePage
+	ret.ReusePageID = pageID
 	// calculate log record size
-	ret.Size = HEADER_SIZE + uint32(unsafe.Sizeof(page_id))
+	ret.Size = HeaderSize + uint32(unsafe.Sizeof(pageID))
 	return ret
 }
 
 func NewLogRecordGracefulShutdown() *LogRecord {
 	ret := new(LogRecord)
-	ret.Size = HEADER_SIZE
-	ret.Txn_id = types.TxnID(math.MaxInt32)
-	ret.Prev_lsn = -1
+	ret.Size = HeaderSize
+	ret.TxnID = types.TxnID(math.MaxInt32)
+	ret.PrevLSN = -1
 	ret.Lsn = math.MinInt32
-	ret.Log_record_type = GRACEFUL_SHUTDOWN
+	ret.LogRecordType = GracefulShutdown
 	// calculate log record size
-	ret.Size = HEADER_SIZE
+	ret.Size = HeaderSize
 	return ret
 }
 
-func (log_record *LogRecord) GetDeleteRID() page.RID          { return log_record.Delete_rid }
-func (log_record *LogRecord) GetInserteTuple() tuple.Tuple    { return log_record.Insert_tuple }
-func (log_record *LogRecord) GetInsertRID() page.RID          { return log_record.Insert_rid }
-func (log_record *LogRecord) GetNewPageRecord() types.PageID  { return log_record.Prev_page_id }
-func (log_record *LogRecord) GetSize() uint32                 { return log_record.Size }
-func (log_record *LogRecord) GetLSN() types.LSN               { return log_record.Lsn }
-func (log_record *LogRecord) GetTxnId() types.TxnID           { return log_record.Txn_id }
-func (log_record *LogRecord) GetPrevLSN() types.LSN           { return log_record.Prev_lsn }
-func (log_record *LogRecord) GetLogRecordType() LogRecordType { return log_record.Log_record_type }
+func (lr *LogRecord) GetDeleteRID() page.RID          { return lr.DeleteRID }
+func (lr *LogRecord) GetInserteTuple() tuple.Tuple    { return lr.InsertTuple }
+func (lr *LogRecord) GetInsertRID() page.RID          { return lr.InsertRID }
+func (lr *LogRecord) GetNewPageRecord() types.PageID  { return lr.PrevPageID }
+func (lr *LogRecord) GetSize() uint32                 { return lr.Size }
+func (lr *LogRecord) GetLSN() types.LSN               { return lr.Lsn }
+func (lr *LogRecord) GetTxnID() types.TxnID           { return lr.TxnID }
+func (lr *LogRecord) GetPrevLSN() types.LSN           { return lr.PrevLSN }
+func (lr *LogRecord) GetLogRecordType() LogRecordType { return lr.LogRecordType }
 
-func (log_record *LogRecord) GetLogHeaderData() []byte {
+func (lr *LogRecord) GetLogHeaderData() []byte {
 	buf := new(bytes.Buffer)
-	binary.Write(buf, binary.LittleEndian, log_record.Size)
-	binary.Write(buf, binary.LittleEndian, log_record.Lsn)
-	binary.Write(buf, binary.LittleEndian, log_record.Txn_id)
-	binary.Write(buf, binary.LittleEndian, log_record.Prev_lsn)
-	binary.Write(buf, binary.LittleEndian, log_record.Log_record_type)
+	binary.Write(buf, binary.LittleEndian, lr.Size)
+	binary.Write(buf, binary.LittleEndian, lr.Lsn)
+	binary.Write(buf, binary.LittleEndian, lr.TxnID)
+	binary.Write(buf, binary.LittleEndian, lr.PrevLSN)
+	binary.Write(buf, binary.LittleEndian, lr.LogRecordType)
 
 	// fmt.Printf("GetLogHeaderData: %d, %d, %d, %d, %d, %d\n",
-	// 	log_record.Size,
-	// 	log_record.Txn_id,
-	// 	log_record.Prev_lsn,
-	// 	log_record.Log_record_type,
-	// 	log_record.Prev_page_id,
+	// 	lr.Size,
+	// 	lr.TxnID,
+	// 	lr.PrevLSN,
+	// 	lr.LogRecordType,
+	// 	lr.PrevPageID,
 	// 	buf.Len())
 	return buf.Bytes()
 }

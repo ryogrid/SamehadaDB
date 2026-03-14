@@ -17,7 +17,7 @@ type PointScanWithIndexPlanNode struct {
 	*AbstractPlanNode
 	predicate *expression.Comparison
 	tableOID  uint32
-	stats_    *catalog.TableStatistics
+	stats    *catalog.TableStatistics
 }
 
 func NewPointScanWithIndexPlanNode(c *catalog.Catalog, schema *schema.Schema, predicate *expression.Comparison, tableOID uint32) Plan {
@@ -59,5 +59,5 @@ func (p *PointScanWithIndexPlanNode) GetDebugStr() string {
 }
 
 func (p *PointScanWithIndexPlanNode) GetStatistics() *catalog.TableStatistics {
-	return p.stats_
+	return p.stats
 }

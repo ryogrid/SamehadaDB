@@ -15,7 +15,7 @@ func (p *ParentPageImpl) PPinCount() int32 {
 }
 
 func (p *ParentPageImpl) GetPPageId() int32 {
-	return int32(p.GetPageId())
+	return int32(p.GetPageID())
 }
 
 func (p *ParentPageImpl) DataAsSlice() []byte {

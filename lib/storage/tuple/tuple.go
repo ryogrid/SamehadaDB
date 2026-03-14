@@ -31,42 +31,42 @@ func NewTuple(rid *page.RID, size uint32, data []byte) *Tuple {
 }
 
 // NewTupleFromSchema creates a new tuple based on input value
-func NewTupleFromSchema(values []types.Value, schema_ *schema.Schema) *Tuple {
+func NewTupleFromSchema(values []types.Value, sc *schema.Schema) *Tuple {
 	// calculate tuple size considering varchar columns
-	tupleSize := schema_.Length()
-	for _, colIndex := range schema_.GetUnlinedColumns() {
+	tupleSize := sc.Length()
+	for _, colIndex := range sc.GetUnlinedColumns() {
 		tupleSize += values[colIndex].Size()
 	}
-	tuple_ := &Tuple{}
-	tuple_.size = tupleSize
+	tpl := &Tuple{}
+	tpl.size = tupleSize
 
 	// allocate memory
-	tuple_.data = make([]byte, tupleSize)
+	tpl.data = make([]byte, tupleSize)
 
 	// serialize each attribute base on the input value
-	tupleEndOffset := schema_.Length()
-	for i := uint32(0); i < schema_.GetColumnCount(); i++ {
-		if schema_.GetColumn(i).IsInlined() {
-			tuple_.Copy((*(schema_.GetColumn(i))).GetOffset(), values[i].Serialize())
+	tupleEndOffset := sc.Length()
+	for i := uint32(0); i < sc.GetColumnCount(); i++ {
+		if sc.GetColumn(i).IsInlined() {
+			tpl.Copy((*(sc.GetColumn(i))).GetOffset(), values[i].Serialize())
 		} else {
-			tuple_.Copy((*(schema_.GetColumn(i))).GetOffset(), types.UInt32(tupleEndOffset).Serialize())
-			tuple_.Copy(tupleEndOffset, values[i].Serialize())
+			tpl.Copy((*(sc.GetColumn(i))).GetOffset(), types.UInt32(tupleEndOffset).Serialize())
+			tpl.Copy(tupleEndOffset, values[i].Serialize())
 			tupleEndOffset += values[i].Size()
 		}
 	}
-	return tuple_
+	return tpl
 }
 
 // generate tuple obj for hash index search
 // generated tuple filled only specifed column only due to use methods
 // defined on Index interface
-func GenTupleForIndexSearch(schema_ *schema.Schema, colIndex uint32, keyVal *types.Value) *Tuple {
+func GenTupleForIndexSearch(sc *schema.Schema, colIndex uint32, keyVal *types.Value) *Tuple {
 	if keyVal == nil {
 		return nil
 	}
-	colmuns := schema_.GetColumns()
+	columns := sc.GetColumns()
 	values := make([]types.Value, 0)
-	for idx, columnObj := range colmuns {
+	for idx, columnObj := range columns {
 		switch columnObj.GetType() {
 		case types.Integer:
 			if idx == int(colIndex) {
@@ -88,7 +88,7 @@ func GenTupleForIndexSearch(schema_ *schema.Schema, colIndex uint32, keyVal *typ
 			}
 		}
 	}
-	return NewTupleFromSchema(values, schema_)
+	return NewTupleFromSchema(values, sc)
 }
 
 func (t *Tuple) GetValue(schema *schema.Schema, colIndex uint32) types.Value {
@@ -192,29 +192,29 @@ func (t *Tuple) Copy(offset uint32, data []byte) {
 	copy(t.data[offset:], data)
 }
 
-func (tuple_ *Tuple) SerializeTo(storage []byte) {
+func (t *Tuple) SerializeTo(storage []byte) {
 	buf := new(bytes.Buffer)
-	binary.Write(buf, binary.LittleEndian, tuple_.size)
+	binary.Write(buf, binary.LittleEndian, t.size)
 	sizeInBytes := buf.Bytes()
 	copy(storage, sizeInBytes)
-	copy(storage[TupleSizeOffsetInLogrecord:TupleSizeOffsetInLogrecord+int(tuple_.size)], tuple_.data)
+	copy(storage[TupleSizeOffsetInLogrecord:TupleSizeOffsetInLogrecord+int(t.size)], t.data)
 }
 
-func (tuple_ *Tuple) DeserializeFrom(storage []byte) {
+func (t *Tuple) DeserializeFrom(storage []byte) {
 	buf := bytes.NewBuffer(storage)
-	binary.Read(buf, binary.LittleEndian, &tuple_.size)
+	binary.Read(buf, binary.LittleEndian, &t.size)
 	// Construct a tuple.
-	tuple_.data = make([]byte, tuple_.size)
-	copy(tuple_.data, storage[TupleSizeOffsetInLogrecord:TupleSizeOffsetInLogrecord+int(tuple_.size)])
+	t.data = make([]byte, t.size)
+	copy(t.data, storage[TupleSizeOffsetInLogrecord:TupleSizeOffsetInLogrecord+int(t.size)])
 }
 
-func (tuple_ *Tuple) GetDeepCopy() *Tuple {
+func (t *Tuple) GetDeepCopy() *Tuple {
 	ret := new(Tuple)
 	ret.data = make([]byte, 0)
-	tuple_.Copy(0, ret.data)
-	ret.SetSize(tuple_.size)
-	copied_rid := new(page.RID)
-	copied_rid.Set(tuple_.rid.GetPageId(), tuple_.rid.GetSlotNum())
-	ret.rid = copied_rid
+	t.Copy(0, ret.data)
+	ret.SetSize(t.size)
+	copiedRID := new(page.RID)
+	copiedRID.Set(t.rid.GetPageID(), t.rid.GetSlotNum())
+	ret.rid = copiedRID
 	return ret
 }

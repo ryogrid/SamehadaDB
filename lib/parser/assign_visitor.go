@@ -7,18 +7,18 @@ import (
 )
 
 type AssignVisitor struct {
-	Colname_ *string
-	Value_   *types.Value
+	Colname *string
+	Value   *types.Value
 }
 
 func (v *AssignVisitor) Enter(in ast.Node) (ast.Node, bool) {
 	switch node := in.(type) {
 	case *ast.ColumnName:
 		colname := node.String()
-		v.Colname_ = &colname
+		v.Colname = &colname
 		return in, true
 	case *driver.ValueExpr:
-		v.Value_ = ValueExprToValue(node)
+		v.Value = ValueExprToValue(node)
 		return in, true
 	default:
 	}

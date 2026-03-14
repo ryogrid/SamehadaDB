@@ -25,24 +25,24 @@ import (
 )
 
 type SamehadaDB struct {
-	shi_               *SamehadaInstance
-	catalog_           *catalog.Catalog
-	exec_engine_       *executors.ExecutionEngine
-	statistics_updator *concurrency.StatisticsUpdater
-	request_manager    *RequestManager
+	shi            *SamehadaInstance
+	cat            *catalog.Catalog
+	execEngine     *executors.ExecutionEngine
+	statisticsUpdr *concurrency.StatisticsUpdater
+	requestMgr     *RequestManager
 }
 
 type reqResult struct {
 	err      error
 	result   [][]interface{}
-	reqId    *uint64
+	reqID    *uint64
 	query    *string
 	callerCh *chan *reqResult
 }
 
 // return internal object (for testing)
 func (sdb *SamehadaDB) GetSamehadaInstance() *SamehadaInstance {
-	return sdb.shi_
+	return sdb.shi
 }
 
 func reconstructIndexDataOfATbl(t *catalog.TableMetadata, c *catalog.Catalog, dman disk.DiskManager, txn *access.Transaction) {
@@ -53,33 +53,33 @@ func reconstructIndexDataOfATbl(t *catalog.TableMetadata, c *catalog.Catalog, dm
 	//zeroClearedBuf := directio.AlignedBlock(common.PageSize)
 	bpm := t.Table().GetBufferPoolManager()
 
-	for colIdx, index_ := range t.Indexes() {
-		if index_ != nil {
-			column_ := t.Schema().GetColumn(uint32(colIdx))
-			switch column_.IndexKind() {
-			case index_constants.INDEX_KIND_HASH:
+	for colIdx, idx := range t.Indexes() {
+		if idx != nil {
+			col := t.Schema().GetColumn(uint32(colIdx))
+			switch col.IndexKind() {
+			case index_constants.IndexKindHash:
 				// clear pages for HashTableBlockPage for avoiding conflict with reconstruction
 				// due to there may be pages (on disk) which has old index entries data in current design...
 				// note: when this method is called, the pages are not fetched yet (= are not in memory)
 
-				indexHeaderPageId := column_.IndexHeaderPageId()
+				indexHeaderPageID := col.IndexHeaderPageID()
 
-				hPageData := bpm.FetchPage(indexHeaderPageId).Data()
+				hPageData := bpm.FetchPage(indexHeaderPageID).Data()
 				headerPage := (*page.HashTableHeaderPage)(unsafe.Pointer(hPageData))
 				for ii := uint64(0); ii < headerPage.NumBlocks(); ii++ {
-					blockPageId := headerPage.GetBlockPageId(ii)
+					blockPageID := headerPage.GetBlockPageID(ii)
 					// zero clear specifed space of db file
-					dman.WritePage(blockPageId, zeroClearedBuf)
+					dman.WritePage(blockPageID, zeroClearedBuf)
 				}
-			case index_constants.INDEX_KIND_UNIQ_SKIP_LIST:
+			case index_constants.IndexKindUniqSkipList:
 				// do nothing here
 				// (Since SkipList index can't reuse past allocated pages, data clear of allocated pages
 				//  are not needed...)
-			case index_constants.INDEX_KIND_SKIP_LIST:
+			case index_constants.IndexKindSkipList:
 				// do nothing here
 				// (Since SkipList index can't reuse past allocated pages, data clear of allocated pages
 				//  are not needed...)
-			case index_constants.INDEX_KIND_BTREE:
+			case index_constants.IndexKindBtree:
 				// do nothing here
 				// (Since BTree index can't reuse past allocated pages, data clear of allocated pages
 				//  are not needed...)
@@ -92,17 +92,17 @@ func reconstructIndexDataOfATbl(t *catalog.TableMetadata, c *catalog.Catalog, dm
 	var allTuples []*tuple.Tuple = nil
 
 	// insert index entries correspond to each tuple and column to each index objects
-	for _, index_ := range t.Indexes() {
-		if index_ != nil {
+	for _, idx := range t.Indexes() {
+		if idx != nil {
 			if allTuples == nil {
 				// get all tuples once
 				outSchema := t.Schema()
 				seqPlan := plans.NewSeqScanPlanNode(c, outSchema, nil, t.OID())
 				allTuples = executionEngine.Execute(seqPlan, executorContext)
 			}
-			for _, tuple_ := range allTuples {
-				rid := tuple_.GetRID()
-				index_.InsertEntry(tuple_, *rid, txn)
+			for _, tpl := range allTuples {
+				rid := tpl.GetRID()
+				idx.InsertEntry(tpl, *rid, txn)
 			}
 		}
 	}
@@ -131,13 +131,13 @@ func NewSamehadaDB(dbName string, memKBytes int) *SamehadaDB {
 
 	var c *catalog.Catalog
 	if isExistingDB {
-		log_recovery := log_recovery.NewLogRecovery(
+		logRecov := log_recovery.NewLogRecovery(
 			shi.GetDiskManager(),
 			shi.GetBufferPoolManager(),
 			shi.GetLogManager())
-		greatestLSN, isUndoNeeded, isGracefulShutdown := log_recovery.Redo(txn)
+		greatestLSN, isUndoNeeded, isGracefulShutdown := logRecov.Redo(txn)
 		if isUndoNeeded {
-			log_recovery.Undo(txn)
+			logRecov.Undo(txn)
 		}
 
 		dman := shi.GetDiskManager()
@@ -146,14 +146,14 @@ func NewSamehadaDB(dbName string, memKBytes int) *SamehadaDB {
 
 		// rewrite reusable page id log because it is not wrote to log file after launch
 		// but the information is needed next launch also
-		reusablePageIds := shi.bpm.GetReusablePageIds()
-		if len(reusablePageIds) > 0 {
-			for _, pageId := range reusablePageIds {
-				logRecord := recovery.NewLogRecordDeallocatePage(pageId)
-				shi.log_manager.AppendLogRecord(logRecord)
+		reusablePageIDs := shi.bpm.GetReusablePageIDs()
+		if len(reusablePageIDs) > 0 {
+			for _, pageID := range reusablePageIDs {
+				logRecord := recovery.NewLogRecordDeallocatePage(pageID)
+				shi.logManager.AppendLogRecord(logRecord)
 			}
 		}
-		shi.log_manager.Flush()
+		shi.logManager.Flush()
 
 		c = catalog.RecoveryCatalogFromCatalogPage(shi.GetBufferPoolManager(), shi.GetLogManager(), shi.GetLockManager(), txn, isGracefulShutdown)
 
@@ -169,11 +169,11 @@ func NewSamehadaDB(dbName string, memKBytes int) *SamehadaDB {
 	}
 
 	shi.bpm.FlushAllPages()
-	shi.transaction_manager.Commit(c, txn)
+	shi.transactionManager.Commit(c, txn)
 
 	shi.GetLogManager().ActivateLogging()
 
-	exec_engine := &executors.ExecutionEngine{}
+	execEngine := &executors.ExecutionEngine{}
 
 	shi.GetCheckpointManager().StartCheckpointTh()
 
@@ -182,10 +182,10 @@ func NewSamehadaDB(dbName string, memKBytes int) *SamehadaDB {
 	statUpdater := concurrency.NewStatisticsUpdater(shi.GetTransactionManager(), c)
 	statUpdater.StartStaticsUpdaterTh()
 
-	ret := &SamehadaDB{shi, c, exec_engine, statUpdater, nil}
+	ret := &SamehadaDB{shi, c, execEngine, statUpdater, nil}
 	tmpReqMgr := NewRequestManager(ret)
-	ret.request_manager = tmpReqMgr
-	ret.request_manager.StartTh()
+	ret.requestMgr = tmpReqMgr
+	ret.requestMgr.StartTh()
 
 	return ret
 }
@@ -193,14 +193,14 @@ func NewSamehadaDB(dbName string, memKBytes int) *SamehadaDB {
 func (sdb *SamehadaDB) ExecuteSQLForTxnTh(ch *chan *reqResult, qr *queryRequest) {
 	err, results := sdb.ExecuteSQLRetValues(*qr.queryStr)
 	if err != nil {
-		*ch <- &reqResult{err, nil, qr.reqId, qr.queryStr, qr.callerCh}
+		*ch <- &reqResult{err, nil, qr.reqID, qr.queryStr, qr.callerCh}
 		return
 	}
-	*ch <- &reqResult{nil, samehada_util.ConvValueListToIFs(results), qr.reqId, qr.queryStr, qr.callerCh}
+	*ch <- &reqResult{nil, samehada_util.ConvValueListToIFs(results), qr.reqID, qr.queryStr, qr.callerCh}
 }
 
 func (sdb *SamehadaDB) ExecuteSQL(sqlStr string) (error, [][]interface{}) {
-	ch := sdb.request_manager.AppendRequest(&sqlStr)
+	ch := sdb.requestMgr.AppendRequest(&sqlStr)
 	ret := <-*ch
 	return ret.err, ret.result
 }
@@ -215,36 +215,36 @@ func (sdb *SamehadaDB) ExecuteSQLRetValues(sqlStr string) (error, [][]*types.Val
 	if err != nil {
 		return err, nil
 	}
-	qi, err = optimizer.RewriteQueryInfo(sdb.catalog_, qi)
+	qi, err = optimizer.RewriteQueryInfo(sdb.cat, qi)
 	if err != nil {
 		return err, nil
 	}
-	txn := sdb.shi_.transaction_manager.Begin(nil)
-	err, plan := planner.NewSimplePlanner(sdb.catalog_, sdb.shi_.bpm).MakePlan(qi, txn)
+	txn := sdb.shi.transactionManager.Begin(nil)
+	err, plan := planner.NewSimplePlanner(sdb.cat, sdb.shi.bpm).MakePlan(qi, txn)
 
 	if err == nil && plan == nil {
 		// some problem exists on SQL string
-		sdb.shi_.GetTransactionManager().Commit(sdb.catalog_, txn)
-		if *qi.QueryType_ == parser.CREATE_TABLE {
+		sdb.shi.GetTransactionManager().Commit(sdb.cat, txn)
+		if *qi.QueryType == parser.CreateTable {
 			return nil, nil
 		} else {
 			return PlanCreationErr, nil
 		}
 	} else if err != nil {
 		// already table exist case
-		sdb.shi_.GetTransactionManager().Commit(sdb.catalog_, txn)
+		sdb.shi.GetTransactionManager().Commit(sdb.cat, txn)
 		return err, nil
 	}
 
-	context := executors.NewExecutorContext(sdb.catalog_, sdb.shi_.GetBufferPoolManager(), txn)
-	result := sdb.exec_engine_.Execute(plan, context)
+	context := executors.NewExecutorContext(sdb.cat, sdb.shi.GetBufferPoolManager(), txn)
+	result := sdb.execEngine.Execute(plan, context)
 
 	if txn.GetState() == access.ABORTED {
-		sdb.shi_.GetTransactionManager().Abort(sdb.catalog_, txn)
+		sdb.shi.GetTransactionManager().Abort(sdb.cat, txn)
 		// temporal impl
 		return QueryAbortedErr, nil
 	} else {
-		sdb.shi_.GetTransactionManager().Commit(sdb.catalog_, txn)
+		sdb.shi.GetTransactionManager().Commit(sdb.cat, txn)
 	}
 
 	outSchema := plan.OutputSchema()
@@ -261,14 +261,14 @@ func (sdb *SamehadaDB) ExecuteSQLRetValues(sqlStr string) (error, [][]*types.Val
 // use this when shutdown DB
 // and before flush of page buffer
 func (si *SamehadaDB) finalizeIndexesInternalState() {
-	allTables := si.catalog_.GetAllTables()
+	allTables := si.cat.GetAllTables()
 	for _, table := range allTables {
-		for _, index_ := range table.Indexes() {
-			if index_ != nil {
-				switch index_.(type) {
+		for _, idx := range table.Indexes() {
+			if idx != nil {
+				switch idx.(type) {
 				case *index.BTreeIndex:
 					// serialize internal page mapping entries to pages
-					index_.(*index.BTreeIndex).WriteOutContainerStateToBPM()
+					idx.(*index.BTreeIndex).WriteOutContainerStateToBPM()
 				default:
 					//do nothing
 				}
@@ -279,31 +279,31 @@ func (si *SamehadaDB) finalizeIndexesInternalState() {
 
 func (sdb *SamehadaDB) Shutdown() {
 	// set a flag which is checked by checkpointing thread
-	sdb.statistics_updator.StopStatsUpdateTh()
-	sdb.shi_.GetCheckpointManager().StopCheckpointTh()
-	sdb.request_manager.StopTh()
+	sdb.statisticsUpdr.StopStatsUpdateTh()
+	sdb.shi.GetCheckpointManager().StopCheckpointTh()
+	sdb.requestMgr.StopTh()
 	sdb.finalizeIndexesInternalState()
 	logRecord := recovery.NewLogRecordGracefulShutdown()
-	sdb.shi_.log_manager.AppendLogRecord(logRecord)
-	sdb.shi_.Shutdown(ShutdownPatternCloseFiles)
+	sdb.shi.logManager.AppendLogRecord(logRecord)
+	sdb.shi.Shutdown(ShutdownPatternCloseFiles)
 }
 
 // no flush of page buffer
 func (sdb *SamehadaDB) ShutdownForTescase() {
 	// set a flag which is checked by checkpointing thread
-	sdb.shi_.GetCheckpointManager().StopCheckpointTh()
-	sdb.statistics_updator.StopStatsUpdateTh()
-	sdb.request_manager.StopTh()
+	sdb.shi.GetCheckpointManager().StopCheckpointTh()
+	sdb.statisticsUpdr.StopStatsUpdateTh()
+	sdb.requestMgr.StopTh()
 	sdb.finalizeIndexesInternalState()
-	sdb.shi_.CloseFilesForTesting()
+	sdb.shi.CloseFilesForTesting()
 }
 
 func (sdb *SamehadaDB) ForceCheckpointingForTestcase() {
-	sdb.shi_.GetCheckpointManager().BeginCheckpoint()
-	sdb.shi_.GetCheckpointManager().EndCheckpoint()
+	sdb.shi.GetCheckpointManager().BeginCheckpoint()
+	sdb.shi.GetCheckpointManager().EndCheckpoint()
 }
 
 // for internal unit testing
 func (sdb *SamehadaDB) GetCatalogForTesting() *catalog.Catalog {
-	return sdb.catalog_
+	return sdb.cat
 }

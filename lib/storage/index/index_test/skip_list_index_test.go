@@ -34,9 +34,9 @@ func testKeyDuplicateInsDelSkipListIndex[T float32 | int32 | string](t *testing.
 
 	c := catalog.BootstrapCatalog(shi.GetBufferPoolManager(), shi.GetLogManager(), shi.GetLockManager(), txn)
 
-	columnA := column.NewColumn("test", keyType, true, index_constants.INDEX_KIND_SKIP_LIST, types.PageID(-1), nil)
-	schema_ := schema.NewSchema([]*column.Column{columnA})
-	tableMetadata := c.CreateTable("test_1", schema_, txn)
+	columnA := column.NewColumn("test", keyType, true, index_constants.IndexKindSkipList, types.PageID(-1), nil)
+	tableSchema := schema.NewSchema([]*column.Column{columnA})
+	tableMetadata := c.CreateTable("test_1", tableSchema, txn)
 
 	txnMgr.Commit(c, txn)
 
@@ -52,30 +52,30 @@ func testKeyDuplicateInsDelSkipListIndex[T float32 | int32 | string](t *testing.
 		panic("unsuppoted value type")
 	}
 
-	tuple_ := tuple.NewTupleFromSchema([]types.Value{types.NewValue(duplicatedVal)}, schema_)
+	tpl := tuple.NewTupleFromSchema([]types.Value{types.NewValue(duplicatedVal)}, tableSchema)
 	rid1 := page.RID{10, 0}
 	rid2 := page.RID{11, 1}
 	rid3 := page.RID{12, 2}
 
 	indexTest := tableMetadata.GetIndex(0)
 
-	indexTest.InsertEntry(tuple_, rid1, txn)
-	indexTest.InsertEntry(tuple_, rid2, txn)
-	indexTest.InsertEntry(tuple_, rid3, txn)
+	indexTest.InsertEntry(tpl, rid1, txn)
+	indexTest.InsertEntry(tpl, rid2, txn)
+	indexTest.InsertEntry(tpl, rid3, txn)
 
-	result := indexTest.ScanKey(tuple_, txn)
+	result := indexTest.ScanKey(tpl, txn)
 	fmt.Println(result[0], result[1], result[2])
 	testingpkg.Assert(t, len(result) == 3, "duplicated key point scan got illegal results.")
-	indexTest.DeleteEntry(tuple_, rid1, txn)
-	result = indexTest.ScanKey(tuple_, txn)
+	indexTest.DeleteEntry(tpl, rid1, txn)
+	result = indexTest.ScanKey(tpl, txn)
 	fmt.Println(result[0], result[1])
 	testingpkg.Assert(t, len(result) == 2, "duplicated key point scan got illegal results.")
-	indexTest.DeleteEntry(tuple_, rid2, txn)
-	result = indexTest.ScanKey(tuple_, txn)
+	indexTest.DeleteEntry(tpl, rid2, txn)
+	result = indexTest.ScanKey(tpl, txn)
 	fmt.Println(result[0])
 	testingpkg.Assert(t, len(result) == 1, "duplicated key point scan got illegal results.")
-	indexTest.DeleteEntry(tuple_, rid3, txn)
-	result = indexTest.ScanKey(tuple_, txn)
+	indexTest.DeleteEntry(tpl, rid3, txn)
+	result = indexTest.ScanKey(tpl, txn)
 	testingpkg.Assert(t, len(result) == 0, "duplicated key point scan got illegal results.")
 }
 
@@ -95,10 +95,10 @@ func testKeyDuplicateInsDelSkipListIndex2Col[T float32 | int32 | string](t *test
 
 	c := catalog.BootstrapCatalog(shi.GetBufferPoolManager(), shi.GetLogManager(), shi.GetLockManager(), txn)
 
-	columnA := column.NewColumn("col1", keyType, true, index_constants.INDEX_KIND_SKIP_LIST, types.PageID(-1), nil)
-	columnB := column.NewColumn("col2", keyType, true, index_constants.INDEX_KIND_SKIP_LIST, types.PageID(-1), nil)
-	schema_ := schema.NewSchema([]*column.Column{columnA, columnB})
-	tableMetadata := c.CreateTable("test", schema_, txn)
+	columnA := column.NewColumn("col1", keyType, true, index_constants.IndexKindSkipList, types.PageID(-1), nil)
+	columnB := column.NewColumn("col2", keyType, true, index_constants.IndexKindSkipList, types.PageID(-1), nil)
+	tableSchema := schema.NewSchema([]*column.Column{columnA, columnB})
+	tableMetadata := c.CreateTable("test", tableSchema, txn)
 
 	txnMgr.Commit(c, txn)
 
@@ -130,9 +130,9 @@ func testKeyDuplicateInsDelSkipListIndex2Col[T float32 | int32 | string](t *test
 	}
 
 	// col1's values are same all (duplicated). col2's values has no duplication.
-	tuple1 := tuple.NewTupleFromSchema([]types.Value{types.NewValue(duplicatedVal), types.NewValue(getUniqVal(keyType))}, schema_)
-	tuple2 := tuple.NewTupleFromSchema([]types.Value{types.NewValue(duplicatedVal), types.NewValue(getUniqVal(keyType))}, schema_)
-	tuple3 := tuple.NewTupleFromSchema([]types.Value{types.NewValue(duplicatedVal), types.NewValue(getUniqVal(keyType))}, schema_)
+	tuple1 := tuple.NewTupleFromSchema([]types.Value{types.NewValue(duplicatedVal), types.NewValue(getUniqVal(keyType))}, tableSchema)
+	tuple2 := tuple.NewTupleFromSchema([]types.Value{types.NewValue(duplicatedVal), types.NewValue(getUniqVal(keyType))}, tableSchema)
+	tuple3 := tuple.NewTupleFromSchema([]types.Value{types.NewValue(duplicatedVal), types.NewValue(getUniqVal(keyType))}, tableSchema)
 
 	rid1 := page.RID{10, 0}
 	rid2 := page.RID{11, 1}

@@ -22,11 +22,11 @@ type DiskManagerImpl struct {
 	db           *os.File
 	fileName     string
 	log          *os.File
-	fileName_log string
+	fileNameLog string
 	nextPageID   types.PageID
 	numWrites    uint64
 	size         int64
-	flush_log    bool
+	flushLog    bool
 	numFlushes   uint64
 	dbFileMutex  *sync.Mutex
 	logFileMutex *sync.Mutex
@@ -41,10 +41,10 @@ func NewDiskManagerImpl(dbFilename string) DiskManager {
 		return nil
 	}
 
-	period_idx := strings.LastIndex(dbFilename, ".")
-	logfname_base := dbFilename[:period_idx]
-	logfname := logfname_base + "." + "log"
-	file_1, err := os.OpenFile(logfname, os.O_RDWR|os.O_CREATE, 0666)
+	periodIdx := strings.LastIndex(dbFilename, ".")
+	logFnameBase := dbFilename[:periodIdx]
+	logFname := logFnameBase + "." + "log"
+	logFile, err := os.OpenFile(logFname, os.O_RDWR|os.O_CREATE, 0666)
 	if err != nil {
 		log.Fatalln("can't open log file")
 		return nil
@@ -56,13 +56,13 @@ func NewDiskManagerImpl(dbFilename string) DiskManager {
 		return nil
 	}
 
-	fileInfo_1, err := file_1.Stat()
+	logFileInfo, err := logFile.Stat()
 	if err != nil {
 		log.Fatalln("file info error (log file)")
 		return nil
 	}
 
-	file_1.Seek(fileInfo_1.Size(), io.SeekStart)
+	logFile.Seek(logFileInfo.Size(), io.SeekStart)
 
 	fileSize := fileInfo.Size()
 	nPages := fileSize / common.PageSize
@@ -72,7 +72,7 @@ func NewDiskManagerImpl(dbFilename string) DiskManager {
 		nextPageID = types.PageID(int32(nPages + 1))
 	}
 
-	return &DiskManagerImpl{file, dbFilename, file_1, logfname, nextPageID, 0, fileSize, false, 0, new(sync.Mutex), new(sync.Mutex)}
+	return &DiskManagerImpl{file, dbFilename, logFile, logFname, nextPageID, 0, fileSize, false, 0, new(sync.Mutex), new(sync.Mutex)}
 }
 
 // ShutDown closes of the database file
@@ -94,11 +94,11 @@ func (d *DiskManagerImpl) ShutDown() {
 }
 
 // Write a page to the database file
-func (d *DiskManagerImpl) WritePage(pageId types.PageID, pageData []byte) error {
+func (d *DiskManagerImpl) WritePage(pageID types.PageID, pageData []byte) error {
 	d.dbFileMutex.Lock()
 	defer d.dbFileMutex.Unlock()
 
-	offset := int64(pageId) * int64(common.PageSize)
+	offset := int64(pageID) * int64(common.PageSize)
 	_, errSeek := d.db.Seek(offset, io.SeekStart)
 	if errSeek != nil {
 		fmt.Println(errSeek)
@@ -210,7 +210,7 @@ func (d *DiskManagerImpl) RemoveLogFile() {
 	d.logFileMutex.Lock()
 	defer d.logFileMutex.Unlock()
 
-	err := os.Remove(d.fileName_log)
+	err := os.Remove(d.fileNameLog)
 	if err != nil {
 		fmt.Println(err)
 		panic("file remove failed")
@@ -228,20 +228,20 @@ func (d *DiskManagerImpl) GCLogFile() error {
 	d.logFileMutex.Lock()
 	defer d.logFileMutex.Unlock()
 
-	logfname := d.fileName_log
-	file_, err := os.OpenFile(logfname, os.O_RDWR|os.O_CREATE, 0666)
+	logFname := d.fileNameLog
+	f, err := os.OpenFile(logFname, os.O_RDWR|os.O_CREATE, 0666)
 	if err != nil {
 		log.Fatalln("can't open log file")
 		return err
 	}
 
-	_, err = file_.Stat()
+	_, err = f.Stat()
 	if err != nil {
 		log.Fatalln("file info error")
 		return err
 	}
 
-	d.log = file_
+	d.log = f
 
 	return nil
 }
@@ -250,27 +250,27 @@ func (d *DiskManagerImpl) GCLogFile() error {
  * Write the contents of the log into disk file
  * Only return when sync is done, and only perform sequence write
  */
-func (d *DiskManagerImpl) WriteLog(log_data []byte) error {
+func (d *DiskManagerImpl) WriteLog(logData []byte) error {
 	d.logFileMutex.Lock()
 	defer d.logFileMutex.Unlock()
 
-	d.flush_log = true
+	d.flushLog = true
 
 	// Note: current implementation does not use non-blocking I/O
 
 	//block := directio.AlignedBlock(directio.BlockSize)
 	//d.numFlushes += 1
-	//dataSize := len(log_data)
+	//dataSize := len(logData)
 	//for wroteSize := 0; wroteSize < dataSize; wroteSize += directio.BlockSize {
 	//	var err error
 	//	if wroteSize+directio.BlockSize > dataSize {
 	//		// write last part
-	//		copy(block, log_data[wroteSize:])
+	//		copy(block, logData[wroteSize:])
 	//		//_, err = d.log.Write(block)
 	//		_, err = d.log.Write(block[:dataSize-wroteSize])
 	//		fmt.Println("write last part. length: ", dataSize-wroteSize, len(block[:dataSize-wroteSize]))
 	//	} else {
-	//		copy(block, log_data[wroteSize:wroteSize+directio.BlockSize])
+	//		copy(block, logData[wroteSize:wroteSize+directio.BlockSize])
 	//		_, err = d.log.Write(block[:directio.BlockSize])
 	//	}
 	//	if err != nil {
@@ -283,7 +283,7 @@ func (d *DiskManagerImpl) WriteLog(log_data []byte) error {
 
 	// Note: (SDB) writing log isn't using direct I/O now
 
-	_, err := d.log.Write(log_data)
+	_, err := d.log.Write(logData)
 	if err != nil {
 		fmt.Println("I/O error while writing log")
 		fmt.Println(err)
@@ -294,7 +294,7 @@ func (d *DiskManagerImpl) WriteLog(log_data []byte) error {
 	// needs to flush to keep disk file in sync
 
 	d.log.Sync()
-	d.flush_log = false
+	d.flushLog = false
 
 	return nil
 }
@@ -304,8 +304,8 @@ func (d *DiskManagerImpl) WriteLog(log_data []byte) error {
 * Always read from the beginning and perform sequence read
 * @return: false means already reach the end
  */
-// Attention: len(log_data) specifies read data length
-func (d *DiskManagerImpl) ReadLog(log_data []byte, offset int32, retReadBytes *uint32) bool {
+// Attention: len(logData) specifies read data length
+func (d *DiskManagerImpl) ReadLog(logData []byte, offset int32, retReadBytes *uint32) bool {
 	logSize := d.GetLogFileSize()
 	if int64(offset) >= logSize {
 		// fmt.Println("end of log file")
@@ -317,7 +317,7 @@ func (d *DiskManagerImpl) ReadLog(log_data []byte, offset int32, retReadBytes *u
 	defer d.logFileMutex.Unlock()
 
 	d.log.Seek(int64(offset), io.SeekStart)
-	readBytes, err := d.log.Read(log_data)
+	readBytes, err := d.log.Read(logData)
 
 	*retReadBytes = uint32(readBytes)
 

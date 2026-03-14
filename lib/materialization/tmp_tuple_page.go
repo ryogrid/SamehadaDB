@@ -17,7 +17,7 @@ const offsetFreeSpace = uint32(16)
  * TmpTuplePage format:
  *
  * Sizes are in bytes.
- * | PageId (4) | LSN (4) | FreeSpace (4) | (free space) | TupleSize2 | TupleData2 | TupleSize1 | TupleData1 |
+ * | PageID (4) | LSN (4) | FreeSpace (4) | (free space) | TupleSize2 | TupleData2 | TupleSize1 | TupleData1 |
  *
  * We choose this format because DeserializeExpression expects to read Size followed by Data.
  */
@@ -33,41 +33,41 @@ func CastPageAsTmpTuplePage(page *page.Page) *TmpTuplePage {
 	return (*TmpTuplePage)(unsafe.Pointer(page))
 }
 
-func (p *TmpTuplePage) Init(page_id types.PageID, page_size uint32) {
-	p.SetPageId(page_id)
-	p.SetFreeSpacePointer(page_size)
+func (p *TmpTuplePage) Init(pageID types.PageID, pageSize uint32) {
+	p.SetPageID(pageID)
+	p.SetFreeSpacePointer(pageSize)
 }
 
-func (p *TmpTuplePage) GetTablePageId() types.PageID {
+func (p *TmpTuplePage) GetTablePageID() types.PageID {
 	return types.NewPageIDFromBytes(p.GetData()[:unsafe.Sizeof(*new(types.PageID))])
 }
 
-func (p *TmpTuplePage) Insert(tuple_ *tuple.Tuple, out *TmpTuple) bool {
-	free_offset := p.GetFreeSpacePointer()
-	need_size := 4 + tuple_.Size()
+func (p *TmpTuplePage) Insert(tpl *tuple.Tuple, out *TmpTuple) bool {
+	freeOffset := p.GetFreeSpacePointer()
+	needSize := 4 + tpl.Size()
 
-	if free_offset-need_size < uint32(offsetFreeSpace+4) {
+	if freeOffset-needSize < uint32(offsetFreeSpace+4) {
 		return false
 	}
-	free_offset -= need_size
-	p.SetFreeSpacePointer(free_offset)
+	freeOffset -= needSize
+	p.SetFreeSpacePointer(freeOffset)
 	addr := p.GetNextPosToInsert()
-	size := tuple_.Size()
+	size := tpl.Size()
 	buf := new(bytes.Buffer)
 	binary.Write(buf, binary.LittleEndian, size)
 	copy(addr[0:], buf.Bytes())
-	data := tuple_.Data()
-	copy(addr[int(unsafe.Sizeof(size)):], data[:tuple_.Size()])
-	*out = *NewTmpTuple(p.GetTablePageId(), p.GetOffset())
+	data := tpl.Data()
+	copy(addr[int(unsafe.Sizeof(size)):], data[:tpl.Size()])
+	*out = *NewTmpTuple(p.GetTablePageID(), p.GetOffset())
 	return true
 }
 
-func (p *TmpTuplePage) Get(tuple_ *tuple.Tuple, offset uint32) {
-	tuple_.DeserializeFrom(p.GetData()[offset:])
+func (p *TmpTuplePage) Get(tpl *tuple.Tuple, offset uint32) {
+	tpl.DeserializeFrom(p.GetData()[offset:])
 }
 
-func (p *TmpTuplePage) SetPageId(page_id types.PageID) {
-	copy(p.GetData()[0:], page_id.Serialize())
+func (p *TmpTuplePage) SetPageID(pageID types.PageID) {
+	copy(p.GetData()[0:], pageID.Serialize())
 }
 func (p *TmpTuplePage) GetFreeSpacePointer() uint32 {
 	return uint32(types.NewUInt32FromBytes(p.Data()[offsetFreeSpace:]))
@@ -81,13 +81,13 @@ func (p *TmpTuplePage) SetFreeSpacePointer(size uint32) {
 func (p *TmpTuplePage) GetNextPosToInsert() []byte { return p.GetData()[p.GetFreeSpacePointer():] }
 func (p *TmpTuplePage) GetOffset() uint32          { return p.GetFreeSpacePointer() }
 
-func FetchTupleFromTmpTuplePage(bpm *buffer.BufferPoolManager, tuple_ *tuple.Tuple, tmp_tuple *TmpTuple) {
-	tmp_page := CastPageAsTmpTuplePage(bpm.FetchPage(tmp_tuple.GetPageId()))
-	if tmp_page == nil {
+func FetchTupleFromTmpTuplePage(bpm *buffer.BufferPoolManager, tpl *tuple.Tuple, tmpTuple *TmpTuple) {
+	tmpPage := CastPageAsTmpTuplePage(bpm.FetchPage(tmpTuple.GetPageID()))
+	if tmpPage == nil {
 		panic("fail to fetch tmp page when doing hash join")
 	}
-	// tmp_page content is copied and accessed from currrent transaction only
+	// tmpPage content is copied and accessed from currrent transaction only
 	// so tuple locking is not needed
-	tmp_page.Get(tuple_, tmp_tuple.GetOffset())
-	bpm.UnpinPage(tmp_tuple.GetPageId(), false)
+	tmpPage.Get(tpl, tmpTuple.GetOffset())
+	bpm.UnpinPage(tmpTuple.GetPageID(), false)
 }

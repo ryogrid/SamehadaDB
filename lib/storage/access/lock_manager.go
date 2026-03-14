@@ -22,7 +22,7 @@ type DeadlockMode int32
 const (
 	PREVENTION DeadlockMode = iota
 	DETECTION
-	SS2PL_MODE
+	SS2PLMode
 )
 
 type LockMode int32
@@ -33,21 +33,21 @@ const (
 )
 
 type LockRequest struct {
-	txn_id    types.TxnID
-	lock_mode LockMode
+	txnID    types.TxnID
+	lockMode LockMode
 	granted   bool
 }
 
-func NewLockRequest(txn_id types.TxnID, lock_mode LockMode) *LockRequest {
+func NewLockRequest(txnID types.TxnID, lockMode LockMode) *LockRequest {
 	ret := new(LockRequest)
-	ret.txn_id = txn_id
-	ret.lock_mode = lock_mode
+	ret.txnID = txnID
+	ret.lockMode = lockMode
 	ret.granted = false
 	return ret
 }
 
 type LockRequestQueue struct {
-	request_queue []*LockRequest
+	requestQueue []*LockRequest
 	upgrading     bool
 }
 
@@ -55,33 +55,33 @@ type LockRequestQueue struct {
  * LockManager handles transactions asking for locks on records.
  */
 type LockManager struct {
-	two_pl_mode   TwoPLMode
-	deadlock_mode DeadlockMode
+	twoPLMode   TwoPLMode
+	deadlockMode DeadlockMode
 
 	mutex                  *sync.Mutex
-	enable_cycle_detection bool
+	enableCycleDetection bool
 
-	shared_lock_table    map[page.RID][]types.TxnID
-	exclusive_lock_table map[page.RID]types.TxnID
+	sharedLockTable    map[page.RID][]types.TxnID
+	exclusiveLockTable map[page.RID]types.TxnID
 }
 
 /**
 * Creates a new lock manager configured for the given type of 2-phase locking and deadlock policy.
-* @param two_pl_mode 2-phase locking mode
-* @param deadlock_mode deadlock policy
+* @param twoPLMode 2-phase locking mode
+* @param deadlockMode deadlock policy
  */
-func NewLockManager(two_pl_mode TwoPLMode, deadlock_mode DeadlockMode /*= DeadlockMode::PREVENTION*/) *LockManager {
+func NewLockManager(twoPLMode TwoPLMode, deadlockMode DeadlockMode /*= DeadlockMode::PREVENTION*/) *LockManager {
 	ret := new(LockManager)
-	ret.two_pl_mode = two_pl_mode
-	ret.deadlock_mode = deadlock_mode
+	ret.twoPLMode = twoPLMode
+	ret.deadlockMode = deadlockMode
 	ret.mutex = new(sync.Mutex)
-	ret.shared_lock_table = make(map[page.RID][]types.TxnID)
-	ret.exclusive_lock_table = make(map[page.RID]types.TxnID)
+	ret.sharedLockTable = make(map[page.RID][]types.TxnID)
+	ret.exclusiveLockTable = make(map[page.RID]types.TxnID)
 	return ret
 }
 
-func (lock_manager *LockManager) Detection() bool  { return lock_manager.deadlock_mode == DETECTION }
-func (lock_manager *LockManager) Prevention() bool { return lock_manager.deadlock_mode == PREVENTION }
+func (lockManager *LockManager) Detection() bool  { return lockManager.deadlockMode == DETECTION }
+func (lockManager *LockManager) Prevention() bool { return lockManager.deadlockMode == PREVENTION }
 
 /*
 * [LOCK_NOTE]: For all locking functions, we:
@@ -92,25 +92,25 @@ func (lock_manager *LockManager) Prevention() bool { return lock_manager.deadloc
  */
 
 func removeRID(list []page.RID, rid page.RID) []page.RID {
-	list_ := append(make([]page.RID, 0), list...)
+	lst := append(make([]page.RID, 0), list...)
 	for i, r := range list {
 		if r == rid {
-			list_ = append(list[:i], list[i+1:]...)
+			lst = append(list[:i], list[i+1:]...)
 			break
 		}
 	}
-	return list_
+	return lst
 }
 
 func removeTxnID(list []types.TxnID, txnID types.TxnID) []types.TxnID {
-	list_ := append(make([]types.TxnID, 0), list...)
+	lst := append(make([]types.TxnID, 0), list...)
 	for i, t := range list {
 		if t == txnID {
-			list_ = append(list[:i], list[i+1:]...)
+			lst = append(list[:i], list[i+1:]...)
 			break
 		}
 	}
-	return list_
+	return lst
 }
 
 func isContainTxnID(list []types.TxnID, txnID types.TxnID) bool {
@@ -128,40 +128,40 @@ func isContainTxnID(list []types.TxnID, txnID types.TxnID) bool {
 * @param rid1 the RID to be locked in shared mode
 * @return true if the lock is granted, false otherwise
  */
-func (lock_manager *LockManager) LockShared(txn *Transaction, rid *page.RID) bool {
+func (lockManager *LockManager) LockShared(txn *Transaction, rid *page.RID) bool {
 	//fmt.Printf("called LockShared, %v\n", rid1)
-	lock_manager.mutex.Lock()
-	defer lock_manager.mutex.Unlock()
+	lockManager.mutex.Lock()
+	defer lockManager.mutex.Unlock()
 
 	if txn.IsRecoveryPhase() {
 		return true
 	}
 
-	slock_set := txn.GetSharedLockSet()
-	if txnID, ok := lock_manager.exclusive_lock_table[*rid]; ok {
-		if txnID == txn.GetTransactionId() {
+	slockSet := txn.GetSharedLockSet()
+	if txnID, ok := lockManager.exclusiveLockTable[*rid]; ok {
+		if txnID == txn.GetTransactionID() {
 			return true
 		} else {
 			return false
 		}
 	} else {
-		if arr, ok := lock_manager.shared_lock_table[*rid]; ok {
-			if isContainTxnID(arr, txn.GetTransactionId()) {
+		if arr, ok := lockManager.sharedLockTable[*rid]; ok {
+			if isContainTxnID(arr, txn.GetTransactionID()) {
 				return true
 			} else {
-				cur_arr := lock_manager.shared_lock_table[*rid]
-				cur_arr = append(cur_arr, txn.GetTransactionId())
-				lock_manager.shared_lock_table[*rid] = cur_arr
-				slock_set = append(slock_set, *rid)
-				txn.SetSharedLockSet(slock_set)
+				curArr := lockManager.sharedLockTable[*rid]
+				curArr = append(curArr, txn.GetTransactionID())
+				lockManager.sharedLockTable[*rid] = curArr
+				slockSet = append(slockSet, *rid)
+				txn.SetSharedLockSet(slockSet)
 				return true
 			}
 		} else {
-			new_arr := make([]types.TxnID, 0)
-			new_arr = append(new_arr, txn.GetTransactionId())
-			lock_manager.shared_lock_table[*rid] = new_arr
-			slock_set = append(slock_set, *rid)
-			txn.SetSharedLockSet(slock_set)
+			newArr := make([]types.TxnID, 0)
+			newArr = append(newArr, txn.GetTransactionID())
+			lockManager.sharedLockTable[*rid] = newArr
+			slockSet = append(slockSet, *rid)
+			txn.SetSharedLockSet(slockSet)
 			return true
 		}
 	}
@@ -173,33 +173,33 @@ func (lock_manager *LockManager) LockShared(txn *Transaction, rid *page.RID) boo
 * @param rid1 the RID to be locked in exclusive mode
 * @return true if the lock is granted, false otherwise
  */
-func (lock_manager *LockManager) LockExclusive(txn *Transaction, rid *page.RID) bool {
+func (lockManager *LockManager) LockExclusive(txn *Transaction, rid *page.RID) bool {
 	//fmt.Printf("called LockExclusive, %v\n", rid1)
-	lock_manager.mutex.Lock()
-	defer lock_manager.mutex.Unlock()
+	lockManager.mutex.Lock()
+	defer lockManager.mutex.Unlock()
 
 	if txn.IsRecoveryPhase() {
 		return true
 	}
 
-	exlock_set := txn.GetExclusiveLockSet()
-	if txnID, ok := lock_manager.exclusive_lock_table[*rid]; ok {
-		if txnID == txn.GetTransactionId() {
+	exlockSet := txn.GetExclusiveLockSet()
+	if txnID, ok := lockManager.exclusiveLockTable[*rid]; ok {
+		if txnID == txn.GetTransactionID() {
 			return true
 		} else {
 			return false
 		}
 	} else {
-		if arr, ok_ := lock_manager.shared_lock_table[*rid]; ok_ {
-			if !(arr == nil || len(arr) == 0 || (len(arr) == 1 && arr[0] == txn.GetTransactionId())) {
+		if arr, ok_ := lockManager.sharedLockTable[*rid]; ok_ {
+			if !(arr == nil || len(arr) == 0 || (len(arr) == 1 && arr[0] == txn.GetTransactionID())) {
 				// not only this txn has shared lock
 				return false
 			}
 		}
 
-		lock_manager.exclusive_lock_table[*rid] = txn.GetTransactionId()
-		exlock_set = append(exlock_set, *rid)
-		txn.SetExclusiveLockSet(exlock_set)
+		lockManager.exclusiveLockTable[*rid] = txn.GetTransactionID()
+		exlockSet = append(exlockSet, *rid)
+		txn.SetExclusiveLockSet(exlockSet)
 		return true
 	}
 }
@@ -210,34 +210,34 @@ func (lock_manager *LockManager) LockExclusive(txn *Transaction, rid *page.RID) 
 * @param rid1 the RID that should already be locked in shared mode by the requesting transaction
 * @return true if the upgrade is successful, false otherwise
  */
-func (lock_manager *LockManager) LockUpgrade(txn *Transaction, rid *page.RID) bool {
+func (lockManager *LockManager) LockUpgrade(txn *Transaction, rid *page.RID) bool {
 	//fmt.Printf("called LockUpgrade %v\n", rid1)
-	lock_manager.mutex.Lock()
-	defer lock_manager.mutex.Unlock()
+	lockManager.mutex.Lock()
+	defer lockManager.mutex.Unlock()
 
 	if txn.IsRecoveryPhase() {
 		return true
 	}
 
-	elock_set := txn.GetExclusiveLockSet()
+	elockSet := txn.GetExclusiveLockSet()
 	if txn.IsSharedLocked(rid) {
-		if txnID, ok := lock_manager.exclusive_lock_table[*rid]; ok {
-			if txnID == txn.GetTransactionId() {
+		if txnID, ok := lockManager.exclusiveLockTable[*rid]; ok {
+			if txnID == txn.GetTransactionID() {
 				return true
 			} else {
 				return false
 			}
 		} else {
 			// always success
-			txnIds, _ := lock_manager.shared_lock_table[*rid]
+			txnIds, _ := lockManager.sharedLockTable[*rid]
 
 			if len(txnIds) != 1 {
 				// not only this txn
 				return false
 			} else {
-				lock_manager.exclusive_lock_table[*rid] = txn.GetTransactionId()
-				elock_set = append(elock_set, *rid)
-				txn.SetExclusiveLockSet(elock_set)
+				lockManager.exclusiveLockTable[*rid] = txn.GetTransactionID()
+				elockSet = append(elockSet, *rid)
+				txn.SetExclusiveLockSet(elockSet)
 				return true
 			}
 		}
@@ -252,22 +252,22 @@ func (lock_manager *LockManager) LockUpgrade(txn *Transaction, rid *page.RID) bo
 * @param rid1 the RID that is locked by the transaction
 * @return true if the unlock is successful, false otherwise
  */
-func (lock_manager *LockManager) Unlock(txn *Transaction, rid_list []page.RID) bool {
-	lock_manager.mutex.Lock()
-	defer lock_manager.mutex.Unlock()
-	for _, locked_rid := range rid_list {
-		if _, ok := lock_manager.exclusive_lock_table[locked_rid]; ok {
-			if lock_manager.exclusive_lock_table[locked_rid] == txn.GetTransactionId() {
-				// fmt.Println("delete exclusive_lock_table entry")
-				// fmt.Println(locked_rid)
-				delete(lock_manager.exclusive_lock_table, locked_rid)
+func (lockManager *LockManager) Unlock(txn *Transaction, ridList []page.RID) bool {
+	lockManager.mutex.Lock()
+	defer lockManager.mutex.Unlock()
+	for _, lockedRID := range ridList {
+		if _, ok := lockManager.exclusiveLockTable[lockedRID]; ok {
+			if lockManager.exclusiveLockTable[lockedRID] == txn.GetTransactionID() {
+				// fmt.Println("delete exclusiveLockTable entry")
+				// fmt.Println(lockedRID)
+				delete(lockManager.exclusiveLockTable, lockedRID)
 			}
 		}
-		if arr, ok := lock_manager.shared_lock_table[locked_rid]; ok {
-			if isContainTxnID(arr, txn.GetTransactionId()) {
-				// fmt.Println("remove txnid from shared_lock_table entry")
-				// fmt.Println(txn.GetTransactionId())
-				lock_manager.shared_lock_table[locked_rid] = removeTxnID(arr, txn.GetTransactionId())
+		if arr, ok := lockManager.sharedLockTable[lockedRID]; ok {
+			if isContainTxnID(arr, txn.GetTransactionID()) {
+				// fmt.Println("remove txnid from sharedLockTable entry")
+				// fmt.Println(txn.GetTransactionID())
+				lockManager.sharedLockTable[lockedRID] = removeTxnID(arr, txn.GetTransactionID())
 			}
 		}
 	}
@@ -275,18 +275,18 @@ func (lock_manager *LockManager) Unlock(txn *Transaction, rid_list []page.RID) b
 	return true
 }
 
-func (lock_manager *LockManager) PrintLockTables() {
-	fmt.Printf("len of shared_lock_table at WUnlock %d\n", len(lock_manager.shared_lock_table))
-	fmt.Printf("len of exclusive_lock_table at WUnlock %d\n", len(lock_manager.exclusive_lock_table))
-	for k, v := range lock_manager.shared_lock_table {
+func (lockManager *LockManager) PrintLockTables() {
+	fmt.Printf("len of sharedLockTable at WUnlock %d\n", len(lockManager.sharedLockTable))
+	fmt.Printf("len of exclusiveLockTable at WUnlock %d\n", len(lockManager.exclusiveLockTable))
+	for k, v := range lockManager.sharedLockTable {
 		fmt.Printf("%v: %v\n", k, v)
 	}
-	for k, v := range lock_manager.exclusive_lock_table {
+	for k, v := range lockManager.exclusiveLockTable {
 		fmt.Printf("%v: %v\n", k, v)
 	}
 }
 
-func (lock_manager *LockManager) ClearLockTablesForDebug() {
-	lock_manager.shared_lock_table = make(map[page.RID][]types.TxnID, 0)
-	lock_manager.exclusive_lock_table = make(map[page.RID]types.TxnID, 0)
+func (lockManager *LockManager) ClearLockTablesForDebug() {
+	lockManager.sharedLockTable = make(map[page.RID][]types.TxnID, 0)
+	lockManager.exclusiveLockTable = make(map[page.RID]types.TxnID, 0)
 }

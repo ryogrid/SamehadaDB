@@ -16,7 +16,7 @@ type SeqScanPlanNode struct {
 	*AbstractPlanNode
 	predicate expression.Expression
 	tableOID  uint32
-	stats_    *catalog.TableStatistics
+	stats    *catalog.TableStatistics
 }
 
 func NewSeqScanPlanNode(c *catalog.Catalog, schema *schema.Schema, predicate expression.Expression, tableOID uint32) Plan {
@@ -55,5 +55,5 @@ func (p *SeqScanPlanNode) GetDebugStr() string {
 }
 
 func (p *SeqScanPlanNode) GetStatistics() *catalog.TableStatistics {
-	return p.stats_
+	return p.stats
 }

@@ -16,11 +16,11 @@ type VirtualDiskManagerImpl struct {
 	db              *memfile.File //[]byte
 	fileName        string
 	log             *memfile.File //[]byte
-	fileName_log    string
+	fileNameLog    string
 	nextPageID      types.PageID
 	numWrites       uint64
 	size            int64
-	flush_log       bool
+	flushLog       bool
 	numFlushes      uint64
 	dbFileMutex     *sync.Mutex
 	logFileMutex    *sync.Mutex
@@ -32,16 +32,16 @@ type VirtualDiskManagerImpl struct {
 func NewVirtualDiskManagerImpl(dbFilename string) DiskManager {
 	file := memfile.New(make([]byte, 0))
 
-	period_idx := strings.LastIndex(dbFilename, ".")
-	logfname_base := dbFilename[:period_idx]
-	logfname := logfname_base + "." + "log"
+	periodIdx := strings.LastIndex(dbFilename, ".")
+	logFnameBase := dbFilename[:periodIdx]
+	logFname := logFnameBase + "." + "log"
 
-	file_1 := memfile.New(make([]byte, 0))
+	logFile := memfile.New(make([]byte, 0))
 
 	fileSize := int64(0)
 	nextPageID := types.PageID(0)
 
-	return &VirtualDiskManagerImpl{file, dbFilename, file_1, logfname, nextPageID, 0, fileSize, false, 0, new(sync.Mutex), new(sync.Mutex), make([]types.PageID, 0), make(map[types.PageID]types.PageID), make(map[types.PageID]bool)}
+	return &VirtualDiskManagerImpl{file, dbFilename, logFile, logFname, nextPageID, 0, fileSize, false, 0, new(sync.Mutex), new(sync.Mutex), make([]types.PageID, 0), make(map[types.PageID]types.PageID), make(map[types.PageID]bool)}
 }
 
 // ShutDown closes of the database file
@@ -59,11 +59,11 @@ func (d *VirtualDiskManagerImpl) convToSpaceID(pageID types.PageID) (spaceID typ
 }
 
 // Write a page to the database file
-func (d *VirtualDiskManagerImpl) WritePage(pageId types.PageID, pageData []byte) error {
+func (d *VirtualDiskManagerImpl) WritePage(pageID types.PageID, pageData []byte) error {
 	d.dbFileMutex.Lock()
 	defer d.dbFileMutex.Unlock()
 
-	offset := int64(d.convToSpaceID(pageId)) * int64(common.PageSize)
+	offset := int64(d.convToSpaceID(pageID)) * int64(common.PageSize)
 	d.db.WriteAt(pageData, offset)
 
 	if offset >= d.size {
@@ -171,18 +171,18 @@ func (d *VirtualDiskManagerImpl) GCLogFile() error {
  * Write the contents of the log into disk file
  * Only return when sync is done, and only perform sequence write
  */
-func (d *VirtualDiskManagerImpl) WriteLog(log_data []byte) error {
+func (d *VirtualDiskManagerImpl) WriteLog(logData []byte) error {
 	d.logFileMutex.Lock()
 	defer d.logFileMutex.Unlock()
 
-	d.flush_log = true
+	d.flushLog = true
 
 	d.numFlushes += 1
 
 	// not doing write log because VirtualDisk can't test logging/recovery
-	//d.log.Write(log_data)
+	//d.log.Write(logData)
 
-	d.flush_log = false
+	d.flushLog = false
 
 	return nil
 }
@@ -192,8 +192,8 @@ func (d *VirtualDiskManagerImpl) WriteLog(log_data []byte) error {
 * Always read from the beginning and perform sequence read
 * @return: false means already reach the end
  */
-// Attention: len(log_data) specifies read data length
-func (d *VirtualDiskManagerImpl) ReadLog(log_data []byte, offset int32, retReadBytes *uint32) bool {
+// Attention: len(logData) specifies read data length
+func (d *VirtualDiskManagerImpl) ReadLog(logData []byte, offset int32, retReadBytes *uint32) bool {
 	if int64(offset) >= d.GetLogFileSize() {
 		return false
 	}
@@ -201,8 +201,8 @@ func (d *VirtualDiskManagerImpl) ReadLog(log_data []byte, offset int32, retReadB
 	d.logFileMutex.Lock()
 	defer d.logFileMutex.Unlock()
 
-	readLen := int32(len(log_data))
-	d.log.ReadAt(log_data, int64(offset))
+	readLen := int32(len(logData))
+	d.log.ReadAt(logData, int64(offset))
 	*retReadBytes = uint32(readLen)
 
 	return true

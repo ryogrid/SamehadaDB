@@ -14,7 +14,7 @@ type QueryType int32
 
 const (
 	SELECT QueryType = iota
-	CREATE_TABLE
+	CreateTable
 	INSERT
 	DELETE
 	UPDATE
@@ -23,28 +23,28 @@ const (
 func ValueExprToValue(expr *driver.ValueExpr) *types.Value {
 	switch expr.Datum.Kind() {
 	case ptypes.KindInt64, ptypes.KindUint64:
-		val_str := expr.String()
-		istr := strings.Split(val_str, " ")[1]
+		valStr := expr.String()
+		istr := strings.Split(valStr, " ")[1]
 		ival, _ := strconv.Atoi(istr)
 		ret := types.NewInteger(int32(ival))
 		return &ret
 	case ptypes.KindMysqlDecimal:
-		val_str := expr.String()
-		fstr := strings.Split(val_str, " ")[1]
+		valStr := expr.String()
+		fstr := strings.Split(valStr, " ")[1]
 		fval, _ := strconv.ParseFloat(fstr, 32)
 		ret := types.NewFloat(float32(fval))
 		return &ret
 	default: // varchar
-		val_str := expr.String()
-		splited := strings.Split(val_str, " ")
-		target_str := strings.Join(splited[1:], " ")
-		ret := types.NewVarchar(target_str)
+		valStr := expr.String()
+		splited := strings.Split(valStr, " ")
+		targetStr := strings.Join(splited[1:], " ")
+		ret := types.NewVarchar(targetStr)
 		return &ret
 	}
 }
 
-func GetPredicateExprFromStr(schema_ *schema.Schema, pred *string) expression.Expression {
+func GetPredicateExprFromStr(sc *schema.Schema, pred *string) expression.Expression {
 	sqlStr := "SELECT * FROM dummy WHERE " + *pred + ";"
 	qi, _ := ProcessSQLStr(&sqlStr)
-	return ConvParsedBinaryOpExprToExpIFOne(schema_, qi.WhereExpression_)
+	return ConvParsedBinaryOpExprToExpIFOne(sc, qi.WhereExpression)
 }

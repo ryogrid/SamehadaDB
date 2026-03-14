@@ -19,11 +19,11 @@ type Column struct {
 	columnOffset      uint32 // Column offset in the tuple
 	hasIndex          bool   // whether the column has index data
 	indexKind         index_constants.IndexKind
-	indexHeaderPageId types.PageID
+	indexHeaderPageID types.PageID
 	isLeft            bool // when temporal schema, this is used for join
 	// should be pointer of subtype of expression.Expression
 	// this member is used and needed at temporarily created table (schema) on query execution
-	expr_ interface{}
+	expr interface{}
 }
 
 // indexHeaderPageID should be types.PageID(-1) if there is no special reason
@@ -95,12 +95,12 @@ func (c *Column) SetIndexKind(kind index_constants.IndexKind) {
 	c.indexKind = kind
 }
 
-func (c *Column) IndexHeaderPageId() types.PageID {
-	return c.indexHeaderPageId
+func (c *Column) IndexHeaderPageID() types.PageID {
+	return c.indexHeaderPageID
 }
 
-func (c *Column) SetIndexHeaderPageId(pageId types.PageID) {
-	c.indexHeaderPageId = pageId
+func (c *Column) SetIndexHeaderPageID(pageID types.PageID) {
+	c.indexHeaderPageID = pageID
 }
 
 func (c *Column) IsLeft() bool {
@@ -113,9 +113,9 @@ func (c *Column) SetIsLeft(isLeft bool) {
 
 // returned value should be used with type validation at expression.Expression
 func (c *Column) GetExpr() interface{} {
-	return c.expr_
+	return c.expr
 }
 
 func (c *Column) SetExpr(expr interface{}) {
-	c.expr_ = expr
+	c.expr = expr
 }

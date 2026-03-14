@@ -285,8 +285,8 @@ func TestParallelQueryIssue(t *testing.T) {
 
 	fmt.Println("records insertion done.")
 
-	THREAD_NUM := common.KernelThreadNum
-	runtime.GOMAXPROCS(THREAD_NUM)
+	ThreadNum := common.KernelThreadNum
+	runtime.GOMAXPROCS(ThreadNum)
 
 	ch := make(chan [2]int32)
 
@@ -313,8 +313,8 @@ func TestParallelQueryIssue(t *testing.T) {
 			break
 		}
 
-		// wait for keeping THREAD_NUM * 2 groroutine existing
-		for runningThCnt >= THREAD_NUM*2 {
+		// wait for keeping ThreadNum * 2 groroutine existing
+		for runningThCnt >= ThreadNum*2 {
 			recvRslt := <-ch
 			runningThCnt--
 			allCnt++
@@ -396,8 +396,8 @@ func TestParallelQueryIssueSelectUpdate(t *testing.T) {
 
 	fmt.Println("records insertion done.")
 
-	THREAD_NUM := common.KernelThreadNum
-	runtime.GOMAXPROCS(THREAD_NUM)
+	ThreadNum := common.KernelThreadNum
+	runtime.GOMAXPROCS(ThreadNum)
 
 	ch := make(chan [2]int32)
 
@@ -425,8 +425,8 @@ func TestParallelQueryIssueSelectUpdate(t *testing.T) {
 			break
 		}
 
-		// wait for keeping THREAD_NUM * 2 groroutine existing
-		for runningThCnt >= THREAD_NUM*2 {
+		// wait for keeping ThreadNum * 2 groroutine existing
+		for runningThCnt >= ThreadNum*2 {
 			recvRslt := <-ch
 			runningThCnt--
 			allCnt++

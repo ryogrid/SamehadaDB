@@ -6,28 +6,28 @@ import (
 	"sync"
 )
 
-func SH_Assert(condition bool, msg string) {
+func SHAssert(condition bool, msg string) {
 	if !condition {
 		panic(msg)
 	}
 }
 
-type SH_Mutex struct {
+type SHMutex struct {
 	mutex    *sync.Mutex
 	isLocked bool
 }
 
-func NewSH_Mutex() *SH_Mutex {
-	return &SH_Mutex{new(sync.Mutex), false}
+func NewSHMutex() *SHMutex {
+	return &SHMutex{new(sync.Mutex), false}
 }
-func (m *SH_Mutex) Lock() {
-	SH_Assert(!m.isLocked, "Mutex is already locked")
+func (m *SHMutex) Lock() {
+	SHAssert(!m.isLocked, "Mutex is already locked")
 	m.mutex.Lock()
 	m.isLocked = true
 }
 
-func (m *SH_Mutex) Unlock() {
-	SH_Assert(m.isLocked, "Mutex is not locked")
+func (m *SHMutex) Unlock() {
+	SHAssert(m.isLocked, "Mutex is not locked")
 	m.mutex.Unlock()
 	m.isLocked = false
 }

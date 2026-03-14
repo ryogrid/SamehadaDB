@@ -12,56 +12,56 @@ import (
  * CheckpointManager creates consistent checkpoints by blocking all other transactions temporarily.
  */
 type CheckpointManager struct {
-	transaction_manager *access.TransactionManager
-	log_manager         *recovery.LogManager
-	buffer_pool_manager *buffer.BufferPoolManager
+	transactionManager *access.TransactionManager
+	logManager         *recovery.LogManager
+	bufferPoolManager *buffer.BufferPoolManager
 	// checkpointing thread works when this flag is true
 	isCheckpointActive bool
 }
 
 func NewCheckpointManager(
-	transaction_manager *access.TransactionManager,
-	log_manager *recovery.LogManager,
-	buffer_pool_manager *buffer.BufferPoolManager) *CheckpointManager {
-	return &CheckpointManager{transaction_manager, log_manager, buffer_pool_manager, true}
+	transactionManager *access.TransactionManager,
+	logManager *recovery.LogManager,
+	bufferPoolManager *buffer.BufferPoolManager) *CheckpointManager {
+	return &CheckpointManager{transactionManager, logManager, bufferPoolManager, true}
 }
 
-func (checkpoint_manager *CheckpointManager) StartCheckpointTh() {
+func (cm *CheckpointManager) StartCheckpointTh() {
 	go func() {
-		for checkpoint_manager.IsCheckpointActive() {
+		for cm.IsCheckpointActive() {
 			time.Sleep(time.Second * 30)
-			if !checkpoint_manager.IsCheckpointActive() {
+			if !cm.IsCheckpointActive() {
 				break
 			}
 			fmt.Println("CheckpointTh: start checkpointing.")
-			checkpoint_manager.BeginCheckpoint()
-			checkpoint_manager.EndCheckpoint()
+			cm.BeginCheckpoint()
+			cm.EndCheckpoint()
 			fmt.Println("CheckpointTh: finish checkpointing.")
 		}
 	}()
 }
 
-func (checkpoint_manager *CheckpointManager) BeginCheckpoint() {
+func (cm *CheckpointManager) BeginCheckpoint() {
 	// Block all the transactions and ensure that both the WAL and all dirty buffer pool pages are persisted to disk,
 	// creating a consistent checkpoint. Do NOT allow transactions to resume at the end of this method, resume them
 	// in CheckpointManager::EndCheckpoint() instead. This is for grading purposes.
-	checkpoint_manager.transaction_manager.BlockAllTransactions()
-	isSuccess := checkpoint_manager.buffer_pool_manager.FlushAllDirtyPages()
+	cm.transactionManager.BlockAllTransactions()
+	isSuccess := cm.bufferPoolManager.FlushAllDirtyPages()
 	if !isSuccess {
 		fmt.Println("flush all dirty pages failed! at checkpointing (NOT BUG)")
 	}
-	checkpoint_manager.log_manager.Flush()
+	cm.logManager.Flush()
 }
 
-func (checkpoint_manager *CheckpointManager) EndCheckpoint() {
+func (cm *CheckpointManager) EndCheckpoint() {
 	// Allow transactions to resume, completing the checkpoint.
-	checkpoint_manager.transaction_manager.ResumeTransactions()
+	cm.transactionManager.ResumeTransactions()
 }
 
-func (checkpoint_manager *CheckpointManager) StopCheckpointTh() {
-	checkpoint_manager.isCheckpointActive = false
+func (cm *CheckpointManager) StopCheckpointTh() {
+	cm.isCheckpointActive = false
 }
 
-func (checkpoint_manager *CheckpointManager) IsCheckpointActive() bool {
-	return checkpoint_manager.isCheckpointActive
+func (cm *CheckpointManager) IsCheckpointActive() bool {
+	return cm.isCheckpointActive
 }

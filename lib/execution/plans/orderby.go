@@ -20,28 +20,28 @@ const (
  */
 type OrderbyPlanNode struct {
 	*AbstractPlanNode
-	col_idxs_      []int
-	orderby_types_ []OrderbyType
-	stats_         *catalog.TableStatistics
+	colIdxs      []int
+	orderbyTypes []OrderbyType
+	stats         *catalog.TableStatistics
 }
 
 /**
  * Creates a new OrderbyPlanNode.
  * @param output_schema the output format of this plan node. it is same with output schema of child
  * @param child the child plan to sort data over
- * @param col_idxs the specified columns idx at ORDER BY clause
- * @param order_types the order types of sorting with specifed columns
+ * @param colIdxs the specified columns idx at ORDER BY clause
+ * @param orderTypes the order types of sorting with specifed columns
  */
-func NewOrderbyPlanNode(child_schema *schema.Schema, child Plan, col_idxs []int,
-	order_types []OrderbyType) *OrderbyPlanNode {
-	return &OrderbyPlanNode{&AbstractPlanNode{child_schema, []Plan{child}}, col_idxs, order_types, child.GetStatistics().GetDeepCopy()}
+func NewOrderbyPlanNode(childSchema *schema.Schema, child Plan, colIdxs []int,
+	orderTypes []OrderbyType) *OrderbyPlanNode {
+	return &OrderbyPlanNode{&AbstractPlanNode{childSchema, []Plan{child}}, colIdxs, orderTypes, child.GetStatistics().GetDeepCopy()}
 }
 
 func (p *OrderbyPlanNode) GetType() PlanType { return Orderby }
 
 /** @return the child of this aggregation plan node */
 func (p *OrderbyPlanNode) GetChildPlan() Plan {
-	common.SH_Assert(len(p.GetChildren()) == 1, "OrderBy expected to only have one child.")
+	common.SHAssert(len(p.GetChildren()) == 1, "OrderBy expected to only have one child.")
 	return p.GetChildAt(0)
 }
 
@@ -55,14 +55,14 @@ func (p *OrderbyPlanNode) GetChildren() []Plan {
 
 /** @return the idx'th group by expression */
 func (p *OrderbyPlanNode) GetColIdxAt(idx uint32) int {
-	return p.col_idxs_[idx]
+	return p.colIdxs[idx]
 }
 
 /** @return column indexes to deside sort order */
-func (p *OrderbyPlanNode) GetColIdxs() []int { return p.col_idxs_ }
+func (p *OrderbyPlanNode) GetColIdxs() []int { return p.colIdxs }
 
 /** @return the Order type ASC or DESC */
-func (p *OrderbyPlanNode) GetOrderbyTypes() []OrderbyType { return p.orderby_types_ }
+func (p *OrderbyPlanNode) GetOrderbyTypes() []OrderbyType { return p.orderbyTypes }
 
 func (p *OrderbyPlanNode) GetTableOID() uint32 {
 	return p.children[0].GetTableOID()
@@ -82,5 +82,5 @@ func (p *OrderbyPlanNode) GetDebugStr() string {
 }
 
 func (p *OrderbyPlanNode) GetStatistics() *catalog.TableStatistics {
-	return p.stats_
+	return p.stats
 }

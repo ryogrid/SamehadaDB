@@ -9,67 +9,67 @@ import (
 )
 
 type BinaryOpVisitor struct {
-	QueryInfo_          *QueryInfo
-	BinaryOpExpression_ *BinaryOpExpression
+	QueryInfo          *QueryInfo
+	BinaryOpExpression *BinaryOpExpression
 }
 
 func (v *BinaryOpVisitor) Enter(in ast.Node) (ast.Node, bool) {
 	switch node := in.(type) {
 	case *ast.BinaryOperationExpr:
-		l_visitor := &BinaryOpVisitor{v.QueryInfo_, new(BinaryOpExpression)}
-		node.L.Accept(l_visitor)
-		r_visitor := &BinaryOpVisitor{v.QueryInfo_, new(BinaryOpExpression)}
-		node.R.Accept(r_visitor)
+		lVisitor := &BinaryOpVisitor{v.QueryInfo, new(BinaryOpExpression)}
+		node.L.Accept(lVisitor)
+		rVisitor := &BinaryOpVisitor{v.QueryInfo, new(BinaryOpExpression)}
+		node.R.Accept(rVisitor)
 
 		logicType, compType := GetTypesForBOperationExpr(node.Op)
-		v.BinaryOpExpression_.LogicalOperationType_ = logicType
-		v.BinaryOpExpression_.ComparisonOperationType_ = compType
+		v.BinaryOpExpression.LogicalOperationType = logicType
+		v.BinaryOpExpression.ComparisonOperationType = compType
 
 		if logicType == -1 && compType != -1 {
 			// when expression is comparison case
-			if l_visitor.BinaryOpExpression_.ComparisonOperationType_ == -1 &&
-				l_visitor.BinaryOpExpression_.LogicalOperationType_ == -1 {
-				v.BinaryOpExpression_.Left_ = l_visitor.BinaryOpExpression_.Left_
+			if lVisitor.BinaryOpExpression.ComparisonOperationType == -1 &&
+				lVisitor.BinaryOpExpression.LogicalOperationType == -1 {
+				v.BinaryOpExpression.Left = lVisitor.BinaryOpExpression.Left
 			} else {
-				v.BinaryOpExpression_.Left_ = l_visitor.BinaryOpExpression_
+				v.BinaryOpExpression.Left = lVisitor.BinaryOpExpression
 			}
 
-			if r_visitor.BinaryOpExpression_.ComparisonOperationType_ == -1 &&
-				r_visitor.BinaryOpExpression_.LogicalOperationType_ == -1 {
-				v.BinaryOpExpression_.Right_ = r_visitor.BinaryOpExpression_.Left_
+			if rVisitor.BinaryOpExpression.ComparisonOperationType == -1 &&
+				rVisitor.BinaryOpExpression.LogicalOperationType == -1 {
+				v.BinaryOpExpression.Right = rVisitor.BinaryOpExpression.Left
 			} else {
-				v.BinaryOpExpression_.Right_ = l_visitor.BinaryOpExpression_
+				v.BinaryOpExpression.Right = lVisitor.BinaryOpExpression
 			}
 		} else {
-			v.BinaryOpExpression_.Left_ = l_visitor.BinaryOpExpression_
-			v.BinaryOpExpression_.Right_ = r_visitor.BinaryOpExpression_
+			v.BinaryOpExpression.Left = lVisitor.BinaryOpExpression
+			v.BinaryOpExpression.Right = rVisitor.BinaryOpExpression
 		}
 		return in, true
 	case *ast.IsNullExpr:
 		cdv := &ChildDataVisitor{make([]interface{}, 0)}
 		node.Accept(cdv)
 
-		v.BinaryOpExpression_.LogicalOperationType_ = -1
+		v.BinaryOpExpression.LogicalOperationType = -1
 		if node.Not {
-			v.BinaryOpExpression_.ComparisonOperationType_ = expression.NotEqual
+			v.BinaryOpExpression.ComparisonOperationType = expression.NotEqual
 		} else {
-			v.BinaryOpExpression_.ComparisonOperationType_ = expression.Equal
+			v.BinaryOpExpression.ComparisonOperationType = expression.Equal
 		}
 
-		null_val := types.NewNull()
-		v.BinaryOpExpression_.Left_ = cdv.ChildDatas_[0]
-		v.BinaryOpExpression_.Right_ = &null_val
+		nullVal := types.NewNull()
+		v.BinaryOpExpression.Left = cdv.ChildDatas[0]
+		v.BinaryOpExpression.Right = &nullVal
 		return in, true
 	case *ast.ColumnNameExpr:
-		v.BinaryOpExpression_.LogicalOperationType_ = -1
-		v.BinaryOpExpression_.ComparisonOperationType_ = -1
-		left_val := node.Name.String()
-		v.BinaryOpExpression_.Left_ = &left_val
+		v.BinaryOpExpression.LogicalOperationType = -1
+		v.BinaryOpExpression.ComparisonOperationType = -1
+		leftVal := node.Name.String()
+		v.BinaryOpExpression.Left = &leftVal
 		return in, true
 	case *driver.ValueExpr:
-		v.BinaryOpExpression_.LogicalOperationType_ = -1
-		v.BinaryOpExpression_.ComparisonOperationType_ = -1
-		v.BinaryOpExpression_.Left_ = ValueExprToValue(node)
+		v.BinaryOpExpression.LogicalOperationType = -1
+		v.BinaryOpExpression.ComparisonOperationType = -1
+		v.BinaryOpExpression.Left = ValueExprToValue(node)
 		return in, true
 	default:
 	}
@@ -81,8 +81,8 @@ func (v *BinaryOpVisitor) Leave(in ast.Node) (ast.Node, bool) {
 	return in, true
 }
 
-func GetTypesForBOperationExpr(opcode_ opcode.Op) (expression.LogicalOpType, expression.ComparisonType) {
-	switch opcode_ {
+func GetTypesForBOperationExpr(op opcode.Op) (expression.LogicalOpType, expression.ComparisonType) {
+	switch op {
 	case opcode.EQ:
 		return -1, expression.Equal
 	case opcode.GT:

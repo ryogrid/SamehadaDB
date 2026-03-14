@@ -529,13 +529,13 @@ func TestBLTree_restart_embedding(t *testing.T) {
 	idMappingCnt := 0
 	// check reloaded pageID mapping info
 	idMappingsBeforeShutdown.Range(func(key, value interface{}) bool {
-		pageId := key.(blink_tree.Uid)
-		if shPageId, ok := idMappingReloaded.Load(pageId); !ok {
-			//fmt.Println("pageId mapping may be removed as freed page ID: ", pageId)
+		pageID := key.(blink_tree.Uid)
+		if shPageID, ok := idMappingReloaded.Load(pageID); !ok {
+			//fmt.Println("pageID mapping may be removed as freed page ID: ", pageID)
 			idMappingCnt++
 			return true
-		} else if value.(int32) != shPageId.(int32) {
-			t.Errorf("pageId mapping entry is broken.")
+		} else if value.(int32) != shPageID.(int32) {
+			t.Errorf("pageID mapping entry is broken.")
 			return false
 		}
 		idMappingCnt++

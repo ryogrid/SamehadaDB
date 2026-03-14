@@ -27,19 +27,19 @@ func TestTableHeap(t *testing.T) {
 
 	dm := disk.NewDiskManagerTest()
 	defer dm.ShutDown()
-	log_manager := recovery.NewLogManager(&dm)
-	bpm := buffer.NewBufferPoolManager(10, dm, log_manager)
-	lock_manager := NewLockManager(STRICT, SS2PL_MODE)
-	txn_mgr := NewTransactionManager(lock_manager, log_manager)
-	txn := txn_mgr.Begin(nil)
+	logManager := recovery.NewLogManager(&dm)
+	bpm := buffer.NewBufferPoolManager(10, dm, logManager)
+	lockManager := NewLockManager(STRICT, SS2PLMode)
+	txnMgr := NewTransactionManager(lockManager, logManager)
+	txn := txnMgr.Begin(nil)
 
-	th := NewTableHeap(bpm, log_manager, lock_manager, txn)
+	th := NewTableHeap(bpm, logManager, lockManager, txn)
 
 	// this schema creates a tuple1 of size 8 bytes
 	// it means that a page can only contains 254 tuples of this schema
-	columnA := column.NewColumn("a", types.Integer, false, index_constants.INDEX_KIND_INVALID, types.PageID(-1), nil)
-	columnB := column.NewColumn("b", types.Integer, false, index_constants.INDEX_KIND_INVALID, types.PageID(-1), nil)
-	schema_ := schema.NewSchema([]*column.Column{columnA, columnB})
+	columnA := column.NewColumn("a", types.Integer, false, index_constants.IndexKindInvalid, types.PageID(-1), nil)
+	columnB := column.NewColumn("b", types.Integer, false, index_constants.IndexKindInvalid, types.PageID(-1), nil)
+	sc := schema.NewSchema([]*column.Column{columnA, columnB})
 
 	// inserting 1000 tuples, means that we need at least 5 pages to insert all tuples
 	for i := 0; i < 1000; i++ {
@@ -47,16 +47,16 @@ func TestTableHeap(t *testing.T) {
 		row = append(row, types.NewInteger(int32(i*2)))
 		row = append(row, types.NewInteger(int32((i+1)*2)))
 
-		tuple_ := tuple.NewTupleFromSchema(row, schema_)
-		_, err := th.InsertTuple(tuple_, txn, math.MaxUint32, false)
+		tpl := tuple.NewTupleFromSchema(row, sc)
+		_, err := th.InsertTuple(tpl, txn, math.MaxUint32, false)
 		testingpkg.Ok(t, err)
 	}
 
 	bpm.FlushAllPages()
 
 	firstTuple := th.GetFirstTuple(txn)
-	testingpkg.Equals(t, int32(0), firstTuple.GetValue(schema_, 0).ToInteger())
-	testingpkg.Equals(t, int32(2), firstTuple.GetValue(schema_, 1).ToInteger())
+	testingpkg.Equals(t, int32(0), firstTuple.GetValue(sc, 0).ToInteger())
+	testingpkg.Equals(t, int32(2), firstTuple.GetValue(sc, 1).ToInteger())
 
 	for i := 0; i < 1000; i++ {
 		rid := &page.RID{}
@@ -64,8 +64,8 @@ func TestTableHeap(t *testing.T) {
 
 		rid.Set(types.PageID(i/226), uint32(i%226))
 		tuple, _ := th.GetTuple(rid, txn)
-		testingpkg.Equals(t, int32(i*2), tuple.GetValue(schema_, 0).ToInteger())
-		testingpkg.Equals(t, int32((i+1)*2), tuple.GetValue(schema_, 1).ToInteger())
+		testingpkg.Equals(t, int32(i*2), tuple.GetValue(sc, 0).ToInteger())
+		testingpkg.Equals(t, int32((i+1)*2), tuple.GetValue(sc, 1).ToInteger())
 	}
 
 	// 4 pages should have the size of 4096 * 5 => 20480 bytes
@@ -74,17 +74,17 @@ func TestTableHeap(t *testing.T) {
 	// let's iterate through the heap using the iterator
 	it := th.Iterator(txn)
 	i := int32(0)
-	tuple_cnt := 0
-	for tuple_ := it.Current(); !it.End(); tuple_ = it.Next() {
-		testingpkg.Equals(t, i*2, tuple_.GetValue(schema_, 0).ToInteger())
-		testingpkg.Equals(t, (i+1)*2, tuple_.GetValue(schema_, 1).ToInteger())
+	tupleCnt := 0
+	for tpl := it.Current(); !it.End(); tpl = it.Next() {
+		testingpkg.Equals(t, i*2, tpl.GetValue(sc, 0).ToInteger())
+		testingpkg.Equals(t, (i+1)*2, tpl.GetValue(sc, 1).ToInteger())
 		i++
-		tuple_cnt++
+		tupleCnt++
 	}
-	fmt.Println(tuple_cnt)
-	testingpkg.Assert(t, tuple_cnt == 1000, "quontity of returned tuples differ one of expected.")
+	fmt.Println(tupleCnt)
+	testingpkg.Assert(t, tupleCnt == 1000, "quontity of returned tuples differ one of expected.")
 
-	txn_mgr.Commit(nil, txn)
+	txnMgr.Commit(nil, txn)
 
 	common.TempSuppressOnMemStorage = false
 	common.TempSuppressOnMemStorageMutex.Unlock()
@@ -93,23 +93,23 @@ func TestTableHeap(t *testing.T) {
 func TestTableHeapFourCol(t *testing.T) {
 	dm := disk.NewDiskManagerTest()
 	defer dm.ShutDown()
-	log_manager := recovery.NewLogManager(&dm)
-	bpm := buffer.NewBufferPoolManager(10, dm, log_manager)
-	lock_manager := NewLockManager(STRICT, SS2PL_MODE)
-	txn_mgr := NewTransactionManager(lock_manager, log_manager)
-	txn := txn_mgr.Begin(nil)
+	logManager := recovery.NewLogManager(&dm)
+	bpm := buffer.NewBufferPoolManager(10, dm, logManager)
+	lockManager := NewLockManager(STRICT, SS2PLMode)
+	txnMgr := NewTransactionManager(lockManager, logManager)
+	txn := txnMgr.Begin(nil)
 
-	th := NewTableHeap(bpm, log_manager, lock_manager, txn)
+	th := NewTableHeap(bpm, logManager, lockManager, txn)
 
 	// this schema creates a tuple1 of size (4 + 1) * 4 => 20 bytes (when includes metadata at header the value is 28)
 	// it means that a page can only contains 145 tuples of this schema
 	// (4096 - 24) / 28 => 145.4285...
-	columnA := column.NewColumn("a", types.Integer, false, index_constants.INDEX_KIND_INVALID, types.PageID(-1), nil)
-	columnB := column.NewColumn("b", types.Integer, false, index_constants.INDEX_KIND_INVALID, types.PageID(-1), nil)
-	columnC := column.NewColumn("c", types.Integer, false, index_constants.INDEX_KIND_INVALID, types.PageID(-1), nil)
-	columnD := column.NewColumn("d", types.Integer, false, index_constants.INDEX_KIND_INVALID, types.PageID(-1), nil)
+	columnA := column.NewColumn("a", types.Integer, false, index_constants.IndexKindInvalid, types.PageID(-1), nil)
+	columnB := column.NewColumn("b", types.Integer, false, index_constants.IndexKindInvalid, types.PageID(-1), nil)
+	columnC := column.NewColumn("c", types.Integer, false, index_constants.IndexKindInvalid, types.PageID(-1), nil)
+	columnD := column.NewColumn("d", types.Integer, false, index_constants.IndexKindInvalid, types.PageID(-1), nil)
 
-	schema_ := schema.NewSchema([]*column.Column{columnA, columnB, columnC, columnD})
+	sc := schema.NewSchema([]*column.Column{columnA, columnB, columnC, columnD})
 
 	// inserting 1000 tuples, means that we need at least 7 pages to insert all tuples
 	// 1000 / 145 => 6.896...
@@ -120,27 +120,27 @@ func TestTableHeapFourCol(t *testing.T) {
 		row = append(row, types.NewInteger(int32((i+2)*2)))
 		row = append(row, types.NewInteger(int32((i+3)*2)))
 
-		tuple_ := tuple.NewTupleFromSchema(row, schema_)
-		_, err := th.InsertTuple(tuple_, txn, math.MaxUint32, false)
+		tpl := tuple.NewTupleFromSchema(row, sc)
+		_, err := th.InsertTuple(tpl, txn, math.MaxUint32, false)
 		testingpkg.Ok(t, err)
 	}
 
 	bpm.FlushAllPages()
 
 	firstTuple := th.GetFirstTuple(txn)
-	testingpkg.Equals(t, int32(0), firstTuple.GetValue(schema_, 0).ToInteger())
-	testingpkg.Equals(t, int32(2), firstTuple.GetValue(schema_, 1).ToInteger())
-	testingpkg.Equals(t, int32(4), firstTuple.GetValue(schema_, 2).ToInteger())
-	testingpkg.Equals(t, int32(6), firstTuple.GetValue(schema_, 3).ToInteger())
+	testingpkg.Equals(t, int32(0), firstTuple.GetValue(sc, 0).ToInteger())
+	testingpkg.Equals(t, int32(2), firstTuple.GetValue(sc, 1).ToInteger())
+	testingpkg.Equals(t, int32(4), firstTuple.GetValue(sc, 2).ToInteger())
+	testingpkg.Equals(t, int32(6), firstTuple.GetValue(sc, 3).ToInteger())
 
 	for i := 0; i < 1000; i++ {
 		rid := &page.RID{}
 		rid.Set(types.PageID(i/145), uint32(i%145))
-		tuple_, _ := th.GetTuple(rid, txn)
-		testingpkg.Equals(t, int32(i*2), tuple_.GetValue(schema_, 0).ToInteger())
-		testingpkg.Equals(t, int32((i+1)*2), tuple_.GetValue(schema_, 1).ToInteger())
-		testingpkg.Equals(t, int32((i+2)*2), tuple_.GetValue(schema_, 2).ToInteger())
-		testingpkg.Equals(t, int32((i+3)*2), tuple_.GetValue(schema_, 3).ToInteger())
+		tpl, _ := th.GetTuple(rid, txn)
+		testingpkg.Equals(t, int32(i*2), tpl.GetValue(sc, 0).ToInteger())
+		testingpkg.Equals(t, int32((i+1)*2), tpl.GetValue(sc, 1).ToInteger())
+		testingpkg.Equals(t, int32((i+2)*2), tpl.GetValue(sc, 2).ToInteger())
+		testingpkg.Equals(t, int32((i+3)*2), tpl.GetValue(sc, 3).ToInteger())
 	}
 
 	// 7 pages should have the size of 4096 * 7 => 28672 bytes
@@ -150,16 +150,16 @@ func TestTableHeapFourCol(t *testing.T) {
 	it := th.Iterator(txn)
 	i := int32(0)
 
-	tuple_cnt := 0
+	tupleCnt := 0
 	for tuple := it.Current(); !it.End(); tuple = it.Next() {
-		testingpkg.Equals(t, i*2, tuple.GetValue(schema_, 0).ToInteger())
-		testingpkg.Equals(t, (i+1)*2, tuple.GetValue(schema_, 1).ToInteger())
-		testingpkg.Equals(t, (i+2)*2, tuple.GetValue(schema_, 2).ToInteger())
-		testingpkg.Equals(t, (i+3)*2, tuple.GetValue(schema_, 3).ToInteger())
+		testingpkg.Equals(t, i*2, tuple.GetValue(sc, 0).ToInteger())
+		testingpkg.Equals(t, (i+1)*2, tuple.GetValue(sc, 1).ToInteger())
+		testingpkg.Equals(t, (i+2)*2, tuple.GetValue(sc, 2).ToInteger())
+		testingpkg.Equals(t, (i+3)*2, tuple.GetValue(sc, 3).ToInteger())
 		i++
-		tuple_cnt++
+		tupleCnt++
 	}
-	testingpkg.Assert(t, tuple_cnt == 1000, "quontity of returned tuples differ one of expected.")
+	testingpkg.Assert(t, tupleCnt == 1000, "quontity of returned tuples differ one of expected.")
 
-	txn_mgr.Commit(nil, txn)
+	txnMgr.Commit(nil, txn)
 }

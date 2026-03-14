@@ -20,13 +20,13 @@ import (
 	"github.com/ryogrid/SamehadaDB/lib/types"
 )
 
-// TableCatalogPageId indicates the page where the table catalog can be found
+// TableCatalogPageID indicates the page where the table catalog can be found
 // The first page is reserved for the table catalog
-const TableCatalogPageId = 0
+const TableCatalogPageID = 0
 
-// ColumnsCatalogPageId indicates the page where the columns catalog can be found
+// ColumnsCatalogPageID indicates the page where the columns catalog can be found
 // The second page is reserved for the table catalog
-const ColumnsCatalogPageId = 1
+const ColumnsCatalogPageID = 1
 
 const ColumnsCatalogOID = 0
 
@@ -34,14 +34,14 @@ const ColumnsCatalogOID = 0
 // It handles table creation and table lookup
 type Catalog struct {
 	bpm        *buffer.BufferPoolManager
-	tableIds   map[uint32]*TableMetadata
+	tableIDs   map[uint32]*TableMetadata
 	tableNames map[string]*TableMetadata
 	// incrementation must be atomic
-	nextTableId     uint32
+	nextTableID     uint32
 	tableHeap       *access.TableHeap
-	Log_manager     *recovery.LogManager
-	Lock_manager    *access.LockManager
-	tableIdsMutex   *sync.Mutex
+	LogManager      *recovery.LogManager
+	LockManager     *access.LockManager
+	tableIDsMutex   *sync.Mutex
 	tableNamesMutex *sync.Mutex
 }
 
@@ -54,66 +54,66 @@ func Int32toBool(val int32) bool {
 }
 
 // BootstrapCatalog bootstrap the systems' catalogs on the first database initialization
-func BootstrapCatalog(bpm *buffer.BufferPoolManager, log_manager *recovery.LogManager, lock_manager *access.LockManager, txn *access.Transaction) *Catalog {
-	tableCatalogHeap := access.NewTableHeap(bpm, log_manager, lock_manager, txn)
-	tableCatalog := &Catalog{bpm, make(map[uint32]*TableMetadata), make(map[string]*TableMetadata), 0, tableCatalogHeap, log_manager, lock_manager, new(sync.Mutex), new(sync.Mutex)}
+func BootstrapCatalog(bpm *buffer.BufferPoolManager, logManager *recovery.LogManager, lockManager *access.LockManager, txn *access.Transaction) *Catalog {
+	tableCatalogHeap := access.NewTableHeap(bpm, logManager, lockManager, txn)
+	tableCatalog := &Catalog{bpm, make(map[uint32]*TableMetadata), make(map[string]*TableMetadata), 0, tableCatalogHeap, logManager, lockManager, new(sync.Mutex), new(sync.Mutex)}
 	tableCatalog.CreateTable("columns_catalog", ColumnsCatalogSchema(), txn)
 	return tableCatalog
 }
 
 // RecoveryCatalogFromCatalogPage get all information about tables and columns from disk and put it on memory
-func RecoveryCatalogFromCatalogPage(bpm *buffer.BufferPoolManager, log_manager *recovery.LogManager, lock_manager *access.LockManager, txn *access.Transaction, isGracefulShutdown bool) *Catalog {
-	tableCatalogHeapIt := access.InitTableHeap(bpm, TableCatalogPageId, log_manager, lock_manager).Iterator(txn)
+func RecoveryCatalogFromCatalogPage(bpm *buffer.BufferPoolManager, logManager *recovery.LogManager, lockManager *access.LockManager, txn *access.Transaction, isGracefulShutdown bool) *Catalog {
+	tableCatalogHeapIt := access.InitTableHeap(bpm, TableCatalogPageID, logManager, lockManager).Iterator(txn)
 
-	tableIds := make(map[uint32]*TableMetadata)
+	tableIDs := make(map[uint32]*TableMetadata)
 	tableNames := make(map[string]*TableMetadata)
 
-	for tuple_outer := tableCatalogHeapIt.Current(); !tableCatalogHeapIt.End(); tuple_outer = tableCatalogHeapIt.Next() {
-		oid := tuple_outer.GetValue(TableCatalogSchema(), TableCatalogSchema().GetColIndex("oid")).ToInteger()
-		name := tuple_outer.GetValue(TableCatalogSchema(), TableCatalogSchema().GetColIndex("name")).ToVarchar()
-		firstPage := tuple_outer.GetValue(TableCatalogSchema(), TableCatalogSchema().GetColIndex("first_page")).ToInteger()
+	for tupleOuter := tableCatalogHeapIt.Current(); !tableCatalogHeapIt.End(); tupleOuter = tableCatalogHeapIt.Next() {
+		oid := tupleOuter.GetValue(TableCatalogSchema(), TableCatalogSchema().GetColIndex("oid")).ToInteger()
+		name := tupleOuter.GetValue(TableCatalogSchema(), TableCatalogSchema().GetColIndex("name")).ToVarchar()
+		firstPage := tupleOuter.GetValue(TableCatalogSchema(), TableCatalogSchema().GetColIndex("first_page")).ToInteger()
 
 		columns := []*column.Column{}
-		columnsCatalogHeapIt := access.InitTableHeap(bpm, ColumnsCatalogPageId, log_manager, lock_manager).Iterator(txn)
-		for tuple_inner := columnsCatalogHeapIt.Current(); !columnsCatalogHeapIt.End(); tuple_inner = columnsCatalogHeapIt.Next() {
-			tableOid := tuple_inner.GetValue(ColumnsCatalogSchema(), ColumnsCatalogSchema().GetColIndex("table_oid")).ToInteger()
+		columnsCatalogHeapIt := access.InitTableHeap(bpm, ColumnsCatalogPageID, logManager, lockManager).Iterator(txn)
+		for tupleInner := columnsCatalogHeapIt.Current(); !columnsCatalogHeapIt.End(); tupleInner = columnsCatalogHeapIt.Next() {
+			tableOid := tupleInner.GetValue(ColumnsCatalogSchema(), ColumnsCatalogSchema().GetColIndex("table_oid")).ToInteger()
 			if tableOid != oid {
 				continue
 			}
-			columnType := tuple_inner.GetValue(ColumnsCatalogSchema(), ColumnsCatalogSchema().GetColIndex("type")).ToInteger()
-			columnName := tuple_inner.GetValue(ColumnsCatalogSchema(), ColumnsCatalogSchema().GetColIndex("name")).ToVarchar()
-			fixedLength := tuple_inner.GetValue(ColumnsCatalogSchema(), ColumnsCatalogSchema().GetColIndex("fixed_length")).ToInteger()
-			variableLength := tuple_inner.GetValue(ColumnsCatalogSchema(), ColumnsCatalogSchema().GetColIndex("variable_length")).ToInteger()
-			columnOffset := tuple_inner.GetValue(ColumnsCatalogSchema(), ColumnsCatalogSchema().GetColIndex("offset")).ToInteger()
-			hasIndex := Int32toBool(tuple_inner.GetValue(ColumnsCatalogSchema(), ColumnsCatalogSchema().GetColIndex("has_index")).ToInteger())
-			indexKind := tuple_inner.GetValue(ColumnsCatalogSchema(), ColumnsCatalogSchema().GetColIndex("index_kind")).ToInteger()
-			indexHeaderPageId := tuple_inner.GetValue(ColumnsCatalogSchema(), ColumnsCatalogSchema().GetColIndex("index_header_page_id")).ToInteger()
+			columnType := tupleInner.GetValue(ColumnsCatalogSchema(), ColumnsCatalogSchema().GetColIndex("type")).ToInteger()
+			columnName := tupleInner.GetValue(ColumnsCatalogSchema(), ColumnsCatalogSchema().GetColIndex("name")).ToVarchar()
+			fixedLength := tupleInner.GetValue(ColumnsCatalogSchema(), ColumnsCatalogSchema().GetColIndex("fixed_length")).ToInteger()
+			variableLength := tupleInner.GetValue(ColumnsCatalogSchema(), ColumnsCatalogSchema().GetColIndex("variable_length")).ToInteger()
+			columnOffset := tupleInner.GetValue(ColumnsCatalogSchema(), ColumnsCatalogSchema().GetColIndex("offset")).ToInteger()
+			hasIndex := Int32toBool(tupleInner.GetValue(ColumnsCatalogSchema(), ColumnsCatalogSchema().GetColIndex("has_index")).ToInteger())
+			indexKind := tupleInner.GetValue(ColumnsCatalogSchema(), ColumnsCatalogSchema().GetColIndex("index_kind")).ToInteger()
+			indexHeaderPageID := tupleInner.GetValue(ColumnsCatalogSchema(), ColumnsCatalogSchema().GetColIndex("index_header_page_id")).ToInteger()
 
-			column_ := column.NewColumn(columnName, types.TypeID(columnType), false, index_constants.INDEX_KIND_INVALID, types.PageID(indexHeaderPageId), nil)
-			column_.SetFixedLength(uint32(fixedLength))
-			column_.SetVariableLength(uint32(variableLength))
-			column_.SetOffset(uint32(columnOffset))
-			column_.SetHasIndex(hasIndex)
-			column_.SetIndexKind(index_constants.IndexKind(indexKind))
-			column_.SetIndexHeaderPageId(types.PageID(indexHeaderPageId))
+			col := column.NewColumn(columnName, types.TypeID(columnType), false, index_constants.IndexKindInvalid, types.PageID(indexHeaderPageID), nil)
+			col.SetFixedLength(uint32(fixedLength))
+			col.SetVariableLength(uint32(variableLength))
+			col.SetOffset(uint32(columnOffset))
+			col.SetHasIndex(hasIndex)
+			col.SetIndexKind(index_constants.IndexKind(indexKind))
+			col.SetIndexHeaderPageID(types.PageID(indexHeaderPageID))
 
-			columns = append(columns, column_)
+			columns = append(columns, col)
 		}
 
 		tableMetadata := NewTableMetadata(
 			schema.NewSchema(columns),
 			name,
-			access.InitTableHeap(bpm, types.PageID(firstPage), log_manager, lock_manager),
+			access.InitTableHeap(bpm, types.PageID(firstPage), logManager, lockManager),
 			uint32(oid),
-			log_manager,
+			logManager,
 			isGracefulShutdown,
 		)
 
-		tableIds[uint32(oid)] = tableMetadata
+		tableIDs[uint32(oid)] = tableMetadata
 		tableNames[name] = tableMetadata
 	}
 
-	return &Catalog{bpm, tableIds, tableNames, 1, access.InitTableHeap(bpm, 0, log_manager, lock_manager), log_manager, lock_manager, new(sync.Mutex), new(sync.Mutex)}
+	return &Catalog{bpm, tableIDs, tableNames, 1, access.InitTableHeap(bpm, 0, logManager, lockManager), logManager, lockManager, new(sync.Mutex), new(sync.Mutex)}
 }
 
 func (c *Catalog) GetTableByName(table string) *TableMetadata {
@@ -121,16 +121,16 @@ func (c *Catalog) GetTableByName(table string) *TableMetadata {
 	tableName := strings.ToLower(table)
 	c.tableNamesMutex.Lock()
 	defer c.tableNamesMutex.Unlock()
-	if table_, ok := c.tableNames[tableName]; ok {
-		return table_
+	if tbl, ok := c.tableNames[tableName]; ok {
+		return tbl
 	}
 	return nil
 }
 
 func (c *Catalog) GetTableByOID(oid uint32) *TableMetadata {
-	c.tableIdsMutex.Lock()
-	defer c.tableIdsMutex.Unlock()
-	if table, ok := c.tableIds[oid]; ok {
+	c.tableIDsMutex.Lock()
+	defer c.tableIDsMutex.Unlock()
+	if table, ok := c.tableIDs[oid]; ok {
 		return table
 	}
 	return nil
@@ -138,47 +138,47 @@ func (c *Catalog) GetTableByOID(oid uint32) *TableMetadata {
 
 func (c *Catalog) GetAllTables() []*TableMetadata {
 	ret := make([]*TableMetadata, 0)
-	c.tableIdsMutex.Lock()
-	defer c.tableIdsMutex.Unlock()
-	for key := range c.tableIds {
-		ret = append(ret, c.tableIds[key])
+	c.tableIDsMutex.Lock()
+	defer c.tableIDsMutex.Unlock()
+	for key := range c.tableIDs {
+		ret = append(ret, c.tableIDs[key])
 	}
 	return ret
 }
 
-func attachTableNameToColumnsName(schema_ *schema.Schema, tblName string) *schema.Schema {
-	for ii := 0; ii < int(schema_.GetColumnCount()); ii++ {
-		col := schema_.GetColumn(uint32(ii))
+func attachTableNameToColumnsName(sc *schema.Schema, tblName string) *schema.Schema {
+	for ii := 0; ii < int(sc.GetColumnCount()); ii++ {
+		col := sc.GetColumn(uint32(ii))
 		curName := col.GetColumnName()
 		if strings.Contains(curName, ".") {
 			continue
 		}
 		col.SetColumnName(tblName + "." + curName)
 	}
-	return schema_
+	return sc
 }
 
 // CreateTable creates a new table and return its metadata
-// ATTENTION: this function modifies column name filed of Column objects on *schema_* argument if needed
-func (c *Catalog) CreateTable(name string, schema_ *schema.Schema, txn *access.Transaction) *TableMetadata {
+// ATTENTION: this function modifies column name filed of Column objects on *sc* argument if needed
+func (c *Catalog) CreateTable(name string, sc *schema.Schema, txn *access.Transaction) *TableMetadata {
 	// note: alphabets on table name is stored in lowercase
-	name_ := strings.ToLower(name)
+	lowerName := strings.ToLower(name)
 
-	oid := c.nextTableId
-	atomic.AddUint32(&c.nextTableId, 1)
+	oid := c.nextTableID
+	atomic.AddUint32(&c.nextTableID, 1)
 
-	tableHeap := access.NewTableHeap(c.bpm, c.Log_manager, c.Lock_manager, txn)
+	tableHeap := access.NewTableHeap(c.bpm, c.LogManager, c.LockManager, txn)
 
 	// attach table name as prefix to all columns name
-	attachTableNameToColumnsName(schema_, name_)
+	attachTableNameToColumnsName(sc, lowerName)
 
-	tableMetadata := NewTableMetadata(schema_, name_, tableHeap, oid, c.Log_manager, true)
+	tableMetadata := NewTableMetadata(sc, lowerName, tableHeap, oid, c.LogManager, true)
 
-	c.tableIdsMutex.Lock()
-	c.tableIds[oid] = tableMetadata
-	c.tableIdsMutex.Unlock()
+	c.tableIDsMutex.Lock()
+	c.tableIDs[oid] = tableMetadata
+	c.tableIDsMutex.Unlock()
 	c.tableNamesMutex.Lock()
-	c.tableNames[name_] = tableMetadata
+	c.tableNames[lowerName] = tableMetadata
 	c.tableNamesMutex.Unlock()
 	c.insertTable(tableMetadata, txn)
 
@@ -198,31 +198,31 @@ func (c *Catalog) insertTable(tableMetadata *TableMetadata, txn *access.Transact
 
 	row = append(row, types.NewInteger(int32(tableMetadata.oid)))
 	row = append(row, types.NewVarchar(tableMetadata.name))
-	row = append(row, types.NewInteger(int32(tableMetadata.table.GetFirstPageId())))
-	first_tuple := tuple.NewTupleFromSchema(row, TableCatalogSchema())
+	row = append(row, types.NewInteger(int32(tableMetadata.table.GetFirstPageID())))
+	firstTuple := tuple.NewTupleFromSchema(row, TableCatalogSchema())
 
-	// insert entry to TableCatalogPage (PageId = 0)
-	c.tableHeap.InsertTuple(first_tuple, txn, tableMetadata.OID(), false)
-	for _, column_ := range tableMetadata.schema.GetColumns() {
+	// insert entry to TableCatalogPage (PageID = 0)
+	c.tableHeap.InsertTuple(firstTuple, txn, tableMetadata.OID(), false)
+	for _, col := range tableMetadata.schema.GetColumns() {
 		row := make([]types.Value, 0)
 		row = append(row, types.NewInteger(int32(tableMetadata.oid)))
-		row = append(row, types.NewInteger(int32(column_.GetType())))
-		row = append(row, types.NewVarchar(column_.GetColumnName()))
-		row = append(row, types.NewInteger(int32(column_.FixedLength())))
-		row = append(row, types.NewInteger(int32(column_.VariableLength())))
-		row = append(row, types.NewInteger(int32(column_.GetOffset())))
-		row = append(row, types.NewInteger(boolToInt32(column_.HasIndex())))
-		row = append(row, types.NewInteger(int32(column_.IndexKind())))
-		row = append(row, types.NewInteger(int32(column_.IndexHeaderPageId())))
-		new_tuple := tuple.NewTupleFromSchema(row, ColumnsCatalogSchema())
+		row = append(row, types.NewInteger(int32(col.GetType())))
+		row = append(row, types.NewVarchar(col.GetColumnName()))
+		row = append(row, types.NewInteger(int32(col.FixedLength())))
+		row = append(row, types.NewInteger(int32(col.VariableLength())))
+		row = append(row, types.NewInteger(int32(col.GetOffset())))
+		row = append(row, types.NewInteger(boolToInt32(col.HasIndex())))
+		row = append(row, types.NewInteger(int32(col.IndexKind())))
+		row = append(row, types.NewInteger(int32(col.IndexHeaderPageID())))
+		newTuple := tuple.NewTupleFromSchema(row, ColumnsCatalogSchema())
 
-		// insert entry to ColumnsCatalogPage (PageId = 1)
-		c.tableIds[ColumnsCatalogOID].Table().InsertTuple(new_tuple, txn, ColumnsCatalogOID, false)
+		// insert entry to ColumnsCatalogPage (PageID = 1)
+		c.tableIDs[ColumnsCatalogOID].Table().InsertTuple(newTuple, txn, ColumnsCatalogOID, false)
 	}
 	// flush a page having table definitions
-	c.bpm.FlushPage(TableCatalogPageId)
+	c.bpm.FlushPage(TableCatalogPageID)
 	// flush a page having columns definitions on table
-	c.bpm.FlushPage(ColumnsCatalogPageId)
+	c.bpm.FlushPage(ColumnsCatalogPageID)
 }
 
 // for Redo/Undo
@@ -233,14 +233,14 @@ func (c *Catalog) GetRollbackNeededIndexes(indexMap map[uint32][]index.Index, oi
 	if indexes, found := indexMap[oid]; found {
 		return indexes
 	} else {
-		indexes_ := c.GetTableByOID(oid).Indexes()
-		indexMap[oid] = indexes_
-		return indexes_
+		idxs := c.GetTableByOID(oid).Indexes()
+		indexMap[oid] = idxs
+		return idxs
 	}
 }
 
-func (c *Catalog) GetColValFromTupleForRollback(tuple_ *tuple.Tuple, colIdx uint32, oid uint32) *types.Value {
-	schema_ := c.GetTableByOID(oid).Schema()
-	val := tuple_.GetValue(schema_, colIdx)
+func (c *Catalog) GetColValFromTupleForRollback(tpl *tuple.Tuple, colIdx uint32, oid uint32) *types.Value {
+	sc := c.GetTableByOID(oid).Schema()
+	val := tpl.GetValue(sc, colIdx)
 	return &val
 }

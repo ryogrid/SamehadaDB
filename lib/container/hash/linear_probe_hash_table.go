@@ -22,50 +22,50 @@ import (
 
 // Limitation: current implementation contain BlockArraySize(252) * 1020 = 257,040 record info at most
 type LinearProbeHashTable struct {
-	headerPageId types.PageID
+	headerPageID types.PageID
 	bpm          *buffer.BufferPoolManager
-	table_latch  common.ReaderWriterLatch
+	tableLatch  common.ReaderWriterLatch
 }
 
 // numBuckets should be less than 1020
-func NewLinearProbeHashTable(bpm *buffer.BufferPoolManager, numBuckets int, headerPageId types.PageID) *LinearProbeHashTable {
+func NewLinearProbeHashTable(bpm *buffer.BufferPoolManager, numBuckets int, headerPageID types.PageID) *LinearProbeHashTable {
 	if numBuckets > 1020 {
 		panic("numBuckets should be less than 1020")
 	}
 
-	if headerPageId == types.InvalidPageID {
+	if headerPageID == types.InvalidPageID {
 		header := bpm.NewPage()
 		headerData := header.Data()
 		headerPage := (*page.HashTableHeaderPage)(unsafe.Pointer(headerData))
 
-		headerPage.SetPageId(header.GetPageId())
+		headerPage.SetPageID(header.GetPageID())
 		headerPage.SetSize(numBuckets * page.BlockArraySize)
 
 		for i := 0; i < numBuckets; i++ {
 			np := bpm.NewPage()
-			headerPage.AddBlockPageId(np.GetPageId())
-			bpm.UnpinPage(np.GetPageId(), true)
+			headerPage.AddBlockPageID(np.GetPageID())
+			bpm.UnpinPage(np.GetPageID(), true)
 		}
-		bpm.UnpinPage(header.GetPageId(), true)
+		bpm.UnpinPage(header.GetPageID(), true)
 
 		// on current not expandable HashTable impl
 		// flush of header page is needed only creating time
 		// because, content of header page is changed only creatting time
-		bpm.FlushPage(header.GetPageId())
+		bpm.FlushPage(header.GetPageID())
 
-		return &LinearProbeHashTable{header.GetPageId(), bpm, common.NewRWLatch()}
+		return &LinearProbeHashTable{header.GetPageID(), bpm, common.NewRWLatch()}
 	} else {
-		header := bpm.FetchPage(headerPageId)
-		bpm.UnpinPage(header.GetPageId(), true)
+		header := bpm.FetchPage(headerPageID)
+		bpm.UnpinPage(header.GetPageID(), true)
 
-		return &LinearProbeHashTable{header.GetPageId(), bpm, common.NewRWLatch()}
+		return &LinearProbeHashTable{header.GetPageID(), bpm, common.NewRWLatch()}
 	}
 }
 
 func (ht *LinearProbeHashTable) GetValue(key []byte) []uint64 {
-	ht.table_latch.RLock()
-	defer ht.table_latch.RUnlock()
-	hPageData := ht.bpm.FetchPage(ht.headerPageId).Data()
+	ht.tableLatch.RLock()
+	defer ht.tableLatch.RUnlock()
+	hPageData := ht.bpm.FetchPage(ht.headerPageID).Data()
 	headerPage := (*page.HashTableHeaderPage)(unsafe.Pointer(hPageData))
 
 	hash := ht.hash(key)
@@ -90,16 +90,16 @@ func (ht *LinearProbeHashTable) GetValue(key []byte) []uint64 {
 		}
 	}
 
-	ht.bpm.UnpinPage(iterator.blockId, true)
-	ht.bpm.UnpinPage(ht.headerPageId, false)
+	ht.bpm.UnpinPage(iterator.blockID, true)
+	ht.bpm.UnpinPage(ht.headerPageID, false)
 
 	return result
 }
 
 func (ht *LinearProbeHashTable) Insert(key []byte, value uint64) (err error) {
-	ht.table_latch.WLock()
-	defer ht.table_latch.WUnlock()
-	hPageData := ht.bpm.FetchPage(ht.headerPageId).Data()
+	ht.tableLatch.WLock()
+	defer ht.tableLatch.WUnlock()
+	hPageData := ht.bpm.FetchPage(ht.headerPageID).Data()
 	headerPage := (*page.HashTableHeaderPage)(unsafe.Pointer(hPageData))
 
 	hash := ht.hash(key)
@@ -137,16 +137,16 @@ func (ht *LinearProbeHashTable) Insert(key []byte, value uint64) (err error) {
 		}
 	}
 
-	ht.bpm.UnpinPage(iterator.blockId, true)
-	ht.bpm.UnpinPage(ht.headerPageId, false)
+	ht.bpm.UnpinPage(iterator.blockID, true)
+	ht.bpm.UnpinPage(ht.headerPageID, false)
 
 	return
 }
 
 func (ht *LinearProbeHashTable) Remove(key []byte, value uint64) {
-	ht.table_latch.WLock()
-	defer ht.table_latch.WUnlock()
-	hPageData := ht.bpm.FetchPage(ht.headerPageId).Data()
+	ht.tableLatch.WLock()
+	defer ht.tableLatch.WUnlock()
+	hPageData := ht.bpm.FetchPage(ht.headerPageID).Data()
 	headerPage := (*page.HashTableHeaderPage)(unsafe.Pointer(hPageData))
 
 	hash := ht.hash(key)
@@ -170,8 +170,8 @@ func (ht *LinearProbeHashTable) Remove(key []byte, value uint64) {
 		}
 	}
 
-	ht.bpm.UnpinPage(iterator.blockId, true)
-	ht.bpm.UnpinPage(ht.headerPageId, false)
+	ht.bpm.UnpinPage(iterator.blockID, true)
+	ht.bpm.UnpinPage(ht.headerPageID, false)
 }
 
 func (ht *LinearProbeHashTable) hash(key []byte) uint64 {
@@ -184,6 +184,6 @@ func (ht *LinearProbeHashTable) hash(key []byte) uint64 {
 	return binary.LittleEndian.Uint64(hash)
 }
 
-func (ht *LinearProbeHashTable) GetHeaderPageId() types.PageID {
-	return ht.headerPageId
+func (ht *LinearProbeHashTable) GetHeaderPageID() types.PageID {
+	return ht.headerPageID
 }

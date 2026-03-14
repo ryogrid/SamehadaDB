@@ -9,8 +9,8 @@ import (
 )
 
 type AggFuncVisitor struct {
-	ColumnName_ *string
-	TableName_  *string
+	ColumnName *string
+	TableName  *string
 }
 
 func (v *AggFuncVisitor) Enter(in ast.Node) (ast.Node, bool) {
@@ -19,19 +19,19 @@ func (v *AggFuncVisitor) Enter(in ast.Node) (ast.Node, bool) {
 		tabname := node.String()
 		if strings.Contains(tabname, ".") {
 			tabname = strings.Split(tabname, ".")[0]
-			v.TableName_ = &tabname
+			v.TableName = &tabname
 		} else {
-			v.TableName_ = nil
+			v.TableName = nil
 		}
 		colname := node.Name.String()
-		v.ColumnName_ = &colname
+		v.ColumnName = &colname
 		return in, true
 	case *driver.ValueExpr:
 		val := ValueExprToValue(node)
 		if val.ValueType() == types.Integer {
 			// val is 1 (Integer) means wildcard maybe...
 			colname := "*"
-			v.ColumnName_ = &colname
+			v.ColumnName = &colname
 			return in, true
 		}
 	default:

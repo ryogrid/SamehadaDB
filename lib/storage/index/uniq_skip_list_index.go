@@ -17,23 +17,23 @@ type UniqSkipListIndex struct {
 	container skip_list.SkipList
 	metadata  *IndexMetadata
 	// idx of target column on table
-	col_idx uint32
+	colIdx uint32
 	// UpdateEntry only get Write lock
 	updateMtx sync.RWMutex
 }
 
-func NewUniqSkipListIndex(metadata *IndexMetadata, buffer_pool_manager *buffer.BufferPoolManager, col_idx uint32) *UniqSkipListIndex {
+func NewUniqSkipListIndex(metadata *IndexMetadata, bufferPoolManager *buffer.BufferPoolManager, colIdx uint32) *UniqSkipListIndex {
 	ret := new(UniqSkipListIndex)
 	ret.metadata = metadata
-	ret.container = *skip_list.NewSkipList(buffer_pool_manager, ret.metadata.GetTupleSchema().GetColumn(col_idx).GetType(), nil)
-	ret.col_idx = col_idx
+	ret.container = *skip_list.NewSkipList(bufferPoolManager, ret.metadata.GetTupleSchema().GetColumn(colIdx).GetType(), nil)
+	ret.colIdx = colIdx
 	ret.updateMtx = sync.RWMutex{}
 	return ret
 }
 
 func (slidx *UniqSkipListIndex) insertEntryInner(key *tuple.Tuple, rid page.RID, txn interface{}, isNoLock bool) {
-	tupleSchema_ := slidx.GetTupleSchema()
-	keyVal := key.GetValue(tupleSchema_, slidx.col_idx)
+	tupleSchema := slidx.GetTupleSchema()
+	keyVal := key.GetValue(tupleSchema, slidx.colIdx)
 
 	if isNoLock == false {
 		slidx.updateMtx.RLock()
@@ -47,8 +47,8 @@ func (slidx *UniqSkipListIndex) InsertEntry(key *tuple.Tuple, rid page.RID, tran
 }
 
 func (slidx *UniqSkipListIndex) deleteEntryInner(key *tuple.Tuple, rid page.RID, txn interface{}, isNoLock bool) {
-	tupleSchema_ := slidx.GetTupleSchema()
-	keyVal := key.GetValue(tupleSchema_, slidx.col_idx)
+	tupleSchema := slidx.GetTupleSchema()
+	keyVal := key.GetValue(tupleSchema, slidx.colIdx)
 
 	if isNoLock == false {
 		slidx.updateMtx.RLock()
@@ -65,18 +65,18 @@ func (slidx *UniqSkipListIndex) DeleteEntry(key *tuple.Tuple, rid page.RID, tran
 }
 
 func (slidx *UniqSkipListIndex) ScanKey(key *tuple.Tuple, transaction interface{}) []page.RID {
-	tupleSchema_ := slidx.GetTupleSchema()
-	keyVal := key.GetValue(tupleSchema_, slidx.col_idx)
+	tupleSchema := slidx.GetTupleSchema()
+	keyVal := key.GetValue(tupleSchema, slidx.colIdx)
 
-	ret_arr := make([]page.RID, 0)
+	retArr := make([]page.RID, 0)
 	slidx.updateMtx.RLock()
-	packed_value := slidx.container.GetValue(&keyVal)
+	packedValue := slidx.container.GetValue(&keyVal)
 	slidx.updateMtx.RUnlock()
-	if packed_value != math.MaxUint64 {
+	if packedValue != math.MaxUint64 {
 		// when packed_vale == math.MaxUint32 => true, keyVal is not found on index
-		ret_arr = append(ret_arr, samehada_util.UnpackUint64toRID(packed_value))
+		retArr = append(retArr, samehada_util.UnpackUint64toRID(packedValue))
 	}
-	return ret_arr
+	return retArr
 }
 
 func (slidx *UniqSkipListIndex) UpdateEntry(oldKey *tuple.Tuple, oldRID page.RID, newKey *tuple.Tuple, newRID page.RID, transaction interface{}) {
@@ -88,22 +88,22 @@ func (slidx *UniqSkipListIndex) UpdateEntry(oldKey *tuple.Tuple, oldRID page.RID
 
 // get iterator which iterates entry in key sorted order
 // and iterates specified key range.
-// when start_key arg is nil , start point is head of entry list. when end_key, end point is tail of the list
-func (slidx *UniqSkipListIndex) GetRangeScanIterator(start_key *tuple.Tuple, end_key *tuple.Tuple, transaction interface{}) IndexRangeScanIterator {
-	tupleSchema_ := slidx.GetTupleSchema()
-	var start_val *types.Value = nil
-	if start_key != nil {
-		start_val = samehada_util.GetPonterOfValue(start_key.GetValue(tupleSchema_, slidx.col_idx))
+// when startKey arg is nil , start point is head of entry list. when endKey, end point is tail of the list
+func (slidx *UniqSkipListIndex) GetRangeScanIterator(startKey *tuple.Tuple, endKey *tuple.Tuple, transaction interface{}) IndexRangeScanIterator {
+	tupleSchema := slidx.GetTupleSchema()
+	var startVal *types.Value = nil
+	if startKey != nil {
+		startVal = samehada_util.GetPonterOfValue(startKey.GetValue(tupleSchema, slidx.colIdx))
 	}
 
-	var end_val *types.Value = nil
-	if end_key != nil {
-		end_val = samehada_util.GetPonterOfValue(end_key.GetValue(tupleSchema_, slidx.col_idx))
+	var endVal *types.Value = nil
+	if endKey != nil {
+		endVal = samehada_util.GetPonterOfValue(endKey.GetValue(tupleSchema, slidx.colIdx))
 	}
 
 	slidx.updateMtx.RLock()
 	defer slidx.updateMtx.RUnlock()
-	return slidx.container.Iterator(start_val, end_val)
+	return slidx.container.Iterator(startVal, endVal)
 }
 
 // Return the metadata object associated with the index
@@ -121,6 +121,6 @@ func (slidx *UniqSkipListIndex) GetTupleSchema() *schema.Schema {
 
 func (slidx *UniqSkipListIndex) GetKeyAttrs() []uint32 { return slidx.metadata.GetKeyAttrs() }
 
-func (slidx *UniqSkipListIndex) GetHeaderPageId() types.PageID {
-	return slidx.container.GetHeaderPageId()
+func (slidx *UniqSkipListIndex) GetHeaderPageID() types.PageID {
+	return slidx.container.GetHeaderPageID()
 }

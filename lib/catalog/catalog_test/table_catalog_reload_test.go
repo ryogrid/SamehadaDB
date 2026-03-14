@@ -26,28 +26,28 @@ func TestTableCatalogReload(t *testing.T) {
 	if !common.EnableOnMemStorage || common.TempSuppressOnMemStorage {
 		os.Remove(t.Name() + ".db")
 	}
-	samehada_instance := samehada.NewSamehadaInstance(t.Name(), common.BufferPoolMaxFrameNumForTest)
-	bpm := buffer.NewBufferPoolManager(uint32(32), samehada_instance.GetDiskManager(), samehada_instance.GetLogManager())
+	samehadaInstance := samehada.NewSamehadaInstance(t.Name(), common.BufferPoolMaxFrameNumForTest)
+	bpm := buffer.NewBufferPoolManager(uint32(32), samehadaInstance.GetDiskManager(), samehadaInstance.GetLogManager())
 
-	txn := samehada_instance.GetTransactionManager().Begin(nil)
-	catalog_old := catalog.BootstrapCatalog(bpm, samehada_instance.GetLogManager(), samehada_instance.GetLockManager(), txn)
+	txn := samehadaInstance.GetTransactionManager().Begin(nil)
+	catalogOld := catalog.BootstrapCatalog(bpm, samehadaInstance.GetLogManager(), samehadaInstance.GetLockManager(), txn)
 
-	columnA := column.NewColumn("a", types.Integer, false, index_constants.INDEX_KIND_INVALID, types.PageID(-1), nil)
-	columnB := column.NewColumn("b", types.Integer, true, index_constants.INDEX_KIND_HASH, types.PageID(-1), nil)
-	schema_ := schema.NewSchema([]*column.Column{columnA, columnB})
+	columnA := column.NewColumn("a", types.Integer, false, index_constants.IndexKindInvalid, types.PageID(-1), nil)
+	columnB := column.NewColumn("b", types.Integer, true, index_constants.IndexKindHash, types.PageID(-1), nil)
+	sc := schema.NewSchema([]*column.Column{columnA, columnB})
 
-	catalog_old.CreateTable("test_1", schema_, txn)
+	catalogOld.CreateTable("test_1", sc, txn)
 	bpm.FlushAllPages()
 
-	samehada_instance.CloseFilesForTesting()
+	samehadaInstance.CloseFilesForTesting()
 
 	fmt.Println("Shutdown system...")
 
-	samehada_instance_new := samehada.NewSamehadaInstance(t.Name(), common.BufferPoolMaxFrameNumForTest)
-	txn_new := samehada_instance_new.GetTransactionManager().Begin(nil)
-	catalog_recov := catalog.RecoveryCatalogFromCatalogPage(samehada_instance_new.GetBufferPoolManager(), samehada_instance_new.GetLogManager(), samehada_instance_new.GetLockManager(), txn_new, true)
+	samehadaInstanceNew := samehada.NewSamehadaInstance(t.Name(), common.BufferPoolMaxFrameNumForTest)
+	txnNew := samehadaInstanceNew.GetTransactionManager().Begin(nil)
+	catalogRecov := catalog.RecoveryCatalogFromCatalogPage(samehadaInstanceNew.GetBufferPoolManager(), samehadaInstanceNew.GetLogManager(), samehadaInstanceNew.GetLockManager(), txnNew, true)
 
-	columnToCheck := catalog_recov.GetTableByOID(1).Schema().GetColumn(1)
+	columnToCheck := catalogRecov.GetTableByOID(1).Schema().GetColumn(1)
 
 	testingpkg.Assert(t, columnToCheck.GetColumnName() == "test_1.b", "")
 	testingpkg.Assert(t, columnToCheck.GetType() == 4, "")

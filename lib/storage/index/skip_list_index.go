@@ -17,28 +17,28 @@ type SkipListIndex struct {
 	container skip_list.SkipList
 	metadata  *IndexMetadata
 	// idx of target column on table
-	col_idx     uint32
-	log_manager *recovery.LogManager
+	colIdx     uint32
+	logManager *recovery.LogManager
 	// UpdateEntry only get Write lock
 	updateMtx sync.RWMutex
 }
 
-func NewSkipListIndex(metadata *IndexMetadata, buffer_pool_manager *buffer.BufferPoolManager, col_idx uint32, log_manager *recovery.LogManager) *SkipListIndex {
+func NewSkipListIndex(metadata *IndexMetadata, bufferPoolManager *buffer.BufferPoolManager, colIdx uint32, logManager *recovery.LogManager) *SkipListIndex {
 	ret := new(SkipListIndex)
 	ret.metadata = metadata
 
 	// SkipListIndex uses special technique to support key duplication with SkipList supporting unique key only
 	// for the thechnique, key type is fixed to Varchar (comparison is done on dict order as byte array)
-	ret.container = *skip_list.NewSkipList(buffer_pool_manager, types.Varchar, log_manager)
-	ret.col_idx = col_idx
+	ret.container = *skip_list.NewSkipList(bufferPoolManager, types.Varchar, logManager)
+	ret.colIdx = colIdx
 	ret.updateMtx = sync.RWMutex{}
-	ret.log_manager = log_manager
+	ret.logManager = logManager
 	return ret
 }
 
 func (slidx *SkipListIndex) insertEntryInner(key *tuple.Tuple, rid page.RID, txn interface{}, isNoLock bool) {
-	tupleSchema_ := slidx.GetTupleSchema()
-	orgKeyVal := key.GetValue(tupleSchema_, slidx.col_idx)
+	tupleSchema := slidx.GetTupleSchema()
+	orgKeyVal := key.GetValue(tupleSchema, slidx.colIdx)
 
 	convedKeyVal := samehada_util.EncodeValueAndRIDToDicOrderComparableVarchar(&orgKeyVal, &rid)
 
@@ -54,8 +54,8 @@ func (slidx *SkipListIndex) InsertEntry(key *tuple.Tuple, rid page.RID, txn inte
 }
 
 func (slidx *SkipListIndex) deleteEntryInner(key *tuple.Tuple, rid page.RID, txn interface{}, isNoLock bool) {
-	tupleSchema_ := slidx.GetTupleSchema()
-	orgKeyVal := key.GetValue(tupleSchema_, slidx.col_idx)
+	tupleSchema := slidx.GetTupleSchema()
+	orgKeyVal := key.GetValue(tupleSchema, slidx.colIdx)
 
 	convedKeyVal := samehada_util.EncodeValueAndRIDToDicOrderComparableVarchar(&orgKeyVal, &rid)
 
@@ -79,8 +79,8 @@ func (slidx *SkipListIndex) DeleteEntry(key *tuple.Tuple, rid page.RID, txn inte
 }
 
 func (slidx *SkipListIndex) ScanKey(key *tuple.Tuple, txn interface{}) []page.RID {
-	tupleSchema_ := slidx.GetTupleSchema()
-	orgKeyVal := key.GetValue(tupleSchema_, slidx.col_idx)
+	tupleSchema := slidx.GetTupleSchema()
+	orgKeyVal := key.GetValue(tupleSchema, slidx.colIdx)
 	smallestKeyVal := samehada_util.EncodeValueAndRIDToDicOrderComparableVarchar(&orgKeyVal, &page.RID{0, 0})
 	biggestKeyVal := samehada_util.EncodeValueAndRIDToDicOrderComparableVarchar(&orgKeyVal, &page.RID{math.MaxInt32, math.MaxUint32})
 
@@ -106,19 +106,19 @@ func (slidx *SkipListIndex) UpdateEntry(oldKey *tuple.Tuple, oldRID page.RID, ne
 
 // get iterator which iterates entry in key sorted order
 // and iterates specified key range.
-// when start_key arg is nil , start point is head of entry list. when end_key, end point is tail of the list
+// when startKey arg is nil , start point is head of entry list. when endKey, end point is tail of the list
 // Attention: returned itr's containing keys are string type Value which is constructed with byte arr of concatenated original key and value
-func (slidx *SkipListIndex) GetRangeScanIterator(start_key *tuple.Tuple, end_key *tuple.Tuple, transaction interface{}) IndexRangeScanIterator {
-	tupleSchema_ := slidx.GetTupleSchema()
+func (slidx *SkipListIndex) GetRangeScanIterator(startKey *tuple.Tuple, endKey *tuple.Tuple, transaction interface{}) IndexRangeScanIterator {
+	tupleSchema := slidx.GetTupleSchema()
 	var smallestKeyVal *types.Value = nil
-	if start_key != nil {
-		orgStartKeyVal := start_key.GetValue(tupleSchema_, slidx.col_idx)
+	if startKey != nil {
+		orgStartKeyVal := startKey.GetValue(tupleSchema, slidx.colIdx)
 		smallestKeyVal = samehada_util.EncodeValueAndRIDToDicOrderComparableVarchar(&orgStartKeyVal, &page.RID{0, 0})
 	}
 
 	var biggestKeyVal *types.Value = nil
-	if end_key != nil {
-		orgEndKeyVal := end_key.GetValue(tupleSchema_, slidx.col_idx)
+	if endKey != nil {
+		orgEndKeyVal := endKey.GetValue(tupleSchema, slidx.colIdx)
 		biggestKeyVal = samehada_util.EncodeValueAndRIDToDicOrderComparableVarchar(&orgEndKeyVal, &page.RID{math.MaxInt32, math.MaxUint32})
 	}
 
@@ -142,6 +142,6 @@ func (slidx *SkipListIndex) GetTupleSchema() *schema.Schema {
 
 func (slidx *SkipListIndex) GetKeyAttrs() []uint32 { return slidx.metadata.GetKeyAttrs() }
 
-func (slidx *SkipListIndex) GetHeaderPageId() types.PageID {
-	return slidx.container.GetHeaderPageId()
+func (slidx *SkipListIndex) GetHeaderPageID() types.PageID {
+	return slidx.container.GetHeaderPageID()
 }

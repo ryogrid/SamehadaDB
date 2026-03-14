@@ -40,9 +40,9 @@ func (e *UpdateExecutor) Next() (*tuple.Tuple, Done, error) {
 	// t is tuple before update
 	for t, done, err := e.child.Next(); !done; t, done, err = e.child.Next() {
 		if t == nil {
-			err_ := errors.New("e.it.Next returned nil")
+			wrapErr := errors.New("e.it.Next returned nil")
 			e.txn.SetState(access.ABORTED)
-			return nil, true, err_
+			return nil, true, wrapErr
 		}
 		if err != nil {
 			e.txn.SetState(access.ABORTED)
@@ -54,27 +54,27 @@ func (e *UpdateExecutor) Next() (*tuple.Tuple, Done, error) {
 
 		rid := t.GetRID()
 		values := e.plan.GetRawValues()
-		new_tuple := tuple.NewTupleFromSchema(values, e.child.GetTableMetaData().Schema())
+		newTuple := tuple.NewTupleFromSchema(values, e.child.GetTableMetaData().Schema())
 
-		var is_updated = false
-		var new_rid *page.RID = nil
+		var isUpdated = false
+		var newRID *page.RID = nil
 		var updateErr error = nil
 		var updateTuple *tuple.Tuple
 		if e.plan.GetUpdateColIdxs() == nil {
-			is_updated, new_rid, updateErr, updateTuple, _ = e.child.GetTableMetaData().Table().UpdateTuple(new_tuple, nil, nil, e.child.GetTableMetaData().OID(), *rid, e.txn, false)
+			isUpdated, newRID, updateErr, updateTuple, _ = e.child.GetTableMetaData().Table().UpdateTuple(newTuple, nil, nil, e.child.GetTableMetaData().OID(), *rid, e.txn, false)
 		} else {
-			is_updated, new_rid, updateErr, updateTuple, _ = e.child.GetTableMetaData().Table().UpdateTuple(new_tuple, e.plan.GetUpdateColIdxs(), e.child.GetTableMetaData().Schema(), e.child.GetTableMetaData().OID(), *rid, e.txn, false)
+			isUpdated, newRID, updateErr, updateTuple, _ = e.child.GetTableMetaData().Table().UpdateTuple(newTuple, e.plan.GetUpdateColIdxs(), e.child.GetTableMetaData().Schema(), e.child.GetTableMetaData().OID(), *rid, e.txn, false)
 		}
 
-		if new_rid != nil {
-			//fmt.Printf("UpdateTuple at UpdateExecuter::Next moved record position! oldRID:%v newRID:%v\n", *rid, *new_rid)
+		if newRID != nil {
+			//fmt.Printf("UpdateTuple at UpdateExecuter::Next moved record position! oldRID:%v newRID:%v\n", *rid, *newRID)
 			common.NewRIDAtNormal = true
 		}
 
-		if !is_updated || updateErr != nil {
-			err_ := errors.New("tuple update failed. PageId:SlotNum = " + string(rid.GetPageId()) + ":" + fmt.Sprint(rid.GetSlotNum()))
+		if !isUpdated || updateErr != nil {
+			wrapErr := errors.New("tuple update failed. PageID:SlotNum = " + string(rid.GetPageID()) + ":" + fmt.Sprint(rid.GetSlotNum()))
 			e.txn.SetState(access.ABORTED)
-			return nil, false, err_
+			return nil, false, wrapErr
 		}
 
 		colNum := e.child.GetTableMetaData().GetColumnNum()
@@ -84,16 +84,16 @@ func (e *UpdateExecutor) Next() (*tuple.Tuple, Done, error) {
 			if ret == nil {
 				continue
 			} else {
-				index_ := ret
+				idx := ret
 				if updateIdxs == nil || samehada_util.IsContainList[int](updateIdxs, ii) {
-					if new_rid != nil {
-						index_.UpdateEntry(t, *rid, updateTuple, *new_rid, e.txn)
+					if newRID != nil {
+						idx.UpdateEntry(t, *rid, updateTuple, *newRID, e.txn)
 					} else {
-						index_.UpdateEntry(t, *rid, updateTuple, *rid, e.txn)
+						idx.UpdateEntry(t, *rid, updateTuple, *rid, e.txn)
 					}
 				} else {
-					if new_rid != nil {
-						index_.UpdateEntry(t, *rid, updateTuple, *new_rid, e.txn)
+					if newRID != nil {
+						idx.UpdateEntry(t, *rid, updateTuple, *newRID, e.txn)
 					} else {
 						// do nothing
 					}
@@ -101,7 +101,7 @@ func (e *UpdateExecutor) Next() (*tuple.Tuple, Done, error) {
 			}
 		}
 
-		return new_tuple, false, updateErr
+		return newTuple, false, updateErr
 	}
 
 	return nil, true, nil

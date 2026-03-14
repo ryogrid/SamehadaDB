@@ -38,7 +38,7 @@ const (
 	INSERT WType = iota
 	DELETE
 	UPDATE
-	RESERVE_SPACE
+	ReserveSpace
 )
 
 /**
@@ -75,28 +75,28 @@ type Transaction struct {
 	/** The current transaction state. */
 	state TransactionState
 
-	/** The GetPageId of this access. */
-	txn_id types.TxnID
+	/** The GetPageID of this access. */
+	txnID types.TxnID
 
 	// The undo set of the access.
-	write_set []*WriteRecord
+	writeSet []*WriteRecord
 
 	/** The LSN of the last record written by the access. */
-	prev_lsn types.LSN
+	prevLSN types.LSN
 
 	// the set of shared-locked tuples held by this access.
-	shared_lock_set []page.RID
+	sharedLockSet []page.RID
 	// the set of exclusive-locked tuples held by this access.
-	exclusive_lock_set []page.RID
+	exclusiveLockSet []page.RID
 	dbgInfo            string
 	abortable          bool // for debugging and testing
 	isRecoveryPhase    bool
 }
 
-func NewTransaction(txn_id types.TxnID) *Transaction {
+func NewTransaction(txnID types.TxnID) *Transaction {
 	return &Transaction{
 		GROWING,
-		txn_id,
+		txnID,
 		make([]*WriteRecord, 0),
 		common.InvalidLSN,
 		make([]page.RID, 0),
@@ -108,31 +108,31 @@ func NewTransaction(txn_id types.TxnID) *Transaction {
 }
 
 /** @return the id of this transaction */
-func (txn *Transaction) GetTransactionId() types.TxnID { return txn.txn_id }
+func (txn *Transaction) GetTransactionID() types.TxnID { return txn.txnID }
 
 /** @return the list of of write records of this transaction */
-func (txn *Transaction) GetWriteSet() []*WriteRecord { return txn.write_set }
+func (txn *Transaction) GetWriteSet() []*WriteRecord { return txn.writeSet }
 
-func (txn *Transaction) SetWriteSet(write_set []*WriteRecord) { txn.write_set = write_set }
+func (txn *Transaction) SetWriteSet(writeSet []*WriteRecord) { txn.writeSet = writeSet }
 
-func (txn *Transaction) AddIntoWriteSet(write_record *WriteRecord) {
-	txn.write_set = append(txn.write_set, write_record)
+func (txn *Transaction) AddIntoWriteSet(writeRecord *WriteRecord) {
+	txn.writeSet = append(txn.writeSet, writeRecord)
 }
 
 // /** @return the set of resources under a shared lock */
 func (txn *Transaction) GetSharedLockSet() []page.RID {
-	ret := txn.shared_lock_set
+	ret := txn.sharedLockSet
 	return ret
 }
 
 // /** @return the set of resources under an exclusive lock */
 func (txn *Transaction) GetExclusiveLockSet() []page.RID {
-	ret := txn.exclusive_lock_set
+	ret := txn.exclusiveLockSet
 	return ret
 }
 
-func (txn *Transaction) SetSharedLockSet(set []page.RID)    { txn.shared_lock_set = set }
-func (txn *Transaction) SetExclusiveLockSet(set []page.RID) { txn.exclusive_lock_set = set }
+func (txn *Transaction) SetSharedLockSet(set []page.RID)    { txn.sharedLockSet = set }
+func (txn *Transaction) SetExclusiveLockSet(set []page.RID) { txn.exclusiveLockSet = set }
 
 func isContainsRID(list []page.RID, rid page.RID) bool {
 	for _, r := range list {
@@ -145,14 +145,14 @@ func isContainsRID(list []page.RID, rid page.RID) bool {
 
 /** @return true if rid1 is shared locked by this transaction */
 func (txn *Transaction) IsSharedLocked(rid *page.RID) bool {
-	ret := isContainsRID(txn.shared_lock_set, *rid)
+	ret := isContainsRID(txn.sharedLockSet, *rid)
 	//fmt.Printf("called IsSharedLocked: %v\n", ret)
 	return ret
 }
 
 /** @return true if rid1 is exclusively locked by this transaction */
 func (txn *Transaction) IsExclusiveLocked(rid *page.RID) bool {
-	ret := isContainsRID(txn.exclusive_lock_set, *rid)
+	ret := isContainsRID(txn.exclusiveLockSet, *rid)
 	//fmt.Printf("called IsExclusiveLocked: %v\n", ret)
 	return ret
 }
@@ -165,14 +165,14 @@ func (txn *Transaction) GetState() TransactionState { return txn.state }
 * @param state new state
  */
 func (txn *Transaction) SetState(state TransactionState) {
-	if common.EnableDebug && common.ActiveLogKindSetting&common.RDB_OP_FUNC_CALL > 0 {
+	if common.EnableDebug && common.ActiveLogKindSetting&common.RDBOpFuncCall > 0 {
 		if state == ABORTED {
-			fmt.Printf("Transaction::SetState called. txn.txn_id:%d dbgInfo:%s state:ABORTED\n", txn.txn_id, txn.dbgInfo)
+			fmt.Printf("Transaction::SetState called. txn.txnID:%d dbgInfo:%s state:ABORTED\n", txn.txnID, txn.dbgInfo)
 
 		}
 	}
 
-	if common.ActiveLogKindSetting&common.NOT_ABORABLE_TXN_FEATURE > 0 {
+	if common.ActiveLogKindSetting&common.NotAborableTxnFeature > 0 {
 		if state == ABORTED && txn.abortable == false {
 			fmt.Printf("debuginfo: %s\n", txn.dbgInfo)
 			for _, wr := range txn.GetWriteSet() {
@@ -191,13 +191,13 @@ func (txn *Transaction) SetState(state TransactionState) {
 }
 
 /** @return the previous LSN */
-func (txn *Transaction) GetPrevLSN() types.LSN { return txn.prev_lsn }
+func (txn *Transaction) GetPrevLSN() types.LSN { return txn.prevLSN }
 
 /**
 * Set the previous LSN.
-* @param prev_lsn new previous lsn
+* @param prevLSN new previous lsn
  */
-func (txn *Transaction) SetPrevLSN(prev_lsn types.LSN) { txn.prev_lsn = prev_lsn }
+func (txn *Transaction) SetPrevLSN(prevLSN types.LSN) { txn.prevLSN = prevLSN }
 
 func (txn *Transaction) GetDebugInfo() string { return txn.dbgInfo }
 

@@ -34,12 +34,12 @@ func NewComparison(left Expression, right Expression, comparisonType ComparisonT
 	return ret
 }
 
-func (c *Comparison) Evaluate(tuple_ *tuple.Tuple, schema_ *schema.Schema) types.Value {
+func (c *Comparison) Evaluate(tpl *tuple.Tuple, sch *schema.Schema) types.Value {
 	if c == nil {
 		return types.NewBoolean(false)
 	}
-	lhs := c.children[0].Evaluate(tuple_, schema_)
-	rhs := c.children[1].Evaluate(tuple_, schema_)
+	lhs := c.children[0].Evaluate(tpl, sch)
+	rhs := c.children[1].Evaluate(tpl, sch)
 	return types.NewBoolean(c.performComparison(lhs, rhs))
 }
 
@@ -67,37 +67,37 @@ func (c *Comparison) GetLeftSideColIdx() uint32 {
 	return c.children[0].(*ColumnValue).colIndex
 }
 
-func (c *Comparison) GetRightSideValue(tuple_ *tuple.Tuple, schema_ *schema.Schema) types.Value {
-	return c.children[1].Evaluate(tuple_, schema_)
+func (c *Comparison) GetRightSideValue(tpl *tuple.Tuple, sch *schema.Schema) types.Value {
+	return c.children[1].Evaluate(tpl, sch)
 }
 
 func (c *Comparison) GetComparisonType() ComparisonType {
 	return c.comparisonType
 }
 
-func (c *Comparison) EvaluateJoin(left_tuple *tuple.Tuple, left_schema *schema.Schema, right_tuple *tuple.Tuple, right_schema *schema.Schema) types.Value {
-	lhs := c.GetChildAt(0).EvaluateJoin(left_tuple, left_schema, right_tuple, right_schema)
-	rhs := c.GetChildAt(1).EvaluateJoin(left_tuple, left_schema, right_tuple, right_schema)
+func (c *Comparison) EvaluateJoin(leftTuple *tuple.Tuple, leftSchema *schema.Schema, rightTuple *tuple.Tuple, rightSchema *schema.Schema) types.Value {
+	lhs := c.GetChildAt(0).EvaluateJoin(leftTuple, leftSchema, rightTuple, rightSchema)
+	rhs := c.GetChildAt(1).EvaluateJoin(leftTuple, leftSchema, rightTuple, rightSchema)
 	return types.NewBoolean(c.performComparison(lhs, rhs))
 }
 
-func (c *Comparison) EvaluateAggregate(group_bys []*types.Value, aggregates []*types.Value) types.Value {
-	lhs := c.GetChildAt(0).EvaluateAggregate(group_bys, aggregates)
-	rhs := c.GetChildAt(1).EvaluateAggregate(group_bys, aggregates)
+func (c *Comparison) EvaluateAggregate(groupBys []*types.Value, aggregates []*types.Value) types.Value {
+	lhs := c.GetChildAt(0).EvaluateAggregate(groupBys, aggregates)
+	rhs := c.GetChildAt(1).EvaluateAggregate(groupBys, aggregates)
 	return types.NewBoolean(c.performComparison(lhs, rhs))
 }
 
-func (c *Comparison) GetChildAt(child_idx uint32) Expression {
-	if int(child_idx) >= len(c.children) {
+func (c *Comparison) GetChildAt(childIdx uint32) Expression {
+	if int(childIdx) >= len(c.children) {
 		return nil
 	}
-	return c.children[child_idx]
+	return c.children[childIdx]
 }
 
-func (c *Comparison) SetChildAt(child_idx uint32, child Expression) {
-	c.children[child_idx] = child
+func (c *Comparison) SetChildAt(childIdx uint32, child Expression) {
+	c.children[childIdx] = child
 }
 
 func (c *Comparison) GetType() ExpressionType {
-	return EXPRESSION_TYPE_COMPARISON
+	return ExpressionTypeComparison
 }

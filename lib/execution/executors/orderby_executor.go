@@ -16,36 +16,36 @@ import (
 type OrderbyExecutor struct {
 	context *ExecutorContext
 	/** The aggregation plan node. */
-	plan_ *plans.OrderbyPlanNode
+	plan *plans.OrderbyPlanNode
 	/** The child executor whose tuples we are aggregating. */
-	child_       []Executor
-	sort_tuples_ []*tuple.Tuple
-	cur_idx_     int // target tuple index on Next method
+	child       []Executor
+	sortTuples []*tuple.Tuple
+	curIdx     int // target tuple index on Next method
 }
 
 /**
  * Creates a new aggregation executor.
- * @param exec_ctx the context that the aggregation should be performed in
+ * @param execCtx the context that the aggregation should be performed in
  * @param plan the aggregation plan node
  * @param child the child executor
  */
-func NewOrderbyExecutor(exec_ctx *ExecutorContext, plan *plans.OrderbyPlanNode,
+func NewOrderbyExecutor(execCtx *ExecutorContext, plan *plans.OrderbyPlanNode,
 	child Executor) *OrderbyExecutor {
-	return &OrderbyExecutor{exec_ctx, plan, []Executor{child}, make([]*tuple.Tuple, 0), 0}
+	return &OrderbyExecutor{execCtx, plan, []Executor{child}, make([]*tuple.Tuple, 0), 0}
 }
 
-func (e *OrderbyExecutor) GetOutputSchema() *schema.Schema { return e.plan_.OutputSchema() }
+func (e *OrderbyExecutor) GetOutputSchema() *schema.Schema { return e.plan.OutputSchema() }
 
-func (e *OrderbyExecutor) GetChildOutputSchema() *schema.Schema { return e.child_[0].GetOutputSchema() }
+func (e *OrderbyExecutor) GetChildOutputSchema() *schema.Schema { return e.child[0].GetOutputSchema() }
 
 func (e *OrderbyExecutor) Init() {
-	e.child_[0].Init()
-	child_exec := e.child_[0]
-	child_schema := e.GetChildOutputSchema()
-	sort_values := make([][]*types.Value, 0)
-	inserted_tuple_cnt := int32(0)
+	e.child[0].Init()
+	childExec := e.child[0]
+	childSchema := e.GetChildOutputSchema()
+	sortValues := make([][]*types.Value, 0)
+	insertedTupleCnt := int32(0)
 	for {
-		tuple_, done, err := child_exec.Next()
+		tpl, done, err := childExec.Next()
 		if err != nil || done {
 			if err != nil {
 				fmt.Println(err)
@@ -53,38 +53,38 @@ func (e *OrderbyExecutor) Init() {
 			break
 		}
 
-		if tuple_ != nil {
-			e.sort_tuples_ = append(e.sort_tuples_, tuple_)
-			tmp_row := make([]*types.Value, 0)
-			for _, col_idx := range e.plan_.GetColIdxs() {
-				tmp_val := tuple_.GetValue(child_schema, uint32(col_idx))
-				tmp_row = append(tmp_row, &tmp_val)
+		if tpl != nil {
+			e.sortTuples = append(e.sortTuples, tpl)
+			tmpRow := make([]*types.Value, 0)
+			for _, colIdx := range e.plan.GetColIdxs() {
+				tmpVal := tpl.GetValue(childSchema, uint32(colIdx))
+				tmpRow = append(tmpRow, &tmpVal)
 			}
 			// add idx of before sort at end of col vals
-			tmp_val := types.NewInteger(inserted_tuple_cnt)
-			tmp_row = append(tmp_row, &tmp_val)
-			sort_values = append(sort_values, tmp_row)
+			tmpVal := types.NewInteger(insertedTupleCnt)
+			tmpRow = append(tmpRow, &tmpVal)
+			sortValues = append(sortValues, tmpRow)
 		}
-		inserted_tuple_cnt++
+		insertedTupleCnt++
 	}
 	// decide tuple order by sort of values on tuples
-	sort.Slice(sort_values, func(i, j int) bool {
+	sort.Slice(sortValues, func(i, j int) bool {
 
-		cols_num := len(e.plan_.GetColIdxs())
-		for idx := 0; idx < cols_num; idx++ {
-			order_type := e.plan_.GetOrderbyTypes()[idx]
-			if order_type == plans.ASC {
-				if sort_values[i][idx].CompareEquals(*sort_values[j][idx]) {
+		colsNum := len(e.plan.GetColIdxs())
+		for idx := 0; idx < colsNum; idx++ {
+			orderType := e.plan.GetOrderbyTypes()[idx]
+			if orderType == plans.ASC {
+				if sortValues[i][idx].CompareEquals(*sortValues[j][idx]) {
 					continue
-				} else if sort_values[i][idx].CompareLessThan(*sort_values[j][idx]) { // i < j
+				} else if sortValues[i][idx].CompareLessThan(*sortValues[j][idx]) { // i < j
 					return true
 				} else { // i > j
 					return false
 				}
 			} else { //DESC
-				if sort_values[i][idx].CompareEquals(*sort_values[j][idx]) {
+				if sortValues[i][idx].CompareEquals(*sortValues[j][idx]) {
 					continue
-				} else if sort_values[i][idx].CompareLessThan(*sort_values[j][idx]) { // i < j
+				} else if sortValues[i][idx].CompareLessThan(*sortValues[j][idx]) { // i < j
 					return false
 				} else { // i > j
 					return true
@@ -93,22 +93,22 @@ func (e *OrderbyExecutor) Init() {
 		}
 		return false
 	})
-	fmt.Printf("inserted_tuple_cnt %d\n", inserted_tuple_cnt)
+	fmt.Printf("insertedTupleCnt %d\n", insertedTupleCnt)
 	// arrange tuple array (apply sort result)
-	tuple_cnt := len(e.sort_tuples_)
-	var tmp_tuples = make([]*tuple.Tuple, tuple_cnt)
-	idx_of_orig_idx := len(e.plan_.GetColIdxs())
-	for idx := 0; idx < tuple_cnt; idx++ {
-		tmp_tuples[idx] = e.sort_tuples_[sort_values[idx][idx_of_orig_idx].ToInteger()]
+	tupleCnt := len(e.sortTuples)
+	var tmpTuples = make([]*tuple.Tuple, tupleCnt)
+	idxOfOrigIdx := len(e.plan.GetColIdxs())
+	for idx := 0; idx < tupleCnt; idx++ {
+		tmpTuples[idx] = e.sortTuples[sortValues[idx][idxOfOrigIdx].ToInteger()]
 	}
 	// set sorted result to field
-	e.sort_tuples_ = tmp_tuples
+	e.sortTuples = tmpTuples
 }
 
 func (e *OrderbyExecutor) Next() (*tuple.Tuple, Done, error) {
-	if e.cur_idx_ < len(e.sort_tuples_) {
-		ret := e.sort_tuples_[e.cur_idx_]
-		e.cur_idx_++
+	if e.curIdx < len(e.sortTuples) {
+		ret := e.sortTuples[e.curIdx]
+		e.curIdx++
 		return ret, false, nil
 	} else {
 		return nil, true, nil
@@ -116,5 +116,5 @@ func (e *OrderbyExecutor) Next() (*tuple.Tuple, Done, error) {
 }
 
 func (e *OrderbyExecutor) GetTableMetaData() *catalog.TableMetadata {
-	return e.child_[0].GetTableMetaData()
+	return e.child[0].GetTableMetaData()
 }

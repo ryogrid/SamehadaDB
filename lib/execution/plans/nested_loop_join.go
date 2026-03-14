@@ -8,7 +8,7 @@ import (
 
 type NestedLoopJoinPlanNode struct {
 	*AbstractPlanNode
-	stats_ *catalog.TableStatistics
+	stats *catalog.TableStatistics
 }
 
 func GenNestedLoopJoinStats(leftPlan Plan, rightPlan Plan) *catalog.TableStatistics {
@@ -30,12 +30,12 @@ func NewNestedLoopJoinPlanNode(children []Plan) *NestedLoopJoinPlanNode {
 func (p *NestedLoopJoinPlanNode) GetType() PlanType { return NestedLoopJoin }
 
 func (p *NestedLoopJoinPlanNode) GetLeftPlan() Plan {
-	common.SH_Assert(len(p.GetChildren()) == 2, "nested loop joins should have exactly two children plans.")
+	common.SHAssert(len(p.GetChildren()) == 2, "nested loop joins should have exactly two children plans.")
 	return p.GetChildAt(0)
 }
 
 func (p *NestedLoopJoinPlanNode) GetRightPlan() Plan {
-	common.SH_Assert(len(p.GetChildren()) == 2, "nested loop joins should have exactly two children plans.")
+	common.SHAssert(len(p.GetChildren()) == 2, "nested loop joins should have exactly two children plans.")
 	return p.GetChildAt(1)
 }
 
@@ -54,7 +54,7 @@ func (p *NestedLoopJoinPlanNode) EmitRowCount(c *catalog.Catalog) uint64 {
 }
 
 func (p *NestedLoopJoinPlanNode) GetStatistics() *catalog.TableStatistics {
-	return p.stats_
+	return p.stats
 }
 
 func (p *NestedLoopJoinPlanNode) GetDebugStr() string {

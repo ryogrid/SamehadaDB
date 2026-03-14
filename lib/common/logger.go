@@ -5,14 +5,14 @@ import "fmt"
 type LogLevel int32
 
 const (
-	DEBUG_INFO_DETAIL        LogLevel = 1
-	DEBUG_INFO                        = 2
-	CACHE_OUT_IN_INFO                 = 2 << 1
-	RDB_OP_FUNC_CALL                  = 2 << 2 // print several info at core functions (ex: CRUD at TableHeap and SkipList/SkipListBlockPage)
-	BUFFER_INTERNAL_STATE             = 2 << 3 // print internal state of buffer of BufferPoolManager
-	PIN_COUNT_ASSERT                  = 2 << 4
-	COMMIT_ABORT_HANDLE_INFO          = 2 << 5
-	NOT_ABORABLE_TXN_FEATURE          = 2 << 6
+	DebugInfoDetail        LogLevel = 1
+	DebugInfo                        = 2
+	CacheOutInInfo                 = 2 << 1
+	RDBOpFuncCall                  = 2 << 2 // print several info at core functions (ex: CRUD at TableHeap and SkipList/SkipListBlockPage)
+	BufferInternalState             = 2 << 3 // print internal state of buffer of BufferPoolManager
+	PinCountAssert                  = 2 << 4
+	CommitAbortHandleInfo          = 2 << 5
+	NotAborableTxnFeature          = 2 << 6
 	DEBUGGING                         = 2 << 7 // print debug info for a debugging period (not permanently used)
 	INFO                              = 2 << 8
 	WARN                              = 2 << 9

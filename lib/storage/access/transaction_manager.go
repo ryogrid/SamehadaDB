@@ -17,122 +17,122 @@ import (
  * TransactionManager keeps track of all the transactions running in the system.
  */
 type TransactionManager struct {
-	next_txn_id  types.TxnID
-	lock_manager *LockManager
-	log_manager  *recovery.LogManager
+	nextTxnID  types.TxnID
+	lockManager *LockManager
+	logManager  *recovery.LogManager
 	/** The global transaction latch is used for checkpointing. */
-	global_txn_latch common.ReaderWriterLatch
+	globalTxnLatch common.ReaderWriterLatch
 	mutex            *sync.Mutex
 }
 
-// var txn_map = make(map[types.TxnID]*Transaction)
-var txn_map = sync.Map{}
+// var txnMap = make(map[types.TxnID]*Transaction)
+var txnMap = sync.Map{}
 
-func NewTransactionManager(lock_manager *LockManager, log_manager *recovery.LogManager) *TransactionManager {
-	return &TransactionManager{0, lock_manager, log_manager, common.NewRWLatch(), new(sync.Mutex)}
+func NewTransactionManager(lockManager *LockManager, logManager *recovery.LogManager) *TransactionManager {
+	return &TransactionManager{0, lockManager, logManager, common.NewRWLatch(), new(sync.Mutex)}
 }
 
-func (transaction_manager *TransactionManager) Begin(txn *Transaction) *Transaction {
+func (transactionManager *TransactionManager) Begin(txn *Transaction) *Transaction {
 	// Acquire the global transaction latch in shared mode.
-	transaction_manager.global_txn_latch.RLock()
-	var txn_ret = txn
+	transactionManager.globalTxnLatch.RLock()
+	var txnRet = txn
 
-	if txn_ret == nil {
-		transaction_manager.mutex.Lock()
-		transaction_manager.next_txn_id += 1
-		txn_ret = NewTransaction(transaction_manager.next_txn_id)
-		transaction_manager.mutex.Unlock()
-		//fmt.Printf("new transactin GetPageId: %d\n", transaction_manager.next_txn_id)
+	if txnRet == nil {
+		transactionManager.mutex.Lock()
+		transactionManager.nextTxnID += 1
+		txnRet = NewTransaction(transactionManager.nextTxnID)
+		transactionManager.mutex.Unlock()
+		//fmt.Printf("new transactin GetPageID: %d\n", transactionManager.nextTxnID)
 	}
 
-	if transaction_manager.log_manager.IsEnabledLogging() {
-		log_record := recovery.NewLogRecordTxn(txn_ret.GetTransactionId(), txn_ret.GetPrevLSN(), recovery.BEGIN)
-		lsn := transaction_manager.log_manager.AppendLogRecord(log_record)
-		txn_ret.SetPrevLSN(lsn)
+	if transactionManager.logManager.IsEnabledLogging() {
+		logRecord := recovery.NewLogRecordTxn(txnRet.GetTransactionID(), txnRet.GetPrevLSN(), recovery.BEGIN)
+		lsn := transactionManager.logManager.AppendLogRecord(logRecord)
+		txnRet.SetPrevLSN(lsn)
 	}
 
-	//transaction_manager.mutex.Lock()
-	//txn_map[txn_ret.GetTransactionId()] = txn_ret
-	//transaction_manager.mutex.Unlock()
-	txn_map.Store(txn_ret.GetTransactionId(), txn_ret)
-	return txn_ret
+	//transactionManager.mutex.Lock()
+	//txnMap[txnRet.GetTransactionID()] = txnRet
+	//transactionManager.mutex.Unlock()
+	txnMap.Store(txnRet.GetTransactionID(), txnRet)
+	return txnRet
 }
 
-func (transaction_manager *TransactionManager) Commit(catalog_ catalog_interface.CatalogInterface, txn *Transaction) {
+func (transactionManager *TransactionManager) Commit(cat catalog_interface.CatalogInterface, txn *Transaction) {
 	if common.EnableDebug {
-		common.ShPrintf(common.RDB_OP_FUNC_CALL, "TransactionManager::Commit called. txn.txn_id:%v dbgInfo:%s\n", txn.txn_id, txn.dbgInfo)
+		common.ShPrintf(common.RDBOpFuncCall, "TransactionManager::Commit called. txn.txnID:%v dbgInfo:%s\n", txn.txnID, txn.dbgInfo)
 	}
 	// on Commit, call of Transaction::SetState(ABORT) panics
 	txn.MakeNotAbortable()
 
 	// Perform all deletes before we commit.
-	write_set := txn.GetWriteSet()
-	isReadOnlyTxn := len(write_set) == 0
+	writeSet := txn.GetWriteSet()
+	isReadOnlyTxn := len(writeSet) == 0
 	if common.EnableDebug {
 		writeSetStr := ""
-		for _, writeItem := range write_set {
-			//common.ShPrintf(common.RDB_OP_FUNC_CALL, "%v ", *writeItem)
+		for _, writeItem := range writeSet {
+			//common.ShPrintf(common.RDBOpFuncCall, "%v ", *writeItem)
 			writeSetStr += fmt.Sprintf("%v ", *writeItem)
 		}
-		common.ShPrintf(common.RDB_OP_FUNC_CALL, "TransactionManager::Commit txn.txn_id:%v dbgInfo:%s write_set:%s\n", txn.txn_id, txn.dbgInfo, writeSetStr)
+		common.ShPrintf(common.RDBOpFuncCall, "TransactionManager::Commit txn.txnID:%v dbgInfo:%s writeSet:%s\n", txn.txnID, txn.dbgInfo, writeSetStr)
 	}
-	for len(write_set) != 0 {
-		item := write_set[len(write_set)-1]
+	for len(writeSet) != 0 {
+		item := writeSet[len(writeSet)-1]
 		table := item.table
 		rid := item.rid1
 		if item.wtype == DELETE {
-			if common.EnableDebug && common.ActiveLogKindSetting&common.COMMIT_ABORT_HANDLE_INFO > 0 {
-				fmt.Printf("TransactionManager::Commit handle DELETE write log. txn.txn_id:%v dbgInfo:%s rid1:%v\n", txn.txn_id, txn.dbgInfo, rid)
+			if common.EnableDebug && common.ActiveLogKindSetting&common.CommitAbortHandleInfo > 0 {
+				fmt.Printf("TransactionManager::Commit handle DELETE write log. txn.txnID:%v dbgInfo:%s rid1:%v\n", txn.txnID, txn.dbgInfo, rid)
 			}
-			pageID := rid.GetPageId()
+			pageID := rid.GetPageID()
 			tpage := CastPageAsTablePage(table.bpm.FetchPage(pageID))
 			tpage.WLatch()
-			tpage.AddWLatchRecord(int32(txn.txn_id))
-			tpage.ApplyDelete(item.rid1, txn, transaction_manager.log_manager)
-			table.bpm.UnpinPage(tpage.GetPageId(), true)
-			tpage.RemoveWLatchRecord(int32(txn.txn_id))
+			tpage.AddWLatchRecord(int32(txn.txnID))
+			tpage.ApplyDelete(item.rid1, txn, transactionManager.logManager)
+			table.bpm.UnpinPage(tpage.GetPageID(), true)
+			tpage.RemoveWLatchRecord(int32(txn.txnID))
 			tpage.WUnlatch()
 		} else if item.wtype == UPDATE {
-			if common.EnableDebug && common.ActiveLogKindSetting&common.COMMIT_ABORT_HANDLE_INFO > 0 {
-				fmt.Printf("TransactionManager::Commit handle UPDATE write log. txn.txn_id:%v dbgInfo:%s rid1:%v\n", txn.txn_id, txn.dbgInfo, rid)
+			if common.EnableDebug && common.ActiveLogKindSetting&common.CommitAbortHandleInfo > 0 {
+				fmt.Printf("TransactionManager::Commit handle UPDATE write log. txn.txnID:%v dbgInfo:%s rid1:%v\n", txn.txnID, txn.dbgInfo, rid)
 			}
 
 			if *item.rid1 != *item.rid2 {
 				// tuple location change occured case
-				pageID := item.rid1.GetPageId()
+				pageID := item.rid1.GetPageID()
 				tpage := CastPageAsTablePage(table.bpm.FetchPage(pageID))
 				tpage.WLatch()
-				tpage.AddWLatchRecord(int32(txn.txn_id))
-				tpage.ApplyDelete(item.rid1, txn, transaction_manager.log_manager)
-				table.bpm.UnpinPage(tpage.GetPageId(), true)
-				tpage.RemoveWLatchRecord(int32(txn.txn_id))
+				tpage.AddWLatchRecord(int32(txn.txnID))
+				tpage.ApplyDelete(item.rid1, txn, transactionManager.logManager)
+				table.bpm.UnpinPage(tpage.GetPageID(), true)
+				tpage.RemoveWLatchRecord(int32(txn.txnID))
 				tpage.WUnlatch()
 			}
 		}
-		write_set = write_set[:len(write_set)-1]
+		writeSet = writeSet[:len(writeSet)-1]
 	}
-	txn.SetWriteSet(write_set)
+	txn.SetWriteSet(writeSet)
 
-	if transaction_manager.log_manager.IsEnabledLogging() {
-		log_record := recovery.NewLogRecordTxn(txn.GetTransactionId(), txn.GetPrevLSN(), recovery.COMMIT)
-		lsn := transaction_manager.log_manager.AppendLogRecord(log_record)
+	if transactionManager.logManager.IsEnabledLogging() {
+		logRecord := recovery.NewLogRecordTxn(txn.GetTransactionID(), txn.GetPrevLSN(), recovery.COMMIT)
+		lsn := transactionManager.logManager.AppendLogRecord(logRecord)
 		txn.SetPrevLSN(lsn)
 		if !isReadOnlyTxn {
-			transaction_manager.log_manager.Flush()
+			transactionManager.logManager.Flush()
 		}
 	}
 
 	// Release all the locks.
-	transaction_manager.mutex.Lock()
-	transaction_manager.releaseLocks(txn)
-	transaction_manager.mutex.Unlock()
+	transactionManager.mutex.Lock()
+	transactionManager.releaseLocks(txn)
+	transactionManager.mutex.Unlock()
 	// Release the global transaction latch.
-	transaction_manager.global_txn_latch.RUnlock()
+	transactionManager.globalTxnLatch.RUnlock()
 }
 
-func (transaction_manager *TransactionManager) Abort(catalog_ catalog_interface.CatalogInterface, txn *Transaction) {
+func (transactionManager *TransactionManager) Abort(cat catalog_interface.CatalogInterface, txn *Transaction) {
 	if common.EnableDebug {
-		common.ShPrintf(common.RDB_OP_FUNC_CALL, "TransactionManager::Abort called. txn.txn_id:%v dbgInfo:%s\n", txn.txn_id, txn.dbgInfo)
+		common.ShPrintf(common.RDBOpFuncCall, "TransactionManager::Abort called. txn.txnID:%v dbgInfo:%s\n", txn.txnID, txn.dbgInfo)
 	}
 
 	//fmt.Printf("debuginfo: %s\n", txn.dbgInfo)
@@ -151,60 +151,60 @@ func (transaction_manager *TransactionManager) Abort(catalog_ catalog_interface.
 
 	indexMap := make(map[uint32][]index.Index, 0)
 
-	write_set := txn.GetWriteSet()
-	if common.EnableDebug && common.ActiveLogKindSetting&common.RDB_OP_FUNC_CALL > 0 {
+	writeSet := txn.GetWriteSet()
+	if common.EnableDebug && common.ActiveLogKindSetting&common.RDBOpFuncCall > 0 {
 		writeSetStr := ""
-		for _, writeItem := range write_set {
+		for _, writeItem := range writeSet {
 			writeSetStr += fmt.Sprintf("%v ", *writeItem)
 		}
-		fmt.Printf("TransactionManager::Abort txn.txn_id:%v  dbgInfo:%s write_set: %s\n", txn.txn_id, txn.dbgInfo, writeSetStr)
+		fmt.Printf("TransactionManager::Abort txn.txnID:%v  dbgInfo:%s writeSet: %s\n", txn.txnID, txn.dbgInfo, writeSetStr)
 	}
 
 	// Rollback before releasing the access.
-	for len(write_set) != 0 {
-		item := write_set[len(write_set)-1]
+	for len(writeSet) != 0 {
+		item := writeSet[len(writeSet)-1]
 		table := item.table
 		if item.wtype == DELETE {
-			if common.EnableDebug && common.ActiveLogKindSetting&common.COMMIT_ABORT_HANDLE_INFO > 0 {
-				fmt.Printf("TransactionManager::Abort handle DELETE write log. txn.txn_id:%v dbgInfo:%s rid1:%v\n", txn.txn_id, txn.dbgInfo, item.rid1)
+			if common.EnableDebug && common.ActiveLogKindSetting&common.CommitAbortHandleInfo > 0 {
+				fmt.Printf("TransactionManager::Abort handle DELETE write log. txn.txnID:%v dbgInfo:%s rid1:%v\n", txn.txnID, txn.dbgInfo, item.rid1)
 			}
 
 			// rollback record data
 			table.RollbackDelete(item.rid1, txn)
 
 			// rollback index data
-			indexes := catalog_.GetRollbackNeededIndexes(indexMap, item.oid)
-			for _, index_ := range indexes {
-				if index_ != nil {
-					index_.InsertEntry(item.tuple1, *item.rid1, txn)
+			indexes := cat.GetRollbackNeededIndexes(indexMap, item.oid)
+			for _, idx := range indexes {
+				if idx != nil {
+					idx.InsertEntry(item.tuple1, *item.rid1, txn)
 				}
 			}
 		} else if item.wtype == INSERT {
-			if common.EnableDebug && common.ActiveLogKindSetting&common.COMMIT_ABORT_HANDLE_INFO > 0 {
-				fmt.Printf("TransactionManager::Abort handle INSERT write log. txn.txn_id:%v dbgInfo:%s rid1:%v\n", txn.txn_id, txn.dbgInfo, item.rid1)
+			if common.EnableDebug && common.ActiveLogKindSetting&common.CommitAbortHandleInfo > 0 {
+				fmt.Printf("TransactionManager::Abort handle INSERT write log. txn.txnID:%v dbgInfo:%s rid1:%v\n", txn.txnID, txn.dbgInfo, item.rid1)
 			}
 
 			// rollback record data
 			rid := item.rid1
-			pageID := rid.GetPageId()
+			pageID := rid.GetPageID()
 			tpage := CastPageAsTablePage(table.bpm.FetchPage(pageID))
 			tpage.WLatch()
-			tpage.ApplyDelete(item.rid1, txn, transaction_manager.log_manager)
+			tpage.ApplyDelete(item.rid1, txn, transactionManager.logManager)
 			table.bpm.UnpinPage(pageID, true)
 			tpage.WUnlatch()
 
 			// rollback index data
-			if catalog_ != nil {
-				indexes := catalog_.GetRollbackNeededIndexes(indexMap, item.oid)
-				for _, index_ := range indexes {
-					if index_ != nil {
-						index_.DeleteEntry(item.tuple1, *item.rid1, txn)
+			if cat != nil {
+				indexes := cat.GetRollbackNeededIndexes(indexMap, item.oid)
+				for _, idx := range indexes {
+					if idx != nil {
+						idx.DeleteEntry(item.tuple1, *item.rid1, txn)
 					}
 				}
 			}
 		} else if item.wtype == UPDATE {
-			if common.EnableDebug && common.ActiveLogKindSetting&common.COMMIT_ABORT_HANDLE_INFO > 0 {
-				fmt.Printf("TransactionManager::Abort handle UPDATE write log. txn.txn_id:%v dbgInfo:%s rid1:%v tuple1.Size()=%d \n", txn.txn_id, txn.dbgInfo, item.rid1, item.tuple1.Size())
+			if common.EnableDebug && common.ActiveLogKindSetting&common.CommitAbortHandleInfo > 0 {
+				fmt.Printf("TransactionManager::Abort handle UPDATE write log. txn.txnID:%v dbgInfo:%s rid1:%v tuple1.Size()=%d \n", txn.txnID, txn.dbgInfo, item.rid1, item.tuple1.Size())
 			}
 
 			// rollback record data
@@ -212,10 +212,10 @@ func (transaction_manager *TransactionManager) Abort(catalog_ catalog_interface.
 				// tuple location change occured case
 
 				// rollback inserted record data
-				pageID := item.rid2.GetPageId()
+				pageID := item.rid2.GetPageID()
 				tpage := CastPageAsTablePage(table.bpm.FetchPage(pageID))
 				tpage.WLatch()
-				tpage.ApplyDelete(item.rid2, txn, transaction_manager.log_manager)
+				tpage.ApplyDelete(item.rid2, txn, transactionManager.logManager)
 				table.bpm.UnpinPage(pageID, true)
 				tpage.WUnlatch()
 
@@ -226,11 +226,11 @@ func (transaction_manager *TransactionManager) Abort(catalog_ catalog_interface.
 
 				rid := item.rid1
 				// Note that this also releases the lock when holding the page latch.
-				pageID := rid.GetPageId()
+				pageID := rid.GetPageID()
 				tpage := CastPageAsTablePage(table.bpm.FetchPage(pageID))
 				tpage.WLatch()
-				is_updated, err, _ := tpage.UpdateTuple(item.tuple1, nil, nil, item.tuple2, rid, txn, transaction_manager.lock_manager, transaction_manager.log_manager, true)
-				if !is_updated || err != nil {
+				isUpdated, err, _ := tpage.UpdateTuple(item.tuple1, nil, nil, item.tuple2, rid, txn, transactionManager.lockManager, transactionManager.logManager, true)
+				if !isUpdated || err != nil {
 					panic("rollback of normal UPDATE failed")
 				}
 				table.bpm.UnpinPage(pageID, true)
@@ -238,51 +238,51 @@ func (transaction_manager *TransactionManager) Abort(catalog_ catalog_interface.
 			}
 
 			// rollback index data
-			if catalog_ != nil {
-				indexes := catalog_.GetRollbackNeededIndexes(indexMap, item.oid)
+			if cat != nil {
+				indexes := cat.GetRollbackNeededIndexes(indexMap, item.oid)
 
-				//fmt.Printf("TransactionManager::Abort  rollback of Update! txn.txn_id:%d, tuple_.Size():%d err:%v indexes:%v\n", txn.txn_id, tuple_.Size(), err, indexes)
-				for _, index_ := range indexes {
-					if index_ != nil {
-						colIdx := index_.GetKeyAttrs()[0]
-						bfRlbkKeyVal := catalog_.GetColValFromTupleForRollback(item.tuple2, colIdx, item.oid)
-						rlbkKeyVal := catalog_.GetColValFromTupleForRollback(item.tuple1, colIdx, item.oid)
+				//fmt.Printf("TransactionManager::Abort  rollback of Update! txn.txnID:%d, tpl.Size():%d err:%v indexes:%v\n", txn.txnID, tpl.Size(), err, indexes)
+				for _, idx := range indexes {
+					if idx != nil {
+						colIdx := idx.GetKeyAttrs()[0]
+						bfRlbkKeyVal := cat.GetColValFromTupleForRollback(item.tuple2, colIdx, item.oid)
+						rlbkKeyVal := cat.GetColValFromTupleForRollback(item.tuple1, colIdx, item.oid)
 						if !bfRlbkKeyVal.CompareEquals(*rlbkKeyVal) || *item.rid1 != *item.rid2 {
-							index_.UpdateEntry(item.tuple2, *item.rid2, item.tuple1, *item.rid1, txn)
+							idx.UpdateEntry(item.tuple2, *item.rid2, item.tuple1, *item.rid1, txn)
 						}
 					}
 				}
 			}
 		}
-		write_set = write_set[:len(write_set)-1]
+		writeSet = writeSet[:len(writeSet)-1]
 	}
-	txn.SetWriteSet(write_set)
+	txn.SetWriteSet(writeSet)
 
-	if transaction_manager.log_manager.IsEnabledLogging() {
-		log_record := recovery.NewLogRecordTxn(txn.GetTransactionId(), txn.GetPrevLSN(), recovery.ABORT)
-		lsn := transaction_manager.log_manager.AppendLogRecord(log_record)
+	if transactionManager.logManager.IsEnabledLogging() {
+		logRecord := recovery.NewLogRecordTxn(txn.GetTransactionID(), txn.GetPrevLSN(), recovery.ABORT)
+		lsn := transactionManager.logManager.AppendLogRecord(logRecord)
 		txn.SetPrevLSN(lsn)
 	}
 
 	// Release all the locks.
-	transaction_manager.mutex.Lock()
-	transaction_manager.releaseLocks(txn)
-	transaction_manager.mutex.Unlock()
+	transactionManager.mutex.Lock()
+	transactionManager.releaseLocks(txn)
+	transactionManager.mutex.Unlock()
 	// Release the global transaction latch.
-	transaction_manager.global_txn_latch.RUnlock()
+	transactionManager.globalTxnLatch.RUnlock()
 }
 
-func (transaction_manager *TransactionManager) BlockAllTransactions() {
-	transaction_manager.global_txn_latch.WLock()
+func (transactionManager *TransactionManager) BlockAllTransactions() {
+	transactionManager.globalTxnLatch.WLock()
 }
 
-func (transaction_manager *TransactionManager) ResumeTransactions() {
-	transaction_manager.global_txn_latch.WUnlock()
+func (transactionManager *TransactionManager) ResumeTransactions() {
+	transactionManager.globalTxnLatch.WUnlock()
 }
 
-func (transaction_manager *TransactionManager) releaseLocks(txn *Transaction) {
-	var lock_set = make([]page.RID, 0)
-	lock_set = append(lock_set, txn.GetExclusiveLockSet()...)
-	lock_set = append(lock_set, txn.GetSharedLockSet()...)
-	transaction_manager.lock_manager.Unlock(txn, lock_set)
+func (transactionManager *TransactionManager) releaseLocks(txn *Transaction) {
+	var lockSet = make([]page.RID, 0)
+	lockSet = append(lockSet, txn.GetExclusiveLockSet()...)
+	lockSet = append(lockSet, txn.GetSharedLockSet()...)
+	transactionManager.lockManager.Unlock(txn, lockSet)
 }

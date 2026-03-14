@@ -30,22 +30,22 @@ func NewPointScanWithIndexExecutor(context *ExecutorContext, plan *plans.PointSc
 
 func (e *PointScanWithIndexExecutor) Init() {
 	comparison := e.plan.GetPredicate()
-	schema_ := e.tableMetadata.Schema()
+	sch := e.tableMetadata.Schema()
 	colIdxOfPred := comparison.GetLeftSideColIdx()
 
-	index_ := e.tableMetadata.GetIndex(int(colIdxOfPred))
-	if index_ == nil {
+	idx := e.tableMetadata.GetIndex(int(colIdxOfPred))
+	if idx == nil {
 		panic("PointScanWithIndexExecutor assumed index does not exist!.")
 	}
 
-	scanKey := samehada_util.GetPonterOfValue(comparison.GetRightSideValue(nil, schema_))
-	dummyTuple := tuple.GenTupleForIndexSearch(schema_, colIdxOfPred, scanKey)
-	rids := index_.ScanKey(dummyTuple, e.txn)
+	scanKey := samehada_util.GetPonterOfValue(comparison.GetRightSideValue(nil, sch))
+	dummyTuple := tuple.GenTupleForIndexSearch(sch, colIdxOfPred, scanKey)
+	rids := idx.ScanKey(dummyTuple, e.txn)
 
 	for _, rid := range rids {
-		rid_ := rid
-		tuple_, err := e.tableMetadata.Table().GetTuple(&rid_, e.txn)
-		if tuple_ == nil && err != access.ErrSelfDeletedCase {
+		ridCopy := rid
+		tpl, err := e.tableMetadata.Table().GetTuple(&ridCopy, e.txn)
+		if tpl == nil && err != access.ErrSelfDeletedCase {
 			//fmt.Println("PointScanWithIndexExecutor:Init ErrSelfDeletedCase!")
 			e.foundTuples = make([]*tuple.Tuple, 0)
 			e.txn.SetState(access.ABORTED)
@@ -55,13 +55,13 @@ func (e *PointScanWithIndexExecutor) Init() {
 			continue
 		}
 
-		if !tuple_.GetValue(schema_, colIdxOfPred).CompareEquals(*scanKey) {
+		if !tpl.GetValue(sch, colIdxOfPred).CompareEquals(*scanKey) {
 			// found record is updated and commited case
 			e.foundTuples = make([]*tuple.Tuple, 0)
 			e.txn.SetState(access.ABORTED)
 			return
 		}
-		e.foundTuples = append(e.foundTuples, tuple_)
+		e.foundTuples = append(e.foundTuples, tpl)
 	}
 }
 
@@ -71,10 +71,10 @@ func (e *PointScanWithIndexExecutor) Next() (*tuple.Tuple, Done, error) {
 	}
 
 	if len(e.foundTuples) > 0 {
-		tuple_ := e.foundTuples[0]
+		tpl := e.foundTuples[0]
 		e.foundTuples = e.foundTuples[1:]
-		retTuple := e.projects(tuple_)
-		retTuple.SetRID(tuple_.GetRID())
+		retTuple := e.projects(tpl)
+		retTuple.SetRID(tpl.GetRID())
 		return retTuple, false, nil
 	}
 
@@ -82,13 +82,13 @@ func (e *PointScanWithIndexExecutor) Next() (*tuple.Tuple, Done, error) {
 }
 
 // project applies the projection operator defined by the output schema
-func (e *PointScanWithIndexExecutor) projects(tuple_ *tuple.Tuple) *tuple.Tuple {
+func (e *PointScanWithIndexExecutor) projects(tpl *tuple.Tuple) *tuple.Tuple {
 	outputSchema := e.plan.OutputSchema()
 
 	values := []types.Value{}
 	for i := uint32(0); i < outputSchema.GetColumnCount(); i++ {
 		colIndex := e.tableMetadata.Schema().GetColIndex(outputSchema.GetColumns()[i].GetColumnName())
-		values = append(values, tuple_.GetValue(e.tableMetadata.Schema(), colIndex))
+		values = append(values, tpl.GetValue(e.tableMetadata.Schema(), colIndex))
 	}
 
 	return tuple.NewTupleFromSchema(values, outputSchema)

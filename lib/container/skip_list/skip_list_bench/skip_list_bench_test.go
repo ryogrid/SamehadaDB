@@ -13,8 +13,8 @@ import (
 	"time"
 )
 
-const INITIAL_VAL_NUM = 300000
-const WORK_NUM = INITIAL_VAL_NUM / 10
+const InitialValNum = 300000
+const WorkNum = InitialValNum / 10
 
 type opTypeAndVal struct {
 	OpType skip_list.SkipListOpType
@@ -22,7 +22,7 @@ type opTypeAndVal struct {
 }
 
 type workArray struct {
-	arr        [WORK_NUM]*opTypeAndVal
+	arr        [WorkNum]*opTypeAndVal
 	pos        int32
 	posForInit int32
 	mutex      sync.Mutex
@@ -31,9 +31,9 @@ type workArray struct {
 func (arr *workArray) GetNewWork(threadNum int32) (work []*opTypeAndVal, done bool) {
 	arr.mutex.Lock()
 	defer arr.mutex.Unlock()
-	splitedWorkNum := WORK_NUM / threadNum
+	splitedWorkNum := WorkNum / threadNum
 
-	if arr.pos+splitedWorkNum <= WORK_NUM {
+	if arr.pos+splitedWorkNum <= WorkNum {
 		retArr := arr.arr[arr.pos : arr.pos+splitedWorkNum]
 		arr.pos = arr.pos + splitedWorkNum
 		return retArr, false
@@ -54,9 +54,9 @@ func (arr *workArray) Append(val *types.Value) {
 	arr.posForInit++
 	randVal := rand.Intn(10)
 	if randVal < 2 {
-		arr.arr[arr.posForInit] = &opTypeAndVal{skip_list.SKIP_LIST_OP_REMOVE, val}
+		arr.arr[arr.posForInit] = &opTypeAndVal{skip_list.SkipListOpRemove, val}
 	} else {
-		arr.arr[arr.posForInit] = &opTypeAndVal{skip_list.SKIP_LIST_OP_GET, val}
+		arr.arr[arr.posForInit] = &opTypeAndVal{skip_list.SkipListOpGet, val}
 	}
 }
 
@@ -93,9 +93,9 @@ func TestSkipListBench8_2(t *testing.T) {
 					}
 					for _, wk := range work {
 						switch wk.OpType {
-						case skip_list.SKIP_LIST_OP_REMOVE:
+						case skip_list.SkipListOpRemove:
 							sl.Remove(wk.Val, uint64(wk.Val.ToInteger()))
-						case skip_list.SKIP_LIST_OP_GET:
+						case skip_list.SkipListOpGet:
 							sl.GetValue(wk.Val)
 						default:
 							panic("illegal operation")
@@ -130,14 +130,14 @@ func genInitialSLAndWorkArr(dbName string) (*skip_list.SkipList, *workArray) {
 	wArray := NewWorkArray()
 
 	// insert initial values and fill work array
-	for ii := 0; ii < INITIAL_VAL_NUM; ii++ {
+	for ii := 0; ii < InitialValNum; ii++ {
 		tmpValBase := ii
 		tmpVal := samehada_util.GetPonterOfValue(types.NewInteger(int32(tmpValBase)))
 		sl.Insert(tmpVal, uint64(tmpValBase))
-		if ii%WORK_NUM == 0 {
+		if ii%WorkNum == 0 {
 			fmt.Printf("genInitialSLAndWorkArr: %d entries inserted.\n", ii)
 		}
-		if ii < WORK_NUM {
+		if ii < WorkNum {
 			wArray.Append(tmpVal)
 		}
 	}

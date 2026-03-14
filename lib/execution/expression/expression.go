@@ -12,12 +12,12 @@ import (
 type ExpressionType int
 
 const (
-	EXPRESSION_TYPE_INVALID ExpressionType = iota
-	EXPRESSION_TYPE_AGGREGATE_VALUE
-	EXPRESSION_TYPE_COMPARISON
-	EXPRESSION_TYPE_COLUMN_VALUE
-	EXPRESSION_TYPE_CONSTANT_VALUE
-	EXPRESSION_TYPE_LOGICAL_OP
+	ExpressionTypeInvalid ExpressionType = iota
+	ExpressionTypeAggregateValue
+	ExpressionTypeComparison
+	ExpressionTypeColumnValue
+	ExpressionTypeConstantValue
+	ExpressionTypeLogicalOp
 )
 
 /**

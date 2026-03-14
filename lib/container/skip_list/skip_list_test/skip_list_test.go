@@ -32,7 +32,7 @@ func TestSerializationOfSkipLisBlockPage(t *testing.T) {
 		Value: 0,
 	})
 
-	bpage.SetPageId(7)
+	bpage.SetPageID(7)
 	bpage.SetLSN(9)
 	bpage.SetEntryCnt(1)
 	bpage.SetLevel(4)
@@ -42,7 +42,7 @@ func TestSerializationOfSkipLisBlockPage(t *testing.T) {
 	// freeSpacePointer is decremented size of entry (1+2+7+8 => 18)
 	bpage.SetEntry(1, &index_common.IndexEntry{types.NewVarchar("abcdeff"), 12345})
 
-	testingpkg.SimpleAssert(t, bpage.GetPageId() == 7)
+	testingpkg.SimpleAssert(t, bpage.GetPageID() == 7)
 	testingpkg.SimpleAssert(t, bpage.GetLSN() == 9)
 	testingpkg.SimpleAssert(t, bpage.GetEntryCnt() == 2)
 	testingpkg.SimpleAssert(t, bpage.GetLevel() == 4)
@@ -67,14 +67,14 @@ func TestSerializationOfSkipLisHeaderPage(t *testing.T) {
 
 	hpage, _, _ := skip_list_page.NewSkipListHeaderPage(bpm, types.Integer)
 
-	hpage.SetPageId(7)
+	hpage.SetPageID(7)
 	hpage.SetLSN(7)
-	hpage.SetListStartPageId(7)
+	hpage.SetListStartPageID(7)
 	hpage.SetKeyType(types.Varchar)
 
-	testingpkg.SimpleAssert(t, hpage.GetPageId() == 7)
+	testingpkg.SimpleAssert(t, hpage.GetPageID() == 7)
 	testingpkg.SimpleAssert(t, hpage.GetLSN() == 7)
-	testingpkg.SimpleAssert(t, hpage.GetListStartPageId() == 7)
+	testingpkg.SimpleAssert(t, hpage.GetListStartPageID() == 7)
 	testingpkg.SimpleAssert(t, hpage.GetKeyType() == types.Varchar)
 
 	shi.Shutdown(samehada.ShutdownPatternCloseFiles)
@@ -126,7 +126,7 @@ func TestInnerInsertDeleteOfBlockPageSimple(t *testing.T) {
 	testingpkg.SimpleAssert(t, bpage1.GetEntry(1, types.Varchar).Key.CompareEquals(types.NewVarchar("abcdef")))
 	testingpkg.SimpleAssert(t, bpage1.GetEntry(2, types.Varchar).Key.CompareEquals(types.NewVarchar("abcdefgh")))
 
-	bpm.UnpinPage(bpage1.GetPageId(), true)
+	bpm.UnpinPage(bpage1.GetPageID(), true)
 
 	// ---------- test InsertInner --------
 	// setup a page
@@ -177,7 +177,7 @@ func TestInnerInsertDeleteOfBlockPageSimple(t *testing.T) {
 	entry = bpage2.GetEntry(5, types.Varchar)
 	testingpkg.SimpleAssert(t, entry.Key.CompareEquals(types.NewVarchar("abcdeff")))
 
-	bpm.UnpinPage(bpage2.GetPageId(), true)
+	bpm.UnpinPage(bpage2.GetPageID(), true)
 
 	shi.Shutdown(samehada.ShutdownPatternCloseFiles)
 }
@@ -368,7 +368,7 @@ func TestSkipListInsertAndDeleteAll(t *testing.T) {
 	// Insert entries
 	insCnt := 0
 	for _, insVal := range insVals {
-		common.ShPrintf(common.DEBUG_INFO, "insCnt: %d\n", insCnt)
+		common.ShPrintf(common.DebugInfo, "insCnt: %d\n", insCnt)
 		insCnt++
 		sl.Insert(samehada_util.GetPonterOfValue(types.NewInteger(int32(insVal))), uint64(insVal))
 	}
@@ -390,12 +390,12 @@ func TestSkipListInsertAndDeleteAll(t *testing.T) {
 	for i := (5000 - 1); i >= 0; i-- {
 		// delete
 		isDeleted := sl.Remove(samehada_util.GetPonterOfValue(types.NewInteger(int32(i*11))), uint64(i*11))
-		common.ShPrintf(common.DEBUG_INFO, "i=%d i*11=%d\n", i, i*11)
+		common.ShPrintf(common.DebugInfo, "i=%d i*11=%d\n", i, i*11)
 		testingpkg.SimpleAssert(t, isDeleted == true)
 
 		// check no existance after delete
 		res := sl.GetValue(samehada_util.GetPonterOfValue(types.NewInteger(int32(i * 11))))
-		common.ShPrintf(common.DEBUG_INFO, "i=%d i*11=%d res=%d\n", i, i*11, res)
+		common.ShPrintf(common.DebugInfo, "i=%d i*11=%d res=%d\n", i, i*11, res)
 		testingpkg.SimpleAssert(t, math.MaxUint64 == res)
 	}
 
@@ -424,12 +424,12 @@ func TestSkipListInsertAndDeleteAll(t *testing.T) {
 	for i := 0; i < 5000; i++ {
 		// delete
 		isDeleted := sl.Remove(samehada_util.GetPonterOfValue(types.NewInteger(int32(i*11))), uint64(i*11))
-		common.ShPrintf(common.DEBUG_INFO, "i=%d i*11=%d\n", i, i*11)
+		common.ShPrintf(common.DebugInfo, "i=%d i*11=%d\n", i, i*11)
 		testingpkg.SimpleAssert(t, isDeleted == true)
 
 		// check no existance after delete
 		res := sl.GetValue(samehada_util.GetPonterOfValue(types.NewInteger(int32(i * 11))))
-		common.ShPrintf(common.DEBUG_INFO, "i=%d i*11=%d res=%d\n", i, i*11, res)
+		common.ShPrintf(common.DebugInfo, "i=%d i*11=%d res=%d\n", i, i*11, res)
 		testingpkg.SimpleAssert(t, math.MaxUint64 == res)
 	}
 
@@ -593,7 +593,7 @@ func removeRandom[T int32 | float32 | string](t *testing.T, sl *skip_list.SkipLi
 }
 
 func testSkipListMix[T int32 | float32 | string](t *testing.T, keyType types.TypeID, bulkSize int32, opTimes int32, skipRand int32, initialEntryNum int32, isFuzz bool) {
-	common.ShPrintf(common.DEBUG_INFO, "start of testSkipListMix bulkSize=%d opTimes=%d skipRand=%d initialEntryNum=%d ====================================================\n",
+	common.ShPrintf(common.DebugInfo, "start of testSkipListMix bulkSize=%d opTimes=%d skipRand=%d initialEntryNum=%d ====================================================\n",
 		bulkSize, opTimes, skipRand, initialEntryNum)
 
 	var startTime int64
@@ -725,7 +725,7 @@ func testSkipListMix[T int32 | float32 | string](t *testing.T, keyType types.Typ
 }
 
 func testSkipListMixParallel[T int32 | float32 | string](t *testing.T, keyType types.TypeID, opTimes int32, skipRand int32, initialEntryNum int32) {
-	common.ShPrintf(common.DEBUG_INFO, "start of testSkipListMix opTimes=%d skipRand=%d initialEntryNum=%d ====================================================\n",
+	common.ShPrintf(common.DebugInfo, "start of testSkipListMix opTimes=%d skipRand=%d initialEntryNum=%d ====================================================\n",
 		opTimes, skipRand, initialEntryNum)
 
 	if !common.EnableOnMemStorage {
@@ -840,7 +840,7 @@ func testSkipListMixParallel[T int32 | float32 | string](t *testing.T, keyType t
 					removedValsMutex.RUnlock()
 					common.ShPrintf(common.DEBUGGING, "Remove(fail) op start.")
 					isDeleted := sl.Remove(samehada_util.GetPonterOfValue(types.NewValue(tmpVal)), samehada_util.GetValueForSkipListEntry(tmpVal))
-					common.SH_Assert(isDeleted == false, "delete should be fail!")
+					common.SHAssert(isDeleted == false, "delete should be fail!")
 					ch <- 1
 				}()
 			} else {
@@ -910,7 +910,7 @@ func testSkipListMixParallel[T int32 | float32 | string](t *testing.T, keyType t
 }
 
 func testSkipListMixParallelBulk[T int32 | float32 | string](t *testing.T, keyType types.TypeID, bulkSize int32, opTimes int32, skipRand int32, initialEntryNum int32) {
-	common.ShPrintf(common.DEBUG_INFO, "start of testSkipListMix opTimes=%d skipRand=%d initialEntryNum=%d ====================================================\n",
+	common.ShPrintf(common.DebugInfo, "start of testSkipListMix opTimes=%d skipRand=%d initialEntryNum=%d ====================================================\n",
 		opTimes, skipRand, initialEntryNum)
 
 	if !common.EnableOnMemStorage {
@@ -1028,7 +1028,7 @@ func testSkipListMixParallelBulk[T int32 | float32 | string](t *testing.T, keyTy
 						removedValsMutex.RUnlock()
 						common.ShPrintf(common.DEBUGGING, "Remove(fail) op start.")
 						isDeleted := sl.Remove(samehada_util.GetPonterOfValue(types.NewValue(tmpVal)), samehada_util.GetValueForSkipListEntry(tmpVal))
-						common.SH_Assert(isDeleted == false, "delete should be fail!")
+						common.SHAssert(isDeleted == false, "delete should be fail!")
 						ch <- 1
 					}
 				}()
@@ -1103,7 +1103,7 @@ func testSkipListMixParallelBulk[T int32 | float32 | string](t *testing.T, keyTy
 }
 
 func testSkipListMixParallelStride[T int32 | float32 | string](t *testing.T, keyType types.TypeID, stride int32, opTimes int32, seedVal int32, initialEntryNum int32, bpoolSize int32) {
-	common.ShPrintf(common.DEBUG_INFO, "start of testSkipListMixParallelStride stride=%d opTimes=%d seedVal=%d initialEntryNum=%d ====================================================\n",
+	common.ShPrintf(common.DebugInfo, "start of testSkipListMixParallelStride stride=%d opTimes=%d seedVal=%d initialEntryNum=%d ====================================================\n",
 		stride, opTimes, seedVal, initialEntryNum)
 
 	if !common.EnableOnMemStorage {
@@ -1111,7 +1111,7 @@ func testSkipListMixParallelStride[T int32 | float32 | string](t *testing.T, key
 		os.Remove(t.Name() + ".log")
 	}
 
-	const THREAD_NUM = 20
+	const ThreadNum = 20
 
 	shi := samehada.NewSamehadaInstance(t.Name(), int(bpoolSize))
 	bpm := shi.GetBufferPoolManager()
@@ -1168,8 +1168,8 @@ func testSkipListMixParallelStride[T int32 | float32 | string](t *testing.T, key
 			break
 		}
 
-		// wait for keeping THREAD_NUM groroutine existing
-		for runningThCnt >= THREAD_NUM {
+		// wait for keeping ThreadNum groroutine existing
+		for runningThCnt >= ThreadNum {
 			<-ch
 			runningThCnt--
 
@@ -1228,7 +1228,7 @@ func testSkipListMixParallelStride[T int32 | float32 | string](t *testing.T, key
 
 						common.ShPrintf(common.DEBUGGING, "Remove(fail) op start.")
 						isDeleted := sl.Remove(samehada_util.GetPonterOfValue(types.NewValue(delVal)), samehada_util.GetValueForSkipListEntry(delVal))
-						common.SH_Assert(isDeleted == false, "delete should be fail!")
+						common.SHAssert(isDeleted == false, "delete should be fail!")
 					}
 					ch <- 1
 				}()
@@ -1321,7 +1321,7 @@ func testSkipListMixParallelStride[T int32 | float32 | string](t *testing.T, key
 }
 
 func testSkipListMixParallelStrideAddedIterator[T int32 | float32 | string](t *testing.T, keyType types.TypeID, stride int32, opTimes int32, seedVal int32, initialEntryNum int32, bpoolSize int32) {
-	common.ShPrintf(common.DEBUG_INFO, "start of testSkipListMixParallelStride stride=%d opTimes=%d seedVal=%d initialEntryNum=%d ====================================================\n",
+	common.ShPrintf(common.DebugInfo, "start of testSkipListMixParallelStride stride=%d opTimes=%d seedVal=%d initialEntryNum=%d ====================================================\n",
 		stride, opTimes, seedVal, initialEntryNum)
 
 	if !common.EnableOnMemStorage {
@@ -1329,7 +1329,7 @@ func testSkipListMixParallelStrideAddedIterator[T int32 | float32 | string](t *t
 		os.Remove(t.Name() + ".log")
 	}
 
-	const THREAD_NUM = 20
+	const ThreadNum = 20
 
 	shi := samehada.NewSamehadaInstance(t.Name(), int(bpoolSize))
 
@@ -1387,8 +1387,8 @@ func testSkipListMixParallelStrideAddedIterator[T int32 | float32 | string](t *t
 			break
 		}
 
-		// wait for keeping THREAD_NUM groroutine existing
-		for runningThCnt >= THREAD_NUM {
+		// wait for keeping ThreadNum groroutine existing
+		for runningThCnt >= ThreadNum {
 			<-ch
 			runningThCnt--
 
@@ -1445,7 +1445,7 @@ func testSkipListMixParallelStrideAddedIterator[T int32 | float32 | string](t *t
 
 						common.ShPrintf(common.DEBUGGING, "Remove(fail) op start.")
 						isDeleted := sl.Remove(samehada_util.GetPonterOfValue(types.NewValue(delVal)), samehada_util.GetValueForSkipListEntry(delVal))
-						common.SH_Assert(isDeleted == false, "delete should be fail!")
+						common.SHAssert(isDeleted == false, "delete should be fail!")
 					}
 					ch <- 1
 				}()
@@ -1775,7 +1775,7 @@ func TestSkipListMixParallsStrideVarcharLikeFuzzer(t *testing.T) {
 
 	runtime.GOMAXPROCS(50)
 
-	const THREAD_NUM = 15
+	const ThreadNum = 15
 
 	startTime := time.Now()
 
@@ -1783,8 +1783,8 @@ func TestSkipListMixParallsStrideVarcharLikeFuzzer(t *testing.T) {
 	finishedCase := 0
 	runningThCnt := 0
 	for {
-		// wait for keeping THREAD_NUM groroutine existing
-		for runningThCnt >= THREAD_NUM {
+		// wait for keeping ThreadNum groroutine existing
+		for runningThCnt >= ThreadNum {
 			//for runningThCnt > 0 { // serial execution
 			<-ch
 			runningThCnt--

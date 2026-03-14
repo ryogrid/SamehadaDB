@@ -11,32 +11,32 @@ import "github.com/ryogrid/SamehadaDB/lib/types"
  *
  * Header format (size in byte, 12 bytes in total):
  * ----------------------------------------------------------------------
- * |  PageId(4) | NextBlockIndex(4) | Size (4) | BlockPageIds (4) x 1020
+ * |  PageID(4) | NextBlockIndex(4) | Size (4) | BlockPageIDs (4) x 1020
  * ----------------------------------------------------------------------
  * all Page content size: 12 + 8 * 1020 = 4096
  */
 type HashTableHeaderPage struct {
-	pageId types.PageID
+	pageID types.PageID
 	//lsn          int    // log sequence number
-	nextIndex    uint64 // the next index to add a new entry to blockPageIds
+	nextIndex    uint64 // the next index to add a new entry to blockPageIDs
 	size         int    // the number of key/value pairs the hash table can hold
-	blockPageIds [1020]types.PageID
+	blockPageIDs [1020]types.PageID
 }
 
-func (page *HashTableHeaderPage) GetBlockPageId(index uint64) types.PageID {
-	return page.blockPageIds[index]
+func (page *HashTableHeaderPage) GetBlockPageID(index uint64) types.PageID {
+	return page.blockPageIDs[index]
 }
 
-func (page *HashTableHeaderPage) GetPageId() types.PageID {
-	return page.pageId
+func (page *HashTableHeaderPage) GetPageID() types.PageID {
+	return page.pageID
 }
 
-func (page *HashTableHeaderPage) SetPageId(pageId types.PageID) {
-	page.pageId = pageId
+func (page *HashTableHeaderPage) SetPageID(pageID types.PageID) {
+	page.pageID = pageID
 }
 
-func (page *HashTableHeaderPage) AddBlockPageId(pageId types.PageID) {
-	page.blockPageIds[page.nextIndex] = pageId
+func (page *HashTableHeaderPage) AddBlockPageID(pageID types.PageID) {
+	page.blockPageIDs[page.nextIndex] = pageID
 	page.nextIndex++
 }
 

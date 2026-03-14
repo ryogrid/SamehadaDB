@@ -18,10 +18,10 @@ type HashJoinPlanNode struct {
 	/** The hash join predicate. */
 	onPredicate expression.Expression
 	/** The left child's hash keys. */
-	left_hash_keys []expression.Expression
+	leftHashKeys []expression.Expression
 	/** The right child's hash keys. */
-	right_hash_keys []expression.Expression
-	stats_          *catalog.TableStatistics
+	rightHashKeys []expression.Expression
+	stats          *catalog.TableStatistics
 }
 
 func GenHashJoinStats(leftPlan Plan, rightPlan Plan) *catalog.TableStatistics {
@@ -30,24 +30,24 @@ func GenHashJoinStats(leftPlan Plan, rightPlan Plan) *catalog.TableStatistics {
 	return leftStats
 }
 
-func NewHashJoinPlanNode(output_schema *schema.Schema, children []Plan,
-	onPredicate expression.Expression, left_hash_keys []expression.Expression,
-	right_hash_keys []expression.Expression) *HashJoinPlanNode {
-	return &HashJoinPlanNode{&AbstractPlanNode{output_schema, children}, onPredicate, left_hash_keys, right_hash_keys, GenHashJoinStats(children[0], children[1])}
+func NewHashJoinPlanNode(outputSchema *schema.Schema, children []Plan,
+	onPredicate expression.Expression, leftHashKeys []expression.Expression,
+	rightHashKeys []expression.Expression) *HashJoinPlanNode {
+	return &HashJoinPlanNode{&AbstractPlanNode{outputSchema, children}, onPredicate, leftHashKeys, rightHashKeys, GenHashJoinStats(children[0], children[1])}
 }
 
-func NewHashJoinPlanNodeWithChilds(left_child Plan, left_hash_keys []expression.Expression, right_child Plan, right_hash_keys []expression.Expression) *HashJoinPlanNode {
-	if left_hash_keys == nil || right_hash_keys == nil {
+func NewHashJoinPlanNodeWithChilds(leftChild Plan, leftHashKeys []expression.Expression, rightChild Plan, rightHashKeys []expression.Expression) *HashJoinPlanNode {
+	if leftHashKeys == nil || rightHashKeys == nil {
 		panic("NewHashJoinPlanNodeWithChilds needs keys info.")
 	}
-	if len(left_hash_keys) != 1 || len(right_hash_keys) != 1 {
+	if len(leftHashKeys) != 1 || len(rightHashKeys) != 1 {
 		panic("NewHashJoinPlanNodeWithChilds supports only one key for left and right now.")
 	}
 	// one key pair only used on join even if multiple key pairs are passed
-	onPredicate := constructOnExpressionFromKeysInfo(left_hash_keys, right_hash_keys)
-	output_schema := makeMergedOutputSchema(left_child.OutputSchema(), right_child.OutputSchema())
+	onPredicate := constructOnExpressionFromKeysInfo(leftHashKeys, rightHashKeys)
+	outputSchema := makeMergedOutputSchema(leftChild.OutputSchema(), rightChild.OutputSchema())
 
-	return &HashJoinPlanNode{&AbstractPlanNode{output_schema, []Plan{left_child, right_child}}, onPredicate, left_hash_keys, right_hash_keys, GenHashJoinStats(left_child, right_child)}
+	return &HashJoinPlanNode{&AbstractPlanNode{outputSchema, []Plan{leftChild, rightChild}}, onPredicate, leftHashKeys, rightHashKeys, GenHashJoinStats(leftChild, rightChild)}
 }
 func (p *HashJoinPlanNode) GetType() PlanType { return HashJoin }
 
@@ -56,31 +56,31 @@ func (p *HashJoinPlanNode) OnPredicate() expression.Expression { return p.onPred
 
 /** @return the left plan node of the hash join, by convention this is used to build the table */
 func (p *HashJoinPlanNode) GetLeftPlan() Plan {
-	common.SH_Assert(len(p.GetChildren()) == 2, "Hash joins should have exactly two children plans.")
+	common.SHAssert(len(p.GetChildren()) == 2, "Hash joins should have exactly two children plans.")
 	return p.GetChildAt(0)
 }
 
 /** @return the right plan node of the hash join */
 func (p *HashJoinPlanNode) GetRightPlan() Plan {
-	common.SH_Assert(len(p.GetChildren()) == 2, "Hash joins should have exactly two children plans.")
+	common.SHAssert(len(p.GetChildren()) == 2, "Hash joins should have exactly two children plans.")
 	return p.GetChildAt(1)
 }
 
 /** @return the left key at the given index */
 func (p *HashJoinPlanNode) GetLeftKeyAt(idx uint32) expression.Expression {
-	return p.left_hash_keys[idx]
+	return p.leftHashKeys[idx]
 }
 
 /** @return the left keys */
-func (p *HashJoinPlanNode) GetLeftKeys() []expression.Expression { return p.left_hash_keys }
+func (p *HashJoinPlanNode) GetLeftKeys() []expression.Expression { return p.leftHashKeys }
 
 /** @return the right key at the given index */
 func (p *HashJoinPlanNode) GetRightKeyAt(idx uint32) expression.Expression {
-	return p.right_hash_keys[idx]
+	return p.rightHashKeys[idx]
 }
 
 /** @return the right keys */
-func (p *HashJoinPlanNode) GetRightKeys() []expression.Expression { return p.right_hash_keys }
+func (p *HashJoinPlanNode) GetRightKeys() []expression.Expression { return p.rightHashKeys }
 
 // can not be used
 func (p *HashJoinPlanNode) GetTableOID() uint32 {
@@ -101,7 +101,7 @@ func (p *HashJoinPlanNode) GetDebugStr() string {
 }
 
 func (p *HashJoinPlanNode) GetStatistics() *catalog.TableStatistics {
-	return p.stats_
+	return p.stats
 }
 
 func (p *HashJoinPlanNode) EmitRowCount(c *catalog.Catalog) uint64 {

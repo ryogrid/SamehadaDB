@@ -36,13 +36,13 @@ type SetupTableMeta struct {
 	ColValGenFuncs []ColValGenFunc
 }
 
-func SetupTableWithMetadata(exec_ctx *executors.ExecutorContext, tableMeta *SetupTableMeta) *catalog.TableMetadata {
-	c := exec_ctx.GetCatalog()
-	txn := exec_ctx.GetTransaction()
+func SetupTableWithMetadata(execCtx *executors.ExecutorContext, tableMeta *SetupTableMeta) *catalog.TableMetadata {
+	c := execCtx.GetCatalog()
+	txn := execCtx.GetTransaction()
 
 	cols := make([]*column.Column, 0)
 	for _, colMeta := range tableMeta.Columns {
-		if colMeta.IdxKind != index_constants.INDEX_KIND_INVALID {
+		if colMeta.IdxKind != index_constants.IndexKindInvalid {
 			col := column.NewColumn(colMeta.Name, colMeta.ColumnType, true, colMeta.IdxKind, types.PageID(-1), nil)
 			cols = append(cols, col)
 		} else {
@@ -50,19 +50,19 @@ func SetupTableWithMetadata(exec_ctx *executors.ExecutorContext, tableMeta *Setu
 			cols = append(cols, col)
 		}
 	}
-	schema_ := schema.NewSchema(cols)
-	tm := c.CreateTable(tableMeta.TableName, schema_, txn)
+	sc := schema.NewSchema(cols)
+	tm := c.CreateTable(tableMeta.TableName, sc, txn)
 
 	for ii := 0; ii < int(tableMeta.EntriesNum); ii++ {
 		vals := make([]types.Value, 0)
 		for _, genFunc := range tableMeta.ColValGenFuncs {
 			vals = append(vals, types.NewValue(genFunc(ii)))
 		}
-		tuple_ := tuple.NewTupleFromSchema(vals, schema_)
-		rid, _ := tm.Table().InsertTuple(tuple_, txn, tm.OID(), false)
+		tpl := tuple.NewTupleFromSchema(vals, sc)
+		rid, _ := tm.Table().InsertTuple(tpl, txn, tm.OID(), false)
 		for jj, colMeta := range tableMeta.Columns {
-			if colMeta.IdxKind != index_constants.INDEX_KIND_INVALID {
-				tm.GetIndex(jj).InsertEntry(tuple_, *rid, txn)
+			if colMeta.IdxKind != index_constants.IndexKindInvalid {
+				tm.GetIndex(jj).InsertEntry(tpl, *rid, txn)
 			}
 		}
 	}
@@ -70,14 +70,14 @@ func SetupTableWithMetadata(exec_ctx *executors.ExecutorContext, tableMeta *Setu
 	return tm
 }
 
-func setupTablesAndStatisticsData(exec_ctx *executors.ExecutorContext) (*catalog.TableMetadata, *catalog.TableMetadata, *catalog.TableMetadata, *catalog.TableMetadata) {
+func setupTablesAndStatisticsData(execCtx *executors.ExecutorContext) (*catalog.TableMetadata, *catalog.TableMetadata, *catalog.TableMetadata, *catalog.TableMetadata) {
 	Sc1Meta := &SetupTableMeta{
 		"Sc1",
 		100,
 		[]*ColumnMeta{
-			{"c1", types.Integer, index_constants.INDEX_KIND_INVALID},
-			{"c2", types.Varchar, index_constants.INDEX_KIND_SKIP_LIST},
-			{"c3", types.Float, index_constants.INDEX_KIND_INVALID},
+			{"c1", types.Integer, index_constants.IndexKindInvalid},
+			{"c2", types.Varchar, index_constants.IndexKindSkipList},
+			{"c3", types.Float, index_constants.IndexKindInvalid},
 		},
 		[]ColValGenFunc{
 			func(idx int) interface{} { return int32(idx) },
@@ -85,16 +85,16 @@ func setupTablesAndStatisticsData(exec_ctx *executors.ExecutorContext) (*catalog
 			func(idx int) interface{} { return float32(idx) + 9.9 },
 		},
 	}
-	tm1 := SetupTableWithMetadata(exec_ctx, Sc1Meta)
+	tm1 := SetupTableWithMetadata(execCtx, Sc1Meta)
 
 	Sc2Meta := &SetupTableMeta{
 		"Sc2",
 		200,
 		[]*ColumnMeta{
-			{"d1", types.Integer, index_constants.INDEX_KIND_INVALID},
-			{"d2", types.Float, index_constants.INDEX_KIND_INVALID},
-			{"d3", types.Varchar, index_constants.INDEX_KIND_SKIP_LIST},
-			{"d4", types.Integer, index_constants.INDEX_KIND_INVALID},
+			{"d1", types.Integer, index_constants.IndexKindInvalid},
+			{"d2", types.Float, index_constants.IndexKindInvalid},
+			{"d3", types.Varchar, index_constants.IndexKindSkipList},
+			{"d4", types.Integer, index_constants.IndexKindInvalid},
 		},
 		[]ColValGenFunc{
 			func(idx int) interface{} { return int32(idx) },
@@ -103,29 +103,29 @@ func setupTablesAndStatisticsData(exec_ctx *executors.ExecutorContext) (*catalog
 			func(idx int) interface{} { return int32(16) },
 		},
 	}
-	tm2 := SetupTableWithMetadata(exec_ctx, Sc2Meta)
+	tm2 := SetupTableWithMetadata(execCtx, Sc2Meta)
 
 	Sc3Meta := &SetupTableMeta{
 		"Sc3",
 		20,
 		[]*ColumnMeta{
-			{"e1", types.Integer, index_constants.INDEX_KIND_INVALID},
-			{"e2", types.Float, index_constants.INDEX_KIND_INVALID},
+			{"e1", types.Integer, index_constants.IndexKindInvalid},
+			{"e2", types.Float, index_constants.IndexKindInvalid},
 		},
 		[]ColValGenFunc{
 			func(idx int) interface{} { return int32(idx + 1) },
 			func(idx int) interface{} { return float32(idx+1) + 53.4 },
 		},
 	}
-	tm3 := SetupTableWithMetadata(exec_ctx, Sc3Meta)
+	tm3 := SetupTableWithMetadata(execCtx, Sc3Meta)
 
 	Sc4Meta := &SetupTableMeta{
 		"Sc4",
 		100,
 		[]*ColumnMeta{
-			{"c1", types.Integer, index_constants.INDEX_KIND_INVALID},
-			{"c2", types.Varchar, index_constants.INDEX_KIND_SKIP_LIST},
-			{"c3", types.Integer, index_constants.INDEX_KIND_SKIP_LIST},
+			{"c1", types.Integer, index_constants.IndexKindInvalid},
+			{"c2", types.Varchar, index_constants.IndexKindSkipList},
+			{"c3", types.Integer, index_constants.IndexKindSkipList},
 		},
 		[]ColValGenFunc{
 			func(idx int) interface{} { return int32(idx + 1) },
@@ -133,9 +133,9 @@ func setupTablesAndStatisticsData(exec_ctx *executors.ExecutorContext) (*catalog
 			func(idx int) interface{} { return int32(idx) },
 		},
 	}
-	tm4 := SetupTableWithMetadata(exec_ctx, Sc4Meta)
+	tm4 := SetupTableWithMetadata(execCtx, Sc4Meta)
 
-	txn := exec_ctx.GetTransaction()
+	txn := execCtx.GetTransaction()
 
 	stat1 := tm1.GetStatistics()
 	stat1.Update(tm1, txn)
@@ -155,33 +155,33 @@ func setupTablesAndStatisticsData(exec_ctx *executors.ExecutorContext) (*catalog
 func TestSetupedTableAndStatistcsContents(t *testing.T) {
 	diskManager := disk.NewDiskManagerTest()
 	defer diskManager.ShutDown()
-	log_mgr := recovery.NewLogManager(&diskManager)
-	log_mgr.ActivateLogging()
-	testingpkg.Assert(t, log_mgr.IsEnabledLogging(), "")
+	logMgr := recovery.NewLogManager(&diskManager)
+	logMgr.ActivateLogging()
+	testingpkg.Assert(t, logMgr.IsEnabledLogging(), "")
 	fmt.Println("System logging is active.")
-	bpm := buffer.NewBufferPoolManager(common.BufferPoolMaxFrameNumForTest, diskManager, log_mgr) //, recovery.NewLogManager(diskManager), access.NewLockManager(access.REGULAR, access.PREVENTION))
-	lock_mgr := access.NewLockManager(access.REGULAR, access.DETECTION)
-	txn_mgr := access.NewTransactionManager(lock_mgr, log_mgr)
+	bpm := buffer.NewBufferPoolManager(common.BufferPoolMaxFrameNumForTest, diskManager, logMgr) //, recovery.NewLogManager(diskManager), access.NewLockManager(access.REGULAR, access.PREVENTION))
+	lockMgr := access.NewLockManager(access.REGULAR, access.DETECTION)
+	txnMgr := access.NewTransactionManager(lockMgr, logMgr)
 
-	txn := txn_mgr.Begin(nil)
-	c := catalog.BootstrapCatalog(bpm, log_mgr, lock_mgr, txn)
-	exec_ctx := executors.NewExecutorContext(c, bpm, txn)
+	txn := txnMgr.Begin(nil)
+	c := catalog.BootstrapCatalog(bpm, logMgr, lockMgr, txn)
+	execCtx := executors.NewExecutorContext(c, bpm, txn)
 
-	tm1, tm2, tm3, tm4 := setupTablesAndStatisticsData(exec_ctx)
-	txn_mgr.Commit(c, txn)
+	tm1, tm2, tm3, tm4 := setupTablesAndStatisticsData(execCtx)
+	txnMgr.Commit(c, txn)
 
-	txn = txn_mgr.Begin(nil)
+	txn = txnMgr.Begin(nil)
 
 	// Sc1
 	it := tm1.Table().Iterator(txn)
 	rows := 0
-	schema_ := tm1.Schema()
-	for tuple_ := it.Current(); !it.End(); tuple_ = it.Next() {
-		colVal1 := tuple_.GetValue(schema_, uint32(0))
+	sc := tm1.Schema()
+	for tpl := it.Current(); !it.End(); tpl = it.Next() {
+		colVal1 := tpl.GetValue(sc, uint32(0))
 		testingpkg.Assert(t, colVal1.ToInteger() == int32(rows), "colVal1.ToInteger() != int32(rows)")
-		colVal2 := tuple_.GetValue(schema_, uint32(1))
+		colVal2 := tpl.GetValue(sc, uint32(1))
 		testingpkg.Assert(t, colVal2.ToVarchar() == "c2-"+strconv.Itoa(rows), "colVal2.ToVarchar() != 'c2-' + strconv.Itoa(rows)")
-		colVal3 := tuple_.GetValue(schema_, uint32(2))
+		colVal3 := tpl.GetValue(sc, uint32(2))
 		testingpkg.Assert(t, colVal3.ToFloat() == float32(rows)+9.9, "colVal3.ToFloat() != float32(rows) + 9.9")
 		rows++
 	}
@@ -204,42 +204,42 @@ func TestSetupedTableAndStatistcsContents(t *testing.T) {
 
 	// Sc1 table only check ReductionFactor
 	predStr := "Sc1.c1 = 1"
-	testingpkg.Assert(t, stat1.ReductionFactor(schema_, parser.GetPredicateExprFromStr(schema_, &predStr)) == 100, "stat1.ReductionFactor(schema_, parser.GetPredicateExprFromStr(schema_, &predStr)) != 100")
+	testingpkg.Assert(t, stat1.ReductionFactor(sc, parser.GetPredicateExprFromStr(sc, &predStr)) == 100, "stat1.ReductionFactor(sc, parser.GetPredicateExprFromStr(sc, &predStr)) != 100")
 	predStr = "'a' = Sc1.c2"
-	testingpkg.Assert(t, stat1.ReductionFactor(schema_, parser.GetPredicateExprFromStr(schema_, &predStr)) == 100, "stat1.ReductionFactor(schema_, parser.GetPredicateExprFromStr(schema_, &predStr)) != 100")
+	testingpkg.Assert(t, stat1.ReductionFactor(sc, parser.GetPredicateExprFromStr(sc, &predStr)) == 100, "stat1.ReductionFactor(sc, parser.GetPredicateExprFromStr(sc, &predStr)) != 100")
 	predStr = "Sc1.c3 = 1.1"
-	testingpkg.Assert(t, stat1.ReductionFactor(schema_, parser.GetPredicateExprFromStr(schema_, &predStr)) == 100, "stat1.ReductionFactor(schema_, parser.GetPredicateExprFromStr(schema_, &predStr)) != 100")
+	testingpkg.Assert(t, stat1.ReductionFactor(sc, parser.GetPredicateExprFromStr(sc, &predStr)) == 100, "stat1.ReductionFactor(sc, parser.GetPredicateExprFromStr(sc, &predStr)) != 100")
 	predStr = "Sc1.c1 = 1 and Sc1.c2 = 'a' and Sc1.c3 = 1.1"
-	testingpkg.Assert(t, stat1.ReductionFactor(schema_, parser.GetPredicateExprFromStr(schema_, &predStr)) == 100*100*100, "stat1.ReductionFactor(schema_, parser.GetPredicateExprFromStr(schema_, &predStr)) != 100*100*100")
+	testingpkg.Assert(t, stat1.ReductionFactor(sc, parser.GetPredicateExprFromStr(sc, &predStr)) == 100*100*100, "stat1.ReductionFactor(sc, parser.GetPredicateExprFromStr(sc, &predStr)) != 100*100*100")
 
 	// test TableStatistics::GetDeepCopy method here
-	stat1_2 := stat1.GetDeepCopy()
-	testingpkg.Assert(t, stat1_2.Rows() == 100, "stat1_2.Rows() != 100")
-	testingpkg.Assert(t, stat1_2.ColumnNum() == 3, "stat1_2.ColumnNum() != 3")
-	testingpkg.Assert(t, stat1_2.EstimateCount(0, types.NewInteger(0).SetInfMin(), types.NewInteger(0).SetInfMax()) == 100, "EstimateCount should be 99.")
-	testingpkg.Assert(t, stat1_2.EstimateCount(1, types.NewVarchar("").SetInfMin(), types.NewVarchar("").SetInfMax()) == 2, "EstimateCount should be 2.")
-	testingpkg.Assert(t, stat1_2.EstimateCount(2, types.NewFloat(0).SetInfMin(), types.NewFloat(0).SetInfMax()) == 100, "EstimateCount should be 99.")
+	stat1Copy := stat1.GetDeepCopy()
+	testingpkg.Assert(t, stat1Copy.Rows() == 100, "stat1Copy.Rows() != 100")
+	testingpkg.Assert(t, stat1Copy.ColumnNum() == 3, "stat1Copy.ColumnNum() != 3")
+	testingpkg.Assert(t, stat1Copy.EstimateCount(0, types.NewInteger(0).SetInfMin(), types.NewInteger(0).SetInfMax()) == 100, "EstimateCount should be 99.")
+	testingpkg.Assert(t, stat1Copy.EstimateCount(1, types.NewVarchar("").SetInfMin(), types.NewVarchar("").SetInfMax()) == 2, "EstimateCount should be 2.")
+	testingpkg.Assert(t, stat1Copy.EstimateCount(2, types.NewFloat(0).SetInfMin(), types.NewFloat(0).SetInfMax()) == 100, "EstimateCount should be 99.")
 	predStr = "Sc1.c1 = 1"
-	testingpkg.Assert(t, stat1_2.ReductionFactor(schema_, parser.GetPredicateExprFromStr(schema_, &predStr)) == 100, "stat1_2.ReductionFactor(schema_, parser.GetPredicateExprFromStr(schema_, &predStr)) != 100")
+	testingpkg.Assert(t, stat1Copy.ReductionFactor(sc, parser.GetPredicateExprFromStr(sc, &predStr)) == 100, "stat1Copy.ReductionFactor(sc, parser.GetPredicateExprFromStr(sc, &predStr)) != 100")
 	predStr = "'a' = Sc1.c2"
-	testingpkg.Assert(t, stat1_2.ReductionFactor(schema_, parser.GetPredicateExprFromStr(schema_, &predStr)) == 100, "stat1_2.ReductionFactor(schema_, parser.GetPredicateExprFromStr(schema_, &predStr)) != 100")
+	testingpkg.Assert(t, stat1Copy.ReductionFactor(sc, parser.GetPredicateExprFromStr(sc, &predStr)) == 100, "stat1Copy.ReductionFactor(sc, parser.GetPredicateExprFromStr(sc, &predStr)) != 100")
 	predStr = "Sc1.c3 = 1.1"
-	testingpkg.Assert(t, stat1_2.ReductionFactor(schema_, parser.GetPredicateExprFromStr(schema_, &predStr)) == 100, "stat1_2.ReductionFactor(schema_, parser.GetPredicateExprFromStr(schema_, &predStr)) != 100")
+	testingpkg.Assert(t, stat1Copy.ReductionFactor(sc, parser.GetPredicateExprFromStr(sc, &predStr)) == 100, "stat1Copy.ReductionFactor(sc, parser.GetPredicateExprFromStr(sc, &predStr)) != 100")
 	predStr = "Sc1.c1 = 1 and Sc1.c2 = 'a' and Sc1.c3 = 1.1"
-	testingpkg.Assert(t, stat1_2.ReductionFactor(schema_, parser.GetPredicateExprFromStr(schema_, &predStr)) == 100*100*100, "stat1_2.ReductionFactor(schema_, parser.GetPredicateExprFromStr(schema_, &predStr)) != 100*100*100")
+	testingpkg.Assert(t, stat1Copy.ReductionFactor(sc, parser.GetPredicateExprFromStr(sc, &predStr)) == 100*100*100, "stat1Copy.ReductionFactor(sc, parser.GetPredicateExprFromStr(sc, &predStr)) != 100*100*100")
 
 	// Sc2
 	it = tm2.Table().Iterator(txn)
 	rows = 0
-	schema_ = tm2.Schema()
-	for tuple_ := it.Current(); !it.End(); tuple_ = it.Next() {
-		colVal1 := tuple_.GetValue(schema_, uint32(0))
+	sc = tm2.Schema()
+	for tpl := it.Current(); !it.End(); tpl = it.Next() {
+		colVal1 := tpl.GetValue(sc, uint32(0))
 		testingpkg.Assert(t, colVal1.ToInteger() == int32(rows), "colVal1.ToInteger() != int32(rows)")
-		colVal2 := tuple_.GetValue(schema_, uint32(1))
+		colVal2 := tpl.GetValue(sc, uint32(1))
 		testingpkg.Assert(t, colVal2.ToFloat() == float32(rows)+0.2, "colVal2.ToFloat() != float32(rows) + 0.2")
-		colVal3 := tuple_.GetValue(schema_, uint32(2))
+		colVal3 := tpl.GetValue(sc, uint32(2))
 		testingpkg.Assert(t, colVal3.ToVarchar() == "d3-"+strconv.Itoa(rows%10), "colVal3.ToVarchar() != 'd3-' + strconv.Itoa(rows%10)")
-		colVal4 := tuple_.GetValue(schema_, uint32(3))
+		colVal4 := tpl.GetValue(sc, uint32(3))
 		testingpkg.Assert(t, colVal4.ToInteger() == int32(16), "colVal4.ToInteger() != int32(16)")
 		rows++
 	}
@@ -264,11 +264,11 @@ func TestSetupedTableAndStatistcsContents(t *testing.T) {
 	// Sc3
 	it = tm3.Table().Iterator(txn)
 	rows = 0
-	schema_ = tm3.Schema()
-	for tuple_ := it.Current(); !it.End(); tuple_ = it.Next() {
-		colVal1 := tuple_.GetValue(schema_, uint32(0))
+	sc = tm3.Schema()
+	for tpl := it.Current(); !it.End(); tpl = it.Next() {
+		colVal1 := tpl.GetValue(sc, uint32(0))
 		testingpkg.Assert(t, colVal1.ToInteger() == int32(rows+1), "colVal1.ToInteger() != int32(rows) + 1")
-		colVal2 := tuple_.GetValue(schema_, uint32(1))
+		colVal2 := tpl.GetValue(sc, uint32(1))
 		testingpkg.Assert(t, colVal2.ToFloat() == float32(rows+1)+53.4, "colVal2.ToFloat() != float32(rows) + 53.4")
 		rows++
 	}
@@ -283,11 +283,11 @@ func TestSetupedTableAndStatistcsContents(t *testing.T) {
 	// Sc4
 	it = tm4.Table().Iterator(txn)
 	rows = 0
-	schema_ = tm4.Schema()
-	for tuple_ := it.Current(); !it.End(); tuple_ = it.Next() {
-		colVal1 := tuple_.GetValue(schema_, uint32(0))
+	sc = tm4.Schema()
+	for tpl := it.Current(); !it.End(); tpl = it.Next() {
+		colVal1 := tpl.GetValue(sc, uint32(0))
 		testingpkg.Assert(t, colVal1.ToInteger() == int32(rows+1), "colVal1.ToInteger() != int32(rows) + 1")
-		colVal2 := tuple_.GetValue(schema_, uint32(1))
+		colVal2 := tpl.GetValue(sc, uint32(1))
 		testingpkg.Assert(t, colVal2.ToVarchar() == strconv.Itoa((rows+1)%4), "colVal2.ToVarchar() != strconv.Itoa((rows + 1) % 4)")
 		rows++
 	}
@@ -311,20 +311,20 @@ func TestSetupedTableAndStatistcsContents(t *testing.T) {
 func TestFindBestScans(t *testing.T) {
 	diskManager := disk.NewDiskManagerTest()
 	defer diskManager.ShutDown()
-	log_mgr := recovery.NewLogManager(&diskManager)
-	log_mgr.ActivateLogging()
-	testingpkg.Assert(t, log_mgr.IsEnabledLogging(), "")
+	logMgr := recovery.NewLogManager(&diskManager)
+	logMgr.ActivateLogging()
+	testingpkg.Assert(t, logMgr.IsEnabledLogging(), "")
 	fmt.Println("System logging is active.")
-	bpm := buffer.NewBufferPoolManager(common.BufferPoolMaxFrameNumForTest, diskManager, log_mgr) //, recovery.NewLogManager(diskManager), access.NewLockManager(access.REGULAR, access.PREVENTION))
-	lock_mgr := access.NewLockManager(access.REGULAR, access.DETECTION)
-	txn_mgr := access.NewTransactionManager(lock_mgr, log_mgr)
+	bpm := buffer.NewBufferPoolManager(common.BufferPoolMaxFrameNumForTest, diskManager, logMgr) //, recovery.NewLogManager(diskManager), access.NewLockManager(access.REGULAR, access.PREVENTION))
+	lockMgr := access.NewLockManager(access.REGULAR, access.DETECTION)
+	txnMgr := access.NewTransactionManager(lockMgr, logMgr)
 
-	txn := txn_mgr.Begin(nil)
-	c := catalog.BootstrapCatalog(bpm, log_mgr, lock_mgr, txn)
-	exec_ctx := executors.NewExecutorContext(c, bpm, txn)
+	txn := txnMgr.Begin(nil)
+	c := catalog.BootstrapCatalog(bpm, logMgr, lockMgr, txn)
+	execCtx := executors.NewExecutorContext(c, bpm, txn)
 
-	setupTablesAndStatisticsData(exec_ctx)
-	txn_mgr.Commit(c, txn)
+	setupTablesAndStatisticsData(execCtx)
+	txnMgr.Commit(c, txn)
 
 	testAQuery := func(queryStr string, patternName string) {
 		queryInfo, _ := parser.ProcessSQLStr(&queryStr)
@@ -371,9 +371,9 @@ func printOptimalPlans(title string, queryStr string, optimalPlans map[string]Co
 		} else {
 			fmt.Println("--------------------------------------------------")
 		}
-		plan_ := costPlan.plan
+		p := costPlan.plan
 		fmt.Println("Cost: " + strconv.Itoa(int(costPlan.cost)))
-		plans.PrintPlanTree(plan_, 0)
+		plans.PrintPlanTree(p, 0)
 	}
 	fmt.Println("==================================================")
 }
@@ -381,20 +381,20 @@ func printOptimalPlans(title string, queryStr string, optimalPlans map[string]Co
 func TestSimplePlanOptimization(t *testing.T) {
 	diskManager := disk.NewDiskManagerTest()
 	defer diskManager.ShutDown()
-	log_mgr := recovery.NewLogManager(&diskManager)
-	log_mgr.ActivateLogging()
-	testingpkg.Assert(t, log_mgr.IsEnabledLogging(), "")
+	logMgr := recovery.NewLogManager(&diskManager)
+	logMgr.ActivateLogging()
+	testingpkg.Assert(t, logMgr.IsEnabledLogging(), "")
 	fmt.Println("System logging is active.")
-	bpm := buffer.NewBufferPoolManager(common.BufferPoolMaxFrameNumForTest, diskManager, log_mgr) //, recovery.NewLogManager(diskManager), access.NewLockManager(access.REGULAR, access.PREVENTION))
-	lock_mgr := access.NewLockManager(access.REGULAR, access.DETECTION)
-	txn_mgr := access.NewTransactionManager(lock_mgr, log_mgr)
+	bpm := buffer.NewBufferPoolManager(common.BufferPoolMaxFrameNumForTest, diskManager, logMgr) //, recovery.NewLogManager(diskManager), access.NewLockManager(access.REGULAR, access.PREVENTION))
+	lockMgr := access.NewLockManager(access.REGULAR, access.DETECTION)
+	txnMgr := access.NewTransactionManager(lockMgr, logMgr)
 
-	txn := txn_mgr.Begin(nil)
-	c := catalog.BootstrapCatalog(bpm, log_mgr, lock_mgr, txn)
-	exec_ctx := executors.NewExecutorContext(c, bpm, txn)
+	txn := txnMgr.Begin(nil)
+	c := catalog.BootstrapCatalog(bpm, logMgr, lockMgr, txn)
+	execCtx := executors.NewExecutorContext(c, bpm, txn)
 
-	setupTablesAndStatisticsData(exec_ctx)
-	txn_mgr.Commit(c, txn)
+	setupTablesAndStatisticsData(execCtx)
+	txnMgr.Commit(c, txn)
 
 	testAQuery := func(queryStr string, patternName string) {
 		queryInfo, _ := parser.ProcessSQLStr(&queryStr)
@@ -408,13 +408,13 @@ func TestSimplePlanOptimization(t *testing.T) {
 		testingpkg.Assert(t, err == nil, "err != nil")
 
 		executionEngine := &executors.ExecutionEngine{}
-		txn_ := txn_mgr.Begin(nil)
-		execCtx := executors.NewExecutorContext(c, bpm, txn_)
+		txnExec := txnMgr.Begin(nil)
+		execCtx := executors.NewExecutorContext(c, bpm, txnExec)
 		execRslt := executionEngine.Execute(solution, execCtx)
 		testingpkg.Assert(t, execRslt != nil, "execRslt == nil")
 		printBestPlan(patternName, queryStr, solution)
 		fmt.Print("values of first row: ")
-		for idx := range queryInfo.SelectFields_ {
+		for idx := range queryInfo.SelectFields {
 			val := execRslt[0].GetValue(solution.OutputSchema(), uint32(idx))
 			fmt.Printf("%s(%d), ", val.ToString(), val.ValueType())
 		}

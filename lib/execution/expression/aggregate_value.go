@@ -11,48 +11,48 @@ import (
  */
 type AggregateValueExpression struct {
 	*AbstractExpression
-	is_group_by_term_ bool
-	term_idx_         uint32
+	isGroupByTerm bool
+	termIdx         uint32
 }
 
 /**
  * Creates a new AggregateValueExpression.
- * @param is_group_by_term true if this is a group by
- * @param term_idx the index of the term
- * @param ret_type the return type of the aggregate value expression
+ * @param isGroupByTerm true if this is a group by
+ * @param termIdx the index of the term
+ * @param retType the return type of the aggregate value expression
  */
 
-func NewAggregateValueExpression(is_group_by_term bool, term_idx uint32, ret_type types.TypeID) Expression {
-	return &AggregateValueExpression{&AbstractExpression{[2]Expression{}, ret_type}, is_group_by_term, term_idx}
+func NewAggregateValueExpression(isGroupByTerm bool, termIdx uint32, retType types.TypeID) Expression {
+	return &AggregateValueExpression{&AbstractExpression{[2]Expression{}, retType}, isGroupByTerm, termIdx}
 }
 
 func (a *AggregateValueExpression) Evaluate(tuple *tuple.Tuple, schema *schema.Schema) types.Value {
 	panic("Aggregation should only refer to group-by and aggregates.")
 }
 
-func (a *AggregateValueExpression) EvaluateJoin(left_tuple *tuple.Tuple, left_schema *schema.Schema, right_tuple *tuple.Tuple, right_schema *schema.Schema) types.Value {
+func (a *AggregateValueExpression) EvaluateJoin(leftTuple *tuple.Tuple, leftSchema *schema.Schema, rightTuple *tuple.Tuple, rightSchema *schema.Schema) types.Value {
 	panic("Aggregation should only refer to group-by and aggregates.")
 }
 
-func (a *AggregateValueExpression) EvaluateAggregate(group_bys []*types.Value, aggregates []*types.Value) types.Value {
-	if a.is_group_by_term_ {
-		return *group_bys[a.term_idx_]
+func (a *AggregateValueExpression) EvaluateAggregate(groupBys []*types.Value, aggregates []*types.Value) types.Value {
+	if a.isGroupByTerm {
+		return *groupBys[a.termIdx]
 	} else {
-		return *aggregates[a.term_idx_]
+		return *aggregates[a.termIdx]
 	}
 }
 
-func (a *AggregateValueExpression) GetChildAt(child_idx uint32) Expression {
-	if int(child_idx) >= len(a.children) {
+func (a *AggregateValueExpression) GetChildAt(childIdx uint32) Expression {
+	if int(childIdx) >= len(a.children) {
 		return nil
 	}
-	return a.children[child_idx]
+	return a.children[childIdx]
 }
 
 func (a *AggregateValueExpression) GetReturnType() types.TypeID {
-	return a.ret_type
+	return a.retType
 }
 
 func (a *AggregateValueExpression) GetType() ExpressionType {
-	return EXPRESSION_TYPE_AGGREGATE_VALUE
+	return ExpressionTypeAggregateValue
 }
