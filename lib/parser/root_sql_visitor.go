@@ -8,26 +8,26 @@ import (
 )
 
 type RootSQLVisitor struct {
-	QueryInfo_ *QueryInfo
+	QueryInfo *QueryInfo
 }
 
 func NewRootSQLVisitor() *RootSQLVisitor {
 	ret := new(RootSQLVisitor)
 	qinfo := new(QueryInfo)
-	qinfo.QueryType_ = new(QueryType)
-	qinfo.SelectFields_ = make([]*SelectFieldExpression, 0)
-	qinfo.SetExpressions_ = make([]*SetExpression, 0)
-	qinfo.ColDefExpressions_ = make([]*ColDefExpression, 0)
-	qinfo.IndexDefExpressions_ = make([]*IndexDefExpression, 0)
-	qinfo.TargetCols_ = make([]*string, 0)
-	qinfo.Values_ = make([]*types.Value, 0)
-	qinfo.OnExpressions_ = new(BinaryOpExpression)
+	qinfo.QueryType = new(QueryType)
+	qinfo.SelectFields = make([]*SelectFieldExpression, 0)
+	qinfo.SetExpressions = make([]*SetExpression, 0)
+	qinfo.ColDefExpressions = make([]*ColDefExpression, 0)
+	qinfo.IndexDefExpressions = make([]*IndexDefExpression, 0)
+	qinfo.TargetCols = make([]*string, 0)
+	qinfo.Values = make([]*types.Value, 0)
+	qinfo.OnExpressions = new(BinaryOpExpression)
 	qinfo.JoinTables_ = make([]*string, 0)
-	qinfo.WhereExpression_ = new(BinaryOpExpression)
-	qinfo.LimitNum_ = -1
-	qinfo.OffsetNum_ = -1
-	qinfo.OrderByExpressions_ = make([]*OrderByExpression, 0)
-	ret.QueryInfo_ = qinfo
+	qinfo.WhereExpression = new(BinaryOpExpression)
+	qinfo.LimitNum = -1
+	qinfo.OffsetNum = -1
+	qinfo.OrderByExpressions = make([]*OrderByExpression, 0)
+	ret.QueryInfo = qinfo
 
 	return ret
 }
@@ -35,18 +35,18 @@ func NewRootSQLVisitor() *RootSQLVisitor {
 func (v *RootSQLVisitor) Enter(in ast.Node) (ast.Node, bool) {
 	switch node := in.(type) {
 	case *ast.SelectStmt:
-		*v.QueryInfo_.QueryType_ = SELECT
+		*v.QueryInfo.QueryType = SELECT
 	case *ast.CreateTableStmt:
-		*v.QueryInfo_.QueryType_ = CREATE_TABLE
+		*v.QueryInfo.QueryType = CreateTable
 	case *ast.InsertStmt:
-		*v.QueryInfo_.QueryType_ = INSERT
+		*v.QueryInfo.QueryType = INSERT
 	case *ast.DeleteStmt:
-		*v.QueryInfo_.QueryType_ = DELETE
+		*v.QueryInfo.QueryType = DELETE
 	case *ast.UpdateStmt:
-		*v.QueryInfo_.QueryType_ = UPDATE
+		*v.QueryInfo.QueryType = UPDATE
 	case *ast.FieldList:
 	case *ast.SelectField:
-		sv := &SelectFieldsVisitor{v.QueryInfo_}
+		sv := &SelectFieldsVisitor{v.QueryInfo}
 		node.Accept(sv)
 		return in, true
 	case *ast.TableRefsClause:
@@ -55,88 +55,88 @@ func (v *RootSQLVisitor) Enter(in ast.Node) (ast.Node, bool) {
 		av := new(AssignVisitor)
 		node.Accept(av)
 		setExp := new(SetExpression)
-		setExp.ColName_ = av.Colname_
-		setExp.UpdateValue_ = av.Value_
-		v.QueryInfo_.SetExpressions_ = append(v.QueryInfo_.SetExpressions_, setExp)
+		setExp.ColName = av.Colname
+		setExp.UpdateValue = av.Value
+		v.QueryInfo.SetExpressions = append(v.QueryInfo.SetExpressions, setExp)
 		return in, true
 	case *ast.Join:
 		jv := new(JoinVisitor)
-		jv.QueryInfo_ = v.QueryInfo_
+		jv.QueryInfo = v.QueryInfo
 		node.Accept(jv)
 		return in, true
 	case *ast.OnCondition:
 	case *ast.TableSource:
 	case *ast.TableNameExpr:
 	case *ast.TableName:
-		switch *v.QueryInfo_.QueryType_ {
-		case CREATE_TABLE:
+		switch *v.QueryInfo.QueryType {
+		case CreateTable:
 			tbname := node.Name.String()
-			v.QueryInfo_.NewTable_ = &tbname
+			v.QueryInfo.NewTable = &tbname
 		}
 	case *ast.ColumnDef:
-		if *v.QueryInfo_.QueryType_ == CREATE_TABLE {
+		if *v.QueryInfo.QueryType == CreateTable {
 			cdef := new(ColDefExpression)
 			cname := node.Name.String()
-			cdef.ColName_ = &cname
-			col_type := node.Tp.Tp
-			switch col_type {
+			cdef.ColName = &cname
+			colType := node.Tp.Tp
+			switch colType {
 			case mysql.TypeTiny, mysql.TypeLong:
 				ctype := types.Integer
-				cdef.ColType_ = &ctype
+				cdef.ColType = &ctype
 			case mysql.TypeFloat, mysql.TypeLonglong:
 				ctype := types.Float
-				cdef.ColType_ = &ctype
+				cdef.ColType = &ctype
 			default:
 				ctype := types.Varchar
-				cdef.ColType_ = &ctype
+				cdef.ColType = &ctype
 			}
-			v.QueryInfo_.ColDefExpressions_ = append(v.QueryInfo_.ColDefExpressions_, cdef)
+			v.QueryInfo.ColDefExpressions = append(v.QueryInfo.ColDefExpressions, cdef)
 			return in, true
 		}
 	case *ast.Constraint:
 		// Index definition at CREATE TABLE
-		if *v.QueryInfo_.QueryType_ == CREATE_TABLE {
+		if *v.QueryInfo.QueryType == CreateTable {
 			// get all specified column
 			cdv := &ChildDataVisitor{make([]interface{}, 0)}
 			node.Accept(cdv)
 			idf := new(IndexDefExpression)
-			idf.IndexName_ = &node.Name
-			for _, colname := range cdv.ChildDatas_ {
-				idf.Colnames_ = append(idf.Colnames_, colname.(*string))
+			idf.IndexName = &node.Name
+			for _, colname := range cdv.ChildDatas {
+				idf.Colnames = append(idf.Colnames, colname.(*string))
 			}
-			v.QueryInfo_.IndexDefExpressions_ = append(v.QueryInfo_.IndexDefExpressions_, idf)
+			v.QueryInfo.IndexDefExpressions = append(v.QueryInfo.IndexDefExpressions, idf)
 			return in, true
 		}
 	case *ast.ColumnNameExpr:
 	case *ast.ColumnName:
-		if *v.QueryInfo_.QueryType_ == INSERT {
+		if *v.QueryInfo.QueryType == INSERT {
 			cname := node.String()
-			v.QueryInfo_.TargetCols_ = append(v.QueryInfo_.TargetCols_, &cname)
+			v.QueryInfo.TargetCols = append(v.QueryInfo.TargetCols, &cname)
 			return in, true
 		}
 	case *ast.BinaryOperationExpr:
 		// for WHERE clause. other clauses handles BinaryOperationExpr with self visitor
-		new_visitor := &BinaryOpVisitor{v.QueryInfo_, new(BinaryOpExpression)}
-		node.Accept(new_visitor)
-		v.QueryInfo_.WhereExpression_ = new_visitor.BinaryOpExpression_
+		newVisitor := &BinaryOpVisitor{v.QueryInfo, new(BinaryOpExpression)}
+		node.Accept(newVisitor)
+		v.QueryInfo.WhereExpression = newVisitor.BinaryOpExpression
 
 		logicType, compType := GetTypesForBOperationExpr(node.Op)
-		v.QueryInfo_.WhereExpression_.LogicalOperationType_ = logicType
-		v.QueryInfo_.WhereExpression_.ComparisonOperationType_ = compType
+		v.QueryInfo.WhereExpression.LogicalOperationType = logicType
+		v.QueryInfo.WhereExpression.ComparisonOperationType = compType
 
 		return in, true
 	case *driver.ValueExpr:
 		// when INSERT
-		v.QueryInfo_.Values_ = append(v.QueryInfo_.Values_, ValueExprToValue(node))
+		v.QueryInfo.Values = append(v.QueryInfo.Values, ValueExprToValue(node))
 		return in, true
 	case *ast.Limit:
 		cdv := &ChildDataVisitor{make([]interface{}, 0)}
 		node.Accept(cdv)
-		if len(cdv.ChildDatas_) == 1 {
-			v.QueryInfo_.LimitNum_ = cdv.ChildDatas_[0].(*types.Value).ToInteger()
+		if len(cdv.ChildDatas) == 1 {
+			v.QueryInfo.LimitNum = cdv.ChildDatas[0].(*types.Value).ToInteger()
 		} else { // 2
-			v.QueryInfo_.LimitNum_ = cdv.ChildDatas_[0].(*types.Value).ToInteger()
-			v.QueryInfo_.OffsetNum_ = cdv.ChildDatas_[1].(*types.Value).ToInteger()
+			v.QueryInfo.LimitNum = cdv.ChildDatas[0].(*types.Value).ToInteger()
+			v.QueryInfo.OffsetNum = cdv.ChildDatas[1].(*types.Value).ToInteger()
 		}
 
 		return in, true
@@ -145,9 +145,9 @@ func (v *RootSQLVisitor) Enter(in ast.Node) (ast.Node, bool) {
 		cdv := &ChildDataVisitor{make([]interface{}, 0)}
 		node.Accept(cdv)
 		obe := new(OrderByExpression)
-		obe.IsDesc_ = node.Desc
-		obe.ColName_ = cdv.ChildDatas_[0].(*string)
-		v.QueryInfo_.OrderByExpressions_ = append(v.QueryInfo_.OrderByExpressions_, obe)
+		obe.IsDesc = node.Desc
+		obe.ColName = cdv.ChildDatas[0].(*string)
+		v.QueryInfo.OrderByExpressions = append(v.QueryInfo.OrderByExpressions, obe)
 		return in, true
 	default:
 		panic("unknown node for visitor")

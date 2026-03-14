@@ -28,8 +28,8 @@ type CostAndPlan struct {
 type Direction bool
 
 const (
-	DIR_RIGHT Direction = false
-	DIR_LEFT  Direction = true
+	DirRight Direction = false
+	DirLeft  Direction = true
 )
 
 type Range struct {
@@ -84,8 +84,8 @@ func (r *Range) Update(op expression.ComparisonType, rhs *types.Value, dir Direc
 		// e.g. x != 10
 		// We have nothing to do here.
 	case expression.LessThan, expression.GreaterThan:
-		if (dir == DIR_RIGHT && op == expression.LessThan) ||
-			(dir == DIR_LEFT && op == expression.GreaterThan) {
+		if (dir == DirRight && op == expression.LessThan) ||
+			(dir == DirLeft && op == expression.GreaterThan) {
 			// e.g. x < 10
 			// e.g. 10 > x
 			if r.Max.IsInfMax() || ((!r.Max.IsInfMax()) && rhs.CompareLessThan(*r.Max)) {
@@ -101,8 +101,8 @@ func (r *Range) Update(op expression.ComparisonType, rhs *types.Value, dir Direc
 			}
 		}
 	case expression.LessThanOrEqual, expression.GreaterThanOrEqual:
-		if (dir == DIR_RIGHT && op == expression.LessThanOrEqual) ||
-			(dir == DIR_LEFT && op == expression.GreaterThanOrEqual) {
+		if (dir == DirRight && op == expression.LessThanOrEqual) ||
+			(dir == DirLeft && op == expression.GreaterThanOrEqual) {
 			// e.g. x <= 10
 			// e.g. 10 >= x
 			if r.Max.IsInfMax() || ((!r.Max.IsInfMax()) && rhs.CompareLessThanOrEqual(*r.Max)) {
@@ -176,34 +176,34 @@ func (so *SelingerOptimizer) findBestScan(outNeededCols []*column.Column, where 
 		ranges[key] = NewRange(sc.GetColumn(uint32(key)).GetType())
 	}
 
-	stack_ := stack.New()
-	stack_.Push(where)
+	stk := stack.New()
+	stk.Push(where)
 	relatedOps := make([]*parser.BinaryOpExpression, 0)
-	for stack_.Len() > 0 {
-		exp := stack_.Pop().(*parser.BinaryOpExpression)
+	for stk.Len() > 0 {
+		exp := stk.Pop().(*parser.BinaryOpExpression)
 		if exp.GetType() == parser.Logical {
-			if exp.LogicalOperationType_ == expression.AND {
-				stack_.Push(exp.Left_)
-				stack_.Push(exp.Right_)
+			if exp.LogicalOperationType == expression.AND {
+				stk.Push(exp.Left)
+				stk.Push(exp.Right)
 				continue
 			} else {
 				panic("OR on predicate is not supported now!")
 			}
 		} else if exp.GetType() == parser.Compare {
-			if samehada_util.IsColumnName(exp.Left_) && samehada_util.IsConstantValue(exp.Right_) {
-				colIdx := sc.GetColIndex(*exp.Left_.(*string))
+			if samehada_util.IsColumnName(exp.Left) && samehada_util.IsConstantValue(exp.Right) {
+				colIdx := sc.GetColIndex(*exp.Left.(*string))
 				if colIdx != math.MaxUint32 {
 					relatedOps = append(relatedOps, exp)
 					if rng, ok := ranges[int(colIdx)]; ok {
-						rng.Update(exp.ComparisonOperationType_, exp.Right_.(*types.Value), DIR_RIGHT)
+						rng.Update(exp.ComparisonOperationType, exp.Right.(*types.Value), DirRight)
 					}
 				}
-			} else if samehada_util.IsColumnName(exp.Right_) && samehada_util.IsConstantValue(exp.Left_) {
-				colIdx := sc.GetColIndex(*exp.Right_.(*string))
+			} else if samehada_util.IsColumnName(exp.Right) && samehada_util.IsConstantValue(exp.Left) {
+				colIdx := sc.GetColIndex(*exp.Right.(*string))
 				if colIdx != math.MaxUint32 {
 					relatedOps = append(relatedOps, exp)
 					if rng, ok := ranges[int(colIdx)]; ok {
-						rng.Update(exp.ComparisonOperationType_, exp.Left_.(*types.Value), DIR_LEFT)
+						rng.Update(exp.ComparisonOperationType, exp.Left.(*types.Value), DirLeft)
 					}
 				}
 			}
@@ -267,8 +267,8 @@ func (so *SelingerOptimizer) findBestScans() map[string]CostAndPlan {
 	optimalPlans := make(map[string]CostAndPlan)
 
 	// 1. Initialize every single tables to start.
-	touchedColumns := so.qi.WhereExpression_.TouchedColumns()
-	for _, item := range so.qi.SelectFields_ {
+	touchedColumns := so.qi.WhereExpression.TouchedColumns()
+	for _, item := range so.qi.SelectFields {
 		touchedColumns = touchedColumns.Union(item.TouchedColumns())
 	}
 	for _, from := range so.qi.JoinTables_ {
@@ -284,7 +284,7 @@ func (so *SelingerOptimizer) findBestScans() map[string]CostAndPlan {
 				}
 			}
 		}
-		scan, _ := so.findBestScan(projectTarget, so.qi.WhereExpression_.GetDeepCopy(), tbl, so.c, stats)
+		scan, _ := so.findBestScan(projectTarget, so.qi.WhereExpression.GetDeepCopy(), tbl, so.c, stats)
 		optimalPlans[samehada_util.StrSetToString(samehada_util.MakeSet([]*string{from}))] = CostAndPlan{scan.AccessRowCount(so.c), scan}
 	}
 
@@ -300,9 +300,9 @@ func (so *SelingerOptimizer) findBestJoinInner(where *parser.BinaryOpExpression,
 	for exp.Len() > 0 {
 		here := exp.Pop().(*parser.BinaryOpExpression)
 		if here.GetType() == parser.Compare {
-			if here.ComparisonOperationType_ == expression.Equal && samehada_util.IsColumnName(here.Left_) && samehada_util.IsColumnName(here.Right_) {
-				cvL := here.Left_.(*string)
-				cvR := here.Right_.(*string)
+			if here.ComparisonOperationType == expression.Equal && samehada_util.IsColumnName(here.Left) && samehada_util.IsColumnName(here.Right) {
+				cvL := here.Left.(*string)
+				cvR := here.Right.(*string)
 				if left.OutputSchema().IsHaveColumn(cvL) && right.OutputSchema().IsHaveColumn(cvR) {
 					equals = append(equals, pair.Pair[*string, *string]{cvL, cvR})
 					relatedExp = append(relatedExp, here)
@@ -314,9 +314,9 @@ func (so *SelingerOptimizer) findBestJoinInner(where *parser.BinaryOpExpression,
 			// note:
 			// ignore case that *here* variable represents a constant value
 		} else if here.GetType() == parser.Logical {
-			if here.LogicalOperationType_ == expression.AND {
-				exp.Push(here.Left_)
-				exp.Push(here.Right_)
+			if here.LogicalOperationType == expression.AND {
+				exp.Push(here.Left)
+				exp.Push(here.Right)
 			}
 		}
 	}
@@ -324,18 +324,18 @@ func (so *SelingerOptimizer) findBestJoinInner(where *parser.BinaryOpExpression,
 	candidates := make([]plans.Plan, 0)
 	// equols is bigger than 1 case is not supported now
 	if len(equals) == 1 {
-		left_cols := make([]*string, 0)
-		right_cols := make([]*string, 0)
+		leftCols := make([]*string, 0)
+		rightCols := make([]*string, 0)
 		for _, cn := range equals {
-			left_cols = append(left_cols, cn.First)
-			right_cols = append(right_cols, cn.Second)
+			leftCols = append(leftCols, cn.First)
+			rightCols = append(rightCols, cn.Second)
 		}
 
 		// HashJoin
-		var tmpPlan plans.Plan = plans.NewHashJoinPlanNodeWithChilds(left, parser.ConvColumnStrsToExpIfOnes(so.c, left, left_cols, true), right, parser.ConvColumnStrsToExpIfOnes(so.c, right, right_cols, false))
+		var tmpPlan plans.Plan = plans.NewHashJoinPlanNodeWithChilds(left, parser.ConvColumnStrsToExpIfOnes(so.c, left, leftCols, true), right, parser.ConvColumnStrsToExpIfOnes(so.c, right, rightCols, false))
 		candidates = append(candidates, tmpPlan)
 		//add left / right reversed pattern too
-		tmpPlan = plans.NewHashJoinPlanNodeWithChilds(right, parser.ConvColumnStrsToExpIfOnes(so.c, right, right_cols, true), left, parser.ConvColumnStrsToExpIfOnes(so.c, left, left_cols, false))
+		tmpPlan = plans.NewHashJoinPlanNodeWithChilds(right, parser.ConvColumnStrsToExpIfOnes(so.c, right, rightCols, true), left, parser.ConvColumnStrsToExpIfOnes(so.c, left, leftCols, false))
 		candidates = append(candidates, tmpPlan)
 
 		// IndexJoin
@@ -350,14 +350,14 @@ func (so *SelingerOptimizer) findBestJoinInner(where *parser.BinaryOpExpression,
 				rightOID = right.GetChildAt(0).GetTableOID()
 			}
 			if len(so.c.GetTableByOID(rightOID).Indexes()) > 0 {
-				for index_idx, right_index := range so.c.GetTableByOID(rightOID).Indexes() {
-					if right_index == nil {
+				for indexIdx, rightIndex := range so.c.GetTableByOID(rightOID).Indexes() {
+					if rightIndex == nil {
 						continue
 					}
-					for idx, rcol := range right_cols {
-						if right_index.GetTupleSchema().GetColumn(uint32(index_idx)).GetColumnName() == *rcol {
+					for idx, rcol := range rightCols {
+						if rightIndex.GetTupleSchema().GetColumn(uint32(indexIdx)).GetColumnName() == *rcol {
 							// right scan plan is not used because IndexJoinExecutor does point scans internally
-							candidates = append(candidates, plans.NewIndexJoinPlanNode(so.c, left, parser.ConvColumnStrsToExpIfOnes(so.c, left, []*string{left_cols[idx]}, true), rightSchema, rightOID, parser.ConvColumnStrsToExpIfOnes(so.c, nil, []*string{rcol}, false)))
+							candidates = append(candidates, plans.NewIndexJoinPlanNode(so.c, left, parser.ConvColumnStrsToExpIfOnes(so.c, left, []*string{leftCols[idx]}, true), rightSchema, rightOID, parser.ConvColumnStrsToExpIfOnes(so.c, nil, []*string{rcol}, false)))
 						}
 					}
 				}
@@ -377,8 +377,8 @@ func (so *SelingerOptimizer) findBestJoinInner(where *parser.BinaryOpExpression,
 		finalSelection := relatedExp[len(relatedExp)-1]
 		relatedExp = relatedExp[:len(relatedExp)-1]
 
-		for _, exp_ := range relatedExp {
-			finalSelection = &parser.BinaryOpExpression{expression.AND, -1, finalSelection, exp_}
+		for _, e := range relatedExp {
+			finalSelection = &parser.BinaryOpExpression{expression.AND, -1, finalSelection, e}
 		}
 
 		orgLen := len(candidates)
@@ -412,7 +412,7 @@ func (so *SelingerOptimizer) findBestJoin(optimalPlans map[string]CostAndPlan) p
 				// Note: for making left-deep Selinger, checking joinTableFrom.Cardinality() == 1 is needed here
 				//       current impl can construct bushy plan tree, but it searches more candidates than left-deep Selinger
 
-				bestJoinPlan, _ := so.findBestJoinInner(so.qi.WhereExpression_.GetDeepCopy(), baseTableCP.plan, joinTableCP.plan, so.c)
+				bestJoinPlan, _ := so.findBestJoinInner(so.qi.WhereExpression.GetDeepCopy(), baseTableCP.plan, joinTableCP.plan, so.c)
 
 				joinedTables := baseTableFrom.Union(joinTableFrom)
 				common.SHAssert(1 < joinedTables.Cardinality(), "joinedTables.Cardinality() is illegal!")
@@ -431,8 +431,8 @@ func (so *SelingerOptimizer) findBestJoin(optimalPlans map[string]CostAndPlan) p
 
 	solution := optimalPlan.plan
 	// Attach final projection and emit the result
-	if int(solution.OutputSchema().GetColumnCount()) > len(so.qi.SelectFields_) {
-		solution = plans.NewProjectionPlanNode(solution, parser.ConvParsedSelectionExprToSchema(so.c, so.qi.SelectFields_))
+	if int(solution.OutputSchema().GetColumnCount()) > len(so.qi.SelectFields) {
+		solution = plans.NewProjectionPlanNode(solution, parser.ConvParsedSelectionExprToSchema(so.c, so.qi.SelectFields))
 	}
 
 	return solution
@@ -473,18 +473,18 @@ func rewiteColNameStrOfBinaryOpExp(tableMap map[string][]*string, exp interface{
 	switch casted := exp.(type) {
 	case *parser.BinaryOpExpression:
 		var err error
-		if str, ok := casted.Left_.(*string); ok {
-			casted.Left_, err = attachTableNameIfNeeded(tableMap, str)
+		if str, ok := casted.Left.(*string); ok {
+			casted.Left, err = attachTableNameIfNeeded(tableMap, str)
 		} else {
-			err = rewiteColNameStrOfBinaryOpExp(tableMap, casted.Left_)
+			err = rewiteColNameStrOfBinaryOpExp(tableMap, casted.Left)
 		}
 		if err != nil {
 			return err
 		}
-		if str, ok := casted.Right_.(*string); ok {
-			casted.Right_, err = attachTableNameIfNeeded(nil, str)
+		if str, ok := casted.Right.(*string); ok {
+			casted.Right, err = attachTableNameIfNeeded(nil, str)
 		} else {
-			err = rewiteColNameStrOfBinaryOpExp(tableMap, casted.Right_)
+			err = rewiteColNameStrOfBinaryOpExp(tableMap, casted.Right)
 		}
 		return err
 	case *types.Value:
@@ -500,10 +500,10 @@ func rewiteColNameStrOfBinaryOpExp(tableMap map[string][]*string, exp interface{
 func CheckIncludesORInPredicate(exp interface{}) bool {
 	switch casted := exp.(type) {
 	case *parser.BinaryOpExpression:
-		if casted.LogicalOperationType_ == expression.OR {
+		if casted.LogicalOperationType == expression.OR {
 			return true
 		} else {
-			return CheckIncludesORInPredicate(casted.Left_) || CheckIncludesORInPredicate(casted.Right_)
+			return CheckIncludesORInPredicate(casted.Left) || CheckIncludesORInPredicate(casted.Right)
 		}
 	default:
 		return false
@@ -548,13 +548,13 @@ func RewriteQueryInfo(c *catalog.Catalog, qi *parser.QueryInfo) (*parser.QueryIn
 	if err != nil {
 		return nil, err
 	}
-	// SelectFields_
-	// when SelectFields_[x].TableName_ is empty, set appropriate value
-	for _, sfield := range qi.SelectFields_ {
-		if sfield.TableName_ == nil && *sfield.ColName_ != "*" {
-			if val, ok := tableMap[*sfield.ColName_]; ok {
+	// SelectFields
+	// when SelectFields[x].TableName is empty, set appropriate value
+	for _, sfield := range qi.SelectFields {
+		if sfield.TableName == nil && *sfield.ColName != "*" {
+			if val, ok := tableMap[*sfield.ColName]; ok {
 				if len(val) == 1 {
-					sfield.TableName_ = val[0]
+					sfield.TableName = val[0]
 				} else {
 					return nil, CantTableIdentifedErr
 				}
@@ -564,33 +564,33 @@ func RewriteQueryInfo(c *catalog.Catalog, qi *parser.QueryInfo) (*parser.QueryIn
 		}
 	}
 	// replace asterisk to column names (one asterisk only)
-	for ii := 0; ii < len(qi.SelectFields_); ii++ {
-		if *qi.SelectFields_[ii].ColName_ == "*" {
-			qi.SelectFields_ = append(qi.SelectFields_[:ii], qi.SelectFields_[ii+1:]...)
-			qi.SelectFields_ = slices.Insert(qi.SelectFields_, ii, colList...)
+	for ii := 0; ii < len(qi.SelectFields); ii++ {
+		if *qi.SelectFields[ii].ColName == "*" {
+			qi.SelectFields = append(qi.SelectFields[:ii], qi.SelectFields[ii+1:]...)
+			qi.SelectFields = slices.Insert(qi.SelectFields, ii, colList...)
 			break
 		}
 	}
 	// DELETE and UPDATE query is processed with optimizer asterisk specified SELECT query
-	if *qi.QueryType_ == parser.DELETE || *qi.QueryType_ == parser.UPDATE {
-		qi.SelectFields_ = colList
+	if *qi.QueryType == parser.DELETE || *qi.QueryType == parser.UPDATE {
+		qi.SelectFields = colList
 	}
 
-	// OnExpressions_
-	err = rewiteColNameStrOfBinaryOpExp(tableMap, qi.OnExpressions_)
+	// OnExpressions
+	err = rewiteColNameStrOfBinaryOpExp(tableMap, qi.OnExpressions)
 	if err != nil {
 		return nil, err
 	}
 
-	// WhereExpression_
-	err = rewiteColNameStrOfBinaryOpExp(tableMap, qi.WhereExpression_)
+	// WhereExpression
+	err = rewiteColNameStrOfBinaryOpExp(tableMap, qi.WhereExpression)
 	if err != nil {
 		return nil, err
 	}
 
-	if !(qi.OnExpressions_.Left_ == nil && qi.OnExpressions_.Right_ == nil) {
+	if !(qi.OnExpressions.Left == nil && qi.OnExpressions.Right == nil) {
 		// attach predicate of ON clause to one of WHERE clause
-		qi.WhereExpression_ = qi.WhereExpression_.AppendBinaryOpExpWithAnd(qi.OnExpressions_)
+		qi.WhereExpression = qi.WhereExpression.AppendBinaryOpExpWithAnd(qi.OnExpressions)
 	}
 
 	return qi, nil

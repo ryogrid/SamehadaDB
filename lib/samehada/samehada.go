@@ -225,7 +225,7 @@ func (sdb *SamehadaDB) ExecuteSQLRetValues(sqlStr string) (error, [][]*types.Val
 	if err == nil && plan == nil {
 		// some problem exists on SQL string
 		sdb.shi_.GetTransactionManager().Commit(sdb.catalog_, txn)
-		if *qi.QueryType_ == parser.CREATE_TABLE {
+		if *qi.QueryType == parser.CreateTable {
 			return nil, nil
 		} else {
 			return PlanCreationErr, nil

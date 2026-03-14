@@ -7,7 +7,7 @@ import (
 )
 
 type SelectFieldsVisitor struct {
-	QueryInfo_ *QueryInfo
+	QueryInfo *QueryInfo
 }
 
 func (v *SelectFieldsVisitor) Enter(in ast.Node) (ast.Node, bool) {
@@ -17,21 +17,21 @@ func (v *SelectFieldsVisitor) Enter(in ast.Node) (ast.Node, bool) {
 		tabname := node.String()
 		if strings.Contains(tabname, ".") {
 			tabname = strings.Split(tabname, ".")[0]
-			sfield.TableName_ = &tabname
+			sfield.TableName = &tabname
 		} else {
-			sfield.TableName_ = nil
+			sfield.TableName = nil
 		}
 		colname := node.Name.String()
-		sfield.ColName_ = &colname
-		v.QueryInfo_.SelectFields_ = append(v.QueryInfo_.SelectFields_, sfield)
+		sfield.ColName = &colname
+		v.QueryInfo.SelectFields = append(v.QueryInfo.SelectFields, sfield)
 		return in, true
 	case *ast.SelectField:
 		// when specifed wildcard
 		if node.WildCard != nil {
 			sfield := new(SelectFieldExpression)
 			colname := "*"
-			sfield.ColName_ = &colname
-			v.QueryInfo_.SelectFields_ = append(v.QueryInfo_.SelectFields_, sfield)
+			sfield.ColName = &colname
+			v.QueryInfo.SelectFields = append(v.QueryInfo.SelectFields, sfield)
 			return in, true
 		}
 	case *ast.AggregateFuncExpr:
@@ -41,16 +41,16 @@ func (v *SelectFieldsVisitor) Enter(in ast.Node) (ast.Node, bool) {
 		aggTypeStr := node.F
 		switch aggTypeStr {
 		case "count":
-			sfield = &SelectFieldExpression{true, plans.COUNT_AGGREGATE, av.TableName_, av.ColumnName_}
+			sfield = &SelectFieldExpression{true, plans.COUNT_AGGREGATE, av.TableName, av.ColumnName}
 		case "max":
-			sfield = &SelectFieldExpression{true, plans.MAX_AGGREGATE, av.TableName_, av.ColumnName_}
+			sfield = &SelectFieldExpression{true, plans.MAX_AGGREGATE, av.TableName, av.ColumnName}
 		case "min":
-			sfield = &SelectFieldExpression{true, plans.MIN_AGGREGATE, av.TableName_, av.ColumnName_}
+			sfield = &SelectFieldExpression{true, plans.MIN_AGGREGATE, av.TableName, av.ColumnName}
 		case "sum":
-			sfield = &SelectFieldExpression{true, plans.SUM_AGGREGATE, av.TableName_, av.ColumnName_}
+			sfield = &SelectFieldExpression{true, plans.SUM_AGGREGATE, av.TableName, av.ColumnName}
 		}
 
-		v.QueryInfo_.SelectFields_ = append(v.QueryInfo_.SelectFields_, sfield)
+		v.QueryInfo.SelectFields = append(v.QueryInfo.SelectFields, sfield)
 		return in, true
 	default:
 	}

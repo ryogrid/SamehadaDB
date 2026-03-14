@@ -24,10 +24,10 @@ const (
 )
 
 type BinaryOpExpression struct {
-	LogicalOperationType_    expression.LogicalOpType
-	ComparisonOperationType_ expression.ComparisonType
-	Left_                    interface{}
-	Right_                   interface{}
+	LogicalOperationType    expression.LogicalOpType
+	ComparisonOperationType expression.ComparisonType
+	Left                    interface{}
+	Right                   interface{}
 }
 
 func (expr *BinaryOpExpression) GetType() BinaryOpExpType {
@@ -40,13 +40,13 @@ func (expr *BinaryOpExpression) GetType() BinaryOpExpType {
 		}
 	}
 
-	if expr.ComparisonOperationType_ != -1 {
-		if expr.Right_ != nil && isValue(expr.Right_) && expr.Right_.(*types.Value).IsNull() {
+	if expr.ComparisonOperationType != -1 {
+		if expr.Right != nil && isValue(expr.Right) && expr.Right.(*types.Value).IsNull() {
 			return IsNull
 		} else {
 			return Compare
 		}
-	} else if expr.LogicalOperationType_ != -1 {
+	} else if expr.LogicalOperationType != -1 {
 		return Logical
 	} else {
 		panic("BinaryOpExpression tree is broken")
@@ -58,18 +58,18 @@ func (expr *BinaryOpExpression) TouchedColumns() mapset.Set[string] {
 	ret := mapset.NewSet[string]()
 	switch expr.GetType() {
 	case Compare:
-		if samehada_util.IsColumnName(expr.Left_) {
-			ret.Add(strings.ToLower(*expr.Left_.(*string)))
+		if samehada_util.IsColumnName(expr.Left) {
+			ret.Add(strings.ToLower(*expr.Left.(*string)))
 		}
-		if samehada_util.IsColumnName(expr.Right_) {
-			ret.Add(strings.ToLower(*expr.Right_.(*string)))
+		if samehada_util.IsColumnName(expr.Right) {
+			ret.Add(strings.ToLower(*expr.Right.(*string)))
 		}
 	case Logical:
-		ret = ret.Union(expr.Left_.(*BinaryOpExpression).TouchedColumns())
-		ret = ret.Union(expr.Right_.(*BinaryOpExpression).TouchedColumns())
+		ret = ret.Union(expr.Left.(*BinaryOpExpression).TouchedColumns())
+		ret = ret.Union(expr.Right.(*BinaryOpExpression).TouchedColumns())
 	case IsNull:
-		if samehada_util.IsColumnName(expr.Left_) {
-			ret.Add(strings.ToLower(*expr.Left_.(*string)))
+		if samehada_util.IsColumnName(expr.Left) {
+			ret.Add(strings.ToLower(*expr.Left.(*string)))
 		}
 	default:
 		panic("BinaryOpExpression tree is broken")
@@ -79,34 +79,34 @@ func (expr *BinaryOpExpression) TouchedColumns() mapset.Set[string] {
 
 func (expr *BinaryOpExpression) GetDeepCopy() *BinaryOpExpression {
 	ret := &BinaryOpExpression{}
-	ret.LogicalOperationType_ = expr.LogicalOperationType_
-	ret.ComparisonOperationType_ = expr.ComparisonOperationType_
-	if expr.Left_ == nil {
-		ret.Left_ = nil
+	ret.LogicalOperationType = expr.LogicalOperationType
+	ret.ComparisonOperationType = expr.ComparisonOperationType
+	if expr.Left == nil {
+		ret.Left = nil
 	} else {
-		switch expr.Left_.(type) {
+		switch expr.Left.(type) {
 		case *string:
-			tmpStr := *expr.Left_.(*string)
-			ret.Left_ = &tmpStr
+			tmpStr := *expr.Left.(*string)
+			ret.Left = &tmpStr
 		case *types.Value:
-			ret.Left_ = expr.Left_.(*types.Value).GetDeepCopy()
+			ret.Left = expr.Left.(*types.Value).GetDeepCopy()
 		case *BinaryOpExpression:
-			ret.Left_ = expr.Left_.(*BinaryOpExpression).GetDeepCopy()
+			ret.Left = expr.Left.(*BinaryOpExpression).GetDeepCopy()
 		default:
 			panic("BinaryOpExpression tree is broken")
 		}
 	}
-	if expr.Right_ == nil {
-		ret.Right_ = nil
+	if expr.Right == nil {
+		ret.Right = nil
 	} else {
-		switch expr.Right_.(type) {
+		switch expr.Right.(type) {
 		case *string:
-			tmpStr := *expr.Right_.(*string)
-			ret.Right_ = &tmpStr
+			tmpStr := *expr.Right.(*string)
+			ret.Right = &tmpStr
 		case *types.Value:
-			ret.Right_ = expr.Right_.(*types.Value).GetDeepCopy()
+			ret.Right = expr.Right.(*types.Value).GetDeepCopy()
 		case *BinaryOpExpression:
-			ret.Right_ = expr.Right_.(*BinaryOpExpression).GetDeepCopy()
+			ret.Right = expr.Right.(*BinaryOpExpression).GetDeepCopy()
 		default:
 			panic("BinaryOpExpression tree is broken")
 		}
@@ -119,25 +119,25 @@ func (expr *BinaryOpExpression) AppendBinaryOpExpWithAnd(expr2 *BinaryOpExpressi
 }
 
 type SetExpression struct {
-	ColName_     *string
-	UpdateValue_ *types.Value
+	ColName     *string
+	UpdateValue *types.Value
 }
 
 type ColDefExpression struct {
-	ColName_ *string
-	ColType_ *types.TypeID
+	ColName *string
+	ColType *types.TypeID
 }
 
 type IndexDefExpression struct {
-	IndexName_ *string
-	Colnames_  []*string
+	IndexName *string
+	Colnames  []*string
 }
 
 type SelectFieldExpression struct {
-	IsAgg_     bool
-	AggType_   plans.AggregationType
-	TableName_ *string // if specified
-	ColName_   *string
+	IsAgg     bool
+	AggType   plans.AggregationType
+	TableName *string // if specified
+	ColName   *string
 }
 
 func (sf *SelectFieldExpression) TouchedColumns() mapset.Set[string] {
@@ -145,17 +145,17 @@ func (sf *SelectFieldExpression) TouchedColumns() mapset.Set[string] {
 
 	// TODO: (SDB) need to support aggregation function
 	ret := mapset.NewSet[string]()
-	colName := *sf.ColName_
-	if sf.TableName_ != nil {
-		colName = *sf.TableName_ + "." + *sf.ColName_
+	colName := *sf.ColName
+	if sf.TableName != nil {
+		colName = *sf.TableName + "." + *sf.ColName
 	}
 	ret.Add(strings.ToLower(colName))
 	return ret
 }
 
 type OrderByExpression struct {
-	IsDesc_  bool
-	ColName_ *string
+	IsDesc  bool
+	ColName *string
 }
 
 // attiontion: this func can be used only for predicate of SelectionPlanNode
@@ -174,20 +174,20 @@ func ConvBinaryOpExpReafToExpIFOne(sc *schema.Schema, convSrc interface{}) expre
 func ConvParsedBinaryOpExprToExpIFOne(sc *schema.Schema, convSrc *BinaryOpExpression) expression.Expression {
 	switch convSrc.GetType() {
 	case Logical: // node of logical operation
-		left_side_pred := ConvParsedBinaryOpExprToExpIFOne(sc, convSrc.Left_.(*BinaryOpExpression))
-		right_side_pred := ConvParsedBinaryOpExprToExpIFOne(sc, convSrc.Right_.(*BinaryOpExpression))
-		return expression.NewLogicalOp(left_side_pred, right_side_pred, convSrc.LogicalOperationType_, types.Boolean)
+		leftSidePred := ConvParsedBinaryOpExprToExpIFOne(sc, convSrc.Left.(*BinaryOpExpression))
+		rightSidePred := ConvParsedBinaryOpExprToExpIFOne(sc, convSrc.Right.(*BinaryOpExpression))
+		return expression.NewLogicalOp(leftSidePred, rightSidePred, convSrc.LogicalOperationType, types.Boolean)
 	case Compare: // node of compare operation
-		leftExp := ConvBinaryOpExpReafToExpIFOne(sc, convSrc.Left_)
-		rightExp := ConvBinaryOpExpReafToExpIFOne(sc, convSrc.Right_)
+		leftExp := ConvBinaryOpExpReafToExpIFOne(sc, convSrc.Left)
+		rightExp := ConvBinaryOpExpReafToExpIFOne(sc, convSrc.Right)
 
-		return expression.NewComparison(leftExp, rightExp, convSrc.ComparisonOperationType_, types.Boolean)
+		return expression.NewComparison(leftExp, rightExp, convSrc.ComparisonOperationType, types.Boolean)
 	case IsNull: // node of is null operation
-		tmpColIdx := sc.GetColIndex(*convSrc.Left_.(*string))
+		tmpColIdx := sc.GetColIndex(*convSrc.Left.(*string))
 		return expression.NewComparison(
 			expression.NewColumnValue(0, tmpColIdx, sc.GetColumn(tmpColIdx).GetType()),
-			expression.NewConstantValue(*convSrc.Right_.(*types.Value).GetDeepCopy(), convSrc.Right_.(*types.Value).ValueType()),
-			convSrc.ComparisonOperationType_,
+			expression.NewConstantValue(*convSrc.Right.(*types.Value).GetDeepCopy(), convSrc.Right.(*types.Value).ValueType()),
+			convSrc.ComparisonOperationType,
 			types.Boolean)
 	default:
 		panic("BinaryOpExpression tree is " +
@@ -199,8 +199,8 @@ func ConvParsedBinaryOpExprToExpIFOne(sc *schema.Schema, convSrc *BinaryOpExpres
 func ConvParsedSelectionExprToSchema(c *catalog.Catalog, convSrc []*SelectFieldExpression) *schema.Schema {
 	outColDefs := make([]*column.Column, 0)
 	for _, sfield := range convSrc {
-		tableName := sfield.TableName_
-		colName := sfield.ColName_
+		tableName := sfield.TableName
+		colName := sfield.ColName
 		sc := c.GetTableByName(*tableName).Schema()
 		colIdx := sc.GetColIndex(*colName)
 		colType := sc.GetColumn(colIdx).GetType()

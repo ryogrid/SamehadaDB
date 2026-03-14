@@ -5,19 +5,19 @@ import (
 )
 
 type JoinVisitor struct {
-	QueryInfo_ *QueryInfo
+	QueryInfo *QueryInfo
 }
 
 func (v *JoinVisitor) Enter(in ast.Node) (ast.Node, bool) {
 	switch node := in.(type) {
 	case *ast.TableName:
 		tblname := node.Name.String()
-		v.QueryInfo_.JoinTables_ = append(v.QueryInfo_.JoinTables_, &tblname)
+		v.QueryInfo.JoinTables_ = append(v.QueryInfo.JoinTables_, &tblname)
 		return in, true
 	case *ast.BinaryOperationExpr:
-		bv := &BinaryOpVisitor{v.QueryInfo_, new(BinaryOpExpression)}
+		bv := &BinaryOpVisitor{v.QueryInfo, new(BinaryOpExpression)}
 		node.Accept(bv)
-		v.QueryInfo_.OnExpressions_ = bv.BinaryOpExpression_
+		v.QueryInfo.OnExpressions = bv.BinaryOpExpression
 		return in, true
 	default:
 	}
