@@ -24,7 +24,7 @@ import (
 type LinearProbeHashTable struct {
 	headerPageID types.PageID
 	bpm          *buffer.BufferPoolManager
-	table_latch  common.ReaderWriterLatch
+	tableLatch  common.ReaderWriterLatch
 }
 
 // numBuckets should be less than 1020
@@ -63,8 +63,8 @@ func NewLinearProbeHashTable(bpm *buffer.BufferPoolManager, numBuckets int, head
 }
 
 func (ht *LinearProbeHashTable) GetValue(key []byte) []uint64 {
-	ht.table_latch.RLock()
-	defer ht.table_latch.RUnlock()
+	ht.tableLatch.RLock()
+	defer ht.tableLatch.RUnlock()
 	hPageData := ht.bpm.FetchPage(ht.headerPageID).Data()
 	headerPage := (*page.HashTableHeaderPage)(unsafe.Pointer(hPageData))
 
@@ -90,15 +90,15 @@ func (ht *LinearProbeHashTable) GetValue(key []byte) []uint64 {
 		}
 	}
 
-	ht.bpm.UnpinPage(iterator.blockId, true)
+	ht.bpm.UnpinPage(iterator.blockID, true)
 	ht.bpm.UnpinPage(ht.headerPageID, false)
 
 	return result
 }
 
 func (ht *LinearProbeHashTable) Insert(key []byte, value uint64) (err error) {
-	ht.table_latch.WLock()
-	defer ht.table_latch.WUnlock()
+	ht.tableLatch.WLock()
+	defer ht.tableLatch.WUnlock()
 	hPageData := ht.bpm.FetchPage(ht.headerPageID).Data()
 	headerPage := (*page.HashTableHeaderPage)(unsafe.Pointer(hPageData))
 
@@ -137,15 +137,15 @@ func (ht *LinearProbeHashTable) Insert(key []byte, value uint64) (err error) {
 		}
 	}
 
-	ht.bpm.UnpinPage(iterator.blockId, true)
+	ht.bpm.UnpinPage(iterator.blockID, true)
 	ht.bpm.UnpinPage(ht.headerPageID, false)
 
 	return
 }
 
 func (ht *LinearProbeHashTable) Remove(key []byte, value uint64) {
-	ht.table_latch.WLock()
-	defer ht.table_latch.WUnlock()
+	ht.tableLatch.WLock()
+	defer ht.tableLatch.WUnlock()
 	hPageData := ht.bpm.FetchPage(ht.headerPageID).Data()
 	headerPage := (*page.HashTableHeaderPage)(unsafe.Pointer(hPageData))
 
@@ -170,7 +170,7 @@ func (ht *LinearProbeHashTable) Remove(key []byte, value uint64) {
 		}
 	}
 
-	ht.bpm.UnpinPage(iterator.blockId, true)
+	ht.bpm.UnpinPage(iterator.blockID, true)
 	ht.bpm.UnpinPage(ht.headerPageID, false)
 }
 

@@ -65,13 +65,13 @@ func (itr *SkipListIterator) initRIDList(sl *SkipList) {
 
 	for {
 		if curPageSlotIdx+1 >= itr.curNode.GetEntryCnt() {
-			prevNodeId := itr.curNode.GetPageID()
-			nextNodeId := itr.curNode.GetForwardEntry(0)
+			prevNodeID := itr.curNode.GetPageID()
+			nextNodeID := itr.curNode.GetForwardEntry(0)
 			prevNode := itr.curNode
-			itr.curNode = skip_list_page.FetchAndCastToBlockPage(itr.bpm, nextNodeId)
+			itr.curNode = skip_list_page.FetchAndCastToBlockPage(itr.bpm, nextNodeID)
 			itr.curNode.RLatch()
 			itr.curNode.AddRLatchRecord(-10000)
-			itr.bpm.UnpinPage(prevNodeId, false)
+			itr.bpm.UnpinPage(prevNodeID, false)
 			prevNode.RemoveRLatchRecord(-10000)
 			prevNode.RUnlatch()
 			curPageSlotIdx = -1
