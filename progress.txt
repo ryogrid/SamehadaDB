@@ -26,6 +26,7 @@
 - CAUTION: `log_recovery` is a package name — don't bulk-rename it when renaming `log_recovery` local vars
 - `NEW_TABLE_PAGE` → `NewTablePage`, `DEALLOCATE_PAGE` → `DeallocatePage`, `REUSE_PAGE` → `ReusePage`, `GRACEFUL_SHUTDOWN` → `GracefulShutdown` (multi-word ALL_CAPS → PascalCase)
 - `HEADER_SIZE` → `HeaderSize` (multi-word ALL_CAPS → PascalCase)
+- `DEALLOCATED_FRAME` → `DeallocatedFrame`, `ACCOUNT_NUM` → `AccountNum`, `BALANCE_AT_START` → `BalanceAtStart`, `THREAD_NUM` → `ThreadNum`, `SS2PL_MODE` → `SS2PLMode`, `RESERVE_SPACE` → `ReserveSpace` (stragglers caught in final audit)
 
 ---
 
@@ -259,4 +260,24 @@
   - The server/ code had no snake_case struct members, function parameters, or local variables — only the package/directory name `signal_handle` used snake_case
   - Go convention for multi-word packages is to concatenate without underscores (e.g., `signalhandle` not `signal_handle`)
   - The `server/samehada-db-server` binary file shows as modified in git status but should NOT be committed (it's a build artifact)
+---
+
+## 2026-03-14 - US-014
+- What was implemented: Final verification audit — found and renamed remaining ALL_CAPS multi-word constants and one snake_case local variable
+- Remaining items found and fixed:
+  - `DEALLOCATED_FRAME` → `DeallocatedFrame` (clock_replacer.go, buffer_pool_manager.go)
+  - `ACCOUNT_NUM` → `AccountNum`, `BALANCE_AT_START` → `BalanceAtStart` (executor test files)
+  - `THREAD_NUM` → `ThreadNum` (skip_list_test.go, samehada_test.go, executor tests)
+  - `SS2PL_MODE` → `SS2PLMode` (lock_manager.go + references)
+  - `RESERVE_SPACE` → `ReserveSpace` (transaction.go)
+  - `agg_expr` → `aggExpr` (aggregation_executor.go)
+  - `orderby_plan` → `orderbyPlan` (executor_test.go)
+- Verified: `EnableOnMemStorage` is still `true`
+- Verified: `go vet ./...` has no naming-related warnings (only pre-existing unkeyed struct literal warnings)
+- Verified: all builds pass, all tests pass
+- Files changed: 12 files
+- **Learnings for future iterations:**
+  - Even after thorough renaming passes, a few straggler constants and variables can slip through — always do a final grep audit
+  - Package name references like `samehada_util.Foo` are NOT snake_case identifiers — they're just how Go references packages with underscores in directory names
+  - `go vet` warnings about "unkeyed struct literals" are pre-existing and not naming-related
 ---
