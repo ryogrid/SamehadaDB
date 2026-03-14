@@ -1,4 +1,4 @@
-package signal_handle
+package signalhandle
 
 import (
 	"github.com/ryogrid/SamehadaDB/lib/samehada"
