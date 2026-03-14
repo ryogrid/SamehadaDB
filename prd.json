@@ -144,7 +144,7 @@
         "cd server && go build -o samehada-db-server main.go succeeds"
       ],
       "priority": 8,
-      "passes": false,
+      "passes": true,
       "notes": "Phase 7 — data structures. Relatively self-contained."
     },
     {

@@ -133,3 +133,21 @@
   - All other identifiers in catalog/ are unexported, so cross-package impact was zero
   - schemas.go and catalog_interface.go were already clean — no snake_case found
 ---
+
+## 2026-03-14 - US-008
+- What was implemented: Renamed all snake_case identifiers in lib/container/hash/, lib/container/skip_list/, and lib/container/btree/
+- Key renames:
+  - linear_probe_hash_table.go: `table_latch` → `tableLatch` (struct field)
+  - linear_probe_hash_table_iterator.go: `blockId` → `blockID` (struct field, Effective Go acronym rule)
+  - linear_probe_hash_table.go: `iterator.blockId` → `iterator.blockID` (references)
+  - skip_list.go: `log_manager` → `logManager` (struct field + param), `SKIP_LIST_OP_GET` → `SkipListOpGet`, `SKIP_LIST_OP_REMOVE` → `SkipListOpRemove`, `SKIP_LIST_OP_INSERT` → `SkipListOpInsert`, `SKIP_LIST_UTIL_GET_LATCH` → `SkipListUtilGetLatch`, `SKIP_LIST_UTIL_UNLATCH` → `SkipListUtilUnlatch`
+  - skip_list.go: named returns `predOfCorners_` → `predOfCornersVal`, `corners_` → `cornersVal`, `found_` → `foundVal`, `node_` → `nodeVal`, `idx_` → `idxVal`, `isDeleted_` → `isDeletedVal`
+  - skip_list_iterator.go: `prevNodeId` → `prevNodeID`, `nextNodeId` → `nextNodeID` (Effective Go acronym rule)
+  - skip_list_bench_test.go: `INITIAL_VAL_NUM` → `InitialValNum`, `WORK_NUM` → `WorkNum`, constant references updated
+- Files changed: 5 files (all within lib/container/)
+- **Learnings for future iterations:**
+  - btree/ files (`parent_bufmgr_impl.go`, `parent_page_impl.go`, `btree_test.go`) had no snake_case identifiers to rename — `GetPPageId` is an external interface contract from `bltree-go-for-embedding`
+  - Test function names with underscores (e.g., `TestBLTree_insert_and_find_embedding`) are Go convention — do NOT rename
+  - `hash_util.go`, `hash_table_test.go`, `hash_table_page_test.go` were already clean
+  - All identifiers in container/ are unexported except the SKIP_LIST_OP_* and SKIP_LIST_UTIL_* constants, so cross-package impact was limited to the bench test
+---
