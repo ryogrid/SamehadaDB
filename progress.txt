@@ -247,3 +247,16 @@
   - Struct literals using positional initialization (e.g., `&TableInsertMeta{"test_1", ...}`) are not affected by field name changes
   - `checkpoint_manger` was a typo in the original code (missing 'a') — fixed to `checkpointManager`
 ---
+
+## 2026-03-14 - US-013
+- What was implemented: Renamed snake_case package name `signal_handle` → `signalhandle` in server/
+- Key renames:
+  - Directory `server/signal_handle/` → `server/signalhandle/`
+  - Package declaration `package signal_handle` → `package signalhandle`
+  - Import path and all `signal_handle.` references → `signalhandle.`
+- Files changed: 2 files (main.go, signalhandle/signal_handler.go)
+- **Learnings for future iterations:**
+  - The server/ code had no snake_case struct members, function parameters, or local variables — only the package/directory name `signal_handle` used snake_case
+  - Go convention for multi-word packages is to concatenate without underscores (e.g., `signalhandle` not `signal_handle`)
+  - The `server/samehada-db-server` binary file shows as modified in git status but should NOT be committed (it's a build artifact)
+---
