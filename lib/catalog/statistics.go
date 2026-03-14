@@ -175,22 +175,22 @@ type TableStatistics struct {
 	colStats []*columnStats
 }
 
-func NewTableStatistics(schema_ *schema.Schema) *TableStatistics {
+func NewTableStatistics(sc *schema.Schema) *TableStatistics {
 	colStats := make([]*columnStats, 0)
-	for ii := 0; ii < int(schema_.GetColumnCount()); ii++ {
-		colStats = append(colStats, NewColumnStats(schema_.GetColumn(uint32(ii)).GetType()))
+	for ii := 0; ii < int(sc.GetColumnCount()); ii++ {
+		colStats = append(colStats, NewColumnStats(sc.GetColumn(uint32(ii)).GetType()))
 	}
 	return &TableStatistics{colStats}
 }
 
 func (ts *TableStatistics) Update(target *TableMetadata, txn *access.Transaction) error {
 	rows := 0
-	schema_ := target.Schema()
+	sc := target.Schema()
 	it := target.Table().Iterator(txn)
 
 	distCounters := make([]*distinctCounter, 0)
-	for ii := 0; ii < int(schema_.GetColumnCount()); ii++ {
-		distCounters = append(distCounters, NewDistinctCounter(schema_.GetColumn(uint32(ii)).GetType()))
+	for ii := 0; ii < int(sc.GetColumnCount()); ii++ {
+		distCounters = append(distCounters, NewDistinctCounter(sc.GetColumn(uint32(ii)).GetType()))
 	}
 
 	for t := it.Current(); !it.End(); t = it.Next() {
@@ -198,7 +198,7 @@ func (ts *TableStatistics) Update(target *TableMetadata, txn *access.Transaction
 			return AbortedError
 		}
 		for ii := 0; ii < len(ts.colStats); ii++ {
-			distCounters[ii].Add(samehada_util.GetPonterOfValue(t.GetValue(schema_, uint32(ii))))
+			distCounters[ii].Add(samehada_util.GetPonterOfValue(t.GetValue(sc, uint32(ii))))
 		}
 		rows++
 	}
@@ -303,12 +303,12 @@ func (ts *TableStatistics) ColumnNum() int32 {
 	return int32(len(ts.colStats))
 }
 
-func (ts *TableStatistics) EstimateCount(col_idx int32, from *types.Value, to *types.Value) float64 {
-	return ts.colStats[col_idx].EstimateCount(from, to)
+func (ts *TableStatistics) EstimateCount(colIdx int32, from *types.Value, to *types.Value) float64 {
+	return ts.colStats[colIdx].EstimateCount(from, to)
 }
 
-func (ts *TableStatistics) TransformBy(col_idx int32, from *types.Value, to *types.Value) *TableStatistics {
-	multiplier := ts.EstimateCount(col_idx, from, to)
+func (ts *TableStatistics) TransformBy(colIdx int32, from *types.Value, to *types.Value) *TableStatistics {
+	multiplier := ts.EstimateCount(colIdx, from, to)
 	for _, st := range ts.colStats {
 		if st.Count() == 0 {
 			continue

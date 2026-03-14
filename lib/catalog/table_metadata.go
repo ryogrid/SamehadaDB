@@ -24,7 +24,7 @@ type TableMetadata struct {
 	oid      uint32
 }
 
-func NewTableMetadata(schema *schema.Schema, name string, table *access.TableHeap, oid uint32, log_manager *recovery.LogManager, isGracefulShutdown bool) *TableMetadata {
+func NewTableMetadata(schema *schema.Schema, name string, table *access.TableHeap, oid uint32, logManager *recovery.LogManager, isGracefulShutdown bool) *TableMetadata {
 	ret := new(TableMetadata)
 	ret.schema = schema
 	ret.name = name
@@ -33,49 +33,49 @@ func NewTableMetadata(schema *schema.Schema, name string, table *access.TableHea
 	ret.oid = oid
 
 	indexes := make([]index.Index, 0)
-	for idx, column_ := range schema.GetColumns() {
-		if column_.HasIndex() {
-			switch column_.IndexKind() {
+	for idx, col := range schema.GetColumns() {
+		if col.HasIndex() {
+			switch col.IndexKind() {
 			case index_constants.IndexKindHash:
 				// index bucket size is common.BucketSizeOfHashIndex (auto size extending is needed...)
 				//       note: one bucket is used pages for storing index key/value pairs for a column.
 				//             one page can store 512 key/value pair
-				im := index.NewIndexMetadata(column_.GetColumnName()+"_index", name, schema, []uint32{uint32(idx)})
-				hIdx := index.NewLinearProbeHashTableIndex(im, table.GetBufferPoolManager(), uint32(idx), common.BucketSizeOfHashIndex, column_.IndexHeaderPageID())
+				im := index.NewIndexMetadata(col.GetColumnName()+"_index", name, schema, []uint32{uint32(idx)})
+				hIdx := index.NewLinearProbeHashTableIndex(im, table.GetBufferPoolManager(), uint32(idx), common.BucketSizeOfHashIndex, col.IndexHeaderPageID())
 
 				indexes = append(indexes, hIdx)
-				// at first allocation of pages for index, column's indexHeaderPageID is -1 at above code (column_.IndexHeaderPageID() == -1)
+				// at first allocation of pages for index, column's indexHeaderPageID is -1 at above code (col.IndexHeaderPageID() == -1)
 				// because first allocation occurs when table creation is processed (not launched DB instace from existing db file which has difinition of this table)
 				// so, for first allocation case, allocated page GetPageID of header page need to be set to column info here
-				column_.SetIndexHeaderPageID(hIdx.GetHeaderPageID())
+				col.SetIndexHeaderPageID(hIdx.GetHeaderPageID())
 			case index_constants.IndexKindUniqSkipList:
 				// currently, SkipList Index always use new pages even if relaunch
-				im := index.NewIndexMetadata(column_.GetColumnName()+"_index", name, schema, []uint32{uint32(idx)})
+				im := index.NewIndexMetadata(col.GetColumnName()+"_index", name, schema, []uint32{uint32(idx)})
 				// TODO: (SDB) need to add index headae ID argument like HashIndex (NewTableMetadata)
 				slIdx := index.NewUniqSkipListIndex(im, table.GetBufferPoolManager(), uint32(idx))
 
 				indexes = append(indexes, slIdx)
-				//column_.SetIndexHeaderPageID(slIdx.GetHeaderPageID())
+				//col.SetIndexHeaderPageID(slIdx.GetHeaderPageID())
 			case index_constants.IndexKindSkipList:
 				// currently, SkipList Index always use new pages even if relaunch
-				im := index.NewIndexMetadata(column_.GetColumnName()+"_index", name, schema, []uint32{uint32(idx)})
+				im := index.NewIndexMetadata(col.GetColumnName()+"_index", name, schema, []uint32{uint32(idx)})
 				// TODO: (SDB) need to add index headae ID argument like HashIndex (NewTableMetadata)
-				slIdx := index.NewSkipListIndex(im, table.GetBufferPoolManager(), uint32(idx), log_manager)
+				slIdx := index.NewSkipListIndex(im, table.GetBufferPoolManager(), uint32(idx), logManager)
 
 				indexes = append(indexes, slIdx)
-				//column_.SetIndexHeaderPageID(slIdx.GetHeaderPageID())
+				//col.SetIndexHeaderPageID(slIdx.GetHeaderPageID())
 			case index_constants.IndexKindBtree:
-				im := index.NewIndexMetadata(column_.GetColumnName()+"_index", name, schema, []uint32{uint32(idx)})
-				var pageZeroId *int32 = nil
-				if column_.IndexHeaderPageID() != -1 && isGracefulShutdown {
-					pageZeroId = new(int32)
-					*pageZeroId = int32(column_.IndexHeaderPageID())
+				im := index.NewIndexMetadata(col.GetColumnName()+"_index", name, schema, []uint32{uint32(idx)})
+				var pageZeroID *int32 = nil
+				if col.IndexHeaderPageID() != -1 && isGracefulShutdown {
+					pageZeroID = new(int32)
+					*pageZeroID = int32(col.IndexHeaderPageID())
 				}
 
-				btrIdx := index.NewBTreeIndex(im, table.GetBufferPoolManager(), uint32(idx), log_manager, pageZeroId)
+				btrIdx := index.NewBTreeIndex(im, table.GetBufferPoolManager(), uint32(idx), logManager, pageZeroID)
 
 				indexes = append(indexes, btrIdx)
-				column_.SetIndexHeaderPageID(btrIdx.GetHeaderPageID())
+				col.SetIndexHeaderPageID(btrIdx.GetHeaderPageID())
 			default:
 				panic("illegal index kind!")
 			}
