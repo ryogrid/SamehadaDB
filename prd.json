@@ -91,7 +91,7 @@
         "cd server && go build -o samehada-db-server main.go succeeds"
       ],
       "priority": 5,
-      "passes": false,
+      "passes": true,
       "notes": "Phase 5a — access layer. Split from index due to size. Depends on table, tuple, and buffer."
     },
     {

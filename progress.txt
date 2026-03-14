@@ -11,6 +11,13 @@
 - `MAX_FOWARD_LIST_LEN` → `MaxForwardListLen`
 - `rwlatch_` → `rwLatch` (trailing underscore removed, camelCase applied)
 - CAUTION: External package `bltree-go-for-embedding` uses `GetPPageId`, `GetMappedPPageIdOfPageZero`, `GetPageIdConvMap` — do NOT rename these (interface contract)
+- Trailing underscore params like `schema_`, `tuple_` exist to avoid shadowing package names — rename to short forms (`sc`, `tpl`, `t`)
+- `RID` is an acronym → `copiedRID` not `copiedRid` per Effective Go
+- `GetTransactionId` → `GetTransactionID` (exported method, Id → ID acronym rule, cross-package references updated)
+- `txn_id` → `txnID`, `prev_lsn` → `prevLSN` (acronyms stay uppercase)
+- Receiver names like `lock_manager` → `lockManager`, `transaction_manager` → `transactionManager` (snake_case → camelCase)
+- `catalog_` → `cat`, `page_` → `pg`, `index_` → `idx`, `list_` → `lst` (trailing underscore → short names)
+- Named return trailing underscores: `new_rid_` → `newRIDVal`, `err_` → `errVal`, `update_tuple_` → `updateTupleVal`
 
 ---
 
@@ -66,4 +73,25 @@
   - Trailing underscore params like `schema_` and `tuple_` exist to avoid shadowing the package import name — rename to short forms like `sc`, `tpl`, or `t`
   - `copied_rid` → `copiedRID` (RID is an acronym, should be all caps per Effective Go)
   - tuple_test.go was already clean — no snake_case found
+---
+
+## 2026-03-14 - US-005
+- What was implemented: Renamed all snake_case identifiers in lib/storage/access/
+- Key renames:
+  - transaction.go: `txn_id` → `txnID`, `write_set` → `writeSet`, `prev_lsn` → `prevLSN`, `shared_lock_set` → `sharedLockSet`, `exclusive_lock_set` → `exclusiveLockSet`, `GetTransactionId` → `GetTransactionID`
+  - lock_manager.go: `two_pl_mode` → `twoPLMode`, `deadlock_mode` → `deadlockMode`, `shared_lock_table` → `sharedLockTable`, `exclusive_lock_table` → `exclusiveLockTable`, `lock_mode` → `lockMode`, receivers renamed
+  - transaction_manager.go: `next_txn_id` → `nextTxnID`, `lock_manager` → `lockManager`, `log_manager` → `logManager`, `global_txn_latch` → `globalTxnLatch`, `catalog_` → `cat`, `index_` → `idx`
+  - table_page.go: `slot_num` → `slotNum`, `tuple_size` → `tupleSize`, `tuple_offset` → `tupleOffset`, `free_space_pointer` → `freeSpacePointer`, `schema_` → `sc`, `new_tuple` → `newTuple`, `old_tuple` → `oldTuple`, `update_col_idxs` → `updateColIdxs`
+  - table_heap.go: struct members + params renamed, `page_` → `pg`, `is_updated` → `isUpdated`, `new_rid` → `newRID`, named returns renamed
+  - table_heap_iterator.go: `lock_manager` → `lockManager`
+  - table_heap_test.go: local vars renamed (`log_manager`, `lock_manager`, `txn_mgr`, `schema_`, `tuple_`, `tuple_cnt`)
+- Cross-package references updated: `GetTransactionId` → `GetTransactionID` in 2 executor test files
+- Files changed: 9 files (7 in access/, 2 in executor_test/)
+- **Learnings for future iterations:**
+  - `GetTransactionId` is the only exported identifier changed in this package — uses Effective Go `Id` → `ID` rule
+  - Most identifiers in access/ are unexported, so cross-package impact is minimal
+  - `txn_map` package-level var (sync.Map) renamed to `txnMap`
+  - Use perl with `\b` word boundaries for reliable bulk renames across multiple files
+  - Order sed/perl patterns from longest to shortest to avoid partial matches (e.g., `exclusive_lock_table` before `lock_table`)
+  - Named return trailing underscores (`err_`, `new_rid_`) need to be processed before their non-underscore counterparts
 ---
