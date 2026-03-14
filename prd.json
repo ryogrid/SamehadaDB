@@ -19,7 +19,7 @@
         "cd server && go build -o samehada-db-server main.go succeeds"
       ],
       "priority": 1,
-      "passes": false,
+      "passes": true,
       "notes": "Phase 1 — foundational packages imported by nearly everything. Must be done first. When renaming, search the entire codebase for all references to each renamed identifier."
     },
     {

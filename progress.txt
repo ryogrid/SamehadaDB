@@ -1,0 +1,24 @@
+## Codebase Patterns
+- Use `SHAssert` (not `SH_Assert`) for assertions — renamed from snake_case
+- Logger constants use PascalCase: `DebugInfoDetail`, `DebugInfo`, `CommitAbortHandleInfo`, `NotAborableTxnFeature`, etc.
+- `SHMutex` / `NewSHMutex` for the custom mutex type (renamed from `SH_Mutex` / `NewSH_Mutex`)
+- Single-word ALL_CAPS constants (`INFO`, `WARN`, `ERROR`, `FATAL`, `DEBUGGING`) were NOT renamed (not snake_case)
+- `EnableOnMemStorage` in lib/common/config.go must remain `true` — do NOT change it
+- Build verification: `cd lib && go build ./...`, `cd lib && go test ./... -short`, `cd server && go build -o samehada-db-server main.go`
+- Named return variables with trailing underscore (`ret_`) renamed to `retVal` to eliminate underscores
+
+---
+
+## 2026-03-14 - US-001
+- What was implemented: Renamed all snake_case identifiers in lib/types/ and lib/common/ to camelCase/PascalCase
+- Files changed:
+  - lib/common/assert.go: `SH_Assert` → `SHAssert`, `SH_Mutex` → `SHMutex`, `NewSH_Mutex` → `NewSHMutex`
+  - lib/common/logger.go: `DEBUG_INFO_DETAIL` → `DebugInfoDetail`, `DEBUG_INFO` → `DebugInfo`, `CACHE_OUT_IN_INFO` → `CacheOutInInfo`, `RDB_OP_FUNC_CALL` → `RDBOpFuncCall`, `BUFFER_INTERNAL_STATE` → `BufferInternalState`, `PIN_COUNT_ASSERT` → `PinCountAssert`, `COMMIT_ABORT_HANDLE_INFO` → `CommitAbortHandleInfo`, `NOT_ABORABLE_TXN_FEATURE` → `NotAborableTxnFeature`
+  - lib/common/config.go: References to renamed constants updated
+  - lib/types/uint32.go: `ret_` named returns → `retVal`
+  - 18+ other files with cross-codebase reference updates
+- **Learnings for future iterations:**
+  - The prior commit `04b727b` already contained these renames — the user had started the work
+  - Use `find | xargs sed` for bulk cross-codebase renames, but do longer names first to avoid partial matches (e.g., `DEBUG_INFO_DETAIL` before `DEBUG_INFO`)
+  - All builds and tests pass after renaming
+---
