@@ -37,3 +37,19 @@
   - When doing `PageId` → `PageID` renames, watch for `PPageId` which should also stay as-is due to external interface
   - `lib/errors/type.go` had no snake_case identifiers — it was already clean
 ---
+
+## 2026-03-14 - US-003
+- What was implemented: Renamed all snake_case identifiers in lib/storage/disk/ and lib/storage/buffer/
+- Key renames:
+  - `fileName_log` → `fileNameLog`, `flush_log` → `flushLog` (struct members in both DiskManagerImpl and VirtualDiskManagerImpl)
+  - `period_idx` → `periodIdx`, `logfname_base` → `logFnameBase`, `file_1` → `logFile`, `fileInfo_1` → `logFileInfo` (local vars)
+  - `log_data` → `logData` (params in WriteLog/ReadLog)
+  - `file_` → `f` (local var in GCLogFile)
+  - `log_manager` → `logManager` (BufferPoolManager struct member and NewBufferPoolManager param)
+  - `page_` → `pg` (params in IncPinOfPage/DecPinOfPage)
+- Files changed: disk_manager_impl.go, virtual_disk_manager_impl.go, buffer_pool_manager.go
+- **Learnings for future iterations:**
+  - All snake_case identifiers in disk/ and buffer/ were private (unexported), so no cross-package reference updates needed
+  - circular_list.go and clock_replacer.go were already clean — no snake_case found
+  - `reUsablePageList` and `supportMap` are camelCase (no underscore), so they don't need renaming
+---

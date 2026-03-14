@@ -55,7 +55,7 @@
         "cd server && go build -o samehada-db-server main.go succeeds"
       ],
       "priority": 3,
-      "passes": false,
+      "passes": true,
       "notes": "Phase 3 — disk and buffer layers. Example: BufferPoolManager.log_manager → logManager. See PRD Before/After examples."
     },
     {
