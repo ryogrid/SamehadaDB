@@ -6,14 +6,14 @@ import (
 )
 
 type queryRequest struct {
-	reqId    *uint64
+	reqID    *uint64
 	queryStr *string
 	callerCh *chan *reqResult
 }
 
 type RequestManager struct {
 	sdb               *SamehadaDB
-	nextReqId         uint64
+	nextReqID         uint64
 	execQue           []*queryRequest
 	queMutex          *sync.Mutex
 	curExectingReqNum uint64
@@ -30,9 +30,9 @@ func (reqManager *RequestManager) AppendRequest(queryStr *string) *chan *reqResu
 	reqManager.queMutex.Lock()
 
 	qr := new(queryRequest)
-	tmpId := reqManager.nextReqId
-	qr.reqId = &tmpId
-	reqManager.nextReqId++
+	tmpID := reqManager.nextReqID
+	qr.reqID = &tmpID
+	reqManager.nextReqID++
 	qr.queryStr = queryStr
 
 	retCh := make(chan *reqResult)
@@ -74,7 +74,7 @@ func (reqManager *RequestManager) executeQuedTxns() {
 // caller must having lock of queMutex
 func (reqManager *RequestManager) handleAbortedByCCTxn(result *reqResult) {
 	// insert aborted request to head of que
-	reqManager.execQue = append([]*queryRequest{{result.reqId, result.query, result.callerCh}}, reqManager.execQue...)
+	reqManager.execQue = append([]*queryRequest{{result.reqID, result.query, result.callerCh}}, reqManager.execQue...)
 	//fmt.Println("add que aborted req")
 }
 

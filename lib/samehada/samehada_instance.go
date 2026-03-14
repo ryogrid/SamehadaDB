@@ -17,12 +17,12 @@ const (
 )
 
 type SamehadaInstance struct {
-	disk_manager        disk.DiskManager
-	log_manager         *recovery.LogManager
-	bpm                 *buffer.BufferPoolManager
-	lock_manager        *access.LockManager
-	transaction_manager *access.TransactionManager
-	checkpoint_manger   *concurrency.CheckpointManager
+	diskManager        disk.DiskManager
+	logManager         *recovery.LogManager
+	bpm                *buffer.BufferPoolManager
+	lockManager        *access.LockManager
+	transactionManager *access.TransactionManager
+	checkpointManager  *concurrency.CheckpointManager
 }
 
 func NewSamehadaInstanceForTesting() *SamehadaInstance {
@@ -35,29 +35,29 @@ func NewSamehadaInstanceForTesting() *SamehadaInstance {
 // and db/log file
 // bpoolSize: usable buffer size in frame(=page) num
 func NewSamehadaInstance(dbName string, bpoolSize int) *SamehadaInstance {
-	var disk_manager disk.DiskManager
+	var dman disk.DiskManager
 	if !common.EnableOnMemStorage || common.TempSuppressOnMemStorage {
-		disk_manager = disk.NewDiskManagerImpl(dbName + ".db")
+		dman = disk.NewDiskManagerImpl(dbName + ".db")
 	} else {
-		disk_manager = disk.NewVirtualDiskManagerImpl(dbName + ".db")
+		dman = disk.NewVirtualDiskManagerImpl(dbName + ".db")
 	}
 
-	log_manager := recovery.NewLogManager(&disk_manager)
-	log_manager.ActivateLogging()
-	bpm := buffer.NewBufferPoolManager(uint32(bpoolSize), disk_manager, log_manager)
-	lock_manager := access.NewLockManager(access.STRICT, access.SS2PL_MODE)
-	transaction_manager := access.NewTransactionManager(lock_manager, log_manager)
-	checkpoint_manager := concurrency.NewCheckpointManager(transaction_manager, log_manager, bpm)
+	logMgr := recovery.NewLogManager(&dman)
+	logMgr.ActivateLogging()
+	bpm := buffer.NewBufferPoolManager(uint32(bpoolSize), dman, logMgr)
+	lockMgr := access.NewLockManager(access.STRICT, access.SS2PL_MODE)
+	txnMgr := access.NewTransactionManager(lockMgr, logMgr)
+	cpMgr := concurrency.NewCheckpointManager(txnMgr, logMgr, bpm)
 
-	return &SamehadaInstance{disk_manager, log_manager, bpm, lock_manager, transaction_manager, checkpoint_manager}
+	return &SamehadaInstance{dman, logMgr, bpm, lockMgr, txnMgr, cpMgr}
 }
 
 func (si *SamehadaInstance) GetDiskManager() disk.DiskManager {
-	return si.disk_manager
+	return si.diskManager
 }
 
 func (si *SamehadaInstance) GetLogManager() *recovery.LogManager {
-	return si.log_manager
+	return si.logManager
 }
 
 func (si *SamehadaInstance) GetBufferPoolManager() *buffer.BufferPoolManager {
@@ -65,15 +65,15 @@ func (si *SamehadaInstance) GetBufferPoolManager() *buffer.BufferPoolManager {
 }
 
 func (si *SamehadaInstance) GetLockManager() *access.LockManager {
-	return si.lock_manager
+	return si.lockManager
 }
 
 func (si *SamehadaInstance) GetTransactionManager() *access.TransactionManager {
-	return si.transaction_manager
+	return si.transactionManager
 }
 
 func (si *SamehadaInstance) GetCheckpointManager() *concurrency.CheckpointManager {
-	return si.checkpoint_manger
+	return si.checkpointManager
 }
 
 // functionality is Flushing dirty pages, shutdown of DiskManager and action around DB/Log files
@@ -81,19 +81,19 @@ func (si *SamehadaInstance) Shutdown(shutdownPat ShutdownPattern) {
 	switch shutdownPat {
 	case ShutdownPatternRemoveFiles:
 		//close
-		si.disk_manager.ShutDown()
+		si.diskManager.ShutDown()
 		//remove
-		si.disk_manager.RemoveDBFile()
-		si.disk_manager.RemoveLogFile()
+		si.diskManager.RemoveDBFile()
+		si.diskManager.RemoveLogFile()
 	case ShutdownPatternCloseFiles:
-		si.log_manager.Flush()
+		si.logManager.Flush()
 		// TODO: (SDB) need to finalize BTreeIndex objects
 		si.bpm.FlushAllDirtyPages()
 		logRecord := recovery.NewLogRecordGracefulShutdown()
-		si.log_manager.AppendLogRecord(logRecord)
-		si.log_manager.Flush()
+		si.logManager.AppendLogRecord(logRecord)
+		si.logManager.Flush()
 		// close only
-		si.disk_manager.ShutDown()
+		si.diskManager.ShutDown()
 	default:
 		panic("invalid shutdown pattern")
 	}
@@ -101,5 +101,5 @@ func (si *SamehadaInstance) Shutdown(shutdownPat ShutdownPattern) {
 
 // for testing. this method does file closing only in contrast to Shutdown method
 func (si *SamehadaInstance) CloseFilesForTesting() {
-	si.disk_manager.ShutDown()
+	si.diskManager.ShutDown()
 }

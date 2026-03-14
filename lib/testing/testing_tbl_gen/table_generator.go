@@ -21,71 +21,71 @@ type ColumnInsertMeta struct {
 	/**
 	 * Name of the column
 	 */
-	Name_ string
+	Name string
 	/**
 	 * Type of the column
 	 */
-	Type_ types.TypeID
+	Type types.TypeID
 	/**
 	 * Whether the column is nullable
 	 */
-	Nullable_ bool
+	Nullable bool
 	/**
 	 * Distribution of values
 	 */
-	Dist_ int32
+	Dist int32
 	/**
 	 * min value of the column
 	 */
-	Min_ int32
+	Min int32
 	/**
 	 * max value of the column
 	 */
-	Max_ int32
+	Max int32
 	/**
 	 * Counter to generate serial data
 	 */
-	Serial_counter_ int32
+	SerialCounter int32
 }
 
 type TableInsertMeta struct {
 	/**
 	 * Name of the table
 	 */
-	Name_ string
+	Name string
 	/**
 	 * Number of rows
 	 */
-	Num_rows_ uint32
+	NumRows uint32
 	/**
 	 * Row
 	 */
-	Col_meta_ []*ColumnInsertMeta
+	ColMeta []*ColumnInsertMeta
 }
 
 type MakeSchemaMeta struct {
-	Col_name_ string
-	Expr_     expression.ColumnValue
+	ColName string
+	Expr    expression.ColumnValue
 }
 
 type MakeSchemaMetaAgg struct {
-	Col_name_ string
-	Expr_     expression.AggregateValueExpression
+	ColName string
+	Expr    expression.AggregateValueExpression
 }
 
 const DistSerial int32 = 0
 const DistUniform int32 = 1
 
-const TEST1_SIZE uint32 = 1000
-const TEST2_SIZE uint32 = 100
-const TEST_VARLEN_SIZE uint32 = 10
+const Test1Size uint32 = 1000
+const Test2Size uint32 = 100
+const TestVarlenSize uint32 = 10
 
-func GenNumericValues(col_meta *ColumnInsertMeta, count uint32) []types.Value {
+func GenNumericValues(colMeta *ColumnInsertMeta, count uint32) []types.Value {
 	var values []types.Value
-	if col_meta.Dist_ == DistSerial {
+	if colMeta.Dist == DistSerial {
 		for i := 0; i < int(count); i++ {
-			values = append(values, types.NewInteger(col_meta.Serial_counter_))
-			col_meta.Serial_counter_ += 1
+			values = append(values, types.NewInteger(colMeta.SerialCounter))
+			colMeta.SerialCounter += 1
 		}
 		return values
 	}
@@ -93,17 +93,17 @@ func GenNumericValues(col_meta *ColumnInsertMeta, count uint32) []types.Value {
 	seed := time.Now().UnixNano()
 	rand.Seed(seed)
 	for i := 0; i < int(count); i++ {
-		values = append(values, types.NewInteger(rand.Int31n(col_meta.Max_)))
+		values = append(values, types.NewInteger(rand.Int31n(colMeta.Max)))
 	}
 	return values
 }
 
-func GenNumericValuesFloat(col_meta *ColumnInsertMeta, count uint32) []types.Value {
+func GenNumericValuesFloat(colMeta *ColumnInsertMeta, count uint32) []types.Value {
 	var values []types.Value
-	if col_meta.Dist_ == DistSerial {
+	if colMeta.Dist == DistSerial {
 		for i := 0; i < int(count); i++ {
-			values = append(values, types.NewInteger(col_meta.Serial_counter_))
-			col_meta.Serial_counter_ += 1
+			values = append(values, types.NewInteger(colMeta.SerialCounter))
+			colMeta.SerialCounter += 1
 		}
 		return values
 	}
@@ -111,64 +111,64 @@ func GenNumericValuesFloat(col_meta *ColumnInsertMeta, count uint32) []types.Val
 	seed := time.Now().UnixNano()
 	rand.Seed(seed)
 	for i := 0; i < int(count); i++ {
-		values = append(values, types.NewFloat(float32(rand.Int31n(col_meta.Max_))/float32(seed)))
+		values = append(values, types.NewFloat(float32(rand.Int31n(colMeta.Max))/float32(seed)))
 	}
 	return values
 }
 
-func MakeValues(col_meta *ColumnInsertMeta, count uint32) []types.Value {
-	switch col_meta.Type_ {
+func MakeValues(colMeta *ColumnInsertMeta, count uint32) []types.Value {
+	switch colMeta.Type {
 	case types.Integer:
-		return GenNumericValues(col_meta, count)
+		return GenNumericValues(colMeta, count)
 	case types.Float:
-		return GenNumericValuesFloat(col_meta, count)
+		return GenNumericValuesFloat(colMeta, count)
 	default:
 		panic("Not yet implemented")
 	}
 }
 
-func FillTable(info *catalog.TableMetadata, table_meta *TableInsertMeta, txn *access.Transaction) {
-	var num_inserted uint32 = 0
-	var batch_size uint32 = 128
-	for num_inserted < table_meta.Num_rows_ {
+func FillTable(info *catalog.TableMetadata, tableMeta *TableInsertMeta, txn *access.Transaction) {
+	var numInserted uint32 = 0
+	var batchSize uint32 = 128
+	for numInserted < tableMeta.NumRows {
 		var values [][]types.Value
-		var num_values = uint32(math.Min(float64(batch_size), float64(table_meta.Num_rows_-num_inserted)))
-		for _, col_meta := range table_meta.Col_meta_ {
-			values = append(values, MakeValues(col_meta, num_values))
+		var numValues = uint32(math.Min(float64(batchSize), float64(tableMeta.NumRows-numInserted)))
+		for _, colMeta := range tableMeta.ColMeta {
+			values = append(values, MakeValues(colMeta, numValues))
 		}
 
-		for i := 0; i < int(num_values); i++ {
+		for i := 0; i < int(numValues); i++ {
 			var entry []types.Value
-			for idx := range table_meta.Col_meta_ {
+			for idx := range tableMeta.ColMeta {
 				entry = append(entry, values[idx][i])
 			}
-			tuple_ := tuple.NewTupleFromSchema(entry, info.Schema())
-			rid, err := info.Table().InsertTuple(tuple_, txn, info.OID(), false)
+			tpl := tuple.NewTupleFromSchema(entry, info.Schema())
+			rid, err := info.Table().InsertTuple(tpl, txn, info.OID(), false)
 			if rid == nil || err != nil {
 				fmt.Printf("InsertTuple failed on FillTable rid = %v, err = %v", rid, err)
 				panic("InsertTuple failed on FillTable!")
 			}
 			// insert entry to index
-			for idx := range table_meta.Col_meta_ {
-				index_ := info.GetIndex(idx)
-				if index_ != nil {
-					index_.InsertEntry(tuple_, *rid, txn)
+			for idx := range tableMeta.ColMeta {
+				index := info.GetIndex(idx)
+				if index != nil {
+					index.InsertEntry(tpl, *rid, txn)
 				}
 			}
-			num_inserted++
+			numInserted++
 		}
 	}
 }
 
 func MakeComparisonExpression(lhs expression.Expression, rhs expression.Expression,
-	comp_type expression.ComparisonType) expression.Expression {
+	compType expression.ComparisonType) expression.Expression {
 
-	ret_exp := expression.NewComparison(lhs, rhs, comp_type, types.Boolean)
-	return ret_exp
+	retExp := expression.NewComparison(lhs, rhs, compType, types.Boolean)
+	return retExp
 }
 
-func MakeAggregateValueExpression(is_group_by_term bool, col_index uint32) expression.Expression {
-	return expression.NewAggregateValueExpression(is_group_by_term, col_index, types.Integer)
+func MakeAggregateValueExpression(isGroupByTerm bool, colIndex uint32) expression.Expression {
+	return expression.NewAggregateValueExpression(isGroupByTerm, colIndex, types.Integer)
 }
 
 func MakeConstantValueExpression(val *types.Value) expression.Expression {
@@ -178,7 +178,7 @@ func MakeConstantValueExpression(val *types.Value) expression.Expression {
 func MakeOutputSchema(exprs []MakeSchemaMeta) *schema.Schema {
 	var cols = make([]*column.Column, 0)
 	for _, input := range exprs {
-		cols = append(cols, column.NewColumn(input.Col_name_, input.Expr_.GetReturnType(), false, index_constants.IndexKindInvalid, types.PageID(-1), input.Expr_))
+		cols = append(cols, column.NewColumn(input.ColName, input.Expr.GetReturnType(), false, index_constants.IndexKindInvalid, types.PageID(-1), input.Expr))
 	}
 	return schema.NewSchema(cols)
 }
@@ -186,29 +186,29 @@ func MakeOutputSchema(exprs []MakeSchemaMeta) *schema.Schema {
 func MakeOutputSchemaAgg(exprs []MakeSchemaMetaAgg) *schema.Schema {
 	var cols = make([]*column.Column, 0)
 	for _, input := range exprs {
-		cols = append(cols, column.NewColumn(input.Col_name_, input.Expr_.GetReturnType(), false, index_constants.IndexKindInvalid, types.PageID(-1), input.Expr_))
+		cols = append(cols, column.NewColumn(input.ColName, input.Expr.GetReturnType(), false, index_constants.IndexKindInvalid, types.PageID(-1), input.Expr))
 	}
 	return schema.NewSchema(cols)
 }
 
-func GenerateTestTabls(c *catalog.Catalog, exec_ctx *executors.ExecutorContext,
+func GenerateTestTabls(c *catalog.Catalog, execCtx *executors.ExecutorContext,
 	txn *access.Transaction) (*catalog.TableMetadata, *catalog.TableMetadata) {
 	columnA := column.NewColumn("colA", types.Integer, false, index_constants.IndexKindInvalid, types.PageID(-1), nil)
 	columnB := column.NewColumn("colB", types.Integer, false, index_constants.IndexKindInvalid, types.PageID(-1), nil)
 	columnC := column.NewColumn("colC", types.Integer, false, index_constants.IndexKindInvalid, types.PageID(-1), nil)
 	columnD := column.NewColumn("colD", types.Integer, false, index_constants.IndexKindInvalid, types.PageID(-1), nil)
-	schema_ := schema.NewSchema([]*column.Column{columnA, columnB, columnC, columnD})
-	tableMetadata1 := c.CreateTable("test_1", schema_, txn)
+	sc := schema.NewSchema([]*column.Column{columnA, columnB, columnC, columnD})
+	tableMetadata1 := c.CreateTable("test_1", sc, txn)
 
 	column1 := column.NewColumn("col1", types.Integer, false, index_constants.IndexKindInvalid, types.PageID(-1), nil)
 	column2 := column.NewColumn("col2", types.Integer, false, index_constants.IndexKindInvalid, types.PageID(-1), nil)
 	column3 := column.NewColumn("col3", types.Integer, false, index_constants.IndexKindInvalid, types.PageID(-1), nil)
 	column4 := column.NewColumn("col3", types.Integer, false, index_constants.IndexKindInvalid, types.PageID(-1), nil)
-	schema_ = schema.NewSchema([]*column.Column{column1, column2, column3, column4})
-	tableMetadata2 := c.CreateTable("test_2", schema_, txn)
+	sc = schema.NewSchema([]*column.Column{column1, column2, column3, column4})
+	tableMetadata2 := c.CreateTable("test_2", sc, txn)
 
 	tableMeta1 := &TableInsertMeta{"test_1",
-		TEST1_SIZE,
+		Test1Size,
 		[]*ColumnInsertMeta{
 			{"colA", types.Integer, false, DistSerial, 0, 0, 0},
 			{"colB", types.Integer, false, DistUniform, 0, 9, 0},
@@ -216,7 +216,7 @@ func GenerateTestTabls(c *catalog.Catalog, exec_ctx *executors.ExecutorContext,
 			{"colD", types.Integer, false, DistUniform, 0, 99999, 0},
 		}}
 	tableMeta2 := &TableInsertMeta{"test_2",
-		TEST2_SIZE,
+		Test2Size,
 		[]*ColumnInsertMeta{
 			{"col1", types.Integer, false, DistSerial, 0, 0, 0},
 			{"col2", types.Integer, false, DistUniform, 0, 9, 0},

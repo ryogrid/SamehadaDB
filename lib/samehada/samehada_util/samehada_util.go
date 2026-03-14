@@ -28,20 +28,20 @@ func FileExists(filename string) bool {
 func PackRIDtoUint32(value *page.RID) uint32 {
 	buf1 := new(bytes.Buffer)
 	buf2 := new(bytes.Buffer)
-	pack_buf := make([]byte, 4)
+	packBuf := make([]byte, 4)
 	binary.Write(buf1, binary.BigEndian, value.PageID)
 	binary.Write(buf2, binary.BigEndian, value.SlotNum)
 	pageIDInBytes := buf1.Bytes()
 	slotNumInBytes := buf2.Bytes()
-	copy(pack_buf[2:], pageIDInBytes[2:])
-	copy(pack_buf[:2], slotNumInBytes[2:])
-	return binary.BigEndian.Uint32(pack_buf)
+	copy(packBuf[2:], pageIDInBytes[2:])
+	copy(packBuf[:2], slotNumInBytes[2:])
+	return binary.BigEndian.Uint32(packBuf)
 }
 
 func UnpackUint32toRID(value uint32) page.RID {
-	packed_buf := new(bytes.Buffer)
-	binary.Write(packed_buf, binary.BigEndian, value)
-	packedDataInBytes := packed_buf.Bytes()
+	packedBuf := new(bytes.Buffer)
+	binary.Write(packedBuf, binary.BigEndian, value)
+	packedDataInBytes := packedBuf.Bytes()
 	var PageID types.PageID
 	var SlotNum uint32
 	buf := make([]byte, 4)
@@ -58,33 +58,33 @@ func UnpackUint32toRID(value uint32) page.RID {
 func PackRIDtoUint64(value *page.RID) uint64 {
 	buf1 := new(bytes.Buffer)
 	buf2 := new(bytes.Buffer)
-	pack_buf := make([]byte, 8)
+	packBuf := make([]byte, 8)
 	binary.Write(buf1, binary.BigEndian, value.PageID)
 	binary.Write(buf2, binary.BigEndian, value.SlotNum)
 	pageIDInBytes := buf1.Bytes()
 	slotNumInBytes := buf2.Bytes()
-	copy(pack_buf[4:], pageIDInBytes[:])
-	copy(pack_buf[:4], slotNumInBytes[:])
-	return binary.BigEndian.Uint64(pack_buf)
+	copy(packBuf[4:], pageIDInBytes[:])
+	copy(packBuf[:4], slotNumInBytes[:])
+	return binary.BigEndian.Uint64(packBuf)
 }
 
 func PackRIDto8bytes(value *page.RID) []byte {
 	buf1 := new(bytes.Buffer)
 	buf2 := new(bytes.Buffer)
-	pack_buf := make([]byte, 8)
+	packBuf := make([]byte, 8)
 	binary.Write(buf1, binary.BigEndian, value.PageID)
 	binary.Write(buf2, binary.BigEndian, value.SlotNum)
 	pageIDInBytes := buf1.Bytes()
 	slotNumInBytes := buf2.Bytes()
-	copy(pack_buf[:4], pageIDInBytes[:])
-	copy(pack_buf[4:], slotNumInBytes[:])
-	return pack_buf
+	copy(packBuf[:4], pageIDInBytes[:])
+	copy(packBuf[4:], slotNumInBytes[:])
+	return packBuf
 }
 
 func UnpackUint64toRID(value uint64) page.RID {
-	packed_buf := new(bytes.Buffer)
-	binary.Write(packed_buf, binary.BigEndian, value)
-	packedDataInBytes := packed_buf.Bytes()
+	packedBuf := new(bytes.Buffer)
+	binary.Write(packedBuf, binary.BigEndian, value)
+	packedDataInBytes := packedBuf.Bytes()
 	var PageID types.PageID
 	var SlotNum uint32
 	buf := make([]byte, 4)
@@ -117,15 +117,15 @@ func GetPonterOfValue(value types.Value) *types.Value {
 func GetRandomStr(maxLength int32, isFixLen bool) *string {
 	alphabets :=
 		"ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz!#$%&'(),-./:;<=>?@[]^_`{|}~"
-	var len_ int
+	var strLen int
 	if isFixLen {
-		len_ = int(maxLength)
+		strLen = int(maxLength)
 	} else {
-		len_ = 1 + (rand.Intn(math.MaxInt32))%(int(maxLength)-1)
+		strLen = 1 + (rand.Intn(math.MaxInt32))%(int(maxLength)-1)
 	}
 
 	s := ""
-	for j := 0; j < len_; j++ {
+	for j := 0; j < strLen; j++ {
 		idx := rand.Intn(52)
 		s = s + alphabets[idx:idx+1]
 	}
@@ -134,14 +134,14 @@ func GetRandomStr(maxLength int32, isFixLen bool) *string {
 }
 
 func RemovePrimitiveFromList[T int32 | float32 | string](list []T, elem T) []T {
-	list_ := append(make([]T, 0), list...)
+	result := append(make([]T, 0), list...)
 	for i, r := range list {
 		if r == elem {
-			list_ = append(list[:i], list[i+1:]...)
+			result = append(list[:i], list[i+1:]...)
 			break
 		}
 	}
-	return list_
+	return result
 }
 
 func IsContainList[T comparable](list interface{}, searchItem interface{}) bool {
@@ -245,8 +245,8 @@ func StrideMul(base interface{}, k interface{}) interface{} {
 	}
 }
 
-const SIGN_MASK_BIG uint32 = 0x80000000
-const SIGN_MASK_SMALL byte = 0x80
+const SignMaskBig uint32 = 0x80000000
+const SignMaskSmall byte = 0x80
 
 // true = big endian, false = little endian
 func getEndian() (ret bool) {
@@ -266,7 +266,7 @@ func encodeToDicOrderComparableBytes(orgVal interface{}, valType types.TypeID) [
 		f := orgVal.(float32)
 		u := math.Float32bits(f)
 		if f >= 0 {
-			u |= SIGN_MASK_BIG
+			u |= SignMaskBig
 		} else {
 			u = ^u
 		}
@@ -279,7 +279,7 @@ func encodeToDicOrderComparableBytes(orgVal interface{}, valType types.TypeID) [
 		buf := new(bytes.Buffer)
 		binary.Write(buf, binary.BigEndian, u)
 		convedArr := buf.Bytes()
-		convedArr[0] ^= SIGN_MASK_SMALL
+		convedArr[0] ^= SignMaskSmall
 		return convedArr
 	default:
 		panic("not supported type")
@@ -294,17 +294,17 @@ func decodeFromDicOrderComparableBytes(convedArr []byte, valType types.TypeID) i
 		var u uint32
 		binary.Read(buf, binary.BigEndian, &u)
 
-		if u&SIGN_MASK_BIG > 0 {
-			u &= ^SIGN_MASK_BIG
+		if u&SignMaskBig > 0 {
+			u &= ^SignMaskBig
 		} else {
 			u = ^u
 		}
 		return math.Float32frombits(u)
 	case types.Integer:
-		convedArr_ := make([]byte, 4)
-		copy(convedArr_, convedArr)
-		convedArr_[0] ^= SIGN_MASK_SMALL
-		buf := bytes.NewBuffer(convedArr_)
+		convedArrCopy := make([]byte, 4)
+		copy(convedArrCopy, convedArr)
+		convedArrCopy[0] ^= SignMaskSmall
+		buf := bytes.NewBuffer(convedArrCopy)
 		var u uint32
 		binary.Read(buf, binary.BigEndian, &u)
 		return int32(u)
@@ -473,13 +473,13 @@ func DeepCopy(dst interface{}, src interface{}) (err error) {
 	return nil
 }
 
-func ConvTupleListToValues(schema_ *schema.Schema, result []*tuple.Tuple) [][]*types.Value {
+func ConvTupleListToValues(sc *schema.Schema, result []*tuple.Tuple) [][]*types.Value {
 	retVals := make([][]*types.Value, 0)
-	for _, tuple_ := range result {
+	for _, tpl := range result {
 		rowVals := make([]*types.Value, 0)
-		colNum := int(schema_.GetColumnCount())
+		colNum := int(sc.GetColumnCount())
 		for idx := 0; idx < colNum; idx++ {
-			val := tuple_.GetValue(schema_, uint32(idx))
+			val := tpl.GetValue(sc, uint32(idx))
 			rowVals = append(rowVals, &val)
 		}
 		retVals = append(retVals, rowVals)

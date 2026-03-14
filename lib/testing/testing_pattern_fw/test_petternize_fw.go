@@ -55,9 +55,9 @@ func ExecuteSeqScanTestCase(t *testing.T, testCase SeqScanTestCase) {
 	}
 	outSchema := schema.NewSchema(columns)
 
-	tmpColVal_ := expression.NewColumnValue(0, testCase.TableMetadata.Schema().GetColIndex(testCase.Predicate.LeftColumn), testing_util.GetValueType(testCase.Predicate.RightColumn))
-	tmpColVal := tmpColVal_.(*expression.ColumnValue)
-	expression := expression.NewComparison(tmpColVal, expression.NewConstantValue(testing_util.GetValue(testCase.Predicate.RightColumn), testing_util.GetValueType(testCase.Predicate.RightColumn)), testCase.Predicate.Operator, types.Boolean)
+	tmpColVal := expression.NewColumnValue(0, testCase.TableMetadata.Schema().GetColIndex(testCase.Predicate.LeftColumn), testing_util.GetValueType(testCase.Predicate.RightColumn))
+	castedColVal := tmpColVal.(*expression.ColumnValue)
+	expression := expression.NewComparison(castedColVal, expression.NewConstantValue(testing_util.GetValue(testCase.Predicate.RightColumn), testing_util.GetValueType(testCase.Predicate.RightColumn)), testCase.Predicate.Operator, types.Boolean)
 	seqScanPlan := plans.NewSeqScanPlanNode(testCase.ExecutorContext.GetCatalog(), outSchema, expression, testCase.TableMetadata.OID())
 
 	results := testCase.ExecutionEngine.Execute(seqScanPlan, testCase.ExecutorContext)
@@ -118,11 +118,11 @@ func ExecuteIndexPointScanTestCase(t *testing.T, testCase IndexPointScanTestCase
 	columns := fillColumnsForIndexScanTestCase[IndexPointScanTestCase](testCase, indexType)
 	outSchema := schema.NewSchema(columns)
 
-	tmpColVal_ := expression.NewColumnValue(0, testCase.TableMetadata.Schema().GetColIndex(testCase.Predicate.LeftColumn), testing_util.GetValueType(testCase.Predicate.RightColumn))
-	tmpColVal := tmpColVal_.(*expression.ColumnValue)
+	tmpColVal := expression.NewColumnValue(0, testCase.TableMetadata.Schema().GetColIndex(testCase.Predicate.LeftColumn), testing_util.GetValueType(testCase.Predicate.RightColumn))
+	castedColVal := tmpColVal.(*expression.ColumnValue)
 
-	expression_ := expression.NewComparison(tmpColVal, expression.NewConstantValue(testing_util.GetValue(testCase.Predicate.RightColumn), testing_util.GetValueType(testCase.Predicate.RightColumn)), testCase.Predicate.Operator, types.Boolean)
-	hashIndexScanPlan := plans.NewPointScanWithIndexPlanNode(testCase.ExecutorContext.GetCatalog(), outSchema, expression_.(*expression.Comparison), testCase.TableMetadata.OID())
+	expr := expression.NewComparison(castedColVal, expression.NewConstantValue(testing_util.GetValue(testCase.Predicate.RightColumn), testing_util.GetValueType(testCase.Predicate.RightColumn)), testCase.Predicate.Operator, types.Boolean)
+	hashIndexScanPlan := plans.NewPointScanWithIndexPlanNode(testCase.ExecutorContext.GetCatalog(), outSchema, expr.(*expression.Comparison), testCase.TableMetadata.OID())
 
 	results := testCase.ExecutionEngine.Execute(hashIndexScanPlan, testCase.ExecutorContext)
 
@@ -137,11 +137,11 @@ func ExecuteIndexRangeScanTestCase(t *testing.T, testCase IndexRangeScanTestCase
 	columns := fillColumnsForIndexScanTestCase[IndexRangeScanTestCase](testCase, indexType)
 	outSchema := schema.NewSchema(columns)
 
-	tmpColVal_ := expression.NewColumnValue(0, testCase.TableMetadata.Schema().GetColIndex(testCase.Predicate.LeftColumn), testing_util.GetValueType(testCase.Predicate.RightColumn))
-	tmpColVal := tmpColVal_.(*expression.ColumnValue)
+	tmpColVal := expression.NewColumnValue(0, testCase.TableMetadata.Schema().GetColIndex(testCase.Predicate.LeftColumn), testing_util.GetValueType(testCase.Predicate.RightColumn))
+	castedColVal := tmpColVal.(*expression.ColumnValue)
 
-	expression_ := expression.NewComparison(tmpColVal, expression.NewConstantValue(testing_util.GetValue(testCase.Predicate.RightColumn), testing_util.GetValueType(testCase.Predicate.RightColumn)), testCase.Predicate.Operator, types.Boolean)
-	IndexRangeScanPlan := plans.NewRangeScanWithIndexPlanNode(testCase.ExecutorContext.GetCatalog(), outSchema, testCase.TableMetadata.OID(), testCase.ColIdx, expression_.(*expression.Comparison), testCase.ScanRange[0], testCase.ScanRange[1])
+	expr := expression.NewComparison(castedColVal, expression.NewConstantValue(testing_util.GetValue(testCase.Predicate.RightColumn), testing_util.GetValueType(testCase.Predicate.RightColumn)), testCase.Predicate.Operator, types.Boolean)
+	IndexRangeScanPlan := plans.NewRangeScanWithIndexPlanNode(testCase.ExecutorContext.GetCatalog(), outSchema, testCase.TableMetadata.OID(), testCase.ColIdx, expr.(*expression.Comparison), testCase.ScanRange[0], testCase.ScanRange[1])
 
 	results := testCase.ExecutionEngine.Execute(IndexRangeScanPlan, testCase.ExecutorContext)
 
@@ -171,9 +171,9 @@ func ExecuteDeleteTestCase(t *testing.T, testCase DeleteTestCase) {
 	}
 	outSchema := schema.NewSchema(columns)
 
-	tmpColVal_ := expression.NewColumnValue(0, testCase.TableMetadata.Schema().GetColIndex(testCase.Predicate.LeftColumn), testing_util.GetValueType(testCase.Predicate.RightColumn))
-	tmpColVal := tmpColVal_.(*expression.ColumnValue)
-	expression := expression.NewComparison(tmpColVal, expression.NewConstantValue(testing_util.GetValue(testCase.Predicate.RightColumn), testing_util.GetValueType(testCase.Predicate.RightColumn)), testCase.Predicate.Operator, types.Boolean)
+	tmpColVal := expression.NewColumnValue(0, testCase.TableMetadata.Schema().GetColIndex(testCase.Predicate.LeftColumn), testing_util.GetValueType(testCase.Predicate.RightColumn))
+	castedColVal := tmpColVal.(*expression.ColumnValue)
+	expression := expression.NewComparison(castedColVal, expression.NewConstantValue(testing_util.GetValue(testCase.Predicate.RightColumn), testing_util.GetValueType(testCase.Predicate.RightColumn)), testCase.Predicate.Operator, types.Boolean)
 	childSeqScanP := plans.NewSeqScanPlanNode(testCase.ExecutorContext.GetCatalog(), outSchema, expression, testCase.TableMetadata.OID())
 	deletePlan := plans.NewDeletePlanNode(childSeqScanP)
 

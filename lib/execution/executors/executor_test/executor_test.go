@@ -1797,13 +1797,13 @@ func TestSimpleAggregation(t *testing.T) {
 	maxAVal := tuple_.GetValue(aggSchema, aggSchema.GetColIndex("maxA")).ToInteger()
 	// Should count all tuples
 	fmt.Printf("%v %v %v %v\n", countAVal, sumAVal, minAVal, maxAVal)
-	testingpkg.Assert(t, countAVal == int32(testing_tbl_gen.TEST1_SIZE), "countAVal is not expected value.")
+	testingpkg.Assert(t, countAVal == int32(testing_tbl_gen.Test1Size), "countAVal is not expected value.")
 	// Should sum from 0 to TEST1_SIZE
-	testingpkg.Assert(t, sumAVal == int32(testing_tbl_gen.TEST1_SIZE*(testing_tbl_gen.TEST1_SIZE-1)/2), "sumAVal is not expected value.")
+	testingpkg.Assert(t, sumAVal == int32(testing_tbl_gen.Test1Size*(testing_tbl_gen.Test1Size-1)/2), "sumAVal is not expected value.")
 	// Minimum should be 0
 	testingpkg.Assert(t, minAVal == int32(0), "minAVal is not expected value.")
 	// Maximum should be TEST1_SIZE - 1
-	testingpkg.Assert(t, maxAVal == int32(testing_tbl_gen.TEST1_SIZE-1), "maxAVal is not expected value.")
+	testingpkg.Assert(t, maxAVal == int32(testing_tbl_gen.Test1Size-1), "maxAVal is not expected value.")
 	tuple_, done, err := executor.Next()
 	testingpkg.Assert(t, tuple_ == nil && done == true && err == nil, "second call of AggregationExecutor::Next() failed")
 
@@ -1854,7 +1854,7 @@ func TestSimpleGroupByAggregation(t *testing.T) {
 		countA := *testing_tbl_gen.MakeAggregateValueExpression(false, 0).(*expression.AggregateValueExpression)
 		sumC := *testing_tbl_gen.MakeAggregateValueExpression(false, 1).(*expression.AggregateValueExpression)
 		// Make having clause
-		predConst := types.NewInteger(int32(testing_tbl_gen.TEST1_SIZE / 10))
+		predConst := types.NewInteger(int32(testing_tbl_gen.Test1Size / 10))
 		having := testing_tbl_gen.MakeComparisonExpression(&countA, testing_tbl_gen.MakeConstantValueExpression(&predConst), expression.GreaterThan)
 
 		aggSchema = testing_tbl_gen.MakeOutputSchemaAgg([]testing_tbl_gen.MakeSchemaMetaAgg{{"countA", countA}, {"colB", groupbyB}, {"sumC", sumC}})
@@ -1877,7 +1877,7 @@ func TestSimpleGroupByAggregation(t *testing.T) {
 
 		fmt.Printf("%d %d %d\n", countA, colB, sumC)
 
-		testingpkg.Assert(t, countA > int32(testing_tbl_gen.TEST1_SIZE/100), "countA result is not greater than 3")
+		testingpkg.Assert(t, countA > int32(testing_tbl_gen.Test1Size/100), "countA result is not greater than 3")
 
 		// should have unique colBs.
 		_, ok := encountered[colB]
