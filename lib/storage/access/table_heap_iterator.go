@@ -15,14 +15,14 @@ import (
 type TableHeapIterator struct {
 	tableHeap    *TableHeap
 	tuple        *tuple.Tuple
-	lock_manager *LockManager
+	lockManager *LockManager
 	txn          *Transaction
 }
 
 // NewTableHeapIterator creates a new table heap operator for the given table heap
 // It points to the first tuple1 of the table heap
-func NewTableHeapIterator(tableHeap *TableHeap, lock_manager *LockManager, txn *Transaction) *TableHeapIterator {
-	return &TableHeapIterator{tableHeap, tableHeap.GetFirstTuple(txn), lock_manager, txn}
+func NewTableHeapIterator(tableHeap *TableHeap, lockManager *LockManager, txn *Transaction) *TableHeapIterator {
+	return &TableHeapIterator{tableHeap, tableHeap.GetFirstTuple(txn), lockManager, txn}
 }
 
 // Current points to the current tuple1
@@ -75,7 +75,7 @@ start:
 
 	var err error = nil
 	if nextTupleRID != nil && nextTupleRID.GetPageID().IsValid() {
-		it.tuple, err = currentPage.GetTuple(nextTupleRID, it.tableHeap.log_manager, it.lock_manager, it.txn)
+		it.tuple, err = currentPage.GetTuple(nextTupleRID, it.tableHeap.logManager, it.lockManager, it.txn)
 		if it.tuple != nil && err == ErrSelfDeletedCase {
 			fmt.Println("TableHeapIterator::Next ErrSelfDeletedCase!")
 			finalizeCurrentPage()

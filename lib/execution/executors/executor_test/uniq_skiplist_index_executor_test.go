@@ -1138,7 +1138,7 @@ func testParallelTxnsQueryingUniqSkipListIndexUsedColumns[T int32 | float32 | st
 					return
 				}
 
-				common.SHAssert(len(updateRslt1) == 1 && txn_.GetState() != access.ABORTED, fmt.Sprintf("account update fails!(1) txn_.txn_id:%v", txn_.GetTransactionId()))
+				common.SHAssert(len(updateRslt1) == 1 && txn_.GetState() != access.ABORTED, fmt.Sprintf("account update fails!(1) txn_.txn_id:%v", txn_.GetTransactionID()))
 
 				if newBalance2 > sumOfAllAccountBalanceAtStart || newBalance2 < 0 {
 					fmt.Printf("money move op: newBalance2 is broken. %d\n", newBalance2)
@@ -1154,7 +1154,7 @@ func testParallelTxnsQueryingUniqSkipListIndexUsedColumns[T int32 | float32 | st
 					return
 				}
 
-				common.SHAssert(len(updateRslt2) == 1 && txn_.GetState() != access.ABORTED, fmt.Sprintf("account update fails!(2) txn_.txn_id:%v", txn_.GetTransactionId()))
+				common.SHAssert(len(updateRslt2) == 1 && txn_.GetState() != access.ABORTED, fmt.Sprintf("account update fails!(2) txn_.txn_id:%v", txn_.GetTransactionID()))
 
 				finalizeAccountUpdateTxn(txn_, balance1, balance2, newBalance1, newBalance2)
 				if execType == PARALLEL_EXEC {
@@ -1190,7 +1190,7 @@ func testParallelTxnsQueryingUniqSkipListIndexUsedColumns[T int32 | float32 | st
 				txn_ := txnMgr.Begin(nil)
 
 				txn_.SetDebugInfo("Insert(random)-Op")
-				common.ShPrintf(common.DEBUGGING, fmt.Sprintf("Insert op start. txnId:%v ii:%d\n", txn_.GetTransactionId(), ii))
+				common.ShPrintf(common.DEBUGGING, fmt.Sprintf("Insert op start. txnId:%v ii:%d\n", txn_.GetTransactionID(), ii))
 
 				for jj := int32(0); jj < stride; jj++ {
 					insKeyVal := samehada_util.StrideAdd(samehada_util.StrideMul(insKeyValBase, stride), jj).(T)
@@ -1203,7 +1203,7 @@ func testParallelTxnsQueryingUniqSkipListIndexUsedColumns[T int32 | float32 | st
 						checkKeyColDupMapMutex.Unlock()
 					}
 
-					common.ShPrintf(common.DEBUGGING, fmt.Sprintf("Insert op start. txnId:%v ii:%d jj:%d\n", txn_.GetTransactionId(), ii, jj))
+					common.ShPrintf(common.DEBUGGING, fmt.Sprintf("Insert op start. txnId:%v ii:%d jj:%d\n", txn_.GetTransactionID(), ii, jj))
 					insPlan := createSpecifiedValInsertPlanNode(insKeyVal, insBalanceVal, c, tableMetadata, keyType)
 					executePlan(c, shi.GetBufferPoolManager(), txn_, insPlan)
 
