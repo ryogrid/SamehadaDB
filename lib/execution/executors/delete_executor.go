@@ -59,18 +59,8 @@ func (e *DeleteExecutor) Next() (*tuple.Tuple, Done, error) {
 			return nil, false, err
 		}
 
-		// removing index entry is done at commit phase because delete operation uses marking technique
-
-		colNum := tableMetadata.GetColumnNum()
-		for ii := 0; ii < int(colNum); ii++ {
-			ret := tableMetadata.GetIndex(ii)
-			if ret == nil {
-				continue
-			} else {
-				idx := ret
-				idx.DeleteEntry(t, *rid, e.txn)
-			}
-		}
+		// index entry deletion is deferred to commit phase (transaction_manager.go)
+		// to prevent dirty reads via index scan
 
 		return t, false, nil
 	}
