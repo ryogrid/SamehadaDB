@@ -1974,7 +1974,7 @@ func TestInsertAndSpecifiedColumnUpdate(t *testing.T) {
 	testingpkg.Assert(t, logMgr.IsEnabledLogging(), "")
 
 	bpm := buffer.NewBufferPoolManager(uint32(32), diskManager, logMgr)
-	lockMgr := access.NewLockManager(access.REGULAR, access.SS2PL_MODE)
+	lockMgr := access.NewLockManager(access.REGULAR, access.SS2PLMode)
 	txnMgr := access.NewTransactionManager(lockMgr, logMgr)
 	txn := txnMgr.Begin(nil)
 
@@ -2509,11 +2509,11 @@ func TestSimpleSeqScanAndOrderBy(t *testing.T) {
 		scanPlan = plans.NewSeqScanPlanNode(c, scanSchema, nil, tableMetadata.OID()).(*plans.SeqScanPlanNode)
 	}
 
-	orderby_plan := plans.NewOrderbyPlanNode(
+	orderbyPlan := plans.NewOrderbyPlanNode(
 		nil, scanPlan, []int{0, 1},
 		[]plans.OrderbyType{plans.ASC, plans.ASC})
 
-	results := executionEngine.Execute(orderby_plan, execCtx)
+	results := executionEngine.Execute(orderbyPlan, execCtx)
 
 	fmt.Println(results[0].GetValue(scanSchema, 0).ToInteger())
 	fmt.Println(results[0].GetValue(scanSchema, 1).ToVarchar())
@@ -2532,11 +2532,11 @@ func TestSimpleSeqScanAndOrderBy(t *testing.T) {
 	testingpkg.Assert(t, types.NewVarchar("celemony").CompareEquals(results[2].GetValue(scanSchema, 1)), "value should be 'celemony'")
 
 	// test other order
-	orderby_plan = plans.NewOrderbyPlanNode(
+	orderbyPlan = plans.NewOrderbyPlanNode(
 		nil, scanPlan, []int{0, 1},
 		[]plans.OrderbyType{plans.DESC, plans.DESC})
 
-	results = executionEngine.Execute(orderby_plan, execCtx)
+	results = executionEngine.Execute(orderbyPlan, execCtx)
 
 	fmt.Println(results[0].GetValue(scanSchema, 0).ToInteger())
 	fmt.Println(results[0].GetValue(scanSchema, 1).ToVarchar())

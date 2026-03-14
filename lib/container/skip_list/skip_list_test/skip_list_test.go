@@ -1111,7 +1111,7 @@ func testSkipListMixParallelStride[T int32 | float32 | string](t *testing.T, key
 		os.Remove(t.Name() + ".log")
 	}
 
-	const THREAD_NUM = 20
+	const ThreadNum = 20
 
 	shi := samehada.NewSamehadaInstance(t.Name(), int(bpoolSize))
 	bpm := shi.GetBufferPoolManager()
@@ -1168,8 +1168,8 @@ func testSkipListMixParallelStride[T int32 | float32 | string](t *testing.T, key
 			break
 		}
 
-		// wait for keeping THREAD_NUM groroutine existing
-		for runningThCnt >= THREAD_NUM {
+		// wait for keeping ThreadNum groroutine existing
+		for runningThCnt >= ThreadNum {
 			<-ch
 			runningThCnt--
 
@@ -1329,7 +1329,7 @@ func testSkipListMixParallelStrideAddedIterator[T int32 | float32 | string](t *t
 		os.Remove(t.Name() + ".log")
 	}
 
-	const THREAD_NUM = 20
+	const ThreadNum = 20
 
 	shi := samehada.NewSamehadaInstance(t.Name(), int(bpoolSize))
 
@@ -1387,8 +1387,8 @@ func testSkipListMixParallelStrideAddedIterator[T int32 | float32 | string](t *t
 			break
 		}
 
-		// wait for keeping THREAD_NUM groroutine existing
-		for runningThCnt >= THREAD_NUM {
+		// wait for keeping ThreadNum groroutine existing
+		for runningThCnt >= ThreadNum {
 			<-ch
 			runningThCnt--
 
@@ -1775,7 +1775,7 @@ func TestSkipListMixParallsStrideVarcharLikeFuzzer(t *testing.T) {
 
 	runtime.GOMAXPROCS(50)
 
-	const THREAD_NUM = 15
+	const ThreadNum = 15
 
 	startTime := time.Now()
 
@@ -1783,8 +1783,8 @@ func TestSkipListMixParallsStrideVarcharLikeFuzzer(t *testing.T) {
 	finishedCase := 0
 	runningThCnt := 0
 	for {
-		// wait for keeping THREAD_NUM groroutine existing
-		for runningThCnt >= THREAD_NUM {
+		// wait for keeping ThreadNum groroutine existing
+		for runningThCnt >= ThreadNum {
 			//for runningThCnt > 0 { // serial execution
 			<-ch
 			runningThCnt--

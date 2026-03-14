@@ -211,8 +211,8 @@ func (e *AggregationExecutor) Init() {
 	childExec := e.child[0]
 	outputColumnCnt := int(e.GetOutputSchema().GetColumnCount())
 	for i := 0; i < outputColumnCnt; i++ {
-		agg_expr := e.GetOutputSchema().GetColumn(uint32(i)).GetExpr().(expression.AggregateValueExpression)
-		e.exprs = append(e.exprs, &agg_expr)
+		aggExpr := e.GetOutputSchema().GetColumn(uint32(i)).GetExpr().(expression.AggregateValueExpression)
+		e.exprs = append(e.exprs, &aggExpr)
 	}
 	insertCallCnt := 0
 	for {

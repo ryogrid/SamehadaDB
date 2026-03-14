@@ -784,28 +784,28 @@ func testParallelTxnsQueryingUniqSkipListIndexUsedColumns[T int32 | float32 | st
 	txn = txnMgr.Begin(nil)
 
 	// insert account records
-	const ACCOUNT_NUM = 10 //20 //4
-	const BALANCE_AT_START = 1000
+	const AccountNum = 10 //20 //4
+	const BalanceAtStart = 1000
 	sumOfAllAccountBalanceAtStart := int32(0)
 	accountIDs := make([]T, 0)
-	for ii := 0; ii < ACCOUNT_NUM; ii++ {
+	for ii := 0; ii < AccountNum; ii++ {
 		accountID := samehada_util.GetRandomPrimitiveVal[T](keyType, nil)
 		for _, exist := checkKeyColDupMap[accountID]; exist; _, exist = checkKeyColDupMap[accountID] {
 			accountID = samehada_util.GetRandomPrimitiveVal[T](keyType, nil)
 		}
 		checkKeyColDupMap[accountID] = accountID
-		checkBalanceColDupMap[int32(BALANCE_AT_START+ii)] = int32(BALANCE_AT_START + ii)
+		checkBalanceColDupMap[int32(BalanceAtStart+ii)] = int32(BalanceAtStart + ii)
 		accountIDs = append(accountIDs, accountID)
 		// not have to duplication check of barance
-		insPlan := createSpecifiedValInsertPlanNode(accountID, int32(BALANCE_AT_START+ii), c, tableMetadata, keyType)
+		insPlan := createSpecifiedValInsertPlanNode(accountID, int32(BalanceAtStart+ii), c, tableMetadata, keyType)
 		executePlan(c, shi.GetBufferPoolManager(), txn, insPlan)
-		sumOfAllAccountBalanceAtStart += int32(BALANCE_AT_START + ii)
+		sumOfAllAccountBalanceAtStart += int32(BalanceAtStart + ii)
 	}
 	txnMgr.Commit(nil, txn)
 
 	txn = txnMgr.Begin(nil)
 
-	insertedTupleCnt += ACCOUNT_NUM
+	insertedTupleCnt += AccountNum
 
 	handleFnishedTxn := func(catalog_ *catalog.Catalog, txnMgr *access.TransactionManager, txn *access.Transaction) bool {
 		// fmt.Println(txn.GetState())
@@ -938,7 +938,7 @@ func testParallelTxnsQueryingUniqSkipListIndexUsedColumns[T int32 | float32 | st
 		txn_ := txnMgr.Begin(nil)
 		txn_.SetDebugInfo("checkTotalBrance-Op")
 		sumOfAllAccountBalanceAfterTest := int32(0)
-		for ii := 0; ii < ACCOUNT_NUM; ii++ {
+		for ii := 0; ii < AccountNum; ii++ {
 			//retry:
 			selPlan := createSpecifiedPointScanPlanNode(accountIDs[ii], c, tableMetadata, keyType, indexKind)
 			results := executePlan(c, shi.GetBufferPoolManager(), txn_, selPlan)
@@ -1033,7 +1033,7 @@ func testParallelTxnsQueryingUniqSkipListIndexUsedColumns[T int32 | float32 | st
 			break
 		}
 
-		// wait for keeping THREAD_NUM groroutine existing
+		// wait for keeping ThreadNum groroutine existing
 		for runningThCnt >= threadNum && execType == PARALLEL_EXEC {
 			<-ch
 			runningThCnt--
@@ -1052,9 +1052,9 @@ func testParallelTxnsQueryingUniqSkipListIndexUsedColumns[T int32 | float32 | st
 				txn_.SetDebugInfo("MoneyMove-Op")
 
 				// decide accounts
-				idx1 := rand.Intn(ACCOUNT_NUM)
+				idx1 := rand.Intn(AccountNum)
 				idx2 := idx1 + 1
-				if idx2 == ACCOUNT_NUM {
+				if idx2 == AccountNum {
 					idx2 = 0
 				}
 				//retry:

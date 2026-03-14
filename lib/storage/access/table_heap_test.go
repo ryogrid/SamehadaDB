@@ -29,7 +29,7 @@ func TestTableHeap(t *testing.T) {
 	defer dm.ShutDown()
 	logManager := recovery.NewLogManager(&dm)
 	bpm := buffer.NewBufferPoolManager(10, dm, logManager)
-	lockManager := NewLockManager(STRICT, SS2PL_MODE)
+	lockManager := NewLockManager(STRICT, SS2PLMode)
 	txnMgr := NewTransactionManager(lockManager, logManager)
 	txn := txnMgr.Begin(nil)
 
@@ -95,7 +95,7 @@ func TestTableHeapFourCol(t *testing.T) {
 	defer dm.ShutDown()
 	logManager := recovery.NewLogManager(&dm)
 	bpm := buffer.NewBufferPoolManager(10, dm, logManager)
-	lockManager := NewLockManager(STRICT, SS2PL_MODE)
+	lockManager := NewLockManager(STRICT, SS2PLMode)
 	txnMgr := NewTransactionManager(lockManager, logManager)
 	txn := txnMgr.Begin(nil)
 

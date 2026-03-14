@@ -45,7 +45,7 @@ func NewSamehadaInstance(dbName string, bpoolSize int) *SamehadaInstance {
 	logMgr := recovery.NewLogManager(&dman)
 	logMgr.ActivateLogging()
 	bpm := buffer.NewBufferPoolManager(uint32(bpoolSize), dman, logMgr)
-	lockMgr := access.NewLockManager(access.STRICT, access.SS2PL_MODE)
+	lockMgr := access.NewLockManager(access.STRICT, access.SS2PLMode)
 	txnMgr := access.NewTransactionManager(lockMgr, logMgr)
 	cpMgr := concurrency.NewCheckpointManager(txnMgr, logMgr, bpm)
 

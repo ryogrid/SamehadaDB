@@ -174,11 +174,11 @@ func InnerTestParallelTxnsQueryingIndexUsedColumns[T int32 | float32 | string](t
 	txn = txnMgr.Begin(nil)
 
 	// insert account records
-	const ACCOUNT_NUM = 10 //20 //4
-	const BALANCE_AT_START = 1000
+	const AccountNum = 10 //20 //4
+	const BalanceAtStart = 1000
 	sumOfAllAccountBalanceAtStart := int32(0)
 	accountIDs := make([]T, 0)
-	for ii := 0; ii < ACCOUNT_NUM; ii++ {
+	for ii := 0; ii < AccountNum; ii++ {
 		accountID := samehada_util.GetRandomPrimitiveVal[T](keyType, nil)
 		for _, exist := checkKeyColDupMap[accountID]; exist; _, exist = checkKeyColDupMap[accountID] {
 			accountID = samehada_util.GetRandomPrimitiveVal[T](keyType, nil)
@@ -186,9 +186,9 @@ func InnerTestParallelTxnsQueryingIndexUsedColumns[T int32 | float32 | string](t
 		checkKeyColDupMap[accountID] = accountID
 		accountIDs = append(accountIDs, accountID)
 		// not have to duplication check of barance
-		insPlan := createSpecifiedValInsertPlanNode(accountID, int32(BALANCE_AT_START+ii), c, tableMetadata, keyType)
+		insPlan := createSpecifiedValInsertPlanNode(accountID, int32(BalanceAtStart+ii), c, tableMetadata, keyType)
 		executePlan(c, shi.GetBufferPoolManager(), txn, insPlan)
-		sumOfAllAccountBalanceAtStart += int32(BALANCE_AT_START + ii)
+		sumOfAllAccountBalanceAtStart += int32(BalanceAtStart + ii)
 	}
 	txnMgr.Commit(nil, txn)
 
@@ -445,7 +445,7 @@ func InnerTestParallelTxnsQueryingIndexUsedColumns[T int32 | float32 | string](t
 		txn_ := txnMgr.Begin(nil)
 		txn_.SetDebugInfo("checkTotalBrance-Op")
 		sumOfAllAccountBalanceAfterTest := int32(0)
-		for ii := 0; ii < ACCOUNT_NUM; ii++ {
+		for ii := 0; ii < AccountNum; ii++ {
 			//retry:
 			selPlan := createSpecifiedPointScanPlanNode(accountIDs[ii], c, tableMetadata, keyType, indexKind)
 			results := executePlan(c, shi.GetBufferPoolManager(), txn_, selPlan)
@@ -609,7 +609,7 @@ func InnerTestParallelTxnsQueryingIndexUsedColumns[T int32 | float32 | string](t
 			break
 		}
 
-		// wait for keeping THREAD_NUM groroutine existing
+		// wait for keeping ThreadNum groroutine existing
 		for runningThCnt >= threadNum && execType == PARALLEL_EXEC {
 			<-ch
 			runningThCnt--
@@ -635,9 +635,9 @@ func InnerTestParallelTxnsQueryingIndexUsedColumns[T int32 | float32 | string](t
 				txn_.SetDebugInfo("MoneyMove-Op")
 
 				// decide accounts
-				idx1 := rand.Intn(ACCOUNT_NUM)
+				idx1 := rand.Intn(AccountNum)
 				idx2 := idx1 + 1
-				if idx2 == ACCOUNT_NUM {
+				if idx2 == AccountNum {
 					idx2 = 0
 				}
 
@@ -1166,8 +1166,8 @@ func InnerTestParallelTxnsQueryingIndexUsedColumns[T int32 | float32 | string](t
 	txn_.MakeNotAbortable()
 
 	// check record num (index of col1 is used)
-	collectNum := stride*(int32(len(insVals)*2)+initialEntryNum) + ACCOUNT_NUM
-	//collectNum := stride*int32(len(insVals)) + initialEntryNum + ACCOUNT_NUM
+	collectNum := stride*(int32(len(insVals)*2)+initialEntryNum) + AccountNum
+	//collectNum := stride*int32(len(insVals)) + initialEntryNum + AccountNum
 
 	rangeScanPlan1 := createSpecifiedRangeScanPlanNode[T](c, tableMetadata, keyType, 0, nil, nil, indexKind)
 	results1 := executePlan(c, shi.GetBufferPoolManager(), txn_, rangeScanPlan1)

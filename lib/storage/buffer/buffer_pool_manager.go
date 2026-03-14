@@ -53,7 +53,7 @@ func (b *BufferPoolManager) FetchPage(pageID types.PageID) *page.Page {
 	// if it is on buffer pool return it
 	b.mutex.Lock()
 	if frameID, ok := b.pageTable[pageID]; ok {
-		if frameID == DEALLOCATED_FRAME {
+		if frameID == DeallocatedFrame {
 			b.mutex.Unlock()
 			return nil
 		}
@@ -150,7 +150,7 @@ func (b *BufferPoolManager) UnpinPage(pageID types.PageID, isDirty bool) error {
 
 	b.mutex.Lock()
 	if frameID, ok := b.pageTable[pageID]; ok {
-		if frameID == DEALLOCATED_FRAME {
+		if frameID == DeallocatedFrame {
 			b.mutex.Unlock()
 			// do nothing
 			return nil

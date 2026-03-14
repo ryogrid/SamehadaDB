@@ -22,7 +22,7 @@ type DeadlockMode int32
 const (
 	PREVENTION DeadlockMode = iota
 	DETECTION
-	SS2PL_MODE
+	SS2PLMode
 )
 
 type LockMode int32

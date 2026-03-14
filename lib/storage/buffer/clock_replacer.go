@@ -9,7 +9,7 @@ import (
 	"sync"
 )
 
-const DEALLOCATED_FRAME FrameID = math.MaxUint32
+const DeallocatedFrame FrameID = math.MaxUint32
 
 // FrameID is the type for frame id
 type FrameID uint32
