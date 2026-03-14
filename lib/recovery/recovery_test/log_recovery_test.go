@@ -30,106 +30,106 @@ func TestRedo(t *testing.T) {
 		os.Remove(t.Name() + ".log")
 	}
 
-	samehada_instance := samehada.NewSamehadaInstance(t.Name(), common.BufferPoolMaxFrameNumForTest)
+	samehadaInstance := samehada.NewSamehadaInstance(t.Name(), common.BufferPoolMaxFrameNumForTest)
 
-	samehada_instance.GetLogManager().DeactivateLogging()
-	testingpkg.AssertFalse(t, samehada_instance.GetLogManager().IsEnabledLogging(), "")
+	samehadaInstance.GetLogManager().DeactivateLogging()
+	testingpkg.AssertFalse(t, samehadaInstance.GetLogManager().IsEnabledLogging(), "")
 	fmt.Println("Skip system recovering...")
 
-	samehada_instance.GetLogManager().ActivateLogging()
-	testingpkg.Assert(t, samehada_instance.GetLogManager().IsEnabledLogging(), "")
+	samehadaInstance.GetLogManager().ActivateLogging()
+	testingpkg.Assert(t, samehadaInstance.GetLogManager().IsEnabledLogging(), "")
 	fmt.Println("System logging thread running...")
 
 	fmt.Println("Create a test table")
-	txn := samehada_instance.GetTransactionManager().Begin(nil)
-	test_table := access.NewTableHeap(samehada_instance.GetBufferPoolManager(), samehada_instance.GetLogManager(),
-		samehada_instance.GetLockManager(), txn)
+	txn := samehadaInstance.GetTransactionManager().Begin(nil)
+	testTable := access.NewTableHeap(samehadaInstance.GetBufferPoolManager(), samehadaInstance.GetLogManager(),
+		samehadaInstance.GetLockManager(), txn)
 
 	var rid *page.RID
 	var rid1 *page.RID
 	col1 := column.NewColumn("a", types.Varchar, false, index_constants.IndexKindInvalid, types.PageID(-1), nil)
 	col2 := column.NewColumn("b", types.Integer, false, index_constants.IndexKindInvalid, types.PageID(-1), nil)
 	cols := []*column.Column{col1, col2}
-	schema_ := schema.NewSchema(cols)
-	tuple_ := ConstructTuple(schema_)
-	tuple1_ := ConstructTuple(schema_)
+	sc := schema.NewSchema(cols)
+	tpl := ConstructTuple(sc)
+	tpl1 := ConstructTuple(sc)
 
-	val_1 := tuple_.GetValue(schema_, 1)
-	val_0 := tuple_.GetValue(schema_, 0)
-	val1_1 := tuple1_.GetValue(schema_, 1)
-	val1_0 := tuple1_.GetValue(schema_, 0)
+	valAt1 := tpl.GetValue(sc, 1)
+	valAt0 := tpl.GetValue(sc, 0)
+	val1At1 := tpl1.GetValue(sc, 1)
+	val1At0 := tpl1.GetValue(sc, 0)
 
-	rid, _ = test_table.InsertTuple(tuple_, txn, math.MaxUint32, false)
+	rid, _ = testTable.InsertTuple(tpl, txn, math.MaxUint32, false)
 	testingpkg.Assert(t, rid != nil, "")
-	rid1, _ = test_table.InsertTuple(tuple1_, txn, math.MaxUint32, false)
+	rid1, _ = testTable.InsertTuple(tpl1, txn, math.MaxUint32, false)
 	testingpkg.Assert(t, rid != nil, "")
 
-	samehada_instance.GetTransactionManager().Commit(nil, txn)
+	samehadaInstance.GetTransactionManager().Commit(nil, txn)
 	fmt.Println("Commit txn")
 
 	fmt.Println("Shutdown System")
-	samehada_instance.CloseFilesForTesting()
+	samehadaInstance.CloseFilesForTesting()
 
 	fmt.Println("System restart...")
-	samehada_instance = samehada.NewSamehadaInstance(t.Name(), common.BufferPoolMaxFrameNumForTest)
+	samehadaInstance = samehada.NewSamehadaInstance(t.Name(), common.BufferPoolMaxFrameNumForTest)
 
-	samehada_instance.GetLogManager().DeactivateLogging()
-	testingpkg.AssertFalse(t, samehada_instance.GetLogManager().IsEnabledLogging(), "")
+	samehadaInstance.GetLogManager().DeactivateLogging()
+	testingpkg.AssertFalse(t, samehadaInstance.GetLogManager().IsEnabledLogging(), "")
 	fmt.Println("Check if tuple is not in table before recovery")
-	txn = samehada_instance.GetTransactionManager().Begin(nil)
+	txn = samehadaInstance.GetTransactionManager().Begin(nil)
 	txn.SetIsRecoveryPhase(true)
-	test_table = access.NewTableHeap(
-		samehada_instance.GetBufferPoolManager(),
-		samehada_instance.GetLogManager(),
-		samehada_instance.GetLockManager(),
+	testTable = access.NewTableHeap(
+		samehadaInstance.GetBufferPoolManager(),
+		samehadaInstance.GetLogManager(),
+		samehadaInstance.GetLockManager(),
 		txn)
-	old_tuple, _ := test_table.GetTuple(rid, txn)
-	testingpkg.AssertFalse(t, old_tuple != nil, "")
-	old_tuple1, _ := test_table.GetTuple(rid1, txn)
-	testingpkg.AssertFalse(t, old_tuple1 != nil, "")
-	samehada_instance.GetTransactionManager().Commit(nil, txn)
+	oldTuple, _ := testTable.GetTuple(rid, txn)
+	testingpkg.AssertFalse(t, oldTuple != nil, "")
+	oldTuple1, _ := testTable.GetTuple(rid1, txn)
+	testingpkg.AssertFalse(t, oldTuple1 != nil, "")
+	samehadaInstance.GetTransactionManager().Commit(nil, txn)
 
-	txn = samehada_instance.GetTransactionManager().Begin(nil)
+	txn = samehadaInstance.GetTransactionManager().Begin(nil)
 	txn.SetIsRecoveryPhase(true)
 	fmt.Println("Begin recovery")
-	log_recovery := log_recovery.NewLogRecovery(
-		samehada_instance.GetDiskManager(),
-		samehada_instance.GetBufferPoolManager(),
-		samehada_instance.GetLogManager())
+	lr := log_recovery.NewLogRecovery(
+		samehadaInstance.GetDiskManager(),
+		samehadaInstance.GetBufferPoolManager(),
+		samehadaInstance.GetLogManager())
 
-	testingpkg.AssertFalse(t, samehada_instance.GetLogManager().IsEnabledLogging(), "")
+	testingpkg.AssertFalse(t, samehadaInstance.GetLogManager().IsEnabledLogging(), "")
 
 	fmt.Println("Redo underway...")
-	log_recovery.Redo(txn)
+	lr.Redo(txn)
 	fmt.Println("Undo underway...")
-	log_recovery.Undo(txn)
+	lr.Undo(txn)
 
 	fmt.Println("Check if recovery success")
-	txn = samehada_instance.GetTransactionManager().Begin(nil)
+	txn = samehadaInstance.GetTransactionManager().Begin(nil)
 	txn.SetIsRecoveryPhase(true)
 
-	test_table = access.NewTableHeap(
-		samehada_instance.GetBufferPoolManager(),
-		samehada_instance.GetLogManager(),
-		samehada_instance.GetLockManager(),
+	testTable = access.NewTableHeap(
+		samehadaInstance.GetBufferPoolManager(),
+		samehadaInstance.GetLogManager(),
+		samehadaInstance.GetLockManager(),
 		txn)
 
-	old_tuple, _ = test_table.GetTuple(rid, txn)
-	testingpkg.Assert(t, old_tuple != nil, "")
-	old_tuple1, _ = test_table.GetTuple(rid1, txn)
-	testingpkg.Assert(t, old_tuple1 != nil, "")
+	oldTuple, _ = testTable.GetTuple(rid, txn)
+	testingpkg.Assert(t, oldTuple != nil, "")
+	oldTuple1, _ = testTable.GetTuple(rid1, txn)
+	testingpkg.Assert(t, oldTuple1 != nil, "")
 
-	samehada_instance.GetTransactionManager().Commit(nil, txn)
+	samehadaInstance.GetTransactionManager().Commit(nil, txn)
 
-	testingpkg.Assert(t, old_tuple.GetValue(schema_, 1).CompareEquals(val_1), "")
-	testingpkg.Assert(t, old_tuple.GetValue(schema_, 0).CompareEquals(val_0), "")
-	testingpkg.Assert(t, old_tuple1.GetValue(schema_, 1).CompareEquals(val1_1), "")
-	testingpkg.Assert(t, old_tuple1.GetValue(schema_, 0).CompareEquals(val1_0), "")
+	testingpkg.Assert(t, oldTuple.GetValue(sc, 1).CompareEquals(valAt1), "")
+	testingpkg.Assert(t, oldTuple.GetValue(sc, 0).CompareEquals(valAt0), "")
+	testingpkg.Assert(t, oldTuple1.GetValue(sc, 1).CompareEquals(val1At1), "")
+	testingpkg.Assert(t, oldTuple1.GetValue(sc, 0).CompareEquals(val1At0), "")
 
 	fmt.Println("Tearing down the system..")
 
 	common.TempSuppressOnMemStorage = false
-	samehada_instance.Shutdown(samehada.ShutdownPatternRemoveFiles)
+	samehadaInstance.Shutdown(samehada.ShutdownPatternRemoveFiles)
 	common.TempSuppressOnMemStorageMutex.Unlock()
 }
 
@@ -141,172 +141,172 @@ func TestUndo(t *testing.T) {
 		os.Remove(t.Name() + ".log")
 	}
 
-	samehada_instance := samehada.NewSamehadaInstance(t.Name(), common.BufferPoolMaxFrameNumForTest)
+	samehadaInstance := samehada.NewSamehadaInstance(t.Name(), common.BufferPoolMaxFrameNumForTest)
 
-	samehada_instance.GetLogManager().DeactivateLogging()
-	testingpkg.AssertFalse(t, samehada_instance.GetLogManager().IsEnabledLogging(), "")
+	samehadaInstance.GetLogManager().DeactivateLogging()
+	testingpkg.AssertFalse(t, samehadaInstance.GetLogManager().IsEnabledLogging(), "")
 	fmt.Println("Skip system recovering...")
 
-	samehada_instance.GetLogManager().ActivateLogging()
-	testingpkg.Assert(t, samehada_instance.GetLogManager().IsEnabledLogging(), "")
+	samehadaInstance.GetLogManager().ActivateLogging()
+	testingpkg.Assert(t, samehadaInstance.GetLogManager().IsEnabledLogging(), "")
 	fmt.Println("System logging thread running...")
 
 	fmt.Println("Create a test table")
-	txn := samehada_instance.GetTransactionManager().Begin(nil)
-	test_table := access.NewTableHeap(
-		samehada_instance.GetBufferPoolManager(),
-		samehada_instance.GetLogManager(),
-		samehada_instance.GetLockManager(),
+	txn := samehadaInstance.GetTransactionManager().Begin(nil)
+	testTable := access.NewTableHeap(
+		samehadaInstance.GetBufferPoolManager(),
+		samehadaInstance.GetLogManager(),
+		samehadaInstance.GetLockManager(),
 		txn)
-	first_page_id := test_table.GetFirstPageID()
+	firstPageID := testTable.GetFirstPageID()
 
 	col1 := column.NewColumn("a", types.Varchar, false, index_constants.IndexKindInvalid, types.PageID(-1), nil)
 	col2 := column.NewColumn("b", types.Integer, false, index_constants.IndexKindInvalid, types.PageID(-1), nil)
 	cols := []*column.Column{col1, col2}
 
-	schema_ := schema.NewSchema(cols)
-	tuple1 := ConstructTuple(schema_)
-	val1_0 := tuple1.GetValue(schema_, 0)
-	val1_1 := tuple1.GetValue(schema_, 1)
+	sc := schema.NewSchema(cols)
+	tuple1 := ConstructTuple(sc)
+	val1At0 := tuple1.GetValue(sc, 0)
+	val1At1 := tuple1.GetValue(sc, 1)
 	var rid1 *page.RID
 	fmt.Println("tuple1: ", tuple1.Data())
-	rid1, _ = test_table.InsertTuple(tuple1, txn, math.MaxUint32, false)
+	rid1, _ = testTable.InsertTuple(tuple1, txn, math.MaxUint32, false)
 	testingpkg.Assert(t, rid1 != nil, "")
 
-	tuple2 := ConstructTuple(schema_)
-	val2_0 := tuple2.GetValue(schema_, 0)
-	val2_1 := tuple2.GetValue(schema_, 1)
+	tuple2 := ConstructTuple(sc)
+	val2At0 := tuple2.GetValue(sc, 0)
+	val2At1 := tuple2.GetValue(sc, 1)
 
 	var rid2 *page.RID
-	rid2, _ = test_table.InsertTuple(tuple2, txn, math.MaxUint32, false)
+	rid2, _ = testTable.InsertTuple(tuple2, txn, math.MaxUint32, false)
 	testingpkg.Assert(t, rid2 != nil, "")
 
-	bf_commit_tuple2, _ := test_table.GetTuple(rid2, txn)
-	fmt.Println("bf_commit_tuple2: ", bf_commit_tuple2.Data())
+	bfCommitTuple2, _ := testTable.GetTuple(rid2, txn)
+	fmt.Println("bfCommitTuple2: ", bfCommitTuple2.Data())
 
 	fmt.Println("Log page content is written to disk")
-	samehada_instance.GetLogManager().Flush()
+	samehadaInstance.GetLogManager().Flush()
 	fmt.Println("two tuples inserted are commited")
-	samehada_instance.GetTransactionManager().Commit(nil, txn)
+	samehadaInstance.GetTransactionManager().Commit(nil, txn)
 
-	txn = samehada_instance.GetTransactionManager().Begin(nil)
+	txn = samehadaInstance.GetTransactionManager().Begin(nil)
 
-	bf_commit_tuple2__, _ := test_table.GetTuple(rid2, txn)
-	fmt.Println("bf_commit_tuple2_: ", bf_commit_tuple2__.Data())
+	bfCommitTuple2b, _ := testTable.GetTuple(rid2, txn)
+	fmt.Println("bf_commit_tuple2_: ", bfCommitTuple2b.Data())
 
 	// tuple deletion (rid1)
-	test_table.MarkDelete(rid1, math.MaxUint32, txn, false)
+	testTable.MarkDelete(rid1, math.MaxUint32, txn, false)
 
-	bf_commit_tuple2___, _ := test_table.GetTuple(rid2, txn)
-	fmt.Println("bf_commit_tuple2_: ", bf_commit_tuple2___.Data())
+	bfCommitTuple2c, _ := testTable.GetTuple(rid2, txn)
+	fmt.Println("bf_commit_tuple2_: ", bfCommitTuple2c.Data())
 
 	// tuple updating (rid2)
 	row1 := make([]types.Value, 0)
 	row1 = append(row1, types.NewVarchar("updated"))
 	row1 = append(row1, types.NewInteger(256))
-	is_success, new_rid, err, update_tuple, old_tuple := test_table.UpdateTuple(tuple.NewTupleFromSchema(row1, schema_), nil, nil, math.MaxUint32, *rid2, txn, false)
-	fmt.Println("returned values of test_table.Update_Tuple: ", is_success, new_rid, err, update_tuple, update_tuple.Data(), old_tuple, old_tuple.Data())
-	old_value := old_tuple.GetValue(schema_, 0)
-	update_value := update_tuple.GetValue(schema_, 0)
-	fmt.Println("old_value: ", old_value, "update_value: ", update_value)
+	isSuccess, newRID, err, updateTuple, oldTuple := testTable.UpdateTuple(tuple.NewTupleFromSchema(row1, sc), nil, nil, math.MaxUint32, *rid2, txn, false)
+	fmt.Println("returned values of testTable.Update_Tuple: ", isSuccess, newRID, err, updateTuple, updateTuple.Data(), oldTuple, oldTuple.Data())
+	oldValue := oldTuple.GetValue(sc, 0)
+	updateValue := updateTuple.GetValue(sc, 0)
+	fmt.Println("oldValue: ", oldValue, "updateValue: ", updateValue)
 
 	// tuple insertion (rid3)
-	tuple3 := ConstructTuple(schema_)
+	tuple3 := ConstructTuple(sc)
 	var rid3 *page.RID
-	rid3, _ = test_table.InsertTuple(tuple3, txn, math.MaxUint32, false)
+	rid3, _ = testTable.InsertTuple(tuple3, txn, math.MaxUint32, false)
 	testingpkg.Assert(t, rid3 != nil, "")
 
-	af_insert_tuple2, _ := test_table.GetTuple(rid2, txn)
-	fmt.Println("af_update_tuple2_: ", af_insert_tuple2.Data())
+	afInsertTuple2, _ := testTable.GetTuple(rid2, txn)
+	fmt.Println("af_update_tuple2_: ", afInsertTuple2.Data())
 
 	fmt.Println("Log page content is written to disk")
-	samehada_instance.GetLogManager().Flush()
+	samehadaInstance.GetLogManager().Flush()
 	fmt.Println("Table page content is written to disk")
-	samehada_instance.GetBufferPoolManager().FlushPage(first_page_id)
+	samehadaInstance.GetBufferPoolManager().FlushPage(firstPageID)
 
 	fmt.Println("System crash before commit")
-	// delete samehada_instance
-	samehada_instance.Shutdown(samehada.ShutdownPatternCloseFiles)
+	// delete samehadaInstance
+	samehadaInstance.Shutdown(samehada.ShutdownPatternCloseFiles)
 
 	fmt.Println("System restarted..")
-	samehada_instance = samehada.NewSamehadaInstance(t.Name(), common.BufferPoolMaxFrameNumForTest)
-	txn = samehada_instance.GetTransactionManager().Begin(nil)
+	samehadaInstance = samehada.NewSamehadaInstance(t.Name(), common.BufferPoolMaxFrameNumForTest)
+	txn = samehadaInstance.GetTransactionManager().Begin(nil)
 
-	test_table = access.NewTableHeap(
-		samehada_instance.GetBufferPoolManager(),
-		samehada_instance.GetLogManager(),
-		samehada_instance.GetLockManager(),
+	testTable = access.NewTableHeap(
+		samehadaInstance.GetBufferPoolManager(),
+		samehadaInstance.GetLogManager(),
+		samehadaInstance.GetLockManager(),
 		txn)
 
 	fmt.Println("Check if deleted tuple does not exist before recovery")
-	old_tuple1, _ := test_table.GetTuple(rid1, txn)
-	testingpkg.Assert(t, old_tuple1 == nil, "handled as self deleted case")
+	oldTuple1, _ := testTable.GetTuple(rid1, txn)
+	testingpkg.Assert(t, oldTuple1 == nil, "handled as self deleted case")
 
 	fmt.Println("Check if updated tuple values are effected before recovery")
-	var old_tuple2 *tuple.Tuple
+	var oldTuple2 *tuple.Tuple
 
-	if new_rid == nil {
-		old_tuple2, _ = test_table.GetTuple(rid2, txn)
-		fmt.Println("old_tuple2: ", old_tuple2.Data())
+	if newRID == nil {
+		oldTuple2, _ = testTable.GetTuple(rid2, txn)
+		fmt.Println("oldTuple2: ", oldTuple2.Data())
 
-		testingpkg.Assert(t, old_tuple2 != nil, "")
-		testingpkg.Assert(t, old_tuple2.GetValue(schema_, 0).CompareEquals(types.NewVarchar("updated")), "")
-		testingpkg.Assert(t, old_tuple2.GetValue(schema_, 1).CompareEquals(types.NewInteger(256)), "")
+		testingpkg.Assert(t, oldTuple2 != nil, "")
+		testingpkg.Assert(t, oldTuple2.GetValue(sc, 0).CompareEquals(types.NewVarchar("updated")), "")
+		testingpkg.Assert(t, oldTuple2.GetValue(sc, 1).CompareEquals(types.NewInteger(256)), "")
 	} else {
-		old_tuple2, _ = test_table.GetTuple(new_rid, txn)
-		fmt.Println("old_tuple2: ", old_tuple2.Data())
+		oldTuple2, _ = testTable.GetTuple(newRID, txn)
+		fmt.Println("oldTuple2: ", oldTuple2.Data())
 
-		testingpkg.Assert(t, old_tuple2 != nil, "")
-		testingpkg.Assert(t, old_tuple2.GetValue(schema_, 0).CompareEquals(types.NewVarchar("updated")), "")
-		testingpkg.Assert(t, old_tuple2.GetValue(schema_, 1).CompareEquals(types.NewInteger(256)), "")
+		testingpkg.Assert(t, oldTuple2 != nil, "")
+		testingpkg.Assert(t, oldTuple2.GetValue(sc, 0).CompareEquals(types.NewVarchar("updated")), "")
+		testingpkg.Assert(t, oldTuple2.GetValue(sc, 1).CompareEquals(types.NewInteger(256)), "")
 	}
 
 	fmt.Println("Check if inserted tuple exists before recovery")
-	old_tuple3, _ := test_table.GetTuple(rid3, txn)
-	testingpkg.Assert(t, old_tuple3 != nil, "")
+	oldTuple3, _ := testTable.GetTuple(rid3, txn)
+	testingpkg.Assert(t, oldTuple3 != nil, "")
 
-	samehada_instance.GetLogManager().DeactivateLogging()
-	testingpkg.AssertFalse(t, samehada_instance.GetLogManager().IsEnabledLogging(), "common.EnableLogging is not false!")
+	samehadaInstance.GetLogManager().DeactivateLogging()
+	testingpkg.AssertFalse(t, samehadaInstance.GetLogManager().IsEnabledLogging(), "common.EnableLogging is not false!")
 
 	fmt.Println("Recovery started..")
-	log_recovery := log_recovery.NewLogRecovery(
-		samehada_instance.GetDiskManager(),
-		samehada_instance.GetBufferPoolManager(),
-		samehada_instance.GetLogManager())
+	lr := log_recovery.NewLogRecovery(
+		samehadaInstance.GetDiskManager(),
+		samehadaInstance.GetBufferPoolManager(),
+		samehadaInstance.GetLogManager())
 
-	samehada_instance.GetLogManager().DeactivateLogging()
-	testingpkg.AssertFalse(t, samehada_instance.GetLogManager().IsEnabledLogging(), "")
-	txn = samehada_instance.GetTransactionManager().Begin(nil)
+	samehadaInstance.GetLogManager().DeactivateLogging()
+	testingpkg.AssertFalse(t, samehadaInstance.GetLogManager().IsEnabledLogging(), "")
+	txn = samehadaInstance.GetTransactionManager().Begin(nil)
 	txn.SetIsRecoveryPhase(true)
 
-	log_recovery.Redo(txn)
+	lr.Redo(txn)
 	fmt.Println("Redo underway...")
-	log_recovery.Undo(txn)
+	lr.Undo(txn)
 	fmt.Println("Undo underway...")
 
 	fmt.Println("Check if failed txn is undo successfully")
-	txn = samehada_instance.GetTransactionManager().Begin(nil)
+	txn = samehadaInstance.GetTransactionManager().Begin(nil)
 
 	fmt.Println("Check deleted tuple exists")
-	old_tuple1, _ = test_table.GetTuple(rid1, txn)
-	testingpkg.Assert(t, old_tuple1 != nil, "")
-	testingpkg.Assert(t, old_tuple1.GetValue(schema_, 0).CompareEquals(val1_0), "")
-	testingpkg.Assert(t, old_tuple1.GetValue(schema_, 1).CompareEquals(val1_1), "")
+	oldTuple1, _ = testTable.GetTuple(rid1, txn)
+	testingpkg.Assert(t, oldTuple1 != nil, "")
+	testingpkg.Assert(t, oldTuple1.GetValue(sc, 0).CompareEquals(val1At0), "")
+	testingpkg.Assert(t, oldTuple1.GetValue(sc, 1).CompareEquals(val1At1), "")
 
 	fmt.Println("Check updated tuple's values are rollbacked")
-	old_tuple2, _ = test_table.GetTuple(rid2, txn)
-	testingpkg.Assert(t, old_tuple2 != nil, "")
-	testingpkg.Assert(t, old_tuple2.GetValue(schema_, 0).CompareEquals(val2_0), "")
-	testingpkg.Assert(t, old_tuple2.GetValue(schema_, 1).CompareEquals(val2_1), "")
+	oldTuple2, _ = testTable.GetTuple(rid2, txn)
+	testingpkg.Assert(t, oldTuple2 != nil, "")
+	testingpkg.Assert(t, oldTuple2.GetValue(sc, 0).CompareEquals(val2At0), "")
+	testingpkg.Assert(t, oldTuple2.GetValue(sc, 1).CompareEquals(val2At1), "")
 
 	fmt.Println("Check inserted tuple does not exist")
-	old_tuple3, _ = test_table.GetTuple(rid3, txn)
-	testingpkg.Assert(t, old_tuple3 == nil, "")
+	oldTuple3, _ = testTable.GetTuple(rid3, txn)
+	testingpkg.Assert(t, oldTuple3 == nil, "")
 
 	fmt.Println("Tearing down the system..")
 
 	common.TempSuppressOnMemStorage = false
-	samehada_instance.Shutdown(samehada.ShutdownPatternRemoveFiles)
+	samehadaInstance.Shutdown(samehada.ShutdownPatternRemoveFiles)
 	common.TempSuppressOnMemStorageMutex.Unlock()
 }
 
@@ -317,118 +317,118 @@ func TestCheckpoint(t *testing.T) {
 		os.Remove(t.Name() + ".db")
 		os.Remove(t.Name() + ".log")
 	}
-	samehada_instance := samehada.NewSamehadaInstance(t.Name(), common.BufferPoolMaxFrameNumForTest)
+	samehadaInstance := samehada.NewSamehadaInstance(t.Name(), common.BufferPoolMaxFrameNumForTest)
 
-	samehada_instance.GetLogManager().DeactivateLogging()
-	testingpkg.AssertFalse(t, samehada_instance.GetLogManager().IsEnabledLogging(), "")
+	samehadaInstance.GetLogManager().DeactivateLogging()
+	testingpkg.AssertFalse(t, samehadaInstance.GetLogManager().IsEnabledLogging(), "")
 	fmt.Println("Skip system recovering...")
 
-	samehada_instance.GetLogManager().ActivateLogging()
-	testingpkg.Assert(t, samehada_instance.GetLogManager().IsEnabledLogging(), "")
+	samehadaInstance.GetLogManager().ActivateLogging()
+	testingpkg.Assert(t, samehadaInstance.GetLogManager().IsEnabledLogging(), "")
 	fmt.Println("System logging thread running...")
 
 	fmt.Println("Create a test table")
-	txn := samehada_instance.GetTransactionManager().Begin(nil)
-	test_table := access.NewTableHeap(
-		samehada_instance.GetBufferPoolManager(),
-		samehada_instance.GetLogManager(),
-		samehada_instance.GetLockManager(),
+	txn := samehadaInstance.GetTransactionManager().Begin(nil)
+	testTable := access.NewTableHeap(
+		samehadaInstance.GetBufferPoolManager(),
+		samehadaInstance.GetLogManager(),
+		samehadaInstance.GetLockManager(),
 		txn)
-	samehada_instance.GetTransactionManager().Commit(nil, txn)
+	samehadaInstance.GetTransactionManager().Commit(nil, txn)
 
 	col1 := column.NewColumn("a", types.Varchar, false, index_constants.IndexKindInvalid, types.PageID(-1), nil)
 	col2 := column.NewColumn("b", types.Integer, false, index_constants.IndexKindInvalid, types.PageID(-1), nil)
 	cols := []*column.Column{col1, col2}
-	schema_ := schema.NewSchema(cols)
+	sc := schema.NewSchema(cols)
 
-	tuple_ := ConstructTuple(schema_)
-	_ = tuple_.GetValue(schema_, 0)
-	_ = tuple_.GetValue(schema_, 1)
+	tpl := ConstructTuple(sc)
+	_ = tpl.GetValue(sc, 0)
+	_ = tpl.GetValue(sc, 1)
 
 	// set log time out very high so that flush doesn't happen before checkpoint is performed
 
 	common.LogTimeout, _ = time.ParseDuration("15s") //seconds(15) //chrono::seconds(15)
 
 	// insert a ton of tuples
-	txn1 := samehada_instance.GetTransactionManager().Begin(nil)
+	txn1 := samehadaInstance.GetTransactionManager().Begin(nil)
 	for i := 0; i < 1000; i++ {
-		rid, err := test_table.InsertTuple(tuple_, txn1, math.MaxUint32, false)
+		rid, err := testTable.InsertTuple(tpl, txn1, math.MaxUint32, false)
 		if err != nil {
 			fmt.Println(err)
 		}
 		testingpkg.Assert(t, rid != nil, "")
 	}
-	samehada_instance.GetTransactionManager().Commit(nil, txn1)
+	samehadaInstance.GetTransactionManager().Commit(nil, txn1)
 
 	// Do checkpoint
-	samehada_instance.GetCheckpointManager().BeginCheckpoint()
-	samehada_instance.GetCheckpointManager().EndCheckpoint()
+	samehadaInstance.GetCheckpointManager().BeginCheckpoint()
+	samehadaInstance.GetCheckpointManager().EndCheckpoint()
 
-	pages := samehada_instance.GetBufferPoolManager().GetPages()
-	pool_size := samehada_instance.GetBufferPoolManager().GetPoolSize()
+	pages := samehadaInstance.GetBufferPoolManager().GetPages()
+	poolSize := samehadaInstance.GetBufferPoolManager().GetPoolSize()
 
 	// make sure that all pages in the buffer pool are marked as non-dirty
-	all_pages_clean := true
-	for i := 0; i < pool_size; i++ {
+	allPagesClean := true
+	for i := 0; i < poolSize; i++ {
 		page := pages[i]
-		page_id := page.GetPageID()
+		pageID := page.GetPageID()
 
-		if page_id != common.InvalidPageID && page.IsDirty() {
-			all_pages_clean = false
+		if pageID != common.InvalidPageID && page.IsDirty() {
+			allPagesClean = false
 			break
 		}
 	}
-	testingpkg.Assert(t, all_pages_clean, "")
+	testingpkg.Assert(t, allPagesClean, "")
 
 	// compare each page in the buffer pool to that page's
 	// data on disk. ensure they match after the checkpoint
-	all_pages_match := true
-	disk_data := make([]byte, common.PageSize)
-	for i := 0; i < pool_size; i++ {
+	allPagesMatch := true
+	diskData := make([]byte, common.PageSize)
+	for i := 0; i < poolSize; i++ {
 		page := pages[i]
-		page_id := page.GetPageID()
+		pageID := page.GetPageID()
 
-		if page_id != common.InvalidPageID {
-			dmgr_impl := samehada_instance.GetDiskManager()
-			dmgr_impl.ReadPage(page_id, disk_data)
-			if !bytes.Equal(disk_data[:common.PageSize], page.GetData()[:common.PageSize]) {
-				all_pages_match = false
+		if pageID != common.InvalidPageID {
+			dmgrImpl := samehadaInstance.GetDiskManager()
+			dmgrImpl.ReadPage(pageID, diskData)
+			if !bytes.Equal(diskData[:common.PageSize], page.GetData()[:common.PageSize]) {
+				allPagesMatch = false
 				break
 			}
 		}
 	}
 
-	testingpkg.Assert(t, all_pages_match, "")
+	testingpkg.Assert(t, allPagesMatch, "")
 
 	// Verify all committed transactions flushed to disk
-	persistent_lsn := samehada_instance.GetLogManager().GetPersistentLSN()
-	next_lsn := samehada_instance.GetLogManager().GetNextLSN()
-	testingpkg.Assert(t, persistent_lsn == (next_lsn-1), "")
+	persistentLSN := samehadaInstance.GetLogManager().GetPersistentLSN()
+	nextLSN := samehadaInstance.GetLogManager().GetNextLSN()
+	testingpkg.Assert(t, persistentLSN == (nextLSN-1), "")
 
 	// verify log was flushed and each page's LSN <= persistent lsn
-	all_pages_lte := true
-	for i := 0; i < pool_size; i++ {
+	allPagesLte := true
+	for i := 0; i < poolSize; i++ {
 		page := pages[i]
-		page_id := page.GetPageID()
+		pageID := page.GetPageID()
 
-		if page_id != common.InvalidPageID && page.GetLSN() > persistent_lsn {
-			all_pages_lte = false
+		if pageID != common.InvalidPageID && page.GetLSN() > persistentLSN {
+			allPagesLte = false
 			break
 		}
 	}
 
-	testingpkg.Assert(t, all_pages_lte, "")
+	testingpkg.Assert(t, allPagesLte, "")
 
 	fmt.Println("Shutdown System")
 	fmt.Println("Tearing down the system..")
 
 	common.TempSuppressOnMemStorage = false
-	samehada_instance.Shutdown(samehada.ShutdownPatternRemoveFiles)
+	samehadaInstance.Shutdown(samehada.ShutdownPatternRemoveFiles)
 	common.TempSuppressOnMemStorageMutex.Unlock()
 }
 
 // use a fixed schema to construct a random tuple
-func ConstructTuple(schema_ *schema.Schema) *tuple.Tuple {
+func ConstructTuple(sc *schema.Schema) *tuple.Tuple {
 	var values []types.Value
 
 	v := types.NewInteger(-1) //&types.Value{types.Invalid, nil, nil, nil}
@@ -436,15 +436,15 @@ func ConstructTuple(schema_ *schema.Schema) *tuple.Tuple {
 	seed := time.Now().UnixNano()
 	rand.Seed(seed)
 
-	col_cnt := int(schema_.GetColumnCount())
-	for i := 0; i < col_cnt; i++ {
+	colCnt := int(sc.GetColumnCount())
+	for i := 0; i < colCnt; i++ {
 		// get type
-		col := schema_.GetColumn(uint32(i))
-		type_ := col.GetType()
-		switch type_ {
+		col := sc.GetColumn(uint32(i))
+		colType := col.GetType()
+		switch colType {
 		case types.Boolean:
-			rand_val := rand.Intn(math.MaxUint32) % 2
-			if rand_val == 0 {
+			randVal := rand.Intn(math.MaxUint32) % 2
+			if randVal == 0 {
 				v = types.NewBoolean(false)
 			} else {
 				v = types.NewBoolean(true)
@@ -454,9 +454,9 @@ func ConstructTuple(schema_ *schema.Schema) *tuple.Tuple {
 		case types.Varchar:
 			alphabets :=
 				"ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz"
-			len_ := int(1 + rand.Intn(math.MaxUint32)%10)
+			strLen := int(1 + rand.Intn(math.MaxUint32)%10)
 			s := ""
-			for j := 0; j < len_; j++ {
+			for j := 0; j < strLen; j++ {
 				idx := rand.Intn(52)
 				s = s + alphabets[idx:idx+1]
 			}
@@ -465,5 +465,5 @@ func ConstructTuple(schema_ *schema.Schema) *tuple.Tuple {
 		}
 		values = append(values, v)
 	}
-	return tuple.NewTupleFromSchema(values, schema_)
+	return tuple.NewTupleFromSchema(values, sc)
 }

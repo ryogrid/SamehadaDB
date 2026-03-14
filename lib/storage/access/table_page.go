@@ -459,7 +459,7 @@ func (tp *TablePage) Init(pageID types.PageID, prevPageID types.PageID, logManag
 	}
 	// Log that we are creating a new page.
 	if logManager.IsEnabledLogging() {
-		logRecord := recovery.NewLogRecordNewPage(txn.GetTransactionID(), txn.GetPrevLSN(), recovery.NEW_TABLE_PAGE, prevPageID, pageID)
+		logRecord := recovery.NewLogRecordNewPage(txn.GetTransactionID(), txn.GetPrevLSN(), recovery.NewTablePage, prevPageID, pageID)
 		lsn := logManager.AppendLogRecord(logRecord)
 		tp.Page.SetLSN(lsn)
 		txn.SetPrevLSN(lsn)

@@ -18,64 +18,64 @@ import (
  */
 type LogManager struct {
 	offset         uint32
-	log_buffer_lsn types.LSN
+	logBufferLSN types.LSN
 	/** The atomic counter which records the next log sequence number. */
-	next_lsn types.LSN
+	nextLSN types.LSN
 	/** The log records before and including the persistent lsn have been written to disk. */
-	persistent_lsn  types.LSN
-	log_buffer      []byte
-	flush_buffer    []byte
+	persistentLSN  types.LSN
+	logBuffer      []byte
+	flushBuffer    []byte
 	latch           common.ReaderWriterLatch
-	wlog_mutex      *sync.Mutex
-	disk_manager    *disk.DiskManager //__attribute__((__unused__));
+	wlogMutex      *sync.Mutex
+	diskManager    *disk.DiskManager //__attribute__((__unused__));
 	isEnableLogging bool
 }
 
-func NewLogManager(disk_manager *disk.DiskManager) *LogManager {
+func NewLogManager(diskManager *disk.DiskManager) *LogManager {
 	ret := new(LogManager)
-	ret.next_lsn = 0
-	ret.persistent_lsn = common.InvalidLSN
-	ret.disk_manager = disk_manager
-	ret.log_buffer = make([]byte, common.LogBufferSize)
-	ret.flush_buffer = make([]byte, common.LogBufferSize)
+	ret.nextLSN = 0
+	ret.persistentLSN = common.InvalidLSN
+	ret.diskManager = diskManager
+	ret.logBuffer = make([]byte, common.LogBufferSize)
+	ret.flushBuffer = make([]byte, common.LogBufferSize)
 	ret.latch = common.NewRWLatch()
-	ret.wlog_mutex = new(sync.Mutex)
+	ret.wlogMutex = new(sync.Mutex)
 	ret.offset = 0
 	ret.isEnableLogging = false
 	return ret
 }
 
-func (log_manager *LogManager) GetNextLSN() types.LSN       { return log_manager.next_lsn }
-func (log_manager *LogManager) SetNextLSN(lsnVal types.LSN) { log_manager.next_lsn = lsnVal }
-func (log_manager *LogManager) GetPersistentLSN() types.LSN { return log_manager.persistent_lsn }
+func (logMgr *LogManager) GetNextLSN() types.LSN       { return logMgr.nextLSN }
+func (logMgr *LogManager) SetNextLSN(lsnVal types.LSN) { logMgr.nextLSN = lsnVal }
+func (logMgr *LogManager) GetPersistentLSN() types.LSN { return logMgr.persistentLSN }
 
-func (log_manager *LogManager) Flush() {
+func (logMgr *LogManager) Flush() {
 	// TODO: (SDB) need fix to occur buffer swap when already running flushing?
 
 	// For I/O efficiency, ideally flush thread should be used like below
-	// https://github.com/astronaut0131/bustub/blob/master/src/recovery/log_manager.cpp#L39
+	// https://github.com/astronaut0131/bustub/blob/master/src/recovery/logMgr.cpp#L39
 	// maybe, blocking can be eliminated because txn must wait for log persistence at commit
 	// https://github.com/astronaut0131/bustub/blob/master/src/concurrency/transaction_manager.cpp#L64
 
-	log_manager.wlog_mutex.Lock()
-	log_manager.latch.WLock()
+	logMgr.wlogMutex.Lock()
+	logMgr.latch.WLock()
 
-	lsn := log_manager.log_buffer_lsn
-	offset := log_manager.offset
-	log_manager.offset = 0
+	lsn := logMgr.logBufferLSN
+	offset := logMgr.offset
+	logMgr.offset = 0
 
 	// swap address of two buffers
-	tmp_p := log_manager.flush_buffer
-	log_manager.flush_buffer = log_manager.log_buffer
-	log_manager.log_buffer = tmp_p
+	tmpP := logMgr.flushBuffer
+	logMgr.flushBuffer = logMgr.logBuffer
+	logMgr.logBuffer = tmpP
 
-	log_manager.latch.WUnlock()
+	logMgr.latch.WUnlock()
 
 	// fmt.Printf("offset at Flush:%d\n", offset)
-	(*log_manager.disk_manager).WriteLog(log_manager.flush_buffer[:offset])
+	(*logMgr.diskManager).WriteLog(logMgr.flushBuffer[:offset])
 
-	log_manager.persistent_lsn = lsn
-	log_manager.wlog_mutex.Unlock()
+	logMgr.persistentLSN = lsn
+	logMgr.wlogMutex.Unlock()
 }
 
 /*
@@ -85,105 +85,105 @@ func (log_manager *LogManager) Flush() {
 * manager wants to force flush (it only happens when the flushed page has a
 * larger LSN than persistent LSN)
  */
-func (log_manager *LogManager) ActivateLogging() { log_manager.isEnableLogging = true }
+func (logMgr *LogManager) ActivateLogging() { logMgr.isEnableLogging = true }
 
 /*
 * Stop and join the flush thread, set enable_logging = false
  */
-func (log_manager *LogManager) DeactivateLogging() { log_manager.isEnableLogging = false }
+func (logMgr *LogManager) DeactivateLogging() { logMgr.isEnableLogging = false }
 
-func (log_manager *LogManager) IsEnabledLogging() bool { return log_manager.isEnableLogging }
+func (logMgr *LogManager) IsEnabledLogging() bool { return logMgr.isEnableLogging }
 
 /*
 * append a log record into log buffer
 * return: lsn that is assigned to this log record
  */
-func (log_manager *LogManager) AppendLogRecord(log_record *LogRecord) types.LSN {
+func (logMgr *LogManager) AppendLogRecord(logRecord *LogRecord) types.LSN {
 	// First, serialize the must have fields(20 bytes in total)
 
-	log_manager.latch.WLock()
-	if common.LogBufferSize-log_manager.offset < HEADER_SIZE {
-		log_manager.latch.WUnlock()
-		log_manager.Flush()
-		log_manager.latch.WLock()
+	logMgr.latch.WLock()
+	if common.LogBufferSize-logMgr.offset < HeaderSize {
+		logMgr.latch.WUnlock()
+		logMgr.Flush()
+		logMgr.latch.WLock()
 	}
 
-	// except DEALLOCATE_PAGE and REUSE_PAGE
-	if log_record.Lsn != -1 {
-		log_record.Lsn = log_manager.next_lsn
-		log_manager.next_lsn += 1
+	// except DeallocatePage and ReusePage
+	if logRecord.Lsn != -1 {
+		logRecord.Lsn = logMgr.nextLSN
+		logMgr.nextLSN += 1
 	}
 
-	headerInBytes := log_record.GetLogHeaderData()
-	copy(log_manager.log_buffer[log_manager.offset:], headerInBytes)
+	headerInBytes := logRecord.GetLogHeaderData()
+	copy(logMgr.logBuffer[logMgr.offset:], headerInBytes)
 
-	if common.LogBufferSize-log_manager.offset < log_record.Size {
-		log_manager.latch.WUnlock()
-		log_manager.Flush()
-		log_manager.latch.WLock()
-		copy(log_manager.log_buffer[log_manager.offset:], log_record.GetLogHeaderData())
+	if common.LogBufferSize-logMgr.offset < logRecord.Size {
+		logMgr.latch.WUnlock()
+		logMgr.Flush()
+		logMgr.latch.WLock()
+		copy(logMgr.logBuffer[logMgr.offset:], logRecord.GetLogHeaderData())
 	}
-	if log_record.Lsn != -1 {
-		log_manager.log_buffer_lsn = log_record.Lsn
+	if logRecord.Lsn != -1 {
+		logMgr.logBufferLSN = logRecord.Lsn
 	}
 
-	pos := log_manager.offset + HEADER_SIZE
-	log_manager.offset += log_record.Size
+	pos := logMgr.offset + HeaderSize
+	logMgr.offset += logRecord.Size
 
-	if log_record.Log_record_type == INSERT {
+	if logRecord.LogRecordType == INSERT {
 		buf := new(bytes.Buffer)
-		binary.Write(buf, binary.LittleEndian, log_record.Insert_rid)
+		binary.Write(buf, binary.LittleEndian, logRecord.InsertRID)
 		ridInBytes := buf.Bytes()
-		copy(log_manager.log_buffer[pos:], ridInBytes)
-		pos += uint32(unsafe.Sizeof(log_record.Insert_rid))
+		copy(logMgr.logBuffer[pos:], ridInBytes)
+		pos += uint32(unsafe.Sizeof(logRecord.InsertRID))
 		// we have provided serialize function for tuple class
-		log_record.Insert_tuple.SerializeTo(log_manager.log_buffer[pos:])
-	} else if log_record.Log_record_type == APPLYDELETE ||
-		log_record.Log_record_type == MARKDELETE ||
-		log_record.Log_record_type == ROLLBACKDELETE {
+		logRecord.InsertTuple.SerializeTo(logMgr.logBuffer[pos:])
+	} else if logRecord.LogRecordType == APPLYDELETE ||
+		logRecord.LogRecordType == MARKDELETE ||
+		logRecord.LogRecordType == ROLLBACKDELETE {
 		buf := new(bytes.Buffer)
-		binary.Write(buf, binary.LittleEndian, log_record.Delete_rid)
+		binary.Write(buf, binary.LittleEndian, logRecord.DeleteRID)
 		ridInBytes := buf.Bytes()
-		copy(log_manager.log_buffer[pos:], ridInBytes)
-		pos += uint32(unsafe.Sizeof(log_record.Delete_rid))
+		copy(logMgr.logBuffer[pos:], ridInBytes)
+		pos += uint32(unsafe.Sizeof(logRecord.DeleteRID))
 		// we have provided serialize function for tuple class
-		log_record.Delete_tuple.SerializeTo(log_manager.log_buffer[pos:])
-	} else if log_record.Log_record_type == UPDATE {
+		logRecord.DeleteTuple.SerializeTo(logMgr.logBuffer[pos:])
+	} else if logRecord.LogRecordType == UPDATE {
 		buf := new(bytes.Buffer)
-		binary.Write(buf, binary.LittleEndian, log_record.Update_rid)
+		binary.Write(buf, binary.LittleEndian, logRecord.UpdateRID)
 		ridInBytes := buf.Bytes()
-		copy(log_manager.log_buffer[pos:], ridInBytes)
-		pos += uint32(unsafe.Sizeof(log_record.Update_rid))
+		copy(logMgr.logBuffer[pos:], ridInBytes)
+		pos += uint32(unsafe.Sizeof(logRecord.UpdateRID))
 		// we have provided serialize function for tuple class
-		log_record.Old_tuple.SerializeTo(log_manager.log_buffer[pos:])
-		pos += log_record.Old_tuple.Size() + uint32(tuple.TupleSizeOffsetInLogrecord)
-		log_record.New_tuple.SerializeTo(log_manager.log_buffer[pos:])
-	} else if log_record.Log_record_type == NEW_TABLE_PAGE {
+		logRecord.OldTuple.SerializeTo(logMgr.logBuffer[pos:])
+		pos += logRecord.OldTuple.Size() + uint32(tuple.TupleSizeOffsetInLogrecord)
+		logRecord.NewTuple.SerializeTo(logMgr.logBuffer[pos:])
+	} else if logRecord.LogRecordType == NewTablePage {
 		buf := new(bytes.Buffer)
-		binary.Write(buf, binary.LittleEndian, log_record.Prev_page_id)
+		binary.Write(buf, binary.LittleEndian, logRecord.PrevPageID)
 		prevPageIDInBytes := buf.Bytes()
-		copy(log_manager.log_buffer[pos:], prevPageIDInBytes)
-		pos += uint32(unsafe.Sizeof(log_record.Prev_page_id))
+		copy(logMgr.logBuffer[pos:], prevPageIDInBytes)
+		pos += uint32(unsafe.Sizeof(logRecord.PrevPageID))
 		buf2 := new(bytes.Buffer)
-		binary.Write(buf2, binary.LittleEndian, log_record.Page_id)
+		binary.Write(buf2, binary.LittleEndian, logRecord.PageID)
 		pageIDInBytes := buf2.Bytes()
-		copy(log_manager.log_buffer[pos:], pageIDInBytes)
-	} else if log_record.Log_record_type == DEALLOCATE_PAGE {
+		copy(logMgr.logBuffer[pos:], pageIDInBytes)
+	} else if logRecord.LogRecordType == DeallocatePage {
 		buf := new(bytes.Buffer)
-		binary.Write(buf, binary.LittleEndian, log_record.Deallocate_page_id)
-		//pos += uint32(unsafe.Sizeof(log_record.Deallocate_page_id))
+		binary.Write(buf, binary.LittleEndian, logRecord.DeallocatePageID)
+		//pos += uint32(unsafe.Sizeof(logRecord.DeallocatePageID))
 		pageIDInBytes := buf.Bytes()
-		copy(log_manager.log_buffer[pos:], pageIDInBytes)
-	} else if log_record.Log_record_type == REUSE_PAGE {
+		copy(logMgr.logBuffer[pos:], pageIDInBytes)
+	} else if logRecord.LogRecordType == ReusePage {
 		buf := new(bytes.Buffer)
-		binary.Write(buf, binary.LittleEndian, log_record.Reuse_page_id)
-		//pos += uint32(unsafe.Sizeof(log_record.Reuse_page_id))
+		binary.Write(buf, binary.LittleEndian, logRecord.ReusePageID)
+		//pos += uint32(unsafe.Sizeof(logRecord.ReusePageID))
 		pageIDInBytes := buf.Bytes()
-		copy(log_manager.log_buffer[pos:], pageIDInBytes)
-	} else if log_record.Log_record_type == GRACEFUL_SHUTDOWN {
+		copy(logMgr.logBuffer[pos:], pageIDInBytes)
+	} else if logRecord.LogRecordType == GracefulShutdown {
 		// do nothing
 	}
 
-	log_manager.latch.WUnlock()
-	return log_record.Lsn
+	logMgr.latch.WUnlock()
+	return logRecord.Lsn
 }

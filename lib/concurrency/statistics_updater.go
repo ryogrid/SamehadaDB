@@ -8,16 +8,16 @@ import (
 )
 
 type StatisticsUpdater struct {
-	transaction_manager *access.TransactionManager
+	transactionManager *access.TransactionManager
 	c                   *catalog.Catalog
 	// updater thread works when this flag is true
 	isUpdaterActive bool
 }
 
 func NewStatisticsUpdater(
-	transaction_manager *access.TransactionManager, c *catalog.Catalog) *StatisticsUpdater {
+	transactionManager *access.TransactionManager, c *catalog.Catalog) *StatisticsUpdater {
 
-	return &StatisticsUpdater{transaction_manager, c, true}
+	return &StatisticsUpdater{transactionManager, c, true}
 }
 
 func (updater *StatisticsUpdater) StartStaticsUpdaterTh() {
@@ -37,13 +37,13 @@ func (updater *StatisticsUpdater) StartStaticsUpdaterTh() {
 }
 
 func (updater *StatisticsUpdater) UpdateAllTablesStatistics() {
-	txn := updater.transaction_manager.Begin(nil)
-	defer updater.transaction_manager.Commit(updater.c, txn)
+	txn := updater.transactionManager.Begin(nil)
+	defer updater.transactionManager.Commit(updater.c, txn)
 
 	tables := updater.c.GetAllTables()
-	for _, table_ := range tables {
-		stat := table_.GetStatistics()
-		err := stat.Update(table_, txn)
+	for _, tbl := range tables {
+		stat := tbl.GetStatistics()
+		err := stat.Update(tbl, txn)
 		if err != nil {
 			// note: already updated table's statistics are not rollbacked
 			//       in current impl
