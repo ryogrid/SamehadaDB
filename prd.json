@@ -37,7 +37,7 @@
         "cd server && go build -o samehada-db-server main.go succeeds"
       ],
       "priority": 2,
-      "passes": false,
+      "passes": true,
       "notes": "Phase 2 — low-level building blocks for storage."
     },
     {

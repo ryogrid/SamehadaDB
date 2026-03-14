@@ -6,6 +6,11 @@
 - `EnableOnMemStorage` in lib/common/config.go must remain `true` — do NOT change it
 - Build verification: `cd lib && go build ./...`, `cd lib && go test ./... -short`, `cd server && go build -o samehada-db-server main.go`
 - Named return variables with trailing underscore (`ret_`) renamed to `retVal` to eliminate underscores
+- `PageId` → `PageID`, `pageId` → `pageID` per Effective Go acronym rules (Id → ID)
+- `GetPageId` → `GetPageID`, `SetPageId` → `SetPageID` etc.
+- `MAX_FOWARD_LIST_LEN` → `MaxForwardListLen`
+- `rwlatch_` → `rwLatch` (trailing underscore removed, camelCase applied)
+- CAUTION: External package `bltree-go-for-embedding` uses `GetPPageId`, `GetMappedPPageIdOfPageZero`, `GetPageIdConvMap` — do NOT rename these (interface contract)
 
 ---
 
@@ -21,4 +26,14 @@
   - The prior commit `04b727b` already contained these renames — the user had started the work
   - Use `find | xargs sed` for bulk cross-codebase renames, but do longer names first to avoid partial matches (e.g., `DEBUG_INFO_DETAIL` before `DEBUG_INFO`)
   - All builds and tests pass after renaming
+---
+
+## 2026-03-14 - US-002
+- What was implemented: Renamed all snake_case identifiers in lib/errors/ and lib/storage/page/ (including skip_list_page/)
+- Key renames: `PageId` → `PageID`, `GetPageId` → `GetPageID`, `SetPageId` → `SetPageID`, `MAX_FOWARD_LIST_LEN` → `MaxForwardListLen`, `rwlatch_` → `rwLatch`, trailing underscore named returns
+- 49 files changed across the entire codebase (references updated everywhere)
+- **Learnings for future iterations:**
+  - External package `bltree-go-for-embedding` has methods like `GetPPageId`, `GetMappedPPageIdOfPageZero`, `GetPageIdConvMap` that must NOT be renamed — they're interface contracts from an external dependency
+  - When doing `PageId` → `PageID` renames, watch for `PPageId` which should also stay as-is due to external interface
+  - `lib/errors/type.go` had no snake_case identifiers — it was already clean
 ---
