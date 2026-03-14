@@ -22,7 +22,7 @@ type BufferPoolManager struct {
 	freeList         []FrameID
 	reUsablePageList []types.PageID
 	pageTable        map[types.PageID]FrameID
-	log_manager      *recovery.LogManager
+	logManager      *recovery.LogManager
 	mutex            *sync.Mutex
 }
 
@@ -95,7 +95,7 @@ func (b *BufferPoolManager) FetchPage(pageID types.PageID) *page.Page {
 			if currentPage.IsDeallocated() {
 				b.reUsablePageList = append(b.reUsablePageList, currentPage.GetPageID())
 			} else if currentPage.IsDirty() {
-				b.log_manager.Flush()
+				b.logManager.Flush()
 				currentPage.WLatch()
 				data := currentPage.Data()
 				b.diskManager.WritePage(currentPage.GetPageID(), data[:])
@@ -195,17 +195,17 @@ func (b *BufferPoolManager) UnpinPage(pageID types.PageID, isDirty bool) error {
 
 // Decrement pincount of passed page (this can be used only when a thread has pin of page more than 1
 // this get lock of BufferPoolManager
-func (b *BufferPoolManager) IncPinOfPage(page_ page.PageIF) {
+func (b *BufferPoolManager) IncPinOfPage(pg page.PageIF) {
 	b.mutex.Lock()
-	page_.IncPinCount()
+	pg.IncPinCount()
 	b.mutex.Unlock()
 }
 
 // Decrement pin count of passed page (this can be used only when a thread has pin of page more than 1
 // this get lock of BufferPoolManager but overhead is smaller than UnpinPage
-func (b *BufferPoolManager) DecPinOfPage(page_ page.PageIF) {
+func (b *BufferPoolManager) DecPinOfPage(pg page.PageIF) {
 	b.mutex.Lock()
-	page_.DecPinCount()
+	pg.DecPinCount()
 	b.mutex.Unlock()
 }
 
@@ -253,7 +253,7 @@ func (b *BufferPoolManager) NewPage() *page.Page {
 			if currentPage.IsDeallocated() {
 				b.reUsablePageList = append(b.reUsablePageList, currentPage.GetPageID())
 			} else if currentPage.IsDirty() {
-				b.log_manager.Flush()
+				b.logManager.Flush()
 				currentPage.WLatch()
 				currentPage.AddWLatchRecord(int32(-2))
 				data := currentPage.Data()
@@ -276,8 +276,8 @@ func (b *BufferPoolManager) NewPage() *page.Page {
 		pageID = b.reUsablePageList[0]
 		b.reUsablePageList = b.reUsablePageList[1:]
 		logRecord := recovery.NewLogRecordReusePage(pageID)
-		b.log_manager.AppendLogRecord(logRecord)
-		b.log_manager.Flush()
+		b.logManager.AppendLogRecord(logRecord)
+		b.logManager.Flush()
 	} else {
 		pageID = b.diskManager.AllocatePage()
 	}
@@ -311,8 +311,8 @@ func (b *BufferPoolManager) DeallocatePage(pageID types.PageID, isNoWait bool) e
 		b.mutex.Unlock()
 	}
 	logRecord := recovery.NewLogRecordDeallocatePage(pageID)
-	b.log_manager.AppendLogRecord(logRecord)
-	b.log_manager.Flush()
+	b.logManager.AppendLogRecord(logRecord)
+	b.logManager.Flush()
 	return nil
 }
 
@@ -428,7 +428,7 @@ func (b *BufferPoolManager) PrintBufferUsageState(callerAdditionalInfo string) {
 }
 
 // NewBufferPoolManager returns a empty buffer pool manager
-func NewBufferPoolManager(poolSize uint32, DiskManager disk.DiskManager, log_manager *recovery.LogManager) *BufferPoolManager {
+func NewBufferPoolManager(poolSize uint32, DiskManager disk.DiskManager, logManager *recovery.LogManager) *BufferPoolManager {
 	freeList := make([]FrameID, poolSize)
 	pages := make([]*page.Page, poolSize)
 	for i := uint32(0); i < poolSize; i++ {
@@ -437,5 +437,5 @@ func NewBufferPoolManager(poolSize uint32, DiskManager disk.DiskManager, log_man
 	}
 
 	replacer := NewClockReplacer(poolSize)
-	return &BufferPoolManager{DiskManager, pages, replacer, freeList, make([]types.PageID, 0), make(map[types.PageID]FrameID), log_manager, new(sync.Mutex)}
+	return &BufferPoolManager{DiskManager, pages, replacer, freeList, make([]types.PageID, 0), make(map[types.PageID]FrameID), logManager, new(sync.Mutex)}
 }
