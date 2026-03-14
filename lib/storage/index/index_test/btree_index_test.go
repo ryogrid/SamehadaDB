@@ -234,7 +234,7 @@ func TestBTreeIndexKeyDuplicateInsertDeleteStrideSerialInt(t *testing.T) {
 			//	fmt.Println("idx: ", idx, "jj: ", jj)
 			//}
 			//indexTest1.ScanKey(tuple1, nil)
-			//testingpkg.Assert(t, result1[0].PageId == types.PageID(idx*stride+jj) && result1[0].SlotNum == uint32(idx*stride+jj), fmt.Sprintf("duplicated key point scan got illegal value.(1) idx: %d, jj: %d", idx, jj))
+			//testingpkg.Assert(t, result1[0].PageID == types.PageID(idx*stride+jj) && result1[0].SlotNum == uint32(idx*stride+jj), fmt.Sprintf("duplicated key point scan got illegal value.(1) idx: %d, jj: %d", idx, jj))
 			testingpkg.Assert(t, len(result1) == 3, fmt.Sprintf("duplicated key point scan got illegal results.(1) idx: %d, jj: %d len(result1): %d", idx, jj, len(result1)))
 			//testingpkg.Assert(t, len(result1) != 0, fmt.Sprintf("duplicated key point scan got illegal results.(1) idx: %d, jj: %d len(result1): %d", idx, jj, len(result1)))
 			for _, res := range result1 {

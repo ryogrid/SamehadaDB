@@ -10,19 +10,19 @@ import (
 
 // RID is the record identifier for the given page identifier and slot number
 type RID struct {
-	PageId  types.PageID
+	PageID  types.PageID
 	SlotNum uint32
 }
 
 // Set sets the recod identifier
-func (r *RID) Set(pageId types.PageID, slot uint32) {
-	r.PageId = pageId
+func (r *RID) Set(pageID types.PageID, slot uint32) {
+	r.PageID = pageID
 	r.SlotNum = slot
 }
 
-// GetPageId gets the page id
-func (r *RID) GetPageId() types.PageID {
-	return r.PageId
+// GetPageID gets the page id
+func (r *RID) GetPageID() types.PageID {
+	return r.PageID
 }
 
 // GetSlotNum gets the slot number

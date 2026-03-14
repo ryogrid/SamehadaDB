@@ -2763,10 +2763,10 @@ func TestDeallocatedPageReuseAfterRelaunchGraceful(t *testing.T) {
 	executionEngine.Execute(insertPlanNode, executorContext)
 
 	targetPage := bpm.NewPage()
-	targetPageId := targetPage.GetPageId()
+	targetPageID := targetPage.GetPageID()
 	targetPage.SetIsDeallocated(true)
-	bpm.DeallocatePage(targetPageId, false)
-	bpm.UnpinPage(targetPageId, false)
+	bpm.DeallocatePage(targetPageID, false)
+	bpm.UnpinPage(targetPageID, false)
 
 	txn_mgr.Commit(nil, txn)
 
@@ -2789,8 +2789,8 @@ func TestDeallocatedPageReuseAfterRelaunchGraceful(t *testing.T) {
 
 	txn_mgr.Commit(nil, txn)
 
-	testingpkg.Assert(t, bpm.GetReusablePageIds()[0] == targetPageId, "reusable page list is not expected state!")
-	fmt.Println("reusable page list before relaunch: ", bpm.GetReusablePageIds(), targetPageId)
+	testingpkg.Assert(t, bpm.GetReusablePageIDs()[0] == targetPageID, "reusable page list is not expected state!")
+	fmt.Println("reusable page list before relaunch: ", bpm.GetReusablePageIDs(), targetPageID)
 
 	// system relaunch
 	shi.Shutdown(samehada.ShutdownPatternCloseFiles)
@@ -2835,18 +2835,18 @@ func TestDeallocatedPageReuseAfterRelaunchGraceful(t *testing.T) {
 
 	// rewrite reusable page id log because it is not wrote to log file after launch
 	// but the information is needed next launch also
-	reusablePageIds := bpm.GetReusablePageIds()
-	if len(reusablePageIds) > 0 {
-		for _, pageId := range reusablePageIds {
-			logRecord := recovery.NewLogRecordDeallocatePage(pageId)
+	reusablePageIDs := bpm.GetReusablePageIDs()
+	if len(reusablePageIDs) > 0 {
+		for _, pageID := range reusablePageIDs {
+			logRecord := recovery.NewLogRecordDeallocatePage(pageID)
 			log_mgr.AppendLogRecord(logRecord)
 		}
 	}
 	log_mgr.Flush()
 
 	// check reusable page list is recovered expected state
-	testingpkg.Assert(t, bpm.GetReusablePageIds()[0] == targetPageId, "reusable page list is not expected state!")
-	fmt.Println("reusable page list after relaunch: ", bpm.GetReusablePageIds(), targetPageId)
+	testingpkg.Assert(t, bpm.GetReusablePageIDs()[0] == targetPageID, "reusable page list is not expected state!")
+	fmt.Println("reusable page list after relaunch: ", bpm.GetReusablePageIDs(), targetPageID)
 
 	fmt.Println("check table content...")
 	txn = txn_mgr.Begin(nil)
@@ -2920,10 +2920,10 @@ func TestDeallocatedPageReuseAfterRelaunchByCrash(t *testing.T) {
 	executionEngine.Execute(insertPlanNode, executorContext)
 
 	targetPage := bpm.NewPage()
-	targetPageId := targetPage.GetPageId()
+	targetPageID := targetPage.GetPageID()
 	targetPage.SetIsDeallocated(true)
-	bpm.DeallocatePage(targetPageId, false)
-	bpm.UnpinPage(targetPageId, false)
+	bpm.DeallocatePage(targetPageID, false)
+	bpm.UnpinPage(targetPageID, false)
 
 	txn_mgr.Commit(nil, txn)
 
@@ -2944,8 +2944,8 @@ func TestDeallocatedPageReuseAfterRelaunchByCrash(t *testing.T) {
 	updatePlanNode := plans.NewUpdatePlanNode(row1, []int{0, 1}, seqScanPlan)
 	executionEngine.Execute(updatePlanNode, executorContext)
 
-	fmt.Println("reusable page list before relaunch: ", bpm.GetReusablePageIds(), targetPageId)
-	testingpkg.Assert(t, bpm.GetReusablePageIds()[0] == targetPageId, "reusable page list is not expected state!")
+	fmt.Println("reusable page list before relaunch: ", bpm.GetReusablePageIDs(), targetPageID)
+	testingpkg.Assert(t, bpm.GetReusablePageIDs()[0] == targetPageID, "reusable page list is not expected state!")
 
 	// system crashes before commit
 	shi.CloseFilesForTesting()
@@ -2991,18 +2991,18 @@ func TestDeallocatedPageReuseAfterRelaunchByCrash(t *testing.T) {
 
 	// rewrite reusable page id log because it is not wrote to log file after launch
 	// but the information is needed next launch also
-	reusablePageIds := bpm.GetReusablePageIds()
-	if len(reusablePageIds) > 0 {
-		for _, pageId := range reusablePageIds {
-			logRecord := recovery.NewLogRecordDeallocatePage(pageId)
+	reusablePageIDs := bpm.GetReusablePageIDs()
+	if len(reusablePageIDs) > 0 {
+		for _, pageID := range reusablePageIDs {
+			logRecord := recovery.NewLogRecordDeallocatePage(pageID)
 			log_mgr.AppendLogRecord(logRecord)
 		}
 	}
 	log_mgr.Flush()
 
 	// check reusable page list is recovered expected state
-	testingpkg.Assert(t, bpm.GetReusablePageIds()[0] == targetPageId, "reusable page list is not expected state!")
-	fmt.Println("reusable page list after relaunch: ", bpm.GetReusablePageIds(), targetPageId)
+	testingpkg.Assert(t, bpm.GetReusablePageIDs()[0] == targetPageID, "reusable page list is not expected state!")
+	fmt.Println("reusable page list after relaunch: ", bpm.GetReusablePageIDs(), targetPageID)
 
 	fmt.Println("check table content...")
 	txn = txn_mgr.Begin(nil)

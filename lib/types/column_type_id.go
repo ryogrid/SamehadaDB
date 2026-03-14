@@ -5,7 +5,7 @@ package types
 
 type TypeID int
 
-// Every possible SQL type GetPageId
+// Every possible SQL type GetPageID
 const (
 	Invalid TypeID = iota
 	Boolean

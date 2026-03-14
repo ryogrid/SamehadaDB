@@ -59,11 +59,11 @@ func (d *VirtualDiskManagerImpl) convToSpaceID(pageID types.PageID) (spaceID typ
 }
 
 // Write a page to the database file
-func (d *VirtualDiskManagerImpl) WritePage(pageId types.PageID, pageData []byte) error {
+func (d *VirtualDiskManagerImpl) WritePage(pageID types.PageID, pageData []byte) error {
 	d.dbFileMutex.Lock()
 	defer d.dbFileMutex.Unlock()
 
-	offset := int64(d.convToSpaceID(pageId)) * int64(common.PageSize)
+	offset := int64(d.convToSpaceID(pageID)) * int64(common.PageSize)
 	d.db.WriteAt(pageData, offset)
 
 	if offset >= d.size {

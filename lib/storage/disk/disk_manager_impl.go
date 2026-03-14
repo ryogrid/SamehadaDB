@@ -94,11 +94,11 @@ func (d *DiskManagerImpl) ShutDown() {
 }
 
 // Write a page to the database file
-func (d *DiskManagerImpl) WritePage(pageId types.PageID, pageData []byte) error {
+func (d *DiskManagerImpl) WritePage(pageID types.PageID, pageData []byte) error {
 	d.dbFileMutex.Lock()
 	defer d.dbFileMutex.Unlock()
 
-	offset := int64(pageId) * int64(common.PageSize)
+	offset := int64(pageID) * int64(common.PageSize)
 	_, errSeek := d.db.Seek(offset, io.SeekStart)
 	if errSeek != nil {
 		fmt.Println(errSeek)

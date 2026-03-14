@@ -158,7 +158,7 @@ func TestUndo(t *testing.T) {
 		samehada_instance.GetLogManager(),
 		samehada_instance.GetLockManager(),
 		txn)
-	first_page_id := test_table.GetFirstPageId()
+	first_page_id := test_table.GetFirstPageID()
 
 	col1 := column.NewColumn("a", types.Varchar, false, index_constants.INDEX_KIND_INVALID, types.PageID(-1), nil)
 	col2 := column.NewColumn("b", types.Integer, false, index_constants.INDEX_KIND_INVALID, types.PageID(-1), nil)
@@ -371,7 +371,7 @@ func TestCheckpoint(t *testing.T) {
 	all_pages_clean := true
 	for i := 0; i < pool_size; i++ {
 		page := pages[i]
-		page_id := page.GetPageId()
+		page_id := page.GetPageID()
 
 		if page_id != common.InvalidPageID && page.IsDirty() {
 			all_pages_clean = false
@@ -386,7 +386,7 @@ func TestCheckpoint(t *testing.T) {
 	disk_data := make([]byte, common.PageSize)
 	for i := 0; i < pool_size; i++ {
 		page := pages[i]
-		page_id := page.GetPageId()
+		page_id := page.GetPageID()
 
 		if page_id != common.InvalidPageID {
 			dmgr_impl := samehada_instance.GetDiskManager()
@@ -409,7 +409,7 @@ func TestCheckpoint(t *testing.T) {
 	all_pages_lte := true
 	for i := 0; i < pool_size; i++ {
 		page := pages[i]
-		page_id := page.GetPageId()
+		page_id := page.GetPageID()
 
 		if page_id != common.InvalidPageID && page.GetLSN() > persistent_lsn {
 			all_pages_lte = false

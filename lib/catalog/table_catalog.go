@@ -20,13 +20,13 @@ import (
 	"github.com/ryogrid/SamehadaDB/lib/types"
 )
 
-// TableCatalogPageId indicates the page where the table catalog can be found
+// TableCatalogPageID indicates the page where the table catalog can be found
 // The first page is reserved for the table catalog
-const TableCatalogPageId = 0
+const TableCatalogPageID = 0
 
-// ColumnsCatalogPageId indicates the page where the columns catalog can be found
+// ColumnsCatalogPageID indicates the page where the columns catalog can be found
 // The second page is reserved for the table catalog
-const ColumnsCatalogPageId = 1
+const ColumnsCatalogPageID = 1
 
 const ColumnsCatalogOID = 0
 
@@ -63,7 +63,7 @@ func BootstrapCatalog(bpm *buffer.BufferPoolManager, log_manager *recovery.LogMa
 
 // RecoveryCatalogFromCatalogPage get all information about tables and columns from disk and put it on memory
 func RecoveryCatalogFromCatalogPage(bpm *buffer.BufferPoolManager, log_manager *recovery.LogManager, lock_manager *access.LockManager, txn *access.Transaction, isGracefulShutdown bool) *Catalog {
-	tableCatalogHeapIt := access.InitTableHeap(bpm, TableCatalogPageId, log_manager, lock_manager).Iterator(txn)
+	tableCatalogHeapIt := access.InitTableHeap(bpm, TableCatalogPageID, log_manager, lock_manager).Iterator(txn)
 
 	tableIds := make(map[uint32]*TableMetadata)
 	tableNames := make(map[string]*TableMetadata)
@@ -74,7 +74,7 @@ func RecoveryCatalogFromCatalogPage(bpm *buffer.BufferPoolManager, log_manager *
 		firstPage := tuple_outer.GetValue(TableCatalogSchema(), TableCatalogSchema().GetColIndex("first_page")).ToInteger()
 
 		columns := []*column.Column{}
-		columnsCatalogHeapIt := access.InitTableHeap(bpm, ColumnsCatalogPageId, log_manager, lock_manager).Iterator(txn)
+		columnsCatalogHeapIt := access.InitTableHeap(bpm, ColumnsCatalogPageID, log_manager, lock_manager).Iterator(txn)
 		for tuple_inner := columnsCatalogHeapIt.Current(); !columnsCatalogHeapIt.End(); tuple_inner = columnsCatalogHeapIt.Next() {
 			tableOid := tuple_inner.GetValue(ColumnsCatalogSchema(), ColumnsCatalogSchema().GetColIndex("table_oid")).ToInteger()
 			if tableOid != oid {
@@ -87,15 +87,15 @@ func RecoveryCatalogFromCatalogPage(bpm *buffer.BufferPoolManager, log_manager *
 			columnOffset := tuple_inner.GetValue(ColumnsCatalogSchema(), ColumnsCatalogSchema().GetColIndex("offset")).ToInteger()
 			hasIndex := Int32toBool(tuple_inner.GetValue(ColumnsCatalogSchema(), ColumnsCatalogSchema().GetColIndex("has_index")).ToInteger())
 			indexKind := tuple_inner.GetValue(ColumnsCatalogSchema(), ColumnsCatalogSchema().GetColIndex("index_kind")).ToInteger()
-			indexHeaderPageId := tuple_inner.GetValue(ColumnsCatalogSchema(), ColumnsCatalogSchema().GetColIndex("index_header_page_id")).ToInteger()
+			indexHeaderPageID := tuple_inner.GetValue(ColumnsCatalogSchema(), ColumnsCatalogSchema().GetColIndex("index_header_page_id")).ToInteger()
 
-			column_ := column.NewColumn(columnName, types.TypeID(columnType), false, index_constants.INDEX_KIND_INVALID, types.PageID(indexHeaderPageId), nil)
+			column_ := column.NewColumn(columnName, types.TypeID(columnType), false, index_constants.INDEX_KIND_INVALID, types.PageID(indexHeaderPageID), nil)
 			column_.SetFixedLength(uint32(fixedLength))
 			column_.SetVariableLength(uint32(variableLength))
 			column_.SetOffset(uint32(columnOffset))
 			column_.SetHasIndex(hasIndex)
 			column_.SetIndexKind(index_constants.IndexKind(indexKind))
-			column_.SetIndexHeaderPageId(types.PageID(indexHeaderPageId))
+			column_.SetIndexHeaderPageID(types.PageID(indexHeaderPageID))
 
 			columns = append(columns, column_)
 		}
@@ -198,10 +198,10 @@ func (c *Catalog) insertTable(tableMetadata *TableMetadata, txn *access.Transact
 
 	row = append(row, types.NewInteger(int32(tableMetadata.oid)))
 	row = append(row, types.NewVarchar(tableMetadata.name))
-	row = append(row, types.NewInteger(int32(tableMetadata.table.GetFirstPageId())))
+	row = append(row, types.NewInteger(int32(tableMetadata.table.GetFirstPageID())))
 	first_tuple := tuple.NewTupleFromSchema(row, TableCatalogSchema())
 
-	// insert entry to TableCatalogPage (PageId = 0)
+	// insert entry to TableCatalogPage (PageID = 0)
 	c.tableHeap.InsertTuple(first_tuple, txn, tableMetadata.OID(), false)
 	for _, column_ := range tableMetadata.schema.GetColumns() {
 		row := make([]types.Value, 0)
@@ -213,16 +213,16 @@ func (c *Catalog) insertTable(tableMetadata *TableMetadata, txn *access.Transact
 		row = append(row, types.NewInteger(int32(column_.GetOffset())))
 		row = append(row, types.NewInteger(boolToInt32(column_.HasIndex())))
 		row = append(row, types.NewInteger(int32(column_.IndexKind())))
-		row = append(row, types.NewInteger(int32(column_.IndexHeaderPageId())))
+		row = append(row, types.NewInteger(int32(column_.IndexHeaderPageID())))
 		new_tuple := tuple.NewTupleFromSchema(row, ColumnsCatalogSchema())
 
-		// insert entry to ColumnsCatalogPage (PageId = 1)
+		// insert entry to ColumnsCatalogPage (PageID = 1)
 		c.tableIds[ColumnsCatalogOID].Table().InsertTuple(new_tuple, txn, ColumnsCatalogOID, false)
 	}
 	// flush a page having table definitions
-	c.bpm.FlushPage(TableCatalogPageId)
+	c.bpm.FlushPage(TableCatalogPageID)
 	// flush a page having columns definitions on table
-	c.bpm.FlushPage(ColumnsCatalogPageId)
+	c.bpm.FlushPage(ColumnsCatalogPageID)
 }
 
 // for Redo/Undo

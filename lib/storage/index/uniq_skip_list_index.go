@@ -121,6 +121,6 @@ func (slidx *UniqSkipListIndex) GetTupleSchema() *schema.Schema {
 
 func (slidx *UniqSkipListIndex) GetKeyAttrs() []uint32 { return slidx.metadata.GetKeyAttrs() }
 
-func (slidx *UniqSkipListIndex) GetHeaderPageId() types.PageID {
-	return slidx.container.GetHeaderPageId()
+func (slidx *UniqSkipListIndex) GetHeaderPageID() types.PageID {
+	return slidx.container.GetHeaderPageID()
 }

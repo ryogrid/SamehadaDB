@@ -26,7 +26,7 @@ func ColumnsCatalogSchema() *schema.Schema {
 	offsetColumn := column.NewColumn("offset", types.Integer, false, index_constants.INDEX_KIND_INVALID, types.PageID(-1), nil)
 	hasIndexColumn := column.NewColumn("has_index", types.Integer, false, index_constants.INDEX_KIND_INVALID, types.PageID(-1), nil)
 	indexKind := column.NewColumn("index_kind", types.Integer, false, index_constants.INDEX_KIND_INVALID, types.PageID(-1), nil)
-	indexHeaderPageId := column.NewColumn("index_header_page_id", types.Integer, false, index_constants.INDEX_KIND_INVALID, types.PageID(-1), nil)
+	indexHeaderPageID := column.NewColumn("index_header_page_id", types.Integer, false, index_constants.INDEX_KIND_INVALID, types.PageID(-1), nil)
 
 	return schema.NewSchema([]*column.Column{
 		tableOIDColumn,
@@ -37,5 +37,5 @@ func ColumnsCatalogSchema() *schema.Schema {
 		offsetColumn,
 		hasIndexColumn,
 		indexKind,
-		indexHeaderPageId})
+		indexHeaderPageID})
 }

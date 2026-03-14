@@ -62,14 +62,14 @@ func reconstructIndexDataOfATbl(t *catalog.TableMetadata, c *catalog.Catalog, dm
 				// due to there may be pages (on disk) which has old index entries data in current design...
 				// note: when this method is called, the pages are not fetched yet (= are not in memory)
 
-				indexHeaderPageId := column_.IndexHeaderPageId()
+				indexHeaderPageID := column_.IndexHeaderPageID()
 
-				hPageData := bpm.FetchPage(indexHeaderPageId).Data()
+				hPageData := bpm.FetchPage(indexHeaderPageID).Data()
 				headerPage := (*page.HashTableHeaderPage)(unsafe.Pointer(hPageData))
 				for ii := uint64(0); ii < headerPage.NumBlocks(); ii++ {
-					blockPageId := headerPage.GetBlockPageId(ii)
+					blockPageID := headerPage.GetBlockPageID(ii)
 					// zero clear specifed space of db file
-					dman.WritePage(blockPageId, zeroClearedBuf)
+					dman.WritePage(blockPageID, zeroClearedBuf)
 				}
 			case index_constants.INDEX_KIND_UNIQ_SKIP_LIST:
 				// do nothing here
@@ -146,10 +146,10 @@ func NewSamehadaDB(dbName string, memKBytes int) *SamehadaDB {
 
 		// rewrite reusable page id log because it is not wrote to log file after launch
 		// but the information is needed next launch also
-		reusablePageIds := shi.bpm.GetReusablePageIds()
-		if len(reusablePageIds) > 0 {
-			for _, pageId := range reusablePageIds {
-				logRecord := recovery.NewLogRecordDeallocatePage(pageId)
+		reusablePageIDs := shi.bpm.GetReusablePageIDs()
+		if len(reusablePageIDs) > 0 {
+			for _, pageID := range reusablePageIDs {
+				logRecord := recovery.NewLogRecordDeallocatePage(pageID)
 				shi.log_manager.AppendLogRecord(logRecord)
 			}
 		}

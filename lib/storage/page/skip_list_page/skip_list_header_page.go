@@ -12,11 +12,11 @@ import (
 )
 
 const (
-	hOffsetPageId     = 0
-	offsetStartPageId = page.OffsetLSN + types.SizeOfLSN
-	offsetKeyType     = offsetStartPageId + sizeStartPageId
-	hSizePageId       = 4
-	sizeStartPageId   = 4
+	hOffsetPageID     = 0
+	offsetStartPageID = page.OffsetLSN + types.SizeOfLSN
+	offsetKeyType     = offsetStartPageID + sizeStartPageID
+	hSizePageID       = 4
+	sizeStartPageID   = 4
 	sizeKeyType       = 4
 )
 
@@ -27,12 +27,12 @@ const (
  *
  * page format (size in byte, 12 bytes in total):
  * -----------------------------------------------------------
- * | pageID (4) | LSN(4) | listStartPageId (4) | keyType (4) |
+ * | pageID (4) | LSN(4) | listStartPageID (4) | keyType (4) |
  * ----------------------------------------------------------
  */
 
 const (
-	MAX_FOWARD_LIST_LEN = 20
+	MaxForwardListLen = 20
 )
 
 type SkipListHeaderPage struct {
@@ -40,19 +40,19 @@ type SkipListHeaderPage struct {
 	// Header's successor node has all level path
 }
 
-func NewSkipListStartBlockPage(bpm *buffer.BufferPoolManager, keyType types.TypeID) (startNode_ *SkipListBlockPage, sentinelNode_ *SkipListBlockPage) {
+func NewSkipListStartBlockPage(bpm *buffer.BufferPoolManager, keyType types.TypeID) (startNodeRet *SkipListBlockPage, sentinelNodeRet *SkipListBlockPage) {
 	var startNode *SkipListBlockPage = nil
 	switch keyType {
 	case types.Integer:
-		startNode = NewSkipListBlockPage(bpm, MAX_FOWARD_LIST_LEN, index_common.IndexEntry{types.NewInteger(math.MinInt32), 0})
+		startNode = NewSkipListBlockPage(bpm, MaxForwardListLen, index_common.IndexEntry{types.NewInteger(math.MinInt32), 0})
 	case types.Float:
-		startNode = NewSkipListBlockPage(bpm, MAX_FOWARD_LIST_LEN, index_common.IndexEntry{types.NewFloat(-1.0 * math.MaxFloat32), 0})
+		startNode = NewSkipListBlockPage(bpm, MaxForwardListLen, index_common.IndexEntry{types.NewFloat(-1.0 * math.MaxFloat32), 0})
 	case types.Varchar:
 		v := types.NewVarchar("")
 		v.SetInfMin()
-		startNode = NewSkipListBlockPage(bpm, MAX_FOWARD_LIST_LEN, index_common.IndexEntry{v, 0})
+		startNode = NewSkipListBlockPage(bpm, MaxForwardListLen, index_common.IndexEntry{v, 0})
 	case types.Boolean:
-		startNode = NewSkipListBlockPage(bpm, MAX_FOWARD_LIST_LEN, index_common.IndexEntry{types.NewBoolean(false), 0})
+		startNode = NewSkipListBlockPage(bpm, MaxForwardListLen, index_common.IndexEntry{types.NewBoolean(false), 0})
 	}
 
 	var sentinelNode *SkipListBlockPage = nil
@@ -60,51 +60,51 @@ func NewSkipListStartBlockPage(bpm *buffer.BufferPoolManager, keyType types.Type
 	case types.Integer:
 		pl := index_common.IndexEntry{types.NewInteger(0), 0}
 		pl.Key = *pl.Key.SetInfMax()
-		sentinelNode = NewSkipListBlockPage(bpm, MAX_FOWARD_LIST_LEN, pl)
+		sentinelNode = NewSkipListBlockPage(bpm, MaxForwardListLen, pl)
 	case types.Float:
 		pl := index_common.IndexEntry{types.NewFloat(0), 0}
 		pl.Key = *pl.Key.SetInfMax()
-		sentinelNode = NewSkipListBlockPage(bpm, MAX_FOWARD_LIST_LEN, pl)
+		sentinelNode = NewSkipListBlockPage(bpm, MaxForwardListLen, pl)
 	case types.Varchar:
 		pl := index_common.IndexEntry{types.NewVarchar(""), 0}
 		pl.Key = *pl.Key.SetInfMax()
-		sentinelNode = NewSkipListBlockPage(bpm, MAX_FOWARD_LIST_LEN, pl)
+		sentinelNode = NewSkipListBlockPage(bpm, MaxForwardListLen, pl)
 	case types.Boolean:
 		pl := index_common.IndexEntry{types.NewBoolean(false), 0}
 		pl.Key = *pl.Key.SetInfMax()
-		sentinelNode = NewSkipListBlockPage(bpm, MAX_FOWARD_LIST_LEN, pl)
+		sentinelNode = NewSkipListBlockPage(bpm, MaxForwardListLen, pl)
 	}
 
 	startNode.SetLevel(1)
 
 	// set sentinel node at end of list
-	for ii := 0; ii < MAX_FOWARD_LIST_LEN; ii++ {
-		startNode.SetForwardEntry(ii, sentinelNode.GetPageId())
+	for ii := 0; ii < MaxForwardListLen; ii++ {
+		startNode.SetForwardEntry(ii, sentinelNode.GetPageID())
 	}
 
 	return startNode, sentinelNode
 }
 
-func (hp *SkipListHeaderPage) GetPageId() types.PageID {
-	return types.PageID(types.NewInt32FromBytes(hp.Data()[hOffsetPageId:]))
+func (hp *SkipListHeaderPage) GetPageID() types.PageID {
+	return types.PageID(types.NewInt32FromBytes(hp.Data()[hOffsetPageID:]))
 }
 
-func (hp *SkipListHeaderPage) SetPageId(pageId types.PageID) {
+func (hp *SkipListHeaderPage) SetPageID(pageID types.PageID) {
 	buf := new(bytes.Buffer)
-	binary.Write(buf, binary.LittleEndian, pageId)
-	pageIdInBytes := buf.Bytes()
-	copy(hp.Data()[hOffsetPageId:], pageIdInBytes)
+	binary.Write(buf, binary.LittleEndian, pageID)
+	pageIDInBytes := buf.Bytes()
+	copy(hp.Data()[hOffsetPageID:], pageIDInBytes)
 }
 
-func (hp *SkipListHeaderPage) GetListStartPageId() types.PageID {
-	return types.PageID(types.NewInt32FromBytes(hp.Data()[offsetStartPageId:]))
+func (hp *SkipListHeaderPage) GetListStartPageID() types.PageID {
+	return types.PageID(types.NewInt32FromBytes(hp.Data()[offsetStartPageID:]))
 }
 
-func (hp *SkipListHeaderPage) SetListStartPageId(pageId types.PageID) {
+func (hp *SkipListHeaderPage) SetListStartPageID(pageID types.PageID) {
 	buf := new(bytes.Buffer)
-	binary.Write(buf, binary.LittleEndian, pageId)
-	startPageIdInBytes := buf.Bytes()
-	copy(hp.Data()[offsetStartPageId:], startPageIdInBytes)
+	binary.Write(buf, binary.LittleEndian, pageID)
+	startPageIDInBytes := buf.Bytes()
+	copy(hp.Data()[offsetStartPageID:], startPageIDInBytes)
 }
 
 func (hp *SkipListHeaderPage) GetKeyType() types.TypeID {
@@ -118,13 +118,13 @@ func (hp *SkipListHeaderPage) SetKeyType(ktype types.TypeID) {
 	copy(hp.Data()[offsetKeyType:], keyTypeInBytes)
 }
 
-func NewSkipListHeaderPage(bpm *buffer.BufferPoolManager, keyType types.TypeID) (headerPage_ *SkipListHeaderPage, startNode_ *SkipListBlockPage, sentinelNode_ *SkipListBlockPage) {
-	page_ := bpm.NewPage()
-	headerPage := (*SkipListHeaderPage)(unsafe.Pointer(page_))
-	headerPage.SetPageId(page_.GetPageId())
+func NewSkipListHeaderPage(bpm *buffer.BufferPoolManager, keyType types.TypeID) (headerPageRet *SkipListHeaderPage, startNodeRet *SkipListBlockPage, sentinelNodeRet *SkipListBlockPage) {
+	pg := bpm.NewPage()
+	headerPage := (*SkipListHeaderPage)(unsafe.Pointer(pg))
+	headerPage.SetPageID(pg.GetPageID())
 	headerPage.Page.SetLSN(0)
 	startNode, sentinelNode := NewSkipListStartBlockPage(bpm, keyType)
-	headerPage.SetListStartPageId(startNode.GetPageId())
+	headerPage.SetListStartPageID(startNode.GetPageID())
 	headerPage.SetKeyType(keyType)
 
 	return headerPage, startNode, sentinelNode
@@ -133,8 +133,8 @@ func NewSkipListHeaderPage(bpm *buffer.BufferPoolManager, keyType types.TypeID) 
 // Attention:
 //
 //	caller must call UnpinPage with appropriate diaty page to the got page when page using ends
-func FetchAndCastToHeaderPage(bpm *buffer.BufferPoolManager, pageId types.PageID) *SkipListHeaderPage {
-	page_ := bpm.FetchPage(pageId)
-	hpage := (*SkipListHeaderPage)(unsafe.Pointer(page_))
+func FetchAndCastToHeaderPage(bpm *buffer.BufferPoolManager, pageID types.PageID) *SkipListHeaderPage {
+	pg := bpm.FetchPage(pageID)
+	hpage := (*SkipListHeaderPage)(unsafe.Pointer(pg))
 	return hpage
 }

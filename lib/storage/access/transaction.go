@@ -75,7 +75,7 @@ type Transaction struct {
 	/** The current transaction state. */
 	state TransactionState
 
-	/** The GetPageId of this access. */
+	/** The GetPageID of this access. */
 	txn_id types.TxnID
 
 	// The undo set of the access.

@@ -101,8 +101,8 @@ func (e *HashJoinExecutor) Init() {
 			if tmp_page == nil {
 				panic("fail to create new tmp page when doing hash join")
 			}
-			tmp_page.Init(tmp_page.GetPageId(), common.PageSize)
-			tmp_page_id = tmp_page.GetPageId()
+			tmp_page.Init(tmp_page.GetPageID(), common.PageSize)
+			tmp_page_id = tmp_page.GetPageID()
 			e.tmp_page_ids_ = append(e.tmp_page_ids_, tmp_page_id)
 			// reinsert the tuple
 			tmp_page.Insert(left_tuple, &tmp_tuple)

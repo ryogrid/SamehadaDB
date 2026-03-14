@@ -21,12 +21,12 @@ type hashTableIterator struct {
 }
 
 func newHashTableIterator(bpm *buffer.BufferPoolManager, header *page.HashTableHeaderPage, bucket uint64, offset uint64) *hashTableIterator {
-	blockPageId := header.GetBlockPageId(bucket)
+	blockPageID := header.GetBlockPageID(bucket)
 
-	bPageData := bpm.FetchPage(blockPageId).Data()
+	bPageData := bpm.FetchPage(blockPageID).Data()
 	blockPage := (*page.HashTableBlockPage)(unsafe.Pointer(bPageData))
 
-	return &hashTableIterator{bpm, header, bucket, offset, blockPageId, blockPage}
+	return &hashTableIterator{bpm, header, bucket, offset, blockPageID, blockPage}
 }
 
 func (itr *hashTableIterator) next() {
@@ -42,7 +42,7 @@ func (itr *hashTableIterator) next() {
 		}
 
 		itr.bpm.UnpinPage(itr.blockId, true)
-		itr.blockId = itr.headerPage.GetBlockPageId(itr.bucket)
+		itr.blockId = itr.headerPage.GetBlockPageID(itr.bucket)
 
 		bPageData := itr.bpm.FetchPage(itr.blockId).Data()
 		itr.blockPage = (*page.HashTableBlockPage)(unsafe.Pointer(bPageData))

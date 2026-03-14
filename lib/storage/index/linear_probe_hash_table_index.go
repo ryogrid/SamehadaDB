@@ -20,10 +20,10 @@ type LinearProbeHashTableIndex struct {
 }
 
 func NewLinearProbeHashTableIndex(metadata *IndexMetadata, buffer_pool_manager *buffer.BufferPoolManager, col_idx uint32,
-	num_buckets int, headerPageId types.PageID) *LinearProbeHashTableIndex {
+	num_buckets int, headerPageID types.PageID) *LinearProbeHashTableIndex {
 	ret := new(LinearProbeHashTableIndex)
 	ret.metadata = metadata
-	ret.container = *hash.NewLinearProbeHashTable(buffer_pool_manager, num_buckets, headerPageId)
+	ret.container = *hash.NewLinearProbeHashTable(buffer_pool_manager, num_buckets, headerPageID)
 	ret.col_idx = col_idx
 	return ret
 }
@@ -74,6 +74,6 @@ func (htidx *LinearProbeHashTableIndex) GetRangeScanIterator(startkey *tuple.Tup
 	return nil
 }
 
-func (htidx *LinearProbeHashTableIndex) GetHeaderPageId() types.PageID {
-	return htidx.container.GetHeaderPageId()
+func (htidx *LinearProbeHashTableIndex) GetHeaderPageID() types.PageID {
+	return htidx.container.GetHeaderPageID()
 }

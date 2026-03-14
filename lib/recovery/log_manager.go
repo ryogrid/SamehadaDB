@@ -161,25 +161,25 @@ func (log_manager *LogManager) AppendLogRecord(log_record *LogRecord) types.LSN 
 	} else if log_record.Log_record_type == NEW_TABLE_PAGE {
 		buf := new(bytes.Buffer)
 		binary.Write(buf, binary.LittleEndian, log_record.Prev_page_id)
-		prevPageIdInBytes := buf.Bytes()
-		copy(log_manager.log_buffer[pos:], prevPageIdInBytes)
+		prevPageIDInBytes := buf.Bytes()
+		copy(log_manager.log_buffer[pos:], prevPageIDInBytes)
 		pos += uint32(unsafe.Sizeof(log_record.Prev_page_id))
 		buf2 := new(bytes.Buffer)
 		binary.Write(buf2, binary.LittleEndian, log_record.Page_id)
-		pageIdInBytes := buf2.Bytes()
-		copy(log_manager.log_buffer[pos:], pageIdInBytes)
+		pageIDInBytes := buf2.Bytes()
+		copy(log_manager.log_buffer[pos:], pageIDInBytes)
 	} else if log_record.Log_record_type == DEALLOCATE_PAGE {
 		buf := new(bytes.Buffer)
 		binary.Write(buf, binary.LittleEndian, log_record.Deallocate_page_id)
 		//pos += uint32(unsafe.Sizeof(log_record.Deallocate_page_id))
-		pageIdInBytes := buf.Bytes()
-		copy(log_manager.log_buffer[pos:], pageIdInBytes)
+		pageIDInBytes := buf.Bytes()
+		copy(log_manager.log_buffer[pos:], pageIDInBytes)
 	} else if log_record.Log_record_type == REUSE_PAGE {
 		buf := new(bytes.Buffer)
 		binary.Write(buf, binary.LittleEndian, log_record.Reuse_page_id)
 		//pos += uint32(unsafe.Sizeof(log_record.Reuse_page_id))
-		pageIdInBytes := buf.Bytes()
-		copy(log_manager.log_buffer[pos:], pageIdInBytes)
+		pageIDInBytes := buf.Bytes()
+		copy(log_manager.log_buffer[pos:], pageIDInBytes)
 	} else if log_record.Log_record_type == GRACEFUL_SHUTDOWN {
 		// do nothing
 	}

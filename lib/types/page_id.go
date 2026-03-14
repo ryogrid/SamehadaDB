@@ -14,7 +14,7 @@ type PageID int32
 
 const DeallocatedPageErr = errors.Error("dellocated Page ID is passed.")
 
-// InvalidPageID represents an invalid page GetPageId
+// InvalidPageID represents an invalid page GetPageID
 const InvalidPageID = PageID(-1)
 
 // IsValid checks if id is valid

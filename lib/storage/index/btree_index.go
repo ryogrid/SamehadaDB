@@ -230,7 +230,7 @@ func (btidx *BTreeIndex) GetTupleSchema() *schema.Schema {
 
 func (btidx *BTreeIndex) GetKeyAttrs() []uint32 { return btidx.metadata.GetKeyAttrs() }
 
-func (slidx *BTreeIndex) GetHeaderPageId() types.PageID {
+func (slidx *BTreeIndex) GetHeaderPageID() types.PageID {
 	return types.PageID(slidx.bufMgr.GetMappedPPageIdOfPageZero())
 }
 

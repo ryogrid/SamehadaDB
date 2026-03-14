@@ -41,15 +41,15 @@ func TestHashTableHeaderPage(t *testing.T) {
 			t.Errorf("GetSize shoud be %d, but got %d", i, headerPage.GetSize())
 		}
 
-		headerPage.SetPageId(types.PageID(i))
-		if types.PageID(i) != headerPage.GetPageId() {
-			t.Errorf("GetPageId shoud be %d, but got %d", types.PageID(i), headerPage.GetPageId())
+		headerPage.SetPageID(types.PageID(i))
+		if types.PageID(i) != headerPage.GetPageID() {
+			t.Errorf("GetPageID shoud be %d, but got %d", types.PageID(i), headerPage.GetPageID())
 		}
 	}
 
 	// add a few hypothetical block pages
 	for i := 0; i < 10; i++ {
-		headerPage.AddBlockPageId(types.PageID(i))
+		headerPage.AddBlockPageID(types.PageID(i))
 		if uint64(i+1) != headerPage.NumBlocks() {
 			t.Errorf("NumBlocks shoud be %d, but got %d", i+1, headerPage.NumBlocks())
 		}
@@ -57,8 +57,8 @@ func TestHashTableHeaderPage(t *testing.T) {
 
 	// check for correct block page IDs
 	for i := 0; i < 10; i++ {
-		if types.PageID(i) != headerPage.GetBlockPageId(uint64(i)) {
-			t.Errorf("GetBlockPageId shoud be %d, but got %d", i, headerPage.GetBlockPageId(uint64(i)))
+		if types.PageID(i) != headerPage.GetBlockPageID(uint64(i)) {
+			t.Errorf("GetBlockPageID shoud be %d, but got %d", i, headerPage.GetBlockPageID(uint64(i)))
 		}
 	}
 
@@ -115,7 +115,7 @@ func TestHashTableBlockPage(t *testing.T) {
 		}
 	}
 
-	bpm.UnpinPage(newPage.GetPageId(), true)
+	bpm.UnpinPage(newPage.GetPageID(), true)
 	bpm.FlushAllPages()
 	if !common.EnableOnMemStorage {
 		os.Remove(t.Name() + ".db")

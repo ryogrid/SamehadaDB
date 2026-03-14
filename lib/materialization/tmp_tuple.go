@@ -15,5 +15,5 @@ func (tt *TmpTuple) Equals(rhs *TmpTuple) bool {
 	return tt.page_id == rhs.page_id && tt.offset == rhs.offset
 }
 
-func (tt *TmpTuple) GetPageId() types.PageID { return tt.page_id }
+func (tt *TmpTuple) GetPageID() types.PageID { return tt.page_id }
 func (tt *TmpTuple) GetOffset() uint32       { return tt.offset }

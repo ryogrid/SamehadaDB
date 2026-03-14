@@ -26,7 +26,7 @@ func TestBinaryData(t *testing.T) {
 	page0 := bpm.NewPage()
 
 	// Scenario: The buffer pool is empty. We should be able to create a new page.
-	testingpkg.Equals(t, types.PageID(0), page0.GetPageId())
+	testingpkg.Equals(t, types.PageID(0), page0.GetPageID())
 
 	// Generate random binary data
 	randomBinaryData := make([]byte, common.PageSize)
@@ -46,7 +46,7 @@ func TestBinaryData(t *testing.T) {
 	// Scenario: We should be able to create new pages until we fill up the buffer pool.
 	for i := uint32(1); i < poolSize; i++ {
 		p := bpm.NewPage()
-		testingpkg.Equals(t, types.PageID(i), p.GetPageId())
+		testingpkg.Equals(t, types.PageID(i), p.GetPageID())
 	}
 
 	// Scenario: After unpinning pages {0, 1, 2, 3, 4} and pinning another 4 new pages,
@@ -57,7 +57,7 @@ func TestBinaryData(t *testing.T) {
 	}
 	for i := 0; i < 4; i++ {
 		p := bpm.NewPage()
-		bpm.UnpinPage(p.GetPageId(), false)
+		bpm.UnpinPage(p.GetPageID(), false)
 	}
 
 	// Scenario: We should be able to fetch the data we wrote a while ago.
@@ -82,7 +82,7 @@ func TestSample(t *testing.T) {
 	page0 := bpm.NewPage()
 
 	// Scenario: The buffer pool is empty. We should be able to create a new page.
-	testingpkg.Equals(t, types.PageID(0), page0.GetPageId())
+	testingpkg.Equals(t, types.PageID(0), page0.GetPageID())
 
 	// Scenario: Once we have a page, we should be able to read and write content.
 	page0.Copy(0, []byte("Hello"))
@@ -91,7 +91,7 @@ func TestSample(t *testing.T) {
 	// Scenario: We should be able to create new pages until we fill up the buffer pool.
 	for i := uint32(1); i < poolSize; i++ {
 		p := bpm.NewPage()
-		testingpkg.Equals(t, types.PageID(i), p.GetPageId())
+		testingpkg.Equals(t, types.PageID(i), p.GetPageID())
 	}
 
 	// Scenario: After unpinning pages {0, 1, 2, 3, 4} and pinning another 4 new pages,
@@ -112,7 +112,7 @@ func TestSample(t *testing.T) {
 	testingpkg.Ok(t, bpm.UnpinPage(types.PageID(0), true))
 
 	p := bpm.NewPage()
-	testingpkg.Equals(t, types.PageID(14), p.GetPageId())
+	testingpkg.Equals(t, types.PageID(14), p.GetPageID())
 
 	common.TempSuppressOnMemStorage = false
 	dm.ShutDown()

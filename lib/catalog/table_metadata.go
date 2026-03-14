@@ -41,13 +41,13 @@ func NewTableMetadata(schema *schema.Schema, name string, table *access.TableHea
 				//       note: one bucket is used pages for storing index key/value pairs for a column.
 				//             one page can store 512 key/value pair
 				im := index.NewIndexMetadata(column_.GetColumnName()+"_index", name, schema, []uint32{uint32(idx)})
-				hIdx := index.NewLinearProbeHashTableIndex(im, table.GetBufferPoolManager(), uint32(idx), common.BucketSizeOfHashIndex, column_.IndexHeaderPageId())
+				hIdx := index.NewLinearProbeHashTableIndex(im, table.GetBufferPoolManager(), uint32(idx), common.BucketSizeOfHashIndex, column_.IndexHeaderPageID())
 
 				indexes = append(indexes, hIdx)
-				// at first allocation of pages for index, column's indexHeaderPageID is -1 at above code (column_.IndexHeaderPageId() == -1)
+				// at first allocation of pages for index, column's indexHeaderPageID is -1 at above code (column_.IndexHeaderPageID() == -1)
 				// because first allocation occurs when table creation is processed (not launched DB instace from existing db file which has difinition of this table)
-				// so, for first allocation case, allocated page GetPageId of header page need to be set to column info here
-				column_.SetIndexHeaderPageId(hIdx.GetHeaderPageId())
+				// so, for first allocation case, allocated page GetPageID of header page need to be set to column info here
+				column_.SetIndexHeaderPageID(hIdx.GetHeaderPageID())
 			case index_constants.INDEX_KIND_UNIQ_SKIP_LIST:
 				// currently, SkipList Index always use new pages even if relaunch
 				im := index.NewIndexMetadata(column_.GetColumnName()+"_index", name, schema, []uint32{uint32(idx)})
@@ -55,7 +55,7 @@ func NewTableMetadata(schema *schema.Schema, name string, table *access.TableHea
 				slIdx := index.NewUniqSkipListIndex(im, table.GetBufferPoolManager(), uint32(idx))
 
 				indexes = append(indexes, slIdx)
-				//column_.SetIndexHeaderPageId(slIdx.GetHeaderPageId())
+				//column_.SetIndexHeaderPageID(slIdx.GetHeaderPageID())
 			case index_constants.INDEX_KIND_SKIP_LIST:
 				// currently, SkipList Index always use new pages even if relaunch
 				im := index.NewIndexMetadata(column_.GetColumnName()+"_index", name, schema, []uint32{uint32(idx)})
@@ -63,19 +63,19 @@ func NewTableMetadata(schema *schema.Schema, name string, table *access.TableHea
 				slIdx := index.NewSkipListIndex(im, table.GetBufferPoolManager(), uint32(idx), log_manager)
 
 				indexes = append(indexes, slIdx)
-				//column_.SetIndexHeaderPageId(slIdx.GetHeaderPageId())
+				//column_.SetIndexHeaderPageID(slIdx.GetHeaderPageID())
 			case index_constants.INDEX_KIND_BTREE:
 				im := index.NewIndexMetadata(column_.GetColumnName()+"_index", name, schema, []uint32{uint32(idx)})
 				var pageZeroId *int32 = nil
-				if column_.IndexHeaderPageId() != -1 && isGracefulShutdown {
+				if column_.IndexHeaderPageID() != -1 && isGracefulShutdown {
 					pageZeroId = new(int32)
-					*pageZeroId = int32(column_.IndexHeaderPageId())
+					*pageZeroId = int32(column_.IndexHeaderPageID())
 				}
 
 				btrIdx := index.NewBTreeIndex(im, table.GetBufferPoolManager(), uint32(idx), log_manager, pageZeroId)
 
 				indexes = append(indexes, btrIdx)
-				column_.SetIndexHeaderPageId(btrIdx.GetHeaderPageId())
+				column_.SetIndexHeaderPageID(btrIdx.GetHeaderPageID())
 			default:
 				panic("illegal index kind!")
 			}

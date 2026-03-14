@@ -44,7 +44,7 @@ func NewSkipList(bpm *buffer.BufferPoolManager, keyType types.TypeID, log_manage
 	ret.bpm = bpm
 	var sentinelNode *skip_list_page.SkipListBlockPage
 	ret.headerPage, ret.startNode, sentinelNode = skip_list_page.NewSkipListHeaderPage(bpm, keyType)
-	ret.SentinelNodeID = sentinelNode.GetPageId()
+	ret.SentinelNodeID = sentinelNode.GetPageID()
 	ret.log_manager = log_manager
 
 	return ret
@@ -105,11 +105,11 @@ func (sl *SkipList) FindNode(key *types.Value, opType SkipListOpType) (isSuccess
 
 	predOfPredId := types.InvalidPageID
 	predOfPredLSN := types.LSN(-1)
-	predOfCorners := make([]skip_list_page.SkipListCornerInfo, skip_list_page.MAX_FOWARD_LIST_LEN)
+	predOfCorners := make([]skip_list_page.SkipListCornerInfo, skip_list_page.MaxForwardListLen)
 	// entry of corners is corner node or target node
-	corners := make([]skip_list_page.SkipListCornerInfo, skip_list_page.MAX_FOWARD_LIST_LEN)
+	corners := make([]skip_list_page.SkipListCornerInfo, skip_list_page.MaxForwardListLen)
 	var curr *skip_list_page.SkipListBlockPage = nil
-	for ii := skip_list_page.MAX_FOWARD_LIST_LEN - 1; ii >= 0; ii-- {
+	for ii := skip_list_page.MaxForwardListLen - 1; ii >= 0; ii-- {
 		//fmt.Printf("level %d\n", i)
 		for {
 			if pred == sl.startNode && pred.GetForwardEntry(ii) == sl.SentinelNodeID {
@@ -126,10 +126,10 @@ func (sl *SkipList) FindNode(key *types.Value, opType SkipListOpType) (isSuccess
 				break
 			} else {
 				// keep moving foward
-				predOfPredId = pred.GetPageId()
+				predOfPredId = pred.GetPageID()
 				predOfPredLSN = pred.GetLSN()
-				if pred.GetPageId() != sl.getStartNode().GetPageId() {
-					sl.bpm.UnpinPage(pred.GetPageId(), false)
+				if pred.GetPageID() != sl.getStartNode().GetPageID() {
+					sl.bpm.UnpinPage(pred.GetPageID(), false)
 				}
 				latchOpWithOpType(pred, SKIP_LIST_UTIL_UNLATCH, opType)
 				pred = curr
@@ -141,11 +141,11 @@ func (sl *SkipList) FindNode(key *types.Value, opType SkipListOpType) (isSuccess
 			predOfCorners[ii] = skip_list_page.SkipListCornerInfo{types.InvalidPageID, -1}
 			corners[ii] = skip_list_page.SkipListCornerInfo{predOfPredId, predOfPredLSN}
 
-			sl.bpm.UnpinPage(curr.GetPageId(), false)
+			sl.bpm.UnpinPage(curr.GetPageID(), false)
 			latchOpWithOpType(curr, SKIP_LIST_UTIL_UNLATCH, opType)
 
-			if pred.GetPageId() != sl.getStartNode().GetPageId() {
-				sl.bpm.UnpinPage(pred.GetPageId(), false)
+			if pred.GetPageID() != sl.getStartNode().GetPageID() {
+				sl.bpm.UnpinPage(pred.GetPageID(), false)
 			}
 			latchOpWithOpType(pred, SKIP_LIST_UTIL_UNLATCH, opType)
 
@@ -161,7 +161,7 @@ func (sl *SkipList) FindNode(key *types.Value, opType SkipListOpType) (isSuccess
 			afterLSN := pred.GetLSN()
 			if predOfPredLSN != afterLSN {
 				// updating exists
-				sl.bpm.UnpinPage(pred.GetPageId(), false)
+				sl.bpm.UnpinPage(pred.GetPageID(), false)
 				latchOpWithOpType(pred, SKIP_LIST_UTIL_UNLATCH, opType)
 				if common.EnableDebug {
 					common.ShPrintf(common.DebugInfo, "FindNode: finished with rety. key=%v opType=%d\n", key.ToIFValue(), opType)
@@ -174,11 +174,11 @@ func (sl *SkipList) FindNode(key *types.Value, opType SkipListOpType) (isSuccess
 			}
 		} else {
 			if curr != nil {
-				sl.bpm.UnpinPage(curr.GetPageId(), false)
+				sl.bpm.UnpinPage(curr.GetPageID(), false)
 				latchOpWithOpType(curr, SKIP_LIST_UTIL_UNLATCH, opType)
 			}
 			predOfCorners[ii] = skip_list_page.SkipListCornerInfo{predOfPredId, predOfPredLSN}
-			corners[ii] = skip_list_page.SkipListCornerInfo{pred.GetPageId(), pred.GetLSN()}
+			corners[ii] = skip_list_page.SkipListCornerInfo{pred.GetPageID(), pred.GetLSN()}
 		}
 	}
 
@@ -224,7 +224,7 @@ func (sl *SkipList) GetValue(key *types.Value) uint64 {
 	_, node, _, _ := sl.FindNode(key, SKIP_LIST_OP_GET)
 	// locking is not needed because already have lock with FindNode method call
 	found, entry, _ := node.FindEntryByKey(key)
-	sl.bpm.UnpinPage(node.GetPageId(), false)
+	sl.bpm.UnpinPage(node.GetPageID(), false)
 	node.RemoveRLatchRecord(key.ToInteger())
 	node.RUnlatch()
 
@@ -295,14 +295,14 @@ func (sl *SkipList) Remove(key *types.Value, value uint64) (isDeleted_ bool) {
 			continue
 		}
 
-		pageId := node.GetPageId()
+		pageID := node.GetPageID()
 
 		// locking is not needed because already have lock with FindNode method call
 		isNodeShouldBeDeleted, isDeleted, isNeedRetry = node.Remove(sl.bpm, key, predOfCorners, corners)
 		// lock and pin which is got FindNode are released on Remove method
 
 		if isNodeShouldBeDeleted {
-			sl.bpm.DeallocatePage(pageId, false)
+			sl.bpm.DeallocatePage(pageID, false)
 		}
 	}
 
@@ -333,11 +333,11 @@ func (sl *SkipList) GetNodeLevel() int32 {
 		retLevel++
 	}
 
-	ret := int32(math.Min(float64(retLevel), float64(skip_list_page.MAX_FOWARD_LIST_LEN)))
+	ret := int32(math.Min(float64(retLevel), float64(skip_list_page.MaxForwardListLen)))
 
 	return ret
 }
 
-func (sl *SkipList) GetHeaderPageId() types.PageID {
-	return sl.headerPage.GetPageId()
+func (sl *SkipList) GetHeaderPageID() types.PageID {
+	return sl.headerPage.GetPageID()
 }

@@ -41,22 +41,22 @@ func (it *TableHeapIterator) End() bool {
 func (it *TableHeapIterator) Next() *tuple.Tuple {
 start:
 	bpm := it.tableHeap.bpm
-	currentPage := CastPageAsTablePage(bpm.FetchPage(it.Current().GetRID().GetPageId()))
+	currentPage := CastPageAsTablePage(bpm.FetchPage(it.Current().GetRID().GetPageID()))
 	currentPage.RLatch()
 
 	nextTupleRID := currentPage.GetNextTupleRID(it.Current().GetRID(), false)
 	if nextTupleRID == nil {
 		// VARIANT: currentPage is always RLatched after loop
-		for currentPage.GetNextPageId().IsValid() {
-			nextPage := CastPageAsTablePage(bpm.FetchPage(currentPage.GetNextPageId()))
+		for currentPage.GetNextPageID().IsValid() {
+			nextPage := CastPageAsTablePage(bpm.FetchPage(currentPage.GetNextPageID()))
 			if nextPage == nil {
 				// TODO: (SDB) SHOULD BE FIXED: statics data update thread's call pass here rarely
-				bpm.UnpinPage(currentPage.GetPageId(), false)
+				bpm.UnpinPage(currentPage.GetPageID(), false)
 				currentPage.RUnlatch()
 				it.tuple = nil
 				return nil
 			}
-			bpm.UnpinPage(currentPage.GetPageId(), false)
+			bpm.UnpinPage(currentPage.GetPageID(), false)
 			nextPage.RLatch()
 			currentPage.RUnlatch()
 			currentPage = nextPage
@@ -69,12 +69,12 @@ start:
 	}
 
 	finalizeCurrentPage := func() {
-		bpm.UnpinPage(currentPage.GetPageId(), false)
+		bpm.UnpinPage(currentPage.GetPageID(), false)
 		currentPage.RUnlatch()
 	}
 
 	var err error = nil
-	if nextTupleRID != nil && nextTupleRID.GetPageId().IsValid() {
+	if nextTupleRID != nil && nextTupleRID.GetPageID().IsValid() {
 		it.tuple, err = currentPage.GetTuple(nextTupleRID, it.tableHeap.log_manager, it.lock_manager, it.txn)
 		if it.tuple != nil && err == ErrSelfDeletedCase {
 			fmt.Println("TableHeapIterator::Next ErrSelfDeletedCase!")

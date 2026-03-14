@@ -72,7 +72,7 @@ func (e *UpdateExecutor) Next() (*tuple.Tuple, Done, error) {
 		}
 
 		if !is_updated || updateErr != nil {
-			err_ := errors.New("tuple update failed. PageId:SlotNum = " + string(rid.GetPageId()) + ":" + fmt.Sprint(rid.GetSlotNum()))
+			err_ := errors.New("tuple update failed. PageID:SlotNum = " + string(rid.GetPageID()) + ":" + fmt.Sprint(rid.GetSlotNum()))
 			e.txn.SetState(access.ABORTED)
 			return nil, false, err_
 		}

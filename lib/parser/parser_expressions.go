@@ -209,7 +209,7 @@ func ConvParsedSelectionExprToSchema(c *catalog.Catalog, convSrc []*SelectFieldE
 		indexHeaderPageID := types.PageID(-1)
 		if hasIndex {
 			indexKind = sc.GetColumn(colIdx).IndexKind()
-			indexHeaderPageID = sc.GetColumn(colIdx).IndexHeaderPageId()
+			indexHeaderPageID = sc.GetColumn(colIdx).IndexHeaderPageID()
 		}
 
 		outColDefs = append(outColDefs, column.NewColumn(*tableName+"."+*colName, colType, hasIndex, indexKind, indexHeaderPageID, nil))

@@ -214,7 +214,7 @@ func (tuple_ *Tuple) GetDeepCopy() *Tuple {
 	tuple_.Copy(0, ret.data)
 	ret.SetSize(tuple_.size)
 	copied_rid := new(page.RID)
-	copied_rid.Set(tuple_.rid.GetPageId(), tuple_.rid.GetSlotNum())
+	copied_rid.Set(tuple_.rid.GetPageID(), tuple_.rid.GetSlotNum())
 	ret.rid = copied_rid
 	return ret
 }

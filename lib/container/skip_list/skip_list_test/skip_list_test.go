@@ -32,7 +32,7 @@ func TestSerializationOfSkipLisBlockPage(t *testing.T) {
 		Value: 0,
 	})
 
-	bpage.SetPageId(7)
+	bpage.SetPageID(7)
 	bpage.SetLSN(9)
 	bpage.SetEntryCnt(1)
 	bpage.SetLevel(4)
@@ -42,7 +42,7 @@ func TestSerializationOfSkipLisBlockPage(t *testing.T) {
 	// freeSpacePointer is decremented size of entry (1+2+7+8 => 18)
 	bpage.SetEntry(1, &index_common.IndexEntry{types.NewVarchar("abcdeff"), 12345})
 
-	testingpkg.SimpleAssert(t, bpage.GetPageId() == 7)
+	testingpkg.SimpleAssert(t, bpage.GetPageID() == 7)
 	testingpkg.SimpleAssert(t, bpage.GetLSN() == 9)
 	testingpkg.SimpleAssert(t, bpage.GetEntryCnt() == 2)
 	testingpkg.SimpleAssert(t, bpage.GetLevel() == 4)
@@ -67,14 +67,14 @@ func TestSerializationOfSkipLisHeaderPage(t *testing.T) {
 
 	hpage, _, _ := skip_list_page.NewSkipListHeaderPage(bpm, types.Integer)
 
-	hpage.SetPageId(7)
+	hpage.SetPageID(7)
 	hpage.SetLSN(7)
-	hpage.SetListStartPageId(7)
+	hpage.SetListStartPageID(7)
 	hpage.SetKeyType(types.Varchar)
 
-	testingpkg.SimpleAssert(t, hpage.GetPageId() == 7)
+	testingpkg.SimpleAssert(t, hpage.GetPageID() == 7)
 	testingpkg.SimpleAssert(t, hpage.GetLSN() == 7)
-	testingpkg.SimpleAssert(t, hpage.GetListStartPageId() == 7)
+	testingpkg.SimpleAssert(t, hpage.GetListStartPageID() == 7)
 	testingpkg.SimpleAssert(t, hpage.GetKeyType() == types.Varchar)
 
 	shi.Shutdown(samehada.ShutdownPatternCloseFiles)
@@ -126,7 +126,7 @@ func TestInnerInsertDeleteOfBlockPageSimple(t *testing.T) {
 	testingpkg.SimpleAssert(t, bpage1.GetEntry(1, types.Varchar).Key.CompareEquals(types.NewVarchar("abcdef")))
 	testingpkg.SimpleAssert(t, bpage1.GetEntry(2, types.Varchar).Key.CompareEquals(types.NewVarchar("abcdefgh")))
 
-	bpm.UnpinPage(bpage1.GetPageId(), true)
+	bpm.UnpinPage(bpage1.GetPageID(), true)
 
 	// ---------- test InsertInner --------
 	// setup a page
@@ -177,7 +177,7 @@ func TestInnerInsertDeleteOfBlockPageSimple(t *testing.T) {
 	entry = bpage2.GetEntry(5, types.Varchar)
 	testingpkg.SimpleAssert(t, entry.Key.CompareEquals(types.NewVarchar("abcdeff")))
 
-	bpm.UnpinPage(bpage2.GetPageId(), true)
+	bpm.UnpinPage(bpage2.GetPageID(), true)
 
 	shi.Shutdown(samehada.ShutdownPatternCloseFiles)
 }

@@ -29,11 +29,11 @@ func PackRIDtoUint32(value *page.RID) uint32 {
 	buf1 := new(bytes.Buffer)
 	buf2 := new(bytes.Buffer)
 	pack_buf := make([]byte, 4)
-	binary.Write(buf1, binary.BigEndian, value.PageId)
+	binary.Write(buf1, binary.BigEndian, value.PageID)
 	binary.Write(buf2, binary.BigEndian, value.SlotNum)
-	pageIdInBytes := buf1.Bytes()
+	pageIDInBytes := buf1.Bytes()
 	slotNumInBytes := buf2.Bytes()
-	copy(pack_buf[2:], pageIdInBytes[2:])
+	copy(pack_buf[2:], pageIDInBytes[2:])
 	copy(pack_buf[:2], slotNumInBytes[2:])
 	return binary.BigEndian.Uint32(pack_buf)
 }
@@ -42,15 +42,15 @@ func UnpackUint32toRID(value uint32) page.RID {
 	packed_buf := new(bytes.Buffer)
 	binary.Write(packed_buf, binary.BigEndian, value)
 	packedDataInBytes := packed_buf.Bytes()
-	var PageId types.PageID
+	var PageID types.PageID
 	var SlotNum uint32
 	buf := make([]byte, 4)
 	copy(buf[2:], packedDataInBytes[2:])
-	PageId = types.PageID(binary.BigEndian.Uint32(buf))
+	PageID = types.PageID(binary.BigEndian.Uint32(buf))
 	copy(buf[2:], packedDataInBytes[:2])
 	SlotNum = binary.BigEndian.Uint32(buf)
 	ret := new(page.RID)
-	ret.PageId = PageId
+	ret.PageID = PageID
 	ret.SlotNum = SlotNum
 	return *ret
 }
@@ -59,11 +59,11 @@ func PackRIDtoUint64(value *page.RID) uint64 {
 	buf1 := new(bytes.Buffer)
 	buf2 := new(bytes.Buffer)
 	pack_buf := make([]byte, 8)
-	binary.Write(buf1, binary.BigEndian, value.PageId)
+	binary.Write(buf1, binary.BigEndian, value.PageID)
 	binary.Write(buf2, binary.BigEndian, value.SlotNum)
-	pageIdInBytes := buf1.Bytes()
+	pageIDInBytes := buf1.Bytes()
 	slotNumInBytes := buf2.Bytes()
-	copy(pack_buf[4:], pageIdInBytes[:])
+	copy(pack_buf[4:], pageIDInBytes[:])
 	copy(pack_buf[:4], slotNumInBytes[:])
 	return binary.BigEndian.Uint64(pack_buf)
 }
@@ -72,11 +72,11 @@ func PackRIDto8bytes(value *page.RID) []byte {
 	buf1 := new(bytes.Buffer)
 	buf2 := new(bytes.Buffer)
 	pack_buf := make([]byte, 8)
-	binary.Write(buf1, binary.BigEndian, value.PageId)
+	binary.Write(buf1, binary.BigEndian, value.PageID)
 	binary.Write(buf2, binary.BigEndian, value.SlotNum)
-	pageIdInBytes := buf1.Bytes()
+	pageIDInBytes := buf1.Bytes()
 	slotNumInBytes := buf2.Bytes()
-	copy(pack_buf[:4], pageIdInBytes[:])
+	copy(pack_buf[:4], pageIDInBytes[:])
 	copy(pack_buf[4:], slotNumInBytes[:])
 	return pack_buf
 }
@@ -85,25 +85,25 @@ func UnpackUint64toRID(value uint64) page.RID {
 	packed_buf := new(bytes.Buffer)
 	binary.Write(packed_buf, binary.BigEndian, value)
 	packedDataInBytes := packed_buf.Bytes()
-	var PageId types.PageID
+	var PageID types.PageID
 	var SlotNum uint32
 	buf := make([]byte, 4)
 	copy(buf[:4], packedDataInBytes[4:])
-	PageId = types.PageID(binary.BigEndian.Uint32(buf))
+	PageID = types.PageID(binary.BigEndian.Uint32(buf))
 	copy(buf[:4], packedDataInBytes[:4])
 	SlotNum = binary.BigEndian.Uint32(buf)
 	SlotNum = SlotNum
 	ret := new(page.RID)
-	ret.PageId = PageId
+	ret.PageID = PageID
 	ret.SlotNum = SlotNum
 	return *ret
 }
 
 func Unpack8BytesToRID(buf []byte) page.RID {
-	pageId := binary.BigEndian.Uint32(buf[:4])
+	pageID := binary.BigEndian.Uint32(buf[:4])
 	slotNum := binary.BigEndian.Uint32(buf[4:])
 	ret := new(page.RID)
-	ret.PageId = types.PageID(pageId)
+	ret.PageID = types.PageID(pageID)
 	ret.SlotNum = slotNum
 	return *ret
 }

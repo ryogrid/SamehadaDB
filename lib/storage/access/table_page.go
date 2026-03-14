@@ -24,8 +24,8 @@ const reservedMask = uint32(1 << ((8 * 4) - 2))
 
 const sizeTablePageHeader = uint32(24)
 const sizeTuple = uint32(8)
-const offSetPrevPageId = uint32(8)
-const offSetNextPageId = uint32(12)
+const offSetPrevPageID = uint32(8)
+const offSetNextPageID = uint32(12)
 const offsetFreeSpace = uint32(16)
 const offSetTupleCount = uint32(20)
 const offsetTupleOffset = uint32(24)
@@ -46,7 +46,7 @@ const ErrGeneral = errors.Error("some error is occured!")
 //	                              free space pointer
 //	Header format (size in bytes):
 //	----------------------------------------------------------------------------
-//	| PageId (4)| LSN (4)| PrevPageId (4)| NextPageId (4)| FreeSpacePointer(4) |
+//	| PageID (4)| LSN (4)| PrevPageID (4)| NextPageID (4)| FreeSpacePointer(4) |
 //	----------------------------------------------------------------------------
 //	----------------------------------------------------------------
 //	| TupleCount (4) | Tuple_1 offset (4) | Tuple_1 size (4) | ... |
@@ -70,14 +70,14 @@ func (tp *TablePage) InsertTuple(tuple *tuple.Tuple, log_manager *recovery.LogMa
 		defer func() {
 			if common.ActiveLogKindSetting&common.DEBUGGING > 0 {
 				common.SHAssert(tp.GetFreeSpacePointer() <= common.PageSize, fmt.Sprintf("FreeSpacePointer value is illegal! value:%d txnId:%v dbgInfo:%s", tp.GetFreeSpacePointer(), txn.GetTransactionId(), txn.dbgInfo))
-				common.SHAssert(tp.GetPageId() == tp.GetPageId(), fmt.Sprintf("pageId data is inconsitent! %d != %d txnId:%d txnState:%d txn.dbgInfo:%s", tp.GetPageId(), tp.GetPageId(), txn.GetTransactionId(), txn.state, txn.dbgInfo))
+				common.SHAssert(tp.GetPageID() == tp.GetPageID(), fmt.Sprintf("pageID data is inconsitent! %d != %d txnId:%d txnState:%d txn.dbgInfo:%s", tp.GetPageID(), tp.GetPageID(), txn.GetTransactionId(), txn.state, txn.dbgInfo))
 			}
 			if common.ActiveLogKindSetting&common.RDBOpFuncCall > 0 {
-				fmt.Printf("TablePage::InsertTuple returned. pageId:%d GetPageId():%d txn.txn_id:%v txnState:%d dbgInfo:%s FreeSpacePointer:%d TupleCount:%d FreeSpaceRemaining:%d tuple1:%v\n", tp.GetPageId(), tp.GetPageId(), txn.txn_id, txn.state, txn.dbgInfo, tp.GetFreeSpacePointer(), tp.GetTupleCount(), tp.getFreeSpaceRemaining(), *tuple)
+				fmt.Printf("TablePage::InsertTuple returned. pageID:%d GetPageID():%d txn.txn_id:%v txnState:%d dbgInfo:%s FreeSpacePointer:%d TupleCount:%d FreeSpaceRemaining:%d tuple1:%v\n", tp.GetPageID(), tp.GetPageID(), txn.txn_id, txn.state, txn.dbgInfo, tp.GetFreeSpacePointer(), tp.GetTupleCount(), tp.getFreeSpaceRemaining(), *tuple)
 			}
 		}()
 		if common.ActiveLogKindSetting&common.RDBOpFuncCall > 0 {
-			fmt.Printf("TablePage::InsertTuple called. pageId:%d txn.txn_id:%v dbgInfo:%s tuple1:%v\n", tp.GetPageId(), txn.txn_id, txn.dbgInfo, *tuple)
+			fmt.Printf("TablePage::InsertTuple called. pageID:%d txn.txn_id:%v dbgInfo:%s tuple1:%v\n", tp.GetPageID(), txn.txn_id, txn.dbgInfo, *tuple)
 		}
 	}
 
@@ -100,7 +100,7 @@ func (tp *TablePage) InsertTuple(tuple *tuple.Tuple, log_manager *recovery.LogMa
 	}
 
 	rid := &page.RID{}
-	rid.Set(tp.GetPageId(), slot)
+	rid.Set(tp.GetPageID(), slot)
 
 	if !txn.IsRecoveryPhase() {
 		// Acquire an exclusive lock on the new tuple1.
@@ -119,7 +119,7 @@ func (tp *TablePage) InsertTuple(tuple *tuple.Tuple, log_manager *recovery.LogMa
 
 	if common.EnableDebug {
 		setFSP := tp.GetFreeSpacePointer() - tuple.Size()
-		common.SHAssert(setFSP <= common.PageSize, fmt.Sprintf("illegal pointer value!! txnId:%d txnState:%d txn.dbgInfo:%s rid1:%v GetPageId():%d setFSP:%d", txn.txn_id, txn.state, txn.dbgInfo, *rid, tp.GetPageId(), setFSP))
+		common.SHAssert(setFSP <= common.PageSize, fmt.Sprintf("illegal pointer value!! txnId:%d txnState:%d txn.dbgInfo:%s rid1:%v GetPageID():%d setFSP:%d", txn.txn_id, txn.state, txn.dbgInfo, *rid, tp.GetPageID(), setFSP))
 	}
 
 	tp.SetFreeSpacePointer(tp.GetFreeSpacePointer() - tuple.Size())
@@ -151,14 +151,14 @@ func (tp *TablePage) UpdateTuple(new_tuple *tuple.Tuple, update_col_idxs []int, 
 		defer func() {
 			if common.ActiveLogKindSetting&common.DEBUGGING > 0 {
 				common.SHAssert(tp.GetFreeSpacePointer() <= common.PageSize, fmt.Sprintf("FreeSpacePointer value is illegal! value:%d txnId:%v dbgInfo:%s", tp.GetFreeSpacePointer(), txn.GetTransactionId(), txn.dbgInfo))
-				common.SHAssert(tp.GetPageId() == tp.GetPageId(), fmt.Sprintf("pageId data is inconsitent! %d != %d txnId:%d txnState:%d txn.dbgInfo:%s", tp.GetPageId(), tp.GetPageId(), txn.GetTransactionId(), txn.state, txn.dbgInfo))
+				common.SHAssert(tp.GetPageID() == tp.GetPageID(), fmt.Sprintf("pageID data is inconsitent! %d != %d txnId:%d txnState:%d txn.dbgInfo:%s", tp.GetPageID(), tp.GetPageID(), txn.GetTransactionId(), txn.state, txn.dbgInfo))
 			}
 			if common.ActiveLogKindSetting&common.RDBOpFuncCall > 0 {
-				fmt.Printf("TablePage::UpdateTuple returned. pageId:%d GetPageId():%d txn.txn_id:%v txnState:%d dbgInfo:%s FreeSpacePointer:%d TupleCount:%d FreeSpaceRemaining:%d new_tuple:%v\n", tp.GetPageId(), tp.GetPageId(), txn.txn_id, txn.state, txn.dbgInfo, tp.GetFreeSpacePointer(), tp.GetTupleCount(), tp.getFreeSpaceRemaining(), *new_tuple)
+				fmt.Printf("TablePage::UpdateTuple returned. pageID:%d GetPageID():%d txn.txn_id:%v txnState:%d dbgInfo:%s FreeSpacePointer:%d TupleCount:%d FreeSpaceRemaining:%d new_tuple:%v\n", tp.GetPageID(), tp.GetPageID(), txn.txn_id, txn.state, txn.dbgInfo, tp.GetFreeSpacePointer(), tp.GetTupleCount(), tp.getFreeSpaceRemaining(), *new_tuple)
 			}
 		}()
 		if common.ActiveLogKindSetting&common.RDBOpFuncCall > 0 {
-			fmt.Printf("TablePage::UpdateTuple called. pageId:%d txn.txn_id:%v dbgInfo:%s new_tuple:%v update_col_idxs:%v rid1:%v\n", tp.GetPageId(), txn.txn_id, txn.dbgInfo, *new_tuple, update_col_idxs, *rid)
+			fmt.Printf("TablePage::UpdateTuple called. pageID:%d txn.txn_id:%v dbgInfo:%s new_tuple:%v update_col_idxs:%v rid1:%v\n", tp.GetPageID(), txn.txn_id, txn.dbgInfo, *new_tuple, update_col_idxs, *rid)
 		}
 	}
 	common.SHAssert(new_tuple.Size() > 0, "Cannot have empty tuples.")
@@ -268,14 +268,14 @@ func (tp *TablePage) MarkDelete(rid *page.RID, txn *Transaction, lock_manager *L
 		defer func() {
 			if common.ActiveLogKindSetting&common.DEBUGGING > 0 {
 				common.SHAssert(tp.GetFreeSpacePointer() <= common.PageSize, fmt.Sprintf("FreeSpacePointer value is illegal! value:%d txnId:%v dbgInfo:%s", tp.GetFreeSpacePointer(), txn.GetTransactionId(), txn.dbgInfo))
-				common.SHAssert(tp.GetPageId() == tp.GetPageId(), fmt.Sprintf("pageId data is inconsitent! %d != %d txnId:%d txnState:%d txn.dbgInfo:%s", tp.GetPageId(), tp.GetPageId(), txn.GetTransactionId(), txn.state, txn.dbgInfo))
+				common.SHAssert(tp.GetPageID() == tp.GetPageID(), fmt.Sprintf("pageID data is inconsitent! %d != %d txnId:%d txnState:%d txn.dbgInfo:%s", tp.GetPageID(), tp.GetPageID(), txn.GetTransactionId(), txn.state, txn.dbgInfo))
 			}
 			if common.ActiveLogKindSetting&common.RDBOpFuncCall > 0 {
-				fmt.Printf("TablePage::MarkDelete returned. pageId:%d GetPageId():%d txn.txn_id:%v txnState:%d dbgInfo:%s FreeSpacePointer:%d TupleCount:%d FreeSpaceRemaining:%d\n", tp.GetPageId(), tp.GetPageId(), txn.txn_id, txn.state, txn.dbgInfo, tp.GetFreeSpacePointer(), tp.GetTupleCount(), tp.getFreeSpaceRemaining())
+				fmt.Printf("TablePage::MarkDelete returned. pageID:%d GetPageID():%d txn.txn_id:%v txnState:%d dbgInfo:%s FreeSpacePointer:%d TupleCount:%d FreeSpaceRemaining:%d\n", tp.GetPageID(), tp.GetPageID(), txn.txn_id, txn.state, txn.dbgInfo, tp.GetFreeSpacePointer(), tp.GetTupleCount(), tp.getFreeSpaceRemaining())
 			}
 		}()
 		if common.ActiveLogKindSetting&common.RDBOpFuncCall > 0 {
-			fmt.Printf("TablePage::MarkDelete called. pageId:%d txn.txn_id:%v dbgInfo:%s  rid1:%v\n", tp.GetPageId(), txn.txn_id, txn.dbgInfo, *rid)
+			fmt.Printf("TablePage::MarkDelete called. pageID:%d txn.txn_id:%v dbgInfo:%s  rid1:%v\n", tp.GetPageID(), txn.txn_id, txn.dbgInfo, *rid)
 		}
 	}
 
@@ -337,14 +337,14 @@ func (tp *TablePage) ApplyDelete(rid *page.RID, txn *Transaction, log_manager *r
 		defer func() {
 			if common.ActiveLogKindSetting&common.DEBUGGING > 0 {
 				common.SHAssert(tp.GetFreeSpacePointer() <= common.PageSize, fmt.Sprintf("FreeSpacePointer value is illegal! value:%d txnId:%v dbgInfo:%s", tp.GetFreeSpacePointer(), txn.GetTransactionId(), txn.dbgInfo))
-				common.SHAssert(tp.GetPageId() == tp.GetPageId(), fmt.Sprintf("pageId data is inconsitent! %d != %d txnId:%d txnState:%d txn.dbgInfo:%s", tp.GetPageId(), tp.GetPageId(), txn.GetTransactionId(), txn.state, txn.dbgInfo))
+				common.SHAssert(tp.GetPageID() == tp.GetPageID(), fmt.Sprintf("pageID data is inconsitent! %d != %d txnId:%d txnState:%d txn.dbgInfo:%s", tp.GetPageID(), tp.GetPageID(), txn.GetTransactionId(), txn.state, txn.dbgInfo))
 			}
 			if common.ActiveLogKindSetting&common.RDBOpFuncCall > 0 {
-				fmt.Printf("TablePage::ApplyDelete returned. pageId:%d GetPageId():%d txn.txn_id:%v txnState:%d dbgInfo:%s FreeSpacePointer:%d TupleCount:%d FreeSpaceRemaining:%d\n", tp.GetPageId(), tp.GetPageId(), txn.txn_id, txn.state, txn.dbgInfo, tp.GetFreeSpacePointer(), tp.GetTupleCount(), tp.getFreeSpaceRemaining())
+				fmt.Printf("TablePage::ApplyDelete returned. pageID:%d GetPageID():%d txn.txn_id:%v txnState:%d dbgInfo:%s FreeSpacePointer:%d TupleCount:%d FreeSpaceRemaining:%d\n", tp.GetPageID(), tp.GetPageID(), txn.txn_id, txn.state, txn.dbgInfo, tp.GetFreeSpacePointer(), tp.GetTupleCount(), tp.getFreeSpaceRemaining())
 			}
 		}()
 		if common.ActiveLogKindSetting&common.RDBOpFuncCall > 0 {
-			fmt.Printf("TablePage::ApplyDelete called. pageId:%d txn.txn_id:%v dbgInfo:%s rid1:%v\n", tp.GetPageId(), txn.txn_id, txn.dbgInfo, *rid)
+			fmt.Printf("TablePage::ApplyDelete called. pageID:%d txn.txn_id:%v dbgInfo:%s rid1:%v\n", tp.GetPageID(), txn.txn_id, txn.dbgInfo, *rid)
 		}
 	}
 
@@ -406,14 +406,14 @@ func (tp *TablePage) RollbackDelete(rid *page.RID, txn *Transaction, log_manager
 		defer func() {
 			if common.ActiveLogKindSetting&common.DEBUGGING > 0 {
 				common.SHAssert(tp.GetFreeSpacePointer() <= common.PageSize, fmt.Sprintf("FreeSpacePointer value is illegal! value:%d txnId:%v dbgInfo:%s", tp.GetFreeSpacePointer(), txn.GetTransactionId(), txn.dbgInfo))
-				common.SHAssert(tp.GetPageId() == tp.GetPageId(), fmt.Sprintf("pageId data is inconsitent! %d != %d txnId:%d txnState:%d txn.dbgInfo:%s", tp.GetPageId(), tp.GetPageId(), txn.GetTransactionId(), txn.state, txn.dbgInfo))
+				common.SHAssert(tp.GetPageID() == tp.GetPageID(), fmt.Sprintf("pageID data is inconsitent! %d != %d txnId:%d txnState:%d txn.dbgInfo:%s", tp.GetPageID(), tp.GetPageID(), txn.GetTransactionId(), txn.state, txn.dbgInfo))
 			}
 			if common.ActiveLogKindSetting&common.RDBOpFuncCall > 0 {
-				fmt.Printf("TablePage::RollbackDelete returned. pageId:%d GetPageId():%d txn.txn_id:%v txnState:%d dbgInfo:%s FreeSpacePointer:%d TupleCount:%d FreeSpaceRemaining:%d\n", tp.GetPageId(), tp.GetPageId(), txn.txn_id, txn.state, txn.dbgInfo, tp.GetFreeSpacePointer(), tp.GetTupleCount(), tp.getFreeSpaceRemaining())
+				fmt.Printf("TablePage::RollbackDelete returned. pageID:%d GetPageID():%d txn.txn_id:%v txnState:%d dbgInfo:%s FreeSpacePointer:%d TupleCount:%d FreeSpaceRemaining:%d\n", tp.GetPageID(), tp.GetPageID(), txn.txn_id, txn.state, txn.dbgInfo, tp.GetFreeSpacePointer(), tp.GetTupleCount(), tp.getFreeSpaceRemaining())
 			}
 		}()
 		if common.ActiveLogKindSetting&common.RDBOpFuncCall > 0 {
-			fmt.Printf("TablePage::RollbackDelete called. pageId:%d txn.txn_id:%v dbgInfo:%s rid1:%v\n", tp.GetPageId(), txn.txn_id, txn.dbgInfo, *rid)
+			fmt.Printf("TablePage::RollbackDelete called. pageID:%d txn.txn_id:%v dbgInfo:%s rid1:%v\n", tp.GetPageID(), txn.txn_id, txn.dbgInfo, *rid)
 		}
 	}
 
@@ -445,45 +445,45 @@ func (tp *TablePage) RollbackDelete(rid *page.RID, txn *Transaction, log_manager
 }
 
 // Init initializes the table header
-func (tp *TablePage) Init(pageId types.PageID, prevPageId types.PageID, log_manager *recovery.LogManager, lock_manager *LockManager, txn *Transaction, isForRedo bool) {
+func (tp *TablePage) Init(pageID types.PageID, prevPageID types.PageID, log_manager *recovery.LogManager, lock_manager *LockManager, txn *Transaction, isForRedo bool) {
 	if common.EnableDebug {
 		defer func() {
 			if common.ActiveLogKindSetting&common.DEBUGGING > 0 {
 				common.SHAssert(tp.GetFreeSpacePointer() <= common.PageSize, fmt.Sprintf("FreeSpacePointer value is illegal! value:%d txnId:%v dbgInfo:%s", tp.GetFreeSpacePointer(), txn.GetTransactionId(), txn.dbgInfo))
-				common.SHAssert(tp.GetPageId() == tp.GetPageId(), fmt.Sprintf("pageId data is inconsitent! %d != %d txnId:%d txnState:%d txn.dbgInfo:%s", tp.GetPageId(), tp.GetPageId(), txn.GetTransactionId(), txn.state, txn.dbgInfo))
+				common.SHAssert(tp.GetPageID() == tp.GetPageID(), fmt.Sprintf("pageID data is inconsitent! %d != %d txnId:%d txnState:%d txn.dbgInfo:%s", tp.GetPageID(), tp.GetPageID(), txn.GetTransactionId(), txn.state, txn.dbgInfo))
 			}
 			if common.ActiveLogKindSetting&common.RDBOpFuncCall > 0 {
-				fmt.Printf("TablePage::Init returned. pageId:%d GetPageId():%d txn.txn_id:%v txnState:%d dbgInfo:%s FreeSpacePointer:%d TupleCount:%d FreeSpaceRemaining:%d\n", tp.GetPageId(), tp.GetPageId(), txn.txn_id, txn.state, txn.dbgInfo, tp.GetFreeSpacePointer(), tp.GetTupleCount(), tp.getFreeSpaceRemaining())
+				fmt.Printf("TablePage::Init returned. pageID:%d GetPageID():%d txn.txn_id:%v txnState:%d dbgInfo:%s FreeSpacePointer:%d TupleCount:%d FreeSpaceRemaining:%d\n", tp.GetPageID(), tp.GetPageID(), txn.txn_id, txn.state, txn.dbgInfo, tp.GetFreeSpacePointer(), tp.GetTupleCount(), tp.getFreeSpaceRemaining())
 			}
 		}()
 	}
 	// Log that we are creating a new page.
 	if log_manager.IsEnabledLogging() {
-		log_record := recovery.NewLogRecordNewPage(txn.GetTransactionId(), txn.GetPrevLSN(), recovery.NEW_TABLE_PAGE, prevPageId, pageId)
+		log_record := recovery.NewLogRecordNewPage(txn.GetTransactionId(), txn.GetPrevLSN(), recovery.NEW_TABLE_PAGE, prevPageID, pageID)
 		lsn := log_manager.AppendLogRecord(log_record)
 		tp.Page.SetLSN(lsn)
 		txn.SetPrevLSN(lsn)
 	}
-	tp.SetSerializedPageId(pageId)
-	tp.SetPrevPageId(prevPageId)
+	tp.SetSerializedPageID(pageID)
+	tp.SetPrevPageID(prevPageID)
 	if !isForRedo {
-		tp.SetNextPageId(types.InvalidPageID)
+		tp.SetNextPageID(types.InvalidPageID)
 		tp.SetTupleCount(0)
 		tp.SetFreeSpacePointer(common.PageSize) // point to the end of the page
 	}
 }
 
 // set value to Page::data memory area. not to Page::id
-func (tp *TablePage) SetSerializedPageId(pageId types.PageID) {
-	tp.Copy(0, pageId.Serialize())
+func (tp *TablePage) SetSerializedPageID(pageID types.PageID) {
+	tp.Copy(0, pageID.Serialize())
 }
 
-func (tp *TablePage) SetPrevPageId(pageId types.PageID) {
-	tp.Copy(offSetPrevPageId, pageId.Serialize())
+func (tp *TablePage) SetPrevPageID(pageID types.PageID) {
+	tp.Copy(offSetPrevPageID, pageID.Serialize())
 }
 
-func (tp *TablePage) SetNextPageId(pageId types.PageID) {
-	tp.Copy(offSetNextPageId, pageId.Serialize())
+func (tp *TablePage) SetNextPageID(pageID types.PageID) {
+	tp.Copy(offSetNextPageID, pageID.Serialize())
 }
 
 func (tp *TablePage) SetFreeSpacePointer(freeSpacePointer uint32) {
@@ -507,8 +507,8 @@ func (tp *TablePage) setTuple(slot uint32, tuple *tuple.Tuple) {
 	tp.Copy(offsetTupleSize+sizeTuple*slot, types.UInt32(tuple.Size()).Serialize()) // set tuple1 size at slot
 }
 
-func (tp *TablePage) GetNextPageId() types.PageID {
-	return types.NewPageIDFromBytes(tp.Data()[offSetNextPageId:])
+func (tp *TablePage) GetNextPageID() types.PageID {
+	return types.NewPageIDFromBytes(tp.Data()[offSetNextPageID:])
 }
 
 func (tp *TablePage) GetTupleCount() uint32 {
@@ -554,14 +554,14 @@ func (tp *TablePage) GetTuple(rid *page.RID, log_manager *recovery.LogManager, l
 		defer func() {
 			if common.ActiveLogKindSetting&common.DEBUGGING > 0 {
 				common.SHAssert(tp.GetFreeSpacePointer() <= common.PageSize, fmt.Sprintf("FreeSpacePointer value is illegal! value:%d txnId:%v dbgInfo:%s", tp.GetFreeSpacePointer(), txn.GetTransactionId(), txn.dbgInfo))
-				common.SHAssert(tp.GetPageId() == tp.GetPageId(), fmt.Sprintf("pageId data is inconsitent! %d != %d txnId:%d txnState:%d txn.dbgInfo:%s", tp.GetPageId(), tp.GetPageId(), txn.GetTransactionId(), txn.state, txn.dbgInfo))
+				common.SHAssert(tp.GetPageID() == tp.GetPageID(), fmt.Sprintf("pageID data is inconsitent! %d != %d txnId:%d txnState:%d txn.dbgInfo:%s", tp.GetPageID(), tp.GetPageID(), txn.GetTransactionId(), txn.state, txn.dbgInfo))
 			}
 			if common.ActiveLogKindSetting&common.RDBOpFuncCall > 0 {
-				fmt.Printf("TablePage::GetTuple returned. pageId:%d GetPageId():%d txn.txn_id:%v txnState:%d dbgInfo:%s FreeSpacePointer:%d TupleCount:%d FreeSpaceRemaining:%d\n", tp.GetPageId(), tp.GetPageId(), txn.txn_id, txn.state, txn.dbgInfo, tp.GetFreeSpacePointer(), tp.GetTupleCount(), tp.getFreeSpaceRemaining())
+				fmt.Printf("TablePage::GetTuple returned. pageID:%d GetPageID():%d txn.txn_id:%v txnState:%d dbgInfo:%s FreeSpacePointer:%d TupleCount:%d FreeSpaceRemaining:%d\n", tp.GetPageID(), tp.GetPageID(), txn.txn_id, txn.state, txn.dbgInfo, tp.GetFreeSpacePointer(), tp.GetTupleCount(), tp.getFreeSpaceRemaining())
 			}
 		}()
 		if common.ActiveLogKindSetting&common.RDBOpFuncCall > 0 {
-			fmt.Printf("TablePage::GetTuple called. pageId:%d txn.txn_id:%v  dbgInfo:%s rid1:%v\n", tp.GetPageId(), txn.txn_id, txn.dbgInfo, *rid)
+			fmt.Printf("TablePage::GetTuple called. pageID:%d txn.txn_id:%v  dbgInfo:%s rid1:%v\n", tp.GetPageID(), txn.txn_id, txn.dbgInfo, *rid)
 		}
 	}
 
@@ -643,7 +643,7 @@ func (tp *TablePage) GetTupleFirstRID() *page.RID {
 	tupleCount := tp.GetTupleCount()
 	for ii := uint32(0); ii < tupleCount; ii++ {
 		if tp.GetTupleSize(ii) > 0 {
-			firstRID.Set(tp.GetPageId(), ii)
+			firstRID.Set(tp.GetPageID(), ii)
 			return firstRID
 		}
 
@@ -662,7 +662,7 @@ func (tp *TablePage) GetNextTupleRID(curRID *page.RID, isNextPage bool) *page.RI
 	}
 	for ii := init_val; ii < tupleCount; ii++ {
 		if tp.GetTupleSize(ii) > 0 {
-			nextRID.Set(tp.GetPageId(), ii)
+			nextRID.Set(tp.GetPageID(), ii)
 			return nextRID
 		}
 	}

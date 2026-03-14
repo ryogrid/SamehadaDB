@@ -42,7 +42,7 @@ func (transaction_manager *TransactionManager) Begin(txn *Transaction) *Transact
 		transaction_manager.next_txn_id += 1
 		txn_ret = NewTransaction(transaction_manager.next_txn_id)
 		transaction_manager.mutex.Unlock()
-		//fmt.Printf("new transactin GetPageId: %d\n", transaction_manager.next_txn_id)
+		//fmt.Printf("new transactin GetPageID: %d\n", transaction_manager.next_txn_id)
 	}
 
 	if transaction_manager.log_manager.IsEnabledLogging() {
@@ -84,12 +84,12 @@ func (transaction_manager *TransactionManager) Commit(catalog_ catalog_interface
 			if common.EnableDebug && common.ActiveLogKindSetting&common.CommitAbortHandleInfo > 0 {
 				fmt.Printf("TransactionManager::Commit handle DELETE write log. txn.txn_id:%v dbgInfo:%s rid1:%v\n", txn.txn_id, txn.dbgInfo, rid)
 			}
-			pageID := rid.GetPageId()
+			pageID := rid.GetPageID()
 			tpage := CastPageAsTablePage(table.bpm.FetchPage(pageID))
 			tpage.WLatch()
 			tpage.AddWLatchRecord(int32(txn.txn_id))
 			tpage.ApplyDelete(item.rid1, txn, transaction_manager.log_manager)
-			table.bpm.UnpinPage(tpage.GetPageId(), true)
+			table.bpm.UnpinPage(tpage.GetPageID(), true)
 			tpage.RemoveWLatchRecord(int32(txn.txn_id))
 			tpage.WUnlatch()
 		} else if item.wtype == UPDATE {
@@ -99,12 +99,12 @@ func (transaction_manager *TransactionManager) Commit(catalog_ catalog_interface
 
 			if *item.rid1 != *item.rid2 {
 				// tuple location change occured case
-				pageID := item.rid1.GetPageId()
+				pageID := item.rid1.GetPageID()
 				tpage := CastPageAsTablePage(table.bpm.FetchPage(pageID))
 				tpage.WLatch()
 				tpage.AddWLatchRecord(int32(txn.txn_id))
 				tpage.ApplyDelete(item.rid1, txn, transaction_manager.log_manager)
-				table.bpm.UnpinPage(tpage.GetPageId(), true)
+				table.bpm.UnpinPage(tpage.GetPageID(), true)
 				tpage.RemoveWLatchRecord(int32(txn.txn_id))
 				tpage.WUnlatch()
 			}
@@ -186,7 +186,7 @@ func (transaction_manager *TransactionManager) Abort(catalog_ catalog_interface.
 
 			// rollback record data
 			rid := item.rid1
-			pageID := rid.GetPageId()
+			pageID := rid.GetPageID()
 			tpage := CastPageAsTablePage(table.bpm.FetchPage(pageID))
 			tpage.WLatch()
 			tpage.ApplyDelete(item.rid1, txn, transaction_manager.log_manager)
@@ -212,7 +212,7 @@ func (transaction_manager *TransactionManager) Abort(catalog_ catalog_interface.
 				// tuple location change occured case
 
 				// rollback inserted record data
-				pageID := item.rid2.GetPageId()
+				pageID := item.rid2.GetPageID()
 				tpage := CastPageAsTablePage(table.bpm.FetchPage(pageID))
 				tpage.WLatch()
 				tpage.ApplyDelete(item.rid2, txn, transaction_manager.log_manager)
@@ -226,7 +226,7 @@ func (transaction_manager *TransactionManager) Abort(catalog_ catalog_interface.
 
 				rid := item.rid1
 				// Note that this also releases the lock when holding the page latch.
-				pageID := rid.GetPageId()
+				pageID := rid.GetPageID()
 				tpage := CastPageAsTablePage(table.bpm.FetchPage(pageID))
 				tpage.WLatch()
 				is_updated, err, _ := tpage.UpdateTuple(item.tuple1, nil, nil, item.tuple2, rid, txn, transaction_manager.lock_manager, transaction_manager.log_manager, true)
