@@ -106,9 +106,6 @@
     - a.k.a 2PL-NW, No-Wait 2PL
   - Avoidance of phantom problem is not implemented yet
     - So, current transaction isolation level is **"REPEATABLE READ"**
-  - And when table has Indexes, dirty read can be occured
-    - So, when you use Indexes, isolation level is **"DIRTY READ"**
-      - Why dirty read occurs is lack of consistency between table record and index entry at DELETE  
 - [ ] <del>Execution Planning from hard coded SQL like method call I/F (like some kind of embedded DB)</del>
 - [x] Execution of Query with SQL string
   - not supported multi queries on a request yet
