@@ -35,20 +35,18 @@ LIFO ordering is critical: if a transaction inserted a tuple and then updated it
 flowchart TD
     A[DELETE WriteRecord] --> B[table.RollbackDelete rid1]
     B --> C[Unset mark-delete flag on tuple]
-    C --> D{Indexes need rollback?}
-    D -->|Yes| E[For each index:<br/>idx.InsertEntry tuple1, rid1]
-    D -->|No| F[Done]
-    E --> F
+    C --> D[Done — index entries were never deleted]
 ```
 
-**Code** (lines 167-181):
+**Code** (lines 177-184):
 
 | Step | Line | Operation |
 |---|---|---|
-| 1 | 173 | `table.RollbackDelete(item.rid1, txn)` — unset MSB on tuple size, tuple visible again |
-| 2 | 179 | For each index: `idx.InsertEntry(item.tuple1, *item.rid1, txn)` — re-add index entry |
+| 1 | 179 | `table.RollbackDelete(item.rid1, txn)` — unset MSB on tuple size, tuple visible again |
 
-**Effect:** Restores the row to its pre-delete state. Both the tuple and all index entries are restored.
+Index entries were never removed (deletion is deferred to commit), so no index rollback is needed for DELETE.
+
+**Effect:** Restores the row to its pre-delete state. Index entries were never modified, so they remain correct.
 
 ### INSERT Rollback
 
@@ -176,16 +174,16 @@ The `NewSamehadaDB()` function (line 165) checks for non-graceful shutdown and c
 | **Page latching** | Acquires WLatch per page | Acquires WLatch per page |
 | **Concurrent access** | Other transactions may be running | Single-threaded recovery |
 
-## 5. Rollback and the Dirty-Read Bug
+## 5. Rollback and the Dirty-Read Fix
 
-During normal abort of a DELETE operation (lines 167-181):
+With the fix in place, `DeleteEntry` is deferred to the commit phase. During abort of a DELETE:
 
 1. `RollbackDelete(rid1)` — tuple becomes visible again.
-2. `InsertEntry(tuple1, rid1)` — index entry is re-added.
+2. No index rollback needed — index entries were never deleted.
 
-This correctly restores the index state. However, between the original `DeleteEntry` (in the executor) and this rollback `InsertEntry`, **a concurrent transaction may have already observed the missing index entry** — the dirty read has already occurred. The rollback fixes the persistent state but cannot undo the anomaly observed by concurrent transactions.
+Since index entries remain present throughout the transaction's lifetime, concurrent transactions always find the entry via index scan. They may encounter a false abort (mark-delete detected by `GetTuple`), but **dirty reads no longer occur**.
 
-See [04_tuple_index_consistency.md](04_tuple_index_consistency.md) for the full timing analysis.
+See [04_tuple_index_consistency.md](04_tuple_index_consistency.md) for the full analysis.
 
 ## 6. Cross-References
 

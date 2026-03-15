@@ -15,37 +15,38 @@ This document catalogs the anomalies that can and cannot occur, with concrete sc
 
 **What SS2PL does NOT provide in this implementation:**
 - **Predicate/gap locking**: Only RID-level locks exist. No protection against phantom inserts.
-- **Index-level isolation**: Index entries are modified during execution, not at commit. The lock protocol protects tuples but not index entries.
+- **Index-level isolation**: For INSERT and UPDATE, index entries are modified during execution. For DELETE, index entry deletion is now deferred to commit. Predicate/gap locking is still absent.
 
 ## 3. Anomaly Analysis Matrix
 
 | Anomaly | Sequential Scan | Index Scan | Notes |
 |---|---|---|---|
 | **Dirty Write** | Prevented | Prevented | X-lock on RID serializes writes |
-| **Dirty Read** | Prevented (false abort instead) | **Possible** (DELETE) | Index entry removed before commit |
+| **Dirty Read** | Prevented (false abort instead) | **Prevented** (fixed) | Index entry deletion deferred to commit |
 | **Non-Repeatable Read** | Prevented | Prevented | S-lock held until txn end |
 | **Phantom Read** | **Possible** | **Possible** | No predicate locking |
 | **Write Skew** | Prevented | Prevented | X-lock serializes conflicting writes |
 | **Lost Update** | Prevented | Prevented | X-lock on RID before write |
 
-## 4. Dirty Read at DELETE (Index Scan)
+## 4. Dirty Read at DELETE (Index Scan) — Fixed
 
-> ⚠️ **Known Issue**
+> ✅ **Fixed**
 
-**Scenario:**
+Previously, `DeleteEntry` was called at execution time, allowing concurrent index scans to observe uncommitted deletes. This was fixed by deferring `DeleteEntry` to `TransactionManager.Commit()`.
+
+**Current behavior (after fix):**
 
 | Time | Txn A | Txn B (index scan) |
 |---|---|---|
 | T1 | `MarkDelete(rid)` — tuple marked | |
-| T2 | `DeleteEntry(key, rid)` — index entry removed | |
-| T3 | | `ScanKey(key)` — entry NOT FOUND |
-| T4 | | Row invisible — **dirty read** |
-| T5 | `ABORT` — `InsertEntry` restores index | |
-| T6 | | Txn B already observed uncommitted state |
+| T2 | (index entry NOT removed — deferred to commit) | |
+| T3 | | `ScanKey(key)` — entry FOUND |
+| T4 | | `GetTuple(rid)` — mark-delete detected → false abort |
+| T5 | `ABORT` — `RollbackDelete` restores tuple | |
 
-**Why it happens:** `DeleteEntry` is called at executor time (not commit time). The index entry vanishes before the transaction commits.
+Txn B observes a false abort (same as sequential scan behavior), not a dirty read.
 
-**Why sequential scan is safe:** `GetTuple` checks the mark-delete flag and aborts the reader if another transaction marked the tuple. This is a **false abort** (not a dirty read) — pessimistic but safe.
+**Why sequential scan is safe (unchanged):** `GetTuple` checks the mark-delete flag and aborts the reader if another transaction marked the tuple. This is a **false abort** (not a dirty read) — pessimistic but safe. Index scans now behave consistently with sequential scans.
 
 **Full analysis:** [04_tuple_index_consistency.md](04_tuple_index_consistency.md)
 
@@ -116,7 +117,7 @@ The upgrade check (`lock_manager.go:234-236`) ensures only a sole shared-lock ho
 
 | Gap | Severity | Root Cause | Mitigation |
 |---|---|---|---|
-| **Dirty read at DELETE (index)** | High | `DeleteEntry` at executor time, not commit time | Defer `DeleteEntry` to commit phase |
+| ~~Dirty read at DELETE (index)~~ | ~~High~~ | Fixed | `DeleteEntry` deferred to commit phase |
 | **Phantom read** | Medium | No predicate/gap locking | Add predicate locks or use MVCC |
 | **False aborts** | Low | Mark-delete detected by concurrent reader | `RequestManager` retry with priority re-queue |
 
