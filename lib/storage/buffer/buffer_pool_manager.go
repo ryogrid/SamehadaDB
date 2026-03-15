@@ -5,13 +5,14 @@ package buffer
 
 import (
 	"fmt"
+	"sort"
+	"sync"
+
 	"github.com/ryogrid/SamehadaDB/lib/common"
 	"github.com/ryogrid/SamehadaDB/lib/recovery"
 	"github.com/ryogrid/SamehadaDB/lib/storage/disk"
 	"github.com/ryogrid/SamehadaDB/lib/storage/page"
 	"github.com/ryogrid/SamehadaDB/lib/types"
-	"sort"
-	"sync"
 )
 
 // BufferPoolManager represents the buffer pool manager
@@ -22,19 +23,9 @@ type BufferPoolManager struct {
 	freeList         []FrameID
 	reUsablePageList []types.PageID
 	pageTable        map[types.PageID]FrameID
-	logManager      *recovery.LogManager
+	logManager       *recovery.LogManager
 	mutex            *sync.Mutex
-}
-
-// object pool of byte arry
-var pool = &sync.Pool{
-	New: func() interface{} {
-		return make([]byte, common.PageSize)
-	},
-}
-
-func GetBuffer() []byte {
-	return pool.Get().([]byte)
+	pool             *sync.Pool
 }
 
 func memClr(data []byte) {
@@ -43,9 +34,13 @@ func memClr(data []byte) {
 	}
 }
 
-func ReturnBuffer(page *page.Page) {
+func (b *BufferPoolManager) GetBuffer() []byte {
+	return b.pool.Get().([]byte)
+}
+
+func (b *BufferPoolManager) ReturnBuffer(page *page.Page) {
 	memClr(page.Data()[:])
-	pool.Put(page.Data()[:])
+	b.pool.Put(page.Data()[:])
 }
 
 // FetchPage fetches the requested page from the buffer pool.
@@ -105,13 +100,13 @@ func (b *BufferPoolManager) FetchPage(pageID types.PageID) *page.Page {
 				common.ShPrintf(common.DebugInfo, "FetchPage: page=%d is removed from pageTable.\n", currentPage.GetPageID())
 			}
 			delete(b.pageTable, currentPage.GetPageID())
-			ReturnBuffer(currentPage)
+			b.ReturnBuffer(currentPage)
 		}
 	}
 
 	//data := make([]byte, common.PageSize)
 	//data := directio.AlignedBlock(common.PageSize)
-	data := GetBuffer()
+	data := b.GetBuffer()
 	if common.EnableDebug && common.ActiveLogKindSetting&common.CacheOutInInfo > 0 {
 		fmt.Printf("BPM::FetchPage Cache in occurs! requested pageID:%d\n", pageID)
 	}
@@ -266,7 +261,7 @@ func (b *BufferPoolManager) NewPage() *page.Page {
 				common.ShPrintf(common.DebugInfo, "NewPage: page=%d is removed from pageTable.\n", currentPage.GetPageID())
 			}
 			delete(b.pageTable, currentPage.GetPageID())
-			ReturnBuffer(currentPage)
+			b.ReturnBuffer(currentPage)
 		}
 	}
 
@@ -283,7 +278,7 @@ func (b *BufferPoolManager) NewPage() *page.Page {
 	}
 
 	var pageData *[common.PageSize]byte
-	pageData = (*[common.PageSize]byte)(GetBuffer())
+	pageData = (*[common.PageSize]byte)(b.GetBuffer())
 	pg := page.NewEmpty(pageID, pageData)
 
 	b.pageTable[pageID] = *frameID
@@ -437,5 +432,9 @@ func NewBufferPoolManager(poolSize uint32, DiskManager disk.DiskManager, logMana
 	}
 
 	replacer := NewClockReplacer(poolSize)
-	return &BufferPoolManager{DiskManager, pages, replacer, freeList, make([]types.PageID, 0), make(map[types.PageID]FrameID), logManager, new(sync.Mutex)}
+	return &BufferPoolManager{DiskManager, pages, replacer, freeList, make([]types.PageID, 0), make(map[types.PageID]FrameID), logManager, new(sync.Mutex), &sync.Pool{
+		New: func() interface{} {
+			return make([]byte, common.PageSize)
+		},
+	}}
 }
