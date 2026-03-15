@@ -61,7 +61,7 @@
   - $ git clone https://github.com/ryogrid/SamehadaDB.git
   - $ cd SamehadaDB/lib
   - $ go clean -testcache; go test ./... -short -v
-    - when you want to execute all, don't pass -short option
+    - If you want to execute all, don't pass -short option
 - Build server binary
   - $ cd SamehadaDB/server
   - $ go build -o sdb-server 
