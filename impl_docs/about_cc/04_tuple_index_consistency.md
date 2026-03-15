@@ -8,7 +8,7 @@ SamehadaDB executors perform **two separate steps** for each DML operation:
 1. **Tuple mutation** (via `TableHeap`): modifies the physical tuple on a table page.
 2. **Index mutation** (via index wrapper): updates the index to reflect the new tuple state.
 
-These two steps are **not atomic** — there is a window between them where the tuple and index are inconsistent. For INSERT and UPDATE, this window is benign. For DELETE, it causes a **dirty read anomaly** when concurrent transactions use index scans.
+These two steps are **not atomic** — there is a window between them where the tuple and index are inconsistent. For INSERT and UPDATE, this window is benign. For DELETE, this previously caused a **dirty read anomaly** when concurrent transactions used index scans. This has been fixed by deferring `DeleteEntry` to the commit phase.
 
 ## 2. INSERT Timing — Safe
 
@@ -92,7 +92,7 @@ sequenceDiagram
 - After `UpdateEntry` releases the lock, a scan will find the new entry. But `GetTuple` on the new RID will fail because Txn A still holds the X-lock → Txn B aborted. **No dirty read.**
 - The window between `UpdateTuple` and `UpdateEntry` (tuple updated but index still points to old state) could allow a scan to find the old entry and read the new tuple data. The X-lock on the RID prevents this.
 
-## 4. DELETE Timing — **UNSAFE**
+## 4. DELETE Timing — **Fixed (Previously UNSAFE)**
 
 **File:** `lib/execution/executors/delete_executor.go`
 
@@ -102,42 +102,18 @@ Step 1 (line 55):  tableMetadata.Table().MarkDelete(rid, oid, txn, false)
                    → exclusive lock acquired/upgraded on rid
                    → write record added to txn.writeSet
 
-Step 2 (lines 65-73): for each index:
-                       idx.DeleteEntry(tuple, rid, txn)
-                       → index entry REMOVED IMMEDIATELY
+Step 2: Index entry deletion is deferred to commit phase
+        (TransactionManager.Commit() calls DeleteEntry after ApplyDelete)
 ```
 
-> ⚠️ **Known Issue: Dirty Read at DELETE**
-> The index entry is removed during execution (Step 2), NOT at commit time. A concurrent transaction using an index scan will not find the entry, effectively observing an uncommitted delete. This violates Read Committed isolation.
+> ✅ **Fixed: Index entry deletion deferred to commit phase**
+> Previously, `DeleteEntry` was called here during execution, allowing dirty reads via index scan.
+> Now, the executor only calls `MarkDelete`. Index entries are removed in `TransactionManager.Commit()` after `ApplyDelete`.
+> This ensures the index entry remains visible until the transaction commits, preventing dirty reads.
 
-### Scenario A: Index Scan Before DeleteEntry
+### Current Behavior (After Fix)
 
-```mermaid
-sequenceDiagram
-    participant TxnA as Txn A (DELETE)
-    participant Table as TablePage
-    participant Index as Index
-    participant TxnB as Txn B (SELECT via index)
-
-    TxnB->>Index: ScanKey(key)
-    Note over Index: Finds rid (entry still exists)
-
-    TxnA->>Table: MarkDelete(rid)
-    Note over Table: MSB set on tuple size
-
-    TxnA->>Index: DeleteEntry(tuple, rid)
-    Note over Index: Entry removed
-
-    TxnB->>Table: GetTuple(rid)
-    Note over Table: Tuple is mark-deleted
-    Note over Table: table_page.go:623 → Txn B ABORTED
-```
-
-**What happens:** Txn B's index iterator obtained the RID before DeleteEntry removed it. When Txn B reads the tuple, it finds the mark-deleted flag. `GetTuple` (`table_page.go:611-631`) detects this and **aborts Txn B** — a false abort (Txn A hasn't committed, so the delete might be rolled back).
-
-**Impact:** Txn B is unnecessarily aborted. Not a data integrity issue, but causes spurious failures. The `RequestManager` (`lib/samehada/request_manager.go`) mitigates this by re-queuing aborted queries at the head.
-
-### Scenario B: Index Scan After DeleteEntry — **The Dirty Read**
+With the fix in place, all concurrent index scan scenarios result in **false aborts** (not dirty reads), consistent with sequential scan behavior:
 
 ```mermaid
 sequenceDiagram
@@ -148,26 +124,33 @@ sequenceDiagram
 
     TxnA->>Table: MarkDelete(rid)
     Note over Table: MSB set, X-lock on rid
-
-    TxnA->>Index: DeleteEntry(tuple, rid)
-    Note over Index: Entry REMOVED
+    Note over Index: Index entry still present (deletion deferred)
 
     TxnB->>Index: ScanKey(key)
-    Note over Index: Entry NOT FOUND
-    Note over TxnB: Row invisible — dirty read!
-    Note over TxnB: Txn A has NOT committed
+    Note over Index: Entry FOUND (not yet deleted)
 
-    Note over TxnA: Later: Txn A aborts → rollback<br/>InsertEntry restores index
-    Note over TxnB: But Txn B already observed<br/>the uncommitted delete
+    TxnB->>Table: GetTuple(rid)
+    Note over Table: Tuple is mark-deleted by another txn
+    Note over Table: table_page.go:623 → Txn B ABORTED (false abort)
+
+    Note over TxnA: Later: Commit → ApplyDelete + DeleteEntry
+    Note over TxnA: Or: Abort → RollbackDelete (no index rollback needed)
 ```
 
-**What happens:** Txn B's index scan occurs after `DeleteEntry` has removed the entry. The row is completely invisible to Txn B via the index. If Txn A later aborts, the row should have been visible — Txn B observed an uncommitted delete.
+**What happens:** Txn B always finds the index entry (it was never removed during execution). When Txn B reads the tuple via `GetTuple`, it detects the mark-delete flag from another transaction and is **aborted** (false abort). This is the same behavior as sequential scan — pessimistic but safe. No dirty read occurs.
 
-**Root cause:** `DeleteEntry` is called at executor time, not deferred to commit. The comment at `delete_executor.go:62` says "removing index entry is done at commit phase because delete operation uses marking technique" — but the code actually removes the index entry immediately.
+**Impact:** False aborts reduce throughput but do not violate isolation. The `RequestManager` (`lib/samehada/request_manager.go`) mitigates this by re-queuing aborted queries at the head.
 
-### Scenario C: Sequential Scan (No Index)
+### Historical: Previous Scenarios (Before Fix)
 
-When using a sequential scan (no index), the situation is different:
+Before the fix, two problematic scenarios existed:
+
+- **Scenario A (false abort):** Index scan obtained the RID before `DeleteEntry` ran, then `GetTuple` detected mark-delete → false abort. This scenario still occurs with the fix (same outcome).
+- **Scenario B (dirty read):** Index scan occurred after `DeleteEntry` removed the entry → row invisible via index → uncommitted delete observed. **This scenario is now impossible** because the index entry is never removed during execution.
+
+### Sequential Scan (No Index) — Unchanged
+
+When using a sequential scan (no index), the behavior is unchanged:
 
 1. `GetNextTupleRID` iterates through all slots on each page.
 2. For each RID, `GetTuple` is called.
@@ -175,7 +158,7 @@ When using a sequential scan (no index), the situation is different:
    - If marked by **same** transaction: returns the tuple (transaction can see its own deletes).
    - If marked by **another** transaction: **aborts the reading transaction** (line 623).
 
-This means sequential scans don't produce dirty reads — they produce **false aborts** instead. The reading transaction is forced to abort when it encounters a mark-deleted tuple from another uncommitted transaction.
+Sequential scans produce **false aborts**, not dirty reads. With the fix, index scans now behave consistently with sequential scans.
 
 ## 5. Reproduction Conditions
 
@@ -190,22 +173,22 @@ The dirty read at DELETE (Scenario B) occurs when **all** of the following are t
 - `delete_executor.go:55` (`MarkDelete`) and `delete_executor.go:71` (`DeleteEntry`)
 - Any executor or scan that uses index-based lookup: `index_join_executor.go`, `selection_executor.go` with index predicate, etc.
 
-## 6. Why Commit-Time Index Deletion Would Fix This
+## 6. How Commit-Time Index Deletion Fixes This
 
-If `DeleteEntry` were deferred to the commit phase (alongside `ApplyDelete`), the index entry would remain present until the transaction commits:
+`DeleteEntry` has been deferred to the commit phase (alongside `ApplyDelete`). The index entry remains present until the transaction commits:
 
-- Txn B's index scan would still find the entry.
-- Txn B's `GetTuple` would attempt `LockShared`, which would fail (Txn A holds X-lock) → Txn B aborted with No-Wait, but **not** a dirty read.
-- If Txn A aborts, the entry was never removed from the index — no inconsistency.
+- Txn B's index scan always finds the entry.
+- Txn B's `GetTuple` detects the mark-delete flag from another transaction → Txn B aborted (false abort), but **not** a dirty read.
+- If Txn A aborts, the entry was never removed from the index — no inconsistency, and no index rollback needed.
 
-The trade-off: keeping stale index entries until commit increases the chance of false aborts (Scenario A), but eliminates dirty reads (Scenario B).
+The trade-off: keeping index entries until commit increases the chance of false aborts, but eliminates dirty reads entirely.
 
 ## 7. Summary Table
 
 | Operation | Tuple Step | Index Step | Window Risk | Dirty Read? |
 |---|---|---|---|---|
 | **INSERT** | `InsertTuple` (line 42) | `InsertEntry` (line 54) | Row invisible via index before InsertEntry | No — valid serialization |
-| **DELETE** | `MarkDelete` (line 55) | `DeleteEntry` (line 71) | Row invisible via index after DeleteEntry | **Yes — uncommitted delete visible** |
+| **DELETE** | `MarkDelete` (line 55) | `DeleteEntry` (deferred to commit) | Entry remains until commit | No — fixed |
 | **UPDATE** | `UpdateTuple` (line 64) | `UpdateEntry` (line 90) | Atomic under exclusive lock | No — X-lock prevents read |
 
 ## 8. Cross-References

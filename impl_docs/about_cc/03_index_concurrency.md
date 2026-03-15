@@ -163,9 +163,9 @@ This avoids `sync.RWMutex` re-entrance (Go's `sync.RWMutex` does not support re-
 - **Concurrent scans** during inserts/deletes: Safe — RLock at wrapper allows both.
 - **UpdateEntry atomicity**: Safe — exclusive Lock prevents scans from seeing intermediate state (entry deleted but not yet re-inserted).
 
-### Unsafe Operations
-> ⚠️ **Known Issue: DeleteEntry exposes uncommitted state**
-> `DeleteEntry` removes the index entry immediately during execution (not at commit). A concurrent `ScanKey` after `DeleteEntry` but before commit will not find the entry — an uncommitted delete is visible through the index. See [04_tuple_index_consistency.md](04_tuple_index_consistency.md) for the full dirty-read analysis.
+### Previously Unsafe Operations (Fixed)
+> ✅ **Fixed: DeleteEntry no longer exposes uncommitted state**
+> Previously, `DeleteEntry` was called at execution time, exposing uncommitted deletes to concurrent index scans. This was fixed by deferring `DeleteEntry` to the commit phase (`TransactionManager.Commit()`). Index entries now remain present until the deleting transaction commits. See [04_tuple_index_consistency.md](04_tuple_index_consistency.md) for details.
 
 ## 9. Cross-References
 

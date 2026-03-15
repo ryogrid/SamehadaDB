@@ -122,13 +122,14 @@ sequenceDiagram
 
     Client->>TM: Commit(txn)
     TM->>Page: WLatch → ApplyDelete (for DELETEs) → WUnlatch
+    TM->>Index: DeleteEntry (for DELETEs, deferred from executor)
     TM->>LM: Unlock(txn, allRIDs)
 ```
 
 ## 6. Known Issues
 
-> ⚠️ **Known Issue: Dirty Read at DELETE via Index**
-> When a transaction deletes a row, the index entry is removed immediately (before commit). A concurrent transaction using an index scan may not find the entry, observing an uncommitted delete. See [04_tuple_index_consistency.md](04_tuple_index_consistency.md) for full analysis.
+> ✅ **Fixed: Dirty Read at DELETE via Index**
+> Previously, `DeleteEntry` was called at execution time (before commit), allowing concurrent index scans to observe uncommitted deletes. This was fixed by deferring `DeleteEntry` to the commit phase in `TransactionManager.Commit()`. See [04_tuple_index_consistency.md](04_tuple_index_consistency.md) for the analysis and fix details.
 
 > ⚠️ **Known Issue: Crash Recovery Does Not Restore Indexes**
 > `LogRecovery.Undo()` restores only table data — index entries are not updated. After a non-graceful shutdown, indexes must be fully rebuilt. See [06_rollback_handling.md](06_rollback_handling.md) for details.

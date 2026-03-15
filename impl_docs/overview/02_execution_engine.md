@@ -179,7 +179,7 @@ Brute-force cross product with predicate filtering.
 **File:** `lib/execution/executors/delete_executor.go`
 
 - Wraps a child executor (typically a scan) that identifies tuples to delete.
-- For each tuple from the child: calls `MarkDelete` on the table heap, then calls `DeleteEntry` on every index.
+- For each tuple from the child: calls `MarkDelete` on the table heap. Index entry deletion (`DeleteEntry`) is deferred to the commit phase (`TransactionManager.Commit()`) to prevent dirty reads via index scan.
 - Checks if the child executor set the transaction to `ABORTED` before proceeding.
 
 ### UpdateExecutor
